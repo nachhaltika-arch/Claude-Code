@@ -99,65 +99,12 @@ const icons = {
 };
 
 // ── Nav structure ──────────────────────────────────────────────
-
-const NAV_SECTIONS = [
-  {
-    title: 'Übersicht',
-    items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-    ],
-  },
-  {
-    title: 'Sales',
-    items: [
-      { label: 'Deals',         path: '/app/deals',     icon: 'chart' },
-      { label: 'Kampagnen',     path: '/app/campaigns', icon: 'chart', adminOnly: true },
-      { label: 'Betriebe',      path: '/app/betriebe', icon: 'users', activePaths: ['/app/betriebe', '/app/betriebe/'] },
-      { label: 'Domain Import', path: '/app/import',    icon: 'users' },
-      { label: 'HWK Scraper',   path: '/app/scraper',   icon: 'docCheck', adminOnly: true },
-      { label: 'Export',        path: '/app/export',    icon: 'docCheck' },
-      { label: 'Website Audit', path: '/app/audit',     icon: 'docCheck' },
-      { label: 'Newsletter',    path: '/app/newsletter', icon: 'newspaper' },
-    ],
-  },
-  {
-    title: 'Delivery',
-    items: [
-      { label: 'Projektpipeline', path: '/app/projektpipeline', icon: 'chart', exactMatch: true },
-      { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
-    ],
-  },
-  {
-    title: 'Qualität',
-    items: [
-      { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
-      { label: 'Produktentwicklung', path: '/app/product',        icon: 'gear', adminOnly: true },
-      { label: 'Produkteditor',      path: '/app/product-editor', icon: 'gear', adminOnly: true },
-      { label: 'QR-Generator',       path: '/app/qr-generator',  icon: 'qr',   adminOnly: true },
-    ],
-  },
-  {
-    title: 'Website',
-    items: [
-      { label: 'Seiten-Manager', path: '/app/pages', icon: 'newspaper', adminOnly: true },
-    ],
-  },
-  // Inhalte / Akademie — ausgeblendet, wird später aktiviert
-  // {
-  //   title: 'Inhalte',
-  //   items: [
-  //     { label: 'Kurse', path: '/app/courses', icon: 'book' },
-  //     { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-  //     { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
-  //   ],
-  // },
-  {
-    title: 'Einstellungen',
-    items: [
-      { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
-    ],
-  },
-];
+//
+// Hier stand bis 2026-08-17 ein `NAV_SECTIONS` mit sieben Gruppen — nie
+// importiert, nie gerendert. Die gerenderte Navigation steht weiter unten
+// in `SidebarNav` und wich inhaltlich ab. Entfernt zusammen mit
+// `components/Sidebar.jsx`, der dritten toten Definition: Wer beim
+// Aufraeumen die falsche findet, aendert die falsche Datei.
 
 const PAGE_NAMES = {
   '/app/dashboard': 'Dashboard',
@@ -166,7 +113,6 @@ const PAGE_NAMES = {
   '/app/campaigns': 'Kampagnen',
   '/app/sales': 'Vertriebspipeline',
   '/app/projektpipeline': 'Projektpipeline',
-  '/app/customers': 'Kunden',
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademy',
   '/app/courses': 'Kurse',
@@ -929,7 +875,12 @@ export default function AppLayout() {
 
   useEffect(() => {
     const projectMatch = location.pathname.match(/^\/app\/projects\/(\d+)/);
-    const leadMatch = location.pathname.match(/^\/app\/leads\/(\d+)/);
+    // Hiess `/app/leads/(\d+)` und traf damit seit der Umbenennung am 16.08.
+    // nichts mehr: Die Einzelansicht liegt unter `/app/betriebe/:id`, die alte
+    // Adresse leitet nur noch weiter. Folge war kein Fehler, sondern eine
+    // Auslassung — in der Brotkrumenleiste stand „Betriebe" ohne den Namen
+    // des Betriebs, auf dessen Seite man gerade war.
+    const leadMatch = location.pathname.match(/^\/app\/betriebe\/(\d+)/);
     if (projectMatch) {
       setProjectName(null);
       setProjectLeadId(null);
@@ -966,11 +917,11 @@ export default function AppLayout() {
         { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/betriebe/${projectLeadId}` : null },
       ];
     }
-    const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
+    const leadMatch = path.match(/^\/app\/betriebe\/(\d+)/);
     if (leadMatch) {
       return [
         { label: 'Betriebe', path: '/app/betriebe' },
-        { label: leadName || `Lead #${leadMatch[1]}` },
+        { label: leadName || `Betrieb #${leadMatch[1]}` },
       ];
     }
     if (path.startsWith('/app/settings/')) {
@@ -998,7 +949,6 @@ export default function AppLayout() {
     // Projektpipeline. Der sichtbarste Teil der alten Verwechslung.
     '/app/projektpipeline': null,
     '/app/audit': { label: '+ Neues Audit', action: () => {} },
-    '/app/customers': null,
   };
   const cta = ctaMap[location.pathname];
 

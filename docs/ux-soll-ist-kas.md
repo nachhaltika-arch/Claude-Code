@@ -293,13 +293,16 @@ Aufruf Zeit · **P2** = Politur.
 |---|---|---|
 | UX-01 | Nav-Eintrag „Leads → Pipeline" öffnet eine Seite mit dem Titel **„💼 Deals"** — zwei Wörter für einen Bildschirm | `/app/deals`, `AppLayout.jsx:360` |
 | UX-01b | Adresse `/app/leads` und Komponente `LeadPipeline` liefern die **Projekt**pipeline. Menü korrekt, Adresse und Codename nicht | `App.jsx:192` |
-| UX-02 | **Zwei Listen** für dieselben Firmen: „Unternehmen" (61) und „Kunden" (50), verschiedene Sprache und Umfang | `/app/companies`, `/app/customers` |
+| UX-02 | **Zwei Listen** für dieselben Firmen: „Unternehmen" (61) und „Kunden" (50), verschiedene Sprache und Umfang. **Der Unterschied war am 2026-08-17 geklärt und ist kein Filter:** „Kunden" rief `/api/leads/` ohne `limit` auf und bekam die Voreinstellung des Servers — 50. Elf Betriebe fehlten still, und jede Kennzahl der Seite („Gesamt", „Mit Score", „Ø Score") war über die abgeschnittene Liste gerechnet | `/app/companies`, `/app/customers`, `routers/leads.py:249` |
 | UX-03 | Die besser gestaltete der beiden Listen hat **keinen Menüeintrag** | `/app/customers` |
 | UX-04 | **Vier Namen** für ein Objekt: Lead, Unternehmen, Kunde, Kundenkartei | durchgängig |
 | UX-05 | **„Invalid Date"** als sichtbarer Text | Kundenkartei, „Letzter Audit" |
 | UX-06 | **Protokollzeile im Notizfeld des Nutzers.** Kein Anzeigefehler: `lead_enrichment.py:125` schreibt sie in `lead.notes` und stellt sie dem voran, was ein Mensch dort geschrieben hat | `services/lead_enrichment.py:125`, `LeadProfile.jsx:1379` |
 | UX-06b | Zwei Punktzahlen ohne Unterscheidung — 40 (Lead) und 37 (Audit) unbeschriftet nebeneinander | Kundenkartei, Übersicht |
 | UX-29 | `components/Sidebar.jsx` ist eine **zweite, tote** Navigationsdefinition — nirgends importiert, inhaltlich abweichend. Wer sie beim Aufräumen findet, ändert die falsche Datei | `components/Sidebar.jsx` |
+| UX-30 | *(2026-08-17, beim Zusammenlegen gefunden)* Und eine **dritte** tote Navigation: `NAV_SECTIONS` stand in derselben Datei wie die echte, war nie importiert und wich inhaltlich ab | `AppLayout.jsx:103` |
+| UX-31 | *(2026-08-17)* Die Liste „Kunden" führte eine **eigene Auszeichnungsskala** 85/70/50/30 und zeigte sie als Kürzel Pt/Go/Si/Br. Genau diese Staffelung war zugunsten der Backend-Skala 95/85/70/50 zurückgezogen worden — sie hatte hier überlebt. Ein Betrieb mit 86 Punkten trug in der Liste „Pt", während sein Bericht „Homepage Standard Gold" sagt | `Customers.jsx:14`, gegen `utils/homepageStandard.js:15` |
+| UX-32 | *(2026-08-17)* Nach der Umbenennung suchte die Brotkrumenleiste weiter `/app/leads/:id`. Auf der Seite eines Betriebs stand darum nur „Betriebe" — **ohne den Namen des Betriebs**, auf dem man war | `AppLayout.jsx:932, 969` |
 | UX-07 | Rohe Datenbankwerte als Status: `new`, `won`, `proposal_sent`, `domain_import` | `/app/companies` |
 | UX-08 | Widget meldet **Mailversand-Erfolg auch bei Fehlschlag** | Widget-Ergebnis |
 | UX-09 | Prozentspalte **ohne Überschrift** — korrekte Zahl, falscher Schluss | Dashboard, „Leads nach Herkunft" |

@@ -10,7 +10,6 @@ import Projektpipeline from './pages/Projektpipeline';
 import ProjectDetail from './pages/ProjectDetail';
 import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
-import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
 import MassExport from './pages/MassExport';
 import Tickets from './pages/Tickets';
@@ -40,7 +39,7 @@ import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
-import Companies from './pages/Companies';
+import Betriebe from './pages/Betriebe';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
@@ -202,7 +201,7 @@ function App() {
             {/* Betriebe — das Objekt heisst seit 2026-08-16 ueberall so, auch
               * in der Adresszeile. Die alten Adressen leiten weiter: Es gibt
               * Lesezeichen, geteilte Links und Mails, die darauf zeigen. */}
-            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
+            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Betriebe /></PrivateRoute>} />
             <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="companies" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
@@ -220,7 +219,13 @@ function App() {
             <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
-            <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
+            {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere
+              * Gestaltung, aber ohne Menueeintrag und mit nur 50 der 61
+              * Betriebe, weil das `limit` fehlte. Zusammengelegt am 2026-08-17;
+              * die Adresse leitet weiter, es gibt Lesezeichen darauf.
+              * Die Einzelansicht `customers/:id` bleibt — sie zeigt etwas
+              * anderes als die Liste. */}
+            <Route path="customers" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
             <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />

@@ -6,10 +6,10 @@
 >
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
 >
-> **Stand 2026-08-16, Abend:** Paket 1 ist abgeschlossen (6 Punkte, davon 2
-> Nachträge aus der gemeinsamen Sichtprüfung). Alles liegt auf `staging` und
-> ist dort geprüft — **produktiv ist nichts davon**, das geht mit dem nächsten
-> Sammel-PR. Weiter geht es mit **Paket 2**.
+> **Stand 2026-08-17:** Paket 1 und **Paket 2** sind abgeschlossen. Paket 2
+> brachte drei ungesuchte Funde mit (UX-30 bis UX-32), alle erledigt. Alles
+> liegt auf `staging` — **produktiv ist nichts davon**, das geht mit dem
+> nächsten Sammel-PR. Weiter geht es mit **Paket 3**.
 
 ---
 
@@ -101,29 +101,89 @@ belegt. Dazu ein neuer Fund beim Nachsehen: UX-29.
 
 ---
 
-## Paket 2 — Eine Liste statt zwei
+## Paket 2 — Eine Liste statt zwei · ✅ ABGESCHLOSSEN 2026-08-17
 
 *„Kunden" ist die bessere Gestaltung. Beide zu pflegen kostet mehr, als eine
 abzulösen.*
 
-- [ ] **UX-02** · **M** · Zwei Listen derselben Firmen zusammenführen:
-      „Unternehmen" (`/app/companies`, 61 Einträge, rohe Statuswerte) und
-      „Kunden" (`/app/customers`, 50 Einträge, deutsche Labels, Filterchips,
-      Kennzahlen).
-      **Vorher klären:** Warum 61 gegen 50? Wenn „Kunden" filtert, muss der
-      Filter sichtbar sein — sonst wirkt die Liste unvollständig.
-      *Prüfung:* Eine Liste, eine Zahl, ein Filter, der benannt ist.
+- [x] **UX-02** · **M** · ~~Zwei Listen derselben Firmen zusammenführen~~
+      **erledigt 2026-08-17.**
 
-- [ ] **UX-03** · **S** · Der bessere der beiden Bildschirme hat **keinen
-      Menüeintrag** und ist nur über die Adresse erreichbar.
-      → `AppLayout.jsx:355 ff.` (Gruppe `leads`)
-      *Prüfung:* Jeder erreichbare Bildschirm hat einen Weg im Menü — oder wird
-      abgeschaltet.
+      **Die Vorfrage zuerst — warum 61 gegen 50? Es war kein Filter.** Beide
+      Seiten riefen dieselbe Schnittstelle auf, nur eine nannte eine Obergrenze:
+      „Unternehmen" `/api/leads/?limit=1000`, „Kunden" `/api/leads/` — und bekam
+      damit die Voreinstellung des Servers, **50** (`routers/leads.py:249`).
+      Elf Betriebe fehlten still. Schlimmer als die Lücke war, was darüber stand:
+      Die Kacheln „Gesamt", „Mit Score" und „Ø Score" rechneten über die
+      abgeschnittene Liste. **Eine abgeschnittene Zahl, die „Gesamt" heißt, ist
+      schlechter als gar keine** — sie sieht nicht aus wie eine Lücke.
 
-- [ ] **UX-29** · **S** · *(offen)* `components/Sidebar.jsx` ist eine **zweite, tote**
-      Navigationsdefinition — nirgends importiert, aber inhaltlich abweichend.
-      Wer sie beim Aufräumen findet, ändert die falsche Datei.
-      *Prüfung:* Datei gelöscht, Frontend baut, 98 Tests grün.
+      **Gemacht:** Ein Bildschirm, `/app/betriebe` — die Gestaltung von „Kunden"
+      mit den Funktionen von „Unternehmen":
+      Kennzahlen, Statusfilter, Suche und Sortierung von dort; Anlegen-Dialog
+      und Quellenfilter von hier. `/app/customers` und `/app/companies` leiten
+      weiter (es gibt Lesezeichen). `Companies.jsx` und `Customers.jsx` gelöscht.
+      Die Listenlogik liegt in **`utils/betriebeListe.js`** und ist damit prüfbar
+      — sie lag vorher doppelt vor und lief auseinander.
+
+      **Der Filter ist benannt:** Über der Liste steht „12 von 61 Betrieben ·
+      Suche: … · Status: … · Quelle: …" mit einem Knopf „Filter zurücksetzen".
+      Ist nichts gefiltert, steht dort schlicht „61 Betriebe" — keine Zahl ohne
+      ihren Bezug.
+
+      **Der Quellenfilter kommt jetzt aus den Daten.** Vorher standen dort drei
+      fest eingetragene Optionen, während Quellen Freitext sind
+      (Kampagnennamen). Alle übrigen fehlten: Man konnte nicht nach ihnen filtern
+      und sah nicht, dass es sie gibt. Jetzt wird die Auswahl aus der Liste
+      abgeleitet, nach Häufigkeit, mit Anzahl.
+
+      **Und der Deckel wird gemeldet:** Kommen genau 1000 Datensätze zurück,
+      sagt die Seite es. Ein stiller Deckel ist derselbe Fehler wie das fehlende
+      `limit`, nur eine Null später.
+
+- [x] **UX-03** · **S** · ~~Der bessere Bildschirm hat keinen Menüeintrag~~
+      **erledigt 2026-08-17, mit UX-02.** Erledigt sich durch das
+      Zusammenlegen: Was übrig bleibt, liegt auf `/app/betriebe`, und das steht
+      im Menü unter *Vertrieb → Betriebe*. Kein erreichbarer Bildschirm ohne Weg
+      dorthin.
+
+- [x] **UX-29** · **S** · ~~`components/Sidebar.jsx` ist eine zweite, tote
+      Navigationsdefinition~~ **erledigt 2026-08-17.** Gelöscht.
+      **Beim Nachsehen fand sich eine dritte** — siehe UX-30.
+
+### Drei Funde, die beim Zusammenlegen mit herausfielen
+
+*Nicht gesucht, sondern beim Hinsehen aufgefallen. Alle drei sind erledigt.*
+
+- [x] **UX-30** · **Eine dritte tote Navigation, in der echten Datei.**
+      `NAV_SECTIONS` stand in `AppLayout.jsx` oben, sieben Gruppen lang, nie
+      importiert und inhaltlich abweichend von der Navigation, die zwanzig
+      Zeilen weiter unten tatsächlich gerendert wird. Der Linter meldete sie
+      seit jeher als ungenutzt — die Meldung ging in den übrigen Warnungen
+      unter. Entfernt.
+
+- [x] **UX-31** · **Eine zurückgezogene Skala hatte überlebt.** Der Kreis vor
+      dem Firmennamen trug Kürzel wie `Pt`, `Go`, `Si` nach der Staffelung
+      85/70/50/30. Genau diese war gegen die Backend-Skala 95/85/70/50 getauscht
+      worden, weil derselbe Score im Bericht „Silber" und im Widget „Gold" hieß
+      — nachzulesen im Kopf von `utils/homepageStandard.js`. In dieser Liste
+      stand sie weiter. **Ein Betrieb mit 86 Punkten trug „Pt", während sein
+      Bericht „Homepage Standard Gold" sagt.**
+      **Gemacht:** Die eigene Skala ist weg, gerechnet wird mit
+      `stufeFuerScore`. Die Kürzel sind mit ihr entfallen — zwei Buchstaben ohne
+      Legende sind nicht zu entschlüsseln (das war UX-28 in klein). Der Kreis
+      zeigt jetzt den Anfangsbuchstaben, die Stufe steht am Score.
+      *Offen geblieben und bewusst so:* Die Liste bekommt vom Server keine
+      Stufe, nur den Score (`routers/leads.py:263 ff.`) — die K.-o.-Regeln
+      (kein Impressum, kein TLS) kann sie deshalb nicht kennen. Das steht als
+      Kommentar an der Stelle.
+
+- [x] **UX-32** · **Ein Rest aus Paket 1.** Die Brotkrumenleiste suchte weiter
+      `/app/leads/:id`. Seit der Umbenennung traf das nichts mehr, also stand
+      auf der Seite eines Betriebs nur „Betriebe" — **ohne den Namen des
+      Betriebs, auf dem man gerade war.** Kein Fehler, eine Auslassung; genau
+      die Sorte, die man nur beim Hinsehen findet. Sucht jetzt
+      `/app/betriebe/:id`.
 
 ---
 

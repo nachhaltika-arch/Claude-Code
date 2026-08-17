@@ -50,7 +50,10 @@ async function probeblockEntfernen(page) {
 /** Direktes goto auf /app/... landet nach dem Neuladen im Dashboard — die
  *  Bibliothek wird deshalb ueber die Navigation geoeffnet, wie ein Nutzer es tut. */
 async function bibliothekOeffnen(page) {
-  await page.getByRole('button', { name: 'Einstellungen' }).first().click();
+  // Die Bibliothek lag unter Einstellungen; seit dem 17.08.2026 steht sie
+  // unter Verwaltung - was fuer alle gilt, getrennt von dem, was eine
+  // Person fuer sich einstellt (UX-16).
+  await page.getByRole('button', { name: 'Verwaltung' }).first().click();
   await page.getByRole('button', { name: 'Komponenten-Bibliothek' }).first().click();
   await expect(page).toHaveURL(/component-library/);
   await expect(page.getByRole('heading', { name: /Komponenten-Bibliothek/i })).toBeVisible();

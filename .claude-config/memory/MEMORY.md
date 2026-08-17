@@ -16,6 +16,11 @@
 - [Wiederaufnahme 2026-05-08](resume_point_2026_05_08.md) — Style-Guide-Redesign + Tool-CI P0-P5 fertig; --brand-primary Token-Switch Mid→Dark; Audit-Methode etabliert
 - [Immer Empfehlung statt offener Frage](feedback_always_recommend.md) — nie mit "soll ich X oder Y?" enden; Empfehlung + Begründung, dann handeln
 - [CI nach jedem Push prüfen](feedback_ci_pruefen_nach_push.md) — lokale Tests sind nicht CI; der Playwright-E2E-Job findet, was die Backend-Tests nicht finden können
+- [Wiederaufnahme 2026-08-17](resume_point_2026_08_17.md) - Mail-Vorfall (135 Fehl-Mails), PR #41 gemerged und produktiv; abends Zugriffsschutz, Löschfunktion, Kundenfreigabe, UX-Paket 3
+- [Render deployt über die CI, nicht per Webhook](deploy_laeuft_ueber_ci.md) — der Deploy-Job hängt an allen sechs Prüfjobs; nach einem Push dauert es, bis Playwright durch ist
+- [Zwei Mail-Protokolle](mail_zwei_protokolle.md) - email_logs und communications kennen einander nicht; deshalb zweimal den falschen Sender beschuldigt — immer beide + Brevo prüfen
+- [Wiederaufnahme 2026-08-16](resume_point_2026_08_16.md) - Domains live, sieben offene Webhooks geschlossen, Katalog zu, UX-Pruefung begonnen; morgen Paket 2
+- [UX-Methode Krug](ux_methode_krug.md) - Analyse + Arbeitsliste im Repo; Objekt heisst ueberall "Betrieb"; unbekannte Werte nie roh, nie getarnt — auch nicht im Filter
 - [Wiederaufnahme 2026-08-15](resume_point_2026_08_15.md) — erster echter Fremdlauf fand 4 Fehler; DB-Zugangsdaten lagen auf /info offen, Rotation offen bei David
 - [Wiederaufnahme 2026-08-14](resume_point_2026_08_14.md) — 23 Commits, PR #36 gemerged; Kundendaten waren produktiv ohne Login offen; Audit misst je Branchenklasse; 9 Commits auf staging ungetestet
 - [Wiederaufnahme 2026-08-13](resume_point_2026_08_13.md) — Stufe A, B und C-Phase-1 gebaut; offen nur die Qualitätsschleife (Netlify-Vorschau → eigener Audit)

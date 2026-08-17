@@ -18,6 +18,7 @@
 - [CI nach jedem Push prüfen](feedback_ci_pruefen_nach_push.md) — lokale Tests sind nicht CI; der Playwright-E2E-Job findet, was die Backend-Tests nicht finden können
 - [Wiederaufnahme 2026-08-17](resume_point_2026_08_17.md) - Mail-Vorfall (135 Fehl-Mails), PR #41 gemerged und produktiv; abends Zugriffsschutz, Löschfunktion, Kundenfreigabe, UX-Paket 3
 - [Render deployt über die CI, nicht per Webhook](deploy_laeuft_ueber_ci.md) — der Deploy-Job hängt an allen sechs Prüfjobs; nach einem Push dauert es, bis Playwright durch ist
+- [Blockierte Ereignisschleife](blockierte_ereignisschleife.md) — synchroner KI-Aufruf in async def → Server steht → Render-Proxy gibt 503 → Oberfläche zeigt "Verbindungsfehler"; neun weitere Stellen ungeprüft
 - [Zwei Mail-Protokolle](mail_zwei_protokolle.md) - email_logs und communications kennen einander nicht; deshalb zweimal den falschen Sender beschuldigt — immer beide + Brevo prüfen
 - [Wiederaufnahme 2026-08-16](resume_point_2026_08_16.md) - Domains live, sieben offene Webhooks geschlossen, Katalog zu, UX-Pruefung begonnen; morgen Paket 2
 - [UX-Methode Krug](ux_methode_krug.md) - Analyse + Arbeitsliste im Repo; Objekt heisst ueberall "Betrieb"; unbekannte Werte nie roh, nie getarnt — auch nicht im Filter

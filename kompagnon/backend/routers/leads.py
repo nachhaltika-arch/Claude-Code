@@ -1563,6 +1563,8 @@ NAMEN_JE_LAUF = 25
 
 @router.post("/namen-nachtragen")
 async def namen_nachtragen(
+    anzahl: int = Query(NAMEN_JE_LAUF, ge=1, le=NAMEN_JE_LAUF,
+                        description="Wie viele Betriebe dieser Lauf anfasst"),
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
@@ -1581,7 +1583,7 @@ async def namen_nachtragen(
     kandidaten = [
         lead for lead in db.query(Lead).filter(Lead.website_url != "").all()
         if betriebsname.ist_platzhalter(lead.company_name, lead.website_url)
-    ][:NAMEN_JE_LAUF]
+    ][:anzahl]
 
     geaendert, ohne_ergebnis = [], []
     for lead in kandidaten:
@@ -1603,15 +1605,17 @@ async def namen_nachtragen(
 
         geaendert.append({"id": lead.id, "vorher": lead.company_name, "nachher": echter_name})
         lead.company_name = echter_name
-
-    if geaendert:
+        # Nach jedem Betrieb schreiben, nicht am Ende. Je Betrieb fallen ein
+        # Startseitenabruf, bis zu zwölf Kandidaten und ein KI-Aufruf an —
+        # zusammen Sekunden. Reißt die Verbindung nach dem zwanzigsten ab,
+        # sollen die ersten neunzehn Namen trotzdem stehen.
         db.commit()
 
     return {
         "geprueft": len(kandidaten),
         "geaendert": geaendert,
         "ohne_ergebnis": ohne_ergebnis,
-        "grenze_erreicht": len(kandidaten) == NAMEN_JE_LAUF,
+        "grenze_erreicht": len(kandidaten) == anzahl,
     }
 
 

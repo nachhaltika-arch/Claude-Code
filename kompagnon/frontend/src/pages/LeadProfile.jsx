@@ -194,6 +194,7 @@ export default function LeadProfile() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [mehrOffen, setMehrOffen] = useState(false);
+  const [domainFormOffen, setDomainFormOffen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [editingName, setEditingName] = useState(false);
@@ -902,9 +903,10 @@ export default function LeadProfile() {
       {/* HEADER */}
       <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
 
-        <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '5px 10px', cursor: 'pointer', marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)' }}>
-          ← Zurück
-        </button>
+        {/* Der „← Zurück"-Knopf stand hier zusätzlich zur Brotkrume, die
+          * oben „Betriebe › Name" zeigt und zurückführt. Zwei Wege für
+          * dasselbe, und `navigate(-1)` führt anderswohin als die Brotkrume,
+          * je nachdem, woher man kam (UX-24). */}
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 16 }}>
 
@@ -1464,7 +1466,9 @@ export default function LeadProfile() {
                   <span style={{ fontSize: 14, color: 'var(--brand-primary-mid)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>👤</span>
                   <div>
                     <div style={{ fontSize: 13, color: lead.geschaeftsfuehrer ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{lead.geschaeftsfuehrer || '–'}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer (auto)</div>
+                    {/* „(auto)" sagte, woher der Wert kommt — das interessiert die
+                      * Maschine, nicht den Menschen davor (UX-25). */}
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer</div>
                   </div>
                 </div>
                 {fieldRow('📍', [lead.street && `${lead.street} ${lead.house_number || ''}`.trim(), [lead.postal_code, lead.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), 'Adresse')}
@@ -1569,7 +1573,22 @@ export default function LeadProfile() {
                 </div>
               )}
 
-              {/* Add form */}
+              {/* Das Formular stand immer offen und nahm auf der Übersicht
+                * Platz weg — bei den meisten Betrieben gibt es gar keine
+                * zweite Domain. Jetzt erst auf Verlangen (UX-26). */}
+              {!domainFormOffen && (
+                <button
+                  onClick={() => setDomainFormOffen(true)}
+                  style={{ marginTop: domains.length ? 10 : 0, padding: '6px 10px', fontSize: 12,
+                    background: 'none', border: '1px dashed var(--border-medium)',
+                    borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)',
+                    cursor: 'pointer', width: '100%', fontFamily: 'var(--font-sans)' }}
+                >
+                  + Domain hinzufügen
+                </button>
+              )}
+
+              {domainFormOffen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: domains.length ? 10 : 0, borderTop: domains.length ? '1px solid var(--border-light)' : 'none' }}>
                 <input
                   value={domainForm.url}
@@ -1620,6 +1639,7 @@ export default function LeadProfile() {
                   </button>
                 </div>
               </div>
+              )}
             </Card>
 
             {latestAudit && (

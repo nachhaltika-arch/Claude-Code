@@ -38,3 +38,21 @@ export function stufeAnzeige(score, stufeVomServer = '') {
   const treffer = STUFEN.find(s => s.name === name);
   return treffer ? `${name} ${treffer.zeichen}` : name;
 }
+
+
+/**
+ * Die Stufe in einem Wort — fuer enge Stellen wie die Betriebsliste.
+ *
+ * Dort stand am Score nur ein farbiger Balken, und welche Schwelle welche
+ * Farbe bedeutet, stand nirgends: Die Stufe hing allein im `title`, also im
+ * Tooltip. Ein Tooltip ist keine Beschriftung — auf einem Berührungsgeraet
+ * gibt es ihn gar nicht (UX-28).
+ *
+ * @param {number|string} score
+ * @param {string} [stufeVomServer]
+ * @returns {string} „Platin", „Gold", „Silber", „Bronze" oder „Nicht konform"
+ */
+export function stufeKurz(score, stufeVomServer = '') {
+  const voll = (stufeVomServer || stufeFuerScore(score)).trim();
+  return voll.replace(/^Homepage Standard\s+/, '');
+}

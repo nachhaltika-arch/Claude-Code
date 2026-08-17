@@ -602,9 +602,13 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
       position: 'sticky', top: 0, zIndex: 30,
       flexShrink: 0,
     }}>
-      {/* Breadcrumb */}
+      {/* Brotkrume — nur, wenn sie einen Weg zeigt.
+        * Auf obersten Seiten bestand sie aus einem einzigen Element: dem
+        * Seitennamen, der zwei Zeilen tiefer nochmal als Überschrift steht.
+        * Eine Brotkrume mit einem Element zeigt keine Hierarchie, sie
+        * wiederholt nur (UX-20). */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-        {breadcrumbs.map((crumb, i) => {
+        {(breadcrumbs.length > 1 ? breadcrumbs : []).map((crumb, i) => {
           const isLast = i === breadcrumbs.length - 1;
           return (
             <React.Fragment key={i}>
@@ -961,7 +965,12 @@ export default function AppLayout() {
     // Hiess „+ Neuer Lead" und fuehrte zum Domain-Import — auf der
     // Projektpipeline. Der sichtbarste Teil der alten Verwechslung.
     '/app/projektpipeline': null,
-    '/app/audit': { label: '+ Neues Audit', action: () => {} },
+    // Stand „+ Neues Audit" auf dem Bildschirm, der selbst das neue Audit
+    // ist — mit `action: () => {}`, also ohne jede Wirkung. Ein Knopf, der
+    // nichts tut, ist schlimmer als keiner: Man drückt ihn und sucht den
+    // Fehler bei sich (UX-23). Nach einem fertigen Bericht steht der richtige
+    // Knopf ohnehin unter dem Ergebnis.
+    '/app/audit': null,
   };
   const cta = ctaMap[location.pathname];
 

@@ -191,18 +191,12 @@ export default function Projektpipeline() {
         </div>
       )}
 
-      {/* KPI bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>
-        {PHASES.map(ph => (
-          <div key={ph.id} style={{
-            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md)', padding: '8px 10px', borderTop: `3px solid ${ph.color}`,
-          }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 2 }}>{ph.icon} {ph.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: ph.color }}>{getColCards(ph.id).length}</div>
-          </div>
-        ))}
-      </div>
+      {/* Die Kennzahlreihe stand hier: dieselben sieben Phasen mit
+          denselben Zahlen, die zwei Zeilen tiefer als Spaltenköpfe noch
+          einmal stehen — auf mobil sogar ein drittes Mal als Reiterzeile.
+          Dieselbe Auskunft dreimal auf einem Bildschirm (UX-21). Die Zahl
+          steht jetzt nur dort, wo auch die Karten dazu liegen. */}
+
 
       {/* Kanban */}
       {isMobile ? (

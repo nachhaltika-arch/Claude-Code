@@ -474,24 +474,42 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ---
 
-## Paket 6 — Politur
+## Paket 6 — Politur · ✅ ABGESCHLOSSEN 2026-08-17
 
-- [ ] **UX-20** · **S** · Überschrift auf **jedem** Bildschirm doppelt (obere
-      Leiste und H1). Eine davon weg.
-- [ ] **UX-21** · **S** · Spaltenköpfe der Projektpipeline doppelt, die Phase
-      auf jeder Karte ein drittes Mal.
-- [ ] **UX-22** · **S** · Reiter `Akademy` — weder deutsch noch englisch.
-- [ ] **UX-23** · **S** · „+ Neues Audit" auf dem Bildschirm, der selbst das
-      neue Audit ist.
-- [ ] **UX-24** · **S** · „Zurück"-Knopf zusätzlich zur Brotkrume.
-- [ ] **UX-25** · **S** · Feldbeschriftung „Geschäftsführer *(auto)*" — interne
-      Herkunft im Kundenblick.
-- [ ] **UX-26** · **S** · Leeres Formular „Weitere Domains" nimmt Platz auf der
-      Übersicht.
-- [ ] **UX-27** · **S** · Audit-Tool zeigt keine früheren Audits, obwohl das
-      Dashboard sie führt.
-- [ ] **UX-28** · **S** · Score-Balken ohne Legende — die Schwellen bleiben
-      unerklärt.
+*Neun kleine Dinge. Zwei davon waren beim Anfassen keine Politur mehr.*
+
+- [x] **UX-20** · Überschrift auf jedem Bildschirm doppelt. **Ursache benannt:**
+      Auf obersten Seiten bestand die Brotkrume aus **einem** Element — dem
+      Seitennamen, der zwei Zeilen tiefer als H1 steht. Eine Brotkrume mit
+      einem Element zeigt keinen Weg, sie wiederholt nur. Sie erscheint jetzt
+      erst ab zwei Elementen; auf Detailseiten („Betriebe › Name") bleibt sie.
+- [x] **UX-21** · Dieselben sieben Phasen mit denselben Zahlen **zweimal
+      übereinander** — als Kennzahlreihe und als Spaltenköpfe, auf mobil ein
+      drittes Mal als Reiterzeile. Die Kennzahlreihe ist weg; die Zahl steht
+      dort, wo auch die Karten dazu liegen.
+- [x] **UX-22** · Reiter `Akademy` → **Akademie**.
+- [x] **UX-23** · **War schlimmer als notiert:** Der Knopf „+ Neues Audit"
+      stand in der oberen Leiste mit `action: () => {}` — **er tat nichts**.
+      Ein Knopf ohne Wirkung ist schlimmer als keiner: Man drückt ihn und
+      sucht den Fehler bei sich. Entfernt; nach einem fertigen Bericht steht
+      der richtige Knopf ohnehin unter dem Ergebnis.
+- [x] **UX-24** · „Zurück"-Knopf zusätzlich zur Brotkrume — und
+      `navigate(-1)` führt woandershin als die Brotkrume, je nachdem, woher
+      man kam. Zwei Wege, zwei Ziele, ein Zweck. Entfernt.
+- [x] **UX-25** · „Geschäftsführer *(auto)*" → **Geschäftsführer**. Woher der
+      Wert kommt, interessiert die Maschine, nicht den Menschen davor.
+- [x] **UX-26** · Das Formular „Weitere Domains" stand immer offen. Bei den
+      meisten Betrieben gibt es gar keine zweite Domain. Jetzt erst auf
+      Verlangen.
+- [x] **UX-27** · Das Audit-Tool zeigte keine früheren Audits, obwohl das
+      Dashboard sie führte — dieselbe Schnittstelle, nur kannte dieser
+      Bildschirm sie nicht. Fünf zuletzt geprüfte Seiten stehen jetzt unter
+      dem Formular. Schlägt der Abruf fehl, fehlt der Verlauf und sonst
+      nichts.
+- [x] **UX-28** · Score-Balken ohne Legende — **die Stufe hing allein im
+      `title`, also im Tooltip.** Auf einem Berührungsgerät gibt es den nicht.
+      Dieselbe Bauart wie UX-14: Ein Tooltip ist keine Beschriftung. Die Stufe
+      steht jetzt am Score (`stufeKurz`, 3 Tests).
 
 ---
 

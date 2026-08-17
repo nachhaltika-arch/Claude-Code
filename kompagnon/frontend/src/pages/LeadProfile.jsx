@@ -84,10 +84,15 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
-  { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
+  // „Akademy" war halb deutsch, halb englisch — und trug damit als einziger
+  // Reiter ein Wort, das es nicht gibt.
+  { id: 'akademy',    label: 'Akademie',    icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
-  { id: 'emails',     label: '📧 E-Mails',  icon: '' },
+  // Das Zeichen stand hier in der Beschriftung statt im `icon`-Feld. Gerendert
+  // wird beides nebeneinander — dieser Reiter hatte dadurch einen Abstand
+  // mehr als die anderen neun.
+  { id: 'emails',     label: 'E-Mails',     icon: '📧' },
 ];
 
 const GbpBadge = ({ lead }) => {

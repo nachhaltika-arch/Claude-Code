@@ -385,9 +385,37 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       Jetzt `--brand-primary` (8.16), halbfett und mit sichtbarem Rand. Die
       Paarung steht in `utils/kontrast.test.js` und ist damit festgehalten.
 
-- [ ] **UX-15** · **M** · Zehn Reiter in der Kundenkartei. Prüfen, welche
-      zusammengehören und welche selten benutzt werden.
-      *Prüfung:* Höchstens sechs Reiter, der Rest untergeordnet.
+- [ ] **UX-15** · **M** · Zehn Reiter in der Betriebsansicht. **Analyse liegt
+      vor, die Entscheidung braucht David** — welche Reiter du wirklich
+      benutzt, steht in keinem Code.
+
+      Die zehn: *Übersicht · Deals · Nachrichten · Kontakt · Audits · Dateien ·
+      Akademie · Angebot · Zugang · E-Mails*
+
+      **Vorschlag, sechs zu behalten:**
+
+      | bleibt | warum |
+      |---|---|
+      | Übersicht | der Einstieg |
+      | Kontakt | Stammdaten, wird beim Bearbeiten angesteuert |
+      | Audits | der Kern des Angebots |
+      | Angebot | daraus entsteht das Geschäft |
+      | Nachrichten | trägt den ungelesen-Zähler, muss sichtbar bleiben |
+      | Dateien | Anhänge des Betriebs |
+
+      **Unterordnen (hinter „Mehr" oder in die Übersicht):** *Deals* (steht
+      auch unter Vertrieb → Deals), *Akademie* (kundenseitig, nicht
+      Innendienst), *Zugang* (QR-Code, einmal je Betrieb gebraucht),
+      *E-Mails* (Verlauf, gehört sachlich zu Nachrichten).
+
+      **Zusammenlegen wäre die Alternative:** *Nachrichten* und *E-Mails* sind
+      derselbe Gegenstand in zwei Kanälen. Das wären dann fünf.
+
+      **Zwei Kleinigkeiten schon erledigt (2026-08-17):** Der Reiter hieß
+      **„Akademy"** — halb deutsch, halb englisch, ein Wort, das es nicht gibt;
+      heißt jetzt *Akademie*. Und bei *E-Mails* stand das Zeichen in der
+      Beschriftung statt im `icon`-Feld, weshalb dieser Reiter als einziger
+      einen Abstand mehr hatte.
 
 ---
 

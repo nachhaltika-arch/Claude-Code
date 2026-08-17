@@ -327,16 +327,21 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ## Paket 4 — Eine Primäraktion je Bildschirm
 
-- [ ] **UX-13** · **S** · Fünf gleichrangige Knöpfe in der Kundenkartei
-      (*Audit starten, Bearbeiten, Neu prüfen, Briefing starten, Projekt
-      anlegen*). Einer bekommt Farbe — der, den man normalerweise drückt —,
-      der Rest wird ruhig.
-      *Prüfung:* Ein Blick genügt, um den nächsten Schritt zu erkennen.
+- [x] **UX-13** · **S** · ✅ **2026-08-17** · Es waren sechs, nicht fünf, und
+      zwei davon trugen Farbe. Jetzt trägt **genau einer** Gelb — und welcher,
+      hängt davon ab, wie weit der Betrieb ist:
+      kein Audit → *Audit starten* · Audit da → *Kaltakquise starten* ·
+      gewonnen → *Projekt anlegen* · Projekt da → *Zum Projekt*.
+      **Nach gesendetem Angebot und bei verloren ist kein Knopf hervorgehoben.**
+      Da wartet man auf Antwort — einer auf Verdacht wäre eine Behauptung.
+      Die Entscheidung liegt als reine Funktion in `utils/naechsterSchritt.js`
+      (9 Tests), nicht als Farbe im Markup.
 
-- [ ] **UX-14** · **S** · „Audit starten" und „Neu prüfen" sind visuell und
-      sprachlich nicht unterscheidbar. Entweder benennen, was sie unterscheidet,
-      oder zusammenlegen.
-      *Prüfung:* Aus den Beschriftungen allein ist der Unterschied erkennbar.
+- [x] **UX-14** · **S** · ✅ **2026-08-17** · Sie tun Verschiedenes:
+      *Audit starten* erzeugt die Punktzahl, *Neu prüfen* rief `/enrich` auf und
+      holt Firmendaten, Google Business, SSL, Impressum und PageSpeed.
+      Der Unterschied stand nur im Tooltip — **ein Tooltip ist keine
+      Beschriftung.** Heißt jetzt **„Stammdaten neu holen"**.
 
 - [x] **UX-11** · **M** · ✅ **2026-08-17** · Gewichtung umgedreht: Die
       Kennzahlenreihe steht jetzt **über** den Geldkacheln.
@@ -373,9 +378,12 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       Geldreihe: Sie stand während des Ladens gar nicht da und schob beim
       Eintreffen alles darunter nach unten. Jetzt drei Platzhalterkacheln.
 
-- [ ] **UX-18** · **S** · Knopf „Vollständigen Bericht anzeigen" wirkt
-      deaktiviert (dunkel auf dunkel). Er ist es nicht.
-      *Prüfung:* Der Knopf sieht anklickbar aus.
+- [x] **UX-18** · **S** · ✅ **2026-08-17** · **Nachgemessen, und die
+      Richtung stimmte nicht:** Nicht dunkel auf dunkel — im *Hellmodus* stand
+      `--brand-primary-mid` auf `--bg-active` mit **3.39**, unter der Schwelle.
+      Im Dunkelmodus waren es 5.62, also in Ordnung.
+      Jetzt `--brand-primary` (8.16), halbfett und mit sichtbarem Rand. Die
+      Paarung steht in `utils/kontrast.test.js` und ist damit festgehalten.
 
 - [ ] **UX-15** · **M** · Zehn Reiter in der Kundenkartei. Prüfen, welche
       zusammengehören und welche selten benutzt werden.

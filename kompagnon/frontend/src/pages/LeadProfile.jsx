@@ -27,6 +27,7 @@ import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz, datumUndZeit } from '../utils/datum';
 import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
+import { naechsterSchritt } from '../utils/naechsterSchritt';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -835,6 +836,25 @@ export default function LeadProfile() {
     ? score_history[score_history.length - 1].score - score_history[0].score
     : null;
 
+  // Der eine Knopf, der an dieser Stelle dran ist — siehe utils/naechsterSchritt.
+  const schritt = naechsterSchritt({
+    hatAudit: current_score !== null && current_score !== undefined,
+    hatProjekt: Boolean(projectId),
+    hatEmail: Boolean(lead.email && lead.website_url),
+    status: lead.status,
+  });
+
+  // Hervorgehoben ist Gelb auf Dunkel — auf diesem Bildschirm genau einmal.
+  const knopfHervorgehoben = {
+    background: 'var(--kc-yellow)', color: '#000',
+    border: '1px solid var(--kc-yellow)', fontWeight: 700,
+  };
+  const knopfRuhig = {
+    background: 'rgba(255,255,255,0.15)', color: 'white',
+    border: '1px solid rgba(255,255,255,0.25)', fontWeight: 500,
+  };
+  const knopfStil = (name) => (schritt === name ? knopfHervorgehoben : knopfRuhig);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
 
@@ -951,11 +971,16 @@ export default function LeadProfile() {
           )}
         </div>
 
+        {/* Genau ein Knopf ist hervorgehoben — der, den man an dieser
+          * Stelle normalerweise drückt. Welcher das ist, hängt davon ab, wie
+          * weit der Betrieb ist; deshalb `naechsterSchritt` statt einer
+          * festen Farbe im Markup (UX-13). Drängt sich nichts auf, ist kein
+          * Knopf hervorgehoben — das ist ehrlicher als einer auf Verdacht. */}
         <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <button
             onClick={startAudit}
             disabled={auditRunning}
-            style={{ background: auditRunning ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '9px 14px', cursor: auditRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}
+            style={{ ...knopfStil('audit'), ...(auditRunning ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '9px 14px', cursor: auditRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}
           >
             {auditRunning ? (
               <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />{auditProgress || 'Läuft...'}</>
@@ -967,10 +992,11 @@ export default function LeadProfile() {
               onClick={handleKaltakquise}
               disabled={kaltakquiseLoading}
               style={{
-                background: kaltakquiseLoading ? 'rgba(255,255,255,0.1)' : kaltakquiseDone ? '#059669' : '#7c3aed',
-                border: '1px solid rgba(255,255,255,0.3)',
+                ...knopfStil('kaltakquise'),
+                ...(kaltakquiseLoading ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}),
+                ...(kaltakquiseDone ? { background: '#059669', color: 'white' } : {}),
                 borderRadius: 'var(--radius-md)',
-                color: 'white', fontSize: 12, fontWeight: 700,
+                fontSize: 12,
                 padding: '9px 14px', cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
                 width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined,
@@ -982,7 +1008,7 @@ export default function LeadProfile() {
             </button>
           )}
 
-          <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
+          <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ ...knopfRuhig, borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
           </button>
 
@@ -995,33 +1021,32 @@ export default function LeadProfile() {
               );
               if (enriched) await loadProfile();
             }}
-            title="Google Business + alle Daten neu prüfen"
+            title="Firmendaten, Google Business, SSL, Impressum und PageSpeed neu abrufen"
             style={{
-              padding: '6px 12px', borderRadius: 7,
-              background: 'rgba(255,255,255,0.12)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              fontSize: 12, cursor: 'pointer', color: 'white',
+              ...knopfStil('stammdaten'),
+              padding: '7px 14px', borderRadius: 'var(--radius-md)',
+              fontSize: 12, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               width: isMobile ? '100%' : undefined,
             }}
           >
-            🔄 Neu prüfen
+            🔄 Stammdaten neu holen
           </button>
 
           <button
             onClick={openBriefingWizard}
             disabled={briefingLoading}
-            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: briefingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}
+            style={{ ...knopfRuhig, borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: briefingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}
           >
             📋 Briefing starten
           </button>
 
           {projectId ? (
-            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
+            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ ...knopfStil('zum_projekt'), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
               📁 Zum Projekt →
             </button>
           ) : (
-            <button onClick={createProject} disabled={creatingProject} style={{ background: creatingProject ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}>
+            <button onClick={createProject} disabled={creatingProject} style={{ ...knopfStil('projekt'), ...(creatingProject ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}>
               {creatingProject ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Projekt anlegen'}
             </button>
           )}
@@ -1551,7 +1576,13 @@ export default function LeadProfile() {
                     {latestAudit.ai_summary.substring(0, 200)}{latestAudit.ai_summary.length > 200 ? '...' : ''}
                   </div>
                 )}
-                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                {/* Sah aus wie deaktiviert. Gemessen: `--brand-primary-mid`
+                  * auf `--bg-active` ergibt im Hellmodus **3.39** — unter der
+                  * Schwelle für Text. (Im Dunkelmodus waren es 5.62; die
+                  * Arbeitsliste vermutete es umgekehrt.) Mit
+                  * `--brand-primary` sind es 8.16, und mit Halbfett und
+                  * sichtbarem Rand sieht der Knopf aus wie einer (UX-18). */}
+                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '9px', background: 'var(--bg-active)', border: '1px solid var(--brand-primary-mid)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Vollständigen Bericht anzeigen
                 </button>
               </Card>

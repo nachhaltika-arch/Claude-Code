@@ -74,6 +74,16 @@ describe('Textfarben der Palette', () => {
       .toBeGreaterThanOrEqual(AA_TEXT);
   });
 
+  test('der Knopf auf hervorgehobener Fläche ist lesbar', () => {
+    // UX-18: „Vollständigen Bericht anzeigen" stand mit `--brand-primary-mid`
+    // auf `--bg-active` — 3.39 im Hellmodus, also unter der Schwelle. Er sah
+    // deaktiviert aus, war es aber nie. Jetzt `--brand-primary` (= kc-dark).
+    expect(kontrast(ton('kc-dark', hell), ton('bg-active', hell)))
+      .toBeGreaterThanOrEqual(AA_TEXT);
+    expect(kontrast(ton('kc-mid', dunkel), ton('bg-active', dunkel)))
+      .toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
   test('--text-30 bleibt bewusst hell und ist deshalb kein Textton', () => {
     // Der Ton hat seine Berechtigung für Trennlinien und Zierrat. Der Test
     // hält nur fest, dass er die Textschwelle NICHT erreicht — wer ihn für

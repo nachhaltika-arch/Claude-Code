@@ -599,13 +599,76 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ---
 
+## Paket 8 — Akademie und Mobil · 2026-08-18
+
+*Beide Flächen standen als „nicht angesehen". Sie waren es nicht.*
+
+### Erledigt
+
+- [x] **UX-35** · **Leere Seite auf dem Desktop.** `/app/vertrieb` — die
+      Adresse, die in der Mobilleiste steht — zeigte auf einem breiten
+      Bildschirm **nichts**. Alle vier Mobil-Einstiege riefen `navigate()` im
+      Rumpf der Komponente auf; der Router verwirft das, `return null` bleibt
+      stehen. Jetzt `<Navigate replace />`. *Geprüft:* `/app/vertrieb` landet
+      auf `/app/deals`.
+- [x] **UX-36** · **Erfundene Zahlen auf den Kacheln.** „12" Leads, „5" neue,
+      „3" Projekte, „2 offen", „54 Punkte / Projekt", „5 Rollen",
+      „2 Seiten live" — und ein **„Abonnement: Professional"**, das eine
+      Zahlungstatsache behauptet. In der lokalen Datenbank steht **ein**
+      Betrieb. Eine erfundene Zahl ist schlimmer als keine: Sie wird geglaubt.
+      Entfernt, bis sie aus den Daten kommt.
+- [x] **UX-37** · **„Akademy" an neun weiteren Stellen** — gestern wurde ein
+      Reiter umbenannt. Der Rest stand noch: die Überschrift der Akademie
+      selbst, der Reiter in der Kundenkartei, und **zweimal die Urkunde**,
+      die der Kunde ausgedruckt behält.
+- [x] **UX-38** · **Fremdes Monogramm.** Auf der Passwort-zurücksetzen-Seite
+      stand ein goldenes **„HS"** neben dem Wort KOMPAGNON. Jetzt die echte
+      Marke.
+- [x] **UX-39** · **Ein Bildschirm, zwei Namen und zwei Adressräume.**
+      Brotkrume „Kurse verwalten", Überschrift „Kursverwaltung"; die eigenen
+      Knöpfe zeigten auf `/app/akademie/…`, während der Bildschirm unter
+      `/app/academy/…` erreicht wird — ein Klick wechselte den Adressraum.
+      Dazu „← Zurück" neben der Brotkrume (UX-24-Klasse).
+- [x] **UX-40** · **Unsichtbarer Kreis — mein Fehler von heute Vormittag.**
+      Der Umbau aus UX-34 zog einen Avatar-Kreis von `--kc-mid` auf
+      `--brand-primary` — auf eine Karte, die selbst `--brand-primary` ist.
+      Zwei Stellen. Die Regel „Markenfläche trägt lesbare Tinte" ist richtig
+      und sagt nichts über eine Fläche, die sich von ihrer **Nachbarfläche**
+      abheben muss.
+- [x] **UX-41** · Die Mobil-Einstiege folgten dem Farbsystem nicht (`#9AACAE`
+      als Beschriftungsfarbe = 2.13 auf Weiß). Jetzt Tokens.
+- [x] Totes Gewicht: `pages/Akademie.jsx` war importiert und an keiner Route;
+      `m-vertrieb` war eine zweite Adresse für einen Bildschirm, den nichts
+      verlinkt.
+
+### Offen — jeweils mit Empfehlung
+
+- [ ] **UX-42** · **M** · **Die Akademie gibt es zweimal:** `/app/academy/*`
+      (8 Routen) und `/app/akademie/*` (11). Das sind keine Aliasse — hinter
+      `akademie/admin/:courseId` liegt ein **anderer** Kurseditor
+      (`AcademyEdit`) als hinter `academy/admin/course/:courseId`
+      (`AcademyAdminCourse`), und `AcademyModuleEdit` ist **nur** über den
+      alten Pfad erreichbar. *Empfehlung:* `/app/academy/*` als einzigen Raum
+      führen, die alten Adressen darauf umleiten — vorher entscheiden, welcher
+      der beiden Editoren bleibt. Das ist eine Produktfrage, keine
+      Aufräumarbeit.
+- [ ] **UX-43** · **S** · **Drei Mobil-Einstiege sind von nirgends
+      verlinkt** (`m-leads`, `m-projekte`, `m-settings`). Die Mobilleiste
+      führt auf die Desktop-Listen, „Mehr" auf `/app/settings`. *Empfehlung:*
+      entweder die Leiste auf die Einstiege legen oder die drei entfernen —
+      aber nicht gebaut liegen lassen.
+- [ ] **UX-44** · **S** · **Zwei Arten, eine Löschung zu bestätigen:**
+      `AcademyAdmin` hat einen eigenen Dialog, drei weitere Stellen benutzen
+      `window.confirm`. *Empfehlung:* den vorhandenen Dialog übernehmen.
+
+---
+
 ## Noch nicht geprüft — vor dem Abhaken zu erheben
 
 Diese Flächen sind nicht angesehen worden. Sie sind **nicht** „in Ordnung",
 sondern unbekannt:
 
-- [ ] Academy-Verwaltung (14 Routen), Mobil-Ansichten (5),
-      Newsletter-Designer, Template-Editor, Component-Library,
+- [ ] Newsletter-Designer, Template-Editor, Component-Library,
       Online-fertig-Editor
 - [ ] Das Kundenportal **von innen** — braucht einen echten Kundenzugang
 - [ ] Barrierefreiheit — hier nicht gemessen; die Lückenliste führt sie als

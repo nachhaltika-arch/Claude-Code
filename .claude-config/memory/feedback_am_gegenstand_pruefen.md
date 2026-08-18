@@ -29,6 +29,19 @@ das darüber berichtet. `grep` in der Datei statt der Skriptausgabe glauben.
 Den CI-Lauf abfragen statt den Push. Den Bildschirm ansehen statt den Code zu
 lesen.
 
+**Vierte Verkleidung, 18.08.2026: „Tests grün" statt „Build übersetzt".**
+Ein Umbauskript hat 230 Stellen geändert und dabei zehn Dateien syntaktisch
+zerstört — **alle 300 Frontend-Tests blieben grün**, weil sie Dateien *lesen*
+(Kontrastwerte aus dem Quelltext) statt sie zu übersetzen. Gefunden hat es
+`react-scripts build`. Seitdem: **Nach jedem Umbau per Skript erst der Build,
+dann die Tests.** Eine Testsuite, die Text prüft, ist kein Übersetzer.
+
+**Fünfte, am selben Tag: „Render sagt live" statt „der Dienst ist oben".**
+Beim Produktiv-Merge meldete Render `live`, der CI-Job wurde grün — und
+`/health` sagte noch viereinhalb Minuten lang `startup_complete: null`. Wäre
+in der Zeit eine Startphase gescheitert, hätte es niemand erfahren. Der
+Deploy-Job fragt jetzt den Dienst selbst.
+
 **Konkret für diese Zusammenarbeit:**
 
 - **Ein Paket gilt erst als fertig, wenn sein CI-Lauf grün ist** — nicht wenn

@@ -86,6 +86,14 @@ export const MENUE_GRUPPEN = [
     icon: '🤝',
     eintraege: [
       { label: 'Tickets',         path: '/app/tickets' },
+      // Die Akademie stand in keiner Gruppe: fünf Kurse, eine Verwaltung und
+      // Urkunden für Kunden, auf dem Desktop ohne jeden Weg dorthin — nur die
+      // Mobilleiste kannte sie unter „Mehr". Gefunden von David am
+      // 18.08.2026. Sie liegt hier, weil Betreuung das ist, was nach dem
+      // Verkauf mit dem Kunden passiert; die internen Kurse gehören ins
+      // selbe Regal.
+      { label: 'Akademie',        path: '/app/academy' },
+      { label: 'Kurse verwalten', path: '/app/academy/admin', adminOnly: true },
       { label: 'Abrechnung',      path: '/app/retainer',      adminOnly: true },
     ],
   },

@@ -67,3 +67,19 @@ def test_die_gesundheitspruefung_nennt_den_zustand(client):
 
     assert "uploads" in antwort
     assert "dauerhaft" in antwort["uploads"]
+
+
+def test_der_pfad_wird_beim_aufruf_gelesen(tmp_path, monkeypatch):
+    """Nicht beim Import — sonst entscheidet die Ladereihenfolge mit.
+
+    `routers/files.py` und `routers/assets.py` hielten die Wurzel als
+    Modulkonstante. Auf Render faellt das nicht auf, weil nach jeder Aenderung
+    der Variablen ohnehin neu gestartet wird; im Test und beim Nachstellen
+    fuehrt es in die Irre.
+    """
+    from routers import files as files_router
+
+    monkeypatch.setenv("UPLOAD_ROOT", str(tmp_path))
+    verzeichnis = files_router._lead_dir(7)
+
+    assert str(verzeichnis).startswith(str(tmp_path))

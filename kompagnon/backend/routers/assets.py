@@ -23,13 +23,13 @@ router = APIRouter(prefix="/api/assets", tags=["assets"])
 
 from services.dateiablage import upload_wurzel
 
-_UPLOAD_ROOT = upload_wurzel()
+# Siehe routers/files.py: beim Aufruf lesen, nicht beim Import.
 _ALLOWED_IMG_EXT = {"jpg", "jpeg", "png", "gif", "svg", "webp"}
 _MAX_SIZE = 20 * 1024 * 1024  # 20 MB
 
 
 def _lead_dir(lead_id: int) -> Path:
-    d = _UPLOAD_ROOT / f"lead_{lead_id}"
+    d = upload_wurzel() / f"lead_{lead_id}"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

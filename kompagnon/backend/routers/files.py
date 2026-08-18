@@ -45,7 +45,9 @@ ALLOWED_EXTENSIONS = {
 # schlimmer als keiner.
 from services.dateiablage import upload_wurzel
 
-UPLOADS_BASE = upload_wurzel()
+# Beim Aufruf lesen, nicht beim Import: Sonst haengt der Pfad davon ab, ob
+# UPLOAD_ROOT schon gesetzt war, als dieses Modul geladen wurde — genau die
+# Abhaengigkeit, die `services/dateiablage.py` vermeiden will.
 
 
 def _ext(filename: str) -> str:
@@ -53,7 +55,7 @@ def _ext(filename: str) -> str:
 
 
 def _lead_dir(lead_id: int) -> Path:
-    d = UPLOADS_BASE / str(lead_id)
+    d = upload_wurzel() / str(lead_id)
     d.mkdir(parents=True, exist_ok=True)
     return d
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { schreibe } from '../utils/schreiben';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -199,7 +200,7 @@ function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete }) {
 function ModuleBlock({
   mod, modIdx, isDragTarget, modDragHandlers,
   courseId, token, h,
-  onUpdateTitle, onToggleLock, onDeleteModule,
+  onUpdateTitle, onToggleLock, onDeleteModule, onFehler,
 }) {
   const navigate = useNavigate();
   const [lessons, setLessons]       = useState(mod.lessons || []);
@@ -209,12 +210,12 @@ function ModuleBlock({
   const lessonOverRef = useRef(null);
 
   const reorderLessons = async (next) => {
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/modules/${mod.id}/lessons/reorder`, {
+    const { ok, fehler } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/modules/${mod.id}/lessons/reorder`, {
         method: 'PUT', headers: h,
         body: JSON.stringify({ order: next.map((l, i) => ({ id: l.id, sort_order: i })) }),
-      });
-    } catch (e) { console.error(e); }
+      }), 'Die Reihenfolge');
+    onFehler(ok ? '' : fehler);
   };
 
   const { handlers: lsnHandlers, overIdx: lsnOver } = useDragSort(lessons, setLessons, reorderLessons);
@@ -222,25 +223,28 @@ function ModuleBlock({
   const addLesson = async () => {
     if (addingLesson) return;
     setAddingLesson(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/academy/modules/${mod.id}/lessons`, {
+    // Genau dieser Aufruf antwortete seit jeher mit 500, ohne dass es jemand
+    // sah — siehe utils/schreiben.js.
+    const { ok, antwort, fehler } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/modules/${mod.id}/lessons`, {
         method: 'POST', headers: h,
         body: JSON.stringify({ title: 'Neue Lektion', type: 'text', sort_order: lessons.length }),
-      });
-      if (res.ok) {
-        const lesson = await res.json();
-        setLessons(prev => [...prev, lesson]);
-      }
-    } catch (e) { console.error(e); }
-    finally { setAddingLesson(false); }
+      }), 'Die Lektion');
+    onFehler(ok ? '' : fehler);
+    if (ok) {
+      const lesson = await antwort.json();
+      setLessons(prev => [...prev, lesson]);
+    }
+    setAddingLesson(false);
   };
 
   const deleteLesson = async (lessonId) => {
     if (!window.confirm('Lektion löschen?')) return;
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/lessons/${lessonId}`, { method: 'DELETE', headers: h });
-      setLessons(prev => prev.filter(l => l.id !== lessonId));
-    } catch (e) { console.error(e); }
+    const { ok, fehler } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/lessons/${lessonId}`, { method: 'DELETE', headers: h }),
+      'Die Lektion');
+    onFehler(ok ? '' : fehler);
+    if (ok) setLessons(prev => prev.filter(l => l.id !== lessonId));
   };
 
   return (
@@ -438,6 +442,8 @@ export default function AcademyAdminCourse() {
   const [newModTitle,  setNewModTitle]  = useState('');
 
   const setF = (key) => (val) => setForm(prev => ({ ...prev, [key]: val }));
+  // Eine Stelle fuer alle Meldungen dieses Bildschirms. Leer heisst: alles gut.
+  const [fehler, setFehler] = useState('');
 
   // ── Load existing course ──────────────────────────────────────
 
@@ -466,33 +472,32 @@ export default function AcademyAdminCourse() {
   const save = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    try {
-      const body = { ...form };
-      let res;
-      if (isNew || !savedId) {
-        res = await fetch(`${API_BASE_URL}/api/academy/courses`, { method: 'POST', headers: h, body: JSON.stringify(body) });
-      } else {
-        res = await fetch(`${API_BASE_URL}/api/academy/courses/${savedId}`, { method: 'PUT', headers: h, body: JSON.stringify(body) });
-      }
-      if (res.ok) {
-        const data = await res.json();
-        setSavedId(data.id);
-        if (isNew) navigate(`/app/akademie/admin/course/${data.id}`, { replace: true });
-      }
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+    const anlegen = isNew || !savedId;
+    const { ok, antwort, fehler: meldung } = await schreibe(() => fetch(
+      anlegen
+        ? `${API_BASE_URL}/api/academy/courses`
+        : `${API_BASE_URL}/api/academy/courses/${savedId}`,
+      { method: anlegen ? 'POST' : 'PUT', headers: h, body: JSON.stringify({ ...form }) },
+    ), 'Der Kurs');
+    setFehler(ok ? '' : meldung);
+    if (ok) {
+      const data = await antwort.json();
+      setSavedId(data.id);
+      if (isNew) navigate(`/app/academy/admin/course/${data.id}`, { replace: true });
+    }
+    setSaving(false);
   };
 
   // ── Module CRUD ───────────────────────────────────────────────
 
   const reorderModules = async (next) => {
     if (!savedId) return;
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/courses/${savedId}/modules/reorder`, {
+    const { ok, fehler: meldung } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/courses/${savedId}/modules/reorder`, {
         method: 'PUT', headers: h,
         body: JSON.stringify({ order: next.map((m, i) => ({ id: m.id, sort_order: i })) }),
-      });
-    } catch (e) { console.error(e); }
+      }), 'Die Reihenfolge');
+    setFehler(ok ? '' : meldung);
   };
 
   const { handlers: modHandlers, overIdx: modOver } = useDragSort(modules, setModules, reorderModules);
@@ -500,40 +505,42 @@ export default function AcademyAdminCourse() {
   const addModule = async () => {
     if (!newModTitle.trim() || addingModule || !savedId) return;
     setAddingModule(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/academy/courses/${savedId}/modules`, {
+    const { ok, antwort, fehler: meldung } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/courses/${savedId}/modules`, {
         method: 'POST', headers: h,
         body: JSON.stringify({ title: newModTitle.trim(), sort_order: modules.length }),
-      });
-      if (res.ok) {
-        const mod = await res.json();
-        setModules(prev => [...prev, { ...mod, lessons: [] }]);
-        setNewModTitle('');
-      }
-    } catch (e) { console.error(e); }
-    finally { setAddingModule(false); }
+      }), 'Das Modul');
+    setFehler(ok ? '' : meldung);
+    if (ok) {
+      const mod = await antwort.json();
+      setModules(prev => [...prev, { ...mod, lessons: [] }]);
+      setNewModTitle('');
+    }
+    setAddingModule(false);
   };
 
   const updateModuleTitle = async (id, title) => {
     setModules(prev => prev.map(m => m.id === id ? { ...m, title } : m));
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/modules/${id}`, { method: 'PUT', headers: h, body: JSON.stringify({ title }) });
-    } catch (e) { console.error(e); }
+    const { ok, fehler: meldung } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/modules/${id}`,
+      { method: 'PUT', headers: h, body: JSON.stringify({ title }) }), 'Der Modulname');
+    setFehler(ok ? '' : meldung);
   };
 
   const toggleModuleLock = async (id, locked) => {
     setModules(prev => prev.map(m => m.id === id ? { ...m, is_locked: locked } : m));
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/modules/${id}`, { method: 'PUT', headers: h, body: JSON.stringify({ is_locked: locked }) });
-    } catch (e) { console.error(e); }
+    const { ok, fehler: meldung } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/modules/${id}`,
+      { method: 'PUT', headers: h, body: JSON.stringify({ is_locked: locked }) }), 'Die Sperre');
+    setFehler(ok ? '' : meldung);
   };
 
   const deleteModule = async (id) => {
     if (!window.confirm('Modul und alle Lektionen darin löschen?')) return;
-    try {
-      await fetch(`${API_BASE_URL}/api/academy/modules/${id}`, { method: 'DELETE', headers: h });
-      setModules(prev => prev.filter(m => m.id !== id));
-    } catch (e) { console.error(e); }
+    const { ok, fehler: meldung } = await schreibe(() => fetch(
+      `${API_BASE_URL}/api/academy/modules/${id}`, { method: 'DELETE', headers: h }), 'Das Modul');
+    setFehler(ok ? '' : meldung);
+    if (ok) setModules(prev => prev.filter(m => m.id !== id));
   };
 
   // ── Access guard ──────────────────────────────────────────────
@@ -565,7 +572,7 @@ export default function AcademyAdminCourse() {
         {/* Breadcrumb */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
           <button onClick={() => navigate('/app/akademie/admin')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-sans)' }}>
-            Kursverwaltung
+            Kurse verwalten
           </button>
           <span style={{ color: 'var(--border-medium)' }}>›</span>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
@@ -607,6 +614,33 @@ export default function AcademyAdminCourse() {
           </button>
         </div>
       </div>
+
+      {/* Was schiefging, steht hier — und nicht mehr nur in der Konsole.
+        * Bis zum 18.08.2026 hoerte der Knopf einfach auf zu drehen; dass sich
+        * keine Lektion anlegen liess, ist deshalb nie jemandem aufgefallen. */}
+      {fehler && (
+        <div
+          role="alert"
+          style={{
+            margin: '0 0 16px', padding: '10px 14px',
+            background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
+            border: '1px solid var(--status-danger-text)',
+            borderRadius: 'var(--radius-md)', fontSize: 13, lineHeight: 1.5,
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}
+        >
+          <span aria-hidden="true">⚠️</span>
+          <span style={{ flex: 1 }}>{fehler}</span>
+          <button
+            type="button" onClick={() => setFehler('')}
+            aria-label="Meldung schliessen"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'inherit', fontSize: 14, lineHeight: 1, padding: 2,
+            }}
+          >✕</button>
+        </div>
+      )}
 
       {/* ── 2-column layout ───────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? '1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
@@ -724,6 +758,7 @@ export default function AcademyAdminCourse() {
                   onUpdateTitle={updateModuleTitle}
                   onToggleLock={toggleModuleLock}
                   onDeleteModule={deleteModule}
+                  onFehler={setFehler}
                 />
               ))}
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { VersandProvider } from './context/VersandContext';
@@ -32,12 +32,9 @@ import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
-import AcademyLesson from './pages/AcademyLesson';
 import AcademyAdmin from './pages/AcademyAdmin';
 import AcademyAdminCourse from './pages/AcademyAdminCourse';
 import AcademyAdminLesson from './pages/AcademyAdminLesson';
-import AcademyEdit from './pages/AcademyEdit';
-import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
 import Betriebe from './pages/Betriebe';
 import CustomerDashboard from './pages/CustomerDashboard';
@@ -144,6 +141,36 @@ function DashboardRoute() {
 }
 
 // ── Main App ──
+
+/**
+ * Lenkt jede alte `/app/akademie/…`-Adresse auf ihre Entsprechung in
+ * `/app/academy/…`. Zwei Bildschirme haben keine: der zweite Kurseditor
+ * (seine Felder erscheinen nirgends) und der alte Lektions-Spieler. Sie
+ * landen beim nächstgelegenen Ziel, das es gibt.
+ */
+function AkademieUmleitung() {
+  const { pathname, search } = useLocation();
+  const rest = pathname.replace(/^\/app\/akademie/, '');
+
+  const ziel = (() => {
+    if (rest.startsWith('/admin/modul/')) return '/app/academy/admin';
+    if (rest === '/admin/neu') return '/app/academy/admin/course/new';
+
+    const kursEditor = rest.match(/^\/admin\/(\d+)$/);
+    if (kursEditor) return `/app/academy/admin/course/${kursEditor[1]}`;
+
+    const kurs = rest.match(/^\/kurs\/(\d+)$/);
+    if (kurs) return `/app/academy/${kurs[1]}`;
+
+    // Den alten Lektions-Spieler gibt es nicht mehr; der Kurs ist der Ort,
+    // von dem aus man die Lektion ohnehin öffnet.
+    if (rest.startsWith('/lektion/')) return '/app/academy';
+
+    return `/app/academy${rest}`;
+  })();
+
+  return <Navigate to={ziel + search} replace />;
+}
 
 function App() {
   return (
@@ -278,18 +305,15 @@ function App() {
             <Route path="academy/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
             <Route path="academy/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
             <Route path="academy/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            {/* Legacy-Routen (Rückwärtskompatibilität) */}
-            <Route path="akademie" element={<Academy />} />
-            <Route path="akademie/kurs/:kursId" element={<AcademyCourseNew />} />
-            <Route path="akademie/lektion/:lessonId" element={<AcademyLesson />} />
-            <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
-            <Route path="akademie/admin/course/new" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
-            <Route path="akademie/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
-            <Route path="akademie/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            <Route path="akademie/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
-            <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
-            <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
+            {/* Die Akademie hatte zwei Adressräume — und das waren keine
+              * Aliasse: Hinter `akademie/admin/:id` lag ein anderer Kurseditor
+              * als hinter `academy/admin/course/:id`, und der Modul-Editor war
+              * nur über den alten Pfad erreichbar. Ein Klick auf „Bearbeiten"
+              * wechselte den Raum, ohne dass man es sah (UX-42, 18.08.2026).
+              *
+              * Die alten Adressen bleiben gültig — als Weiterleitung, damit
+              * Lesezeichen und alte Links nicht ins Leere laufen. */}
+            <Route path="akademie/*" element={<AkademieUmleitung />} />
 
             {/* Mobile hub pages */}
             {/* `m-vertrieb` war eine zweite Adresse fuer denselben Bildschirm,

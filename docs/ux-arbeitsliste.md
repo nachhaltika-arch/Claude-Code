@@ -643,7 +643,25 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ### Offen — jeweils mit Empfehlung
 
-- [ ] **UX-42** · **M** · **Die Akademie gibt es zweimal:** `/app/academy/*`
+- [x] **UX-42** · **M** · ~~Die Akademie gibt es zweimal~~ **erledigt
+      2026-08-18.** Ein Adressraum: `/app/akademie/*` leitet vollständig auf
+      `/app/academy/*` um (eine Weiterleitung statt elf Routen, alte
+      Lesezeichen bleiben gültig). Der zweite Kurseditor, der Modul-Editor und
+      der alte Lektions-Spieler sind entfernt — **zu portieren war nichts**,
+      ihre Mehrfelder erscheinen auf keinem Bildschirm.
+      **Davor** (Schritt 1 der Empfehlung): Ein gescheitertes Speichern ist
+      jetzt sichtbar. `utils/schreiben.js` fängt beides ab — die geworfene
+      Ausnahme **und** die Antwort, die nicht `ok` ist — und macht aus dem
+      Statuscode einen Satz. *Geprüft am Gegenstand:* Modul im Hintergrund
+      gelöscht, dann „+ Lektion hinzufügen" gedrückt → „Die Lektion nicht
+      gespeichert. Das Ziel gibt es nicht (mehr)." Vorher: nichts.
+      **Offen daraus:** ob Checklisten je Lektion ein Merkmal bleiben sollen —
+      sie waren nur im entfernten Modul-Editor pflegbar und nur im entfernten
+      Lektions-Spieler sichtbar; die Daten stehen weiter in der Spalte
+      `checklist_items_json`. Ebenso `category`, `category_color`, `formats`:
+      im Modell, nirgends angezeigt.
+
+- [ ] ~~**UX-42** · **M** · **Die Akademie gibt es zweimal:**~~ `/app/academy/*`
       (8 Routen) und `/app/akademie/*` (11). Das sind keine Aliasse — hinter
       `akademie/admin/:courseId` liegt ein **anderer** Kurseditor
       (`AcademyEdit`) als hinter `academy/admin/course/:courseId`

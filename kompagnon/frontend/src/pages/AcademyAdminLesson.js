@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { schreibe } from '../utils/schreiben';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -326,6 +327,7 @@ export default function AcademyAdminLesson() {
 
   const [loading, setLoading]   = useState(!isNew);
   const [saving,  setSaving]    = useState(false);
+  const [fehler,  setFehler]    = useState('');
 
   // Breadcrumb context
   const [courseId,   setCourseId]   = useState(null);
@@ -391,7 +393,7 @@ export default function AcademyAdminLesson() {
           } catch (e) { /* quiz optional */ }
         }
       })
-      .catch(() => navigate('/app/akademie/admin'))
+      .catch(() => navigate('/app/academy/admin'))
       .finally(() => setLoading(false));
   }, [lessonId]); // eslint-disable-line
 
@@ -412,38 +414,45 @@ export default function AcademyAdminLesson() {
 
       let savedLessonId = isNew ? null : Number(lessonId);
 
+      // Bis zum 18.08.2026 verschwand hier jeder Fehler: `throw new Error()`
+      // ohne Text, gefangen von `catch (e) { console.error(e); }`. Der Knopf
+      // hoerte auf zu drehen, die Lektion war nicht gespeichert, und niemand
+      // erfuhr warum — genau so blieb ein 500er monatelang unbemerkt.
       if (isNew) {
         if (!moduleId) return;
-        const res = await fetch(`${API_BASE_URL}/api/academy/modules/${moduleId}/lessons`, {
-          method: 'POST', headers: h, body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        savedLessonId = data.id;
+        const { ok, antwort, fehler: meldung } = await schreibe(() => fetch(
+          `${API_BASE_URL}/api/academy/modules/${moduleId}/lessons`,
+          { method: 'POST', headers: h, body: JSON.stringify(body) }), 'Die Lektion');
+        if (!ok) { setFehler(meldung); setSaving(false); return; }
+        savedLessonId = (await antwort.json()).id;
       } else {
-        await fetch(`${API_BASE_URL}/api/academy/lessons/${savedLessonId}`, {
-          method: 'PUT', headers: h, body: JSON.stringify(body),
-        });
+        const { ok, fehler: meldung } = await schreibe(() => fetch(
+          `${API_BASE_URL}/api/academy/lessons/${savedLessonId}`,
+          { method: 'PUT', headers: h, body: JSON.stringify(body) }), 'Die Lektion');
+        if (!ok) { setFehler(meldung); setSaving(false); return; }
       }
 
-      // Save quiz questions
       if (form.type === 'quiz' && savedLessonId) {
-        await fetch(`${API_BASE_URL}/api/academy/lessons/${savedLessonId}/quiz/admin`, {
-          method: 'POST', headers: h,
-          body: JSON.stringify({
-            questions: questions.map(q => ({
-              question: q.question,
-              answers:  q.answers.map(a => ({ text: a.text, is_correct: a.is_correct })),
-            })),
-          }),
-        });
+        const { ok, fehler: meldung } = await schreibe(() => fetch(
+          `${API_BASE_URL}/api/academy/lessons/${savedLessonId}/quiz/admin`, {
+            method: 'POST', headers: h,
+            body: JSON.stringify({
+              questions: questions.map(q => ({
+                question: q.question,
+                answers:  q.answers.map(a => ({ text: a.text, is_correct: a.is_correct })),
+              })),
+            }),
+          }), 'Die Fragen');
+        if (!ok) { setFehler(meldung); setSaving(false); return; }
       }
 
-      // Navigate back
-      if (courseId) navigate(`/app/akademie/admin/course/${courseId}`);
-      else navigate('/app/akademie/admin');
+      setFehler('');
+      if (courseId) navigate(`/app/academy/admin/course/${courseId}`);
+      else navigate('/app/academy/admin');
 
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setFehler(`Die Lektion wurde nicht gespeichert: ${e?.message || e}`);
+    }
     finally { setSaving(false); }
   };
 
@@ -466,6 +475,28 @@ export default function AcademyAdminLesson() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
+      {/* Siehe utils/schreiben.js: Ein Speichern, das stillschweigend
+        * scheitert, ist schlimmer als eines, das hakt. */}
+      {fehler && (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 14px', background: 'var(--status-danger-bg)',
+            color: 'var(--status-danger-text)',
+            border: '1px solid var(--status-danger-text)',
+            borderRadius: 'var(--radius-md)', fontSize: 13, lineHeight: 1.5,
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}
+        >
+          <span aria-hidden="true">⚠️</span>
+          <span style={{ flex: 1 }}>{fehler}</span>
+          <button
+            type="button" onClick={() => setFehler('')}
+            aria-label="Meldung schliessen"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 14, padding: 2 }}
+          >✕</button>
+        </div>
+      )}
 
       {/* ── Topbar ───────────────────────────────────────────── */}
       <div style={{
@@ -476,7 +507,7 @@ export default function AcademyAdminLesson() {
         {/* Breadcrumb */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
           <button
-            onClick={() => courseId ? navigate(`/app/akademie/admin/course/${courseId}`) : navigate('/app/akademie/admin')}
+            onClick={() => courseId ? navigate(`/app/academy/admin/course/${courseId}`) : navigate('/app/academy/admin')}
             style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}
           >
             ← {courseTitle ? `${courseTitle} bearbeiten` : 'Kurs bearbeiten'}
@@ -490,7 +521,7 @@ export default function AcademyAdminLesson() {
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={() => courseId ? navigate(`/app/akademie/admin/course/${courseId}`) : navigate('/app/akademie/admin')}
+            onClick={() => courseId ? navigate(`/app/academy/admin/course/${courseId}`) : navigate('/app/academy/admin')}
             style={{
               padding: '7px 14px', background: 'transparent', color: 'var(--text-secondary)',
               border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',

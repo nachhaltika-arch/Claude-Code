@@ -41,7 +41,7 @@ export default function MassExport() {
           Semikolon-getrennt, UTF-8 mit BOM.
         </p>
         <button onClick={exportCSV} disabled={exporting} style={{
-          background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px',
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px',
           fontSize: 14, fontWeight: 700, cursor: exporting ? 'not-allowed' : 'pointer', minHeight: 44, opacity: exporting ? 0.6 : 1,
         }}>
           {exporting ? 'Wird exportiert...' : 'CSV herunterladen'}

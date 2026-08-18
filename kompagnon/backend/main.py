@@ -289,6 +289,11 @@ def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_academy_customer_access ON academy_customer_access(customer_id, course_id)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)",
         # PageSpeed columns on leads table
+        # Befunde der Anreicherung, bis 17.08.2026 nur als Textzeile in `notes`
+        # (UX-06). NULL heisst „noch nicht geprueft", nicht „nicht vorhanden".
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS has_ssl BOOLEAN",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS has_impressum BOOLEAN",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_lcp_mobile FLOAT",
@@ -1185,6 +1190,9 @@ def _run_migrations():
         # die Bestaetigungslinks von selbst ausloest.
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_user_agent VARCHAR(400)",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_ip VARCHAR(64)",
+        # Zaehlt die Versandversuche der Bestaetigung — begrenzt den zweiten
+        # Versuch aus dem Widget (UX-08, 17.08.2026).
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_attempts INTEGER DEFAULT 0",
         # ── Entwurfs-Status fuer erzeugte Bloecke 2026-08-13 ────────────────
         # Bestehende Bloecke sind freigegeben; nur neu erzeugte starten als
         # Entwurf. Default deshalb 'approved'.

@@ -12,6 +12,7 @@ import logging
 import json
 import re
 import httpx
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class GeoOptimizerAgent:
 
     # ── 2. KI-Inhaltsanalyse ──────────────────────────────────────
 
-    def _analyze_content_with_ai(self, website_text: str, gewerk: str, city: str) -> dict:
+    async def _analyze_content_with_ai(self, website_text: str, gewerk: str, city: str) -> dict:
         prompt = f"""Du bist ein GEO/GAIO-Experte (Generative Engine Optimization).
 Analysiere diesen Website-Content eines {gewerk}-Betriebs aus {city}.
 
@@ -146,7 +147,8 @@ Antworte NUR als JSON:
   "ai_summary": "2-Satz Gesamtbewertung auf Deutsch"
 }}"""
         try:
-            response = self.client.messages.create(
+            response = await frag_modell(
+                self.client,
                 model="claude-opus-4-5",
                 max_tokens=1000,
                 messages=[{"role": "user", "content": prompt}],
@@ -176,7 +178,7 @@ Antworte NUR als JSON:
 
         ai_result = {}
         if website_text:
-            ai_result = self._analyze_content_with_ai(website_text, gewerk, city)
+            ai_result = await self._analyze_content_with_ai(website_text, gewerk, city)
 
         llms_score = llms_result.get("score", 0)
         robots_score = robots_result.get("score", 0)

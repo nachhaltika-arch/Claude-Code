@@ -924,7 +924,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               style={{
                 width: '100%', marginTop: 8,
                 padding: '10px 14px',
-                background: status === 'running' ? '#94a3b8' : '#7c3aed',
+                background: '#7c3aed', opacity: status === 'running' ? 0.5 : 1,
                 color: '#fff', border: 'none', borderRadius: 8,
                 fontSize: 12, fontWeight: 700,
                 cursor: status === 'running' ? 'wait' : 'pointer',
@@ -997,7 +997,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
                   type="button" onClick={onUseResult}
                   style={{
                     width: '100%', padding: '10px 14px',
-                    background: '#10b981', color: '#fff', border: 'none', borderRadius: 8,
+                    background: 'var(--success)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8,
                     fontSize: 12, fontWeight: 700, cursor: 'pointer',
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}
@@ -1065,7 +1065,7 @@ function Editor({
             type="button" onClick={onSave} disabled={saving || (!dirty && !isNew)}
             style={{
               padding: '6px 14px', fontSize: 11, fontWeight: 700,
-              background: saving || (!dirty && !isNew) ? '#94a3b8' : KC_DARK,
+              background: KC_DARK, opacity: saving || (!dirty && !isNew) ? 0.5 : 1,
               color: '#fff', border: 'none', borderRadius: 6,
               cursor: saving ? 'wait' : 'pointer', fontFamily: 'inherit',
             }}

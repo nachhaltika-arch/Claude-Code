@@ -156,7 +156,7 @@ export default function Courses() {
           <button
             onClick={openCreate}
             style={{
-              background: 'var(--brand-primary)', color: 'white', border: 'none',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
               borderRadius: 'var(--radius-md)', padding: '9px 16px', fontSize: 13,
               fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
               display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -233,7 +233,7 @@ export default function Courses() {
             <div style={{ fontSize: 14, color: 'var(--status-danger-text)' }}>{error}</div>
             <button onClick={loadCourses} style={{
               marginTop: 12, padding: '7px 16px', fontSize: 13,
-              background: 'var(--brand-primary)', color: 'white', border: 'none',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
               borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
             }}>
               Erneut versuchen
@@ -525,7 +525,7 @@ const inputStyle = {
 
 const btnPrimary = {
   padding: '9px 20px', fontSize: 13, fontWeight: 600,
-  background: 'var(--brand-primary)', color: 'white',
+  background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
   border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
   fontFamily: 'var(--font-sans)',
 };

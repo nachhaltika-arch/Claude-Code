@@ -93,9 +93,9 @@ export default function Dashboard() {
           {value ?? '—'}
         </div>
       )}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
       {delta !== undefined && !loadingKpis && (
-        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-30)', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>
           {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} diese Woche
         </div>
       )}
@@ -143,7 +143,7 @@ export default function Dashboard() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
             Dashboard
           </h1>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
             {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
@@ -151,11 +151,54 @@ export default function Dashboard() {
           onClick={() => navigate('/app/projektpipeline')}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
-          + Neuer Lead
+          + Neuer Betrieb
         </button>
       </div>
 
-      {/* Deal-Metriken */}
+      {/* Die Zahlen, die etwas sagen — und deshalb zuerst.
+        * Vorher standen oben drei Kacheln mit 0,00 €, groß und grün, und
+        * darunter klein die Zahlen, an denen man den Stand abliest. Die
+        * Reihenfolge behauptete eine Wichtigkeit, die nicht stimmte (UX-11). */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gap: 12,
+        minWidth: 0, width: '100%',
+      }}>
+        <KpiCard label="Betriebe gesamt" value={kpis?.leads_total ?? leads.length} icon="👥" />
+        <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
+        <KpiCard
+          label="Ø Homepage-Score"
+          value={avgScore !== null ? `${avgScore}/100` : '—'}
+          icon="◎"
+          color={avgScore ? scoreColor(avgScore) : undefined}
+        />
+        <KpiCard
+          label="Gewonnene Betriebe"
+          value={kpis?.leads_won ?? leads.filter(l => l.status === 'won').length}
+          icon="🏆"
+          color="var(--status-success-text)"
+        />
+      </div>
+
+      {/* Deal-Metriken — darunter, weil sie meist 0,00 € zeigen.
+        * Und die Null steht nicht mehr in Erfolgsgrün: Grün behauptet ein
+        * Ergebnis, und 0,00 € ist keines. Farbe bekommt der Betrag erst,
+        * wenn es etwas zu färben gibt. */}
+      {loadingSecondary && !dealStats && (
+        /* Platzhalter statt Leere: Die Reihe kam bisher ohne Ankündigung
+          * dazu und schob alles darunter nach unten (UX-10). */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, minWidth: 0, width: '100%' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+              <Skeleton height={12} width={110} />
+              <div style={{ height: 8 }} />
+              <Skeleton height={24} width={90} />
+            </div>
+          ))}
+        </div>
+      )}
+
       {dealStats && (
         <div style={{
           display: 'grid',
@@ -167,7 +210,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               💰 Heute gewonnen
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.won_today > 0 ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>
               {Number(dealStats.won_today).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
@@ -178,7 +221,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               📅 Diesen Monat
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.won_this_month > 0 ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>
               {Number(dealStats.won_this_month).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </div>
           </div>
@@ -186,7 +229,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               💼 Pipeline offen
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.pipeline_value > 0 ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>
               {Number(dealStats.pipeline_value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
@@ -195,31 +238,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* KPI Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: 12,
-        minWidth: 0, width: '100%',
-      }}>
-        <KpiCard label="Leads gesamt" value={kpis?.leads_total ?? leads.length} icon="👥" />
-        <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
-        <KpiCard
-          label="Ø Homepage-Score"
-          value={avgScore !== null ? `${avgScore}/100` : '—'}
-          icon="◎"
-          color={avgScore ? scoreColor(avgScore) : undefined}
-        />
-        <KpiCard
-          label="Gewonnene Leads"
-          value={kpis?.leads_won ?? leads.filter(l => l.status === 'won').length}
-          icon="🏆"
-          color="var(--status-success-text)"
-        />
-      </div>
-
-      {/* Leads nach Herkunft */}
+      {/* Betriebe nach Herkunft */}
       {campaignStats.length > 0 && (() => {
         const SRC = {
           facebook:   { icon: '📘', label: 'Facebook' },
@@ -240,8 +259,24 @@ export default function Dashboard() {
             width: '100%', boxSizing: 'border-box',
           }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>
-              📊 Leads nach Herkunft
+              📊 Betriebe nach Herkunft
             </div>
+
+            {/* Die rechte Zahl stand ohne Überschrift da und sah dadurch aus
+              * wie ein Anteil an allem. Sie ist die Gewinnquote dieser
+              * Herkunft — richtig gerechnet, nur unbenannt (UX-09). */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ width: 24, flexShrink: 0 }} />
+              <span style={{ width: 100, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 50 }} />
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
+                Betriebe
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 64, textAlign: 'right', flexShrink: 0 }}>
+                Gewinnquote
+              </span>
+            </div>
+
             {campaignStats.map(stat => {
               const cfg = SRC[stat.source] || { icon: stat.source_icon || '📌', label: stat.source_label || stat.source };
               const cnt = stat.lead_count || 0;
@@ -262,14 +297,16 @@ export default function Dashboard() {
                     }} />
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
-                    {cnt} Lead{cnt !== 1 ? 's' : ''}
+                    {cnt}
                   </span>
+                  {/* Das Häkchen stand für die fehlende Überschrift ein. Jetzt
+                    * gibt es die Überschrift, also kann es weg. */}
                   <span style={{
                     fontSize: 11,
                     color: pct > 30 ? 'var(--status-success-text)' : 'var(--text-tertiary)',
-                    minWidth: 42, textAlign: 'right', flexShrink: 0, fontWeight: 600,
+                    minWidth: 64, textAlign: 'right', flexShrink: 0, fontWeight: 600,
                   }}>
-                    {pct}% ✓
+                    {pct}%
                   </span>
                 </div>
               );
@@ -290,7 +327,7 @@ export default function Dashboard() {
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
-              Aktuelle Leads
+              Aktuelle Betriebe
             </span>
             <button
               onClick={() => navigate('/app/deals')}
@@ -308,7 +345,7 @@ export default function Dashboard() {
             <div style={{ textAlign: 'center', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <div style={{ fontSize: 28 }}>📋</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Noch keine Leads vorhanden</div>
-              <button onClick={() => navigate('/app/import')} style={{ marginTop: 4, padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={() => navigate('/app/import')} style={{ marginTop: 4, padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 + Leads importieren
               </button>
             </div>

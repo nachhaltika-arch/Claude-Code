@@ -106,7 +106,7 @@ function LessonForm({ lesson, onSave, onDelete, onMove, isFirst, isLast }) {
 
           <div>
             <button onClick={save} disabled={saving} style={{
-              padding: '8px 20px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+              padding: '8px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
               borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)', opacity: saving ? 0.6 : 1,
             }}>{saving ? 'Speichert...' : 'Lektion speichern'}</button>
@@ -235,7 +235,7 @@ export default function AcademyModuleEdit() {
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={moduleTitle} onChange={e => setModuleTitle(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
           <button onClick={saveModuleTitle} disabled={savingTitle} style={{
-            padding: '9px 16px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+            padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
             borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', opacity: savingTitle ? 0.6 : 1,
           }}>{savingTitle ? '...' : 'Speichern'}</button>
@@ -246,7 +246,7 @@ export default function AcademyModuleEdit() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Lektionen ({lessons.length})</h3>
         <button onClick={addLesson} style={{
-          padding: '7px 14px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+          padding: '7px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
           borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
         }}>+ Neue Lektion</button>
       </div>

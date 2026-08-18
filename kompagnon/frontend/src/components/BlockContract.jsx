@@ -122,8 +122,8 @@ export function ContractPanel({
               : 'Erst die offenen Punkte beheben — die Freigabe wird sonst abgelehnt')}
           style={{
             marginTop: 10, padding: '7px 14px',
-            background: konform && !approving && !stale ? '#10b981' : '#94a3b8',
-            color: '#fff', border: 'none', borderRadius: 6,
+            background: 'var(--success)', opacity: konform && !approving && !stale ? 1 : 0.5,
+            color: 'var(--text-on-brand)', border: 'none', borderRadius: 6,
             fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
             textTransform: 'uppercase', letterSpacing: '0.04em',
             cursor: konform && !approving && !stale ? 'pointer' : 'not-allowed',

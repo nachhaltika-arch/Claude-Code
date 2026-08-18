@@ -12,7 +12,10 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
-from routers.auth_router import require_any_auth, require_innendienst, get_current_user
+from routers.auth_router import (
+    require_admin, require_any_auth, require_innendienst, get_current_user,
+)
+from services import betriebsname
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
@@ -549,7 +552,19 @@ async def _process_single_domain(url: str, clean: str, _session_factory, job_id:
                     result['impressum_status'] = 'failed'
                     return result
                 updated_fields = []
-                for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
+                # Der Firmenname zuerst und nach eigener Regel: Der Import hat
+                # ihn mit der Domain vorbelegt. Die Bedingung unten hielte das
+                # Feld deshalb für gefüllt und würde den echten Namen aus dem
+                # Impressum verwerfen — genau deshalb hieß am 17.08.2026 jeder
+                # Betrieb in der Liste wie seine Domain.
+                echter_name = betriebsname.uebernehmen(
+                    lead.company_name, data_imp.get('company_name'), lead.website_url,
+                )
+                if echter_name:
+                    lead.company_name = echter_name
+                    updated_fields.append('company_name')
+
+                for field in ['legal_form', 'ceo_first_name', 'ceo_last_name',
                               'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
                               'vat_id', 'register_number', 'register_court', 'trade']:
                     if data_imp.get(field) and not getattr(lead, field, None):
@@ -1016,24 +1031,22 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # 2. Verknüpfte Projekte finden
-    projects = db.execute(
+    # 2. Projekte samt Anhang — die Reihenfolge über die fünfzehn abhängigen
+    #    Tabellen steht in `services/projekt_loeschen.py` und gilt hier
+    #    genauso. Vorher stand hier eine eigene Liste mit vier Tabellen; sie
+    #    wäre am NOT-NULL-Fremdschlüssel von `customers` gescheitert, sobald
+    #    ein Projekt einen Kunden hatte, und hätte bei den übrigen elf Zeilen
+    #    zurückgelassen, deren `project_id` ins Leere zeigt.
+    from services.projekt_loeschen import entfernen, tabelle_vorhanden
+
+    projekte = db.execute(
         text("SELECT id FROM projects WHERE lead_id = :id"), {"id": lead_id}
     ).fetchall()
-    project_ids = [p[0] for p in projects]
+    entfernen(db, [zeile[0] for zeile in projekte])
 
-    # 3. Abhängige Daten der Projekte löschen (Reihenfolge wichtig)
-    for pid in project_ids:
-        db.execute(text("DELETE FROM project_checklists WHERE project_id = :id"), {"id": pid})
-        db.execute(text("DELETE FROM time_tracking WHERE project_id = :id"), {"id": pid})
-        db.execute(text("DELETE FROM briefings WHERE project_id = :id"), {"id": pid})
+    # 3. Weitere Lead-abhängige Daten löschen
+    if tabelle_vorhanden(db, "project_files"):
         db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
-
-    # 4. Projekte selbst löschen
-    if project_ids:
-        db.execute(text("DELETE FROM projects WHERE lead_id = :id"), {"id": lead_id})
-
-    # 5. Weitere Lead-abhängige Daten löschen
     db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
     db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
     db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
@@ -1483,6 +1496,15 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "geschaeftsfuehrer": getattr(lead, 'geschaeftsfuehrer', '') or '',
             "display_name": getattr(lead, 'display_name', '') or '',
         },
+        # Befunde der Anreicherung. Bewusst ohne `or False`: `None` heißt
+        # „noch nicht geprüft" und darf nicht als „fehlt" durchgehen (UX-06).
+        "anreicherung": {
+            "has_ssl": getattr(lead, 'has_ssl', None),
+            "has_impressum": getattr(lead, 'has_impressum', None),
+            "pagespeed_mobile": getattr(lead, 'pagespeed_mobile_score', None),
+            "geprueft_am": (lead.enriched_at.strftime("%d.%m.%Y")
+                            if getattr(lead, 'enriched_at', None) else None),
+        },
         "current_score": latest_audit.total_score if latest_audit else None,
         "current_level": latest_audit.level if latest_audit else None,
         "score_history": score_history,
@@ -1534,6 +1556,139 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
     return results
 
 
+#: Wie viele Betriebe ein Aufruf hoechstens anfasst. Jeder kostet einen
+#: Seitenabruf samt KI-Auswertung — das soll man dosieren koennen.
+NAMEN_JE_LAUF = 25
+
+
+@router.post("/namen-nachtragen")
+async def namen_nachtragen(
+    anzahl: int = Query(NAMEN_JE_LAUF, ge=1, le=NAMEN_JE_LAUF,
+                        description="Wie viele Betriebe dieser Lauf anfasst"),
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt den echten Firmennamen für Betriebe, die wie ihre Domain heißen.
+
+    Der Domainimport legt Betriebe mit der Domain als Namen an. Bis zum
+    17.08.2026 verwarf der Impressum-Schritt den echten Namen wieder, weil das
+    Feld als „gefüllt" galt. Behoben ist das — aber nur für künftige Läufe.
+    Dieser Endpunkt holt nach, was in der Liste steht.
+
+    Angefasst wird ausschließlich, wessen Name ein Platzhalter ist. Ein von
+    Hand gepflegter Name bleibt, auch wenn das Impressum etwas anderes sagt.
+    """
+    from services.impressum_scraper import extract_contact_from_impressum
+
+    kandidaten = [
+        lead for lead in db.query(Lead).filter(Lead.website_url != "").all()
+        if betriebsname.ist_platzhalter(lead.company_name, lead.website_url)
+    ][:anzahl]
+
+    geaendert, ohne_ergebnis = [], []
+    for lead in kandidaten:
+        try:
+            ergebnis = await extract_contact_from_impressum(lead.website_url)
+        except Exception as fehler:  # noqa: BLE001 — ein Betrieb darf den Lauf nicht kippen
+            logger.warning(f"Impressum für {lead.website_url} nicht lesbar: {fehler}")
+            ohne_ergebnis.append({"betrieb": lead.company_name, "grund": str(fehler)[:120]})
+            continue
+
+        # Der Abruf hat Sekunden gedauert. In der Zeit kann jemand über die
+        # Oberfläche denselben Betrieb bearbeitet haben — genau das geschah am
+        # 17.08.2026 bei „Frowein Haustechnik". Ohne dieses Nachlesen
+        # entscheidet der Lauf auf dem Stand von vor dem Abruf.
+        db.refresh(lead)
+
+        # Drei Lagen, die vorher alle „kein brauchbarer Name im Impressum"
+        # hießen — und damit dasselbe behaupteten wie ein echter Fehlschlag.
+        # Deshalb stand ein Betrieb im Bericht als gescheitert, der längst
+        # einen richtigen Namen trug.
+        if not betriebsname.ist_platzhalter(lead.company_name, lead.website_url):
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": "hatte inzwischen schon einen richtigen Namen",
+            })
+            continue
+
+        if not ergebnis.get("success"):
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": f"Impressum nicht lesbar: {ergebnis.get('error') or 'unbekannt'}"[:120],
+            })
+            continue
+
+        gefunden = (ergebnis.get("data") or {}).get("company_name")
+        echter_name = betriebsname.uebernehmen(lead.company_name, gefunden, lead.website_url)
+        if not echter_name:
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": ("Impressum gelesen, aber kein Firmenname darin"
+                          if not (gefunden or "").strip()
+                          else f"gefundener Name taugt nicht: {gefunden[:60]!r}"),
+            })
+            continue
+
+        geaendert.append({"id": lead.id, "vorher": lead.company_name, "nachher": echter_name})
+        lead.company_name = echter_name
+        # Nach jedem Betrieb schreiben, nicht am Ende. Je Betrieb fallen ein
+        # Startseitenabruf, bis zu zwölf Kandidaten und ein KI-Aufruf an —
+        # zusammen Sekunden. Reißt die Verbindung nach dem zwanzigsten ab,
+        # sollen die ersten neunzehn Namen trotzdem stehen.
+        db.commit()
+
+    return {
+        "geprueft": len(kandidaten),
+        "geaendert": geaendert,
+        "ohne_ergebnis": ohne_ergebnis,
+        "grenze_erreicht": len(kandidaten) == anzahl,
+    }
+
+
+@router.post("/befunde-nachtragen")
+def befunde_nachtragen(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt SSL, Impressum und PageSpeed aus der alten Notizzeile in die Spalten.
+
+    Seit dem 17.08.2026 stehen diese Befunde in eigenen Spalten. Für den
+    Bestand hieß das: Spalten leer, Oberfläche sagt „nicht geprüft" — und
+    darunter behauptet die alte Notiz „SSL: OK". Beides stimmt für sich,
+    zusammen widersprechen sie sich auf einem Bildschirm.
+
+    Übernommen wird nur, was noch leer ist: Was die neue Anreicherung
+    geschrieben hat, ist jünger als die Notiz. Ein Zeitpunkt wird nicht
+    erfunden — die Zeile trug keinen.
+    """
+    from services import anreicherungsnotiz
+
+    betroffen = db.query(Lead).filter(
+        Lead.notes.ilike(f"%{anreicherungsnotiz.MARKE}%")).all()
+
+    bericht = []
+    for lead in betroffen:
+        befunde = anreicherungsnotiz.befunde_aus_notiz(lead.notes)
+        uebernommen = []
+        for feld, wert in befunde.items():
+            if getattr(lead, feld, None) is None:
+                setattr(lead, feld, wert)
+                uebernommen.append(feld)
+
+        lead.notes = anreicherungsnotiz.notiz_ohne_maschinenzeilen(lead.notes)
+        bericht.append({
+            "id": lead.id,
+            "betrieb": lead.company_name,
+            "uebernommen": uebernommen,
+            "notiz_bleibt": bool(lead.notes),
+        })
+
+    if bericht:
+        db.commit()
+
+    return {"betroffen": len(betroffen), "betriebe": bericht}
+
+
 @router.post("/{lead_id}/extract-impressum")
 async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
     """Extract contact data from a lead's website impressum using AI."""
@@ -1554,8 +1709,16 @@ async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
     data = result['data']
     updated = {}
 
+    # Der Firmenname nach eigener Regel — der Domainimport hat ihn mit der
+    # Domain vorbelegt, und `not existing` hielte das für einen Wert.
+    echter_name = betriebsname.uebernehmen(
+        lead.company_name, data.get('company_name'), lead.website_url,
+    )
+    if echter_name:
+        lead.company_name = echter_name
+        updated['company_name'] = echter_name
+
     field_map = {
-        'company_name': lead.company_name,
         'legal_form': lead.legal_form,
         'ceo_first_name': lead.ceo_first_name,
         'ceo_last_name': lead.ceo_last_name,

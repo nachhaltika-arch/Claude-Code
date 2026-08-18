@@ -51,19 +51,76 @@ def verify_url(token: str) -> str:
     return f"{api_base_url()}/api/widget/verify/{token}"
 
 
-def gestenbeleg(token: str) -> str:
-    """Der Wert, den die Seite erst bei einer echten Geste mitschickt.
+#: So lange muss zwischen Ausgabe der Seite und Absenden mindestens liegen.
+#: Ein Postfach-Scanner klappert Links in Millisekunden ab; ein Mensch liest
+#: erst. Zwei Sekunden merkt niemand, der wirklich klickt.
+BELEG_MINDESTALTER_S = 2
 
-    Aus dem Token abgeleitet, damit der Server ihn ohne gespeicherten Zustand
-    nachrechnen kann — und nicht rateabar, weil ``SECRET_KEY`` einfliesst.
-    Fehlt der Schlüssel, wird nicht etwa alles durchgewunken: Dann ergibt sich
-    ein anderer, ebenso stabiler Wert, und die Prüfung greift weiter.
-    """
+#: Und so lange hoechstens. Eine Seite von gestern soll sich nicht mehr
+#: abschicken lassen.
+BELEG_HOECHSTALTER_S = 3600
+
+
+def _unterschrift(token: str, zeitpunkt: int) -> str:
     import hashlib
     import hmac
 
     schluessel = os.getenv("SECRET_KEY", "kompagnon-widget").encode()
-    return hmac.new(schluessel, token.encode(), hashlib.sha256).hexdigest()[:32]
+    stoff = f"{token}|{zeitpunkt}".encode()
+    return hmac.new(schluessel, stoff, hashlib.sha256).hexdigest()[:32]
+
+
+def gestenbeleg(token: str, zeitpunkt=None) -> str:
+    """Der Wert, den die Seite erst bei einer echten Geste mitschickt.
+
+    **Traegt seit dem 17.08.2026 den Zeitpunkt seiner Ausgabe.** Vorher war er
+    allein aus dem Token abgeleitet und stand als ``data``-Attribut in der
+    ausgelieferten Seite — also im selben HTML, das er schuetzen sollte. Wer
+    die Seite abrief, sie las und den Wert zurueckschickte, kam durch: ohne
+    JavaScript, ohne Geste. Der Beleg bewies „jemand hat die Seite geladen",
+    nicht „jemand hat den Knopf gedrueckt".
+
+    Verstecken haette nicht geholfen — der Browser braucht den Wert ebenso.
+    Was ein Abrufer durch Lesen nicht bekommt, ist **Zeit**: Der Beleg gilt
+    erst nach ``BELEG_MINDESTALTER_S`` und nicht laenger als
+    ``BELEG_HOECHSTALTER_S``.
+
+    Der Zeitanteil steht offen darin; er ist kein Geheimnis. Faelschen laesst
+    er sich nicht, weil die Unterschrift ueber Token **und** Zeitpunkt geht —
+    wer die Wartezeit umschreibt, macht den Beleg ungueltig.
+    """
+    import time
+
+    sekunde = int(zeitpunkt if zeitpunkt is not None else time.time())
+    return f"{sekunde}.{_unterschrift(token, sekunde)}"
+
+
+def beleg_gueltig(token: str, beleg: str):
+    """(gueltig, grund) — ``grund`` ist ok, falsch, zu_schnell oder zu_alt.
+
+    Der Grund wird protokolliert, nicht angezeigt: Wer zu schnell war, soll
+    nicht lernen, wie lange er warten muss.
+    """
+    import secrets as _secrets
+    import time
+
+    if not beleg or "." not in beleg:
+        return False, "falsch"
+
+    roh_zeit, unterschrift = beleg.split(".", 1)
+    if not roh_zeit.isdigit() or not unterschrift:
+        return False, "falsch"
+
+    zeitpunkt = int(roh_zeit)
+    if not _secrets.compare_digest(unterschrift, _unterschrift(token, zeitpunkt)):
+        return False, "falsch"
+
+    alter = time.time() - zeitpunkt
+    if alter < BELEG_MINDESTALTER_S:
+        return False, "zu_schnell"
+    if alter > BELEG_HOECHSTALTER_S:
+        return False, "zu_alt"
+    return True, "ok"
 
 
 # Terminkalender — das Ziel des Knopfes im Bericht.
@@ -639,7 +696,13 @@ def aktionsseite(titel: str, text: str, knopf: str, ziel: str,
   (function () {{
     var knopf = document.getElementById('kpg-knopf');
     var feld = document.getElementById('kpg-nachweis');
-    function belegen() {{ feld.value = knopf.getAttribute('data-nachweis'); }}
+    /* `isTrusted` ist false, wenn ein Skript das Ereignis erzeugt hat.
+       Ein Dienst, der die Seite rendert und einen Klick nachbaut, kommt
+       damit nicht durch — ein Mensch merkt nichts davon. */
+    function belegen(ereignis) {{
+      if (!ereignis || ereignis.isTrusted !== true) return;
+      feld.value = knopf.getAttribute('data-nachweis');
+    }}
     ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(function (art) {{
       knopf.addEventListener(art, belegen);
     }});

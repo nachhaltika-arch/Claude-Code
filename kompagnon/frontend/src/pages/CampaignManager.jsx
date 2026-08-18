@@ -58,7 +58,7 @@ export default function CampaignManager() {
           </div>
         </div>
         <button onClick={() => setShowNew(true)} style={{
-          padding: '10px 20px', background: 'var(--brand-primary)', color: '#fff',
+          padding: '10px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
           border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600,
           cursor: 'pointer', fontFamily: 'var(--font-sans)',
         }}>
@@ -368,8 +368,8 @@ function NewCampaignModal({ onClose, onCreated, token }) {
             Abbrechen
           </button>
           <button onClick={save} disabled={saving} style={{
-            padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : 'var(--brand-primary)',
-            color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+            padding: '9px 22px', background: 'var(--brand-primary)', opacity: saving ? 0.5 : 1,
+            color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)',
           }}>
             {saving ? 'Speichern…' : 'Kampagne anlegen'}

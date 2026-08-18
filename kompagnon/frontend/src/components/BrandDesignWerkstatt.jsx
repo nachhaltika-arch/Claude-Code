@@ -142,7 +142,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
           </div>
         </div>
         <button onClick={scanBrand} disabled={scanning} style={{
-          background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 7,
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 7,
           padding: '8px 16px', fontSize: 11, fontWeight: 700,
           cursor: scanning ? 'not-allowed' : 'pointer',
           flexShrink: 0, fontFamily: 'var(--font-sans)', opacity: scanning ? 0.7 : 1,
@@ -306,7 +306,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
       {/* Speichern */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button onClick={saveBrand} disabled={saving} style={{
-          background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8,
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8,
           padding: '11px 24px', fontSize: 13, fontWeight: 700,
           cursor: saving ? 'not-allowed' : 'pointer',
           fontFamily: 'var(--font-sans)', opacity: saving ? 0.7 : 1,

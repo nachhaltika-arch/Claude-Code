@@ -130,7 +130,21 @@ def test_die_lead_anlage_ist_ebenfalls_gedeckelt(db):
     assert fehler.value.status_code == 429
 
 
-def test_die_lead_anlage_laeuft_normalerweise_durch(db):
+def test_die_lead_anlage_laeuft_normalerweise_durch(db, monkeypatch):
+    """Unterhalb der Grenze passiert nichts.
+
+    Die Grenze zählt **alle** Betriebe der letzten Stunde in der Datenbank,
+    auch die, die andere Tests angelegt haben. Vorher verließ sich dieser Test
+    darauf, dass es davon wenige gibt — am 17.08.2026 kippte er, als drei neue
+    Testdateien dazukamen. Ein Test, der von der Reihenfolge der anderen
+    abhängt, prüft nicht, was er zu prüfen vorgibt.
+
+    Deshalb wird die Grenze relativ zum tatsächlichen Bestand gesetzt.
+    """
+    vorhanden = db.query(Lead).filter(
+        Lead.created_at >= datetime.utcnow() - timedelta(hours=1)).count()
+    monkeypatch.setattr(rb, "LIMIT_LEADS_PRO_STUNDE", vorhanden + 1)
+
     rb.pruefe_lead_grenzen(db)
 
 

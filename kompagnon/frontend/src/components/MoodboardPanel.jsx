@@ -149,8 +149,8 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
             disabled={saving}
             style={{
               padding: '9px 18px', borderRadius: 8, border: 'none',
-              background: saved ? '#16a34a' : 'var(--kc-mid)',
-              color: 'white', fontSize: 12, fontWeight: 700,
+              background: saved ? '#16a34a' : 'var(--brand-primary)',
+              color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700,
               cursor: saving ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
@@ -303,7 +303,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
           <SectionTitle>Gewählte Stilrichtung — Zusammenfassung</SectionTitle>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {stilrichtung && (
-              <span style={{ padding: '4px 12px', background: 'var(--kc-mid)', color: 'white', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+              <span style={{ padding: '4px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
                 {STILRICHTUNGEN.find(s => s.id === stilrichtung)?.emoji} {STILRICHTUNGEN.find(s => s.id === stilrichtung)?.label}
               </span>
             )}

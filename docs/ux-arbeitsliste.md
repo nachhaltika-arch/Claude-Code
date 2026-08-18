@@ -6,11 +6,21 @@
 >
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
 >
-> **Stand 2026-08-17:** Paket 1 und **Paket 2** sind abgeschlossen. Paket 2
-> brachte vier ungesuchte Funde mit (UX-30 bis UX-33), alle erledigt. Alles
-> liegt auf `staging`, dort deployt und am Bildschirm nachgesehen —
-> **produktiv ist nichts davon**, das geht mit dem nächsten Sammel-PR.
-> Weiter geht es mit **Paket 3**.
+> **Stand 2026-08-18:** **Paket 7 ist zu** — damit ist die Liste bis auf
+> UX-Daten (Datenfrage, braucht dich) und den daraus entstandenen Punkt
+> UX-34 abgearbeitet.
+>
+> **Stand 2026-08-17 (abends):** Paket 1 und **Paket 2** sind abgeschlossen,
+> **produktiv** seit dem Merge von PR #41. Paket 2 brachte vier ungesuchte
+> Funde mit (UX-30 bis UX-33), alle erledigt.
+>
+> **Paket 3 ist bis auf einen Punkt zu:** UX-05, UX-06, UX-06b, UX-08 und
+> UX-09 sind erledigt. Offen bleibt **UX-Daten** — das ist keine Programmier-,
+> sondern eine Datenfrage und braucht dich (Dubletten, Domains als
+> Firmenname, der Testdatensatz KOMPAGNON). Dazwischen kam der
+> Vorfall vom Nachmittag (135 Fehl-Mails an einen Betrieb) und zwei
+> Sicherheitsbefunde, die alles andere verdrängt haben — nachzulesen in den
+> Commits `679b32c`, `dddd7af` und `d7768f8`.
 
 ---
 
@@ -210,49 +220,110 @@ Drei kamen aus dem Code, einer (UX-33) erst vom laufenden System.*
 *Vier kleine Eingriffe, eine Ursache: Die Oberfläche sagt etwas anderes, als das
 System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
-- [ ] **UX-05** · **S** · `Invalid Date` als sichtbarer Text. Ursache: das Datum
-      wird ungeprüft formatiert.
-      → `pages/LeadProfile.jsx:1516` —
-      `new Date(latestAudit.created_at).toLocaleDateString('de-DE')` ohne Schutz
-      **Regel dabei:** Fehlt das Datum, gehört dort *„Datum unbekannt"* hin —
-      kein leeres Feld und keine erfundene Zeit.
-      *Prüfung:* Ein Audit ohne `created_at` zeigt den Ersatztext.
+- [x] **UX-05** · **S** · ✅ **2026-08-17** · `Invalid Date` als sichtbarer Text.
+      Es war kein Einzelfall, deshalb `utils/datum.js` statt einer Reparatur an
+      der Fundstelle: `datumKurz`/`datumUndZeit` nehmen den Ersatztext als
+      Angabe entgegen. `LeadProfile.jsx:1517` zeigt jetzt *„Datum unbekannt"*.
+      Commit `f2d61c4`.
 
-- [ ] **UX-06** · **M** · Die `[Auto-Enrichment]`-Zeile ist **kein
-      Anzeigefehler**. `services/lead_enrichment.py:125` schreibt sie in
-      `lead.notes` — das Feld für *deine* Notizen — und stellt sie dem voran,
-      was du dort geschrieben hast. `LeadProfile.jsx:1379` zeigt sie nur getreu.
-      **Zu tun:** Maschinenbefunde in eigene Felder, nicht in ein Menschenfeld.
-      Die Werte (SSL, Impressum, PageSpeed, Score) liegen ohnehin schon als
-      Spalten vor.
-      *Prüfung:* `lead.notes` enthält nach einer Anreicherung nur, was ein
-      Mensch geschrieben hat.
+- [x] **UX-06** · **M** · ✅ **2026-08-17** · Die `[Auto-Enrichment]`-Zeile war
+      kein Anzeigefehler — `lead_enrichment.py` schrieb sie in `lead.notes`,
+      das Feld für *deine* Notizen, und stellte sie bei **jedem** Lauf erneut
+      dem voran, was du geschrieben hattest.
+      **Die Annahme in dieser Zeile war falsch:** Die Werte lagen *nicht*
+      schon als Spalten vor. SSL und Impressum hatten keine, und
+      `pagespeed_score` wurde berechnet und **nirgends** gespeichert — die
+      Notizzeile war der einzige Ort, an dem er einen Lauf überlebte. Ersatzlos
+      streichen hätte die Befunde vernichtet.
+      **Gemacht:** Spalten `has_ssl`, `has_impressum`, `enriched_at` neu,
+      `pagespeed_mobile_score` wird endlich beschrieben. Die Notizzeile ist
+      weg. In der Betriebsansicht steht ein Block *Technische Prüfung* mit
+      Zeitpunkt; `utils/anreicherung.js` hält die Anzeigelogik prüfbar.
+      **`NULL` heißt „nicht geprüft" und wird auch so angezeigt** — nicht als
+      „fehlt". Für den Altbestand ist das bis zur nächsten Anreicherung die
+      ehrliche Auskunft.
+      **Altbestand — am Bildschirm nachgesehen und dabei einen Widerspruch
+      gefunden, den ich selbst erzeugt hatte:** Der neue Block sagte „SSL:
+      nicht geprüft", zwei Zeilen darunter stand weiter die alte Notiz „SSL:
+      OK". Beides stimmte für sich. Die Werte waren also da, nur im falschen
+      Feld — sie zu löschen wäre der schlechtere Weg gewesen.
+      Deshalb **`POST /api/leads/befunde-nachtragen`** (Admin): liest SSL,
+      Impressum und PageSpeed aus der Notizzeile in die Spalten und entfernt
+      die Zeile danach. Übernommen wird nur, was noch leer ist.
+      **Ein Zeitpunkt wird nicht erfunden** — die Zeile trug keinen, also
+      bleibt `enriched_at` leer und die Oberfläche sagt „Geprüft — Zeitpunkt
+      unbekannt". Das ist ein dritter Zustand neben „geprüft am" und „noch
+      nicht geprüft", und er ist nötig, weil sonst eine der beiden Angaben
+      lügen müsste.
+      `scripts/notizen-bereinigen.sql` bleibt als Weg ohne laufende Anwendung,
+      ist aber der schlechtere: Es löscht nur.
+      **Beides muss David einmal auslösen.**
+      *Nachgesehen:* nach einer Anreicherung steht in `lead.notes` nur, was ein
+      Mensch geschrieben hat (4 Tests).
 
-- [ ] **UX-06b** · **S** · Zwei Punktzahlen ohne Unterscheidung: `Score: 40/100`
-      (Lead) und `Audit-Ergebnis: 37/100` (Audit) stehen unbeschriftet
-      nebeneinander. Beide brauchen ein Wort davor.
-      *Prüfung:* Aus dem Bildschirm allein ist erkennbar, was 40 und was 37 ist.
+- [x] **UX-06b** · **S** · ✅ **2026-08-17** · Zwei Punktzahlen ohne
+      Unterscheidung. **Die Ursache war nicht die fehlende Beschriftung,
+      sondern eine eingefrorene Zahl:** `AuditTool.jsx` belegte das Notizfeld
+      beim Anlegen mit `Audit-Ergebnis: 40/100 Punkte – …` vor — obwohl das
+      Modal die Punktzahl zwei Zeilen darüber ohnehin als Kachel zeigt. Der
+      Text blieb stehen, das Audit lief weiter, und später stand die alte Zahl
+      als Notiz neben der neuen als Ergebnis. Das sind die 40 gegen 37.
+      Ein Wort davor hätte den falschen Zustand nur beschriftet.
+      **Gemacht:** Notizfeld startet leer. Die Punktzahl steht in der
+      Betriebsansicht unter „Letzter Audit" — und zwar die aktuelle.
 
-- [ ] **UX-08** · **S** · Das Widget meldet „Bestätigungs-Mail geschickt", auch
-      wenn der Versand scheitert. Der Server weiß es (`routers/audit.py`
-      protokolliert „Widget-Bestätigung nicht versendet"), sagt es aber nicht
-      weiter.
-      **Zu tun:** Versandergebnis in die Antwort aufnehmen, das Widget zeigt bei
-      Fehlschlag einen ehrlichen Satz plus Wiederholmöglichkeit.
-      → `kompagnon/frontend/public/embed/audit-widget.html`
-      *Prüfung:* Mit abgeschaltetem Versand erscheint keine Erfolgsmeldung.
+- [x] **UX-08** · **S** · ✅ **2026-08-17** · Das Widget meldete
+      „Bestätigungs-Mail geschickt", auch wenn der Versand scheiterte.
+      Der Teaser trägt den Zustand jetzt mit (`bestaetigung_versandt`), und das
+      Widget kennt drei Zustände statt einer Behauptung: *wird verschickt* →
+      *geschickt* → *ging nicht raus, nochmal senden*.
+      **Der Zwischenzustand war nötig:** Der Versand läuft im Hintergrund an,
+      wenn die Analyse fertig ist — beim Anzeigen des Ergebnisses ist er es
+      meist noch nicht. Ein sofortiges „ging nicht raus" wäre die zweite
+      Unwahrheit gewesen. Sechs Nachfragen im Abstand von drei Sekunden,
+      dann erst das Urteil.
+      Der zweite Versuch hängt an `POST /api/widget/bestaetigung/{token}` und
+      ist auf fünf Versuche begrenzt: Die Empfängeradresse steht fest, wer den
+      Knopf drückt bestimmt sie nicht.
+      *Nachgesehen:* mit `send_email → False` erscheint keine Erfolgsmeldung
+      (7 Tests).
 
-- [ ] **UX-09** · **S** · Prozentspalte ohne Überschrift auf dem Dashboard. Die
-      Zahl ist **richtig** (Gewinnquote, 6 von 60) — sie sieht nur wie ein
-      Anteil aus.
-      *Prüfung:* Über der Spalte steht „Gewinnquote".
+- [x] **UX-09** · **S** · ✅ **2026-08-17** · Prozentspalte ohne Überschrift auf
+      dem Dashboard. Die Zahl war **richtig** (Gewinnquote) — sie sah nur aus
+      wie ein Anteil an allem. Jetzt steht über den beiden rechten Spalten
+      „Betriebe" und „Gewinnquote". Das `✓` hinter der Zahl ist weg: Es stand
+      für die fehlende Überschrift ein, und die gibt es jetzt.
+      **Dabei mitgenommen:** Die Karte hieß „Leads nach Herkunft" und zählte
+      „12 Leads". Nach UX-04 heißt das Objekt **Betrieb** — „Lead" ist ein
+      Zustand. Ein Rest aus Paket 1, wie UX-32.
 
-- [ ] **UX-Daten** · **M** · Was die Listen über die Daten verraten, gehört
-      separat angefasst — es trifft die Glaubwürdigkeit vor Kunden:
-      Domains als Firmenname (`adrian-vidak.de`), eine Notiz als Firmenname
-      (`gibts nicht dachdeckerei-heinen.de`), Dublette **ECO-VOX**, Ort `News`
-      (vermutlich Neuss), Testdatensatz **KOMPAGNON** mit
-      `kompagnon-frontend.onrender.com` in der Produktivliste.
+- [~] **UX-Daten** · **M** · **Halb erledigt 2026-08-17 — und es war kein
+      Datenpflegeproblem.**
+      „Domains als Firmenname" sah nach fehlender Pflege aus. Es war eine Zeile
+      Code. Der Domainimport legt einen Betrieb mit der Domain als Namen an,
+      als Platzhalter. Der Impressum-Schritt liest kurz darauf den echten Namen
+      aus — und verwirft ihn:
+
+          if data_imp.get(field) and not getattr(lead, field, None):
+
+      `company_name` ist zu dem Zeitpunkt gefüllt. Mit dem Platzhalter. Also
+      galt das Feld als erledigt. **Das System hat den richtigen Namen jedes
+      Mal gelesen und weggeworfen** — an drei Stellen: im Domainimport, in
+      `enrich_lead` (prüfte nur auf leer und „Unbekannt") und im einzelnen
+      Impressum-Endpunkt.
+      **Gemacht:** `services/betriebsname.py` sagt an einer Stelle, was ein
+      Platzhalter ist — leer, „Unbekannt", die eigene Domain, alles in
+      Domainform. Das deckt auch `nachhaltika.denachhaltika.de` ab. Alle drei
+      Stellen nutzen sie. Ein von Hand gepflegter Name wird nie überschrieben.
+      **Für den Bestand:** `POST /api/leads/namen-nachtragen` (Admin) nimmt
+      genau die Betriebe mit Platzhalternamen und liest ihr Impressum erneut,
+      höchstens 25 je Aufruf. Der Bericht nennt jede Änderung einzeln und auch
+      jeden Betrieb, bei dem nichts zu holen war. **Muss David einmal
+      auslösen** — ein SQL-Skript kann es nicht, der richtige Name steht nicht
+      in der Datenbank.
+      **Offen und bei David** (keine Codefrage): Dublette **ECO-VOX**, Ort
+      `News` (vermutlich Neuss), die Testdatensätze **KOMPAGNON** und
+      **example.com** in der Produktivliste.
       *Prüfung:* Kein Datensatz in der Liste, den man einem Kunden nicht zeigen
       würde.
 
@@ -260,88 +331,271 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ## Paket 4 — Eine Primäraktion je Bildschirm
 
-- [ ] **UX-13** · **S** · Fünf gleichrangige Knöpfe in der Kundenkartei
-      (*Audit starten, Bearbeiten, Neu prüfen, Briefing starten, Projekt
-      anlegen*). Einer bekommt Farbe — der, den man normalerweise drückt —,
-      der Rest wird ruhig.
-      *Prüfung:* Ein Blick genügt, um den nächsten Schritt zu erkennen.
+- [x] **UX-13** · **S** · ✅ **2026-08-17** · Es waren sechs, nicht fünf, und
+      zwei davon trugen Farbe. Jetzt trägt **genau einer** Gelb — und welcher,
+      hängt davon ab, wie weit der Betrieb ist:
+      kein Audit → *Audit starten* · Audit da → *Kaltakquise starten* ·
+      gewonnen → *Projekt anlegen* · Projekt da → *Zum Projekt*.
+      **Nach gesendetem Angebot und bei verloren ist kein Knopf hervorgehoben.**
+      Da wartet man auf Antwort — einer auf Verdacht wäre eine Behauptung.
+      Die Entscheidung liegt als reine Funktion in `utils/naechsterSchritt.js`
+      (9 Tests), nicht als Farbe im Markup.
 
-- [ ] **UX-14** · **S** · „Audit starten" und „Neu prüfen" sind visuell und
-      sprachlich nicht unterscheidbar. Entweder benennen, was sie unterscheidet,
-      oder zusammenlegen.
-      *Prüfung:* Aus den Beschriftungen allein ist der Unterschied erkennbar.
+- [x] **UX-14** · **S** · ✅ **2026-08-17** · Sie tun Verschiedenes:
+      *Audit starten* erzeugt die Punktzahl, *Neu prüfen* rief `/enrich` auf und
+      holt Firmendaten, Google Business, SSL, Impressum und PageSpeed.
+      Der Unterschied stand nur im Tooltip — **ein Tooltip ist keine
+      Beschriftung.** Heißt jetzt **„Stammdaten neu holen"**.
 
-- [ ] **UX-11** · **M** · Auf dem Dashboard sind die Kennzahlen, die etwas
-      sagen (61 Leads, 2 Audits, Ø 53/100, 6 gewonnen), kontrastarm und
-      dekorativ gesetzt — während drei Kacheln mit `0,00 €` den Bildschirm
-      beherrschen. Gewichtung umdrehen.
-      *Prüfung:* Zwei Sekunden Hinsehen genügen für die wichtigste Zahl.
+- [x] **UX-11** · **M** · ✅ **2026-08-17** · Gewichtung umgedreht: Die
+      Kennzahlenreihe steht jetzt **über** den Geldkacheln.
+      **Und `0,00 €` steht nicht mehr in Erfolgsgrün** — Grün behauptet ein
+      Ergebnis, eine Null ist keines. Farbe bekommt der Betrag erst, wenn es
+      etwas zu färben gibt. Das war derselbe Fehler wie in Paket 3, nur in
+      Farbe statt in Worten.
+      **Mitgenommen:** „Leads gesamt" → **Betriebe gesamt**, „Gewonnene Leads"
+      → **Gewonnene Betriebe**, „+ Neuer Lead" → **+ Neuer Betrieb**,
+      „Aktuelle Leads" → **Aktuelle Betriebe** (UX-04).
 
-- [ ] **UX-12** · **S** · Abschnittsüberschriften („AKTUELLE LEADS", „LETZTE
-      AUDITS") sind beim Überfliegen unsichtbar. Kontrast anheben.
-      *Prüfung:* Die Struktur ist ohne Lesen erkennbar.
+- [x] **UX-12** · **S** · ✅ **2026-08-17** · **Diagnose war falsch — gemessen
+      statt geschätzt.** Die Abschnittsüberschriften „AKTUELLE LEADS" und
+      „LETZTE AUDITS" haben **8.89** Kontrast. Sie bestehen WCAG AA deutlich
+      und waren nie das Problem.
+      Unsichtbar waren die **Beschriftungen unter den Zahlen**: `--text-30`
+      auf der App-Fläche = **2.13**, Schwelle für Text ist 4.5. Und dieser Ton
+      hing an `--text-tertiary` — **911 Verwendungen im Frontend**. Nicht die
+      Zahlen waren zu schwach, sondern die Wörter, die sagen, was die Zahl
+      bedeutet. Deshalb las sich die Reihe wie Dekoration; das ist zugleich die
+      halbe Ursache von UX-11.
+      **Gemacht:** neuer Ton `--text-45: #647071` (4.63 auf der Fläche, 4.91
+      auf Karten), `--text-tertiary` zeigt darauf. `--text-30` bleibt hell und
+      ist damit ausdrücklich **kein** Textton mehr — für Trennlinien und
+      Zierrat. Die 15 direkten Textverwendungen sind umgestellt.
+      Der Dunkelmodus war schon in Ordnung (7.10) und bleibt unverändert.
+      **Damit es nicht zurückrutscht:** `utils/kontrast.test.js` liest
+      `tokens.css` und rechnet die Verhältnisse nach. Wer einen Textton
+      aufhellt, bricht den Test.
+      *Nachgemessen:* im Browser auf der Staging-Oberfläche, nicht geschätzt.
 
-- [ ] **UX-10** · **S** · Kein Ladezustand: leere Kacheln lesen sich wie „null",
-      bis die Werte nachkommen. Bei 0,9–2,6 s Antwortzeit ist das jedes Mal
-      sichtbar.
-      *Prüfung:* Während des Ladens steht dort ein Platzhalter, keine Leere.
+- [x] **UX-10** · **S** · ✅ **2026-08-17** · Kennzahlen, Betriebsliste und
+      Auditliste hatten den Platzhalter bereits (`Skeleton`). Offen war nur die
+      Geldreihe: Sie stand während des Ladens gar nicht da und schob beim
+      Eintreffen alles darunter nach unten. Jetzt drei Platzhalterkacheln.
 
-- [ ] **UX-18** · **S** · Knopf „Vollständigen Bericht anzeigen" wirkt
-      deaktiviert (dunkel auf dunkel). Er ist es nicht.
-      *Prüfung:* Der Knopf sieht anklickbar aus.
+- [x] **UX-18** · **S** · ✅ **2026-08-17** · **Nachgemessen, und die
+      Richtung stimmte nicht:** Nicht dunkel auf dunkel — im *Hellmodus* stand
+      `--brand-primary-mid` auf `--bg-active` mit **3.39**, unter der Schwelle.
+      Im Dunkelmodus waren es 5.62, also in Ordnung.
+      Jetzt `--brand-primary` (8.16), halbfett und mit sichtbarem Rand. Die
+      Paarung steht in `utils/kontrast.test.js` und ist damit festgehalten.
 
-- [ ] **UX-15** · **M** · Zehn Reiter in der Kundenkartei. Prüfen, welche
-      zusammengehören und welche selten benutzt werden.
-      *Prüfung:* Höchstens sechs Reiter, der Rest untergeordnet.
+- [x] **UX-15** · **M** · ✅ **2026-08-17, von David entschieden.** Zehn
+      gleichrangige Reiter waren zehn Entscheidungen bei jedem Aufruf.
+
+      **Oben bleiben sechs:** Übersicht · Kontakt · Audits · Angebot ·
+      Nachrichten · Dateien.
+      *Nachrichten* bleibt oben, weil dort der Ungelesen-Zähler hängt — ein
+      Zähler hinter einem Menü zählt für niemanden.
+
+      **Hinter „Mehr":** Deals (steht auch unter Vertrieb → Deals), Akademie
+      (kundenseitig, nicht Innendienst), Zugang (QR-Code, einmal je Betrieb),
+      E-Mails.
+
+      Ist einer der untergeordneten Reiter offen, ist **„Mehr" hervorgehoben** —
+      sonst sucht man ihn zwischen den sechs. Ein Klick daneben schließt das
+      Menü. Die Aufteilung liegt in `utils/betriebReiter.js` (13 Tests), nicht
+      verteilt im Markup.
+
+      **Nichts ist weg**, es ist nur nicht mehr alles gleich laut.
+
+---|---|
+      | Übersicht | der Einstieg |
+      | Kontakt | Stammdaten, wird beim Bearbeiten angesteuert |
+      | Audits | der Kern des Angebots |
+      | Angebot | daraus entsteht das Geschäft |
+      | Nachrichten | trägt den ungelesen-Zähler, muss sichtbar bleiben |
+      | Dateien | Anhänge des Betriebs |
+
+      **Unterordnen (hinter „Mehr" oder in die Übersicht):** *Deals* (steht
+      auch unter Vertrieb → Deals), *Akademie* (kundenseitig, nicht
+      Innendienst), *Zugang* (QR-Code, einmal je Betrieb gebraucht),
+      *E-Mails* (Verlauf, gehört sachlich zu Nachrichten).
+
+      **Zusammenlegen wäre die Alternative:** *Nachrichten* und *E-Mails* sind
+      derselbe Gegenstand in zwei Kanälen. Das wären dann fünf.
+
+      **Zwei Kleinigkeiten schon erledigt (2026-08-17):** Der Reiter hieß
+      **„Akademy"** — halb deutsch, halb englisch, ein Wort, das es nicht gibt;
+      heißt jetzt *Akademie*. Und bei *E-Mails* stand das Zeichen in der
+      Beschriftung statt im `icon`-Feld, weshalb dieser Reiter als einziger
+      einen Abstand mehr hatte.
 
 ---
 
-## Paket 5 — Das Sammelbecken auflösen
+## Paket 5 — Das Sammelbecken auflösen · ✅ ABGESCHLOSSEN 2026-08-17
 
-- [ ] **UX-16** · **M** · Menügruppe **„Kompagnon"** enthält sieben unverwandte
-      Einträge (Tickets, Templates, Produkt-Editor, Produkte,
-      Produktentwicklung, QR-Generator, Retainer) unter dem eigenen
-      Firmennamen. Verteilen oder umbenennen — „Kompagnon" sagt nicht, was
-      darin liegt.
-      → `AppLayout.jsx:374 ff.`
-      *Prüfung:* Jede Gruppe im Menü ist mit einem Wort beschreibbar.
+- [x] **UX-16** · **M** · ✅ Die Gruppe **„Kompagnon"** hieß nach der eigenen
+      Firma und war damit der Name für „alles Übrige". Sieben unverwandte
+      Einträge.
 
-- [ ] **UX-17** · **S** · **Produkt-Editor**, **Produkte** und
-      **Produktentwicklung** stehen nebeneinander. Wer will was bearbeiten?
-      *Prüfung:* Aus den drei Namen allein ist ableitbar, welcher wofür ist.
+      **Erst nachgesehen, was sie wirklich sind** — das entschied die
+      Zuordnung, nicht mein Gefühl:
+
+      | Eintrag | Beleg | wohin |
+      |---|---|---|
+      | QR-Generator | Platzhalter `postkarte-koblenz-mai-2025` | **Werbung** |
+      | Templates | Platzhalter `/paket/mein-produkt` | **Angebot** (heißt jetzt *Verkaufsseiten*) |
+      | Produkte | `api/products/` — der Katalog | **Angebot** (*Pakete*) |
+      | Produktentwicklung | Ideen-Board Idee→Geplant→Fertig | **Angebot** (*Roadmap*) |
+      | Tickets, Retainer | Betreuung nach dem Verkauf | **Betreuung** |
+
+      Dabei fiel auf, dass „Einstellungen" mit acht Einträgen gerade das
+      nächste Sammelbecken wurde. Getrennt in **Einstellungen** (was eine
+      Person für sich einstellt) und **Verwaltung** (was für alle gilt).
+      *Webhooks* liefern Leads herein → Akquise. *Export* gibt Betriebe
+      heraus → Vertrieb.
+
+      **Der eigentliche Fund lag darunter:** Die Zuordnung Adresse → Gruppe
+      stand **zweimal** — in der Menüdefinition und noch einmal als Pfadliste
+      in `getDefaultOpen`. Wer einen Eintrag verschiebt und die zweite Liste
+      vergisst, bekommt eine Seitenleiste, die nicht mehr zeigt, wo man ist —
+      derselbe Fehler wie am 16.08., nur an anderer Stelle. Beides kommt jetzt
+      aus `utils/menue.js`.
+
+      *Nachgesehen:* 17 Tests, darunter „jede Gruppe lässt sich mit einem Wort
+      benennen" und „keine zwei Einträge heißen fast gleich".
+
+- [x] **UX-17** · **S** · ✅ **Produkt-Editor**, **Produkte** und
+      **Produktentwicklung** nebeneinander. Die Antwort war schärfer als die
+      Frage: **„Produkte" und „Produkt-Editor" sind dieselbe Sache** — Liste
+      und Editor desselben Bestands (`api/products/`), und der Editor war von
+      der Liste aus ohnehin erreichbar. Zwei Menüeinträge für ein Objekt sind
+      einer zu viel; der Editor ist aus dem Menü raus.
+      „Produktentwicklung" war überhaupt keine Produktpflege, sondern ein
+      Ideen-Board → heißt **Roadmap**.
+      **Dabei entfernt:** `/app/products/editor`, eine zweite Adresse für
+      denselben Bildschirm, von nirgends verlinkt.
 
 ---
 
-## Paket 6 — Politur
+## Paket 6 — Politur · ✅ ABGESCHLOSSEN 2026-08-17
 
-- [ ] **UX-20** · **S** · Überschrift auf **jedem** Bildschirm doppelt (obere
-      Leiste und H1). Eine davon weg.
-- [ ] **UX-21** · **S** · Spaltenköpfe der Projektpipeline doppelt, die Phase
-      auf jeder Karte ein drittes Mal.
-- [ ] **UX-22** · **S** · Reiter `Akademy` — weder deutsch noch englisch.
-- [ ] **UX-23** · **S** · „+ Neues Audit" auf dem Bildschirm, der selbst das
-      neue Audit ist.
-- [ ] **UX-24** · **S** · „Zurück"-Knopf zusätzlich zur Brotkrume.
-- [ ] **UX-25** · **S** · Feldbeschriftung „Geschäftsführer *(auto)*" — interne
-      Herkunft im Kundenblick.
-- [ ] **UX-26** · **S** · Leeres Formular „Weitere Domains" nimmt Platz auf der
-      Übersicht.
-- [ ] **UX-27** · **S** · Audit-Tool zeigt keine früheren Audits, obwohl das
-      Dashboard sie führt.
-- [ ] **UX-28** · **S** · Score-Balken ohne Legende — die Schwellen bleiben
-      unerklärt.
+*Neun kleine Dinge. Zwei davon waren beim Anfassen keine Politur mehr.*
+
+- [x] **UX-20** · Überschrift auf jedem Bildschirm doppelt. **Ursache benannt:**
+      Auf obersten Seiten bestand die Brotkrume aus **einem** Element — dem
+      Seitennamen, der zwei Zeilen tiefer als H1 steht. Eine Brotkrume mit
+      einem Element zeigt keinen Weg, sie wiederholt nur. Sie erscheint jetzt
+      erst ab zwei Elementen; auf Detailseiten („Betriebe › Name") bleibt sie.
+- [x] **UX-21** · Dieselben sieben Phasen mit denselben Zahlen **zweimal
+      übereinander** — als Kennzahlreihe und als Spaltenköpfe, auf mobil ein
+      drittes Mal als Reiterzeile. Die Kennzahlreihe ist weg; die Zahl steht
+      dort, wo auch die Karten dazu liegen.
+- [x] **UX-22** · Reiter `Akademy` → **Akademie**.
+- [x] **UX-23** · **War schlimmer als notiert:** Der Knopf „+ Neues Audit"
+      stand in der oberen Leiste mit `action: () => {}` — **er tat nichts**.
+      Ein Knopf ohne Wirkung ist schlimmer als keiner: Man drückt ihn und
+      sucht den Fehler bei sich. Entfernt; nach einem fertigen Bericht steht
+      der richtige Knopf ohnehin unter dem Ergebnis.
+- [x] **UX-24** · „Zurück"-Knopf zusätzlich zur Brotkrume — und
+      `navigate(-1)` führt woandershin als die Brotkrume, je nachdem, woher
+      man kam. Zwei Wege, zwei Ziele, ein Zweck. Entfernt.
+- [x] **UX-25** · „Geschäftsführer *(auto)*" → **Geschäftsführer**. Woher der
+      Wert kommt, interessiert die Maschine, nicht den Menschen davor.
+- [x] **UX-26** · Das Formular „Weitere Domains" stand immer offen. Bei den
+      meisten Betrieben gibt es gar keine zweite Domain. Jetzt erst auf
+      Verlangen.
+- [x] **UX-27** · Das Audit-Tool zeigte keine früheren Audits, obwohl das
+      Dashboard sie führte — dieselbe Schnittstelle, nur kannte dieser
+      Bildschirm sie nicht. Fünf zuletzt geprüfte Seiten stehen jetzt unter
+      dem Formular. Schlägt der Abruf fehl, fehlt der Verlauf und sonst
+      nichts.
+- [x] **UX-28** · Score-Balken ohne Legende — **die Stufe hing allein im
+      `title`, also im Tooltip.** Auf einem Berührungsgerät gibt es den nicht.
+      Dieselbe Bauart wie UX-14: Ein Tooltip ist keine Beschriftung. Die Stufe
+      steht jetzt am Score (`stufeKurz`, 3 Tests).
 
 ---
 
-## Paket 7 — Später: eine Welt statt zwei
+## Paket 7 — eine Welt statt zwei · ✅ ABGESCHLOSSEN 2026-08-18
 
-- [ ] **UX-19** · **L** · Bruch hell/dunkel zwischen Tool und Kundenportal,
-      dazu eine dritte Domain im Fuß (`kompagnon.eu`, während das Tool auf
-      `kompagnon.group` läuft). Der größte Eingriff auf dieser Liste und der
-      einzige, der echte Gestaltungsarbeit ist — wirkt aber dort, wo es ums
-      Geld geht: im ersten Eindruck nach dem Kauf.
-      *Prüfung:* Ein Kunde, der vom Bericht ins Portal wechselt, merkt keinen
-      Hauswechsel.
+- [x] **UX-19** · **L** · ~~Bruch hell/dunkel zwischen Tool und Kundenportal~~
+      **erledigt 2026-08-18.** Der Befund las sich wie zwei
+      Gestaltungsentscheidungen und war eine Auslassung: Die Anwendung hat
+      **ein** Farbsystem mit hellem und dunklem Modus (`styles/tokens.css`),
+      und die Kundenseiten sind ihm nie beigetreten. `PortalLogin` trug 17
+      feste Hexwerte gegen 3 Tokens — also blieb der erste Bildschirm nach
+      dem Kauf weiß, während alles andere dem System des Betrachters folgt.
+      **Umgestellt:** PortalLogin, CustomerPortal (71 feste Werte),
+      KundenPortal, Freigaben, SupportTickets.
+      **Fest bleiben nur zwei Sorten Farbe**, und der Sperrtest nennt den
+      Grund: die Medaillentöne des Homepage Standards und die drei
+      Fensterknöpfe des Browser-Nachbaus — die zitieren ein Fenster, sie
+      melden keinen Zustand.
+      **Die dritte Domain ist weg.** Stattdessen der Firmenname und die
+      eigenen Rechtsseiten — die es in `pages/` gab, die aber **an keiner
+      Adresse hingen**: ein Impressum, zu dem kein Weg führte, und in dessen
+      Fuß ein Verweis auf `/barrierefreiheit`, das es ebenfalls nicht gab.
+      Alle drei sind jetzt erreichbar und folgen demselben Farbsystem.
+      *Geprüft:* im Browser in beiden Modi, nicht nur im Test.
+
+### Zwei Funde beim Messen — beide schwerer als der Listenpunkt
+
+- [x] **UX-19a** · Weiß auf `--brand-primary` erreicht im Dunkelmodus **2.06**.
+      So ist in der Anwendung **jeder** Knopf gebaut; auf der Kundenseite wäre
+      es die erste Fläche nach dem Kauf gewesen. Neues Token
+      `--text-on-brand` dreht die Tinte statt der Markenfarbe: **8.43**.
+- [x] **UX-19b** · `ThemeContext` setzt **immer** ein `data-theme`, aber
+      `[data-theme="light"]` nannte nur Flächen und Schrift. Auf einem
+      Rechner, dessen System dunkel steht, ergab die Wahl „hell" deshalb
+      helle Flächen mit den **Markenfarben des Dunkelmodus**:
+      `--brand-primary` war `#008eaa` statt `#004f59`, Weiß darauf 3.85.
+      Dreizehn Tokens fehlten. `styles/tokens.test.js` verlangt jetzt, dass
+      der Hellblock jeden Ton des Dunkelblocks zurücknimmt.
+
+### Daraus entstanden — ebenfalls erledigt
+
+- [x] **UX-34** · **M** · ~~Weiß auf Marke im Innendienst~~ **erledigt
+      2026-08-18.** Geschätzt waren 62 Stellen. Gemessen wurden es mehr, und
+      schlimmer: **140** Stellen weiße Schrift auf einer Fläche, die im
+      Dunkelmodus durchfällt, und **46** weitere auf festen Hexwerten, die in
+      **beiden** Modi durchfallen — dort war der Text nie lesbar.
+
+      | | Fund | hell / dunkel |
+      |---|---|---|
+      | 87 | Weiß auf `--brand-primary` | 9.28 / **2.06** |
+      | 31 | Weiß auf `--kc-mid` | **3.85** / **2.06** |
+      | 33 | grau gefärbte Sperrfläche mit weißer Schrift | Text verschwindet |
+      | 36 | feste Grün-, Rot- und Bernsteintöne | 1.6 bis 3.9 |
+
+      **Regeln statt Geschmack:** Markenflächen bekommen `--text-on-brand`;
+      `--kc-mid` als gefüllte Fläche wird `--brand-primary` (die Tinte allein
+      hätte nicht gereicht, Weiß fällt dort schon im Hellmodus durch); ein
+      gesperrter Knopf behält seine Farbe und wird über `opacity: 0.5` leiser,
+      wie `.btn-primary:disabled` es immer schon macht; die festen Töne werden
+      `--success`/`--error`/`--warn`, wobei Bernstein **schwarze** Tinte trägt.
+
+- [x] **UX-34a** · Im Hellmodus lagen **drei von vier Statustönen** als
+      Schrift unter der Schwelle: success 4.11, warn 4.08, info 3.48 — und
+      `[data-theme="light"]` führte ein viertes warn (`#B8860B`, **2.94**).
+      Neue Werte gegen `--surface`, `--paper` und die eigene Fläche gemessen.
+      Der Dunkelmodus war nie betroffen; wer dunkel arbeitet, sieht es nie.
+
+### Was jetzt dagegen steht
+
+- `utils/weisseSchrift.test.js` misst **jede** Paarung Weiß-auf-Fläche im
+  ganzen Quellbaum, in beiden Modi.
+- `styles/tokens.test.js` verlangt, dass die beiden hellen Wege (`:root` und
+  `[data-theme="light"]`) dieselben Werte tragen.
+- `utils/tokenwerte.js` löst die `var()`-Ketten je Modus auf — von Hand
+  nachgeschlagen geht genau das schief, und daran hat UX-19a so lange
+  überlebt.
+
+### Offen
+
+- [ ] **193 Stellen** weiße Schrift auf einer Fläche, die die Datei nicht
+      nennt: geerbt, ein Verlauf, oder aus den Daten. Von außen nicht
+      messbar. Sie sind **nicht** geprüft — nur gezählt.
 
 ---
 

@@ -100,7 +100,7 @@ export default function PackageStarter() {
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 20px 80px', marginTop: -40 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px var(--kc-mid-a-12)', border: '2px solid var(--kc-mid)' }}>
-            <div style={{ display: 'inline-block', background: 'var(--kc-mid)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
+            <div style={{ display: 'inline-block', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Starter — 1.500 € netto</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
@@ -109,7 +109,7 @@ export default function PackageStarter() {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
-              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : 'var(--kc-mid)', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: 'var(--brand-primary)', opacity: loading ? 0.5 : 1, color: 'var(--text-on-brand)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>

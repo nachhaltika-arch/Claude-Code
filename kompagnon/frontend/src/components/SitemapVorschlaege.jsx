@@ -209,7 +209,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
           {isPflicht && (
             <span style={{
               fontSize: 9, fontWeight: 900,
-              background: '#B8860B', color: '#fff',
+              background: 'var(--warn)', color: 'var(--kc-black)',
               padding: '2px 6px', borderRadius: 3,
               textTransform: 'uppercase', letterSpacing: '.06em',
             }}>
@@ -229,8 +229,8 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
         onClick={() => addPage(page)}
         disabled={adding[page.page_name]}
         style={{
-          background: isPflicht ? '#B8860B' : 'var(--brand-primary, var(--brand-primary))',
-          color: '#fff', border: 'none',
+          background: isPflicht ? 'var(--warn)' : 'var(--brand-primary, var(--brand-primary))',
+          color: 'var(--kc-black)', border: 'none',
           borderRadius: 6, padding: '6px 14px',
           fontSize: 11, fontWeight: 700,
           cursor: adding[page.page_name] ? 'not-allowed' : 'pointer',

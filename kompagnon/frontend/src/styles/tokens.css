@@ -23,18 +23,34 @@
   --border:  #D5E0E2;
 
   /* ── Primitive Text Colors ──────────────────────────────────── */
-  --text:    #000000;
-  --text-60: #4A5A5C;
+  /* Die Zahl ist der Anteil, nicht die Deckkraft — je kleiner, desto
+     leiser. Gemessen am 17.08.2026 gegen beide Flaechen (WCAG 2.1 AA,
+     Schwelle 4.5 fuer Text). `src/utils/kontrast.test.js` haelt das fest. */
+  --text:    #000000;  /* 20.4 auf --surface */
+  --text-60: #4A5A5C;  /*  6.5 auf --surface */
+  /* Der leiseste Ton, der noch Text sein darf: 4.63 auf --surface.
+     Er ersetzt --text-30 ueberall dort, wo Woerter stehen. */
+  --text-45: #647071;
+  /* Bleibt hell und ist damit KEIN Textton: 2.13 auf --surface. Fuer
+     Trennlinien und Zierrat. Wer ihn fuer Text nimmt, macht Text unlesbar —
+     genau das war er bis zum 17.08.2026 app-weit, ueber --text-tertiary. */
   --text-30: #9AACAE;
 
   /* ── Primitive Semantic Colors ──────────────────────────────── */
-  --success:    #00875A;
+  /* Gemessen am 18.08.2026 gegen --surface, --paper und die jeweils eigene
+     Flaeche (WCAG 2.1 AA, Schwelle 4.5). Die alten Toene erreichten als
+     Schrift 4.11 (success), 4.08 (warn) und 3.48 (info) — alle drei unter
+     der Schwelle, und im Block [data-theme="light"] stand warn sogar auf
+     #B8860B mit 2.94. Der Dunkelmodus war nie betroffen; deshalb faellt es
+     niemandem auf, der dunkel arbeitet. `utils/kontrast.test.js` misst
+     jetzt jeden Statuston in beiden Modi. */
+  --success:    #007A51;
   --success-bg: #E3F6EF;
-  --warn:       #A86800;
+  --warn:       #9A6000;
   --warn-bg:    #FFF4E0;
   --error:      #C0392B;
   --error-bg:   #FDECEA;
-  --info:       #008EAA;
+  --info:       #007490;
   --info-bg:    #E0F4F8;
 
   /* ── Background (Light Mode) ────────────────────────────────── */
@@ -48,10 +64,21 @@
   /* ── Text ───────────────────────────────────────────────────── */
   --text-primary:     var(--text);
   --text-secondary:   var(--text-60);
-  --text-tertiary:    var(--text-30);
+  /* Zeigte bis zum 17.08.2026 auf --text-30 und war damit die Farbe von 911
+     Beschriftungen im Frontend — bei 2.13 Kontrast auf der App-Flaeche.
+     Deshalb las sich die Kachelreihe des Dashboards wie Dekoration: Nicht
+     die Zahlen waren zu schwach, sondern die Woerter, die sagen, was die
+     Zahl bedeutet. */
+  --text-tertiary:    var(--text-45);
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
   --text-brand:       var(--kc-mid);
+  /* Schrift auf einer Flaeche in Markenfarbe (Knopf, Kopfband).
+     Nicht dasselbe wie --text-inverse: Im dunklen Modus ist
+     --brand-primary das helle Tuerkis, und Weiss darauf erreicht 2.06 —
+     Text auf dem wichtigsten Knopf der Kundenseiten. Dunkle Tinte
+     darauf erreicht 8.43. Gemessen in `utils/kontrast.test.js`. */
+  --text-on-brand:    #ffffff;
 
   /* ── Brand Aliases ──────────────────────────────────────────── */
   /* --brand-primary jetzt auf Dark Teal (Guideline-dominante
@@ -168,6 +195,7 @@
     --border:  rgba(64,196,223,0.15);
     --text:    #f0f4f5;
     --text-60: #a8c0c8;
+    --text-45: #8aabb5;  /* dunkel: 6.76 auf --surface, bleibt wie gehabt */
     --text-30: #8aabb5;
     --kc-dark:   #003840;
     --kc-mid:    #40c4df;
@@ -178,6 +206,7 @@
     --text-brand: var(--kc-mid);
 
     --brand-primary:        var(--kc-mid);
+    --text-on-brand:        #0f1c20;
     --brand-primary-light:  #1a3d4a;
     --brand-primary-mid:    #2a5a6a;
     --brand-primary-dark:   #30a0b8;
@@ -214,6 +243,7 @@
   --border:  rgba(64,196,223,0.15);
   --text:    #f0f4f5;
   --text-60: #a8c0c8;
+  --text-45: #8aabb5;  /* dunkel: 6.76 auf --surface, bleibt wie gehabt */
   --text-30: #8aabb5;
   --kc-dark:   #003840;
   --kc-mid:    #40c4df;
@@ -224,6 +254,7 @@
   --text-brand: var(--kc-mid);
 
   --brand-primary:        var(--kc-mid);
+  --text-on-brand:        #0f1c20;
   --brand-primary-light:  #1a3d4a;
   --brand-primary-mid:    #2a5a6a;
   --brand-primary-dark:   #30a0b8;
@@ -254,30 +285,56 @@
 
 /* ── Manual light override ───────────────────────────────────── */
 [data-theme="light"] {
+  --text-on-brand: #ffffff;
   --paper:   #FAFAFA;
   --surface: #F0F4F5;
   --border:  #D5E0E2;
   --text:    #000000;
   --text-60: #4A5A5C;
+  --text-45: #647071;
   --text-30: #9AACAE;
   --kc-dark:   #004F59;
   --kc-mid:    #008EAA;
   --kc-yellow: #FAE600;
   --bg-sidebar: var(--kc-dark);
 
-  --success:    #00875A;
+  --success:    #007A51;
   --success-bg: #E3F6EF;
-  --warn:       #B8860B;
-  --warn-bg:    #FFFBE0;
+  --warn:       #9A6000;
+  --warn-bg:    #FFF4E0;
   --error:      #C0392B;
   --error-bg:   #FDECEA;
-  --info:       #008EAA;
+  --info:       #007490;
   --info-bg:    #E0F4F8;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.10);
+
+  /* Diese dreizehn standen bis zum 18.08.2026 nicht hier — und der Block
+     oben laeuft weiter, wenn das System des Rechners auf dunkel steht.
+     Wer also auf einem dunklen Rechner „hell" waehlte, bekam helle
+     Flaechen mit den Markenfarben des Dunkelmodus: --brand-primary war
+     #008eaa statt #004f59, und Weiss darauf erreicht 3.85 statt 4.5 —
+     auf dem Anmeldeknopf des Kundenportals. `tokens.test.js` haelt fest,
+     dass der Hellblock jeden Ton des Dunkelblocks zuruecknimmt. */
+  --bg-active:  #e0f4f8;
+  --text-brand: var(--kc-mid);
+
+  --brand-primary:        var(--kc-dark);
+  --brand-primary-light:  var(--info-bg);
+  --brand-primary-mid:    var(--kc-mid);
+  --brand-primary-dark:   var(--kc-dark);
+  --brand-primary-deeper: #003840;
+
+  --border-medium: rgba(0,79,89,0.25);
+  --border-strong: rgba(0,79,89,0.45);
+
+  --color-brand-teal:      var(--kc-mid);
+  --color-brand-teal-dark: var(--kc-dark);
+  --color-primary:         var(--kc-mid);
+  --color-primary-dark:    var(--kc-dark);
 }
 
 /* ── Skeleton shimmer ────────────────────────────────────────── */

@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
+import { saveJson } from '../../utils/apiRequest';
 
 export default function Freigaben() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [project, setProject] = useState(null);
   const [freigaben, setFreigaben] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState({});
   const [comments, setComments] = useState({});
+  const [ladefehler, setLadefehler] = useState(false);
 
   useEffect(() => {
     loadProject();
   }, [token]); // eslint-disable-line
 
+  // Schlug hier etwas fehl, zeigte die Seite „Keine offenen Freigaben
+  // vorhanden" — also Entwarnung, obwohl gar nicht geladen werden konnte.
+  // Ein Ladefehler muss als Ladefehler dastehen.
   const loadProject = async () => {
+    setLadefehler(false);
     try {
       // Finde das eigene Projekt über portal/me
       const res = await fetch(`${API_BASE_URL}/api/portal/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { setLoading(false); return; }
+      if (!res.ok) { setLadefehler(true); setLoading(false); return; }
       const portalData = await res.json();
       if (!portalData.project_id) { setLoading(false); return; }
 
@@ -28,23 +34,32 @@ export default function Freigaben() {
       const pRes = await fetch(`${API_BASE_URL}/api/projects/${portalData.project_id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (pRes.ok) {
-        const p = await pRes.json();
-        setProject(p);
-        try {
-          const cf = typeof p.content_freigaben === 'string' ? JSON.parse(p.content_freigaben) : (p.content_freigaben || {});
-          setFreigaben(cf);
-        } catch { setFreigaben({}); }
-      }
-    } catch (e) { console.error(e); }
+      if (!pRes.ok) { setLadefehler(true); setLoading(false); return; }
+
+      const p = await pRes.json();
+      setProject(p);
+      try {
+        const cf = typeof p.content_freigaben === 'string' ? JSON.parse(p.content_freigaben) : (p.content_freigaben || {});
+        setFreigaben(cf);
+      } catch { setFreigaben({}); }
+    } catch (e) {
+      setLadefehler(true);
+    }
     setLoading(false);
   };
 
+  // Vorher stand hier ein `catch (e) { console.error(e) }` um ein `fetch`,
+  // das `res.ok` nicht prüfte. Der Endpunkt verlangte Adminrechte — der Kunde
+  // bekam 403, sah aber nichts davon: Die Seite lud neu und zeigte weiter
+  // „ausstehend". Ein Fehler, den niemand sieht, ist ein Fehler, der bleibt
+  // (Lücke L-36). `saveJson` meldet ihn und liefert true/false.
   const handleDecision = async (seiteId, confirmed) => {
     if (!project) return;
     setSending(s => ({ ...s, [seiteId]: true }));
-    try {
-      await fetch(`${API_BASE_URL}/api/projects/${project.id}/confirm-approval`, {
+
+    const gespeichert = await saveJson(
+      `${API_BASE_URL}/api/projects/${project.id}/confirm-approval`,
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -52,10 +67,11 @@ export default function Freigaben() {
           bestaetigt: confirmed,
           kommentar: comments[seiteId] || '',
         }),
-      });
-      // Reload
-      await loadProject();
-    } catch (e) { console.error(e); }
+      },
+      { context: confirmed ? 'Freigabe' : 'Ablehnung' },
+    );
+
+    if (gespeichert) await loadProject();
     setSending(s => ({ ...s, [seiteId]: false }));
   };
 
@@ -76,7 +92,23 @@ export default function Freigaben() {
 
       {loading && <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen…</div>}
 
-      {!loading && items.length === 0 && (
+      {!loading && ladefehler && (
+        <div style={{ ...cardStyle, textAlign: 'center', fontSize: 13, padding: 40, color: 'var(--status-danger-text)' }}>
+          Ihre Freigaben konnten nicht geladen werden.
+          <div style={{ fontSize: 12, marginTop: 8, color: 'var(--text-tertiary)' }}>
+            Bitte laden Sie die Seite neu. Bleibt es dabei, melden Sie sich bei uns —
+            es liegt nicht an Ihnen.
+          </div>
+          <button
+            onClick={() => { setLoading(true); loadProject(); }}
+            style={{ marginTop: 14, padding: '8px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer' }}
+          >
+            Erneut versuchen
+          </button>
+        </div>
+      )}
+
+      {!loading && !ladefehler && items.length === 0 && (
         <div style={{ ...cardStyle, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 40 }}>
           Keine offenen Freigaben vorhanden.
           <div style={{ fontSize: 12, marginTop: 8, color: 'var(--text-tertiary)' }}>
@@ -122,7 +154,11 @@ export default function Freigaben() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => handleDecision(seiteId, true)} disabled={sending[seiteId]}
                   style={{
-                    padding: '8px 18px', background: '#1D9E75', color: '#fff', border: 'none',
+                    // Gruen war hier die einzige Stelle der Anwendung, die eine
+                    // Hauptaktion nicht in der Markenfarbe zeigt. Der Unterschied
+                    // zu „Ablehnen" steht im Wort, nicht allein in der Farbe.
+                    padding: '8px 18px', background: 'var(--brand-primary)',
+                    color: 'var(--text-on-brand)', border: 'none',
                     borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'var(--font-sans)', opacity: sending[seiteId] ? 0.6 : 1,
                   }}>Freigeben</button>

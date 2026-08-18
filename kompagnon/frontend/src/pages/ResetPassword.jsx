@@ -40,7 +40,7 @@ export default function ResetPassword() {
           <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
           <h2 style={{ color: 'var(--text-primary)', marginBottom: 8, fontSize: 20, fontWeight: 800 }}>Ungueltiger Link</h2>
           <p style={{ color: 'var(--text-tertiary)', fontSize: 14, marginBottom: 24 }}>Bitte fordern Sie einen neuen Reset-Link an.</p>
-          <button onClick={() => nav('/login')} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Zum Login</button>
+          <button onClick={() => nav('/login')} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Zum Login</button>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function ResetPassword() {
               <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Passwort geaendert!</h2>
               <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 24, lineHeight: 1.5 }}>Sie koennen sich jetzt einloggen.</p>
-              <button onClick={() => nav('/login')} style={{ width: '100%', padding: 12, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>Zum Login</button>
+              <button onClick={() => nav('/login')} style={{ width: '100%', padding: 12, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>Zum Login</button>
             </div>
           ) : (
             <>
@@ -95,7 +95,7 @@ export default function ResetPassword() {
                     style={{ ...inp, borderColor: confirm && confirm !== password ? '#fca5a5' : confirm && confirm === password ? '#86efac' : '#d4d8e8' }} />
                   {confirm && confirm === password && <div style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>Passwoerter stimmen ueberein</div>}
                 </div>
-                <button type="submit" disabled={loading} style={{ width: '100%', padding: 13, background: loading ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48 }}>
+                <button type="submit" disabled={loading} style={{ width: '100%', padding: 13, background: loading ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48 }}>
                   {loading ? 'Wird gespeichert...' : 'Passwort speichern'}
                 </button>
               </form>

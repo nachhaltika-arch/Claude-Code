@@ -7,6 +7,7 @@ import { parseApiError } from '../utils/apiError';
 import API_BASE_URL from '../config';
 import AuditReport from '../components/AuditReport';
 import { useScreenSize } from '../utils/responsive';
+import { datumKurz } from '../utils/datum';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
@@ -32,6 +33,24 @@ export default function AuditTool() {
   const [scrapedData, setScrapedData] = useState(null);
   const [scrapingBlocked, setScrapingBlocked] = useState(false);
   const [url, setUrl] = useState(searchParams.get('url') || '');
+  // Das Dashboard führte „Letzte Audits", das Audit-Tool selbst zeigte keine —
+  // man konnte nicht sehen, ob eine Seite schon geprüft war (UX-27).
+  const [letzte, setLetzte] = useState([]);
+
+  useEffect(() => {
+    if (step !== 'form') return;
+    let abgebrochen = false;
+    (async () => {
+      try {
+        const r = await axios.get(`${API_BASE_URL}/api/audit/recent`);
+        if (!abgebrochen) setLetzte(Array.isArray(r.data) ? r.data.slice(0, 5) : []);
+      } catch {
+        // Ohne Verlauf ist das Tool nicht kaputt — nur ärmer. Kein Alarm.
+        if (!abgebrochen) setLetzte([]);
+      }
+    })();
+    return () => { abgebrochen = true; };
+  }, [step]);
   const { isMobile } = useScreenSize();
   const pollRef = useRef(null);
   const stepRef = useRef(null);
@@ -180,6 +199,30 @@ export default function AuditTool() {
             </p>
           </div>
         </div>
+
+        {/* Zuletzt geprüft — damit man sieht, ob eine Seite schon dran war.
+          * Die Zahlen lagen längst vor; nur dieser Bildschirm kannte sie
+          * nicht (UX-27). */}
+        {letzte.length > 0 && (
+          <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '600px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
+              Zuletzt geprüft
+            </div>
+            {letzte.map(a => (
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border-light)' }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {a.company_name || a.website_url}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                  {datumKurz(a.created_at, 'Datum unbekannt')}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', minWidth: 26, textAlign: 'right' }}>
+                  {a.total_score ?? '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -356,7 +399,13 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
     website_url: audit.website_url || '',
     city: audit.city || '',
     trade: audit.trade || '',
-    notes: `Audit-Ergebnis: ${audit.total_score}/100 Punkte - ${audit.level}`,
+    // Leer, nicht vorbelegt. Hier stand „Audit-Ergebnis: 40/100 Punkte - …",
+    // obwohl das Modal die Punktzahl zwei Zeilen darüber ohnehin anzeigt. Der
+    // Text fror sie beim Anlegen ein: Nach dem nächsten Audit stand die alte
+    // Zahl als Notiz neben der neuen als Ergebnis, ohne dass etwas dabeistand,
+    // welche welche ist (UX-06b). Das Audit hängt am Betrieb, die Punktzahl
+    // steht in der Betriebsansicht unter „Letzter Audit" — und zwar aktuell.
+    notes: '',
     lead_source: 'Audit',
   });
 

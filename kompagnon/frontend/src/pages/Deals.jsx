@@ -99,7 +99,7 @@ export default function Deals() {
         <button
           onClick={openNew}
           style={{
-            padding: '10px 20px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '10px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
           }}
@@ -306,7 +306,7 @@ export default function Deals() {
                 style={{
                   flex: 1, padding: '10px 0',
                   background: 'var(--status-danger-text)',
-                  color: '#fff',
+                  color: 'var(--text-on-brand)',
                   border: 'none', borderRadius: 8,
                   fontSize: 13, fontWeight: 700,
                   cursor: deleting ? 'not-allowed' : 'pointer',
@@ -564,7 +564,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               <div style={{ fontSize: 12, color: 'var(--status-success-text)', fontWeight: 600, marginBottom: 8 }}>
                 ✓ Deal gewonnen — Projekt starten?
               </div>
-              <button onClick={createProject} style={{ padding: '8px 18px', background: 'var(--status-success-text)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={createProject} style={{ padding: '8px 18px', background: 'var(--status-success-text)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 📋 Projekt anlegen
               </button>
             </div>
@@ -585,7 +585,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
             <button
               onClick={save}
               disabled={saving}
-              style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer' }}
+              style={{ padding: '9px 22px', background: 'var(--brand-primary)', opacity: saving ? 0.5 : 1, color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer' }}
             >
               {saving ? 'Speichern…' : 'Speichern'}
             </button>

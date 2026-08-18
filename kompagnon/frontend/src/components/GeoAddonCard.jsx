@@ -247,7 +247,7 @@ export default function GeoAddonCard({ projectId }) {
           style={{
             padding: '11px 20px',
             background: 'var(--brand-primary)',
-            color: '#fff',
+            color: 'var(--text-on-brand)',
             border: 'none',
             borderRadius: 'var(--radius-md)',
             fontSize: 13,

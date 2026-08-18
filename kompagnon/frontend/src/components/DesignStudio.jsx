@@ -235,7 +235,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
               <button onClick={() => setStep(1)} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Anderes Template
               </button>
-              <button onClick={() => setStep(3)} style={{ padding: '9px 24px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={() => setStep(3)} style={{ padding: '9px 24px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Brand passt — Seite waehlen
               </button>
             </div>
@@ -308,7 +308,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                     const page = sitemapPages.find(p => p.id === selectedPage.id);
                     if (page) window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { pageId: page.id, html: designResult, blocks: designBlocks, brand: designBrand } }));
                   }}
-                  style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
                 >
                   Im Editor bearbeiten
                 </button>

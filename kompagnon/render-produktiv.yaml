@@ -100,10 +100,27 @@ services:
     # Render kennt inzwischen auch 'After CI Checks Pass'. Nicht gewaehlt,
     # weil der Deploy-Job in ci.yml selbst ausloest — es waeren zwei Deploys.
     autoDeploy: false
+    # ── Datentraeger fuer hochgeladene Dateien ──────────────────────────
+    # Ohne diesen Block liegen Uploads im Container und sind bei JEDEM Deploy
+    # weg. Am 16.08.2026 festgestellt: Die eine vorhandene Datei war bereits
+    # verloren. Betroffen sind Kundendateien (routers/files.py), Bilder
+    # (routers/assets.py) und die Auftragsbestaetigungs-PDFs.
+    #
+    # ACHTUNG beim Anwenden: Render haengt einen Datentraeger nur an Dienste
+    # mit genau EINER Instanz, und das Anlegen erzwingt einen Neustart.
+    # 1 GB ist der kleinste Schritt und reicht um Groessenordnungen.
+    disk:
+      name: uploads
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       # ── Laufzeit ─────────────────────────────────────────────────────────
       - key: PYTHON_VERSION
         value: "3.11.0"
+      # Zeigt auf den eingehaengten Datentraeger. Ohne die Variable schreibt
+      # der Code weiter relativ nach `uploads` — also in den Container.
+      - key: UPLOAD_ROOT
+        value: /var/data/uploads
       # War produktiv nie gesetzt. Der Vorgabewert ist `development`, und der
       # legt die Demo-Konten an, statt sie zu deaktivieren — drei waren live
       # (kunde@, nutzer@, auditor@kompagnon.de). Nicht weglassen.

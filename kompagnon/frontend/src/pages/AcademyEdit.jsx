@@ -243,7 +243,7 @@ export default function AcademyEdit() {
       {/* Save */}
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={save} disabled={saving || !form.title.trim()} style={{
-          padding: '10px 24px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+          padding: '10px 24px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
           borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
           fontFamily: 'var(--font-sans)', opacity: saving || !form.title.trim() ? 0.6 : 1,
         }}>{saving ? 'Speichert...' : isNew ? 'Kurs anlegen' : 'Änderungen speichern'}</button>
@@ -285,7 +285,7 @@ export default function AcademyEdit() {
                 {/* Edit lessons button */}
                 <Link
                   to={`/app/akademie/admin/modul/${mod.id}`}
-                  style={{ padding: '6px 12px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                  style={{ padding: '6px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', whiteSpace: 'nowrap' }}
                 >
                   Lektionen
                 </Link>
@@ -304,7 +304,7 @@ export default function AcademyEdit() {
               style={{ ...inputStyle, flex: 1 }}
             />
             <button onClick={addModule} disabled={addingModule || !newModuleTitle.trim()} style={{
-              padding: '9px 16px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+              padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
               borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
               fontFamily: 'var(--font-sans)', opacity: !newModuleTitle.trim() ? 0.5 : 1, whiteSpace: 'nowrap',
             }}>+ Modul hinzufügen</button>

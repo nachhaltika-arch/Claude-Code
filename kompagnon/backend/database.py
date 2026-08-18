@@ -77,6 +77,14 @@ class Lead(Base):
     notes = Column(Text, nullable=True, default=None)
     website_screenshot = Column(Text, nullable=True, default=None)
 
+    # Befunde der automatischen Anreicherung. Sie standen bis zum 17.08.2026
+    # nur als Textzeile in `notes` — im Feld fuer die Notizen eines Menschen,
+    # und bei jedem Lauf erneut davorgesetzt. `None` heisst „noch nicht
+    # geprueft" und ist ausdruecklich nicht dasselbe wie „nicht vorhanden".
+    has_ssl = Column(Boolean, nullable=True, default=None)
+    has_impressum = Column(Boolean, nullable=True, default=None)
+    enriched_at = Column(DateTime, nullable=True)
+
     # Address
     street = Column(String(255), default="")
     house_number = Column(String(20), default="")
@@ -1094,6 +1102,11 @@ class WidgetRequest(Base):
     verify_token = Column(String(64), index=True)
     verify_sent_at = Column(DateTime, nullable=True)
     verified_at = Column(DateTime, nullable=True)
+    # Wie oft der Versand versucht wurde. Begrenzt den zweiten Versuch aus dem
+    # Widget: Die Empfaengeradresse steht fest, wer den Knopf drueckt bestimmt
+    # sie nicht — ohne Grenze waere der Knopf eine Maschine, die eine fremde
+    # Adresse zuschuettet.
+    verify_attempts = Column(Integer, default=0)
 
     # Wer bestätigt hat. Vier Testläufe bestätigten sich von selbst, Minuten
     # nach dem Versand und ohne Zutun eines Menschen — ohne diese Angaben

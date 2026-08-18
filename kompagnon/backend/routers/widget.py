@@ -54,6 +54,10 @@ LIMIT_TOTAL_PER_DAY = 300
 
 TOP_ISSUES_IN_TEASER = 3
 
+# Wie oft die Bestätigungsmail insgesamt versucht werden darf — der
+# Hintergrundauftrag zählt mit. Danach ist es ein Fall für einen Menschen.
+MAX_BESTAETIGUNGSVERSUCHE = 5
+
 # Bericht und Bestätigung hängen an einem Token in der Adresszeile und zeigen
 # Daten eines Betriebs. Ohne Referrer-Policy trägt jeder Klick auf einen Link
 # das Token in den Referer der Zielseite; ohne X-Frame-Options lässt sich die
@@ -285,7 +289,51 @@ def audit_teaser(token: str, db: Session = Depends(get_db)):
         "top_issues": issues[:TOP_ISSUES_IN_TEASER],
         "blocker_count": len(blockers),
         "email_sent": row.report_sent_at is not None,
+        # Ob die Bestätigungsmail wirklich raus ist. Ohne dieses Feld schrieb
+        # das Widget „Wir haben eine Bestätigungs-Mail geschickt" auch dann,
+        # wenn der Versand gescheitert war — und der Besucher wartete auf eine
+        # Mail, die nie kam (UX-08).
+        "bestaetigung_versandt": row.verify_sent_at is not None,
     }
+
+
+@router.post("/bestaetigung/{token}")
+def bestaetigung_erneut_senden(token: str, db: Session = Depends(get_db)):
+    """Die Bestätigungs-Mail noch einmal versuchen.
+
+    Der Versand läuft im Hintergrund, nachdem die Analyse fertig ist. Geht er
+    schief, stand der Besucher bisher ohne alles da: keine Mail, keine
+    Meldung, und ohne Bestätigung auch nie ein Bericht.
+
+    Begrenzt auf ``MAX_BESTAETIGUNGSVERSUCHE``. Die Empfängeradresse steht in
+    der Anfrage fest — wer den Knopf drückt, bestimmt sie nicht. Ohne Grenze
+    wäre der Knopf eine Maschine, die eine fremde Adresse zuschüttet.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.poll_token == token).first()
+    if not row or not row.audit_id:
+        raise HTTPException(404, "Analyse nicht gefunden")
+
+    if row.verify_sent_at is not None:
+        return {"versandt": True}
+
+    versuche = row.verify_attempts or 0
+    if versuche >= MAX_BESTAETIGUNGSVERSUCHE:
+        raise HTTPException(
+            429,
+            "Der Versand ist mehrfach fehlgeschlagen. Bitte melden Sie sich "
+            "kurz bei uns — wir schicken den Bericht von Hand.",
+        )
+
+    row.verify_attempts = versuche + 1
+    db.commit()
+
+    # Dieselbe Funktion, die auch der Hintergrundauftrag nutzt: Eine zweite
+    # Fassung des Versands würde irgendwann von der ersten abweichen.
+    from routers.audit import _notify_widget_requester
+
+    _notify_widget_requester(db, row.audit_id)
+    db.refresh(row)
+    return {"versandt": row.verify_sent_at is not None}
 
 
 @router.get("/report/{token}", response_class=HTMLResponse)
@@ -359,11 +407,14 @@ def _geste_fehlt(token: str, nachweis: str, request: Request, wofuer: str) -> bo
     den Knopf angefasst — dann wird protokolliert, wer es war, und sonst
     nichts getan.
     """
-    if nachweis and secrets.compare_digest(nachweis, widget_report.gestenbeleg(token)):
+    gueltig, grund = widget_report.beleg_gueltig(token, nachweis)
+    if gueltig:
         return False
 
+    # Der Grund steht im Protokoll, nicht auf der Seite: Wer zu schnell war,
+    # soll nicht lernen, wie lange er warten muss.
     logger.warning(
-        "%s ohne Bedienung abgewiesen — UA=%r IP=%s Feld=%r", wofuer,
+        "%s ohne Bedienung abgewiesen (%s) — UA=%r IP=%s Feld=%r", wofuer, grund,
         request.headers.get("user-agent", "")[:200], _client_ip(request),
         (nachweis or "")[:16])
     return True

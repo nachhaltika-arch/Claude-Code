@@ -161,7 +161,7 @@ export default function PricingSection() {
           }}>
             {pkg.recommended && (
               <div style={{
-                background: '#d4a017', color: 'white',
+                background: 'var(--warn)', color: 'var(--kc-black)',
                 textAlign: 'center', padding: '6px 16px',
                 fontSize: 11, fontWeight: 700,
                 letterSpacing: '0.08em', textTransform: 'uppercase',

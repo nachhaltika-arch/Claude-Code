@@ -99,6 +99,31 @@ def _als_utc(zeitpunkt) -> Optional[str]:
     return zeitpunkt.replace(tzinfo=timezone.utc).isoformat()
 
 
+#: Unter dieser Dauer hat niemand gelesen, verstanden und gedrückt. Am
+#: 16.08.2026 kam die Berichts-Mail fünfzehn Sekunden nach der ersten, ohne
+#: dass ein Mensch geklickt hatte — die Dauer ist das schärfste Merkmal, das
+#: ohne fremde Hilfe zu haben ist.
+VERDAECHTIG_UNTER_S = 2
+
+
+def _verify_dauer(row):
+    """Sekunden zwischen dem Versand der Bestätigungsmail und dem Klick."""
+    gesendet, bestaetigt = row.verify_sent_at, row.verified_at
+    if not gesendet or not bestaetigt:
+        return None
+    return int((bestaetigt - gesendet).total_seconds())
+
+
+def _verdaechtig(row) -> bool:
+    """Sieht diese Bestätigung nach einer Maschine aus?
+
+    Sagt nicht „war eine Maschine" — das kann niemand von hier aus
+    entscheiden. Sie sagt: Das gehört angesehen.
+    """
+    dauer = _verify_dauer(row)
+    return dauer is not None and dauer < VERDAECHTIG_UNTER_S
+
+
 @router.get("/widget/requests")
 def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Die letzten Anfragen mit ihrem Zustellstand.
@@ -130,6 +155,17 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 "report_opened": row.report_confirmed_at is not None,
                 "consent_marketing": bool(row.consent_marketing),
                 "consent_confirmed": row.confirmed_at is not None,
+                # ── Nachweis, wer bestätigt hat ──────────────────────────
+                # Wurde beim Bestätigen immer schon festgehalten, war aber
+                # nirgends zu sehen. Am 16.08.2026 blieb deshalb offen, wer
+                # um 16:12:09 die Bestätigung ausgelöst hat — die Antwort lag
+                # in der Datenbank und war aus dem Tool nicht zu erreichen.
+                # Art. 5 Abs. 2 DSGVO verlangt, dass man es belegen kann.
+                "verified_at": _als_utc(row.verified_at),
+                "verified_user_agent": getattr(row, "verified_user_agent", None) or None,
+                "verified_ip": getattr(row, "verified_ip", None) or None,
+                "verify_dauer_s": _verify_dauer(row),
+                "bestaetigung_verdaechtig": _verdaechtig(row),
             }
             for row in rows
         ],

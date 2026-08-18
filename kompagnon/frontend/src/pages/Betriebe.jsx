@@ -25,7 +25,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import BetriebAnlegenModal from '../components/BetriebAnlegenModal';
 import { leadStatusLabel, leadStatusVariant } from '../utils/leadStatus';
-import { stufeFuerScore } from '../utils/homepageStandard';
+import { stufeFuerScore, stufeKurz } from '../utils/homepageStandard';
 import {
   betriebeAufbereiten,
   betriebeStatistik,
@@ -219,7 +219,7 @@ export default function Betriebe() {
         <button
           type="button" onClick={() => setDialogOffen(true)}
           style={{
-            padding: '9px 16px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
           }}
@@ -398,6 +398,12 @@ export default function Betriebe() {
                           background: scoreFarbe(score),
                         }} />
                       </div>
+                      {/* Welche Farbe welche Stufe bedeutet, stand vorher nur
+                        * im `title` — also im Tooltip, den es auf einem
+                        * Berührungsgerät gar nicht gibt (UX-28). */}
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                        {stufeKurz(score)}
+                      </span>
                     </div>
                   ) : (
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Kein Audit</span>

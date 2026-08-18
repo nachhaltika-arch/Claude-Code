@@ -44,7 +44,7 @@ export default function FeedbackButton() {
     <>
       <button onClick={() => setOpen(true)} style={{
         position: 'fixed', bottom: isMobile ? 80 : 24, right: 24, width: 52, height: 52, borderRadius: '50%',
-        background: 'var(--brand-primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 22,
+        background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', cursor: 'pointer', fontSize: 22,
         boxShadow: 'var(--shadow-elevated)', zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }} title="Feedback & Support">💬</button>
 
@@ -78,8 +78,8 @@ export default function FeedbackButton() {
                   <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>ℹ️ Seite und Browser-Info werden automatisch mitgesendet</div>
                   <button onClick={submit} disabled={loading || !form.title || !form.description} style={{
-                    width: '100%', padding: 12, background: loading || !form.title || !form.description ? 'var(--text-tertiary)' : 'var(--brand-primary)',
-                    color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
+                    width: '100%', padding: 12, background: 'var(--brand-primary)', opacity: loading || !form.title || !form.description ? 0.5 : 1,
+                    color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
                   }}>{loading ? 'Wird gesendet...' : 'Absenden'}</button>
                 </div>
               </>
@@ -92,7 +92,7 @@ export default function FeedbackButton() {
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Ticket-Nummer</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--brand-primary)', letterSpacing: '0.05em' }}>{ticketNr}</div>
                 </div>
-                <button onClick={reset} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Schliessen</button>
+                <button onClick={reset} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Schliessen</button>
               </div>
             )}
           </div>

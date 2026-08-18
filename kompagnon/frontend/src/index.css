@@ -233,6 +233,23 @@ textarea::placeholder {
    iOS-LEVEL DESIGN SYSTEM — Cards, Buttons, Inputs, Badges
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Rechtsseiten (Impressum, Datenschutz, Barrierefreiheit) ─────
+   Die drei Seiten standen auf festen Tailwind-Toenen — weisse Karte auf
+   hellgrauer Flaeche, gleich welchen Modus der Betrachter eingestellt hat.
+   Ein Kunde, der aus dem dunklen Portal auf das Impressum klickt, wechselte
+   damit das Haus (UX-19, 18.08.2026). Jetzt dasselbe Farbsystem. */
+.kc-legal             { background: var(--bg-app); }
+.kc-legal__band       { background: var(--bg-sidebar); color: #fff; }
+.kc-legal__band-leise { color: rgba(255,255,255,0.7); }
+.kc-legal__karte      { background: var(--bg-surface); border: 1px solid var(--border-light);
+                        border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); }
+.kc-legal__titel      { color: var(--text-primary); border-bottom: 1px solid var(--border-light); }
+.kc-legal__text       { color: var(--text-secondary); }
+.kc-legal__stark      { color: var(--text-primary); }
+.kc-legal__leise      { color: var(--text-tertiary); }
+.kc-legal__link       { color: var(--brand-primary); }
+.kc-legal__linie      { border-color: var(--border-light); }
+
 /* ── Buttons ─────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
@@ -730,7 +747,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 
@@ -739,7 +756,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-bottom: 10px;
 }
 
@@ -830,7 +847,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 .kc-kpi-delta {

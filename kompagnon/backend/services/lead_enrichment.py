@@ -5,10 +5,35 @@ Reuses services/scraper.py for HTML extraction.
 import os
 import asyncio
 import logging
+from datetime import datetime
+
 import httpx
 from services.audit_pagespeed import api_key as pagespeed_api_key
 
 logger = logging.getLogger(__name__)
+
+
+async def _pagespeed_mobil(url: str) -> int:
+    """Mobile Leistungsnote von 0 bis 100. Bei jedem Fehler 0.
+
+    Eigene Funktion, damit die Anreicherung ohne Netzzugriff prüfbar ist —
+    vorher steckte der Aufruf mitten in `enrich_lead`.
+    """
+    try:
+        api_key = pagespeed_api_key()
+        ps_url = (
+            "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+            f"?url={url}&strategy=mobile"
+            + (f"&key={api_key}" if api_key else "")
+        )
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            ps_resp = await client.get(ps_url)
+            ps_data = ps_resp.json()
+            raw = (ps_data.get("lighthouseResult", {}).get("categories", {})
+                   .get("performance", {}).get("score", 0))
+            return int((raw or 0) * 100)
+    except Exception:
+        return 0
 
 
 async def enrich_lead(lead_id: int, db) -> dict:
@@ -46,9 +71,15 @@ async def enrich_lead(lead_id: int, db) -> dict:
     except Exception:
         pass
 
-    if not lead.company_name or lead.company_name == "Unbekannt":
-        if scraped.get("company_name"):
-            enriched["company_name"] = scraped["company_name"]
+    # Auch die Domain zählt als Platzhalter — sonst bleibt der Name stehen,
+    # den der Domainimport gesetzt hat, und der echte kommt nie an.
+    from services.betriebsname import uebernehmen
+
+    echter_name = uebernehmen(
+        lead.company_name, scraped.get("company_name"), lead.website_url,
+    )
+    if echter_name:
+        enriched["company_name"] = echter_name
     if not lead.phone and scraped.get("phone"):
         enriched["phone"] = scraped["phone"]
     if not lead.email and scraped.get("email"):
@@ -74,21 +105,7 @@ async def enrich_lead(lead_id: int, db) -> dict:
         logger.debug("NorthData enrichment skipped: %s", exc)
 
     # 3. PageSpeed score
-    pagespeed_score = 0
-    try:
-        api_key = pagespeed_api_key()
-        ps_url = (
-            "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-            f"?url={url}&strategy=mobile"
-            + (f"&key={api_key}" if api_key else "")
-        )
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            ps_resp = await client.get(ps_url)
-            ps_data = ps_resp.json()
-            raw = ps_data.get("lighthouseResult", {}).get("categories", {}).get("performance", {}).get("score", 0)
-            pagespeed_score = int((raw or 0) * 100)
-    except Exception:
-        pass
+    pagespeed_score = await _pagespeed_mobil(url)
 
     # 4. Compute analysis score (0-100)
     score = 0
@@ -122,12 +139,15 @@ async def enrich_lead(lead_id: int, db) -> dict:
         lead.analysis_score = score
         lead.geo_score = geo_score
 
-        note = (
-            f"[Auto-Enrichment] SSL: {'OK' if has_ssl else 'FEHLT'} | "
-            f"Impressum: {'OK' if has_impressum else 'FEHLT'} | "
-            f"PageSpeed: {pagespeed_score}/100 | Score: {score}/100"
-        )
-        lead.notes = (note + "\n" + lead.notes) if lead.notes else note
+        # Die Befunde stehen in eigenen Feldern. Bis zum 17.08.2026 wurden sie
+        # als Textzeile in `lead.notes` geschrieben — in das Feld für die
+        # Notizen eines Menschen, und bei jedem Lauf erneut davorgesetzt.
+        # `pagespeed_score` wurde dabei berechnet und sonst nirgends abgelegt:
+        # Die Zeile war der einzige Ort, an dem er einen Lauf überlebte.
+        lead.has_ssl = has_ssl
+        lead.has_impressum = bool(has_impressum)
+        lead.pagespeed_mobile_score = pagespeed_score
+        lead.enriched_at = datetime.utcnow()
 
         db.commit()
     except Exception as e:

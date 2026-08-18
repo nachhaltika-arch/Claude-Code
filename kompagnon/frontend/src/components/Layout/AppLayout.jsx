@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useVersand } from '../../context/VersandContext';
 import { useScreenSize } from '../../utils/responsive';
+import { MENUE_GRUPPEN, offeneGruppen } from '../../utils/menue';
 import { loadJson } from '../../utils/apiRequest';
 import { useTheme } from '../../context/ThemeContext';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -215,22 +216,12 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const getDefaultOpen = () => {
-    const p = location.pathname;
-    const inSection = (paths) => paths.some(pp => p === pp || p.startsWith(pp + '/'));
-    return {
-      // Akquise — Pre-Sales / Cold Outreach
-      akquise:       inSection(['/app/scraper', '/app/import', '/app/audit', '/app/newsletter', '/app/campaigns', '/app/export', '/app/webhooks']),
-      // Leads — Sales-Pipeline / Erstkontakt bis Vertragsabschluss
-      leads:         inSection(['/app/deals', '/app/betriebe']),
-      // Projekte — Aktive Lieferung (17-Step-Workflow)
-      projekte:      inSection(['/app/projects', '/app/projektpipeline', '/app/checklists']),
-      // Kompagnon — Backoffice / interne Tools
-      kompagnon:     inSection(['/app/tickets', '/app/pages', '/app/product-editor', '/app/products', '/app/product', '/app/qr-generator', '/app/retainer']),
-      // Einstellungen — Account & System
-      einstellungen: inSection(['/app/profile', '/app/2fa-setup', '/app/admin', '/app/settings']),
-    };
-  };
+  /* Welche Gruppe offen steht, folgt der Adresse — abgeleitet aus den
+     Menueeintraegen selbst. Vorher stand die Pfadliste hier ein zweites Mal;
+     wer einen Eintrag verschob und diese Liste vergass, bekam eine
+     Seitenleiste, die nicht mehr zeigt, wo man ist. Siehe utils/menue.js. */
+  const getDefaultOpen = () => offeneGruppen(location.pathname);
+
   const [openSections, setOpenSections] = useState(getDefaultOpen);
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -348,61 +339,15 @@ function SidebarNav({ badges }) {
             {/* ARBEIT */}
             <span style={sectionLabelStyle}>Arbeit</span>
 
-            {/* Customer-Journey-orientierte Struktur:
-                Akquise → Leads → Projekte → Kompagnon (Backoffice) → Einstellungen */}
-            {[
-              {
-                key: 'akquise',
-                label: 'Akquise',
-                items: [
-                  { label: 'Kaltakquise',          path: '/app/scraper',    adminOnly: true },
-                  { label: 'Domain-Import',        path: '/app/import'     },
-                  { label: 'Audit-Tool',           path: '/app/audit'      },
-                  { label: 'Analyse-Widget',       path: '/app/widget',     adminOnly: true },
-                  { label: 'Newsletter',           path: '/app/newsletter' },
-                  { label: 'Kampagnen',            path: '/app/campaigns',  adminOnly: true },
-                  { label: 'Export',               path: '/app/export'     },
-                  { label: 'Webhooks',             path: '/app/webhooks',   adminOnly: true },
-                ],
-              },
-              {
-                key: 'leads',
-                // Hiess „Leads". „Lead" ist ein Zustand, kein Objekt — das
-                // Objekt heisst ueberall „Betrieb". Die Gruppe benennt jetzt,
-                // worum es hier geht, nicht in welchem Zustand etwas ist.
-                label: 'Vertrieb',
-                items: [
-                  // Hiess bis 2026-08-16 „Pipeline". Zwei Gruende: Die Seite
-                  // dahinter heisst „Deals", und „Pipeline" kam im Menue ein
-                  // zweites Mal vor (Projekte → Projektpipeline). Ein Wort,
-                  // zwei Orte, zwei Bedeutungen.
-                  { label: 'Deals',                path: '/app/deals'      },
-                  { label: 'Betriebe',             path: '/app/betriebe'  },
-                ],
-              },
-              {
-                key: 'projekte',
-                label: 'Projekte',
-                items: [
-                  { label: 'Alle Projekte',        path: '/app/projects'   },
-                  { label: 'Projektpipeline',      path: '/app/projektpipeline'      },
-                  { label: 'Prozess-Ansicht',      path: '/app/checklists' },
-                ],
-              },
-              {
-                key: 'kompagnon',
-                label: 'Kompagnon',
-                items: [
-                  { label: 'Tickets',              path: '/app/tickets'    },
-                  { label: 'Templates',            path: '/app/pages',           adminOnly: true },
-                  { label: 'Produkt-Editor',       path: '/app/product-editor',  adminOnly: true },
-                  { label: 'Produkte',             path: '/app/products',        adminOnly: true },
-                  { label: 'Produktentwicklung',   path: '/app/product',         adminOnly: true },
-                  { label: 'QR-Generator',         path: '/app/qr-generator',    adminOnly: true },
-                  { label: 'Retainer',             path: '/app/retainer',        adminOnly: true },
-                ],
-              },
-            ].map((section) => {
+            {/* Die Gruppen kommen aus utils/menue.js — dieselbe Quelle, aus
+                der sich auch ergibt, welche Gruppe zur Adresse offen steht.
+                Vorher standen beide Listen getrennt nebeneinander.
+                „Einstellungen" und „Verwaltung" werden unten eigens
+                gerendert, unterhalb des Trenners. */}
+            {MENUE_GRUPPEN
+              .filter((g) => !['einstellungen', 'verwaltung'].includes(g.key))
+              .map((g) => ({ key: g.key, label: g.label, items: g.eintraege }))
+              .map((section) => {
               const visibleItems = section.items.filter((i) => !i.adminOnly || hasRole('admin'));
               if (visibleItems.length === 0) return null;
               const isOpen = openSections[section.key];
@@ -448,18 +393,43 @@ function SidebarNav({ badges }) {
               <span>Einstellungen</span>
               <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
             </button>
-            {openSections.einstellungen && [
-              { label: 'Profil',                 path: '/app/profile'      },
-              { label: 'Sicherheit & 2FA',       path: '/app/2fa-setup'    },
-              { label: 'System & API-Keys',      path: '/app/settings'     },
-              { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
-              { label: 'Benutzerverwaltung',     path: '/app/admin/users', adminOnly: true },
-              { label: 'Rollenverwaltung',       path: '/app/admin/roles', adminOnly: true },
-            ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
+            {openSections.einstellungen
+              && MENUE_GRUPPEN.find(g => g.key === 'einstellungen').eintraege
+              .filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}
               </button>
             ))}
+
+            {/* ── VERWALTUNG ──
+              * Was für alle gilt, nicht was eine Person für sich einstellt.
+              * Stand vorher mit unter „Einstellungen"; acht Einträge dort
+              * waren wieder ein Sammelbecken, nur mit besserem Namen. */}
+            {(() => {
+              const gruppe = MENUE_GRUPPEN.find(g => g.key === 'verwaltung');
+              const sichtbar = gruppe.eintraege.filter(i => !i.adminOnly || hasRole('admin'));
+              if (sichtbar.length === 0) return null;
+              return (
+                <>
+                  <button onClick={() => toggleSection('verwaltung')} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+                    background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                    fontFamily: 'var(--font-sans)',
+                    color: openSections.verwaltung ? '#fff' : 'rgba(255,255,255,0.55)',
+                    fontWeight: openSections.verwaltung ? 600 : 400,
+                  }}>
+                    <span>{gruppe.label}</span>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.verwaltung ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+                  </button>
+                  {openSections.verwaltung && sichtbar.map(item => (
+                    <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
+                      {item.label}
+                    </button>
+                  ))}
+                </>
+              );
+            })()}
           </>
         )}
       </nav>
@@ -527,7 +497,7 @@ function SidebarNav({ badges }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 34, height: 34, borderRadius: '50%',
-              background: 'var(--kc-mid)', color: '#ffffff',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 700, flexShrink: 0, letterSpacing: '0.02em',
               fontFamily: 'var(--font-sans)',
@@ -632,9 +602,13 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
       position: 'sticky', top: 0, zIndex: 30,
       flexShrink: 0,
     }}>
-      {/* Breadcrumb */}
+      {/* Brotkrume — nur, wenn sie einen Weg zeigt.
+        * Auf obersten Seiten bestand sie aus einem einzigen Element: dem
+        * Seitennamen, der zwei Zeilen tiefer nochmal als Überschrift steht.
+        * Eine Brotkrume mit einem Element zeigt keine Hierarchie, sie
+        * wiederholt nur (UX-20). */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-        {breadcrumbs.map((crumb, i) => {
+        {(breadcrumbs.length > 1 ? breadcrumbs : []).map((crumb, i) => {
           const isLast = i === breadcrumbs.length - 1;
           return (
             <React.Fragment key={i}>
@@ -991,7 +965,12 @@ export default function AppLayout() {
     // Hiess „+ Neuer Lead" und fuehrte zum Domain-Import — auf der
     // Projektpipeline. Der sichtbarste Teil der alten Verwechslung.
     '/app/projektpipeline': null,
-    '/app/audit': { label: '+ Neues Audit', action: () => {} },
+    // Stand „+ Neues Audit" auf dem Bildschirm, der selbst das neue Audit
+    // ist — mit `action: () => {}`, also ohne jede Wirkung. Ein Knopf, der
+    // nichts tut, ist schlimmer als keiner: Man drückt ihn und sucht den
+    // Fehler bei sich (UX-23). Nach einem fertigen Bericht steht der richtige
+    // Knopf ohnehin unter dem Ergebnis.
+    '/app/audit': null,
   };
   const cta = ctaMap[location.pathname];
 
@@ -1041,10 +1020,10 @@ export default function AppLayout() {
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: 'var(--kc-mid)',
+                  background: 'var(--brand-primary)',
                   border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-sans)', color: '#fff',
+                  fontFamily: 'var(--font-sans)', color: 'var(--text-on-brand)',
                 }}
               >
                 {((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')).toUpperCase() || 'U'}

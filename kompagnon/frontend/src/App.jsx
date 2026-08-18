@@ -56,9 +56,11 @@ import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
+import Impressum from './pages/Impressum';
+import Datenschutz from './pages/Datenschutz';
+import Barrierefreiheit from './pages/Barrierefreiheit';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
-import Abnahme from './pages/Abnahme';
 import ProductManager from './pages/ProductManager';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
@@ -133,7 +135,7 @@ function DashboardRoute() {
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
           Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
         </p>
-        <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'white', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+        <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
           Kontakt aufnehmen
         </a>
       </div>
@@ -158,10 +160,25 @@ function App() {
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />
           <Route path="/kundenportal"  element={<PortalLogin />} />
+
+          {/* ── Rechtliches ──
+            * Beide Seiten lagen seit jeher in `pages/`, hingen aber an keiner
+            * Adresse: Es gab ein Impressum, zu dem kein Weg fuehrte. Der Fuss
+            * des Kundenportals zeigte stattdessen auf `kompagnon.eu` — eine
+            * dritte Domain neben der, auf der der Kunde gerade stand
+            * (UX-19, 18.08.2026). */}
+          <Route path="/impressum"        element={<Impressum />} />
+          <Route path="/datenschutz"      element={<Datenschutz />} />
+          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
 
-          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ── */}
-          <Route path="/abnahme/:projectId"        element={<Abnahme />} />
+          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──
+            * `/abnahme/:projectId` stand hier, war aber nicht token-basiert:
+            * Die Seite trug keinen Nachweis und rief zwei Endpunkte auf, die
+            * eine Anmeldung verlangen. Sie konnte nie funktionieren, und
+            * verlinkt hat sie niemand — weder eine Mail noch eine andere
+            * Seite. Entfernt am 17.08.2026. Die Abnahme wird im Innendienst
+            * unter Projekt → Abnahme eingetragen. */}
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
@@ -243,7 +260,10 @@ function App() {
             <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
             <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
             <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
-            <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            {/* `products/editor` war eine zweite Adresse für denselben
+              * Bildschirm wie `product-editor` — von nirgends verlinkt.
+              * Entfernt am 17.08.2026 (UX-17). Wer die Adresse kannte, kommt
+              * über Einstellungen → Produkteditor an dieselbe Seite. */}
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}

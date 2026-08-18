@@ -15,6 +15,7 @@ import threading
 import os
 import json as _json_mod
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,33 @@ router = APIRouter(prefix="/api/projects", tags=["projects"],
 # E-Mail. Der Token IST der Nachweis; die Routen prüfen ihn selbst.
 public_router = APIRouter(prefix="/api/projects", tags=["projects-public"])
 
-# Was ein Kunde sehen darf: das eigene Projekt. Beide Routen hier grenzen
-# selbst auf `current_user.lead_id` ein. Alles Übrige ist Innendienst —
-# darunter `/{id}/credentials`, das entschlüsselte CMS-Passwörter herausgibt.
+# Was ein Kunde am eigenen Projekt tun darf: es ansehen und Inhalte freigeben.
+# Jede Route hier grenzt über `eigenes_projekt_pruefen` auf den eigenen Betrieb
+# ein. Alles Übrige ist Innendienst — darunter `/{id}/credentials`, das
+# entschlüsselte CMS-Passwörter herausgibt.
 kunden_router = APIRouter(prefix="/api/projects", tags=["projects-kunde"],
                           dependencies=[Depends(require_any_auth)])
+
+
+def eigenes_projekt_pruefen(db: Session, project_id: int, current_user) -> int:
+    """Gibt die `lead_id` des Projekts zurück — oder wirft.
+
+    Ein Kunde darf nur an sein eigenes Projekt. Die eigene Nummer
+    hochzuzählen ist der naheliegendste Angriff, deshalb steht die Prüfung
+    hier und nicht in der Oberfläche.
+
+    Für den Innendienst ist es nur ein Nachschlagen: Er kommt an alle.
+    """
+    zeile = db.execute(
+        text("SELECT lead_id FROM projects WHERE id = :id"), {"id": project_id}
+    ).fetchone()
+    if not zeile:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead_id = zeile[0]
+    if getattr(current_user, "role", "") == "kunde" and lead_id != current_user.lead_id:
+        raise HTTPException(403, "Kein Zugriff auf dieses Projekt")
+    return lead_id
 
 
 class ProjectResponse(BaseModel):
@@ -481,9 +504,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         raise HTTPException(status_code=404, detail="Project not found")
 
     lead_id = row[1]
-    # Kunden dürfen nur ihr eigenes Projekt sehen
-    if current_user.role == "kunde" and lead_id != current_user.lead_id:
-        raise HTTPException(status_code=403, detail="Kein Zugriff auf dieses Projekt")
+    eigenes_projekt_pruefen(db, project_id, current_user)
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
     company = row[12] or (lead.company_name if lead else '') or ''
@@ -623,6 +644,90 @@ def create_leistungsseite(
         "leistung": body.leistung,
         "status": "fragebogen_ausgefuellt",
     }
+
+
+# ── Projekte entfernen ────────────────────────────────────────────────
+# Bis zum 17.08.2026 gab es dafür keinen Endpunkt. Wer ein Projekt loswerden
+# wollte, musste SQL von Hand fahren — und das stand an dem Tag an, weil ein
+# Projekt 135 Tage lang jeden Morgen dieselbe Mail ausgelöst hatte.
+# Die Reihenfolge über die fünfzehn abhängigen Tabellen steht in
+# `services/projekt_loeschen.py`, damit sie nur einmal existiert.
+
+
+class ProjekteLoeschenRequest(BaseModel):
+    ids: list[int]
+
+
+def _ids_aus_abfrage(ids: str) -> list:
+    """"1,2,3" → [1, 2, 3]. Was keine Zahl ist, fliegt raus."""
+    return [int(teil) for teil in ids.split(",") if teil.strip().isdigit()]
+
+
+@router.get("/loeschvorschau")
+def loeschvorschau(
+    ids: str = Query(..., description="Projektnummern, mit Komma getrennt"),
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Was ein Löschen anfassen würde — ohne etwas anzufassen.
+
+    In `customers` stecken wiederkehrender Umsatz und CMS-Zugangsdaten. Die
+    Zeilen können nicht bleiben (NOT-NULL-Fremdschlüssel), also soll wenigstens
+    vorher jemand gesehen haben, wie viele es sind.
+    """
+    from services.projekt_loeschen import zaehlen
+
+    projekt_ids = _ids_aus_abfrage(ids)
+    if not projekt_ids:
+        raise HTTPException(400, "Keine gültigen Projektnummern angegeben")
+
+    return zaehlen(db, projekt_ids)
+
+
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Entfernt ein Projekt samt allem, was ohne es keinen Inhalt hat.
+
+    Das Versandprotokoll bleibt erhalten — nur sein Verweis wird gelöst.
+    Der Betrieb (`leads`) bleibt unberührt: Gelöscht wird das Projekt, nicht
+    der Kunde.
+    """
+    from services.projekt_loeschen import entfernen
+
+    vorhanden = db.execute(
+        text("SELECT id FROM projects WHERE id = :id"), {"id": project_id}
+    ).fetchone()
+    if not vorhanden:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    bericht = entfernen(db, [project_id])
+    db.commit()
+    return bericht
+
+
+@router.post("/loeschen")
+def projekte_loeschen(
+    anfrage: ProjekteLoeschenRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Mehrere auf einmal.
+
+    Eine leere Liste wird abgewiesen statt als „alle" gelesen zu werden — ein
+    versehentlich leerer Rumpf darf nicht den ganzen Bestand kosten.
+    """
+    from services.projekt_loeschen import entfernen
+
+    if not anfrage.ids:
+        raise HTTPException(400, "Keine Projektnummern angegeben")
+
+    bericht = entfernen(db, anfrage.ids)
+    db.commit()
+    return bericht
 
 
 BLOCKED_KEYS = {
@@ -2628,7 +2733,8 @@ Antworte als JSON:
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY nicht gesetzt")
         client = Anthropic(api_key=api_key)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=3000,
             system=system_prompt,
@@ -3239,15 +3345,24 @@ def request_approval(
     }
 
 
-@router.post("/{project_id}/confirm-approval")
+@kunden_router.post("/{project_id}/confirm-approval")
 def confirm_approval(
     project_id: int,
     data: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(get_current_user),
 ):
+    """Die Freigabe eintragen — durch den Kunden oder den Innendienst.
+
+    Stand bis zum 17.08.2026 auf `require_admin`. Damit war der Knopf auf der
+    Kundenseite `customer/Freigaben.jsx` wirkungslos, während die Anfrage-Mail
+    „melden Sie sich in Ihrem Kundenportal an" schrieb. Der Innendienst darf
+    weiterhin: Freigaben werden auch am Telefon erteilt und nachgetragen.
+    """
     import json
     from datetime import datetime
+
+    eigenes_projekt_pruefen(db, project_id, current_user)
 
     seite_id   = str(data.get("seite_id", ""))
     bestaetigt = data.get("bestaetigt", True)

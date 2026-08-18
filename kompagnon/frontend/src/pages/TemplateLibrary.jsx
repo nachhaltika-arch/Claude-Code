@@ -311,7 +311,7 @@ export default function TemplateLibrary() {
                     <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                       <button
                         onClick={() => setEditingTemplate(tpl)}
-                        style={{ flex: 1, padding: '9px 14px', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                        style={{ flex: 1, padding: '9px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
                       >
                         ✏️ Im Website-Builder bearbeiten
                       </button>
@@ -382,7 +382,7 @@ export default function TemplateLibrary() {
             <input style={inp} placeholder="Template-Name *" value={zipForm.name} onChange={e => setZipForm(f => ({ ...f, name: e.target.value }))} />
             <input style={inp} placeholder="Beschreibung (optional)" value={zipForm.description} onChange={e => setZipForm(f => ({ ...f, description: e.target.value }))} />
             <input ref={fileRef} type="file" accept=".zip" style={inp} />
-            <button onClick={handleZipUpload} disabled={uploading} style={{ padding: '11px', background: uploading ? '#ccc' : '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handleZipUpload} disabled={uploading} style={{ padding: '11px', background: '#0d6efd', opacity: uploading ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'Wird hochgeladen...' : 'Hochladen'}
             </button>
             <button onClick={() => setShowZipModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>
@@ -401,7 +401,7 @@ export default function TemplateLibrary() {
             <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e' }}>
               ⚠️ Gib die öffentliche Demo-URL des Templates ein. Die KI rekonstruiert das Layout. Stelle sicher dass du eine Lizenz besitzt.
             </div>
-            <button onClick={handleUrlImport} disabled={uploading} style={{ padding: '11px', background: uploading ? '#ccc' : '#6f42c1', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handleUrlImport} disabled={uploading} style={{ padding: '11px', background: '#6f42c1', opacity: uploading ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'KI rekonstruiert (~10 Sek)...' : 'Importieren'}
             </button>
             <button onClick={() => setShowUrlModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>

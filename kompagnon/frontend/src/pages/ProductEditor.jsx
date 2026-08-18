@@ -91,7 +91,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
           onClick={onNew}
           style={{
             padding: '4px 10px', borderRadius: 6, border: 'none',
-            background: 'var(--brand-primary)', color: 'white',
+            background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}
         >
@@ -205,7 +205,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
                 style={{
                   position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                   padding: '3px 8px', borderRadius: 5, border: 'none',
-                  background: 'var(--brand-primary)', color: 'white',
+                  background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                   fontSize: 10, fontWeight: 600, cursor: 'pointer',
                 }}
               >Auto</button>
@@ -281,7 +281,7 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Stripe-Verknüpfung</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{product.stripe_price_id ? `Price: ${product.stripe_price_id}` : 'Noch nicht verknüpft'}</div>
           </div>
-          <button onClick={syncStripe} disabled={syncing || selected === '__new__'} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: syncing ? '#94a3b8' : '#6366f1', color: 'white', fontSize: 12, fontWeight: 600, cursor: syncing || selected === '__new__' ? 'not-allowed' : 'pointer' }}>
+          <button onClick={syncStripe} disabled={syncing || selected === '__new__'} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', opacity: syncing ? 0.5 : 1, color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: syncing || selected === '__new__' ? 'not-allowed' : 'pointer' }}>
             {syncing ? '⏳ Synchronisiert…' : '🔄 Mit Stripe synchronisieren'}
           </button>
         </div>
@@ -387,7 +387,7 @@ function TabCheckliste({ product, onChange, selected, onGoLive }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: doneCount >= 6 ? '#dcfce7' : 'var(--bg-surface)', border: `1px solid ${doneCount >= 6 ? '#86efac' : 'var(--border-light)'}`, borderRadius: 10 }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: doneCount >= 6 ? '#1D9E75' : 'var(--brand-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{doneCount}</div>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: doneCount >= 6 ? '#1D9E75' : 'var(--brand-primary)', color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{doneCount}</div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doneCount} von {items.length} erledigt</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{doneCount < 5 ? 'Noch nicht bereit für Live' : doneCount < items.length ? 'Fast fertig — gut gemacht!' : 'Alles erledigt!'}</div>
@@ -404,7 +404,7 @@ function TabCheckliste({ product, onChange, selected, onGoLive }) {
           </div>
         ))}
       </div>
-      <button onClick={onGoLive} disabled={doneCount < 5 || product.status === 'live'} style={{ padding: '10px 24px', borderRadius: 9, border: 'none', background: doneCount >= 5 && product.status !== 'live' ? '#1D9E75' : '#94a3b8', color: 'white', fontSize: 13, fontWeight: 600, cursor: doneCount >= 5 && product.status !== 'live' ? 'pointer' : 'not-allowed' }}>
+      <button onClick={onGoLive} disabled={doneCount < 5 || product.status === 'live'} style={{ padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--success)', opacity: doneCount >= 5 && product.status !== 'live' ? 1 : 0.5, color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: doneCount >= 5 && product.status !== 'live' ? 'pointer' : 'not-allowed' }}>
         {product.status === 'live' ? '✓ Bereits Live' : '🚀 Produkt live schalten'}
       </button>
       {doneCount < 5 && <div style={{ marginTop: 8, fontSize: 11, color: '#94a3b8' }}>Mindestens 5 Punkte müssen erledigt sein</div>}
@@ -646,7 +646,7 @@ export default function ProductEditor() {
               confirmDelete ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, color: '#E24B4A', fontWeight: 600 }}>Wirklich löschen?</span>
-                  <button onClick={deleteProduct} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#E24B4A', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Ja, löschen</button>
+                  <button onClick={deleteProduct} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'var(--error)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Ja, löschen</button>
                   <button onClick={() => setConfirmDelete(false)} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border-light)', background: 'transparent', color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer' }}>Abbrechen</button>
                 </div>
               ) : (
@@ -655,7 +655,7 @@ export default function ProductEditor() {
                 </button>
               )
             )}
-            <button onClick={save} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? '#94a3b8' : 'var(--brand-primary)', color: 'white', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+            <button onClick={save} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', opacity: saving ? 0.5 : 1, color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Speichert...' : '💾 Speichern'}
             </button>
           </div>

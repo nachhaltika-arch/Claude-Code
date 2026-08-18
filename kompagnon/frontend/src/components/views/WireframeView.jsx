@@ -526,7 +526,7 @@ export default function WireframeView({
               disabled={komposition.status === 'laeuft' || library.length === 0}
               title="Claude schlägt eine Abfolge für diese Seite vor — Reihenfolge, Rhythmus, Pflicht-Sections"
               style={{
-                background: komposition.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
+                background: '#7c3aed', opacity: komposition.status === 'laeuft' ? 0.5 : 1,
                 color: '#fff', border: 'none', borderRadius: 8,
                 padding: '8px 16px', fontSize: 12, fontWeight: 700,
                 cursor: komposition.status === 'laeuft' ? 'wait' : 'pointer',
@@ -603,8 +603,8 @@ export default function WireframeView({
                 disabled={!komposition.ergebnis.contract?.konform}
                 style={{
                   padding: '7px 14px',
-                  background: komposition.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
-                  color: '#fff', border: 'none', borderRadius: 6,
+                  background: komposition.ergebnis.contract?.konform ? 'var(--success)' : 'var(--text-tertiary)',
+                  color: 'var(--text-on-brand)', border: 'none', borderRadius: 6,
                   fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
                   cursor: komposition.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
                 }}
@@ -1394,7 +1394,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
             disabled={variante.status === 'laeuft'}
             style={{
               padding: '7px 10px',
-              background: variante.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
+              background: '#7c3aed', opacity: variante.status === 'laeuft' ? 0.5 : 1,
               color: '#fff', border: 'none', borderRadius: 6,
               fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
               cursor: variante.status === 'laeuft' ? 'wait' : 'pointer',
@@ -1448,8 +1448,8 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
                   disabled={!variante.ergebnis.contract?.konform}
                   style={{
                     flex: 1, padding: '6px 10px',
-                    background: variante.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
-                    color: '#fff', border: 'none', borderRadius: 4,
+                    background: variante.ergebnis.contract?.konform ? 'var(--success)' : 'var(--text-tertiary)',
+                    color: 'var(--text-on-brand)', border: 'none', borderRadius: 4,
                     fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
                     cursor: variante.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
                   }}
@@ -1655,7 +1655,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
                     disabled={saving || !customSlug.trim() || !customName.trim()}
                     style={{
                       padding: '6px 10px', marginTop: 2,
-                      background: saving ? 'var(--text-tertiary)' : KC_MID, color: '#fff',
+                      background: KC_MID, opacity: saving ? 0.5 : 1, color: '#fff',
                       border: 'none', borderRadius: 4,
                       fontSize: 11, fontWeight: 700,
                       cursor: saving ? 'wait' : 'pointer',
@@ -1698,7 +1698,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
           disabled={saving || !hasSlots}
           style={{
             flex: 1, padding: '8px 12px',
-            background: saving || !hasSlots ? 'var(--text-tertiary)' : KC_DARK,
+            background: KC_DARK, opacity: saving || !hasSlots ? 0.5 : 1,
             color: '#fff', border: 'none',
             borderRadius: 8, fontSize: 12, fontWeight: 700,
             cursor: saving || !hasSlots ? 'not-allowed' : 'pointer',

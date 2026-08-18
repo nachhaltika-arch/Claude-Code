@@ -183,7 +183,7 @@ export default function PackagePremium() {
                   style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{
-                width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#7c3aed',
+                width: '100%', padding: '14px', background: '#7c3aed', opacity: loading ? 0.5 : 1,
                 color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', letterSpacing: '-0.01em',
               }}>
@@ -248,7 +248,7 @@ export default function PackagePremium() {
                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s', position: 'relative',
               }}>
                 {pkg.recommended && !pkg.active && (
-                  <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#d4a017', color: 'white', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                  <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--warn)', color: 'var(--kc-black)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                     Empfohlen
                   </div>
                 )}

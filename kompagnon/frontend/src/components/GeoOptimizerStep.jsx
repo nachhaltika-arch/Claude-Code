@@ -166,7 +166,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={startAnalysis}
             disabled={loading}
             style={{
-              background: 'var(--kc-mid)', color: '#fff', border: 'none',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
               padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
@@ -201,7 +201,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           <p style={{ margin: '8px 0 16px', color: '#991B1B', fontSize: 13 }}>
             {result.error_message || 'Unbekannter Fehler'}
           </p>
-          <button onClick={startAnalysis} style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
+          <button onClick={startAnalysis} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
             Erneut versuchen
           </button>
         </div>
@@ -365,7 +365,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                 onClick={generateFiles}
                 disabled={generating}
                 style={{
-                  background: 'var(--kc-mid)', color: '#fff', border: 'none',
+                  background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
                   padding: '10px 20px', borderRadius: 6, fontWeight: 700,
                   cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.7 : 1, fontSize: 14,
                 }}
@@ -387,7 +387,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
               <button
                 onClick={generateFiles}
                 disabled={generating || result.status !== 'done'}
-                style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
               >
                 {generating ? 'Generiert...' : '✨ Jetzt generieren'}
               </button>

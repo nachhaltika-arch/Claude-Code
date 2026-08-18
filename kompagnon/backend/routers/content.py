@@ -28,6 +28,7 @@ from sqlalchemy.sql import func
 
 from database import Base, SessionLocal, get_db
 from routers.auth_router import require_any_auth
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -431,7 +432,8 @@ async def _generate_one(section_id: int, db: Session) -> dict:
     prompt = _build_ki_prompt(section, db)
 
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-    message = client.messages.create(
+    message = await frag_modell(
+        client,
         model="claude-sonnet-4-6",
         max_tokens=600,
         system=(

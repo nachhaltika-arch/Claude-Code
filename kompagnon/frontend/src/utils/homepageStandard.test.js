@@ -1,4 +1,4 @@
-import { stufeFuerScore, stufeAnzeige } from './homepageStandard';
+import { stufeKurz, stufeFuerScore, stufeAnzeige } from './homepageStandard';
 
 // Die Schwellen des Backends (services/audit_criteria.py::LEVELS). Weicht das
 // Frontend ab, zeigt derselbe Score im Widget eine andere Stufe als im Bericht.
@@ -45,5 +45,23 @@ describe('stufeAnzeige', () => {
 
   test('eine unbekannte Stufe vom Server wird unveraendert durchgereicht', () => {
     expect(stufeAnzeige(72, 'Sonderstufe')).toBe('Sonderstufe');
+  });
+});
+
+
+describe('stufeKurz', () => {
+  test('lässt „Homepage Standard" weg', () => {
+    expect(stufeKurz(90)).toBe('Gold');
+    expect(stufeKurz(96)).toBe('Platin');
+  });
+
+  test('„Nicht konform" bleibt, wie es ist', () => {
+    expect(stufeKurz(10)).toBe('Nicht konform');
+  });
+
+  test('die Stufe vom Server gilt auch hier', () => {
+    // Nur sie kennt die K.-o.-Regeln, die eine Seite unabhängig vom Score
+    // deckeln — kein Impressum, kein TLS.
+    expect(stufeKurz(96, 'Homepage Standard Bronze')).toBe('Bronze');
   });
 });

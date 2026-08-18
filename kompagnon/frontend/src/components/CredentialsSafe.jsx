@@ -47,7 +47,7 @@ export default function CredentialsSafe({ projectId, token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Zugangsdaten-Safe</div>
-        <button onClick={() => setShowAdd(true)} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Zugangsdaten</button>
+        <button onClick={() => setShowAdd(true)} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Zugangsdaten</button>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 12px' }}>
         Alle Passwoerter werden verschluesselt gespeichert (Fernet / AES-256).
@@ -89,7 +89,7 @@ export default function CredentialsSafe({ projectId, token }) {
             <div><label style={labelS}>Notizen</label><textarea style={{ ...inputS, minHeight: 50, resize: 'vertical' }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowAdd(false)} style={{ padding: '6px 14px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
-              <button onClick={add} disabled={saving} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'Speichern...' : 'Speichern'}</button>
+              <button onClick={add} disabled={saving} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'Speichern...' : 'Speichern'}</button>
             </div>
           </div>
         </div>

@@ -481,13 +481,13 @@ export default function ProzessFlowV3({
             )}
             {aktivObj.istFertig(prozessDaten) ? (
               aktivIdx < SCHRITTE.length - 1 && (
-                <button onClick={goWeiter} style={{ flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                <button onClick={goWeiter} style={{ flex: 1, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                   Weiter →
                 </button>
               )
             ) : confirmedSteps[aktivObj.id]?.confirmed ? (
               aktivIdx < SCHRITTE.length - 1 && (
-                <button onClick={goWeiter} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                <button onClick={goWeiter} style={{ flex: 1, background: 'var(--success)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                   ✓ Abgeschlossen — Weiter →
                 </button>
               )

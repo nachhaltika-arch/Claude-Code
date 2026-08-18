@@ -26,6 +26,9 @@ import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz, datumUndZeit } from '../utils/datum';
+import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
+import { naechsterSchritt } from '../utils/naechsterSchritt';
+import { aufteilung } from '../utils/betriebReiter';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -82,10 +85,15 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
-  { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
+  // „Akademy" war halb deutsch, halb englisch — und trug damit als einziger
+  // Reiter ein Wort, das es nicht gibt.
+  { id: 'akademy',    label: 'Akademie',    icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
-  { id: 'emails',     label: '📧 E-Mails',  icon: '' },
+  // Das Zeichen stand hier in der Beschriftung statt im `icon`-Feld. Gerendert
+  // wird beides nebeneinander — dieser Reiter hatte dadurch einen Abstand
+  // mehr als die anderen neun.
+  { id: 'emails',     label: 'E-Mails',     icon: '📧' },
 ];
 
 const GbpBadge = ({ lead }) => {
@@ -185,6 +193,8 @@ export default function LeadProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [mehrOffen, setMehrOffen] = useState(false);
+  const [domainFormOffen, setDomainFormOffen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [editingName, setEditingName] = useState(false);
@@ -834,6 +844,25 @@ export default function LeadProfile() {
     ? score_history[score_history.length - 1].score - score_history[0].score
     : null;
 
+  // Der eine Knopf, der an dieser Stelle dran ist — siehe utils/naechsterSchritt.
+  const schritt = naechsterSchritt({
+    hatAudit: current_score !== null && current_score !== undefined,
+    hatProjekt: Boolean(projectId),
+    hatEmail: Boolean(lead.email && lead.website_url),
+    status: lead.status,
+  });
+
+  // Hervorgehoben ist Gelb auf Dunkel — auf diesem Bildschirm genau einmal.
+  const knopfHervorgehoben = {
+    background: 'var(--kc-yellow)', color: '#000',
+    border: '1px solid var(--kc-yellow)', fontWeight: 700,
+  };
+  const knopfRuhig = {
+    background: 'rgba(255,255,255,0.15)', color: 'white',
+    border: '1px solid rgba(255,255,255,0.25)', fontWeight: 500,
+  };
+  const knopfStil = (name) => (schritt === name ? knopfHervorgehoben : knopfRuhig);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
 
@@ -872,11 +901,12 @@ export default function LeadProfile() {
       })()}
 
       {/* HEADER */}
-      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'var(--text-on-brand)', position: 'relative', overflow: 'hidden' }}>
 
-        <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '5px 10px', cursor: 'pointer', marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)' }}>
-          ← Zurück
-        </button>
+        {/* Der „← Zurück"-Knopf stand hier zusätzlich zur Brotkrume, die
+          * oben „Betriebe › Name" zeigt und zurückführt. Zwei Wege für
+          * dasselbe, und `navigate(-1)` führt anderswohin als die Brotkrume,
+          * je nachdem, woher man kam (UX-24). */}
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 16 }}>
 
@@ -950,11 +980,16 @@ export default function LeadProfile() {
           )}
         </div>
 
+        {/* Genau ein Knopf ist hervorgehoben — der, den man an dieser
+          * Stelle normalerweise drückt. Welcher das ist, hängt davon ab, wie
+          * weit der Betrieb ist; deshalb `naechsterSchritt` statt einer
+          * festen Farbe im Markup (UX-13). Drängt sich nichts auf, ist kein
+          * Knopf hervorgehoben — das ist ehrlicher als einer auf Verdacht. */}
         <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <button
             onClick={startAudit}
             disabled={auditRunning}
-            style={{ background: auditRunning ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '9px 14px', cursor: auditRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}
+            style={{ ...knopfStil('audit'), ...(auditRunning ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '9px 14px', cursor: auditRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}
           >
             {auditRunning ? (
               <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />{auditProgress || 'Läuft...'}</>
@@ -966,10 +1001,11 @@ export default function LeadProfile() {
               onClick={handleKaltakquise}
               disabled={kaltakquiseLoading}
               style={{
-                background: kaltakquiseLoading ? 'rgba(255,255,255,0.1)' : kaltakquiseDone ? '#059669' : '#7c3aed',
-                border: '1px solid rgba(255,255,255,0.3)',
+                ...knopfStil('kaltakquise'),
+                ...(kaltakquiseLoading ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}),
+                ...(kaltakquiseDone ? { background: 'var(--success)', color: 'var(--text-on-brand)' } : {}),
                 borderRadius: 'var(--radius-md)',
-                color: 'white', fontSize: 12, fontWeight: 700,
+                fontSize: 12,
                 padding: '9px 14px', cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
                 width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined,
@@ -981,7 +1017,7 @@ export default function LeadProfile() {
             </button>
           )}
 
-          <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
+          <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ ...knopfRuhig, borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
           </button>
 
@@ -994,33 +1030,32 @@ export default function LeadProfile() {
               );
               if (enriched) await loadProfile();
             }}
-            title="Google Business + alle Daten neu prüfen"
+            title="Firmendaten, Google Business, SSL, Impressum und PageSpeed neu abrufen"
             style={{
-              padding: '6px 12px', borderRadius: 7,
-              background: 'rgba(255,255,255,0.12)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              fontSize: 12, cursor: 'pointer', color: 'white',
+              ...knopfStil('stammdaten'),
+              padding: '7px 14px', borderRadius: 'var(--radius-md)',
+              fontSize: 12, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               width: isMobile ? '100%' : undefined,
             }}
           >
-            🔄 Neu prüfen
+            🔄 Stammdaten neu holen
           </button>
 
           <button
             onClick={openBriefingWizard}
             disabled={briefingLoading}
-            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: briefingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}
+            style={{ ...knopfRuhig, borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: briefingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}
           >
             📋 Briefing starten
           </button>
 
           {projectId ? (
-            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
+            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ ...knopfStil('zum_projekt'), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
               📁 Zum Projekt →
             </button>
           ) : (
-            <button onClick={createProject} disabled={creatingProject} style={{ background: creatingProject ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}>
+            <button onClick={createProject} disabled={creatingProject} style={{ ...knopfStil('projekt'), ...(creatingProject ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}), borderRadius: 'var(--radius-md)', fontSize: 12, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}>
               {creatingProject ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Projekt anlegen'}
             </button>
           )}
@@ -1068,19 +1103,78 @@ export default function LeadProfile() {
         </div>
       )}
 
-      {/* TABS */}
-      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent', color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+      {/* TABS — sechs oben, vier hinter „Mehr" (UX-15, entschieden 17.08.2026).
+        * Zehn gleichrangige Reiter waren zehn Entscheidungen bei jedem Aufruf.
+        * Nichts ist weg, es ist nur nicht mehr alles gleich laut. Welche wohin
+        * gehören, steht in `utils/betriebReiter.js`. */}
+      {(() => {
+        const { haupt, mehr, mehrIstAktiv } = aufteilung(TABS, activeTab);
+        const reiterKnopf = (tab, imMenue = false) => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setMehrOffen(false); }}
+            style={{
+              flex: imMenue ? undefined : (isMobile ? '0 0 auto' : 1),
+              flexShrink: 0, width: imMenue ? '100%' : undefined,
+              padding: isMobile && !imMenue ? '7px 14px' : '8px 12px',
+              borderRadius: 'var(--radius-md)', border: 'none',
+              background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent',
+              color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+              fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400,
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex',
+              alignItems: 'center', justifyContent: imMenue ? 'flex-start' : 'center',
+              gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s',
+            }}
+          >
             <span>{tab.icon}</span>{tab.label}
             {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
-              <span style={{ background: '#ef4444', color: '#fff', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
+              <span style={{ background: 'var(--error)', color: 'var(--text-on-brand)', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
                 {lead.unread_messages}
               </span>
             )}
           </button>
-        ))}
-      </div>
+        );
+
+        return (
+          <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {haupt.map(tab => reiterKnopf(tab))}
+
+            <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : 1, flexShrink: 0 }}>
+              <button
+                onClick={() => setMehrOffen(o => !o)}
+                aria-expanded={mehrOffen}
+                style={{
+                  width: '100%', padding: isMobile ? '7px 14px' : '8px 12px',
+                  borderRadius: 'var(--radius-md)', border: 'none',
+                  // Ist einer der untergeordneten Reiter offen, muss man das
+                  // oben sehen — sonst sucht man ihn zwischen den sechs.
+                  background: mehrIstAktiv ? 'var(--bg-active)' : 'transparent',
+                  color: mehrIstAktiv ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                  fontSize: 12, fontWeight: mehrIstAktiv ? 500 : 400,
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap',
+                }}
+              >
+                Mehr {mehrOffen ? '▴' : '▾'}
+              </button>
+
+              {mehrOffen && (
+                <>
+                  {/* Ein Klick daneben schließt. Ohne das bleibt das Menü
+                    * offen und verdeckt, was man als Nächstes anklicken will. */}
+                  <div
+                    onClick={() => setMehrOffen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 19 }}
+                  />
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 20, minWidth: 180, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {mehr.map(tab => reiterKnopf(tab, true))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* NACHRICHTEN TAB */}
       {activeTab === 'messages' && (() => {
@@ -1115,7 +1209,7 @@ export default function LeadProfile() {
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewsletter(true)}
                 style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
-                         background: 'var(--kc-mid)', color: 'white', cursor: 'pointer',
+                         background: 'var(--brand-primary)', color: 'var(--text-on-brand)', cursor: 'pointer',
                          fontSize: 13, fontWeight: 600 }}>
                 Newsletter erstellen
               </button>
@@ -1189,7 +1283,7 @@ export default function LeadProfile() {
                   ))}
                 </div>
                 <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                   {msgSending ? 'Senden…' : 'Senden →'}
                 </button>
               </div>
@@ -1204,7 +1298,7 @@ export default function LeadProfile() {
           <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 9999 }}>
             <button onClick={() => setShowNewsletter(false)}
               style={{ padding: '6px 16px', border: 'none', borderRadius: 6,
-                       background: '#E24B4A', color: 'white', cursor: 'pointer' }}>
+                       background: 'var(--error)', color: 'var(--text-on-brand)', cursor: 'pointer' }}>
               Schliessen
             </button>
           </div>
@@ -1372,11 +1466,41 @@ export default function LeadProfile() {
                   <span style={{ fontSize: 14, color: 'var(--brand-primary-mid)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>👤</span>
                   <div>
                     <div style={{ fontSize: 13, color: lead.geschaeftsfuehrer ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{lead.geschaeftsfuehrer || '–'}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer (auto)</div>
+                    {/* „(auto)" sagte, woher der Wert kommt — das interessiert die
+                      * Maschine, nicht den Menschen davor (UX-25). */}
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer</div>
                   </div>
                 </div>
                 {fieldRow('📍', [lead.street && `${lead.street} ${lead.house_number || ''}`.trim(), [lead.postal_code, lead.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), 'Adresse')}
               </div>
+              {/* Die technische Prüfung stand bis zum 17.08.2026 als Zeile
+                * „[Auto-Enrichment] SSL: OK | …" in den Notizen — im Feld für
+                * das, was ein Mensch schreibt, und bei jedem Lauf erneut
+                * davorgesetzt. Sie hat jetzt einen eigenen Platz (UX-06).
+                * „nicht geprüft" steht ausdrücklich da: Es ist nicht dasselbe
+                * wie „fehlt". */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                  Technische Prüfung
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {befundZeilen(profile.anreicherung).map(({ schluessel, beschriftung, wert, art }) => (
+                    <span key={schluessel} style={{
+                      fontSize: 11, padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                      background: art === 'gut' ? 'var(--status-success-bg)'
+                        : art === 'fehlt' ? 'var(--status-danger-bg)' : 'var(--bg-app)',
+                      color: art === 'gut' ? 'var(--status-success-text)'
+                        : art === 'fehlt' ? 'var(--status-danger-text)' : 'var(--text-tertiary)',
+                    }}>
+                      {beschriftung}: {wert}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                  {geprueftAmText(profile.anreicherung)}
+                </div>
+              </div>
+
               {lead.notes && (
                 <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, fontStyle: 'italic' }}>
                   {lead.notes}
@@ -1449,7 +1573,22 @@ export default function LeadProfile() {
                 </div>
               )}
 
-              {/* Add form */}
+              {/* Das Formular stand immer offen und nahm auf der Übersicht
+                * Platz weg — bei den meisten Betrieben gibt es gar keine
+                * zweite Domain. Jetzt erst auf Verlangen (UX-26). */}
+              {!domainFormOffen && (
+                <button
+                  onClick={() => setDomainFormOffen(true)}
+                  style={{ marginTop: domains.length ? 10 : 0, padding: '6px 10px', fontSize: 12,
+                    background: 'none', border: '1px dashed var(--border-medium)',
+                    borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)',
+                    cursor: 'pointer', width: '100%', fontFamily: 'var(--font-sans)' }}
+                >
+                  + Domain hinzufügen
+                </button>
+              )}
+
+              {domainFormOffen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: domains.length ? 10 : 0, borderTop: domains.length ? '1px solid var(--border-light)' : 'none' }}>
                 <input
                   value={domainForm.url}
@@ -1489,7 +1628,7 @@ export default function LeadProfile() {
                     disabled={!domainForm.url.trim() || domainAdding}
                     style={{
                       padding: '6px 14px', fontSize: 12, fontWeight: 600,
-                      background: 'var(--brand-primary)', color: 'white',
+                      background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                       border: 'none', borderRadius: 'var(--radius-md)',
                       cursor: domainForm.url.trim() && !domainAdding ? 'pointer' : 'not-allowed',
                       opacity: domainForm.url.trim() && !domainAdding ? 1 : 0.5,
@@ -1500,6 +1639,7 @@ export default function LeadProfile() {
                   </button>
                 </div>
               </div>
+              )}
             </Card>
 
             {latestAudit && (
@@ -1522,7 +1662,13 @@ export default function LeadProfile() {
                     {latestAudit.ai_summary.substring(0, 200)}{latestAudit.ai_summary.length > 200 ? '...' : ''}
                   </div>
                 )}
-                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                {/* Sah aus wie deaktiviert. Gemessen: `--brand-primary-mid`
+                  * auf `--bg-active` ergibt im Hellmodus **3.39** — unter der
+                  * Schwelle für Text. (Im Dunkelmodus waren es 5.62; die
+                  * Arbeitsliste vermutete es umgekehrt.) Mit
+                  * `--brand-primary` sind es 8.16, und mit Halbfett und
+                  * sichtbarem Rand sieht der Knopf aus wie einer (UX-18). */}
+                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '9px', background: 'var(--bg-active)', border: '1px solid var(--brand-primary-mid)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Vollständigen Bericht anzeigen
                 </button>
               </Card>
@@ -1589,7 +1735,7 @@ export default function LeadProfile() {
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                         ⬇ PNG
                       </button>
                       <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
@@ -1834,7 +1980,7 @@ export default function LeadProfile() {
             <div style={{ textAlign: 'center', padding: '48px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)' }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
               <div style={{ fontSize: 13 }}>Noch keine Audits vorhanden</div>
-              <button onClick={startAudit} style={{ marginTop: 14, padding: '8px 18px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={startAudit} style={{ marginTop: 14, padding: '8px 18px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Ersten Audit starten
               </button>
             </div>
@@ -1899,7 +2045,7 @@ export default function LeadProfile() {
             <a
               href="/app/deals"
               style={{
-                padding: '9px 18px', background: 'var(--brand-primary)', color: '#fff',
+                padding: '9px 18px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
                 textDecoration: 'none', fontFamily: 'var(--font-sans)',
               }}
@@ -1993,7 +2139,7 @@ export default function LeadProfile() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Template zugewiesen</span>
-                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                     Template zuweisen
                   </button>
                 </div>
@@ -2122,7 +2268,7 @@ export default function LeadProfile() {
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                      style={{ flex: 1, padding: 8, background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      style={{ flex: 1, padding: 8, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                       ⬇ PNG laden
                     </button>
                     <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
@@ -2164,7 +2310,7 @@ export default function LeadProfile() {
                 </div>
                 {lead.email && qrData && (
                   <a href={`mailto:${lead.email}?subject=Ihr persönlicher Zugang — KOMPAGNON&body=Sehr geehrte Damen und Herren,%0D%0A%0D%0AIhr persönlicher Kundenlink:%0D%0A${qrData.portal_url}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--brand-primary)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
                     ✉️ Per E-Mail senden
                   </a>
                 )}
@@ -2250,7 +2396,7 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
               <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
-                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : '#16a34a', color: 'white',
+                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : 'var(--success)', color: 'var(--text-on-brand)',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
                 cursor: (crawlLoading || crawlJob?.status === 'running') ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
@@ -2492,7 +2638,7 @@ export default function LeadProfile() {
                   onClick={() => seqAction('start')}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: '#1D9E75', color: 'white',
+                    background: 'var(--success)', color: 'var(--text-on-brand)',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
                   Sequenz starten
@@ -2514,7 +2660,7 @@ export default function LeadProfile() {
                   onClick={() => seqAction('start')}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--kc-mid)', color: 'white',
+                    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
                   Fortsetzen
@@ -2646,7 +2792,7 @@ export default function LeadProfile() {
               <button onClick={() => setWonModal(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Nein, danke
               </button>
-              <button onClick={createProject} disabled={creatingProject} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'white', fontSize: 13, fontWeight: 600, cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <button onClick={createProject} disabled={creatingProject} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 {creatingProject ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Ja, Projekt anlegen'}
               </button>
             </div>

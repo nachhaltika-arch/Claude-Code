@@ -86,8 +86,8 @@ export default function Checkout() {
               {i > 0 && <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.3)' }} />}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{
-                  width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700, color: '#fff',
-                  background: step > i + 1 ? '#27ae60' : step === i + 1 ? A : 'rgba(255,255,255,0.2)',
+                  width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700, color: 'var(--text-on-brand)',
+                  background: step > i + 1 ? 'var(--success)' : step === i + 1 ? A : 'rgba(255,255,255,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {step > i + 1 ? '✓' : i + 1}
@@ -140,7 +140,7 @@ export default function Checkout() {
               ))}
             </div>
             <div style={{ textAlign: 'center' }}>
-              <button onClick={() => setStep(2)} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
+              <button onClick={() => setStep(2)} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 10, padding: '14px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
                 Weiter mit {pkg.name}
               </button>
               <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>Sichere Zahlung via Stripe · DSGVO-konform</p>
@@ -182,7 +182,7 @@ export default function Checkout() {
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setStep(1)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>
                 <button onClick={handleCheckout} disabled={loading} style={{
-                  flex: 1, background: loading ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                  flex: 1, background: loading ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)',
                   padding: '12px', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48,
                 }}>
                   {loading ? 'Wird vorbereitet...' : 'Weiter zur Zahlung'}

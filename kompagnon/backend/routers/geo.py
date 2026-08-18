@@ -5,6 +5,7 @@ WICHTIG: Dieser Router registriert /api/geo/* Endpunkte.
 Keine Ueberschneidung mit sitemap.py (registriert /api/sitemap/*).
 """
 
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -234,7 +235,11 @@ async def generate_geo_files(
         blocked_bots = raw_checks["robots_ai"].get("blocked_bots", [])
 
     generator = GeoGeneratorAgent(api_key=ANTHROPIC_API_KEY)
-    files = generator.generate_all(
+    # `generate_all` ist synchron und ruft das Modell zweimal. Direkt hier
+    # aufgerufen stuende der Server so lange still — deshalb als Ganzes in
+    # einen Arbeitsthread, statt jede Stufe einzeln umzubauen.
+    files = await asyncio.to_thread(
+        generator.generate_all,
         company_name=getattr(lead, "company_name", "") or "",
         gewerk=project_data["gewerk"],
         city=project_data["city"],

@@ -12,7 +12,10 @@ const { anmelden, konsoleBeobachten } = require('./helpers');
 test.describe('Komponenten-Bibliothek', () => {
   test.beforeEach(async ({ page }) => {
     await anmelden(page);
-    await page.getByRole('button', { name: 'Einstellungen' }).first().click();
+    // Die Bibliothek lag unter Einstellungen; seit dem 17.08.2026 steht sie
+    // unter Verwaltung - was fuer alle gilt, getrennt von dem, was eine
+    // Person fuer sich einstellt (UX-16).
+    await page.getByRole('button', { name: 'Verwaltung' }).first().click();
     await page.getByRole('button', { name: 'Komponenten-Bibliothek' }).first().click();
     await expect(page).toHaveURL(/component-library/);
   });

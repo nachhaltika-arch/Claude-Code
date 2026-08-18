@@ -55,8 +55,8 @@ export default function KiReportPanel({ projectId, leadId, token }) {
           disabled={loading}
           style={{
             padding: '10px 22px', borderRadius: 8, border: 'none',
-            background: loading ? '#94a3b8' : 'var(--kc-mid)',
-            color: 'white', fontSize: 13, fontWeight: 700,
+            background: 'var(--brand-primary)', opacity: loading ? 0.5 : 1,
+            color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 700,
             cursor: loading ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
           }}

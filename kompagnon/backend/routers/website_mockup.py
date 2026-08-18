@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, Lead
 from routers.auth_router import require_any_auth
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,8 @@ Vollständiger HTML-Code:"""
     try:
         from anthropic import Anthropic
         client = Anthropic(api_key=api_key, max_retries=0, timeout=120.0)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=4096,
             system=system_prompt,

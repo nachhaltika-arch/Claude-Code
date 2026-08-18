@@ -618,7 +618,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
 
   const btnPrimary = {
     padding: '8px 16px', borderRadius: 8, border: 'none',
-    background: 'var(--kc-mid)', color: '#fff',
+    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
     fontSize: 13, fontWeight: 600, cursor: 'pointer',
     fontFamily: 'var(--font-sans, system-ui)',
     display: 'inline-flex', alignItems: 'center', gap: 6,

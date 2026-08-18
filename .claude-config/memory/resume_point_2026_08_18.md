@@ -73,10 +73,15 @@ auf den Dienst selbst statt auf Renders Auskunft
 
 ## Offen bei David
 
-1. **Datenträger in Render** — Blueprints tragen jetzt `disk: uploads` (1 GB,
-   `/var/data`) **auch produktiv**. Ohne den Datenträger schreibt der Dienst
-   weiter dorthin, wo der nächste Deploy alles verwirft. **Ungeprüft, ob
-   angelegt.**
+1. ~~Datenträger in Render~~ **erledigt 18.08. gegen 12:26 UTC**, gemeinsam
+   im Dashboard (der Render-MCP ist in dieser Sitzung `unauthorized`).
+   Datenträger 1 GB auf `/var/data`, `UPLOAD_ROOT=/var/data/uploads`.
+   Am Dienst nachgewiesen: `df` zeigt `/dev/nvme17n1 … /var/data`, eigenes
+   Dateisystem `True`, Schreibprobe bestanden. Vorher lagen **null Dateien**
+   im flüchtigen Verzeichnis — es ging nichts verloren.
+   **Preis dafür:** Ein Dienst mit Datenträger kann nicht mehr ohne
+   Unterbrechung deployen; beim Anhängen war die Produktion **rund 1,5 Minuten
+   nicht erreichbar**, und jeder künftige Deploy hat eine kurze Lücke.
 2. Produktiv fehlen `STRIPE_SECRET_KEY`, `CMS_ENCRYPTION_KEY`
 3. **Ein echter KI-Aufruf** (Briefing → Zielgruppenanalyse): Die zehn
    Router-Wege sind nur strukturell abgesichert

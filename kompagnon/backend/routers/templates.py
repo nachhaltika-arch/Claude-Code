@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from routers.auth_router import require_admin
+from services.ki_aufruf import frag_modell
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
 
@@ -148,7 +149,8 @@ async def import_template_from_url(
     if api_key:
         try:
             client_ai = Anthropic(api_key=api_key)
-            msg = client_ai.messages.create(
+            msg = await frag_modell(
+                client_ai,
                 model="claude-sonnet-4-6",
                 max_tokens=4000,
                 system=(

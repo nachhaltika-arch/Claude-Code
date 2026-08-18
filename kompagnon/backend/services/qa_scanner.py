@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 from services.audit_collectors import USER_AGENT
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -433,7 +434,8 @@ PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
 """
 
     try:
-        resp = client.messages.create(
+        resp = await frag_modell(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=8000,
             messages=[{"role": "user", "content": prompt}],

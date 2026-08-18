@@ -15,6 +15,7 @@ import threading
 import os
 import json as _json_mod
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -2732,7 +2733,8 @@ Antworte als JSON:
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY nicht gesetzt")
         client = Anthropic(api_key=api_key)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=3000,
             system=system_prompt,

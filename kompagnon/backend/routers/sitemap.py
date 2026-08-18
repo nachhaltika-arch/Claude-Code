@@ -34,6 +34,7 @@ from sqlalchemy.sql import func
 
 from database import Base, Briefing, Lead, get_db
 from routers.auth_router import require_any_auth, optional_auth
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
@@ -899,7 +900,8 @@ async def generate_sitemap(
         try:
             from anthropic import Anthropic
             client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
-            response = client.messages.create(
+            response = await frag_modell(
+                client,
                 model="claude-sonnet-4-6",
                 max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}],
@@ -1027,7 +1029,8 @@ async def generate_more_pages(
     try:
         from anthropic import Anthropic
         client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model="claude-sonnet-4-6",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],

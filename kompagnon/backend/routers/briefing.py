@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import os
 import logging
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/briefings', tags=['briefings'])
@@ -160,7 +161,8 @@ Schreibe kompakt und praxisnah. Maximal 400 Wörter. Auf Deutsch."""
 
     try:
         client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'), max_retries=0, timeout=60.0)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model='claude-sonnet-4-6', max_tokens=1000,
             messages=[{'role': 'user', 'content': prompt}],
         )
@@ -217,7 +219,8 @@ Schreibe kompakt und praxisnah. Maximal 500 Wörter. Auf Deutsch."""
 
     try:
         client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'), max_retries=0, timeout=60.0)
-        response = client.messages.create(
+        response = await frag_modell(
+            client,
             model='claude-sonnet-4-6', max_tokens=1200,
             messages=[{'role': 'user', 'content': prompt}],
         )

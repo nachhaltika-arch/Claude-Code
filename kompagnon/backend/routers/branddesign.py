@@ -16,6 +16,7 @@ from sqlalchemy import text
 from database import get_db, Lead, Briefing
 import httpx, re, os, json, anthropic, logging
 from datetime import datetime
+from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/branddesign", tags=["branddesign"])
@@ -876,7 +877,8 @@ Antworte NUR als JSON (kein Markdown):
 
     try:
         client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
-        message = client.messages.create(
+        message = await frag_modell(
+            client,
             model="claude-sonnet-4-20250514",
             max_tokens=4000,
             messages=[{"role": "user", "content": prompt}],

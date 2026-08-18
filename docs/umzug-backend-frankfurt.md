@@ -101,6 +101,8 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
       `kompagnon.eu` (EuroDNS) und `kompagnon.de` (de-nserver) bleiben unberührt
 - [ ] **Datenbank-Sicherung**: Render Recovery-Punkt notieren, damit es einen
       Rückweg gibt
+- [ ] **Zahl der Dateien auf dem Datenträger** notieren (siehe unten) — sie
+      entscheidet, ob der Umzug ein Kopierschritt ist oder keiner
 - [x] Aufschreiben, was gerade läuft — **gemessen 16.08., 12:41 UTC:**
       produktiv `/health` 200, `startup_complete: true`, `scheduler_running:
       true`, `startup_missing: []`, **2,10–2,63 s**; `/info`
@@ -166,6 +168,34 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 - [ ] **Dann L-44**: Inbound-Regel der Datenbank von `0.0.0.0/0` auf „kein
       externer Verkehr" wie bei Staging
 - [ ] Nach ein paar ruhigen Tagen: alten Dienst löschen
+
+### Was seit dem 18.08. dazugehört
+
+Vier Dinge sind an diesem Tag entstanden, die den Umzug betreffen. Sie stehen
+hier, damit sie morgen nicht als Überraschung auftauchen.
+
+- [ ] **Der Datenträger zieht nicht mit.** Am 18.08. wurde am *Oregon*-Dienst
+      ein Datenträger angehängt (1 GB, `/var/data`, `UPLOAD_ROOT=/var/data/uploads`).
+      Datenträger gehören zum Dienst, nicht zum Repo: Der Frankfurter Dienst
+      braucht einen **eigenen**, und die Dateien darauf müssen kopiert werden,
+      **bevor** der alte suspendiert wird. Heute liegen dort null Dateien —
+      wenn das morgen noch stimmt, ist es ein Nebensatz. Wenn nicht, ist es
+      der heikelste Schritt des Umzugs.
+      *Prüfung vorher:* `find /var/data -type f | wc -l` in der Render-Shell.
+- [ ] **`/health` sagt es jetzt selbst.** Der neue Dienst ist erst in Ordnung,
+      wenn dort steht: `"uploads": {"dauerhaft": true}`. Das ist die Probe
+      dafür, dass der Datenträger wirklich eingehängt ist — nicht das
+      Dashboard.
+- [ ] **Der Deploy-Job wartet auf `startup_complete`.** Seit dem 18.08. prüft
+      die CI nach dem Deploy die Betriebsbereitschaft des Dienstes (600 s
+      Grenze). Beim Umzug ändern sich die **Service-IDs** in den
+      Repository-Variablen (`RENDER_SERVICE_BACKEND_PROD`) — wer sie vergisst,
+      deployt weiter nach Oregon, und die CI meldet trotzdem grün.
+- [ ] **Zwei neue Tabellen entstehen beim Start** (`fehlerprotokoll`, und die
+      Spalten aus dem Modellabgleich). `Base.metadata.create_all` legt Tabellen
+      an, aber **keine Spalten** — beim ersten Start in Frankfurt läuft
+      derselbe Migrationsblock wie heute, gegen dieselbe Datenbank. Es ist
+      also nichts zu tun; es ist nur nichts zu vergessen.
 
 ### Gelegenheit beim Schopf
 

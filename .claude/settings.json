@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/push-wenn-ruhig.sh",
+            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/push-wenn-ruhig.sh\"",
             "statusMessage": "Push auf staging, wenn die Bahn frei ist…",
             "async": true
           }

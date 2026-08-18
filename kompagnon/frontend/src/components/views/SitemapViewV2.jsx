@@ -2000,7 +2000,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
             Abbrechen
           </button>
           <button type="button" onClick={handleSave} disabled={saving}
-            style={{ padding: '8px 14px', background: saving ? 'var(--text-tertiary)' : KC_DARK, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+            style={{ padding: '8px 14px', background: KC_DARK, opacity: saving ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
             {saving ? 'Speichert…' : '✓ Speichern'}
           </button>
         </div>
@@ -2062,7 +2062,7 @@ function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
             Abbrechen
           </button>
           <button type="submit" disabled={!name.trim() || busy}
-            style={{ padding: '8px 18px', background: !name.trim() || busy ? 'var(--text-tertiary)' : KC_MID, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: !name.trim() || busy ? 'not-allowed' : 'pointer' }}>
+            style={{ padding: '8px 18px', background: KC_MID, opacity: !name.trim() || busy ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: !name.trim() || busy ? 'not-allowed' : 'pointer' }}>
             {busy ? 'Anlegen…' : '+ Anlegen'}
           </button>
         </div>

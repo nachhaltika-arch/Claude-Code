@@ -404,7 +404,7 @@ export default function ProzessFlow({
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.fehlt.id); }}
-              style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--status-warning-text)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Schritt {warnung.fehlt.nr} zuerst
             </button>
             <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.ziel.id); }}
@@ -915,7 +915,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
       <div style={{ width: 300, borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{allPages.length} Seiten</span>
-          <button onClick={() => setAddOpen(!addOpen)} style={{ ...btnSm, background: 'var(--brand-primary)', color: '#fff', fontWeight: 700, padding: '5px 12px' }}>+ Neu</button>
+          <button onClick={() => setAddOpen(!addOpen)} style={{ ...btnSm, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontWeight: 700, padding: '5px 12px' }}>+ Neu</button>
         </div>
 
         {addOpen && (
@@ -931,7 +931,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               </select>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={addPage} disabled={saving || !addName.trim()} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700, padding: '5px 14px' }}>Anlegen</button>
+              <button onClick={addPage} disabled={saving || !addName.trim()} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)', fontWeight: 700, padding: '5px 14px' }}>Anlegen</button>
               <button onClick={() => setAddOpen(false)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
             </div>
           </div>
@@ -1021,7 +1021,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 {editField?.field === 'page_name' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
-                    <button onClick={() => savePage(selected.id, { page_name: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                    <button onClick={() => savePage(selected.id, { page_name: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
                   <div onClick={() => !selected.ist_pflichtseite && setEditField({ field: 'page_name', value: selected.page_name })} style={{ fontSize: 13, color: 'var(--text-primary)', cursor: selected.ist_pflichtseite ? 'default' : 'pointer', padding: '4px 0' }}>{selected.page_name}</div>
@@ -1042,7 +1042,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 {editField?.field === 'ziel_keyword' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
-                    <button onClick={() => savePage(selected.id, { ziel_keyword: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                    <button onClick={() => savePage(selected.id, { ziel_keyword: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
                   <div onClick={() => setEditField({ field: 'ziel_keyword', value: selected.ziel_keyword || '' })} style={{ fontSize: 12, color: selected.ziel_keyword ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.ziel_keyword ? 'normal' : 'italic' }}>{selected.ziel_keyword || 'Klicken zum Setzen...'}</div>
@@ -1055,7 +1055,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 {editField?.field === 'cta_text' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
-                    <button onClick={() => savePage(selected.id, { cta_text: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                    <button onClick={() => savePage(selected.id, { cta_text: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
                   <div onClick={() => setEditField({ field: 'cta_text', value: selected.cta_text || '' })} style={{ fontSize: 12, color: selected.cta_text ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.cta_text ? 'normal' : 'italic' }}>{selected.cta_text || 'Klicken zum Setzen...'}</div>
@@ -1070,7 +1070,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => savePage(selected.id, { zweck: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700 }}>Speichern</button>
+                    <button onClick={() => savePage(selected.id, { zweck: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)', fontWeight: 700 }}>Speichern</button>
                     <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
                   </div>
                 </div>
@@ -1086,7 +1086,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => savePage(selected.id, { notizen: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700 }}>Speichern</button>
+                    <button onClick={() => savePage(selected.id, { notizen: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)', fontWeight: 700 }}>Speichern</button>
                     <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
                   </div>
                 </div>
@@ -1104,7 +1104,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                     <span>✓</span> Template vorhanden ({Math.round(selected.mockup_html.length / 1024)} KB)
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <label style={{ ...btnSm, background: 'var(--brand-primary)', color: '#fff', fontWeight: 600, padding: '5px 14px', cursor: 'pointer', display: 'inline-block' }}>
+                    <label style={{ ...btnSm, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontWeight: 600, padding: '5px 14px', cursor: 'pointer', display: 'inline-block' }}>
                       Ersetzen
                       <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files[0] && uploadTemplate(selected.id, e.target.files[0])} />
                     </label>
@@ -1465,7 +1465,7 @@ function ZugangsdatenEmbed({ project, headers }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid var(--border-light)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
             <button onClick={save} disabled={saving || !form.label.trim()}
-              style={{ flex: 2, padding: 8, borderRadius: 6, border: 'none', background: form.label.trim() ? 'var(--brand-primary)' : 'var(--border-medium)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: form.label.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+              style={{ flex: 2, padding: 8, borderRadius: 6, border: 'none', background: form.label.trim() ? 'var(--brand-primary)' : 'var(--border-medium)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700, cursor: form.label.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
               {saving ? 'Speichert...' : 'Speichern'}
             </button>
           </div>
@@ -1603,7 +1603,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Vorschau</div>
           <iframe srcDoc={generatedHtml} style={{ width: '100%', height: 500, border: '1px solid var(--border-light)', borderRadius: 8 }} title="Design-Vorschau" />
           <button onClick={() => window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { html: generatedHtml } }))}
-            style={{ marginTop: 10, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            style={{ marginTop: 10, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             Im Editor oeffnen
           </button>
         </div>
@@ -1726,7 +1726,7 @@ function NetlifyEmbed({ project, headers }) {
             } catch (e) { setError(e.message); } finally { setDeploying(false); }
           }} disabled={deploying} style={{
             padding: '10px 18px', borderRadius: 8, border: 'none',
-            background: deploying ? '#94a3b8' : '#7c3aed',
+            background: '#7c3aed', opacity: deploying ? 0.5 : 1,
             color: '#fff', fontSize: 13, fontWeight: 700,
             cursor: deploying ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-sans)',
@@ -1967,7 +1967,7 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
           </div>
         )}
         <button onClick={goLive} disabled={saving}
-          style={{ padding:'14px 0', borderRadius:10, border:'none', background: saving ? 'var(--border-medium)' : '#059669', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)' }}>
+          style={{ padding:'14px 0', borderRadius:10, border:'none', background: saving ? 'var(--border-medium)' : 'var(--success)', color: 'var(--text-on-brand)', fontSize:15, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)' }}>
           {saving ? 'Wird gespeichert...' : 'Go Live — Projekt abschliessen'}
         </button>
         <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'center' }}>
@@ -2081,7 +2081,7 @@ function GbpQrEmbed({ project, headers }) {
       )}
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={loadQr} disabled={qrLoading}
-          style={{ flex: 1, padding: '10px 0', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: qrLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          style={{ flex: 1, padding: '10px 0', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: qrLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
           {qrLoading ? 'Laden...' : '📲 QR-Code laden'}
         </button>
         {qrData && (
@@ -2107,7 +2107,7 @@ function TrustpilotEmbed({ project }) {
         Fordere {project?.company_name || 'den Kunden'} auf, eine Bewertung auf Trustpilot zu hinterlassen und stärke die Online-Reputation.
       </div>
       <a href="https://www.trustpilot.com" target="_blank" rel="noreferrer"
-        style={{ padding: '10px 28px', background: '#00b67a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', display: 'inline-block' }}>
+        style={{ padding: '10px 28px', background: 'var(--success)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', display: 'inline-block' }}>
         ⭐ Zu Trustpilot
       </a>
     </div>
@@ -2172,7 +2172,7 @@ function WebsiteVergleichEmbed({ project, headers }) {
             : <Placeholder text="Noch kein Screenshot" />}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button onClick={takeAfter} disabled={takingAfter}
-              style={{ flex: 1, padding: '8px 0', background: '#059669', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              style={{ flex: 1, padding: '8px 0', background: 'var(--success)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               {takingAfter ? 'Erstelle...' : '📷 Screenshot erstellen'}
             </button>
           </div>

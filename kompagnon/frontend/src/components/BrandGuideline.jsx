@@ -427,7 +427,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                           {g.voice_tone.cta_beispiele.map((cta, i) => (
                             <span key={i} style={{
                               background: g.tokens?.primary || g.colors?.primary || g.tokens?.accent || 'var(--brand-primary)',
-                              color: '#fff', fontSize: 11, fontWeight: 700,
+                              color: 'var(--text-on-brand)', fontSize: 11, fontWeight: 700,
                               padding: '4px 12px', borderRadius: 5,
                             }}>
                               {cta}

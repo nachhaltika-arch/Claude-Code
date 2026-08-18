@@ -271,7 +271,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
             <button type="button" onClick={onClose} style={{ padding: '9px 18px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Abbrechen
             </button>
-            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: 'var(--kc-dark)', opacity: saving ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
               {saving ? 'Anlegen…' : '✓ Projekt anlegen'}
             </button>
           </div>
@@ -431,7 +431,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
             <button type="button" onClick={onClose} style={{ padding: '9px 18px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Abbrechen
             </button>
-            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: '#7c3aed', opacity: saving ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
               {saving ? 'Anlegen…' : '✓ IMPULS-Projekt anlegen'}
             </button>
           </div>

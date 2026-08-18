@@ -72,7 +72,7 @@ export default function CustomerDashboard() {
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
         Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
       </p>
-      <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'white', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+      <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
         Kontakt aufnehmen
       </a>
     </div>
@@ -108,7 +108,7 @@ export default function CustomerDashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1100, margin: '0 auto', width: '100%', animation: 'fadeIn 0.3s ease' }}>
 
       {/* ── 1. HEADER ── */}
-      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: '24px 28px', color: 'white' }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: '24px 28px', color: 'var(--text-on-brand)' }}>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
           Willkommen zurück
         </div>

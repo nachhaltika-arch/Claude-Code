@@ -204,7 +204,7 @@ export default function KampagneLandingPage() {
                 disabled={loading}
                 style={{
                   width: '100%', minHeight: 54, marginTop: 4,
-                  background: loading ? '#6bb8c9' : PRIMARY,
+                  background: PRIMARY, opacity: loading ? 0.5 : 1,
                   color: '#fff', border: 'none', borderRadius: 10,
                   fontSize: 16, fontWeight: 700,
                   cursor: loading ? 'not-allowed' : 'pointer',

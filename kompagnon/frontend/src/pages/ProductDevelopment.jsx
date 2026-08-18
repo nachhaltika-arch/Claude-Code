@@ -70,7 +70,7 @@ export default function ProductDevelopment() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Produktentwicklung</h1>
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>Roadmap & Feature-Planung</p>
         </div>
-        <button onClick={() => openForm()} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Neues Feature</button>
+        <button onClick={() => openForm()} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Neues Feature</button>
       </div>
 
       {/* KPIs */}
@@ -149,7 +149,7 @@ export default function ProductDevelopment() {
               <Lbl>Tags (kommagetrennt)</Lbl><input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="frontend, api..." style={{ ...inp, marginBottom: 20 }} />
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: 11, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
-                <button type="submit" disabled={!form.title.trim()} style={{ flex: 2, padding: 11, background: !form.title.trim() ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: !form.title.trim() ? 'not-allowed' : 'pointer', minHeight: 44 }}>{editItem ? 'Speichern' : '+ Anlegen'}</button>
+                <button type="submit" disabled={!form.title.trim()} style={{ flex: 2, padding: 11, background: !form.title.trim() ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: !form.title.trim() ? 'not-allowed' : 'pointer', minHeight: 44 }}>{editItem ? 'Speichern' : '+ Anlegen'}</button>
               </div>
             </div>
           </form>

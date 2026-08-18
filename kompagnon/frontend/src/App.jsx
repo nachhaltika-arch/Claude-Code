@@ -135,7 +135,7 @@ function DashboardRoute() {
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
           Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
         </p>
-        <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'white', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+        <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
           Kontakt aufnehmen
         </a>
       </div>

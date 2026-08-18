@@ -284,8 +284,8 @@ export default function GrapesEditor({
             cursor: 'pointer', fontSize: 13,
           }}>👁 Vorschau</button>
           <button onClick={handleManualSave} style={{
-            background: '#16a34a', border: 'none',
-            color: '#fff', padding: '6px 14px', borderRadius: 6,
+            background: 'var(--success)', border: 'none',
+            color: 'var(--text-on-brand)', padding: '6px 14px', borderRadius: 6,
             cursor: 'pointer', fontSize: 13, fontWeight: 600,
           }}>💾 Speichern</button>
           <button

@@ -219,7 +219,7 @@ export default function Betriebe() {
         <button
           type="button" onClick={() => setDialogOffen(true)}
           style={{
-            padding: '9px 16px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
           }}

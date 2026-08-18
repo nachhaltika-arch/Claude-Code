@@ -37,13 +37,20 @@
   --text-30: #9AACAE;
 
   /* ── Primitive Semantic Colors ──────────────────────────────── */
-  --success:    #00875A;
+  /* Gemessen am 18.08.2026 gegen --surface, --paper und die jeweils eigene
+     Flaeche (WCAG 2.1 AA, Schwelle 4.5). Die alten Toene erreichten als
+     Schrift 4.11 (success), 4.08 (warn) und 3.48 (info) — alle drei unter
+     der Schwelle, und im Block [data-theme="light"] stand warn sogar auf
+     #B8860B mit 2.94. Der Dunkelmodus war nie betroffen; deshalb faellt es
+     niemandem auf, der dunkel arbeitet. `utils/kontrast.test.js` misst
+     jetzt jeden Statuston in beiden Modi. */
+  --success:    #007A51;
   --success-bg: #E3F6EF;
-  --warn:       #A86800;
+  --warn:       #9A6000;
   --warn-bg:    #FFF4E0;
   --error:      #C0392B;
   --error-bg:   #FDECEA;
-  --info:       #008EAA;
+  --info:       #007490;
   --info-bg:    #E0F4F8;
 
   /* ── Background (Light Mode) ────────────────────────────────── */
@@ -291,13 +298,13 @@
   --kc-yellow: #FAE600;
   --bg-sidebar: var(--kc-dark);
 
-  --success:    #00875A;
+  --success:    #007A51;
   --success-bg: #E3F6EF;
-  --warn:       #B8860B;
-  --warn-bg:    #FFFBE0;
+  --warn:       #9A6000;
+  --warn-bg:    #FFF4E0;
   --error:      #C0392B;
   --error-bg:   #FDECEA;
-  --info:       #008EAA;
+  --info:       #007490;
   --info-bg:    #E0F4F8;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);

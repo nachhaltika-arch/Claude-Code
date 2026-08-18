@@ -257,7 +257,7 @@ function FileUploadSection({ token }) {
           disabled={!pendingFile || uploading}
           style={{
             width: '100%', padding: 12,
-            background: !pendingFile || uploading ? 'var(--text-tertiary)' : 'var(--brand-primary)',
+            background: 'var(--brand-primary)', opacity: !pendingFile || uploading ? 0.5 : 1,
             color: 'var(--text-on-brand)', border: 'none', borderRadius: 8,
             fontSize: 14, fontWeight: 600,
             cursor: !pendingFile || uploading ? 'not-allowed' : 'pointer',
@@ -501,7 +501,7 @@ export default function CustomerPortal() {
                 onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
             <button type="submit" disabled={verifying} style={{
-              width: '100%', padding: 12, background: verifying ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: 'var(--text-on-brand)',
+              width: '100%', padding: 12, background: 'var(--brand-primary)', opacity: verifying ? 0.5 : 1, color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: verifying ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>

@@ -321,7 +321,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             Schriften &amp; Textfarben
           </span>
           <button onClick={loadFontSuggestions} disabled={loadingSuggestions}
-            style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: '#fff',
+            style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                      border: 'none', borderRadius: 5, padding: '4px 10px', cursor: 'pointer' }}>
             {loadingSuggestions ? '🤖…' : '🤖 KI-Vorschlag'}
           </button>
@@ -346,7 +346,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                           background: 'var(--bg-surface)', borderBottom: '0.5px solid var(--border-light)' }}>
               <div style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--brand-primary)',
-                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
               {detected && detected !== value && (
@@ -415,7 +415,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                     <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
                   </div>
                   <button onClick={() => setter(suggested.name)}
-                    style={{ fontSize: 10, fontWeight: 700, background: 'var(--kc-mid)', color: '#fff',
+                    style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                              border: 'none', borderRadius: 5, padding: '5px 10px',
                              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Übernehmen

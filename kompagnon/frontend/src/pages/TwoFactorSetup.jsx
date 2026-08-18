@@ -57,7 +57,7 @@ export default function TwoFactorSetup() {
   };
 
   const cardStyle = { background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '36px 32px', maxWidth: 480, width: '100%', margin: '40px auto', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' };
-  const btnStyle = { width: '100%', padding: '12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 };
+  const btnStyle = { width: '100%', padding: '12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 };
 
   return (
     <div style={cardStyle}>

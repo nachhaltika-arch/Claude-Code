@@ -70,7 +70,7 @@ export default function Register() {
               Ihr Konto wurde erfolgreich angelegt. Sie koennen sich jetzt anmelden.
             </p>
             <button onClick={() => navigate('/login')} style={{
-              width: '100%', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+              width: '100%', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)',
               padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48,
             }}>
               Jetzt anmelden
@@ -150,7 +150,7 @@ export default function Register() {
             </label>
 
             <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '13px', background: loading ? '#64748b' : 'var(--brand-primary)', color: '#fff',
+              width: '100%', padding: '13px', background: loading ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)', minHeight: 48,
             }}>

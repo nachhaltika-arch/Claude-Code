@@ -497,7 +497,7 @@ function SidebarNav({ badges }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 34, height: 34, borderRadius: '50%',
-              background: 'var(--kc-mid)', color: '#ffffff',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 700, flexShrink: 0, letterSpacing: '0.02em',
               fontFamily: 'var(--font-sans)',
@@ -1020,10 +1020,10 @@ export default function AppLayout() {
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: 'var(--kc-mid)',
+                  background: 'var(--brand-primary)',
                   border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-sans)', color: '#fff',
+                  fontFamily: 'var(--font-sans)', color: 'var(--text-on-brand)',
                 }}
               >
                 {((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')).toUpperCase() || 'U'}

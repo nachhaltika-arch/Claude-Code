@@ -918,7 +918,7 @@ function LinkedProjectSection({ leadId, headers, navigate }) {
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{phaseLabel(project.status)}</div>
           </div>
           <button onClick={() => navigate(`/app/projects/${project.id}`)} style={{
-            padding: '7px 14px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '7px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0,
           }}>
@@ -1079,7 +1079,7 @@ function CmsConnectionSection({ customerId, headers }) {
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={handleSave} disabled={saving || !form.cms_type} style={{
-          padding: '8px 16px', background: 'var(--brand-primary)', color: 'white',
+          padding: '8px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
           border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
           cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', opacity: saving ? 0.7 : 1,
         }}>
@@ -1547,7 +1547,7 @@ export default function CustomerDetail() {
             flex: isMobile ? 'none' : 1,
             padding: '9px 14px',
             background: 'var(--brand-primary)',
-            color: '#fff',
+            color: 'var(--text-on-brand)',
             border: 'none',
             borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600,
@@ -1608,7 +1608,7 @@ export default function CustomerDetail() {
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={() => setAddPageOpen(o => !o)}
-                style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 ➕ Seite hinzufügen
               </button>
               <button onClick={() => setKiConfirm(true)} disabled={kiGenerating || !leadId}
@@ -1625,7 +1625,7 @@ export default function CustomerDetail() {
             {kiConfirm && (
               <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: '#92660A', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ flex: 1 }}>⚠️ KI-Vorlage überschreibt alle vorhandenen (Nicht-Pflicht-)Seiten.</span>
-                <button onClick={generateKI} style={{ padding: '6px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
+                <button onClick={generateKI} style={{ padding: '6px 14px', background: 'var(--warn)', color: 'var(--kc-black)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
                 <button onClick={() => setKiConfirm(false)} style={{ padding: '6px 14px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
               </div>
             )}
@@ -1655,7 +1655,7 @@ export default function CustomerDetail() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={createPage} disabled={addPageSaving || !addPageForm.page_name.trim()}
-                    style={{ padding: '7px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: addPageSaving ? 0.6 : 1 }}>
+                    style={{ padding: '7px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: addPageSaving ? 0.6 : 1 }}>
                     {addPageSaving ? 'Speichert…' : '💾 Anlegen'}
                   </button>
                   <button onClick={() => setAddPageOpen(false)}
@@ -1797,7 +1797,7 @@ export default function CustomerDetail() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={saveEditPage} disabled={editPageSaving}
-                      style={{ flex: 1, padding: '10px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: editPageSaving ? 0.6 : 1 }}>
+                      style={{ flex: 1, padding: '10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: editPageSaving ? 0.6 : 1 }}>
                       {editPageSaving ? 'Speichert…' : '💾 Speichern'}
                     </button>
                     <button onClick={() => setEditPageModal(null)}
@@ -1831,7 +1831,7 @@ export default function CustomerDetail() {
               <div style={{ fontSize: 24, marginBottom: 12 }}>🗺️</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>Noch keine Sitemap-Seiten angelegt</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>Bitte zuerst im Sitemap-Tab die Website-Struktur planen.</div>
-              <button onClick={() => setActiveTab('sitemap')} style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+              <button onClick={() => setActiveTab('sitemap')} style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                 Zur Sitemap →
               </button>
             </div>
@@ -1861,7 +1861,7 @@ export default function CustomerDetail() {
                     }}>
                     {PAGE_ICONS[page.page_type] || '📄'} {page.page_name}
                     {(pageVersions[page.id]?.length || 0) > 0 && (
-                      <span style={{ background: 'var(--brand-primary)', color: '#fff', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>
+                      <span style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>
                         {pageVersions[page.id].length}
                       </span>
                     )}
@@ -2020,7 +2020,7 @@ export default function CustomerDetail() {
           URL.revokeObjectURL(url);
         };
 
-        const primaryBtn = { padding: '9px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+        const primaryBtn = { padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
         const secondaryBtn = { padding: '9px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 };
         const sectionLabel = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 };
 
@@ -2234,7 +2234,7 @@ export default function CustomerDetail() {
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{brandData.pdf_filename}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Branddesign-Dokument</div>
                 </div>
-                <button onClick={downloadPdf} style={{ fontSize: 12, padding: '5px 10px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                <button onClick={downloadPdf} style={{ fontSize: 12, padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
                   ⬇ Download
                 </button>
               </div>

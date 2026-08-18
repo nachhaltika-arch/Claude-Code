@@ -116,7 +116,7 @@ export default function AcademyAdmin() {
           <button
             onClick={() => navigate('/app/akademie/admin/course/new')}
             style={{
-              padding: '7px 16px', background: 'var(--brand-primary)', color: 'white',
+              padding: '7px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
             }}

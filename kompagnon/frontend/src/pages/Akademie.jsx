@@ -44,7 +44,7 @@ export default function Akademie() {
       {/* Hero Banner */}
       <div style={{
         background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)',
-        padding: '40px 24px', textAlign: 'center', color: 'white',
+        padding: '40px 24px', textAlign: 'center', color: 'var(--text-on-brand)',
       }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>🎓</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: 'white', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
@@ -134,7 +134,7 @@ export default function Akademie() {
               </div>
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)' }}>
                 <button onClick={() => navigate(`/app/akademie/kurs/${course.id}`)} style={{
-                  width: '100%', padding: '8px 14px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+                  width: '100%', padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
                   borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>Kurs starten →</button>

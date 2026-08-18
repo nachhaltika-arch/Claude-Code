@@ -234,8 +234,8 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
             type="submit" disabled={speichert}
             style={{
               padding: '9px 22px',
-              background: speichert ? 'var(--text-tertiary)' : 'var(--brand-primary)',
-              color: '#fff', border: 'none',
+              background: 'var(--brand-primary)', opacity: speichert ? 0.5 : 1,
+              color: 'var(--text-on-brand)', border: 'none',
               borderRadius: 'var(--radius-md)',
               fontSize: 13, fontWeight: 600,
               cursor: speichert ? 'wait' : 'pointer',

@@ -644,7 +644,7 @@ function InspirationsSection({ project, token }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
         <button onClick={save} disabled={saving} style={{
           padding: '8px 20px', borderRadius: 'var(--radius-md)',
-          background: 'var(--brand-primary)', color: 'white',
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
           border: 'none', fontSize: 13, fontWeight: 600,
           cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)',
         }}>

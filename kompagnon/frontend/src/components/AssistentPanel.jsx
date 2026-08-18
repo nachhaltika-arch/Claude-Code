@@ -261,7 +261,7 @@ export default function AssistentPanel({
                 type="button"
                 onClick={() => { onUebernehmen(vorschlag.text, vorschlag.feld); setVorschlag(null); }}
                 style={{
-                  flex: 1, padding: '7px 10px', background: '#10b981', color: '#fff',
+                  flex: 1, padding: '7px 10px', background: 'var(--success)', color: 'var(--text-on-brand)',
                   border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
@@ -308,7 +308,7 @@ export default function AssistentPanel({
           <button
             type="button" onClick={() => fragen()} disabled={laeuft || !frage.trim()}
             style={{
-              padding: '8px 14px', background: laeuft || !frage.trim() ? '#c4b5fd' : LILA,
+              padding: '8px 14px', background: LILA, opacity: laeuft || !frage.trim() ? 0.5 : 1,
               color: '#fff', border: 'none', borderRadius: 6, fontSize: 12,
               fontWeight: 700, fontFamily: 'inherit',
               cursor: laeuft || !frage.trim() ? 'not-allowed' : 'pointer',

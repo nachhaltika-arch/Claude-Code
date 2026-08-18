@@ -893,7 +893,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
               Weiter
             </button>
           ) : (
-            <button onClick={handleSaveAndPdf} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'var(--border-medium)' : '#059669', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+            <button onClick={handleSaveAndPdf} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'var(--border-medium)' : 'var(--success)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
               {saving ? 'Speichert...' : 'Speichern'}
             </button>
           )}
@@ -1206,7 +1206,7 @@ function SuggestButton({ field, suggestions, onSuggest, onApply, set, currentVal
       <div style={{ fontSize: 12, color: '#1a2e35', lineHeight: 1.6, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.value}</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => { set(field, s.value); onApply(field); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'var(--kc-mid)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           Uebernehmen
         </button>
         <button type="button" onClick={() => { set(field, (currentValue ? currentValue + '\n' : '') + s.value); onApply(field); }}

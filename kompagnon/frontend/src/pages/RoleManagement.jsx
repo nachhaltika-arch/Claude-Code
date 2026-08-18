@@ -143,7 +143,7 @@ export default function RoleManagement() {
 
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={savePerms} disabled={saving} style={{
-                flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                flex: 1, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)',
                 padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
                 opacity: saving ? 0.6 : 1,
               }}>

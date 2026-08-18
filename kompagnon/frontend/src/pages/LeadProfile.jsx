@@ -901,7 +901,7 @@ export default function LeadProfile() {
       })()}
 
       {/* HEADER */}
-      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'var(--text-on-brand)', position: 'relative', overflow: 'hidden' }}>
 
         {/* Der „← Zurück"-Knopf stand hier zusätzlich zur Brotkrume, die
           * oben „Betriebe › Name" zeigt und zurückführt. Zwei Wege für
@@ -1003,7 +1003,7 @@ export default function LeadProfile() {
               style={{
                 ...knopfStil('kaltakquise'),
                 ...(kaltakquiseLoading ? { background: 'rgba(255,255,255,0.1)', color: 'white' } : {}),
-                ...(kaltakquiseDone ? { background: '#059669', color: 'white' } : {}),
+                ...(kaltakquiseDone ? { background: 'var(--success)', color: 'var(--text-on-brand)' } : {}),
                 borderRadius: 'var(--radius-md)',
                 fontSize: 12,
                 padding: '9px 14px', cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
@@ -1128,7 +1128,7 @@ export default function LeadProfile() {
           >
             <span>{tab.icon}</span>{tab.label}
             {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
-              <span style={{ background: '#ef4444', color: '#fff', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
+              <span style={{ background: 'var(--error)', color: 'var(--text-on-brand)', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
                 {lead.unread_messages}
               </span>
             )}
@@ -1209,7 +1209,7 @@ export default function LeadProfile() {
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewsletter(true)}
                 style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
-                         background: 'var(--kc-mid)', color: 'white', cursor: 'pointer',
+                         background: 'var(--brand-primary)', color: 'var(--text-on-brand)', cursor: 'pointer',
                          fontSize: 13, fontWeight: 600 }}>
                 Newsletter erstellen
               </button>
@@ -1283,7 +1283,7 @@ export default function LeadProfile() {
                   ))}
                 </div>
                 <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                   {msgSending ? 'Senden…' : 'Senden →'}
                 </button>
               </div>
@@ -1298,7 +1298,7 @@ export default function LeadProfile() {
           <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 9999 }}>
             <button onClick={() => setShowNewsletter(false)}
               style={{ padding: '6px 16px', border: 'none', borderRadius: 6,
-                       background: '#E24B4A', color: 'white', cursor: 'pointer' }}>
+                       background: 'var(--error)', color: 'var(--text-on-brand)', cursor: 'pointer' }}>
               Schliessen
             </button>
           </div>
@@ -1628,7 +1628,7 @@ export default function LeadProfile() {
                     disabled={!domainForm.url.trim() || domainAdding}
                     style={{
                       padding: '6px 14px', fontSize: 12, fontWeight: 600,
-                      background: 'var(--brand-primary)', color: 'white',
+                      background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                       border: 'none', borderRadius: 'var(--radius-md)',
                       cursor: domainForm.url.trim() && !domainAdding ? 'pointer' : 'not-allowed',
                       opacity: domainForm.url.trim() && !domainAdding ? 1 : 0.5,
@@ -1735,7 +1735,7 @@ export default function LeadProfile() {
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                         ⬇ PNG
                       </button>
                       <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
@@ -1980,7 +1980,7 @@ export default function LeadProfile() {
             <div style={{ textAlign: 'center', padding: '48px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)' }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
               <div style={{ fontSize: 13 }}>Noch keine Audits vorhanden</div>
-              <button onClick={startAudit} style={{ marginTop: 14, padding: '8px 18px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={startAudit} style={{ marginTop: 14, padding: '8px 18px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Ersten Audit starten
               </button>
             </div>
@@ -2045,7 +2045,7 @@ export default function LeadProfile() {
             <a
               href="/app/deals"
               style={{
-                padding: '9px 18px', background: 'var(--brand-primary)', color: '#fff',
+                padding: '9px 18px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
                 textDecoration: 'none', fontFamily: 'var(--font-sans)',
               }}
@@ -2139,7 +2139,7 @@ export default function LeadProfile() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Template zugewiesen</span>
-                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                     Template zuweisen
                   </button>
                 </div>
@@ -2268,7 +2268,7 @@ export default function LeadProfile() {
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                      style={{ flex: 1, padding: 8, background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      style={{ flex: 1, padding: 8, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                       ⬇ PNG laden
                     </button>
                     <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
@@ -2310,7 +2310,7 @@ export default function LeadProfile() {
                 </div>
                 {lead.email && qrData && (
                   <a href={`mailto:${lead.email}?subject=Ihr persönlicher Zugang — KOMPAGNON&body=Sehr geehrte Damen und Herren,%0D%0A%0D%0AIhr persönlicher Kundenlink:%0D%0A${qrData.portal_url}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--brand-primary)', color: 'white', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
                     ✉️ Per E-Mail senden
                   </a>
                 )}
@@ -2396,7 +2396,7 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
               <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
-                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : '#16a34a', color: 'white',
+                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : 'var(--success)', color: 'var(--text-on-brand)',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
                 cursor: (crawlLoading || crawlJob?.status === 'running') ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
@@ -2638,7 +2638,7 @@ export default function LeadProfile() {
                   onClick={() => seqAction('start')}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: '#1D9E75', color: 'white',
+                    background: 'var(--success)', color: 'var(--text-on-brand)',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
                   Sequenz starten
@@ -2660,7 +2660,7 @@ export default function LeadProfile() {
                   onClick={() => seqAction('start')}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--kc-mid)', color: 'white',
+                    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
                   Fortsetzen
@@ -2792,7 +2792,7 @@ export default function LeadProfile() {
               <button onClick={() => setWonModal(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 Nein, danke
               </button>
-              <button onClick={createProject} disabled={creatingProject} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'white', fontSize: 13, fontWeight: 600, cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <button onClick={createProject} disabled={creatingProject} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 {creatingProject ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Ja, Projekt anlegen'}
               </button>
             </div>

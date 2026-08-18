@@ -16,6 +16,10 @@ describe('kontrast', () => {
     expect(kontrast('#647071', '#FAFAFA')).toBe(kontrast('#FAFAFA', '#647071'));
   });
 
+  test('die Kurzform ist dieselbe Farbe', () => {
+    expect(alsRgb('#ccc')).toEqual(alsRgb('#cccccc'));
+  });
+
   test('das Doppelkreuz darf fehlen', () => {
     expect(alsRgb('9AACAE')).toEqual([154, 172, 174]);
   });
@@ -98,6 +102,30 @@ describe('Textfarben der Palette', () => {
       .toBeGreaterThanOrEqual(AA_TEXT);
     expect(kontrast(ton('text-on-brand', dunkel), ton('kc-mid', dunkel)))
       .toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  // ── Statustöne ──────────────────────────────────────────────────
+  //
+  // Am 18.08.2026 nachgemessen, weil beim Umbau der weissen Schrift auffiel,
+  // dass die Statusfarben nie gegen ihre eigenen Flächen geprüft worden
+  // waren. Im Hellmodus lagen drei von vier unter der Schwelle: success
+  // 4.11, warn 4.08 und info 3.48 — und im Block [data-theme="light"] stand
+  // warn auf #B8860B mit **2.94**. Im Dunkelmodus bestand alles, weshalb es
+  // niemandem auffällt, der dunkel arbeitet.
+  describe.each(['success', 'warn', 'error', 'info'])('--%s', (art) => {
+    test.each(['surface', 'paper'])('besteht auf --%s in beiden Modi', (flaeche) => {
+      [hell, dunkel].forEach((abschnitt) => {
+        expect(kontrast(ton(art, abschnitt), ton(flaeche, abschnitt)))
+          .toBeGreaterThanOrEqual(AA_TEXT);
+      });
+    });
+
+    test('besteht auf der eigenen Fläche in beiden Modi', () => {
+      [hell, dunkel].forEach((abschnitt) => {
+        expect(kontrast(ton(art, abschnitt), ton(`${art}-bg`, abschnitt)))
+          .toBeGreaterThanOrEqual(AA_TEXT);
+      });
+    });
   });
 
   test('--text-30 bleibt bewusst hell und ist deshalb kein Textton', () => {

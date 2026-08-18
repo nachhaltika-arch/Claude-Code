@@ -178,10 +178,10 @@ export default function ProjectSitemapPlaner({ projectId, briefingData, onClose 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button onClick={onClose} style={{ padding: '8px 18px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Schliessen</button>
-          <button onClick={save} disabled={saving} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={save} disabled={saving} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
             {saving ? 'Speichern...' : 'Speichern'}
           </button>
-          <button onClick={() => setShowConfirm(true)} disabled={saving} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--kc-mid)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={() => setShowConfirm(true)} disabled={saving} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
             Freigabe anfordern
           </button>
         </div>
@@ -192,7 +192,7 @@ export default function ProjectSitemapPlaner({ projectId, briefingData, onClose 
             <span style={{ fontSize: 13, color: '#92400e' }}>Sitemap jetzt freigeben? Dies kann nicht rueckgaengig gemacht werden.</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowConfirm(false)} style={{ padding: '6px 14px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
-              <button onClick={requestFreigabe} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--kc-mid)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, freigeben</button>
+              <button onClick={requestFreigabe} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, freigeben</button>
             </div>
           </div>
         )}

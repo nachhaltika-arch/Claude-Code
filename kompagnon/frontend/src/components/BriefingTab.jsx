@@ -374,7 +374,7 @@ export default function BriefingTab({ lead, isMobile }) {
                     <button onClick={() => toggleFreigabe(f.key)} style={{
                       width: 22, height: 22, borderRadius: 4, border: done ? 'none' : '2px solid var(--border-medium)',
                       background: done ? 'var(--status-success-text)' : 'transparent', cursor: 'pointer', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700,
                     }}>{done ? '✓' : ''}</button>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 500, color: done ? 'var(--status-success-text)' : 'var(--text-primary)' }}>{f.label}</div>
@@ -396,7 +396,7 @@ export default function BriefingTab({ lead, isMobile }) {
                 </div>
                 <button onClick={() => saveSection(activeSection)} disabled={saving} style={{
                   padding: '6px 14px', background: saved ? 'var(--status-success-text)' : 'var(--brand-primary)',
-                  color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 500,
+                  color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 500,
                   cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s',
                 }}>{saved ? '✓ Gespeichert' : saving ? 'Speichert...' : 'Speichern'}</button>
               </div>
@@ -521,7 +521,7 @@ export default function BriefingTab({ lead, isMobile }) {
                 <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
                   <button onClick={() => saveSection(activeSection)} disabled={saving} style={{
                     padding: '9px 20px', background: saved ? 'var(--status-success-text)' : 'var(--brand-primary)',
-                    color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
+                    color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
                     cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s',
                   }}>{saved ? '✓ Gespeichert' : saving ? 'Speichert...' : 'Abschnitt speichern'}</button>
                 </div>

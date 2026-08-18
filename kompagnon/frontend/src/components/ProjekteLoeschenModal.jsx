@@ -124,7 +124,7 @@ export default function ProjekteLoeschenModal({ ids, namen, token, onClose, onGe
             style={{
               padding: "9px 20px", borderRadius: 8, border: "none",
               cursor: (loescht || laedt || !vorschau) ? "default" : "pointer",
-              background: (loescht || laedt || !vorschau) ? "#f3b0b0" : ROT,
+              background: ROT, opacity: (loescht || laedt || !vorschau) ? 0.5 : 1,
               color: "#fff", fontWeight: 700, fontSize: 14,
             }}
           >{loescht ? "Wird gelöscht…" : `Endgültig löschen`}</button>

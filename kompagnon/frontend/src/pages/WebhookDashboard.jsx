@@ -52,7 +52,7 @@ export default function WebhookDashboard() {
   const sourceLabel = (s) => SOURCES.find(x => x.key === s)?.label || s;
 
   const card = { background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' };
-  const btnPrimary = { background: 'var(--brand-primary)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+  const btnPrimary = { background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -147,7 +147,7 @@ export default function WebhookDashboard() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 6, background: s?.color || '#888', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: s?.color || 'var(--brand-primary)', color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
                       {s?.icon}
                     </div>
                     {s?.label}

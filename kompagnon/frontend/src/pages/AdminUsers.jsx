@@ -82,7 +82,7 @@ export default function AdminUsers() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Benutzerverwaltung</h1>
         <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'nutzer', position: '' }); }} style={{
-          background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
         }}>
           + Neuer Benutzer
         </button>

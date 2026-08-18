@@ -151,7 +151,7 @@ export default function WebsiteDesigner({
           disabled={importing}
           style={{
             padding: '7px 14px',
-            background: importing ? '#94a3b8' : '#7c3aed',
+            background: '#7c3aed', opacity: importing ? 0.5 : 1,
             color: '#fff', border: 'none', borderRadius: 7,
             fontSize: 12, fontWeight: 600,
             cursor: importing ? 'not-allowed' : 'pointer',

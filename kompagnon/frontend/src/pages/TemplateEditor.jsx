@@ -169,7 +169,7 @@ export default function TemplateEditor() {
           ...btnStyle, background: 'rgba(255,255,255,0.15)', color: '#fff',
         }}>👁 Vorschau</button>
         <button onClick={handleSave} disabled={saving} style={{
-          ...btnStyle, background: saving ? '#ccc' : '#16a34a', color: '#fff',
+          ...btnStyle, background: 'var(--success)', opacity: saving ? 0.5 : 1, color: 'var(--text-on-brand)',
         }}>
           {saving ? 'Speichert...' : '💾 Speichern'}
         </button>

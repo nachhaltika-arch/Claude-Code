@@ -345,7 +345,7 @@ export default function Dashboard() {
             <div style={{ textAlign: 'center', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <div style={{ fontSize: 28 }}>📋</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Noch keine Leads vorhanden</div>
-              <button onClick={() => navigate('/app/import')} style={{ marginTop: 4, padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={() => navigate('/app/import')} style={{ marginTop: 4, padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 + Leads importieren
               </button>
             </div>

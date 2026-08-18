@@ -17,11 +17,16 @@ export const AA_TEXT = 4.5;
 /** Grosse Schrift darf hier bleiben. */
 export const AA_GROSSE_SCHRIFT = 3.0;
 
-/** '#RRGGBB' oder 'RRGGBB' → [r, g, b] */
+/** '#RRGGBB', 'RRGGBB' oder die Kurzform '#RGB' → [r, g, b] */
 export function alsRgb(farbe) {
-  const roh = String(farbe).trim().replace('#', '');
+  let roh = String(farbe).trim().replace('#', '');
+  // Die Kurzform steht im Quelltext genauso oft wie die lange (`#ccc`), und
+  // sie ist dieselbe Farbe — sie abzuweisen hiesse, sie nicht zu messen.
+  if (/^[0-9a-fA-F]{3}$/.test(roh)) {
+    roh = roh.split('').map(zeichen => zeichen + zeichen).join('');
+  }
   if (!/^[0-9a-fA-F]{6}$/.test(roh)) {
-    throw new Error(`Keine sechsstellige Hex-Farbe: ${farbe}`);
+    throw new Error(`Keine Hex-Farbe: ${farbe}`);
   }
   return [0, 2, 4].map(i => parseInt(roh.slice(i, i + 2), 16));
 }

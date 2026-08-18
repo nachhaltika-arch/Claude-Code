@@ -126,7 +126,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             <div key={kw} style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '5px 10px', borderRadius: 20,
-              background: 'var(--brand-primary)', color: '#fff',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               fontSize: 12, fontWeight: 700,
             }}>
               {kw}
@@ -152,7 +152,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             }}
           />
           <button onClick={addKeyword} style={{
-            padding: '8px 14px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
           }}>

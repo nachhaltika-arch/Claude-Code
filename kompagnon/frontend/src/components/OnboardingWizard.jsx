@@ -374,7 +374,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                   href="mailto:info@kompagnon.eu?subject=Strategy Workshop Termin"
                   style={{
                     display: 'inline-block',
-                    background: 'var(--kc-mid)', color: 'white',
+                    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                     padding: '10px 22px', borderRadius: 8,
                     textDecoration: 'none', fontSize: 13,
                     fontWeight: 600,
@@ -394,8 +394,8 @@ export default function OnboardingWizard({ user, onComplete }) {
                 onClick={onComplete}
                 style={{
                   width: '100%', padding: '14px', border: 'none',
-                  borderRadius: 10, background: '#1D9E75',
-                  color: 'white', fontSize: 15, fontWeight: 700,
+                  borderRadius: 10, background: 'var(--success)',
+                  color: 'var(--text-on-brand)', fontSize: 15, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -430,8 +430,8 @@ export default function OnboardingWizard({ user, onComplete }) {
                 onClick={() => setStep(s => s + 1)}
                 style={{
                   padding: '11px 24px', borderRadius: 8,
-                  border: 'none', background: 'var(--kc-mid)',
-                  color: 'white', fontSize: 14,
+                  border: 'none', background: 'var(--brand-primary)',
+                  color: 'var(--text-on-brand)', fontSize: 14,
                   fontWeight: 600, cursor: 'pointer',
                 }}>
                 Weiter →
@@ -443,8 +443,8 @@ export default function OnboardingWizard({ user, onComplete }) {
                 style={{
                   padding: '11px 24px', borderRadius: 8,
                   border: 'none',
-                  background: saving ? '#94a3b8' : 'var(--kc-mid)',
-                  color: 'white', fontSize: 14, fontWeight: 600,
+                  background: 'var(--brand-primary)', opacity: saving ? 0.5 : 1,
+                  color: 'var(--text-on-brand)', fontSize: 14, fontWeight: 600,
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}>
                 {saving ? 'Speichert...' : 'Fertig & Absenden ✓'}

@@ -161,7 +161,7 @@ function QuizEditor({ questions, setQuestions }) {
             onClick={openNew}
             style={{
               alignSelf: 'flex-start', padding: '7px 16px',
-              background: 'var(--brand-primary)', color: '#fff',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
             }}
@@ -256,7 +256,7 @@ function QuizEditor({ questions, setQuestions }) {
                 <button
                   onClick={saveModal}
                   style={{
-                    flex: 1, padding: '9px', background: 'var(--brand-primary)', color: '#fff',
+                    flex: 1, padding: '9px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                     border: 'none', borderRadius: 'var(--radius-md)',
                     fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   }}
@@ -501,7 +501,7 @@ export default function AcademyAdminLesson() {
             onClick={save}
             disabled={saving || !form.title.trim()}
             style={{
-              padding: '7px 20px', background: 'var(--brand-primary)', color: '#fff',
+              padding: '7px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 12, fontWeight: 600, cursor: saving || !form.title.trim() ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)', opacity: saving || !form.title.trim() ? 0.6 : 1,

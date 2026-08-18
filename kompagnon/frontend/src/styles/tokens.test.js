@@ -23,6 +23,17 @@ import path from 'path';
 
 const TOKENS = fs.readFileSync(path.join(__dirname, 'tokens.css'), 'utf8');
 
+/** Name → Wert eines Abschnitts. */
+function paare(abschnittText) {
+  const karte = new Map();
+  const muster = /(--[a-z0-9-]+)\s*:\s*([^;]+);/g;
+  let treffer;
+  while ((treffer = muster.exec(abschnittText)) !== null) {
+    karte.set(treffer[1], treffer[2].trim());
+  }
+  return karte;
+}
+
 /** Alle `--name:` eines Abschnitts. */
 function namen(abschnitt) {
   const treffer = abschnitt.match(/--[a-z0-9-]+\s*:/g) || [];
@@ -45,6 +56,20 @@ describe('Die beiden Modi decken einander', () => {
     const fehlend = [...namen(DUNKEL_SYSTEM)].filter((n) => !namen(HELL_MANUELL).has(n));
 
     expect(fehlend).toEqual([]);
+  });
+
+  test('die beiden hellen Wege tragen dieselben Werte', () => {
+    // `:root` gilt, wenn kein `data-theme` gesetzt ist; `[data-theme="light"]`,
+    // wenn hell gewählt wurde. Weichen sie ab, gibt es zwei helle Welten —
+    // und genau das war der Fall: --warn stand hier auf #A86800 und dort auf
+    // #B8860B (2.94 als Schrift), --warn-bg auf #FFF4E0 und #FFFBE0.
+    const wurzel = paare(abschnitt(':root {', '@media (prefers-color-scheme: dark)'));
+    const hellWerte = paare(HELL_MANUELL);
+    const abweichend = [...hellWerte.entries()]
+      .filter(([name, wert]) => wurzel.has(name) && wurzel.get(name) !== wert)
+      .map(([name, wert]) => `${name}: ${wurzel.get(name)} vs. ${wert}`);
+
+    expect(abweichend).toEqual([]);
   });
 
   test('beide Dunkelblöcke setzen dasselbe', () => {

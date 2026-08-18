@@ -76,7 +76,7 @@ export default function Profile() {
             <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button onClick={saveProfile} disabled={saving} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={saveProfile} disabled={saving} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               {saving ? 'Speichern...' : 'Profil speichern'}
             </button>
           </div>
@@ -97,7 +97,7 @@ export default function Profile() {
               <Field label="Aktuelles Passwort" type="password" value={pwForm.current_password} onChange={(v) => setPwForm((f) => ({ ...f, current_password: v }))} />
               <Field label="Neues Passwort" type="password" value={pwForm.new_password} onChange={(v) => setPwForm((f) => ({ ...f, new_password: v }))} />
               <Field label="Neues Passwort wiederholen" type="password" value={pwForm.new_password2} onChange={(v) => setPwForm((f) => ({ ...f, new_password2: v }))} />
-              <button type="submit" disabled={saving} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', minHeight: 44 }}>
+              <button type="submit" disabled={saving} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', minHeight: 44 }}>
                 Passwort aendern
               </button>
             </form>
@@ -213,7 +213,7 @@ function SignatureTab() {
         <button onClick={clear} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
           Loeschen
         </button>
-        <button onClick={save} style={{ background: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+        <button onClick={save} style={{ background: 'var(--text-primary)', color: 'var(--bg-surface)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
           Unterschrift speichern
         </button>
       </div>

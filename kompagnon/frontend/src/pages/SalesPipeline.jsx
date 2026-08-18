@@ -321,7 +321,7 @@ export default function SalesPipeline() {
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => handleWonConfirm(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Nur Status speichern</button>
-              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--kc-mid)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
+              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
             </div>
           </div>
         </div>,

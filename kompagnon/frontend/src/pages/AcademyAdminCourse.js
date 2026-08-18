@@ -370,7 +370,7 @@ function PreviewCard({ form }) {
       }}>
         <div style={{
           position: 'absolute', top: 10, left: 10,
-          background: 'var(--brand-primary)', color: '#fff',
+          background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
           borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 600, padding: '2px 9px',
         }}>{AUDIENCE_LABEL[aud] || aud || '—'}</div>
         {!form.thumbnail_url && (
@@ -400,7 +400,7 @@ function PreviewCard({ form }) {
           </div>
         </div>
         <div style={{
-          marginTop: 2, padding: '8px 14px', background: 'var(--brand-primary)', color: '#fff',
+          marginTop: 2, padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
           border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
           textAlign: 'center',
         }}>Starten →</div>
@@ -591,7 +591,7 @@ export default function AcademyAdminCourse() {
             disabled={saving || !form.title.trim()}
             style={{
               padding: '7px 20px',
-              background: 'var(--brand-primary)', color: '#fff',
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 12, fontWeight: 600, cursor: saving || !form.title.trim() ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)', opacity: saving || !form.title.trim() ? 0.6 : 1,
@@ -742,7 +742,7 @@ export default function AcademyAdminCourse() {
                     onClick={addModule}
                     disabled={addingModule || !newModTitle.trim()}
                     style={{
-                      padding: '9px 16px', background: 'var(--brand-primary)', color: '#fff',
+                      padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                       border: 'none', borderRadius: 'var(--radius-md)',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       fontFamily: 'var(--font-sans)',

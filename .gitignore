@@ -1,6 +1,14 @@
-# Claude Code — personal settings + scheduled task lock files
-# These are local to each developer and should never be committed.
-.claude/
+# Claude Code — was persoenlich ist, bleibt draussen; was das Projekt
+# betrifft, gehoert dazu.
+#
+# `.claude/settings.json` beschreibt das Verhalten *dieses* Repos (die
+# PostToolUse-Regel, die auf `staging` nach Aenderungen pusht) und war
+# deshalb immer verfolgt — waehrend diese Datei behauptete, alles unter
+# `.claude/` sei persoenlich. Beides zugleich stimmte nie: Ein `.gitignore`
+# wirkt nicht auf bereits verfolgte Dateien, also stand hier eine Regel, die
+# nichts tat, ausser den naechsten Leser in die Irre zu fuehren (L-13).
+.claude/*
+!.claude/settings.json
 
 # OS
 .DS_Store

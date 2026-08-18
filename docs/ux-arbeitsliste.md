@@ -661,23 +661,6 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       `checklist_items_json`. Ebenso `category`, `category_color`, `formats`:
       im Modell, nirgends angezeigt.
 
-- [ ] ~~**UX-42** · **M** · **Die Akademie gibt es zweimal:**~~ `/app/academy/*`
-      (8 Routen) und `/app/akademie/*` (11). Das sind keine Aliasse — hinter
-      `akademie/admin/:courseId` liegt ein **anderer** Kurseditor
-      (`AcademyEdit`) als hinter `academy/admin/course/:courseId`
-      (`AcademyAdminCourse`), und `AcademyModuleEdit` ist **nur** über den
-      alten Pfad erreichbar. *Empfehlung:* `/app/academy/*` als einzigen Raum
-      führen, die alten Adressen darauf umleiten — vorher entscheiden, welcher
-      der beiden Editoren bleibt. Das ist eine Produktfrage, keine
-      Aufräumarbeit.
-      **Gegenüberstellung liegt vor:** `docs/akademie-editoren.md` (18.08.).
-      Kurzfassung: Keiner der beiden kann einen Kurs vollständig bearbeiten.
-      Der gelebte Weg (A) kann Lektionen, Titelbild und Veröffentlichung; nur
-      der unerreichbare (B) kann Freischaltung, Formate und
-      Checklisten-Punkte — und die **Freischaltung wirkt im Kurs-Spieler**.
-      Empfehlung: A behalten, drei Felder übernehmen, B auflösen.
-      Dabei aufgetaucht: eine **zweite, unabhängige Kurs-Tabelle** (`courses`)
-      hinter `/app/courses` — lokal leer, produktiv ungeprüft.
 - [ ] **UX-43** · **S** · **Drei Mobil-Einstiege sind von nirgends
       verlinkt** (`m-leads`, `m-projekte`, `m-settings`). Die Mobilleiste
       führt auf die Desktop-Listen, „Mehr" auf `/app/settings`. *Empfehlung:*

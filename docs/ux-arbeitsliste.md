@@ -553,16 +553,49 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       Dreizehn Tokens fehlten. `styles/tokens.test.js` verlangt jetzt, dass
       der Hellblock jeden Ton des Dunkelblocks zurücknimmt.
 
-### Offen daraus
+### Daraus entstanden — ebenfalls erledigt
 
-- [ ] **UX-34** · **M** · Dasselbe Weiß-auf-Marke steht noch an **62**
-      Stellen im Innendienst (`background: var(--brand-primary)` mit
-      `color: '#fff'` in derselben Zeile). Im Dunkelmodus sind das 2.06.
-      Der Umbau ist mechanisch — `--text-on-brand` gibt es bereits —, aber er
-      berührt viele Dateien und gehört nicht in denselben Commit wie die
-      Kundenseiten.
-      *Prüfung:* Kein `color: '#fff'` mehr auf einer Fläche in Markenfarbe;
-      der Sperrtest der Kundenseiten lässt sich auf `pages/` ausweiten.
+- [x] **UX-34** · **M** · ~~Weiß auf Marke im Innendienst~~ **erledigt
+      2026-08-18.** Geschätzt waren 62 Stellen. Gemessen wurden es mehr, und
+      schlimmer: **140** Stellen weiße Schrift auf einer Fläche, die im
+      Dunkelmodus durchfällt, und **46** weitere auf festen Hexwerten, die in
+      **beiden** Modi durchfallen — dort war der Text nie lesbar.
+
+      | | Fund | hell / dunkel |
+      |---|---|---|
+      | 87 | Weiß auf `--brand-primary` | 9.28 / **2.06** |
+      | 31 | Weiß auf `--kc-mid` | **3.85** / **2.06** |
+      | 33 | grau gefärbte Sperrfläche mit weißer Schrift | Text verschwindet |
+      | 36 | feste Grün-, Rot- und Bernsteintöne | 1.6 bis 3.9 |
+
+      **Regeln statt Geschmack:** Markenflächen bekommen `--text-on-brand`;
+      `--kc-mid` als gefüllte Fläche wird `--brand-primary` (die Tinte allein
+      hätte nicht gereicht, Weiß fällt dort schon im Hellmodus durch); ein
+      gesperrter Knopf behält seine Farbe und wird über `opacity: 0.5` leiser,
+      wie `.btn-primary:disabled` es immer schon macht; die festen Töne werden
+      `--success`/`--error`/`--warn`, wobei Bernstein **schwarze** Tinte trägt.
+
+- [x] **UX-34a** · Im Hellmodus lagen **drei von vier Statustönen** als
+      Schrift unter der Schwelle: success 4.11, warn 4.08, info 3.48 — und
+      `[data-theme="light"]` führte ein viertes warn (`#B8860B`, **2.94**).
+      Neue Werte gegen `--surface`, `--paper` und die eigene Fläche gemessen.
+      Der Dunkelmodus war nie betroffen; wer dunkel arbeitet, sieht es nie.
+
+### Was jetzt dagegen steht
+
+- `utils/weisseSchrift.test.js` misst **jede** Paarung Weiß-auf-Fläche im
+  ganzen Quellbaum, in beiden Modi.
+- `styles/tokens.test.js` verlangt, dass die beiden hellen Wege (`:root` und
+  `[data-theme="light"]`) dieselben Werte tragen.
+- `utils/tokenwerte.js` löst die `var()`-Ketten je Modus auf — von Hand
+  nachgeschlagen geht genau das schief, und daran hat UX-19a so lange
+  überlebt.
+
+### Offen
+
+- [ ] **193 Stellen** weiße Schrift auf einer Fläche, die die Datei nicht
+      nennt: geerbt, ein Verlauf, oder aus den Daten. Von außen nicht
+      messbar. Sie sind **nicht** geprüft — nur gezählt.
 
 ---
 

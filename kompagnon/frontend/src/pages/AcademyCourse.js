@@ -370,7 +370,7 @@ export default function AcademyCourse() {
                 <button
                   onClick={() => navigate('/app/academy')}
                   style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: T.textMuted, cursor: 'pointer', fontFamily: T.font }}
-                >Akademy</button>
+                >Akademie</button>
                 <span style={{ fontSize: 12, color: T.textMuted }}>›</span>
                 <button
                   onClick={() => navigate('/app/academy')}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Logo from '../components/Logo';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
@@ -53,10 +54,10 @@ export default function ResetPassword() {
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }} onClick={() => nav('/')}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#D4A017', fontWeight: 900, fontSize: 13 }}>HS</span>
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>KOMPAGNON</span>
+            {/* Hier stand ein goldenes „HS" neben dem Wort KOMPAGNON — ein
+              * fremdes Monogramm auf der Seite, auf der ein Kunde sein Passwort
+              * zuruecksetzt. Jetzt die echte Marke. */}
+            <Logo size="default" />
           </div>
         </div>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>

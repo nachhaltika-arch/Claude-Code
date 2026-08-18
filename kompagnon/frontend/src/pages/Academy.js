@@ -117,7 +117,7 @@ export default function Academy() {
             margin: '0 0 4px', letterSpacing: '-0.01em', lineHeight: 1.2,
             fontFamily: T.font,
           }}>
-            KOMPAGNON Akademy
+            KOMPAGNON Akademie
           </h1>
           <p style={{ fontSize: 14, color: T.textMuted, margin: 0, fontFamily: T.font }}>
             {role === 'admin' ? 'Alle Kurse — Mitarbeiter & Kunden'

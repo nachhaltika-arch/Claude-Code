@@ -98,23 +98,20 @@ export default function AcademyAdmin() {
       }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
-            Kursverwaltung
+            Kurse verwalten
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>
             {courses.length} {courses.length === 1 ? 'Kurs' : 'Kurse'} · Reihenfolge per Drag & Drop ändern
           </p>
         </div>
+        {/* „← Zurück" stand hier neben der Brotkrume, die denselben Weg zeigt —
+          * zwei Wege für ein Ziel (UX-24, andernorts am 17.08. entfernt).
+          * Die Adressen zeigten ausserdem auf `/app/akademie/…`, obwohl dieser
+          * Bildschirm unter `/app/academy/…` erreicht wird: Ein Klick wechselte
+          * den Adressraum. */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={() => navigate('/app/akademie')}
-            style={{
-              padding: '7px 14px', background: 'transparent', color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
-              fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-            }}
-          >← Zurück</button>
-          <button
-            onClick={() => navigate('/app/akademie/admin/course/new')}
+            onClick={() => navigate('/app/academy/admin/course/new')}
             style={{
               padding: '7px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import { HubGrid, HubButton, HubSectionLabel } from '../components/MobileHub';
@@ -9,13 +9,14 @@ export default function MobileSettings() {
   const { user, logout } = useAuth();
   const { isMobile } = useScreenSize();
 
-  if (!isMobile) { navigate('/app/settings', { replace: true }); return null; }
+  // Siehe MobileLeads: `navigate()` im Render leitet nicht um.
+  if (!isMobile) return <Navigate to="/app/settings" replace />;
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const initials = ((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')).toUpperCase() || 'U';
 
   return (
-    <div style={{ background: '#F0F4F5', minHeight: '100%', paddingBottom: 24 }}>
+    <div style={{ background: 'var(--bg-app)', minHeight: '100%', paddingBottom: 24 }}>
 
       {/* User-Card */}
       <div style={{
@@ -24,17 +25,22 @@ export default function MobileSettings() {
         display: 'flex', alignItems: 'center', gap: 14,
       }}>
         <div style={{
+          // Der Kreis stand auf --brand-primary — und die Karte darunter
+          // ebenfalls: gleiche Farbe auf gleicher Farbe, also unsichtbar. Der
+          // Umbau vom 18.08. hat ihn von --kc-mid dorthin gezogen; die Regel
+          // „Markenflaeche traegt lesbare Tinte" war richtig, taugt aber
+          // nicht, wo eine Flaeche sich von ihrer Nachbarflaeche abheben muss.
           width: 52, height: 52, borderRadius: '50%',
-          background: 'var(--brand-primary)',
+          background: 'var(--bg-surface)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 900, color: 'var(--text-on-brand)',
+          fontSize: 16, fontWeight: 900, color: 'var(--brand-primary)',
           fontFamily: 'var(--font-sans)',
         }}>
           {initials}
         </div>
         <div>
           <div style={{
-            fontSize: 19, fontWeight: 700, color: '#fff',
+            fontSize: 19, fontWeight: 700, color: 'var(--text-on-brand)',
             textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
           }}>
             {user?.first_name} {user?.last_name}
@@ -60,15 +66,15 @@ export default function MobileSettings() {
           <HubSectionLabel>Team</HubSectionLabel>
           <HubGrid>
             <HubButton icon="🧑‍💼" label="Benutzer" desc="Verwalten" path="/app/settings/users" />
-            <HubButton icon="👥"  label="Rollen"    desc="5 Rollen"  path="/app/settings/roles" />
+            <HubButton icon="👥"  label="Rollen"    desc="Rechte je Rolle"  path="/app/settings/roles" />
           </HubGrid>
 
           <HubSectionLabel>System</HubSectionLabel>
           <HubGrid>
             <HubButton icon="🔑" label="API-Keys"     desc="Konfigurieren"  path="/app/settings/system" />
-            <HubButton icon="🌐" label="KAS Website"   desc="2 Seiten live" path="/app/settings/kas-website" />
+            <HubButton icon="🌐" label="KAS Website"   desc="Seiten & Inhalte" path="/app/settings/kas-website" />
             <HubButton icon="🗂️" label="Templates"     desc="Vorlagen"       path="/app/settings/templates" />
-            <HubButton icon="💳" label="Abonnement"    desc="Professional"   path="/app/settings/subscription" />
+            <HubButton icon="💳" label="Abonnement"    desc="Zahlung & Paket"   path="/app/settings/subscription" />
           </HubGrid>
 
           <HubSectionLabel>Produkt</HubSectionLabel>
@@ -90,7 +96,7 @@ export default function MobileSettings() {
           onClick={() => { logout(); navigate('/'); }}
           style={{
             width: '100%', padding: '14px', border: 'none',
-            background: '#FDECEA', color: '#C0392B',
+            background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
             borderRadius: 12, fontSize: 13, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
           }}

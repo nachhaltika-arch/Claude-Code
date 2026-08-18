@@ -24,7 +24,7 @@ function SettingRow({ icon, bg, label, val, path }) {
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 12,
         padding: '11px 14px', border: 'none', background: 'none',
-        cursor: 'pointer', borderTop: '0.5px solid #F0F4F5', textAlign: 'left',
+        cursor: 'pointer', borderTop: '0.5px solid var(--border-light)', textAlign: 'left',
         fontFamily: 'var(--font-sans)',
       }}
     >
@@ -35,11 +35,11 @@ function SettingRow({ icon, bg, label, val, path }) {
       }}>
         {icon}
       </span>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#1A2A2C' }}>
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
         {label}
       </span>
-      <span style={{ fontSize: 12, color: '#9AACAE', marginRight: 4 }}>{val}</span>
-      <span style={{ fontSize: 16, color: '#9AACAE' }}>›</span>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginRight: 4 }}>{val}</span>
+      <span style={{ fontSize: 16, color: 'var(--text-secondary)' }}>›</span>
     </button>
   );
 }
@@ -47,7 +47,7 @@ function SettingRow({ icon, bg, label, val, path }) {
 function GroupLabel({ children }) {
   return (
     <div style={{
-      fontSize: 9, fontWeight: 900, color: '#9AACAE',
+      fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)',
       textTransform: 'uppercase', letterSpacing: '.1em',
       padding: '10px 14px 4px',
     }}>
@@ -59,7 +59,7 @@ function GroupLabel({ children }) {
 function SettingsGroup({ children }) {
   return (
     <div style={{
-      background: '#fff', border: '0.5px solid #D5E0E2',
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)',
       borderRadius: 12, overflow: 'hidden', marginBottom: 10,
     }}>
       {children}
@@ -74,9 +74,9 @@ function LogoutButton() {
     <button
       onClick={() => { logout(); navigate('/'); }}
       style={{
-        width: '100%', border: 'none', background: '#FDECEA',
+        width: '100%', border: 'none', background: 'var(--status-danger-bg)',
         borderRadius: 10, padding: 13, textAlign: 'center',
-        fontSize: 13, fontWeight: 700, color: '#C0392B',
+        fontSize: 13, fontWeight: 700, color: 'var(--status-danger-text)',
         cursor: 'pointer', marginBottom: 16, fontFamily: 'var(--font-sans)',
       }}
     >
@@ -98,19 +98,21 @@ export default function SettingsLayout() {
     /* ── Mobile: grouped list view ── */
     if (location.pathname === '/app/settings') {
       return (
-        <div style={{ background: '#F0F4F5', minHeight: '100%' }}>
+        <div style={{ background: 'var(--bg-app)', minHeight: '100%' }}>
 
           {/* User-Card */}
           <div style={{ background: 'var(--brand-primary)', padding: '20px 16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Gleiche Farbe wie die Karte darunter waere unsichtbar —
+              * siehe MobileSettings, derselbe Fall. */}
             <div style={{
-              width: 52, height: 52, borderRadius: '50%', background: 'var(--brand-primary)',
+              width: 52, height: 52, borderRadius: '50%', background: 'var(--bg-surface)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, fontWeight: 900, color: 'var(--text-on-brand)', fontFamily: 'var(--font-sans)',
+              fontSize: 16, fontWeight: 900, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)',
             }}>
               {initials}
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-on-brand)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 {user?.first_name} {user?.last_name}
               </div>
               <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
@@ -124,16 +126,16 @@ export default function SettingsLayout() {
           {/* Account */}
           <SettingsGroup>
             <GroupLabel>Account</GroupLabel>
-            <SettingRow icon="👤" bg="#F0F4F5" label="Profil"     val="Bearbeiten"  path="/app/settings/profile"   />
-            <SettingRow icon="🔐" bg="#E0F4F8" label="Sicherheit" val="2FA & Passwort" path="/app/settings/security" />
+            <SettingRow icon="👤" bg="var(--bg-app)" label="Profil"     val="Bearbeiten"  path="/app/settings/profile"   />
+            <SettingRow icon="🔐" bg="var(--status-info-bg)" label="Sicherheit" val="2FA & Passwort" path="/app/settings/security" />
           </SettingsGroup>
 
           {/* Team — nur Admin */}
           {isAdmin && (
             <SettingsGroup>
               <GroupLabel>Team</GroupLabel>
-              <SettingRow icon="🧑‍💼" bg="#F0F4F5" label="Benutzerverwaltung" val="Verwalten" path="/app/settings/users" />
-              <SettingRow icon="👥"  bg="#E0F4F8" label="Rollenverwaltung"    val="Rollen"   path="/app/settings/roles" />
+              <SettingRow icon="🧑‍💼" bg="var(--bg-app)" label="Benutzerverwaltung" val="Verwalten" path="/app/settings/users" />
+              <SettingRow icon="👥"  bg="var(--status-info-bg)" label="Rollenverwaltung"    val="Rollen"   path="/app/settings/roles" />
             </SettingsGroup>
           )}
 
@@ -141,11 +143,11 @@ export default function SettingsLayout() {
           {isAdmin && (
             <SettingsGroup>
               <GroupLabel>System</GroupLabel>
-              <SettingRow icon="🔑" bg="#F0F4F5" label="System & API-Keys" val="Konfigurieren" path="/app/settings/system"       />
-              <SettingRow icon="🌐" bg="#E0F4F8" label="KAS Website"       val="Seiten"        path="/app/settings/kas-website"  />
-              <SettingRow icon="🗂️" bg="#FFF9CC" label="Templates"          val="Vorlagen"      path="/app/settings/templates"    />
-              <SettingRow icon="🧩" bg="#E0F4F8" label="Komponenten-Bibliothek" val="Editor"   path="/app/settings/component-library" />
-              <SettingRow icon="💳" bg="#F0F4F5" label="Abonnement"         val="Professional"  path="/app/settings/subscription" />
+              <SettingRow icon="🔑" bg="var(--bg-app)" label="System & API-Keys" val="Konfigurieren" path="/app/settings/system"       />
+              <SettingRow icon="🌐" bg="var(--status-info-bg)" label="KAS Website"       val="Seiten"        path="/app/settings/kas-website"  />
+              <SettingRow icon="🗂️" bg="var(--status-warning-bg)" label="Templates"          val="Vorlagen"      path="/app/settings/templates"    />
+              <SettingRow icon="🧩" bg="var(--status-info-bg)" label="Komponenten-Bibliothek" val="Editor"   path="/app/settings/component-library" />
+              <SettingRow icon="💳" bg="var(--bg-app)" label="Abonnement"         val="Zahlung & Paket"  path="/app/settings/subscription" />
             </SettingsGroup>
           )}
 
@@ -153,15 +155,15 @@ export default function SettingsLayout() {
           {isAdmin && (
             <SettingsGroup>
               <GroupLabel>Produkt</GroupLabel>
-              <SettingRow icon="🛠️" bg="#F0F4F5" label="Produktentwicklung" val="Roadmap"       path="/app/product"        />
-              <SettingRow icon="✏️" bg="#E0F4F8" label="Produkteditor"      val="Pakete & Preise" path="/app/product-editor" />
+              <SettingRow icon="🛠️" bg="var(--bg-app)" label="Produktentwicklung" val="Roadmap"       path="/app/product"        />
+              <SettingRow icon="✏️" bg="var(--status-info-bg)" label="Produkteditor"      val="Pakete & Preise" path="/app/product-editor" />
             </SettingsGroup>
           )}
 
           {/* Benachrichtigungen */}
           <SettingsGroup>
             <GroupLabel>Benachrichtigungen</GroupLabel>
-            <SettingRow icon="🔔" bg="#F0F4F5" label="Benachrichtigungen" val="Einstellungen" path="/app/settings/notifications" />
+            <SettingRow icon="🔔" bg="var(--bg-app)" label="Benachrichtigungen" val="Einstellungen" path="/app/settings/notifications" />
           </SettingsGroup>
 
           <LogoutButton />

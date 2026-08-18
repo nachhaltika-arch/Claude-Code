@@ -101,7 +101,7 @@ export default function AcademyCertificate() {
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: T.text, letterSpacing: '0.06em' }}>KOMPAGNON</div>
             <div style={{ fontSize: 11, color: T.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
-              Akademy
+              Akademie
             </div>
           </div>
 
@@ -182,7 +182,7 @@ export default function AcademyCertificate() {
             kompagnon.app/academy/certificate/{data.certificate_code}
           </div>
           <div style={{ fontSize: 11, color: T.textMuted }}>
-            KOMPAGNON Akademy © {new Date().getFullYear()}
+            KOMPAGNON Akademie © {new Date().getFullYear()}
           </div>
         </div>
       </div>

@@ -21,8 +21,8 @@ export function HubButton({ icon, label, desc, path, primary, badge, badgeStyle,
     <button
       onClick={() => onClick ? onClick() : path && navigate(path)}
       style={{
-        background: primary ? '#004F59' : '#fff',
-        border: primary ? 'none' : '0.5px solid #D5E0E2',
+        background: primary ? 'var(--brand-primary)' : 'var(--bg-surface)',
+        border: primary ? 'none' : '0.5px solid var(--border-light)',
         borderRadius: 16,
         padding: '18px 14px 16px',
         cursor: 'pointer',
@@ -47,7 +47,7 @@ export function HubButton({ icon, label, desc, path, primary, badge, badgeStyle,
         <div style={{
           fontSize: 15, fontWeight: 700,
           textTransform: 'uppercase', letterSpacing: '.03em',
-          color: primary ? '#fff' : '#000',
+          color: primary ? 'var(--text-on-brand)' : 'var(--text-primary)',
           lineHeight: 1.2,
           fontFamily: 'var(--font-sans)',
         }}>
@@ -56,7 +56,11 @@ export function HubButton({ icon, label, desc, path, primary, badge, badgeStyle,
         {desc && (
           <div style={{
             fontSize: 10, marginTop: 3, lineHeight: 1.4,
-            color: primary ? 'rgba(255,255,255,.55)' : '#9AACAE',
+            // Vorher #9AACAE bzw. Weiss mit 55 % Deckkraft — beides unter der
+            // Lesbarkeitsschwelle. --text-30 ist ausdruecklich kein Textton
+            // (2.13 auf der App-Flaeche), und genau der stand hier.
+            color: primary ? 'var(--text-on-brand)' : 'var(--text-secondary)',
+            opacity: primary ? 0.85 : 1,
           }}>
             {desc}
           </div>
@@ -65,8 +69,8 @@ export function HubButton({ icon, label, desc, path, primary, badge, badgeStyle,
       {badge && (
         <span style={{
           position: 'absolute', top: 12, right: 12,
-          background: badgeStyle === 'teal' ? '#E0F4F8' : '#FAE600',
-          color: badgeStyle === 'teal' ? '#004F59' : '#000',
+          background: badgeStyle === 'teal' ? 'var(--status-info-bg)' : 'var(--kc-yellow)',
+          color: badgeStyle === 'teal' ? 'var(--brand-primary)' : 'var(--kc-black)',
           fontSize: 8, fontWeight: 900,
           padding: '2px 7px', borderRadius: 3,
           textTransform: 'uppercase', letterSpacing: '.06em',
@@ -82,7 +86,7 @@ export function HubSectionLabel({ children }) {
   return (
     <div style={{
       fontSize: 9, fontWeight: 900,
-      color: '#9AACAE',
+      color: 'var(--text-secondary)',
       textTransform: 'uppercase',
       letterSpacing: '.1em',
       padding: '14px 14px 8px',

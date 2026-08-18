@@ -30,7 +30,6 @@ import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
-import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyLesson from './pages/AcademyLesson';
@@ -293,8 +292,10 @@ function App() {
             <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
 
             {/* Mobile hub pages */}
+            {/* `m-vertrieb` war eine zweite Adresse fuer denselben Bildschirm,
+              * von nirgends verlinkt — entfernt am 18.08.2026. Die Mobilleiste
+              * fuehrt auf `/app/vertrieb`. */}
             <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
-            <Route path="m-vertrieb"  element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
             <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
             <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />
             <Route path="m-settings"  element={<PrivateRoute><MobileSettings /></PrivateRoute>} />

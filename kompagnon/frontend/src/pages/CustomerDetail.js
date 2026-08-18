@@ -1570,7 +1570,7 @@ export default function CustomerDetail() {
           { id: 'design',      label: 'Design',      icon: '🎨' },
           { id: 'branddesign', label: 'Branddesign', icon: '🎨' },
           { id: 'pagespeed',   label: 'PageSpeed',   icon: '⚡' },
-          { id: 'akademy',     label: 'Akademy',     icon: '🎓' },
+          { id: 'akademy',     label: 'Akademie',     icon: '🎓' },
           { id: 'cms',         label: 'CMS',         icon: '🔌' },
         ].map(({ id, label, icon }) => (
           <button
@@ -2259,7 +2259,7 @@ export default function CustomerDetail() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🎓</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademy</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademie</span>
             {!loadingAcademy && assigned.length > 0 && (
               <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
                 {assigned.length}

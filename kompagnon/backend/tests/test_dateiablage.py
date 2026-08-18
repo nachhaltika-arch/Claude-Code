@@ -58,18 +58,26 @@ def test_die_nummer_wird_nicht_als_pfad_gelesen(monkeypatch):
 
 # ── Dass wirklich alle drei Stellen dieselbe Wurzel nehmen ────────────
 
-@pytest.mark.parametrize("modul,name", [
-    ("routers.files", "UPLOADS_BASE"),
-    ("routers.assets", "_UPLOAD_ROOT"),
+@pytest.mark.parametrize("modul,funktion,argument", [
+    ("routers.files", "_lead_dir", 7),
+    ("routers.assets", "_lead_dir", 7),
 ])
-def test_die_schreibstellen_folgen_der_einstellung(monkeypatch, modul, name):
-    """Ein Datenträger, der nur ein Drittel auffängt, ist schlimmer als keiner."""
+def test_die_schreibstellen_folgen_der_einstellung(monkeypatch, tmp_path, modul, funktion, argument):
+    """Ein Datenträger, der nur ein Drittel auffängt, ist schlimmer als keiner.
+
+    Geprüft wird jetzt das Verzeichnis, das die Stelle beim Schreiben nimmt —
+    nicht mehr eine Modulkonstante. Die gab es bis zum 18.08.2026, und sie war
+    beim Import festgelegt: Der Pfad hing also davon ab, ob `UPLOAD_ROOT` schon
+    gesetzt war, als das Modul geladen wurde.
+    """
     import importlib
 
-    monkeypatch.setenv("UPLOAD_ROOT", "/var/data/uploads")
-    m = importlib.reload(importlib.import_module(modul))
+    # Ein echtes Verzeichnis, kein /var/data: Die Stellen legen es an.
+    monkeypatch.setenv("UPLOAD_ROOT", str(tmp_path))
+    m = importlib.import_module(modul)
+    importlib.reload(m)
 
-    assert getattr(m, name) == Path("/var/data/uploads")
+    assert str(getattr(m, funktion)(argument)).startswith(str(tmp_path))
 
 
 def test_auch_die_auftragsbestaetigung(monkeypatch, tmp_path):

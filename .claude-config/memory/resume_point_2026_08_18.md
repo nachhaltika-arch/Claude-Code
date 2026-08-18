@@ -89,5 +89,49 @@ auf den Dienst selbst statt auf Renders Auskunft
 5. **193 Stellen** weiße Schrift auf einer Fläche, die die Datei nicht nennt —
    gezählt, nicht geprüft
 
-Prüfstand: **1197 Backend-, 300 Frontend-Tests**, CI grün auf `369`.
+## Nach dem Merge kam der längere Teil des Tages
+
+**Akademie und Mobil, zum ersten Mal angesehen.** `/app/vertrieb` — die
+Adresse aus der Mobilleiste — zeigte auf dem Desktop eine **leere Seite**
+(`navigate()` im Render leitet nicht um). Die Mobil-Kacheln trugen **erfundene
+Zahlen** („12 Leads", „Abonnement: Professional"), „Akademy" stand an neun
+weiteren Stellen inklusive zweimal auf der Kundenurkunde, und auf der
+Passwort-Seite prangte ein fremdes goldenes „HS". **Die Akademie hatte
+überhaupt keinen Menüeintrag** — das hat David gefunden, nicht ich, nachdem
+ich den Bereich zwei Stunden lang über die Adresszeile untersucht hatte.
+
+**Beim Vergleich der zwei Kurseditoren (UX-42) fiel der schwerste Fund:** Es
+liess sich **keine einzige Lektion anlegen** — 500 seit es den Endpunkt gibt,
+`checklist_items_json` im Router, nicht im Modell. Der Modellabgleich fand
+danach **zwölf Spalten**, die zugewiesen und still verworfen wurden
+(Onboarding-Status, PageSpeed, Projektphase, Auftragsbestätigung).
+
+**Drei Zugriffslöcher** (L-12 zog sie nach sich): Rolle `nutzer` sah den ganzen
+Bestand, ein angemeldeter Kunde die ganze Kundenkartei (`usercards.py` samt
+Alias-Routern war am 17.08. übersehen worden), und die Zeilenprüfung fragte
+dasselbe Falsche. Alle drei nennen jetzt, **wer darf**.
+
+**Geschlossen:** L-05 (halb — 14 von 16 Rechten sind weiter nur beschreibend,
+und der Bildschirm sagt das jetzt), L-10 (eigenes Fehlerprotokoll), L-12,
+L-13. Dazu UX-19, UX-34 bis UX-44.
+
+**Die CI dreimal repariert:** Hänger (Zeitgrenzen), Abbruch durch Folge-Pushes
+(`scripts/push-wenn-ruhig.sh` wartet jetzt), und der apt-Deadlock — `timeout`
+tötet keine Enkelprozesse, das `apt-get` hielt die Sperre. Seitdem
+`playwright install chromium` **ohne** `--with-deps`.
+
+**Datenträger produktiv angehängt** (gemeinsam im Dashboard, Render-MCP war
+`unauthorized`): 1 GB auf `/var/data`, `UPLOAD_ROOT` gesetzt, am Dienst
+nachgewiesen. Preis: kein unterbrechungsfreier Deploy mehr.
+
+## Morgen: L-34
+
+Der Umzug nach Frankfurt, abgesprochen. `docs/umzug-backend-frankfurt.md` ist
+um den Stand vom 18.08. ergänzt — vor allem: **Der Datenträger zieht nicht
+mit** (heute null Dateien, morgen vorher zählen), die Service-IDs in den
+Repository-Variablen ändern sich, und `/health` beweist mit
+`uploads.dauerhaft`, ob der neue Datenträger wirklich hängt.
+
+Prüfstand am Ende des Tages: **1248 Backend-, 323 Frontend-Tests**, CI grün
+auf `391`, **26 Commits auf `staging`** seit PR #42.
 Voriger Stand [[resume-point-2026-08-17]].

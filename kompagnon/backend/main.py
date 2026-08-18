@@ -44,6 +44,7 @@ from seed_checklists import seed_checklists
 
 # Import all routers
 from routers import (
+    fehler_router,
     usercards_router,
     usercards_kunden_router,
     leads_alias_router,
@@ -1760,6 +1761,7 @@ app.add_middleware(
 # Include all routers — specific routers BEFORE alias/fallback routers
 # Zuerst der Kundenweg: Die Profilroute liegt dort und prueft je Zeile.
 # Danach der geschlossene Hauptrouter.
+app.include_router(fehler_router)
 app.include_router(usercards_kunden_router)
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first
@@ -1922,12 +1924,34 @@ from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
 
 
-# Global exception handler — catches unhandled errors
+# Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
+#
+# Bis zum 18.08.2026 stand hier nur `logger.error`. Ins Serverlog sieht
+# niemand taeglich, und so blieb der 500er beim Anlegen einer Lektion
+# monatelang unbemerkt (L-10). Seitdem landet dasselbe zusaetzlich in
+# `fehlerprotokoll` und ist unter `/api/fehler/` abrufbar.
+#
+# Es gab hier **zwei** gleichnamige Handler; der zweite ueberschrieb den
+# ersten stillschweigend. Jetzt einer.
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error(
-        f'Unbehandelter Fehler: {type(exc).__name__}: {exc}\n{traceback.format_exc()}'
-    )
+    spur = traceback.format_exc()
+    logger.error(f'Unbehandelter Fehler: {type(exc).__name__}: {exc}\n{spur}')
+
+    try:
+        from services.fehlerprotokoll import merke_fehler
+        benutzer = getattr(getattr(request, "state", None), "user_id", None)
+        merke_fehler(
+            pfad=str(getattr(request, "url", "")).split("?")[0][:500],
+            methode=getattr(request, "method", ""),
+            art=type(exc).__name__,
+            meldung=str(exc),
+            spur=spur,
+            benutzer_id=benutzer,
+        )
+    except Exception:      # pragma: no cover — das Protokoll reisst nichts mit
+        pass
+
     return JSONResponse(
         status_code=500,
         content={'detail': 'Interner Serverfehler', 'type': type(exc).__name__},
@@ -2050,18 +2074,8 @@ def root():
     }
 
 
-# Error handlers
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Handle uncaught exceptions."""
-    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": "Internal server error",
-            "error_type": type(exc).__name__,
-        },
-    )
+# (Der zweite, gleichnamige Handler stand hier und ueberschrieb den oberen.
+#  Entfernt am 18.08.2026 — siehe dort.)
 
 
 # Info endpoint for deployment

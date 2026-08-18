@@ -353,6 +353,35 @@ class Communication(Base):
     project = relationship("Project", back_populates="communications")
 
 
+class Fehlerprotokoll(Base):
+    """Was der Server nicht verarbeiten konnte — zusammengefasst.
+
+    Luecke L-10: Produktiv gab es keine Fehlerauskunft. Der 500er beim Anlegen
+    einer Lektion stand monatelang, ohne dass jemand davon wusste; die
+    Oberflaeche verschluckte ihn, und ins Log sieht niemand taeglich.
+
+    Zusammengefasst statt gesammelt: Gleiche Art an gleicher Stelle zaehlt
+    hoch. Ein kaputter Endpunkt schreibt sonst tausende gleiche Zeilen, und
+    eine unlesbare Liste ist so gut wie keine.
+
+    Die Spur wird gekuerzt aufbewahrt — in einem Traceback koennen Werte aus
+    Kundendaten stehen, und was nicht gebraucht wird, wird nicht gespeichert.
+    """
+    __tablename__ = "fehlerprotokoll"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kennung = Column(String(64), index=True)     # Art + Pfad + erste Spurzeile
+    art = Column(String(120))                    # TypeError, ProgrammingError, …
+    pfad = Column(String(500))
+    methode = Column(String(10))
+    meldung = Column(Text, default="")
+    spur = Column(Text, default="")
+    benutzer_id = Column(Integer, nullable=True)
+    anzahl = Column(Integer, default=1)
+    zuerst = Column(DateTime, default=datetime.utcnow)
+    zuletzt = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class AutomationLog(Base):
     """Log of automation triggers and execution."""
     __tablename__ = "automation_logs"

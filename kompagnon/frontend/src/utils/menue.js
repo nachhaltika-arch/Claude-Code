@@ -120,6 +120,8 @@ export const MENUE_GRUPPEN = [
       // laufen zu lassen ist genau UX-01, der erste Befund dieser Pruefung.
       // Wer umbenennen will, benennt beides um.
       { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
+      // Ein Fehlerprotokoll, das niemand findet, ist so gut wie keines (L-10).
+      { label: 'Fehlerprotokoll', path: '/app/fehler', adminOnly: true },
     ],
   },
 ];

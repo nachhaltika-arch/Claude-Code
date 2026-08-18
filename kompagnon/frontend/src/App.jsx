@@ -52,6 +52,7 @@ import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
+import Fehlerprotokoll from './pages/Fehlerprotokoll';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import Barrierefreiheit from './pages/Barrierefreiheit';
@@ -324,6 +325,9 @@ function App() {
               * 18.08.2026 (UX-43). */}
 
             {/* Settings with sub-navigation */}
+            {/* Was der Server nicht verarbeiten konnte — L-10. */}
+            <Route path="fehler" element={<PrivateRoute roles={['admin']}><Fehlerprotokoll /></PrivateRoute>} />
+
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/app/settings/profile" replace />} />
               <Route path="profile" element={<Settings tab="profile" />} />

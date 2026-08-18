@@ -13,7 +13,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import (
-    require_admin, require_any_auth, require_innendienst, get_current_user,
+    INNENDIENST, require_admin, require_any_auth, require_innendienst,
+    get_current_user,
 )
 from services import betriebsname
 from seed_checklists import create_project_checklists
@@ -993,8 +994,13 @@ def get_lead(
     Die einzige Lead-Route, die auch ein Kunde aufrufen darf — für den
     eigenen Betrieb. Die eigene Nummer hochzuzählen ist der naheliegendste
     Angriff, deshalb steht die Prüfung hier und nicht in der Oberfläche.
+
+    **18.08.2026:** Die Prüfung fragte, ob jemand `kunde` ist — und liess
+    damit die Rolle `nutzer` durch, die laut Rechtematrix kein `view_leads`
+    hat. Jetzt umgekehrt: Wer nicht zum Innendienst gehört, sieht nur den
+    eigenen Betrieb. Dieselbe Umkehrung wie in `require_innendienst`.
     """
-    if current_user.role == "kunde" and current_user.lead_id != lead_id:
+    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()

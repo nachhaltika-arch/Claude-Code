@@ -26,13 +26,20 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
-from routers.auth_router import optional_auth, require_any_auth
+from routers.auth_router import optional_auth, require_any_auth, require_innendienst
 from services.audit_pagespeed import api_key as pagespeed_api_key
 
 # Vorgabe: geschlossen — siehe routers/leads.py. Diese Routen tragen
 # dieselben Kundendaten wie der Lead-Router und waren ebenso offen.
+# Vorgabe: Innendienst. `require_any_auth` fragt nur, *ob* jemand angemeldet
+# ist — und damit bekam ein Kunde am 18.08.2026 ueber `GET /api/usercards/`
+# und den Alias `GET /api/customers/` den vollstaendigen Bestand. Dieselbe
+# Luecke wie am 17.08. beim Lead-Router; dieses Modul blieb uebrig.
+#
+# Was ein Kunde wirklich braucht, ist genau eine Route — das eigene Profil,
+# das sein Dashboard laedt. Die haengt unten am `kunden_router`.
 router = APIRouter(prefix="/api/usercards", tags=["usercards"],
-                   dependencies=[Depends(require_any_auth)])
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
@@ -255,7 +262,14 @@ def create_usercard(data: UserCardCreate, background_tasks: BackgroundTasks, db:
     return _card_to_dict(card)
 
 
-@router.get("/{card_id}/profile")
+# Was ein Kunde braucht: das eigene Profil, das `CustomerDashboard.jsx` laedt.
+# Eigener Router, wie beim Lead-Router — die Route prueft selbst, ob die Karte
+# ihm gehoert (`_check_kunde_access`).
+kunden_router = APIRouter(prefix="/api/usercards", tags=["usercards-kunde"],
+                          dependencies=[Depends(require_any_auth)])
+
+
+@kunden_router.get("/{card_id}/profile")
 def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Full card profile with audits, projects, and score history."""
     _check_kunde_access(card_id, current_user)
@@ -440,9 +454,9 @@ def delete_usercard(card_id: int, db: Session = Depends(get_db)):
 # Die Aliasse zeigen auf dieselben Funktionen. Ohne dieselbe Abhaengigkeit
 # waere die Absicherung des Hauptrouters nur ein Umweg entfernt.
 leads_alias_router    = APIRouter(prefix="/api/leads",     tags=["usercards"],
-                                  dependencies=[Depends(require_any_auth)])
+                                  dependencies=[Depends(require_innendienst)])
 customers_alias_router = APIRouter(prefix="/api/customers", tags=["usercards"],
-                                   dependencies=[Depends(require_any_auth)])
+                                   dependencies=[Depends(require_innendienst)])
 
 for _alias in (leads_alias_router, customers_alias_router):
     _alias.add_api_route("/",                    list_usercards,           methods=["GET"])

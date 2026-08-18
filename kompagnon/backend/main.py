@@ -45,6 +45,7 @@ from seed_checklists import seed_checklists
 # Import all routers
 from routers import (
     usercards_router,
+    usercards_kunden_router,
     leads_alias_router,
     usercards_customers_alias_router,
     leads_router,
@@ -1757,6 +1758,9 @@ app.add_middleware(
 )
 
 # Include all routers — specific routers BEFORE alias/fallback routers
+# Zuerst der Kundenweg: Die Profilroute liegt dort und prueft je Zeile.
+# Danach der geschlossene Hauptrouter.
+app.include_router(usercards_kunden_router)
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first
 # Die ausdrücklich öffentlichen Lead-Routen: Formular der Landingpage und der

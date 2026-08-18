@@ -83,3 +83,74 @@ def test_der_geschuetzte_router_traegt_die_abhaengigkeit():
     from routers.leads import router
 
     assert router.dependencies, "Lead-Router ohne Vorgabe-Anmeldung"
+
+
+# ── Angemeldet heisst nicht berechtigt ────────────────────────────────
+#
+# Befund vom 18.08.2026: `require_innendienst` sperrt nur die Rolle `kunde`
+# aus. Die Rechtematrix in `admin_settings.py` gibt `view_leads` und
+# `view_projects` aber nur an **superadmin, admin und auditor** — die Rolle
+# `nutzer` hat dieselben Rechte wie ein Kunde (Dashboard, Audits, PDF).
+#
+# Am laufenden Server nachgestellt: Ein Konto mit Rolle `nutzer` bekam auf
+# `GET /api/leads/` eine **200** samt vollstaendigem Bestand. Dieselbe Luecke
+# wie am 17.08. bei den Kundenzugaengen, nur eine Rolle weiter.
+#
+# Die Sperre fragt jetzt, **wer darf**, statt aufzuzaehlen, wer nicht darf:
+# Eine spaeter erfundene Rolle ist damit erst einmal draussen.
+
+NUTZER_EMAIL = "pytest-nutzer@kompagnon.local"
+NUTZER_PASSWORT = "pytest-nutzer-passwort"
+
+
+@pytest.fixture(scope="module")
+def nutzer_headers(client, app):
+    from auth import hash_password
+    from database import SessionLocal, User
+
+    db = SessionLocal()
+    try:
+        vorhanden = db.query(User).filter(User.email == NUTZER_EMAIL).first()
+        if not vorhanden:
+            db.add(User(
+                email=NUTZER_EMAIL,
+                password_hash=hash_password(NUTZER_PASSWORT),
+                first_name="Pytest", last_name="Nutzer",
+                role="nutzer", is_active=True, is_verified=True,
+            ))
+            db.commit()
+    finally:
+        db.close()
+
+    antwort = client.post("/api/auth/login",
+                          json={"email": NUTZER_EMAIL, "password": NUTZER_PASSWORT})
+    assert antwort.status_code == 200, antwort.text
+    return {"Authorization": f"Bearer {antwort.json()['access_token']}"}
+
+
+@pytest.mark.parametrize("pfad", ["/api/leads/", "/api/customers/"])
+def test_die_rolle_nutzer_sieht_den_bestand_nicht(client, nutzer_headers, pfad):
+    antwort = client.get(pfad, headers=nutzer_headers, follow_redirects=True)
+
+    assert antwort.status_code == 403, (
+        f"{pfad} -> {antwort.status_code}: Ein angemeldeter Nutzer bekommt "
+        "Kundendaten, obwohl die Rechtematrix ihm view_leads nicht gibt."
+    )
+
+
+def test_die_sperre_zaehlt_auf_wer_darf(client):
+    """Nicht wer nicht darf — sonst ist die naechste neue Rolle wieder drin."""
+    import inspect
+
+    from routers.auth_router import require_innendienst
+
+    quelle = inspect.getsource(require_innendienst)
+    assert "auditor" in quelle, "Die Sperre nennt die erlaubten Rollen nicht"
+
+
+def test_auch_kein_einzelner_betrieb(client, nutzer_headers, kunde_user):
+    """Am vorhandenen Datensatz geprueft — sonst waere ein 404 die Antwort,
+    und der sagt nichts ueber die Berechtigung."""
+    antwort = client.get(f"/api/leads/{kunde_user.lead_id}", headers=nutzer_headers)
+
+    assert antwort.status_code == 403, f"-> {antwort.status_code}: {antwort.text[:120]}"

@@ -56,7 +56,12 @@ jobs:
           ANTHROPIC_API_KEY: ci-dummy
           ENVIRONMENT: development
         run: |
-          python -c "import main; routes = len(main.app.routes); print(f'OK: {routes} routes registered'); assert routes > 30, f'expected > 30 routes, got {routes}'"
+          # `app.routes` zaehlt seit FastAPI 0.141 nur die eingehaengten Router,
+          # nicht die Endpunkte — die entstehen erst beim Start. Die Schwelle 30
+          # war damit fast nicht mehr zu reissen: 61 Wrapper bestehen sie auch,
+          # wenn kein einziger Endpunkt dahinter haengt. Das OpenAPI-Verzeichnis
+          # zaehlt, was wirklich erreichbar ist (18.08.2026: 401).
+          python -c "import main; pfade = main.app.openapi().get('paths', {}); print(f'OK: {len(pfade)} Endpunkte'); assert len(pfade) > 300, f'nur {len(pfade)} Endpunkte — Router nicht geladen?'"
 
   backend-tests:
     name: Backend — Tests (pytest)

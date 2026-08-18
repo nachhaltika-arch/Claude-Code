@@ -74,6 +74,11 @@ def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
+#: Wer zum Innendienst gehoert. Deckungsgleich mit den Rollen, denen
+#: `admin_settings.DEFAULT_PERMISSIONS` `view_leads` gibt.
+INNENDIENST = ("superadmin", "admin", "auditor")
+
+
 def require_innendienst(user: User = Depends(get_current_user)):
     """Alles ausser Kundenzugaengen.
 
@@ -86,8 +91,17 @@ def require_innendienst(user: User = Depends(get_current_user)):
     `view_projects` haben superadmin, admin und auditor. Was ein Kunde
     braucht, haengt am `kunden_router` des jeweiligen Bereichs und prueft
     dort einzeln, ob die Zeile ihm gehoert.
+
+    **18.08.2026:** Die Sperre zaehlte auf, wer *nicht* darf — und liess
+    damit die Rolle `nutzer` durch. Die hat laut derselben Matrix nur
+    Dashboard, Audits und PDF, bekam ueber `GET /api/leads/` aber den
+    vollstaendigen Bestand (am laufenden Server nachgestellt: HTTP 200).
+    Dieselbe Luecke wie am 17.08. bei den Kundenzugaengen, eine Rolle weiter.
+
+    Jetzt umgekehrt: Es zaehlt auf, **wer darf**. Eine spaeter erfundene Rolle
+    ist damit erst einmal draussen, statt aus Versehen drin.
     """
-    if user.role == "kunde":
+    if user.role not in INNENDIENST:
         raise HTTPException(403, "Nur fuer den Innendienst")
     return user
 

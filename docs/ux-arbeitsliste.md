@@ -6,6 +6,10 @@
 >
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
 >
+> **Stand 2026-08-18:** **Paket 7 ist zu** — damit ist die Liste bis auf
+> UX-Daten (Datenfrage, braucht dich) und den daraus entstandenen Punkt
+> UX-34 abgearbeitet.
+>
 > **Stand 2026-08-17 (abends):** Paket 1 und **Paket 2** sind abgeschlossen,
 > **produktiv** seit dem Merge von PR #41. Paket 2 brachte vier ungesuchte
 > Funde mit (UX-30 bis UX-33), alle erledigt.
@@ -513,15 +517,52 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ---
 
-## Paket 7 — Später: eine Welt statt zwei
+## Paket 7 — eine Welt statt zwei · ✅ ABGESCHLOSSEN 2026-08-18
 
-- [ ] **UX-19** · **L** · Bruch hell/dunkel zwischen Tool und Kundenportal,
-      dazu eine dritte Domain im Fuß (`kompagnon.eu`, während das Tool auf
-      `kompagnon.group` läuft). Der größte Eingriff auf dieser Liste und der
-      einzige, der echte Gestaltungsarbeit ist — wirkt aber dort, wo es ums
-      Geld geht: im ersten Eindruck nach dem Kauf.
-      *Prüfung:* Ein Kunde, der vom Bericht ins Portal wechselt, merkt keinen
-      Hauswechsel.
+- [x] **UX-19** · **L** · ~~Bruch hell/dunkel zwischen Tool und Kundenportal~~
+      **erledigt 2026-08-18.** Der Befund las sich wie zwei
+      Gestaltungsentscheidungen und war eine Auslassung: Die Anwendung hat
+      **ein** Farbsystem mit hellem und dunklem Modus (`styles/tokens.css`),
+      und die Kundenseiten sind ihm nie beigetreten. `PortalLogin` trug 17
+      feste Hexwerte gegen 3 Tokens — also blieb der erste Bildschirm nach
+      dem Kauf weiß, während alles andere dem System des Betrachters folgt.
+      **Umgestellt:** PortalLogin, CustomerPortal (71 feste Werte),
+      KundenPortal, Freigaben, SupportTickets.
+      **Fest bleiben nur zwei Sorten Farbe**, und der Sperrtest nennt den
+      Grund: die Medaillentöne des Homepage Standards und die drei
+      Fensterknöpfe des Browser-Nachbaus — die zitieren ein Fenster, sie
+      melden keinen Zustand.
+      **Die dritte Domain ist weg.** Stattdessen der Firmenname und die
+      eigenen Rechtsseiten — die es in `pages/` gab, die aber **an keiner
+      Adresse hingen**: ein Impressum, zu dem kein Weg führte, und in dessen
+      Fuß ein Verweis auf `/barrierefreiheit`, das es ebenfalls nicht gab.
+      Alle drei sind jetzt erreichbar und folgen demselben Farbsystem.
+      *Geprüft:* im Browser in beiden Modi, nicht nur im Test.
+
+### Zwei Funde beim Messen — beide schwerer als der Listenpunkt
+
+- [x] **UX-19a** · Weiß auf `--brand-primary` erreicht im Dunkelmodus **2.06**.
+      So ist in der Anwendung **jeder** Knopf gebaut; auf der Kundenseite wäre
+      es die erste Fläche nach dem Kauf gewesen. Neues Token
+      `--text-on-brand` dreht die Tinte statt der Markenfarbe: **8.43**.
+- [x] **UX-19b** · `ThemeContext` setzt **immer** ein `data-theme`, aber
+      `[data-theme="light"]` nannte nur Flächen und Schrift. Auf einem
+      Rechner, dessen System dunkel steht, ergab die Wahl „hell" deshalb
+      helle Flächen mit den **Markenfarben des Dunkelmodus**:
+      `--brand-primary` war `#008eaa` statt `#004f59`, Weiß darauf 3.85.
+      Dreizehn Tokens fehlten. `styles/tokens.test.js` verlangt jetzt, dass
+      der Hellblock jeden Ton des Dunkelblocks zurücknimmt.
+
+### Offen daraus
+
+- [ ] **UX-34** · **M** · Dasselbe Weiß-auf-Marke steht noch an **62**
+      Stellen im Innendienst (`background: var(--brand-primary)` mit
+      `color: '#fff'` in derselben Zeile). Im Dunkelmodus sind das 2.06.
+      Der Umbau ist mechanisch — `--text-on-brand` gibt es bereits —, aber er
+      berührt viele Dateien und gehört nicht in denselben Commit wie die
+      Kundenseiten.
+      *Prüfung:* Kein `color: '#fff'` mehr auf einer Fläche in Markenfarbe;
+      der Sperrtest der Kundenseiten lässt sich auf `pages/` ausweiten.
 
 ---
 

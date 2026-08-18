@@ -74,9 +74,15 @@ def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
-#: Wer zum Innendienst gehoert. Deckungsgleich mit den Rollen, denen
-#: `admin_settings.DEFAULT_PERMISSIONS` `view_leads` gibt.
+#: Wer zum Innendienst gehoert, **wenn niemand etwas anderes eingestellt hat**.
+#: Fuer die eigentliche Frage siehe `require_innendienst`: Die liest die
+#: Rechteverwaltung, statt Rollen aufzuzaehlen.
 INNENDIENST = ("superadmin", "admin", "auditor")
+
+#: Admin und Superadmin bleiben drin, was auch immer jemand anhakt. Die
+#: Oberflaeche laesst beide Rollen nicht bearbeiten; hier steht derselbe Boden
+#: noch einmal, weil eine Oberflaechenpruefung keine Sperre ist.
+IMMER_INNENDIENST = ("superadmin", "admin")
 
 
 def require_innendienst(user: User = Depends(get_current_user)):
@@ -100,8 +106,18 @@ def require_innendienst(user: User = Depends(get_current_user)):
 
     Jetzt umgekehrt: Es zaehlt auf, **wer darf**. Eine spaeter erfundene Rolle
     ist damit erst einmal draussen, statt aus Versehen drin.
+
+    **18.08.2026, zweiter Schritt (L-05):** Es zaehlt nicht mehr selbst auf,
+    sondern fragt die Rechteverwaltung nach `view_leads`. Damit tut der Haken
+    im Bildschirm „Rollen" endlich etwas — vorher liess er sich setzen und
+    wegnehmen, ohne dass irgendetwas geschah.
     """
-    if user.role not in INNENDIENST:
+    if user.role in IMMER_INNENDIENST:
+        return user
+
+    from services.rechte import hat_recht
+
+    if not hat_recht(user.role, "view_leads"):
         raise HTTPException(403, "Nur fuer den Innendienst")
     return user
 

@@ -12,6 +12,8 @@ from routers.auth_router import require_admin
 
 logger = logging.getLogger(__name__)
 
+from services.rechte import DURCHGESETZTE_RECHTE
+
 router = APIRouter(prefix="/api/admin", tags=["admin-settings"])
 
 DEFAULT_PERMISSIONS = {
@@ -110,12 +112,20 @@ def get_roles(admin=Depends(require_admin), db: Session = Depends(get_db)):
         _seed_permissions(db)
         rows = db.query(RolePermission).all()
 
-    result = {}
+    rollen = {}
     for r in rows:
-        if r.role not in result:
-            result[r.role] = {}
-        result[r.role][r.permission] = r.is_allowed
-    return result
+        rollen.setdefault(r.role, {})[r.permission] = r.is_allowed
+
+    # Bis zum 18.08.2026 wurde diese Tabelle **nirgends** zur Rechtevergabe
+    # gelesen (L-05): Ein Haken liess sich setzen und wegnehmen, ohne dass
+    # etwas geschah. Jetzt haengt an einem Teil davon wirklich eine Sperre —
+    # und der Bildschirm muss beides auseinanderhalten koennen. Was hier nicht
+    # steht, ist Beschreibung, keine Zusicherung.
+    return {
+        **rollen,
+        "rollen": rollen,
+        "durchgesetzt": sorted(DURCHGESETZTE_RECHTE),
+    }
 
 
 @router.patch("/roles/{role}")

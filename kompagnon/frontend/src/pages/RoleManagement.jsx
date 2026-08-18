@@ -37,6 +37,11 @@ const PERM_LABELS = {
 export default function RoleManagement() {
   const { isMobile } = useScreenSize();
   const [roles, setRoles] = useState({});
+  // Welche Haken wirklich etwas tun. Bis zum 18.08.2026 tat **keiner** etwas:
+  // Die Tabelle wurde gespeichert und nirgends gelesen (L-05). Jetzt hängt an
+  // einem Teil eine Sperre — und der Bildschirm muss beides auseinanderhalten,
+  // sonst verspricht er weiter mehr, als er hält.
+  const [durchgesetzt, setDurchgesetzt] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // role key
   const [editPerms, setEditPerms] = useState({});
@@ -48,7 +53,11 @@ export default function RoleManagement() {
     setLoading(true);
     try {
       const res = await apiCall('/api/admin/roles');
-      if (res.ok) setRoles(await res.json());
+      if (res.ok) {
+        const daten = await res.json();
+        setRoles(daten.rollen || daten);
+        setDurchgesetzt(daten.durchgesetzt || []);
+      }
     } catch (e) { toast.error('Rollen konnten nicht geladen werden'); }
     finally { setLoading(false); }
   };
@@ -103,10 +112,20 @@ export default function RoleManagement() {
               <div style={{ padding: '14px 18px' }}>
                 {Object.entries(PERM_LABELS).map(([perm, label]) => {
                   const allowed = perms[perm] !== false;
+                  const wirkt = durchgesetzt.includes(perm);
                   return (
                     <div key={perm} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
                       <span style={{ color: allowed ? 'var(--status-success-text)' : 'var(--border-strong)', fontWeight: 700, width: 16 }}>{allowed ? '✓' : '—'}</span>
                       <span style={{ color: allowed ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{label}</span>
+                      {!wirkt && (
+                        <span
+                          title="Diese Angabe beschreibt die Absicht — eine Sperre hängt noch nicht daran."
+                          style={{
+                            fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                            background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)',
+                          }}
+                        >beschreibend</span>
+                      )}
                     </div>
                   );
                 })}
@@ -127,14 +146,25 @@ export default function RoleManagement() {
             <h3 style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}>
               {ROLE_META[editing]?.icon} {ROLE_META[editing]?.label} — Berechtigungen
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Aktivieren oder deaktivieren Sie einzelne Berechtigungen</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+              Aktivieren oder deaktivieren Sie einzelne Berechtigungen. Als
+              <em> beschreibend</em> gekennzeichnete Angaben halten fest, was gelten
+              <em> soll</em> — eine Sperre hängt dort noch nicht daran.
+            </p>
 
             {Object.entries(PERM_LABELS).map(([perm, label]) => (
               <label key={perm} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '10px 0', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', fontSize: 14,
               }}>
-                <span style={{ color: 'var(--text-primary)' }}>{label}</span>
+                <span style={{ color: 'var(--text-primary)' }}>
+                  {label}
+                  {!durchgesetzt.includes(perm) && (
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 8 }}>
+                      — beschreibend, wirkt noch nicht
+                    </span>
+                  )}
+                </span>
                 <input type="checkbox" checked={editPerms[perm] !== false}
                   onChange={(e) => setEditPerms((p) => ({ ...p, [perm]: e.target.checked }))}
                   style={{ width: 18, height: 18 }} />

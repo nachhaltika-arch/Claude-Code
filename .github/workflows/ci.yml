@@ -226,15 +226,26 @@ jobs:
 
       - name: Install Playwright
         working-directory: kompagnon/e2e
-        # `--with-deps` ruft apt-get auf. Eine Rueckfrage dort (needrestart,
-        # debconf) haelt den Schritt an, ohne dass etwas rot wird — genau das
-        # ist am 17.08. sechs Stunden lang passiert.
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          NEEDRESTART_MODE: a
+        # **Ohne `--with-deps`** — und das ist die Lehre aus zwei Ausfaellen:
+        #
+        # 17.08., Lauf #359: `--with-deps` blieb im `apt-get` haengen und lief
+        # sechs Stunden in GitHubs Notbremse. Daraufhin kam die Zeitgrenze je
+        # Versuch (`ci-retry.sh`).
+        #
+        # 18.08., Laeufe #386/#387: Die Zeitgrenze griff nach 600s — aber
+        # `timeout` beendet den Vorgang, den es gestartet hat, nicht dessen
+        # Kindeskinder. Das `apt-get` (PID 3085) lief weiter und hielt die
+        # Sperre unter /var/lib/apt/lists/. Die beiden Wiederholungen starben
+        # sofort an „Could not get lock". Aus sechs Stunden Haengen wurden
+        # dreizehn Minuten Scheitern — besser, aber immer noch rot.
+        #
+        # Die Wurzel ist apt, nicht die Wartezeit. Das Runner-Abbild von GitHub
+        # bringt die Bibliotheken fuer Chromium mit; wir brauchen nur den
+        # Browser selbst. Faellt eine Bibliothek doch, meldet sich Chromium
+        # beim Start — sichtbar und in Sekunden, statt lautlos in Minuten.
         run: |
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci
-          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install chromium
 
       - name: Run browser tests
         working-directory: kompagnon/e2e

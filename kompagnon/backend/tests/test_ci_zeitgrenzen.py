@@ -69,13 +69,28 @@ def test_jeder_ci_job_hat_eine_zeitgrenze():
     )
 
 
-def test_playwright_installiert_ohne_rueckfrage():
-    """`--with-deps` ruft apt-get; eine Rueckfrage dort haelt den Job an."""
+def test_playwright_installiert_ohne_apt():
+    """Der Browser ja, die Systempakete nicht.
+
+    Erste Fassung dieses Tests (18.08., vormittags) verlangte das Gegenteil:
+    `--with-deps` plus `DEBIAN_FRONTEND`, damit apt nicht nachfragt. Am selben
+    Abend zeigten die Laeufe #386 und #387, dass die Rueckfrage nicht das
+    Problem war, sondern apt selbst: Die Zeitgrenze beendete den Aufruf, das
+    `apt-get` darunter lief weiter und hielt die Sperre — die Wiederholungen
+    starben sofort daran.
+
+    Das Runner-Abbild bringt die Bibliotheken mit. Fehlt doch eine, meldet es
+    Chromium beim Start.
+    """
     inhalt = CI_WORKFLOW.read_text(encoding="utf-8")
 
-    assert "playwright install --with-deps" in inhalt
-    assert "DEBIAN_FRONTEND: noninteractive" in inhalt
-    assert "NEEDRESTART_MODE: a" in inhalt
+    aufrufe = [z.strip() for z in inhalt.splitlines()
+               if "playwright install" in z and not z.strip().startswith("#")]
+
+    assert aufrufe, "Der Browser wird nirgends installiert"
+    for zeile in aufrufe:
+        assert "--with-deps" not in zeile, f"apt ist zurueck: {zeile}"
+        assert "chromium" in zeile, zeile
 
 
 @pytest.mark.skipif(

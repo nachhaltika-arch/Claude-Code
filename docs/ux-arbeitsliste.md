@@ -661,14 +661,46 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       `checklist_items_json`. Ebenso `category`, `category_color`, `formats`:
       im Modell, nirgends angezeigt.
 
-- [ ] **UX-43** · **S** · **Drei Mobil-Einstiege sind von nirgends
-      verlinkt** (`m-leads`, `m-projekte`, `m-settings`). Die Mobilleiste
-      führt auf die Desktop-Listen, „Mehr" auf `/app/settings`. *Empfehlung:*
-      entweder die Leiste auf die Einstiege legen oder die drei entfernen —
-      aber nicht gebaut liegen lassen.
-- [ ] **UX-44** · **S** · **Zwei Arten, eine Löschung zu bestätigen:**
-      `AcademyAdmin` hat einen eigenen Dialog, drei weitere Stellen benutzen
-      `window.confirm`. *Empfehlung:* den vorhandenen Dialog übernehmen.
+- [x] **UX-43** · **S** · ~~Drei Mobil-Einstiege sind von nirgends verlinkt~~
+      **erledigt 2026-08-18: entfernt.** Angebunden hätte sie verdoppelt, was
+      es schon gibt — `/app/settings` rendert unter `SettingsLayout` eine
+      **eigene** Mobilansicht und steht im „Mehr"-Fach; die übrigen Ziele
+      (Projektpipeline, Alle Projekte, Betriebe, Tickets) stehen direkt in der
+      Mobilleiste. Geblieben ist `MobileVertrieb` — der Einstieg, auf den die
+      Leiste unter „Vertrieb" tatsächlich zeigt. Mit den drei Seiten fiel auch
+      die gemeinsame Komponente `MobileHub`, die sonst niemand benutzte.
+
+- [x] **UX-44** · **S** · ~~Zwei Arten, eine Löschung zu bestätigen~~
+      **erledigt 2026-08-18 — anders als vorgeschlagen.** Beim Nachzählen:
+      **26 Stellen** nutzen die Browserfrage, **eine** einen eigenen Dialog
+      (Kursliste), **eine** einen mit Vorschau (Projekte löschen). 26 Stellen
+      auf einen Dialog umzubauen wäre viel Arbeit für wenig — die Browserfrage
+      ist eindeutig, tastaturfähig und nicht zu übersehen.
+
+      **Die Regel, die stattdessen gilt** (`utils/loeschfrage.js`): Nicht die
+      Bauform entscheidet, sondern was auf dem Spiel steht.
+
+      | Was verschwindet | Wie gefragt wird |
+      |---|---|
+      | eine einzelne, ersetzbare Sache | Browserfrage genügt |
+      | etwas mit Anhang | die Frage **nennt den Anhang** |
+      | Unwiderrufliches mit vielen Abhängigkeiten | eigener Dialog mit Vorschau |
+
+      Umgesetzt an den beiden Stellen der Akademie: Aus „Modul und alle
+      Lektionen darin löschen?" wird „Modul „Grundlagen" löschen? — Damit geht
+      auch: 3 Lektionen." Die Frage sagt jetzt, **wie viel** mitgeht.
+
+### Offen
+
+- [ ] **193 Stellen** weiße Schrift auf einer Fläche, die die Datei nicht
+      nennt: geerbt, ein Verlauf, oder aus den Daten. Von außen nicht
+      messbar. Sie sind **nicht** geprüft — nur gezählt.
+- [ ] **Kein Wächter gegen verwaiste Adressen.** UX-35 und UX-43 waren beide
+      derselbe Fall: ein Bildschirm ohne Weg dorthin. Ein Test, der das
+      allgemein hält, fehlt — mein schneller Durchlauf dazu meldete 18
+      Adressen, von denen die meisten Fehltreffer waren (verschachtelte
+      Routen unter `settings`, legitime Weiterleitungen). Ohne saubere
+      Auflösung der Verschachtelung ist so ein Test mehr Lärm als Nutzen.
 
 ---
 

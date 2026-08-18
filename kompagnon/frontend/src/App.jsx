@@ -68,9 +68,6 @@ import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
 import ContentApprovalPage from './pages/ContentApprovalPage';
 import MobileVertrieb  from './pages/MobileVertrieb';
-import MobileLeads     from './pages/MobileLeads';
-import MobileProjekte  from './pages/MobileProjekte';
-import MobileSettings  from './pages/MobileSettings';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -320,9 +317,11 @@ function App() {
               * von nirgends verlinkt — entfernt am 18.08.2026. Die Mobilleiste
               * fuehrt auf `/app/vertrieb`. */}
             <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
-            <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
-            <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />
-            <Route path="m-settings"  element={<PrivateRoute><MobileSettings /></PrivateRoute>} />
+            {/* `m-leads`, `m-projekte` und `m-settings` standen hier, ohne dass
+              * irgendetwas auf sie zeigte — und sie doppelten, was es schon
+              * gibt: `/app/settings` rendert eine eigene Mobilansicht, die
+              * uebrigen Ziele stehen direkt in der Mobilleiste. Entfernt am
+              * 18.08.2026 (UX-43). */}
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

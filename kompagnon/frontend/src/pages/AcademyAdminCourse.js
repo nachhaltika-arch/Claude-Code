@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { schreibe } from '../utils/schreiben';
+import { loeschfrage } from '../utils/loeschfrage';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -239,7 +240,8 @@ function ModuleBlock({
   };
 
   const deleteLesson = async (lessonId) => {
-    if (!window.confirm('Lektion löschen?')) return;
+    const lektion = lessons.find(l => l.id === lessonId);
+    if (!window.confirm(loeschfrage('Lektion', lektion?.title))) return;
     const { ok, fehler } = await schreibe(() => fetch(
       `${API_BASE_URL}/api/academy/lessons/${lessonId}`, { method: 'DELETE', headers: h }),
       'Die Lektion');
@@ -536,7 +538,12 @@ export default function AcademyAdminCourse() {
   };
 
   const deleteModule = async (id) => {
-    if (!window.confirm('Modul und alle Lektionen darin löschen?')) return;
+    // Die Frage nennt, was mitgeht: Ein Modul zieht seine Lektionen mit, und
+    // „Modul und alle Lektionen darin löschen?" sagt nicht, wie viele das sind.
+    const modul = modules.find(m => m.id === id);
+    if (!window.confirm(loeschfrage('Modul', modul?.title, [
+      [(modul?.lessons || []).length, 'Lektion', 'Lektionen'],
+    ]))) return;
     const { ok, fehler: meldung } = await schreibe(() => fetch(
       `${API_BASE_URL}/api/academy/modules/${id}`, { method: 'DELETE', headers: h }), 'Das Modul');
     setFehler(ok ? '' : meldung);

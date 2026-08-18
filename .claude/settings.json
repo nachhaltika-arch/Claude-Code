@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); if [ \"$branch\" = \"staging\" ]; then git push origin staging 2>&1 | tail -3; fi",
-            "statusMessage": "Deploying to Render Stage...",
+            "command": "bash scripts/push-wenn-ruhig.sh",
+            "statusMessage": "Push auf staging, wenn die Bahn frei ist…",
             "async": true
           }
         ]

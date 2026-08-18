@@ -414,4 +414,57 @@ jobs:
           wait_for_deploy "$BACKEND_SERVICE"  "$backend_deploy"  "Backend"
           wait_for_deploy "$FRONTEND_SERVICE" "$frontend_deploy" "Frontend"
 
-          echo "✓ $TARGET_LABEL vollständig deployt"
+          echo "✓ $TARGET_LABEL deployt — warte auf Betriebsbereitschaft"
+
+          # Renders `live` heisst: der Prozess antwortet. Es heisst nicht: der
+          # Dienst ist hochgefahren. Die acht Startphasen (Migrationen,
+          # Scheduler, Demokonten-Abschaltung) laufen als Hintergrundaufgabe
+          # weiter, nachdem der Server schon Anfragen beantwortet.
+          #
+          # Am 18.08.2026 lagen dazwischen viereinhalb Minuten: `live` um
+          # 09:43:58, `startup_complete` erst um 09:48:32. Waere in der Zeit
+          # eine Phase gescheitert, waere der Deploy-Job trotzdem gruen
+          # gewesen — und genau dieser Fall (sieben von acht Phasen fielen
+          # aus) blieb hier schon einmal monatelang unbemerkt.
+          READY_MAX_SECONDS=600
+
+          backend_url="$(curl -sS "$API/services/$BACKEND_SERVICE" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            | jq -r '.serviceDetails.url // empty')"
+
+          if [ -z "$backend_url" ]; then
+            echo "::error::Keine URL für $BACKEND_SERVICE — Bereitschaft nicht prüfbar."
+            exit 1
+          fi
+
+          waited=0
+          while [ "$waited" -lt "$READY_MAX_SECONDS" ]; do
+            gesundheit="$(curl -sS --max-time 20 "$backend_url/health" || echo '{}')"
+            # Waehrend eines Neustarts antwortet der Proxy auch mal mit HTML.
+            # Ohne diesen Auffangbogen liesse `jq` den Schritt sofort sterben —
+            # eine Zwischenausgabe wuerde als Ergebnis gelten.
+            if ! printf '%s' "$gesundheit" | jq -e . > /dev/null 2>&1; then
+              gesundheit='{}'
+            fi
+            fertig="$(printf '%s' "$gesundheit"  | jq -r '.startup_complete // "null"')"
+            fehlend="$(printf '%s' "$gesundheit" | jq -r '(.startup_missing // []) | join(", ")')"
+
+            if [ -n "$fehlend" ]; then
+              echo "::error::$TARGET_LABEL: Startphasen ausgefallen: $fehlend"
+              printf '%s\n' "$gesundheit"
+              exit 1
+            fi
+
+            if [ "$fertig" = "true" ]; then
+              echo "✓ $TARGET_LABEL betriebsbereit nach ${waited}s"
+              exit 0
+            fi
+
+            echo "  Start läuft noch (startup_complete=$fertig) … (${waited}s)"
+            sleep "$POLL_INTERVAL_SECONDS"
+            waited=$((waited + POLL_INTERVAL_SECONDS))
+          done
+
+          echo "::error::$TARGET_LABEL: Start nicht abgeschlossen nach ${READY_MAX_SECONDS}s"
+          printf '%s\n' "$gesundheit"
+          exit 1

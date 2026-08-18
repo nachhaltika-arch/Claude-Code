@@ -84,6 +84,22 @@ describe('Textfarben der Palette', () => {
       .toBeGreaterThanOrEqual(AA_TEXT);
   });
 
+  test('die Schrift auf dem Markenknopf ist in beiden Modi lesbar', () => {
+    // Gefunden beim Umbau der Kundenseiten (UX-19): Die Anwendung setzt
+    // Knöpfe seit jeher als `--brand-primary` mit weisser Schrift. Im
+    // Hellmodus ist das Dark Teal — 9.28, mühelos. Im Dunkelmodus zeigt
+    // `--brand-primary` auf das helle Türkis, und Weiss darauf erreicht
+    // **2.06**. Auf dem Anmeldeknopf des Kundenportals wäre das die erste
+    // Fläche nach dem Kauf gewesen.
+    //
+    // `--text-on-brand` dreht die Tinte im Dunkelmodus, statt die
+    // Markenfarbe zu ändern.
+    expect(kontrast(ton('text-on-brand', hell), ton('kc-dark', hell)))
+      .toBeGreaterThanOrEqual(AA_TEXT);
+    expect(kontrast(ton('text-on-brand', dunkel), ton('kc-mid', dunkel)))
+      .toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
   test('--text-30 bleibt bewusst hell und ist deshalb kein Textton', () => {
     // Der Ton hat seine Berechtigung für Trennlinien und Zierrat. Der Test
     // hält nur fest, dass er die Textschwelle NICHT erreicht — wer ihn für

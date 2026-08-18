@@ -3,24 +3,24 @@ import { Link } from 'react-router-dom';
 
 export default function Barrierefreiheit() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen kc-legal">
       {/* Header */}
-      <div className="bg-kompagnon-900 text-white py-12">
+      <div className="kc-legal__band py-12">
         <div className="max-w-3xl mx-auto px-6">
-          <div onClick={() => window.history.back()} className="text-kompagnon-300 text-sm cursor-pointer hover:text-white mb-4 flex items-center gap-2">
+          <div onClick={() => window.history.back()} className="kc-legal__band-leise text-sm cursor-pointer hover:opacity-100 mb-4 flex items-center gap-2">
             ← Zurück
           </div>
           <h1 className="text-3xl font-extrabold">Barrierefreiheitserklärung</h1>
-          <p className="text-kompagnon-300 mt-2 text-sm">Gemäß Barrierefreiheitsstärkungsgesetz (BFSG)</p>
+          <p className="kc-legal__band-leise mt-2 text-sm">Gemäß Barrierefreiheitsstärkungsgesetz (BFSG)</p>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="card card-body space-y-8">
+        <div className="kc-legal__karte p-6 space-y-8">
 
           <S title="Angaben zum Dienstleistungserbringer">
-            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p className="font-semibold kc-legal__stark">KOMPAGNON communications BP GmbH</p>
             <p>Marienfelder Straße 52</p>
             <p>56070 Koblenz</p>
           </S>
@@ -43,7 +43,7 @@ export default function Barrierefreiheit() {
               Die oben genannte Dienstleistung ist <strong>teilweise</strong> mit dem
               Barrierefreiheitsstärkungsgesetz (BFSG) vereinbar.
             </p>
-            <p className="mt-3 font-medium text-slate-800">
+            <p className="mt-3 font-medium kc-legal__stark">
               Folgende Teile/Inhalte/Funktionen der Dienstleistung sind nicht barrierefrei:
             </p>
             <ul className="list-disc list-inside space-y-1 mt-2">
@@ -76,39 +76,39 @@ export default function Barrierefreiheit() {
           </S>
 
           <S title="Feedbackmöglichkeit und Kontaktangaben">
-            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p className="font-semibold kc-legal__stark">KOMPAGNON communications BP GmbH</p>
             <p>Marienfelder Straße 52</p>
             <p>56070 Koblenz</p>
             <div className="space-y-1 mt-3">
               <p>
                 E-Mail:{' '}
-                <a href="mailto:info@kompagnon.eu" className="text-kompagnon-600 hover:underline">
+                <a href="mailto:info@kompagnon.eu" className="kc-legal__link hover:underline">
                   info@kompagnon.eu
                 </a>
               </p>
               <p>
                 Telefon:{' '}
-                <a href="tel:+4926188447700" className="text-kompagnon-600 hover:underline">
+                <a href="tel:+4926188447700" className="kc-legal__link hover:underline">
                   +49-261-88447-70
                 </a>
               </p>
             </div>
           </S>
 
-          <div className="pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400">Stand: 23.03.2026</p>
+          <div className="pt-4 border-t kc-legal__linie">
+            <p className="text-xs kc-legal__leise">Stand: 23.03.2026</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 py-6 mt-8">
-        <div className="max-w-3xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
+      <div className="border-t kc-legal__linie py-6 mt-8">
+        <div className="max-w-3xl mx-auto px-6 flex justify-between items-center text-xs kc-legal__leise">
           <span>© 2026 KOMPAGNON communications BP GmbH</span>
           <div className="flex gap-4">
-            <Link to="/impressum" className="hover:text-slate-600">Impressum</Link>
-            <Link to="/datenschutz" className="hover:text-slate-600">Datenschutz</Link>
-            <Link to="/barrierefreiheit" className="hover:text-slate-600">Barrierefreiheit</Link>
+            <Link to="/impressum" className="hover:opacity-70">Impressum</Link>
+            <Link to="/datenschutz" className="hover:opacity-70">Datenschutz</Link>
+            <Link to="/barrierefreiheit" className="hover:opacity-70">Barrierefreiheit</Link>
           </div>
         </div>
       </div>
@@ -119,8 +119,8 @@ export default function Barrierefreiheit() {
 function S({ title, children }) {
   return (
     <section>
-      <h2 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">{title}</h2>
-      <div className="text-slate-600 space-y-2 text-sm leading-relaxed">{children}</div>
+      <h2 className="text-lg font-bold kc-legal__stark mb-3 pb-2 border-b kc-legal__linie">{title}</h2>
+      <div className="kc-legal__text space-y-2 text-sm leading-relaxed">{children}</div>
     </section>
   );
 }

@@ -3,24 +3,24 @@ import { Link } from 'react-router-dom';
 
 export default function Impressum() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen kc-legal">
       {/* Header */}
-      <div className="bg-kompagnon-900 text-white py-12">
+      <div className="kc-legal__band py-12">
         <div className="max-w-3xl mx-auto px-6">
-          <div onClick={() => window.history.back()} className="text-kompagnon-300 text-sm cursor-pointer hover:text-white mb-4 flex items-center gap-2">
+          <div onClick={() => window.history.back()} className="kc-legal__band-leise text-sm cursor-pointer hover:opacity-100 mb-4 flex items-center gap-2">
             ← Zurück
           </div>
           <h1 className="text-3xl font-extrabold">Impressum</h1>
-          <p className="text-kompagnon-300 mt-2 text-sm">Angaben gemäß DDG</p>
+          <p className="kc-legal__band-leise mt-2 text-sm">Angaben gemäß DDG</p>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <div className="card card-body space-y-8">
+        <div className="kc-legal__karte p-6 space-y-8">
 
           <Section title="Unternehmen">
-            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p className="font-semibold kc-legal__stark">KOMPAGNON communications BP GmbH</p>
             <p>Marienfelder Straße 52</p>
             <p>56070 Koblenz</p>
             <p>Deutschland</p>
@@ -29,16 +29,16 @@ export default function Impressum() {
           <Section title="Kontakt">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className="text-kompagnon-500">Tel:</span>
-                <a href="tel:+4926188447-0" className="text-kompagnon-600 hover:underline">+49-261-88447-0</a>
+                <span className="kc-legal__link">Tel:</span>
+                <a href="tel:+4926188447-0" className="kc-legal__link hover:underline">+49-261-88447-0</a>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-kompagnon-500">Fax:</span>
+                <span className="kc-legal__link">Fax:</span>
                 <span>+49-261-88447-70</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-kompagnon-500">E-Mail:</span>
-                <a href="mailto:info@kompagnon.eu" className="text-kompagnon-600 hover:underline">info@kompagnon.eu</a>
+                <span className="kc-legal__link">E-Mail:</span>
+                <a href="mailto:info@kompagnon.eu" className="kc-legal__link hover:underline">info@kompagnon.eu</a>
               </div>
             </div>
           </Section>
@@ -54,14 +54,14 @@ export default function Impressum() {
           </Section>
 
           <Section title="Handelsregister">
-            <p><span className="font-medium text-slate-700">Registergericht:</span> Amtsgericht Koblenz</p>
-            <p><span className="font-medium text-slate-700">Registernummer:</span> HRB 26213</p>
+            <p><span className="font-medium kc-legal__text">Registergericht:</span> Amtsgericht Koblenz</p>
+            <p><span className="font-medium kc-legal__text">Registernummer:</span> HRB 26213</p>
           </Section>
 
           <Section title="Umsatzsteuer-ID">
             <p>
               Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:
-              <span className="font-medium text-slate-800 ml-1">DE317883455</span>
+              <span className="font-medium kc-legal__stark ml-1">DE317883455</span>
             </p>
           </Section>
 
@@ -70,7 +70,7 @@ export default function Impressum() {
           </Section>
 
           <Section title="Redaktionell Verantwortlicher">
-            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p className="font-semibold kc-legal__stark">KOMPAGNON communications BP GmbH</p>
             <p>Manuel Potter</p>
             <p>Marienfelder Straße 52</p>
             <p>56070 Koblenz</p>
@@ -79,7 +79,7 @@ export default function Impressum() {
           <Section title="EU-Streitschlichtung">
             <p>
               Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
-              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-kompagnon-600 hover:underline">
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="kc-legal__link hover:underline">
                 ec.europa.eu/consumers/odr
               </a>
               . Unsere E-Mail-Adresse finden Sie oben im Impressum.
@@ -138,20 +138,20 @@ export default function Impressum() {
             </p>
           </Section>
 
-          <div className="pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400">Stand: 2026</p>
+          <div className="pt-4 border-t kc-legal__linie">
+            <p className="text-xs kc-legal__leise">Stand: 2026</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 py-6 mt-8">
-        <div className="max-w-3xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
+      <div className="border-t kc-legal__linie py-6 mt-8">
+        <div className="max-w-3xl mx-auto px-6 flex justify-between items-center text-xs kc-legal__leise">
           <span>© 2026 KOMPAGNON communications BP GmbH</span>
           <div className="flex gap-4">
-            <Link to="/impressum" className="hover:text-slate-600">Impressum</Link>
-            <Link to="/datenschutz" className="hover:text-slate-600">Datenschutz</Link>
-            <Link to="/barrierefreiheit" className="hover:text-slate-600">Barrierefreiheit</Link>
+            <Link to="/impressum" className="hover:opacity-70">Impressum</Link>
+            <Link to="/datenschutz" className="hover:opacity-70">Datenschutz</Link>
+            <Link to="/barrierefreiheit" className="hover:opacity-70">Barrierefreiheit</Link>
           </div>
         </div>
       </div>
@@ -162,8 +162,8 @@ export default function Impressum() {
 function Section({ title, children }) {
   return (
     <section>
-      <h2 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">{title}</h2>
-      <div className="text-slate-600 space-y-2 text-sm leading-relaxed">{children}</div>
+      <h2 className="text-lg font-bold kc-legal__stark mb-3 pb-2 border-b kc-legal__linie">{title}</h2>
+      <div className="kc-legal__text space-y-2 text-sm leading-relaxed">{children}</div>
     </section>
   );
 }

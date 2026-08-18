@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
@@ -58,29 +58,37 @@ export default function PortalLogin() {
     setForgotSent(true);
   };
 
+  // Diese Seite ist der erste Bildschirm nach dem Kauf. Sie trug ihre Farben
+  // bis zum 18.08.2026 als feste Hexwerte und blieb deshalb weiss, waehrend
+  // das Werkzeug dem System des Betrachters folgt — der Bruch aus UX-19.
+  // Jetzt dasselbe Farbsystem wie alles andere: `styles/tokens.css`.
   const inp = {
     width: '100%', padding: '13px 14px',
-    border: '1.5px solid #e2e8f0', borderRadius: 10,
+    border: '1.5px solid var(--border-medium)', borderRadius: 10,
     fontSize: 16, fontFamily: 'inherit',
-    color: '#1a2332', background: 'white',
+    color: 'var(--text-primary)', background: 'var(--bg-app)',
     boxSizing: 'border-box', outline: 'none',
     marginBottom: 16,
   };
   const lbl = {
     display: 'block', fontSize: 11, fontWeight: 600,
-    color: '#64748b', textTransform: 'uppercase',
+    color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 6,
   };
   const btn = {
     width: '100%', padding: '14px', border: 'none',
-    borderRadius: 10, background: 'var(--kc-mid)',
-    color: 'white', fontSize: 15, fontWeight: 700,
+    borderRadius: 10, background: 'var(--brand-primary)',
+    // Nicht Weiss: im Dunkelmodus ist --brand-primary das helle Tuerkis,
+    // Weiss darauf erreicht 2.06. Siehe `utils/kontrast.test.js`.
+    color: 'var(--text-on-brand)', fontSize: 15, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'inherit',
   };
+  const leiser = { background: 'none', border: 'none', fontSize: 13,
+    cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-secondary)' };
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#f0f4f8',
+      minHeight: '100vh', background: 'var(--bg-app)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       padding: 20,
@@ -88,15 +96,16 @@ export default function PortalLogin() {
       {/* Karte */}
       <div style={{
         width: '100%', maxWidth: 420,
-        background: 'white', borderRadius: 20,
-        padding: 36, boxShadow: '0 8px 40px rgba(0,0,0,0.1)',
+        background: 'var(--bg-surface)', borderRadius: 20,
+        border: '1px solid var(--border-light)',
+        padding: 36, boxShadow: 'var(--shadow-xl)',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--kc-mid)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--brand-primary)', letterSpacing: '-0.02em' }}>
             KOMPAGNON
           </div>
-          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 4 }}>
             Ihr persönliches Kundenportal
           </div>
         </div>
@@ -104,15 +113,16 @@ export default function PortalLogin() {
         {/* ── Login ── */}
         {mode === 'login' && (
           <>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a2332', margin: '0 0 20px' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 20px' }}>
               Anmelden
             </h2>
 
             {error && (
               <div style={{
-                background: '#fef2f2', border: '1px solid #fecaca',
+                background: 'var(--status-danger-bg)',
+                border: '1px solid var(--border-light)',
                 borderRadius: 8, padding: '10px 14px',
-                fontSize: 13, color: '#b91c1c', marginBottom: 16,
+                fontSize: 13, color: 'var(--status-danger-text)', marginBottom: 16,
               }}>
                 {error}
               </div>
@@ -145,11 +155,7 @@ export default function PortalLogin() {
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button
                 onClick={() => { setMode('forgot'); setError(''); }}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--kc-mid)',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                  textDecoration: 'underline',
-                }}
+                style={{ ...leiser, color: 'var(--text-brand)', textDecoration: 'underline' }}
               >
                 Passwort vergessen?
               </button>
@@ -160,10 +166,10 @@ export default function PortalLogin() {
         {/* ── Passwort vergessen ── */}
         {mode === 'forgot' && !forgotSent && (
           <>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a2332', margin: '0 0 12px' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px' }}>
               Passwort zurücksetzen
             </h2>
-            <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 20, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 0, marginBottom: 20, lineHeight: 1.6 }}>
               Geben Sie Ihre E-Mail-Adresse ein. Falls ein Konto existiert,
               erhalten Sie einen Reset-Link.
             </p>
@@ -182,10 +188,7 @@ export default function PortalLogin() {
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button
                 onClick={() => setMode('login')}
-                style={{
-                  background: 'none', border: 'none', color: '#64748b',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                style={leiser}
               >
                 ← Zurück zum Login
               </button>
@@ -197,19 +200,17 @@ export default function PortalLogin() {
         {mode === 'forgot' && forgotSent && (
           <>
             <div style={{
-              background: '#f0fdf4', border: '1px solid #bbf7d0',
+              background: 'var(--status-success-bg)',
+              border: '1px solid var(--border-light)',
               borderRadius: 10, padding: '16px 18px',
-              fontSize: 13, color: '#166534', lineHeight: 1.6,
+              fontSize: 13, color: 'var(--status-success-text)', lineHeight: 1.6,
             }}>
               Falls diese E-Mail-Adresse registriert ist, erhalten Sie in Kürze einen Reset-Link.
             </div>
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button
                 onClick={() => { setMode('login'); setForgotSent(false); }}
-                style={{
-                  background: 'none', border: 'none', color: '#64748b',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                style={leiser}
               >
                 ← Zurück zum Login
               </button>
@@ -218,10 +219,17 @@ export default function PortalLogin() {
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 24, lineHeight: 1.8 }}>
+      {/* Fuss — bis zum 18.08.2026 stand hier `kompagnon.eu`, eine dritte
+        * Domain neben der, auf der der Kunde gerade steht. Wer sie anklickte,
+        * verliess das Haus, in dem er sich anmelden wollte. Jetzt der
+        * Firmenname und die eigenen Rechtsseiten. */}
+      <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 24, lineHeight: 1.8 }}>
         <div>Zugangsdaten erhalten Sie per E-Mail nach Ihrem Kauf.</div>
-        <div>KOMPAGNON Communications BP GmbH · kompagnon.eu</div>
+        <div>KOMPAGNON communications BP GmbH</div>
+        <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
+          <Link to="/impressum" style={{ color: 'var(--text-tertiary)' }}>Impressum</Link>
+          <Link to="/datenschutz" style={{ color: 'var(--text-tertiary)' }}>Datenschutz</Link>
+        </div>
       </div>
     </div>
   );

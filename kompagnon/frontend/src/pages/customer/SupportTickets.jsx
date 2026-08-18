@@ -78,7 +78,7 @@ export default function SupportTickets() {
             <option value="high">Dringend</option>
           </select>
           <button onClick={submit} disabled={sending} style={{
-            padding: '9px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none',
+            padding: '9px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none',
             borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', opacity: sending ? 0.6 : 1,
           }}>{sending ? 'Wird gesendet…' : 'Ticket senden'}</button>

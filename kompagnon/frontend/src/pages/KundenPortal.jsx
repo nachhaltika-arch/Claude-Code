@@ -46,7 +46,7 @@ function PhaseCard({ phase, isLast }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phase {phase.number}</span>
-            {isActive && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: '#fff', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
+            {isActive && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
           </div>
           {!isLocked && (
             <span style={{ fontSize: 12, fontWeight: 600, color: isDone ? 'var(--status-success-text)' : 'var(--brand-primary)' }}>
@@ -378,7 +378,7 @@ export default function KundenPortal() {
               alignSelf: m.sender_role === 'kunde' ? 'flex-end' : 'flex-start',
               maxWidth: '80%', padding: '8px 12px', borderRadius: 12,
               background: m.sender_role === 'kunde' ? 'var(--brand-primary)' : 'var(--bg-app)',
-              color: m.sender_role === 'kunde' ? '#fff' : 'var(--text-primary)',
+              color: m.sender_role === 'kunde' ? 'var(--text-on-brand)' : 'var(--text-primary)',
               fontSize: 13,
             }}>
               {m.sender_role !== 'kunde' && (
@@ -401,7 +401,7 @@ export default function KundenPortal() {
             style={{ flex: 1, padding: '8px 12px', fontSize: 13, border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}
           />
           <button onClick={sendMessage} disabled={sending || !msgText.trim()} style={{
-            padding: '8px 14px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
             cursor: sending ? 'wait' : 'pointer', opacity: !msgText.trim() ? 0.5 : 1,
             fontFamily: 'var(--font-sans)',
@@ -416,7 +416,7 @@ export default function KundenPortal() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={sectionHead}>📎 Dokumente</div>
           <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
-            padding: '6px 12px', background: 'var(--brand-primary)', color: '#fff',
+            padding: '6px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
             border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
             cursor: uploading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)',
           }}>
@@ -558,7 +558,7 @@ function WebsiteVersionsSection({ project, token, onReload }) {
                   disabled={selecting}
                   style={{
                     width: '100%', padding: '11px',
-                    background: 'var(--brand-primary)', color: '#fff',
+                    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                     border: 'none', borderRadius: 'var(--radius-md)',
                     fontSize: 13, fontWeight: 600,
                     cursor: selecting ? 'wait' : 'pointer',

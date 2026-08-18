@@ -66,6 +66,12 @@
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
   --text-brand:       var(--kc-mid);
+  /* Schrift auf einer Flaeche in Markenfarbe (Knopf, Kopfband).
+     Nicht dasselbe wie --text-inverse: Im dunklen Modus ist
+     --brand-primary das helle Tuerkis, und Weiss darauf erreicht 2.06 —
+     Text auf dem wichtigsten Knopf der Kundenseiten. Dunkle Tinte
+     darauf erreicht 8.43. Gemessen in `utils/kontrast.test.js`. */
+  --text-on-brand:    #ffffff;
 
   /* ── Brand Aliases ──────────────────────────────────────────── */
   /* --brand-primary jetzt auf Dark Teal (Guideline-dominante
@@ -193,6 +199,7 @@
     --text-brand: var(--kc-mid);
 
     --brand-primary:        var(--kc-mid);
+    --text-on-brand:        #0f1c20;
     --brand-primary-light:  #1a3d4a;
     --brand-primary-mid:    #2a5a6a;
     --brand-primary-dark:   #30a0b8;
@@ -240,6 +247,7 @@
   --text-brand: var(--kc-mid);
 
   --brand-primary:        var(--kc-mid);
+  --text-on-brand:        #0f1c20;
   --brand-primary-light:  #1a3d4a;
   --brand-primary-mid:    #2a5a6a;
   --brand-primary-dark:   #30a0b8;
@@ -270,6 +278,7 @@
 
 /* ── Manual light override ───────────────────────────────────── */
 [data-theme="light"] {
+  --text-on-brand: #ffffff;
   --paper:   #FAFAFA;
   --surface: #F0F4F5;
   --border:  #D5E0E2;
@@ -295,6 +304,30 @@
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.10);
+
+  /* Diese dreizehn standen bis zum 18.08.2026 nicht hier — und der Block
+     oben laeuft weiter, wenn das System des Rechners auf dunkel steht.
+     Wer also auf einem dunklen Rechner „hell" waehlte, bekam helle
+     Flaechen mit den Markenfarben des Dunkelmodus: --brand-primary war
+     #008eaa statt #004f59, und Weiss darauf erreicht 3.85 statt 4.5 —
+     auf dem Anmeldeknopf des Kundenportals. `tokens.test.js` haelt fest,
+     dass der Hellblock jeden Ton des Dunkelblocks zuruecknimmt. */
+  --bg-active:  #e0f4f8;
+  --text-brand: var(--kc-mid);
+
+  --brand-primary:        var(--kc-dark);
+  --brand-primary-light:  var(--info-bg);
+  --brand-primary-mid:    var(--kc-mid);
+  --brand-primary-dark:   var(--kc-dark);
+  --brand-primary-deeper: #003840;
+
+  --border-medium: rgba(0,79,89,0.25);
+  --border-strong: rgba(0,79,89,0.45);
+
+  --color-brand-teal:      var(--kc-mid);
+  --color-brand-teal-dark: var(--kc-dark);
+  --color-primary:         var(--kc-mid);
+  --color-primary-dark:    var(--kc-dark);
 }
 
 /* ── Skeleton shimmer ────────────────────────────────────────── */

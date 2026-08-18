@@ -154,7 +154,11 @@ export default function Freigaben() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => handleDecision(seiteId, true)} disabled={sending[seiteId]}
                   style={{
-                    padding: '8px 18px', background: '#1D9E75', color: '#fff', border: 'none',
+                    // Gruen war hier die einzige Stelle der Anwendung, die eine
+                    // Hauptaktion nicht in der Markenfarbe zeigt. Der Unterschied
+                    // zu „Ablehnen" steht im Wort, nicht allein in der Farbe.
+                    padding: '8px 18px', background: 'var(--brand-primary)',
+                    color: 'var(--text-on-brand)', border: 'none',
                     borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'var(--font-sans)', opacity: sending[seiteId] ? 0.6 : 1,
                   }}>Freigeben</button>

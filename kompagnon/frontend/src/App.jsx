@@ -56,6 +56,9 @@ import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
+import Impressum from './pages/Impressum';
+import Datenschutz from './pages/Datenschutz';
+import Barrierefreiheit from './pages/Barrierefreiheit';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
 import ProductManager from './pages/ProductManager';
@@ -157,6 +160,16 @@ function App() {
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />
           <Route path="/kundenportal"  element={<PortalLogin />} />
+
+          {/* ── Rechtliches ──
+            * Beide Seiten lagen seit jeher in `pages/`, hingen aber an keiner
+            * Adresse: Es gab ein Impressum, zu dem kein Weg fuehrte. Der Fuss
+            * des Kundenportals zeigte stattdessen auf `kompagnon.eu` — eine
+            * dritte Domain neben der, auf der der Kunde gerade stand
+            * (UX-19, 18.08.2026). */}
+          <Route path="/impressum"        element={<Impressum />} />
+          <Route path="/datenschutz"      element={<Datenschutz />} />
+          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
 
           {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──

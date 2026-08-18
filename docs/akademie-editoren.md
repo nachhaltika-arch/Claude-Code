@@ -5,9 +5,14 @@
 
 ## Die Entscheidung in einem Satz
 
-Es gibt **zwei Kurseditoren auf derselben Tabelle**, und **keiner von beiden
-kann einen Kurs vollständig bearbeiten** — die Frage ist nicht, welcher
-gewinnt, sondern welcher die Felder des anderen übernimmt.
+Es gibt **zwei Kurseditoren auf derselben Tabelle**. Der gelebte (A) kann
+alles, was irgendwo angezeigt wird; der unerreichbare (B) kann vier Felder
+mehr, die **auf keinem Bildschirm erscheinen**. Zu entscheiden ist also nur,
+ob diese vier Felder ein Merkmal werden sollen — sonst kann B weg.
+
+**Beim Vergleichen fiel ein Fehler heraus, der schwerer wiegt als die Frage
+selbst:** Es liess sich überhaupt keine Lektion anlegen (500). Behoben, siehe
+unten.
 
 ---
 
@@ -25,8 +30,9 @@ Die Akademie liegt unter **zwei Adressräumen**:
 | `/app/akademie/admin/modul/:id` | Modul-Editor zu B | nur aus B heraus |
 
 **Editor A ist der gelebte Weg.** Editor B ist über die Oberfläche nicht mehr
-erreichbar — aber er ist der einzige, der fünf Felder setzen kann, die es in
-der Datenbank gibt.
+erreichbar — er ist aber der einzige, der vier Felder setzen kann, die es in
+der Datenbank gibt: `category`, `category_color`, `formats` und die
+Checklisten-Punkte des Kurses.
 
 ---
 
@@ -45,7 +51,7 @@ der Datenbank gibt.
 | Module sortieren | ✓ | ✓ |
 | **Kategorie + Farbe** | — | ✓ |
 | **Formate** (Text, Video, Checkliste …) | — | ✓ |
-| **Freischaltung** (`linear_progress`) | — | ✓ |
+| **Freischaltung** (`linear_progress`) | ✓ *(mit Erklärung am Schalter)* | ✓ |
 | **Checklisten-Punkte** | — | ✓ |
 | Kleine Bildschirme | ✓ zweispaltig ab Tablet | — feste Breite |
 | Löschung bestätigen | `window.confirm` (2×) | `window.confirm` (1×) |
@@ -53,23 +59,58 @@ der Datenbank gibt.
 
 ---
 
+## Korrektur zur ersten Fassung
+
+Die erste Fassung dieser Gegenüberstellung führte **Freischaltung** als etwas,
+das nur B kann. Das war falsch: A hat den Schalter, sogar mit erklärendem Text
+(„Lektionen müssen der Reihe nach abgeschlossen werden"). Der Fehler kam
+daher, dass ich die Felder aus `<label>`-Auszügen erhoben habe und A den
+Schalter ohne solches Element baut. Am Bildschirm nachgesehen, nicht im
+Auszug — dann stimmt es.
+
 ## Was das praktisch heißt
 
-**Drei der fünf Felder, die nur B kann, wirken sichtbar:**
+**B kann genau zwei Dinge mehr — und beide erscheinen nirgends:**
 
-- **Freischaltung** (`linear_progress`) steuert im Kurs-Spieler, ob Lektionen
-  erst nacheinander aufgehen (`AcademyCourse.js:117`). Wer den Kurs über den
-  gelebten Weg anlegt, kann das nicht einstellen — der Wert bleibt auf `false`.
-- **Formate** und **Checklisten-Punkte** werden im Spieler dargestellt.
+- **Formate** (`formats`) und die **Checklisten-Punkte des Kurses**
+  (`academy_checklist_items`): Die Schnittstelle liefert sie aus, **kein
+  Bildschirm zeigt sie an**.
+- Dasselbe gilt für `category` und `category_color`.
 
-**Zwei sind Karteileichen:** `category` und `category_color` stehen in der
-Tabelle, sind in B einstellbar — und werden auf **keinem** Bildschirm der
-Akademie angezeigt.
+**Checklisten gibt es noch an einer zweiten Stelle** — je Lektion. Bearbeitet
+werden sie nur im Modul-Editor (Bs Kette), angezeigt nur im **alten**
+Lektions-Spieler unter `/app/akademie/lektion/:id`. Der gelebte Kurs-Spieler
+(`/app/academy/:id`) stellt sie nicht dar. Das Merkmal lebt also vollständig
+in der alten Welt.
 
 **Und ein Fehler, den beide teilen:** Schlägt das Speichern fehl, sieht man
 nichts. Beide fangen jeden Fehler mit `catch (e) { console.error(e); }` ab;
 der Knopf hört einfach auf zu drehen. Das ist dieselbe Bauart, die am 08.08.
 an 67 Stellen behoben wurde — hier nicht.
+
+---
+
+## Der Fund, der beim Vergleichen herausfiel
+
+**Es ließ sich überhaupt keine Lektion anlegen.** `POST
+/api/academy/modules/{id}/lessons` antwortete mit **500**:
+
+```
+TypeError: 'checklist_items_json' is an invalid keyword argument for AcademyLesson
+```
+
+Der Router übergibt das Feld beim Anlegen; die Spalte existiert in der
+Datenbank (aus `main.py::_run_migrations`), im **Modell** stand sie nicht.
+Beide Editoren rufen denselben Endpunkt — der Kern der Akademie war kaputt:
+Kurse und Module ließen sich anlegen, **Inhalte nicht**.
+
+Warum es niemandem auffiel: Die Oberfläche zeigt Fehler beim Speichern nicht
+an (siehe oben). Warum kein Test es fand: Das Testschema entsteht aus den
+Modellen, also fehlte die Spalte dort ebenso.
+
+**Behoben** (`database.py`), drei Tests halten es
+(`tests/test_akademie_lektion_anlegen.py`). Am laufenden Backend nachgeprüft:
+HTTP 200, die Checklisten-Punkte kommen zurück.
 
 ---
 
@@ -80,19 +121,25 @@ an 67 Stellen behoben wurde — hier nicht.
 1. A ist der Weg, den die Oberfläche geht — B ist bereits unerreichbar.
 2. A kann das, was ohne Datenbankzugriff nicht nachzuholen ist: Lektionen,
    Titelbild, Veröffentlichung.
-3. Bs Beitrag sind **drei Felder** — das ist ein überschaubarer Umbau, kein
-   zweiter Editor.
+3. Bs Mehrfelder erscheinen auf **keinem** Bildschirm — es ist nichts zu
+   retten, nur zu entscheiden.
 
 **Die Schritte, in dieser Reihenfolge:**
 
-1. **Freischaltung, Formate, Checklisten-Punkte in A** ergänzen (⅓ Tag).
-2. **Fehler sichtbar machen** — in A und im Lektions-Editor. Ein Speichern,
+1. **Fehler sichtbar machen** — in A und im Lektions-Editor. Ein Speichern,
    das stillschweigend scheitert, ist schlimmer als eines, das hakt (S).
-3. `/app/akademie/*` **auf `/app/academy/*` umleiten**, statt zwei Räume zu
+   Ohne diesen Schritt bleibt der nächste Fehler dieser Art genauso lange
+   unentdeckt wie der 500er oben.
+2. `/app/akademie/*` **auf `/app/academy/*` umleiten**, statt zwei Räume zu
    führen; die alten Adressen bleiben als Weiterleitung gültig (S).
-4. **B, den Modul-Editor und die Routen dazu entfernen** — erst nach 1.
-5. Über `category`/`category_color` entscheiden: anzeigen oder aus dem Modell
-   nehmen. Solange sie nirgends erscheinen, sind sie Ballast.
+3. **B, den Modul-Editor, den alten Lektions-Spieler und die Routen dazu
+   entfernen** (S). **Zu portieren ist nichts** — Bs zwei Mehrfelder werden
+   nirgends angezeigt.
+4. Entscheiden, ob **Checklisten je Lektion** ein Merkmal bleiben sollen. Wenn
+   ja, gehören sie in As Lektions-Editor **und** in den gelebten Kurs-Spieler;
+   das ist Neubau, kein Umzug. Wenn nein, fallen sie mit Schritt 3.
+5. Über `category`, `category_color` und `formats` entscheiden: anzeigen oder
+   aus dem Modell nehmen. Solange sie nirgends erscheinen, sind sie Ballast.
 
 **Der Gegenvorschlag, der Bestand hätte:** Wer die drei Ebenen (Kurs → Modul →
 Lektion) für die bessere Bedienung hält, kehrt die Richtung um — dann muss B

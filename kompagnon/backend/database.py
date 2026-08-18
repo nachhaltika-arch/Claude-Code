@@ -63,6 +63,22 @@ class Lead(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), default="")
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Diese Spalten legt `main.py::_run_migrations` beim Start an. Im Modell
+    # fehlten sie — und wer sie zuweist, verliert den Wert stillschweigend:
+    # SQLAlchemy legt ihn auf dem Python-Objekt ab und schreibt ihn nie.
+    # Gefunden am 18.08.2026 beim Vergleich Migration gegen Modell.
+    onboarding_completed = Column(Boolean, default=False)
+    onboarding_completed_at = Column(DateTime, nullable=True)
+    unread_messages = Column(Integer, default=0)
+    pagespeed_mobile_score = Column(Integer, nullable=True)
+    pagespeed_desktop_score = Column(Integer, nullable=True)
+    pagespeed_lcp_mobile = Column(Float, nullable=True)
+    pagespeed_cls_mobile = Column(Float, nullable=True)
+    pagespeed_inp_mobile = Column(Float, nullable=True)
+    pagespeed_fcp_mobile = Column(Float, nullable=True)
+    pagespeed_checked_at = Column(DateTime, nullable=True)
     contact_name = Column(String(255), nullable=True, default=None)
     phone = Column(String(20), nullable=True, default=None)
     mobile = Column(String(20), nullable=True, default=None)
@@ -171,6 +187,12 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Siehe Lead: von `_run_migrations` angelegt, im Modell vergessen — jede
+    # Zuweisung ging still verloren.
+    current_phase = Column(Integer, default=1)
+    auftragsbestaetigung_pdf = Column(String(500), nullable=True)
     status = Column(String(50), default="phase_1")  # phase_1 to phase_7, completed
     start_date = Column(DateTime)
     target_go_live = Column(DateTime)
@@ -355,6 +377,17 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Siehe Lead: von `_run_migrations` angelegt, im Modell vergessen — jede
+    # Zuweisung ging still verloren.
+    pagespeed_mobile_score = Column(Integer, nullable=True)
+    pagespeed_desktop_score = Column(Integer, nullable=True)
+    pagespeed_lcp_mobile = Column(Float, nullable=True)
+    pagespeed_cls_mobile = Column(Float, nullable=True)
+    pagespeed_inp_mobile = Column(Float, nullable=True)
+    pagespeed_fcp_mobile = Column(Float, nullable=True)
+    pagespeed_checked_at = Column(DateTime, nullable=True)
     next_touchpoint_date = Column(DateTime)  # When to contact next
     next_touchpoint_type = Column(String(100))  # e.g., "maintenance_offer", "feature_request"
     upsell_status = Column(String(50), default="none")  # none, offered, accepted
@@ -684,6 +717,11 @@ class AcademyLesson(Base):
     file_url = Column(String(500), default='')
     duration_minutes = Column(Integer, default=0)
     sort_order = Column(Integer, default=0)
+    # Stand nur in der Datenbank (main.py::_run_migrations), nicht im Modell.
+    # Der Router uebergab das Feld beim Anlegen — und SQLAlchemy wies es ab:
+    # `POST /api/academy/modules/{id}/lessons` antwortete mit 500, seit es
+    # den Endpunkt gibt. Kurse und Module liessen sich anlegen, Lektionen nie.
+    checklist_items_json = Column(Text, default='[]')
 
 
 class AcademyLessonProgress(Base):

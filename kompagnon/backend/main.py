@@ -1941,6 +1941,15 @@ async def api_ping():
     """Ultra-lightweight keepalive alias."""
     return "pong"
 
+def _ablage_zustand() -> dict:
+    """Zustand der Dateiablage fuer die Gesundheitspruefung."""
+    try:
+        from services.dateiablage import ablage_zustand
+        return ablage_zustand()
+    except Exception as fehler:
+        return {"grund": f"{type(fehler).__name__}: {fehler}"}
+
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -1965,6 +1974,11 @@ def health_check():
             # monatelang unbemerkt, dass sieben von acht Startphasen ausfielen.
             "startup_complete": _STARTZUSTAND["vollstaendig"],
             "startup_missing": _STARTZUSTAND["ausgefallen"],
+            # Ob hochgeladene Dateien den naechsten Deploy ueberleben. Ohne
+            # eingehaengten Datentraeger schreibt der Dienst munter weiter —
+            # und beim Deploy ist alles weg (16.08.2026). Von aussen abfragbar,
+            # damit man es nicht im Dashboard nachsehen muss.
+            "uploads": _ablage_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

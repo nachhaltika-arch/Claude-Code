@@ -42,3 +42,41 @@ def lead_verzeichnis(lead_id) -> Path:
     except (TypeError, ValueError):
         raise ValueError(f"Keine gültige Betriebsnummer: {lead_id!r}")
     return upload_wurzel() / str(nummer)
+
+
+def ablage_zustand() -> dict:
+    """Liegt die Ablage auf einem eingehaengten Datentraeger — und laesst sie
+    sich beschreiben?
+
+    Warum die Frage von aussen beantwortbar sein muss: Ein Datentraeger, der
+    nicht eingehaengt ist, faellt nicht auf. Der Dienst schreibt weiter, alles
+    sieht richtig aus, und beim naechsten Deploy sind die Dateien weg. Genau
+    das ist am 16.08.2026 passiert.
+
+    `dauerhaft` erkennt einen eingehaengten Datentraeger daran, dass er ein
+    eigenes Dateisystem ist: andere Geraetenummer als `/`. Auf einem Rechner
+    ohne Datentraeger (lokal, Tests, CI) ist die Antwort deshalb `False` — und
+    das ist richtig so, dort ueberlebt auch nichts einen Neustart.
+
+    Bewusst knapp: Pfad und zwei Wahrheitswerte. Auf `/info` lagen hier einmal
+    Zugangsdaten offen; eine Auskunft soll sagen, was noetig ist, nicht mehr.
+    """
+    wurzel = upload_wurzel()
+    zustand = {"pfad": str(wurzel), "beschreibbar": False, "dauerhaft": False}
+
+    try:
+        wurzel.mkdir(parents=True, exist_ok=True)
+        probe = wurzel / ".schreibprobe"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+        zustand["beschreibbar"] = True
+    except Exception as fehler:
+        zustand["grund"] = f"{type(fehler).__name__}: {fehler}"
+        return zustand
+
+    try:
+        zustand["dauerhaft"] = os.stat(wurzel).st_dev != os.stat("/").st_dev
+    except Exception as fehler:
+        zustand["grund"] = f"{type(fehler).__name__}: {fehler}"
+
+    return zustand

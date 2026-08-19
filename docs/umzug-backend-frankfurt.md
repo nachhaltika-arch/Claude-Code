@@ -262,6 +262,56 @@ nur der Export im Dashboard — der Render-MCP ist auch am 19.08. `unauthorized`
 
 ---
 
+## Planänderung vom 19.08.: kein Blueprint, sondern von Hand
+
+Der Plan sah vor, den neuen Dienst **über den Blueprint** entstehen zu lassen
+und damit L-35 gleich mitzuschließen. Beim Anlauf stellte sich heraus, dass
+drei Dinge dagegen stehen — alle drei am Objekt geprüft, nicht vermutet:
+
+1. **Namenskonflikt mit zwei laufenden Diensten.** Der Blueprint benennt
+   `kompagnon-backend` **und** `kompagnon-frontend`; beide gibt es. Das
+   Umbenennen des alten Dienstes ließ sich im Dashboard **nicht speichern** —
+   der Knopf „Save changes" bleibt inaktiv, auch nach mehreren Versuchen.
+2. **Die Datei liegt nicht, wo Render sucht.** Es gibt kein `render.yaml` im
+   Wurzelverzeichnis, nur `kompagnon/render-produktiv.yaml`.
+3. **Das laufende Frontend würde mitübernommen.** Es soll unangetastet
+   bleiben; es zieht ohnehin nicht um.
+
+**Entschieden: den Frankfurter Dienst von Hand anlegen.** Jedes Feld ist
+bekannt (siehe Tabelle oben). L-35 („nichts ist blueprint-verwaltet") bleibt
+offen und wird ein eigener Schritt — einen Regionsumzug mit einer
+Infrastruktur-als-Code-Umstellung zu vermischen verdoppelt die Wege, auf denen
+er schiefgehen kann.
+
+**Der Name des neuen Dienstes ist damit frei wählbar** (`kompagnon-backend-fra`),
+und das blockierte Umbenennen entfällt vollständig.
+
+### Die Variablen: eine Gruppe statt Abtippen
+
+Auf der Umgebungsseite gibt es „Create environment group". Der Dialog kommt
+**vorbefüllt** — die Geheimnisse verlassen Render dabei nie, niemand muss sie
+sehen oder in eine Zwischenablage legen.
+
+**Angelegt am 19.08.: `kompagnon-produktiv`, 15 Variablen**, keinem Dienst
+zugeordnet (Spalte *Environment*: `—`), der laufende Betrieb also unberührt.
+Nachgeprüft: produktiv weiterhin `startup_complete: true`,
+`scheduler_running: true`, 2,4–2,6 s.
+
+**`DATABASE_URL` wurde bewusst aus der Gruppe entfernt.** Sie ist die eine
+Variable, die sich zwischen den beiden Diensten unterscheidet: Oregon braucht
+die externe Adresse, Frankfurt bekommt die **interne** — und genau das ist der
+Punkt, an dem die Datenbank aus dem Internet verschwinden kann (L-44).
+
+**Nebenbefund, der mehrere offene Punkte auf einmal bestätigt:** Produktiv
+sind **15 Variablen** gesetzt, der Blueprint deklariert **44**. Es fehlen
+also 29 — darunter `WEBHOOK_SECRET` (deshalb sind die fünf Lead-Webhooks zu),
+`STRIPE_SECRET_KEY` (deshalb ist Stripe nicht scharf), `CMS_ENCRYPTION_KEY`
+(deshalb wären gespeicherte Zugangsdaten nach einer Wiederherstellung
+unlesbar) und `NETLIFY_VORSCHAU_SITE_ID` (L-40). Alle vier waren vermutet und
+sind jetzt belegt.
+
+---
+
 ## Der eigentliche Umzug (danach, eigene Sitzung)
 
 - [ ] Neuen Web Service in **Frankfurt** anlegen: gleiches Repo, Branch `main`,

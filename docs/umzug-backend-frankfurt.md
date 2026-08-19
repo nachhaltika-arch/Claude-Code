@@ -330,6 +330,26 @@ sind jetzt belegt.
 | `DATABASE_URL` | **intern**, je Dienst gesetzt | der Punkt, an dem L-44 moeglich wird |
 | Adresse | `https://kompagnon-backend-fra.onrender.com` | ohne Domain, ohne Verkehr |
 
+**Am 19.08. um 22:02 gemessen — der Dienst laeuft und ist gesund:**
+
+```
+status: ok            database: connected      ← ueber die INTERNE Adresse
+scheduler_running: true                        startup_complete: true
+startup_missing: []   environment: production
+```
+
+| | Frankfurt (neu) | Oregon (produktiv) |
+|---|---|---|
+| `/health`, fuenf Messungen | 0,30 · 0,22 · **0,18** · 0,20 · **0,17 s** | 3,14 · 3,47 · **2,22** · 3,10 · 2,52 s |
+
+**Faktor 15.** Dazu zwei Dinge, die keine Messung sind, sondern Beweise:
+
+- **`database: connected`** heisst, die interne Adresse traegt. Genau das
+  konnte Oregon nie — und deshalb steht die Datenbank bis heute im offenen
+  Internet (L-44).
+- Der Start brauchte **60 Sekunden**. Oregon brauchte 264 und verlor dabei
+  sieben von acht Startphasen (L-41). Hier ist `startup_missing` leer.
+
 **Noch offen, in dieser Reihenfolge:**
 
 1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst

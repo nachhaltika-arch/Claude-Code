@@ -46,9 +46,7 @@ Das ist die eigentliche Arbeit. Nicht der Umzug — die Adresse.
 | ~~`services/widget_report.py`~~, ~~`routers/files.py`~~ | hatten je eine eigene Zeile mit der Produktiv-Adresse — zusammengelegt (`22480d1`) | erledigt |
 | **Gespeicherte Seiteninhalte in der DB** | absolute Bild-Adressen, vom Editor hineingeschrieben | **erledigt 16.08.** |
 | **Bereits versendete Berichts-Mails** | **fest in der Mail** | **nein** |
-| **Webhook bei Trackdesk** | bei einem Dritten registriert | nur dort |
-| **Webhook bei Netlify** | bei einem Dritten registriert | nur dort |
-| **Webhook bei Brevo** | bei einem Dritten registriert | nur dort |
+| **Elf Webhook-Endpunkte** | bei Dritten registriert | nur dort — siehe die vollständige Liste unten |
 
 **Die versendeten Berichtslinks sind der Punkt, der weh tut.** Jeder Empfänger
 einer Widget-Analyse hat eine Mail mit
@@ -130,16 +128,15 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 - [x] **`REACT_APP_API_URL` beim Frontend gesetzt (16.08.).** Im
       ausgelieferten Bundle nachgeprüft, dazu Preflight und GET gegen die neue
       Domain mit der Frontend-Herkunft: `access-control-allow-origin` stimmt.
-- [ ] Webhook-Adresse bei **Trackdesk** ändern
-- [ ] Webhook-Adresse bei **Netlify** ändern
-- [ ] Webhook-Adresse bei **Brevo** ändern
-- [ ] Im Code die Rückfallwerte auf die Domain ändern — es sind seit dem
-      16.08. nur noch zwei Stellen: `services/base_urls.py`
-      (`FALLBACK_API_BASE_URL`) und `frontend/src/config.js`. Dazu die
-      Beispieladressen in `render-staging.yaml`, `ci.yml` und der
-      Trackdesk-Anleitung. **Erst wenn die Domain antwortet** — vorher zeigt
-      jeder Rückfall auf einen Namen, den es noch nicht gibt.
-      Commit auf `staging`, PR wie üblich freitags
+- [ ] Webhook-Adressen bei den Dritten ändern — **elf Endpunkte, nicht drei.**
+      Die vollständige Liste steht unter „Die elf Webhook-Endpunkte" weiter
+      unten; sie ist am 19.08. am laufenden Dienst gemessen, nicht geschätzt
+- [x] **Im Code die Rückfallwerte auf die Domain geändert — bereits am 16.08.
+      erledigt** (`714b441`), der Haken fehlte nur. Nachgeprüft am 19.08.:
+      `services/base_urls.py` trägt `FALLBACK_API_BASE_URL =
+      "https://api.kompagnon.group"`, `frontend/src/config.js` denselben Wert.
+      Die verbliebenen `onrender.com`-Zeilen in `render-staging.yaml` sind
+      **Staging**-Adressen und bleiben richtig; in `ci.yml` steht gar keine
 
 ### Prüfen
 
@@ -148,6 +145,96 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
       Berichtslink prüfen
 - [ ] Alte Adresse muss weiter funktionieren (sie tut es, solange der Dienst
       steht) — die alten Mails hängen daran
+
+---
+
+## Die elf Webhook-Endpunkte — gezählt am 19.08. am laufenden Dienst
+
+Der Plan nannte oben **drei** Webhooks bei Dritten. Der Dienst kennt **elf**.
+Gemessen wurde nicht am Quelltext, sondern an `GET /openapi.json` der
+Produktiv-Adresse — 401 Routen, davon diese:
+
+| Endpunkt | Wer ruft dort an | Geheimnis | Im Plan bisher |
+|---|---|---|---|
+| `POST /api/webhooks/trackdesk` | Trackdesk | `TRACKDESK_WEBHOOK_SECRET` | ja |
+| `POST /api/webhooks/netlify/audit-anfrage` | Netlify | `NETLIFY_WEBHOOK_SECRET` | als *ein* Netlify-Haken |
+| `POST /api/webhooks/netlify/kontakt` | Netlify | `NETLIFY_WEBHOOK_SECRET` | — |
+| `POST /api/mail-events/brevo/{secret}` | Brevo | Geheimnis **im Pfad** | ja |
+| `POST /api/payments/webhook` | **Stripe** | `STRIPE_WEBHOOK_SECRET` | **nein** |
+| `POST /api/geo-payments/webhook` | **Stripe** | `STRIPE_WEBHOOK_SECRET_GEO` | **nein** |
+| `POST /api/webhooks/facebook` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/linkedin` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/google` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/postkarte` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/telefon` | unbekannt | `WEBHOOK_SECRET` | nein |
+
+**Stripe fehlte ganz.** Zwei getrennte Registrierungen mit zwei getrennten
+Geheimnissen — Buch-Checkout und GEO. Beide zeigen heute auf die alte Adresse.
+Sie sind produktiv nicht scharf (`STRIPE_SECRET_KEY` fehlt, siehe die offenen
+Punkte vom 18.08.), aber wer den Schlüssel setzt, ohne die URL zu ändern,
+verkauft an einen Dienst, den es nach dem Umzug nicht mehr gibt — und Zahlungen
+verschwinden still, weil ein fehlgeschlagener Webhook den Kauf nicht abbricht.
+
+**„Unbekannt" heißt unbekannt, nicht „unwichtig".** Ob die fünf Lead-Wege bei
+Facebook, Google oder einem Zapier-Zwischenstück registriert sind, steht
+nirgends im Repo. Zwei Messwerte grenzen es ein: `WEBHOOK_SECRET` war produktiv
+nie gesetzt, also weist der Server dort seit dem 16.08. **jeden** Aufruf ab —
+und `webhook_log` war am 19.08. **leer**. Es kommt heute also nichts an. Das
+ist kein Beleg dafür, dass nichts registriert ist; es ist einer dafür, dass
+beim Umzug nichts kaputtgehen kann, was nicht schon still steht.
+
+**Zu tun, bevor der alte Dienst abgeschaltet wird:** Bei Trackdesk, Netlify,
+Brevo und Stripe nachsehen, welche URL dort tatsächlich eingetragen ist, und
+sie auf `https://api.kompagnon.group/...` umstellen. Die Domain zeigt heute
+noch auf Oregon — das Umstellen ist also **jetzt schon** gefahrlos möglich und
+genau der Zweck von Weg A.
+
+### Nebenbefund am selben Tag: `GET /api/webhooks/log` war offen
+
+Beim Zählen fiel auf, dass diese zwölfte Route **ohne Anmeldung** mit 200
+antwortete — `SELECT *` über `webhook_log`, also Mailadressen und Firmen
+eingehender Leads, mit ungedeckeltem `limit`. Geschlossen am 19.08. (`ef08c31`,
+zwölf Tests). Sie steht hier, weil sie zum selben Bild gehört: Der Bereich
+„Webhooks" war nie als Ganzes durchgesehen worden.
+
+---
+
+## Was der Blueprint trägt — Abgleich vom 19.08.
+
+`kompagnon/render-produktiv.yaml` behauptet, alle Variablen zu tragen, die der
+Quelltext liest. Nachgezählt: **44 Schlüssel im Blueprint, 56 im Quelltext
+gelesen.** Die Differenz sieht nach zwölf Lücken aus und ist keine — jede der
+17 Abweichungen (in beide Richtungen) hat einen Grund:
+
+| Gruppe | Warum die Abweichung in Ordnung ist |
+|---|---|
+| `PORT`, `RENDER_EXTERNAL_URL`, `RENDER_INTERNAL_HOSTNAME` | setzt Render je Dienst selbst |
+| `ADMIN_*`, `AUDITOR_*`, `NUTZER_*`, `KUNDE_*` (Demo-Konten) | der Seed läuft nur, wenn `ENVIRONMENT` **nicht** `production` ist |
+| `SMTP_HOST/PORT/USER/PASSWORD/FROM/SENDER_*` | produktiv bewusst leer — der Versand läuft über die Brevo-API; am Dienst gemessen: `/info` meldet `smtp_configured: false` |
+| `USE_MOCK_EMAIL` | Vorgabe ist `false`, und `false` ist der gewünschte Zustand |
+| `PAGESPEED_API_KEY`, `NETLIFY_VORSCHAU_SITE_ID` | werden über eine Konstante bzw. einen Aliasnamen gelesen — meine Suche fand sie nicht, der Quelltext nutzt sie sehr wohl |
+| `REACT_APP_*`, `PYTHON_VERSION` | gehören zur Static Site bzw. zur Laufzeit |
+
+**Ergebnis: keine echte Lücke.** Der Blueprint ist umzugsreif.
+
+Was dieser Abgleich **nicht** beantworten kann: ob am laufenden Oregon-Dienst
+Variablen gesetzt sind, die weder Quelltext noch Blueprint kennen. Das zeigt
+nur der Export im Dashboard — der Render-MCP ist auch am 19.08. `unauthorized`.
+
+### Zwei Korrekturen am Plan
+
+- **`ENVIRONMENT=production` ist gesetzt**, entgegen der Notiz weiter unten
+  („war beim alten Dienst nie gesetzt, siehe L-42"). Am 19.08. gemessen:
+  `/info` gibt `environment: production` aus, und dieses Feld ist nichts
+  anderes als `os.getenv("ENVIRONMENT", "development")`. Die Folge ist
+  beruhigend: Die vier Demo-Konten werden produktiv **übersprungen**. Für den
+  neuen Dienst bleibt der Punkt trotzdem stehen — dort ist die Variable neu zu
+  setzen, und wer sie vergisst, legt sich Demo-Konten in die Produktivdaten.
+- **Der Bereitschafts-Check hängt an der Service-ID, nicht an einer Adresse.**
+  Der Deploy-Job holt `serviceDetails.url` über die Render-API und prüft
+  `/health` dort. Beim Umzug ist also wirklich **nur** die Repository-Variable
+  `RENDER_SERVICE_BACKEND_PROD` zu ändern; in `ci.yml` steht keine URL, die
+  jemand vergessen könnte.
 
 ---
 

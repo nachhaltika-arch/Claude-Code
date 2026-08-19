@@ -322,15 +322,6 @@ function ModuleBlock({
         </label>
 
         <button
-          onClick={() => navigate(`/app/akademie/admin/modul/${mod.id}`)}
-          style={{
-            padding: '3px 8px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
-            border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)',
-            fontSize: 11, cursor: 'pointer',
-          }}
-        >✏️</button>
-
-        <button
           onClick={() => onDeleteModule(mod.id)}
           style={{
             padding: '3px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
@@ -395,7 +386,7 @@ function ModuleBlock({
               lesson={lesson}
               dragHandlers={lsnHandlers(lIdx)}
               isDragTarget={lsnOver.current === lIdx}
-              onEdit={() => navigate(`/app/akademie/admin/modul/${mod.id}`)}
+              onEdit={() => navigate(`/app/academy/admin/lesson/${lesson.id}`)}
               onDelete={() => deleteLesson(lesson.id)}
             />
           ))}

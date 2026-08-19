@@ -202,8 +202,15 @@ Lektion. Der Rest ist Plattformgeschäft, nicht unseres.
    Bearbeiten-Knopf an einer Lektion führte auf eine Modul-Adresse, die es
    nicht gibt — man landete in der Kursliste, und der vorhandene
    Lektions-Editor war von dort **gar nicht erreichbar** (`ad8beec`)
-3. **Zuweisung je Modul** — macht aus Kursduplikaten einen Kurs mit Zweigen
-4. **Modul/Lektion/Dauer je Kurs berechnen** statt als Zähler zu führen
+3. ~~**Zuweisung je Modul**~~ — **erledigt 19.08.**: `academy_module_access`,
+   drei Endpunkte, und — der eigentliche Punkt — die Lesepfade **filtern
+   jetzt**. Dabei kam heraus, dass `AcademyCustomerAccess` und
+   `AcademyModule.is_locked` bis dahin **von keinem Lesepfad abgefragt**
+   wurden: gebaut, bedienbar, wirkungslos (L-55, dieselbe Familie wie L-05).
+   Die Vorgabe bleibt „offen", damit nichts verschwindet, was heute sichtbar
+   ist. Offen geblieben: die zweideutige Kundenkennung (L-54)
+4. ~~**Modul/Lektion/Dauer je Kurs berechnen**~~ — **erledigt 19.08.**:
+   `_kursumfang()` rechnet sie aus `academy_*`, die Kursliste zeigt sie
 5. Redaktionsregel für Benennung: Ziffern für den Pflichtweg, Emoji als
    Gattungsmarke, wiederholte Präfixe für Gruppen
 6. *Später, wenn ein Modul über zehn Lektionen bekommt:* Ordner-Ebene

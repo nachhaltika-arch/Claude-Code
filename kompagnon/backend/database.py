@@ -710,6 +710,12 @@ class AcademyCourse(Base):
     linear_progress = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # „Nur fuer Zugewiesene" — das Gegenstueck zu Memberspots „Manuell".
+    # Vorgabe False: Ein Kurs ohne Sperre bleibt sichtbar wie bisher. Waere
+    # die Zuweisung ab sofort zwingend, verschwaende der Bestand vor den Augen
+    # der heutigen Kunden. Erst dieses Feld gibt `AcademyCustomerAccess`
+    # ueberhaupt eine Wirkung — bis zum 19.08.2026 fragte es kein Lesepfad ab.
+    is_locked = Column(Boolean, default=False)
 
 
 class AcademyChecklistItem(Base):
@@ -798,6 +804,22 @@ class AcademyQuizQuestion(Base):
     question = Column(Text, nullable=False)
     answers_json = Column(Text, default='[]')   # [{text, is_correct}]
     sort_order = Column(Integer, default=0)
+
+
+class AcademyModuleAccess(Base):
+    """Welche gesperrten Module ein Kunde freigeschaltet bekommen hat.
+
+    Das Gegenstueck zu `AcademyCustomerAccess`, eine Ebene tiefer. Damit wird
+    aus einem Kurs je Zielgruppe **ein** Kurs mit Zweigen: Der Pflichtteil
+    gilt fuer alle, die gewerkespezifischen Module nur fuer die passenden
+    Betriebe.
+    """
+    __tablename__ = "academy_module_access"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, nullable=False)
+    module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+    assigned_by = Column(Integer, nullable=True)
 
 
 class AcademyCustomerAccess(Base):

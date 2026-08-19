@@ -240,6 +240,16 @@ def _run_migrations():
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
+        """CREATE TABLE IF NOT EXISTS academy_module_access (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER NOT NULL,
+            module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,
+            assigned_at TIMESTAMP DEFAULT NOW(),
+            assigned_by INTEGER
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_academy_module_access_kunde "
+        "ON academy_module_access(customer_id)",
         """CREATE TABLE IF NOT EXISTS academy_lessons (
             id SERIAL PRIMARY KEY,
             module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,

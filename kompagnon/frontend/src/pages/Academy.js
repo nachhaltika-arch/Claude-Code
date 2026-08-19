@@ -331,6 +331,18 @@ export default function Academy() {
                     overflow: 'hidden',
                   }}>{course.description}</div>
 
+                  {/* Module · Lektionen · Dauer — die drei Zahlen, die
+                      „wie gross ist das hier?" beantworten. Berechnet, nicht
+                      mitgefuehrt: Die alte Kurstabelle fuehrte sie als Zaehler,
+                      die niemand nachrechnete. */}
+                  {(course.module_count > 0 || course.lesson_count > 0) && (
+                    <div style={{ fontSize: 11, color: T.textMuted, fontFamily: T.font, marginTop: -4 }}>
+                      {course.module_count} {course.module_count === 1 ? 'Modul' : 'Module'}
+                      {' · '}{course.lesson_count} {course.lesson_count === 1 ? 'Lektion' : 'Lektionen'}
+                      {course.duration_minutes > 0 && ` · ${course.duration_minutes} Min.`}
+                    </div>
+                  )}
+
                   {/* Progress bar + percent */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>

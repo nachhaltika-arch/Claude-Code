@@ -308,7 +308,7 @@ function ModuleBlock({
 
         {/* Locked toggle */}
         <label
-          title={mod.is_locked ? 'Gesperrt' : 'Freigeschaltet'}
+          title={mod.is_locked ? 'Nur für zugewiesene Kunden' : 'Für alle im Kurs sichtbar'}
           style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', flexShrink: 0 }}
           onClick={e => e.stopPropagation()}
         >
@@ -318,7 +318,7 @@ function ModuleBlock({
             onChange={() => onUpdateFeld(mod.id, 'is_locked', !mod.is_locked)}
             style={{ accentColor: 'var(--brand-primary)', width: 14, height: 14 }}
           />
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Gesperrt</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Nur Zugewiesene</span>
         </label>
 
         <button
@@ -491,6 +491,7 @@ export default function AcademyAdminCourse() {
     audience:        'employee',
     is_published:    false,
     linear_progress: false,
+    is_locked:       false,
   });
 
   const [modules, setModules]       = useState([]);
@@ -516,6 +517,7 @@ export default function AcademyAdminCourse() {
           audience:        data.audience        || 'employee',
           is_published:    Boolean(data.is_published),
           linear_progress: Boolean(data.linear_progress),
+          is_locked:       Boolean(data.is_locked),
         });
         setModules(Array.isArray(data.modules) ? data.modules : []);
       })
@@ -581,7 +583,7 @@ export default function AcademyAdminCourse() {
   // auseinandergelaufen waeren.
   const FELDNAME = {
     title: 'Der Modulname',
-    is_locked: 'Die Sperre',
+    is_locked: 'Der Zugang',
     description: 'Die Modulbeschreibung',
     thumbnail_url: 'Das Vorschaubild',
   };
@@ -778,6 +780,19 @@ export default function AcademyAdminCourse() {
                   style={{ accentColor: 'var(--brand-primary)', width: 16, height: 16 }}
                 />
                 Lineare Freischaltung (Lektionen müssen der Reihe nach abgeschlossen werden)
+              </label>
+
+              {/* Zugang: „Veröffentlicht" ist der redaktionelle Zustand,
+                  „nur für Zugewiesene" der Zugang. Zwei Fragen, zwei Felder —
+                  aus dem Memberspot-Vergleich. */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={form.is_locked}
+                  onChange={e => setF('is_locked')(e.target.checked)}
+                  style={{ accentColor: 'var(--brand-primary)', width: 16, height: 16 }}
+                />
+                Nur für zugewiesene Kunden (sonst für alle der Zielgruppe sichtbar)
               </label>
             </div>
           </div>

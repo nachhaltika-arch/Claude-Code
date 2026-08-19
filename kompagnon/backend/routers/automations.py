@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
+from services.lebenszyklus import KUNDE
 from services.margin_calculator import MarginCalculator
 
 router = APIRouter(prefix="/api", tags=["dashboard", "automations"],
@@ -101,7 +102,11 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
 
     # Lead / Usercard counts — prefer leads table, fallback to usercards
     leads_total = db.query(Lead).count()
-    leads_won   = db.query(Lead).filter(Lead.status == "won").count()
+    # Ueber die Phase, nicht ueber eine Aufzaehlung von Statuswerten: Vorher
+    # stand hier `status == "won"`, und ein Betrieb, den jemand im Bildschirm
+    # auf „Kunde" (`customer`) gesetzt hat, fehlte in der Zahl. Niemand merkt
+    # eine Kennzahl, die um eins zu klein ist (19.08.2026).
+    leads_won   = db.query(Lead).filter(Lead.lifecycle_phase == KUNDE).count()
     if leads_total == 0:
         try:
             leads_total = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0

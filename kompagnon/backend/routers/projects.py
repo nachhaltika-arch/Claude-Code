@@ -360,8 +360,13 @@ def seed_projects(db: Session = Depends(get_db)):
     if projects table is completely empty.
     """
     project_count = db.query(Project).count()
+    # Dieselbe Korrektur wie in `automations.py`: ueber die Phase statt ueber
+    # einen einzelnen Statuswert. Ein von Hand auf „Kunde" gesetzter Betrieb
+    # bekam sonst nie ein Projekt vorgeschlagen.
+    from services.lebenszyklus import KUNDE
+
     won_leads = db.query(Lead).filter(
-        Lead.status == "won",
+        Lead.lifecycle_phase == KUNDE,
         ~Lead.projects.any()
     ).all()
 

@@ -171,8 +171,30 @@ Marketing-Teil.
 
 ## 6. Reihenfolge, wenn wir etwas davon übernehmen
 
-1. **Lifecycle-Phase von Leadstatus trennen** — ein Feld, das zwei Fragen
-   beantwortet, beantwortet keine richtig.
+1. ~~**Lifecycle-Phase von Leadstatus trennen**~~ — **erledigt 19.08.**
+   `Lead.lifecycle_phase` steht neben `status`, der unverändert bleibt: Es
+   verliert niemand etwas. Vier Phasen (`interessent`, `im_gespraech`,
+   `kunde`, `ausgeschieden`), abgeleitet aus dem Wortschatz, der wirklich
+   vorkommt. Sie wird **nicht von Hand gepflegt** — ein Ereignis zieht sie mit,
+   sobald `status` gesetzt wird, denn ein zweites Feld zum Vergessen wäre
+   schlechter als keines. **Ein unbekannter Status bekommt keine Phase**
+   (`None`), und die Oberfläche zeigt „Phase offen": Er soll auffallen, nicht
+   in eine Schublade gedrängt werden.
+
+   **Der Gewinn ist nicht die Ordnung, sondern zwei falsche Zahlen.**
+   `automations.py` und `projects.py` beantworteten „ist das ein Kunde?" mit
+   `status == "won"` und übersahen dabei `customer` — den der Bildschirm
+   anbietet und den `PATCH` per `setattr` klaglos schreibt. Ein Betrieb, den
+   jemand von Hand auf „Kunde" gesetzt hat, zählte in **keiner** Kennzahl mit,
+   und eine Zahl, die um eins zu klein ist, merkt niemand. Jetzt fragen beide
+   die Phase.
+
+   Zur Einschätzung von vorhin: 31 Fundstellen und 47 Dateien waren richtig
+   gezählt, aber die falsche Schlussfolgerung. Der Umbau musste `status` gar
+   nicht anfassen — **additiv daneben** war der Weg, und damit blieb er ein
+   Paket statt einer Woche.
+
+   Ursprüngliche Einschätzung:
 
    **Nachgemessen am 19.08., und die Einschätzung „kleinster Eingriff" war
    falsch:** Allein die Lead- und Kunden-Router lesen oder setzen `status` an

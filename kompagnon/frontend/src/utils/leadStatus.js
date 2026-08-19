@@ -29,6 +29,31 @@ export const LEAD_STATUS = {
   customer:      { label: 'Kunde',        variant: 'info'    },
 };
 
+/**
+ * Wo ein Betrieb im Trichter steht — getrennt davon, wie weit die Bearbeitung
+ * ist. Der Status oben beantwortete beides gleichzeitig und deshalb keines
+ * richtig (19.08.2026, aus dem HubSpot-Vergleich).
+ *
+ * Die Schlüssel spiegeln `backend/services/lebenszyklus.py`. Ein Test hält
+ * beide Seiten zusammen — laufen sie auseinander, bekommt ein Betrieb eine
+ * Phase, die hier keinen Namen hat.
+ *
+ * `null` ist ein gültiger Wert und heißt „nicht einzuordnen". Er wird
+ * angezeigt, nicht versteckt.
+ */
+export const LEAD_PHASE = {
+  interessent:   { label: 'Interessent',  variant: 'neutral' },
+  im_gespraech:  { label: 'Im Gespräch',  variant: 'info'    },
+  kunde:         { label: 'Kunde',        variant: 'success' },
+  ausgeschieden: { label: 'Ausgeschieden', variant: 'danger' },
+};
+
+/** Beschriftung einer Phase — auch für den unbekannten Fall. */
+export function leadPhaseLabel(phase) {
+  if (!phase) return 'Phase offen';
+  return LEAD_PHASE[phase]?.label || lesbar(phase) || 'Phase offen';
+}
+
 /** Woher ein Betrieb kam. Freitext ist erlaubt — Kampagnennamen stehen hier. */
 export const LEAD_SOURCE = {
   domain_import:   'Domain-Import',

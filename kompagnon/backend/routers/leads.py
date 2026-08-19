@@ -284,6 +284,7 @@ def list_leads(
                 'city': lead.city or '',
                 'trade': lead.trade or '',
                 'status': lead.status or 'new',
+                'lifecycle_phase': lead.lifecycle_phase,
                 'lead_source': lead.lead_source or '',
                 'analysis_score': lead.analysis_score or 0,
                 'geo_score': lead.geo_score or 0,

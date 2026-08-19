@@ -95,6 +95,13 @@ def _zuweisungs_kennungen_nachziehen():
     nachziehen_beim_start()
 
 
+def _lebenszyklus_phasen_nachtragen():
+    """Startphase: Lebenszyklus-Phase fuer Bestandsbetriebe nachtragen."""
+    from services.lebenszyklus_nachtrag import nachtragen_beim_start
+
+    nachtragen_beim_start()
+
+
 def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
@@ -579,6 +586,9 @@ def _run_migrations():
         # produktiv `/api/dashboard/alerts` mit 500 beantwortet.
         "UPDATE projects SET scope_creep_flags = 0 WHERE scope_creep_flags IS NULL",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_phase VARCHAR(30)",
+        "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_phase "
+        "ON leads(lifecycle_phase)",
         "CREATE INDEX IF NOT EXISTS idx_audit_results_public_token "
         "ON audit_results(public_token)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
@@ -1721,6 +1731,7 @@ async def lifespan(app: FastAPI):
             # Muss nach "Kurse zusammenführen" laufen: Beide schreiben in
             # die Akademie, und der Nachtrag will alle Zeilen sehen.
             Phase("Zuweisungs-Kennungen", _zuweisungs_kennungen_nachziehen),
+            Phase("Lebenszyklus-Phasen", _lebenszyklus_phasen_nachtragen),
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),

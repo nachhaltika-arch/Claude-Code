@@ -88,6 +88,13 @@ class Lead(Base):
     trade = Column(String(100), nullable=True, default=None)
     lead_source = Column(String(100), default="")
     status = Column(String(50), default="new")
+    # Wo im Trichter — getrennt davon, wie weit die Bearbeitung ist.
+    # `status` beantwortete beides gleichzeitig und deshalb keines richtig
+    # (19.08.2026, aus dem HubSpot-Vergleich). Wird **nicht** von Hand
+    # gepflegt: Ein Ereignis unten zieht sie beim Setzen von `status` mit.
+    # `None` heisst „nicht einzuordnen" und ist ein sichtbarer Zustand, kein
+    # Fehler — siehe services/lebenszyklus.py.
+    lifecycle_phase = Column(String(30), nullable=True, index=True)
     analysis_score = Column(Integer, default=0)
     geo_score = Column(Integer, default=0)
     notes = Column(Text, nullable=True, default=None)
@@ -1279,3 +1286,37 @@ class MailEvent(Base):
 
     occurred_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ── Die Phase folgt dem Status ────────────────────────────────────────────────
+#
+# Als Ereignis und nicht als Zeile in jedem Schreibweg: `Lead.status` wird an
+# fuenf Stellen im Backend gesetzt und ueber `PATCH /api/leads/{id}` per
+# `setattr` an beliebig vielen weiteren. Wer die Phase dort ueberall von Hand
+# mitpflegen muesste, vergaesse sie — und ein Feld, das manchmal stimmt, ist
+# schlechter als keines.
+#
+# Gefunden am 19.08.2026 beim Lifecycle-Umbau.
+from sqlalchemy import event as _sa_event  # noqa: E402
+
+
+@_sa_event.listens_for(Lead.status, "set", propagate=True)
+def _phase_mitziehen(ziel, wert, alt, initiator):
+    """Setzt `lifecycle_phase` neu, sobald `status` gesetzt wird."""
+    from services.lebenszyklus import phase_zu
+
+    ziel.lifecycle_phase = phase_zu(wert)
+
+
+@_sa_event.listens_for(Lead, "before_insert")
+def _phase_beim_anlegen(mapper, verbindung, ziel):
+    """Auch ein Betrieb, dem niemand einen Status gibt, bekommt seine Phase.
+
+    Der Haken oben greift nur, wenn `status` **zugewiesen** wird. Wird ein
+    Lead ohne Status angelegt, setzt erst die Datenbank die Vorgabe `new` —
+    und die Phase bliebe leer, bis der naechste Nachtrag laeuft.
+    """
+    from services.lebenszyklus import phase_zu
+
+    if ziel.lifecycle_phase is None:
+        ziel.lifecycle_phase = phase_zu(ziel.status or "new")

@@ -86,10 +86,19 @@ services:
     plan: standard
     branch: main
     rootDir: kompagnon/backend
-    buildCommand: pip install -r requirements.txt
+    # Am 19.08.2026 am laufenden Dienst abgelesen — hier stand vorher nur
+    # `pip install -r requirements.txt`. Ohne die beiden Playwright-Zeilen
+    # baut Frankfurt **ohne Browser**, und Screenshots sowie die
+    # Browser-Schritte des Audits fallen still aus. Aufgefallen waere das
+    # erst nach dem Umhaengen der Domain.
+    buildCommand: pip install -r requirements.txt && python -m playwright install chromium && python -m playwright install-deps chromium
     # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
     # alten Blueprints es behaupten. Hier steht, was er tut.
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Der laufende Oregon-Dienst hat **keinen** Health-Check eingetragen —
+    # das Feld ist leer (19.08. nachgesehen). Render prueft dort also gar
+    # nicht, ob der Dienst antwortet. Hier bleibt `/health` stehen: Das ist
+    # die bessere Einstellung, und der Unterschied ist gewollt.
     healthCheckPath: /health
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
     # erst nach gruener CI. Das setzt voraus, dass Auto-Deploy im Dashboard

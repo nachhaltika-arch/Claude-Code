@@ -30,6 +30,17 @@ logger = logging.getLogger(__name__)
 DURCHGESETZTE_RECHTE = frozenset({
     "view_leads",       # Betriebe, Kundenkartei, Projekte (require_innendienst)
     "view_projects",
+    # Ab 19.08.2026 — die drei, mit denen etwas Unwiderrufliches passiert:
+    "delete_leads",             # DELETE /api/leads/{id}
+    "manage_users",             # Konten anlegen, aendern, loeschen, Passwort
+    "manage_settings",          # PATCH /api/admin/settings
+    #
+    # **Nicht** durchgesetzt, und zwar aus demselben Grund:
+    # `deploy_kas_pages` und `manage_system_settings` hat per Vorgabe **nur**
+    # der Superadmin. Sie durchzusetzen waere keine Absicherung, sondern eine
+    # Verhaltensaenderung — sie naehme dem Admin etwas weg, das er heute tut
+    # (deployen, die Rechtematrix pflegen). Das gehoert entschieden, nicht
+    # nebenbei gemacht.
 })
 
 

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import SystemSettings, RolePermission, get_db
-from routers.auth_router import require_admin
+from routers.auth_router import require_admin, verlangt_recht
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def get_settings(admin=Depends(require_admin), db: Session = Depends(get_db)):
     return {r.key: r.value for r in rows}
 
 
-@router.patch("/settings")
+@router.patch("/settings", dependencies=[Depends(verlangt_recht("manage_settings"))])
 def update_settings(req: SettingsUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
     for key, value in req.settings.items():
         existing = db.query(SystemSettings).filter(SystemSettings.key == key).first()

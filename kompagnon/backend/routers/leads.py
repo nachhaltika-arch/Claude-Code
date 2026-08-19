@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import (
     INNENDIENST, require_admin, require_any_auth, require_innendienst,
+    verlangt_recht,
     get_current_user,
 )
 from services import betriebsname
@@ -1027,7 +1028,7 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
     return {"success": True, "id": db_lead.id}
 
 
-@router.delete("/{lead_id}")
+@router.delete("/{lead_id}", dependencies=[Depends(verlangt_recht("delete_leads"))])
 def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     """Delete a lead and all associated data in correct dependency order."""
     # 1. Prüfen ob Lead existiert
@@ -1058,6 +1059,28 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
 
     # 6. Lead selbst löschen
+    #
+    # Ein Betrieb mit Kundenzugang scheiterte hier am Fremdschlüssel
+    # `users.lead_id` — unbehandelt, also **500** mit einer Meldung, aus der
+    # niemand schließen kann, was zu tun ist (gefunden 19.08.2026).
+    #
+    # Der Zugang wird hier **nicht** mitgelöscht: Ob das Löschen eines
+    # Betriebs das Konto seines Kunden mitnehmen soll, ist eine
+    # Datenschutz-Entscheidung und keine Zeile Code (L-56). Bis sie gefallen
+    # ist, sagt der Endpunkt wenigstens, was im Weg steht — das kann nichts
+    # brechen, denn heute scheitert der Aufruf ohnehin.
+    konto = db.execute(
+        text("SELECT email FROM users WHERE lead_id = :id LIMIT 1"),
+        {"id": lead_id},
+    ).fetchone()
+    if konto:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(f"Der Betrieb hat noch einen Kundenzugang ({konto[0]}). "
+                    "Erst den Zugang entfernen, dann den Betrieb löschen."),
+        )
+
     db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
 

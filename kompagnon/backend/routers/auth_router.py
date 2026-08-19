@@ -122,6 +122,29 @@ def require_innendienst(user: User = Depends(get_current_user)):
     return user
 
 
+def verlangt_recht(recht: str):
+    """Eine Abhaengigkeit, die genau **ein** Recht verlangt.
+
+    Der Unterschied zu `require_admin` ist der Punkt: Die Rolle sagt, wer
+    jemand ist — das Recht sagt, was er darf. Solange eine Route nur die Rolle
+    fragt, laesst sich das Haeckchen im Bildschirm „Rollen" setzen und
+    wegnehmen, ohne dass irgendetwas geschieht.
+
+    Wer diese Abhaengigkeit an eine Route haengt, traegt das Recht **auch** in
+    `services.rechte.DURCHGESETZTE_RECHTE` ein — sonst kennzeichnet der
+    Bildschirm es weiter als bloss beschreibend, und er luegt wieder, nur
+    andersherum.
+    """
+    def pruefung(user: User = Depends(get_current_user)):
+        from services.rechte import hat_recht
+
+        if not hat_recht(user.role, recht):
+            raise HTTPException(403, f"Fehlendes Recht: {recht}")
+        return user
+
+    return pruefung
+
+
 def require_kunde(user: User = Depends(get_current_user)):
     if user.role != "kunde":
         raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
@@ -443,7 +466,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
     return [_user_dict(u) for u in users]
 
 
-@admin_router.post("/users")
+@admin_router.post("/users", dependencies=[Depends(verlangt_recht("manage_users"))])
 def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
         raise HTTPException(400, "E-Mail bereits vergeben")
@@ -472,7 +495,7 @@ def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: 
     }
 
 
-@admin_router.patch("/users/{user_id}")
+@admin_router.patch("/users/{user_id}", dependencies=[Depends(verlangt_recht("manage_users"))])
 def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -490,7 +513,7 @@ def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(requir
     return _user_dict(user)
 
 
-@admin_router.delete("/users/{user_id}")
+@admin_router.delete("/users/{user_id}", dependencies=[Depends(verlangt_recht("manage_users"))])
 def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -502,7 +525,7 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
     return {"message": "Benutzer geloescht"}
 
 
-@admin_router.post("/users/{user_id}/reset-password")
+@admin_router.post("/users/{user_id}/reset-password", dependencies=[Depends(verlangt_recht("manage_users"))])
 def admin_reset_password(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

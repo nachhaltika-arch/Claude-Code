@@ -91,16 +91,40 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 
 ## Ablauf (Weg A, Schritte 1–2 für morgen)
 
+### Vorher — am 19.08. gemeinsam im Dashboard erhoben
+
+Alles Folgende ist **gemessen**, nicht erinnert. Es stand bis dahin nirgends
+im Repo, und genau das war der Punkt.
+
+| Frage | Antwort | Bedeutung für den Umzug |
+|---|---|---|
+| **Wiederherstellungspunkt** | Point-in-Time über **7 Tage**, dazu Exporte (≥ 7 Tage) | Der Rückweg steht. Beantwortet zugleich die offene Frage aus L-11 |
+| **Dateien auf `/var/data`** | **0** (32 K von 974 M belegt, das Verzeichnis selbst) | **Kein Kopierschritt.** Der heikelste Teil des Umzugs entfällt |
+| **Umschreibungsregeln der Static Site** | Genau **eine**: `/*` → `/index.html`, Action *Rewrite* | Muss am neuen Dienst nachgebaut werden — eine Zeile |
+| **Verschluckt die Regel das Widget?** | **Nein.** `/embed/audit-widget.html` liefert 31.464 Bytes mit Titel „KOMPAGNON — Gratis Webseiten-Analyse", 0 React-Merkmale, verschieden von `index.html` (987 B) | Die Sorge weiter unten war unbegründet. Render wendet die Regel nur als Rückfall an |
+
+**Kennungen, die beim Umzug gebraucht werden:**
+
+| Was | Wert |
+|---|---|
+| Backend (Oregon) | `srv-d74ptinfte5s73bjbv90` — Standard, Python 3, Branch `main` |
+| Frontend (Static) | `srv-d74qd7oule4c73f7v4t0` — Domain `kas.kompagnon.group` |
+| Datenbank | `dpg-d74t6ttm5p6s73fd6qv0-a` — **`Kompangnon-dB`**, Basic-256mb, Postgres 18, Frankfurt, 19,02 % von 1 GB |
+| Interne Adresse Backend | `claude-code-znq2:10000` |
+
+**Latenz, frisch gemessen (19.08., 18:49 UTC):** Produktiv `/health` **2,6 · 3,1
+· 3,2 s** — Staging in Frankfurt **0,23 · 0,17 · 0,18 s**. Faktor **15**. Das
+ist die ganze Begründung, und sie gilt heute.
+
 ### Vorher
 
 - [x] **Entschieden am 16.08.: `api.kompagnon.group`.** DNS liegt bei IONOS
       (`ns*.ui-dns.*`), die Subdomain war frei, und die Domain ist bereits die
       bei Brevo verifizierte Absenderdomain — Mail und API an einer Stelle.
       `kompagnon.eu` (EuroDNS) und `kompagnon.de` (de-nserver) bleiben unberührt
-- [ ] **Datenbank-Sicherung**: Render Recovery-Punkt notieren, damit es einen
-      Rückweg gibt
-- [ ] **Zahl der Dateien auf dem Datenträger** notieren (siehe unten) — sie
-      entscheidet, ob der Umzug ein Kopierschritt ist oder keiner
+- [x] **Datenbank-Sicherung**: Point-in-Time über 7 Tage — erhoben 19.08.
+- [x] **Zahl der Dateien auf dem Datenträger**: **0** — erhoben 19.08. Der
+      Umzug ist damit **kein** Kopierschritt
 - [x] Aufschreiben, was gerade läuft — **gemessen 16.08., 12:41 UTC:**
       produktiv `/health` 200, `startup_complete: true`, `scheduler_running:
       true`, `startup_missing: []`, **2,10–2,63 s**; `/info`

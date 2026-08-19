@@ -47,11 +47,49 @@ _check_stripe_config()
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
-PACKAGE_NAMES = {
-    "starter":   "Starter (5 Seiten · 1.500 EUR)",
-    "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)",
-    "premium":   "Premium (12 Seiten · 2.800 EUR)",
-}
+def paketbezeichnung(db, slug: str) -> str:
+    """Name und Preis eines Pakets — aus derselben Zeile, aus der auch
+    abgerechnet wird.
+
+    Hier stand bis zum 19.08.2026 eine feste Liste:
+
+        "starter":   "Starter (5 Seiten · 1.500 EUR)"
+        "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)"
+        "premium":   "Premium (12 Seiten · 2.800 EUR)"
+
+    Benutzt wird sie an genau einer Stelle — im **Text der Kundenmail** nach
+    dem Kauf. Der Betrag daneben kommt aus `products`, das von Hand gepflegt
+    wird. Zwei Quellen fuer dieselbe Zahl, und die eine steht in einer Mail,
+    die der Kunde aufhebt.
+
+    Sie waren bereits auseinandergelaufen: Premium stand im Frontend zweimal
+    mit 2.500, hier mit 2.800; Landing.jsx nennt Kompagnon mit 3.500 statt
+    2.000 (L-29).
+
+    Ist das Produkt unbekannt, steht dort die Kennung — und **kein erfundener
+    Preis**. Lieber nackt als falsch.
+    """
+    from sqlalchemy import text as _text
+
+    try:
+        zeile = db.execute(
+            _text("SELECT name, price_brutto FROM products WHERE slug = :s"),
+            {"s": slug},
+        ).fetchone()
+    except Exception:  # noqa: BLE001 — fehlende Tabelle darf die Mail nicht kippen
+        db.rollback()
+        return slug
+
+    if not zeile:
+        return slug
+
+    name = zeile[0] or slug
+    betrag = float(zeile[1] or 0)
+    if betrag <= 0:
+        return name
+
+    # Deutsche Schreibweise: 1.500 statt 1,500
+    return f"{name} ({betrag:,.0f} EUR)".replace(",", ".")
 
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
@@ -367,7 +405,7 @@ def _handle_successful_payment(session: dict, db: Session):
                 if lead.customer_token
                 else public_base_url() + "/portal/login"
             )
-            paket_name = PACKAGE_NAMES.get(package_id, package_id)
+            paket_name = paketbezeichnung(db, package_id)
 
             # Passwort-Abschnitt: nur anzeigen wenn neuer User
             if temp_pw:

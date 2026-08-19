@@ -16,11 +16,12 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db, Briefing, Lead, Project
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, require_innendienst
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/briefings", tags=["briefings"])
+router = APIRouter(prefix="/api/briefings", tags=["briefings"],
+                   dependencies=[Depends(require_innendienst)])
 
 FLAT_FIELDS = [
     "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",

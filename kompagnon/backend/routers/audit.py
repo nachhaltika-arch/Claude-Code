@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
-from routers.auth_router import optional_auth
+from routers.auth_router import optional_auth, require_innendienst
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
 from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
@@ -373,7 +373,7 @@ def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:
         logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {e}")
 
 
-@router.get("/recent")
+@router.get("/recent", dependencies=[Depends(require_innendienst)])
 def get_recent_audits(
     limit: Optional[int] = 10,
     skip: Optional[int] = 0,
@@ -534,7 +534,7 @@ def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{audit_id}/pdf")
+@router.get("/{audit_id}/pdf", dependencies=[Depends(require_innendienst)])
 def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
     """Download audit result as PDF report."""
     try:
@@ -568,7 +568,7 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"PDF-Generierung fehlgeschlagen: {str(e)}")
 
 
-@router.get("/{audit_id}/angebot")
+@router.get("/{audit_id}/angebot", dependencies=[Depends(require_innendienst)])
 def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
     """Angebots-PDF für ein abgeschlossenes Audit herunterladen."""
     try:
@@ -618,7 +618,7 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f'Audit konnte nicht geladen werden: {str(e)}')
 
 
-@router.delete("/{audit_id}")
+@router.delete("/{audit_id}", dependencies=[Depends(require_innendienst)])
 def delete_audit(audit_id: int, db: Session = Depends(get_db)):
     """Delete a single audit. Updates lead screenshot if needed."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -639,7 +639,7 @@ def delete_audit(audit_id: int, db: Session = Depends(get_db)):
     return {"success": True, "message": "Audit geloescht"}
 
 
-@router.patch("/{audit_id}/link-lead")
+@router.patch("/{audit_id}/link-lead", dependencies=[Depends(require_innendienst)])
 def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db)):
     """Link an existing audit to a lead."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -653,7 +653,7 @@ def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depend
     return {"id": audit.id, "lead_id": req.lead_id, "message": "Audit mit Lead verknüpft"}
 
 
-@router.get("/lead/{lead_id}")
+@router.get("/lead/{lead_id}", dependencies=[Depends(require_innendienst)])
 def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
     """Get all audits for a specific lead."""
     audits = (

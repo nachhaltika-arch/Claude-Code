@@ -13,7 +13,7 @@ import secrets
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from datetime import datetime
@@ -2013,7 +2013,12 @@ def health_check():
         return {"status": "degraded", "database": db_status, "detail": str(e)}
 
 
-@app.get("/api/scheduler/status")
+# Der Scheduler verrät die interne Jobliste und lässt sich neu starten.
+# Beides stand bis zum 19.08.2026 ohne Anmeldung offen; der Neustart
+# antwortete beim Nachmessen mit 200 und startete tatsächlich neu.
+from routers.auth_router import require_innendienst
+
+@app.get("/api/scheduler/status", dependencies=[Depends(require_innendienst)])
 def scheduler_status():
     """Check if scheduler is running and list active jobs."""
     try:
@@ -2032,7 +2037,7 @@ def scheduler_status():
         return {"running": False, "error": str(e)}
 
 
-@app.post("/api/scheduler/restart")
+@app.post("/api/scheduler/restart", dependencies=[Depends(require_innendienst)])
 def scheduler_restart():
     """Manually (re)start the scheduler — useful if background_init failed."""
     try:

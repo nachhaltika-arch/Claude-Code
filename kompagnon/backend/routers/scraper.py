@@ -16,13 +16,15 @@ from datetime import datetime
 from typing import Optional, List
 from threading import Thread
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from routers.auth_router import require_innendienst
 from pydantic import BaseModel
 
 from services.hwk_scraper import HwkScraperService, CHAMBER_CONFIGS, TRADES_MUENCHEN
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/scraper", tags=["Scraper"])
+router = APIRouter(prefix="/api/scraper", tags=["Scraper"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── In-memory run log (resets on restart; good enough for manual triggers) ─────

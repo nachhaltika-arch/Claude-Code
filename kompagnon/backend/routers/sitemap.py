@@ -33,7 +33,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from database import Base, Briefing, Lead, get_db
-from routers.auth_router import require_any_auth, optional_auth
+from routers.auth_router import require_any_auth, optional_auth, require_innendienst
 from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,8 @@ def _t(text: str) -> str:
         return ""
     return unicodedata.normalize("NFC", str(text))
 
-router = APIRouter(prefix="/api/sitemap", tags=["sitemap"])
+router = APIRouter(prefix="/api/sitemap", tags=["sitemap"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Hormozi-Section-Katalog (Wireframe-Library-Mapping) ──────────────────────

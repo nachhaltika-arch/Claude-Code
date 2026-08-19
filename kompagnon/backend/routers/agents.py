@@ -7,6 +7,7 @@ POST /api/agents/{project_id}/qa            - Run QA agent
 POST /api/agents/{project_id}/review        - Run review agent
 """
 from fastapi import APIRouter, Depends, HTTPException
+from routers.auth_router import require_innendienst
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import Project, get_db
@@ -22,7 +23,8 @@ import uuid
 import threading
 from functools import partial
 
-router = APIRouter(prefix="/api/agents", tags=["agents"])
+router = APIRouter(prefix="/api/agents", tags=["agents"],
+                   dependencies=[Depends(require_innendienst)])
 
 # ── In-memory job store ────────────────────────────────────────────────────────
 # { job_id: { "status": "running"|"done"|"error", "result": ..., "error": ... } }

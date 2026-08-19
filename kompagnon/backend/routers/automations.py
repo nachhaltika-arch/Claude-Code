@@ -5,6 +5,7 @@ GET /api/dashboard/alerts - Active alerts
 POST /api/automations/trigger - Manual trigger
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from routers.auth_router import require_innendienst
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -12,7 +13,8 @@ from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
 
-router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
+router = APIRouter(prefix="/api", tags=["dashboard", "automations"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 class KPIData(BaseModel):

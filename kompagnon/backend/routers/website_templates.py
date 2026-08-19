@@ -25,10 +25,11 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_innendienst
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/website-templates", tags=["website-templates"])
+router = APIRouter(prefix="/api/website-templates", tags=["website-templates"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────

@@ -15,10 +15,11 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import require_admin
+from routers.auth_router import require_admin, require_innendienst
 from services.ki_aufruf import frag_modell
 
-router = APIRouter(prefix="/api/templates", tags=["templates"])
+router = APIRouter(prefix="/api/templates", tags=["templates"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 @router.post("/upload")

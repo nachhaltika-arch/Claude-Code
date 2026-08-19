@@ -13,7 +13,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, require_innendienst
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
     return dict(row)
 
 
-@router.patch("/{ticket_id}")
+@router.patch("/{ticket_id}", dependencies=[Depends(require_innendienst)])
 def update_ticket(ticket_id: int, req: TicketUpdate, db: Session = Depends(get_db)):
     updates = []
     params = {"id": ticket_id}

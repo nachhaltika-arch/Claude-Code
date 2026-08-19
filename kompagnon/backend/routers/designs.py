@@ -6,6 +6,7 @@ POST /api/designs/{lead_id}             - Save a new version
 DELETE /api/designs/version/{version_id} - Delete a version
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from routers.auth_router import require_innendienst
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -15,7 +16,8 @@ from datetime import datetime
 from database import get_db, Lead, Base
 from routers.sitemap import SitemapPage
 
-router = APIRouter(prefix="/api/designs", tags=["designs"])
+router = APIRouter(prefix="/api/designs", tags=["designs"],
+                   dependencies=[Depends(require_innendienst)])
 
 # ── ORM model ─────────────────────────────────────────────────────────────────
 

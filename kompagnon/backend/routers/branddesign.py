@@ -10,6 +10,7 @@ POST /api/branddesign/{lead_id}/guideline/generate - Generate brand guideline vi
 PUT  /api/branddesign/{lead_id}/guideline          - Save manual edits to guideline
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from routers.auth_router import require_innendienst
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -19,7 +20,8 @@ from datetime import datetime
 from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/branddesign", tags=["branddesign"])
+router = APIRouter(prefix="/api/branddesign", tags=["branddesign"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────

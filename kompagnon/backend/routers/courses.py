@@ -9,9 +9,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import Course, get_db
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_any_auth
 
-router = APIRouter(prefix="/api/courses", tags=["courses"])
+router = APIRouter(prefix="/api/courses", tags=["courses"],
+                   dependencies=[Depends(require_any_auth)])
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
 

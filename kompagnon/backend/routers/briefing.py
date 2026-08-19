@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from routers.auth_router import require_innendienst
 from sqlalchemy.orm import Session
 from database import get_db, Briefing, Lead
 from datetime import datetime
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/briefings', tags=['briefings'])
 
 
-@router.patch('/{lead_id}')
+@router.patch('/{lead_id}', dependencies=[Depends(require_innendienst)])
 def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db)):
     """Update one or more briefing sections."""
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
@@ -127,7 +128,7 @@ def _serialize(b):
     }
 
 
-@router.post('/{lead_id}/zielgruppenanalyse')
+@router.post('/{lead_id}/zielgruppenanalyse', dependencies=[Depends(require_innendienst)])
 async def zielgruppenanalyse(lead_id: int, db: Session = Depends(get_db)):
     """AI-powered target audience analysis based on lead trade + city."""
     from anthropic import Anthropic
@@ -185,7 +186,7 @@ Schreibe kompakt und praxisnah. Maximal 400 Wörter. Auf Deutsch."""
         raise HTTPException(500, f'Analyse fehlgeschlagen: {str(e)}')
 
 
-@router.post('/{lead_id}/wettbewerbsanalyse')
+@router.post('/{lead_id}/wettbewerbsanalyse', dependencies=[Depends(require_innendienst)])
 async def wettbewerbsanalyse(lead_id: int, db: Session = Depends(get_db)):
     """AI-powered competitor analysis based on lead trade + city + region."""
     from anthropic import Anthropic

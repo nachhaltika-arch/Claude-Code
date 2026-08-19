@@ -889,19 +889,16 @@ class CrawlResult(Base):
     crawled_at = Column(DateTime, default=datetime.utcnow)
 
 
-class Course(Base):
-    """Internal / customer / product training courses."""
-    __tablename__ = "courses"
-    id                = Column(Integer, primary_key=True, index=True)
-    title             = Column(String(255), nullable=False)
-    description       = Column(Text, default="")
-    category          = Column(String(50), default="intern")   # intern | kunde | produkt
-    thumbnail_color   = Column(String(20), default="#008eaa")
-    chapter_count     = Column(Integer, default=0)
-    participant_count = Column(Integer, default=0)
-    duration_minutes  = Column(Integer, default=0)
-    created_at        = Column(DateTime, default=datetime.utcnow)
-    created_by        = Column(Integer, ForeignKey("users.id"), nullable=True)
+# `Course` (Tabelle `courses`) ist am 19.08.2026 entfallen. Es war das zweite
+# von zwei Kurssystemen — ohne Module, ohne Lektionen, ohne Fortschritt: nur
+# `chapter_count`, `participant_count` und `duration_minutes` als mitgeführte
+# Zahlen, die niemand nachrechnete. Die Akademie (`AcademyCourse` und
+# Nachbarn) kann alles davon und mehr.
+#
+# Die Tabelle bleibt vorerst in der Datenbank stehen — ein DROP ist nicht
+# umkehrbar, und `services/kurse_zusammenfuehren.py` liest sie bei jedem Start,
+# um von Hand angelegte Kurse nachzuholen. Sie fällt, wenn feststeht, dass
+# nichts mehr darin ist.
 
 
 class ProjectScrapedPage(Base):

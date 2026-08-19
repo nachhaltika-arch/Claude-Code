@@ -38,7 +38,6 @@ import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyCertificate from './pages/AcademyCertificate';
 import Betriebe from './pages/Betriebe';
 import CustomerDashboard from './pages/CustomerDashboard';
-import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
 import ScraperControl from './pages/ScraperControl';
 import KasWebsite from './pages/KasWebsite';
@@ -291,7 +290,6 @@ function App() {
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
-            <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
             <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />

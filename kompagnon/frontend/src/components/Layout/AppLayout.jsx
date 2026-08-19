@@ -117,7 +117,6 @@ const PAGE_NAMES = {
   '/app/projektpipeline': 'Projektpipeline',
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademie',
-  '/app/courses': 'Kurse',
   '/app/academy': 'Akademie',
   '/app/akademie/admin': 'Kurse verwalten',
   '/app/academy/admin': 'Kurse verwalten',

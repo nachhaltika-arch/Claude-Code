@@ -81,6 +81,13 @@ logging.basicConfig(
 )
 
 
+def _kurse_zusammenfuehren():
+    """Startphase: die alte Kurstabelle in die Akademie überführen."""
+    from services.kurse_zusammenfuehren import zusammenfuehren_beim_start
+
+    zusammenfuehren_beim_start()
+
+
 def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
@@ -1682,6 +1689,9 @@ async def lifespan(app: FastAPI):
             Phase("Default admin", _create_default_admin),
             Phase("Disable demo accounts", _disable_demo_accounts_in_production),
             Phase("Academy seed", _academy_seed),
+            # Muss nach "DB init" laufen: Sie schreibt in
+            # `academy_courses`, und die legt erst `create_all` an.
+            Phase("Kurse zusammenführen", _kurse_zusammenfuehren),
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),
@@ -1811,8 +1821,9 @@ app.include_router(briefing_router)       # PATCH + AI endpoints
 from routers.kampagne import router as kampagne_router
 app.include_router(kampagne_router)
 
-from routers.courses import router as courses_router
-app.include_router(courses_router)
+# `routers/courses.py` ist am 19.08.2026 entfallen. Es bediente eine
+# strukturlose Tabelle neben der Akademie — siehe
+# services/kurse_zusammenfuehren.py.
 
 try:
     from routers.academy import router as _academy_router

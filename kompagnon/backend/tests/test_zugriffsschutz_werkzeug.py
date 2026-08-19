@@ -35,6 +35,9 @@ GESCHLOSSEN = (401, 403)
 # ein Datensatz liegt, ist für die Frage der Berechtigung ohne Belang — 404
 # und 422 heißen beide „geprüft wurde nicht die Anmeldung, sondern der Inhalt".
 
+# `/api/courses/*` stand hier bis zum 19.08.2026. Der Router ist mit der
+# Zusammenführung der zwei Kurssysteme entfallen — siehe
+# `test_kurse_zusammenfuehren.py`.
 GESPERRT_LESEND = (
     "/api/agents/jobs/1",
     "/api/audit/recent",
@@ -45,8 +48,6 @@ GESPERRT_LESEND = (
     "/api/branddesign/1",
     "/api/branddesign/1/guideline",
     "/api/branddesign/1/pdf",
-    "/api/courses/",
-    "/api/courses/1",
     "/api/crawler/status",
     "/api/dashboard/alerts",
     "/api/dashboard/kpis",
@@ -166,7 +167,7 @@ def test_was_offen_bleiben_muss_bleibt_offen(client, methode, pfad, grund):
 # ── Die Richtung, nicht die Liste ─────────────────────────────────────
 
 ROUTER_MIT_VORGABE = (
-    "automations", "agents", "branddesign", "briefings", "courses",
+    "automations", "agents", "branddesign", "briefings",
     "crawler", "designs", "scraper", "sitemap", "templates",
     "website_templates",
 )

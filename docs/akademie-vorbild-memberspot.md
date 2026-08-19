@@ -190,10 +190,18 @@ Lektion. Der Rest ist Plattformgeschäft, nicht unseres.
 
 ## Reihenfolge, wenn es an die Umsetzung geht
 
-1. **Die zwei Kurssysteme zusammenführen** (`courses` → `academy_*`). Ohne das
-   verdoppelt jede weitere Änderung ihren Preis
-2. **`description` + `thumbnail_url` an `AcademyModule`** — zwei Spalten, größte
-   sichtbare Wirkung
+1. ~~**Die zwei Kurssysteme zusammenführen**~~ — **erledigt 19.08.** (`b1d89bb`):
+   `services/kurse_zusammenfuehren.py` holt von Hand Angelegtes nach und lässt
+   die drei Demo-Saaten mit ihren erfundenen Teilnehmerzahlen liegen. Router,
+   Modell, Seite und Route sind weg; die Tabelle `courses` bleibt stehen, bis
+   feststeht, dass nichts mehr darin ist
+2. ~~**`description` + `thumbnail_url` an `AcademyModule`**~~ — **erledigt
+   19.08.** (`d704a9c`): beide Felder im Modell, in der Migration, an beiden
+   Anlegewegen und in der Modulzeile; die Lernendenansicht zeigt die
+   Beschreibung unter dem Modultitel. **Nebenbefund dabei:** Der
+   Bearbeiten-Knopf an einer Lektion führte auf eine Modul-Adresse, die es
+   nicht gibt — man landete in der Kursliste, und der vorhandene
+   Lektions-Editor war von dort **gar nicht erreichbar** (`ad8beec`)
 3. **Zuweisung je Modul** — macht aus Kursduplikaten einen Kurs mit Zweigen
 4. **Modul/Lektion/Dauer je Kurs berechnen** statt als Zähler zu führen
 5. Redaktionsregel für Benennung: Ziffern für den Pflichtweg, Emoji als

@@ -172,7 +172,22 @@ Marketing-Teil.
 ## 6. Reihenfolge, wenn wir etwas davon übernehmen
 
 1. **Lifecycle-Phase von Leadstatus trennen** — ein Feld, das zwei Fragen
-   beantwortet, beantwortet keine richtig. Kleinster Eingriff, größte Klärung
+   beantwortet, beantwortet keine richtig.
+
+   **Nachgemessen am 19.08., und die Einschätzung „kleinster Eingriff" war
+   falsch:** Allein die Lead- und Kunden-Router lesen oder setzen `status` an
+   **31 Stellen**, im Frontend berühren **47 Dateien** ein Feld dieses Namens.
+   Dazu ist der Wortschatz über die Objekte hinweg gemischt — `won` neben
+   `gewonnen`, `done` neben `completed` neben `approved`. Das ist kein
+   Nachmittag, sondern ein eigenes Paket, und halb gemacht wäre es schlimmer
+   als gar nicht: Zwei Felder, von denen eines nur manchmal gepflegt wird,
+   sind schlechter als ein überladenes.
+
+   Der gangbare erste Schritt wäre additiv: `lifecycle_phase` anlegen, beim
+   Start aus dem heutigen `status` ableiten, **lesend** ausliefern und erst
+   dann die Oberflächen einzeln umstellen. Solange nichts sie liest, ist die
+   Spalte allerdings Vorrat — deshalb gehört der Umbau **zusammen** geplant
+   und nicht nebenbei begonnen
 2. **Der Verlauf gehört auf die Seite, nicht in einen Reiter** — die
    Betriebsseite auf drei Spalten umstellen, Aktionsleiste unter die Identität
 3. **Benannte Ansichten** statt bloßer Filter in der Betriebsliste

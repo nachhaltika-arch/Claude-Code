@@ -474,6 +474,15 @@ class AuditResult(Base):
     status = Column(String(50), default="pending")
     error_message = Column(Text)
 
+    # Das Geheimnis, mit dem ein Interessent ohne Konto sein eigenes Ergebnis
+    # abholt. Ohne das war die Kennung eine fortlaufende Zahl, und wer sie
+    # hochzaehlte, las fremde Audits (L-52, 19.08.2026). Das Widget macht es
+    # unter `/api/widget/report/{token}` seit jeher so.
+    # Bestandsdaten haben keins und bleiben damit nur ueber eine Anmeldung
+    # erreichbar — ein Audit von gestern holt niemand mehr ueber die
+    # Landingpage ab.
+    public_token = Column(String(64), nullable=True, index=True)
+
     # Scores (6 categories)
     total_score = Column(Integer, default=0)  # 0-100
     level = Column(String(50))  # Nicht konform, Bronze, Silber, Gold, Platin

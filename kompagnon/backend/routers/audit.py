@@ -14,6 +14,7 @@ import logging
 import threading
 from datetime import datetime, timezone
 from typing import Optional
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import Response
@@ -471,11 +472,15 @@ async def start_audit(
             scraped_phone=scraped.get("phone", ""),
             scraped_email=scraped.get("email", ""),
             scraped_description=scraped.get("meta_description", ""),
+            # Das Geheimnis, mit dem der Interessent sein eigenes Ergebnis
+            # abholt. Ohne es waere die Kennung eine fortlaufende Zahl (L-52).
+            public_token=secrets.token_urlsafe(24),
         )
         db2.add(audit)
         db2.commit()
         db2.refresh(audit)
         audit_id = audit.id
+        audit_token = audit.public_token
     finally:
         db2.close()
 
@@ -507,6 +512,7 @@ async def start_audit(
 
     return {
         "id": audit_id,
+        "token": audit_token,
         "status": "pending",
         "scraped": {
             "company_name": company_name,
@@ -520,12 +526,34 @@ async def start_audit(
     }
 
 
-@router.get("/status/{audit_id}")
-def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
-    """Poll audit status (pending / running / completed / failed)."""
+def _audit_oder_404(db, audit_id: int, token: Optional[str], nutzer):
+    """Das Audit — oder 404, wenn der Fragende es nichts angeht.
+
+    Zwei Wege fuehren hier herein: der Innendienst mit Anmeldung, und die
+    oeffentliche Landingpage mit dem Geheimnis, das sie beim Start bekommen
+    hat. Alles andere bekommt 404 und nicht 403: Ob es ein Audit mit dieser
+    Nummer gibt, ist bereits eine Auskunft.
+
+    Bestandsdaten ohne Geheimnis sind damit nur angemeldet erreichbar. Das ist
+    gewollt — ein Audit von gestern holt niemand mehr ueber die Landingpage ab.
+    """
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
         raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    if nutzer is not None:
+        return audit
+    if audit.public_token and token and secrets.compare_digest(
+            str(token), str(audit.public_token)):
+        return audit
+    raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+
+
+@router.get("/status/{audit_id}")
+def get_audit_status(audit_id: int, db: Session = Depends(get_db),
+                     token: Optional[str] = None,
+                     nutzer=Depends(optional_auth)):
+    """Poll audit status (pending / running / completed / failed)."""
+    audit = _audit_oder_404(db, audit_id, token, nutzer)
     result = {"id": audit.id, "status": audit.status}
     if audit.status == "failed":
         result["error"] = audit.error_message
@@ -599,12 +627,12 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{audit_id}")
-def get_audit(audit_id: int, db: Session = Depends(get_db)):
+def get_audit(audit_id: int, db: Session = Depends(get_db),
+              token: Optional[str] = None,
+              nutzer=Depends(optional_auth)):
     """Get a stored audit result."""
     try:
-        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
-        if not audit:
-            raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+        audit = _audit_oder_404(db, audit_id, token, nutzer)
         if audit.status == "pending" or audit.status == "running":
             return {"id": audit.id, "status": audit.status, "message": "Audit läuft noch..."}
         if audit.status == "failed":

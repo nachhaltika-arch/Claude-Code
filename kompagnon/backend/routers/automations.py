@@ -164,13 +164,19 @@ def get_dashboard_alerts(db: Session = Depends(get_db)):
             )
 
         # Check for scope creep
-        if project.scope_creep_flags > 0:
+        #
+        # `or 0`, weil die Spalte NULL enthalten kann: Das `default=0` im
+        # Modell ist eine Python-Vorgabe und greift nur beim Anlegen ueber das
+        # Modell. Produktiv war das ein 500 auf dem ganzen Endpunkt — ein
+        # einziges Projekt ohne Zaehler nahm die gesamte Alarmliste mit.
+        scope_creep = project.scope_creep_flags or 0
+        if scope_creep > 0:
             alerts.append(
                 Alert(
                     alert_type="scope_creep",
                     severity="warning",
                     project_id=project.id,
-                    message=f"Projekt {project.id}: {project.scope_creep_flags} Scope-Creep-Vorfälle",
+                    message=f"Projekt {project.id}: {scope_creep} Scope-Creep-Vorfälle",
                     timestamp=datetime.utcnow(),
                 )
             )

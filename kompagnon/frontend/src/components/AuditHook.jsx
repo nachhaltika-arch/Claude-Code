@@ -78,6 +78,10 @@ export default function AuditHook() {
       const auditStart = await auditRes.json();
       const auditId    = auditStart.audit_id || auditStart.id;
       if (!auditId) throw new Error('Audit konnte nicht gestartet werden');
+      // Diese Komponente steht auf der oeffentlichen Landing-Seite: ohne das
+      // Geheimnis aus der Startantwort kaeme der Interessent nicht an sein
+      // eigenes Ergebnis (L-52).
+      const abfrage = auditStart.token ? `?token=${encodeURIComponent(auditStart.token)}` : '';
 
       let attempts = 0;
       const poll = setInterval(async () => {
@@ -88,7 +92,7 @@ export default function AuditHook() {
           return;
         }
         try {
-          const r = await fetch(`${API_BASE_URL}/api/audit/${auditId}`);
+          const r = await fetch(`${API_BASE_URL}/api/audit/${auditId}${abfrage}`);
           const d = await r.json();
           if (d.status === 'completed') {
             clearInterval(poll); clearInterval(iv);

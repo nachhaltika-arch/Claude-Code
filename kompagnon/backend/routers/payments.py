@@ -114,7 +114,7 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
     }
 
     if not stripe.api_key:
-        raise HTTPException(500, "Stripe nicht konfiguriert")
+        raise HTTPException(503, "Stripe nicht eingerichtet")
 
     if row["stripe_price_id"]:
         line_items_param = [{"price": row["stripe_price_id"], "quantity": 1}]
@@ -554,7 +554,7 @@ def _handle_successful_payment(session: dict, db: Session):
 @router.get("/session/{session_id}")
 async def get_session_status(session_id: str):
     if not stripe.api_key:
-        raise HTTPException(500, "Stripe nicht konfiguriert")
+        raise HTTPException(503, "Stripe nicht eingerichtet")
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         return {

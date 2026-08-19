@@ -567,6 +567,13 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_tool_costs FLOAT DEFAULT 50.0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS margin_percent FLOAT DEFAULT 0.0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scope_creep_flags INTEGER DEFAULT 0",
+        # Zeilen, die vor der Spalte entstanden oder am Modell vorbei
+        # angelegt wurden, tragen NULL. Ein einziges solches Projekt hat
+        # produktiv `/api/dashboard/alerts` mit 500 beantwortet.
+        "UPDATE projects SET scope_creep_flags = 0 WHERE scope_creep_flags IS NULL",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_public_token "
+        "ON audit_results(public_token)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",

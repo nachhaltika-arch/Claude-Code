@@ -177,7 +177,7 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | ~~L-45~~ | ~~Auto-Deploy stand produktiv auf „On Commit"~~ — **erledigt 2026-08-16**: Auf **beiden** Produktiv-Diensten. `ci.yml` nennt in Zeile 265 ausdrücklich die Voraussetzung „Auto-Deploy ist in Render für die Produktiv-Services abgeschaltet, sonst deployt Render parallel und der Torwächter hier ist wirkungslos" — sie war nie erfüllt. Jede Änderung an `main` ging live, unabhängig von den sechs Prüfjobs. Beide jetzt auf „Off". Alltagsfolge: Variablenänderungen wirken erst nach einem ausgelösten Deploy | — | Render-Dashboard, `ci.yml:265` |
 | ~~L-46~~ | ~~Adresse der Oberfläche an dreizehn Stellen fest im Code~~ — **erledigt 2026-08-16** (`d559816`): Dieselbe Bauart wie L-43, eine Ebene weiter — Stripe-Rückleitungen, Kundenportal-Link, QR-Code, Phasenwechsel-Mails, Nachtlauf. Alle über `services.base_urls.public_base_url()`; zwei Modul-Konstanten entfallen, die die Umgebung beim *Import* lasen | — | `kas.kompagnon.group` |
 | L-44 | **Inbound-Regel der Produktiv-DB steht auf `0.0.0.0/0`.** Am 2026-08-16 erhoben, wer sie heute braucht: nur zwei — das Backend in Oregon (entfällt mit L-34) und ein Rechner mit DBeaver. Dabei ein Widerspruch: `local-dev-with-render-db.md` beschreibt genau diesen Weg und schreibt „Nur Staging-DB nutzen" — die Staging-DB blockt externen Verkehr seit jeher, der dokumentierte Weg funktioniert also allein gegen die DB, vor der die Anleitung warnt. Ersatz ohne offene Regel: Render-Shell und `render psql`. **Reihenfolge zwingend: erst L-34, dann diese Regel** | S | `umzug-backend-frankfurt.md` § L-40 |
-| L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt. **Plan liegt: `umzug-backend-frankfurt.md`.** **Am 2026-08-15 als Ursache zweier Folgeschäden bestätigt:** Die Startphasen kippten an der Latenz (L-41), und die Datenbank *muss* im offenen Internet stehen, weil ein Backend in Oregon die interne Adresse einer Frankfurter DB nicht erreicht (L-40). Nicht mehr nur Performance — der größte einzelne Hebel im System | L | Health-Check 0,9–2,2 s produktiv vs. 0,12–0,18 s Staging; DNS der externen DB-Adresse |
+| L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt. **Plan liegt: `umzug-backend-frankfurt.md`.** **Am 2026-08-15 als Ursache zweier Folgeschäden bestätigt:** Die Startphasen kippten an der Latenz (L-41), und die Datenbank *muss* im offenen Internet stehen, weil ein Backend in Oregon die interne Adresse einer Frankfurter DB nicht erreicht (L-40). Nicht mehr nur Performance — der größte einzelne Hebel im System. **Am 2026-08-19 zur Hälfte erledigt:** Der Frankfurter Dienst `kompagnon-backend-fra` (`srv-da30dg3bc2fs73fomi0g`) läuft, antwortet in **0,18 s gegen Oregons 3,1 s**, erreicht die Datenbank über die **interne** Adresse und startet in 60 s statt 264 s mit leerem `startup_missing`. `GET /openapi.json` zeigt auf beiden Diensten **401 Routen, null Abweichung** — dieselbe Anwendung. Er trägt noch **keinen Verkehr**; der Zustand ist vollständig umkehrbar. **Offen:** Branch prüfen → L-57 → Webhooks → Domain → Repo-Variable → alten Dienst suspendieren. Reihenfolge und Rückweg in `umzug-backend-frankfurt.md` | L | Health-Check 0,9–2,2 s produktiv vs. 0,12–0,18 s Staging; DNS der externen DB-Adresse |
 | L-35 | Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service, DB heißt `Kompangnon-dB` auf Postgres 18 statt `kompagnon-db` auf 16, Produktiv-Services sind nicht blueprint-verwaltet. **Am 2026-08-16 zur Hälfte geschlossen** (`27f14dd`): `render-produktiv.yaml` beschreibt den neuen Frankfurt-Dienst mit 41 Variablen — der alten Datei fehlten 32, darunter vier der sechs Webhook-Geheimnisse sowie `CREDENTIALS_KEY` und `CMS_ENCRYPTION_KEY`. Offen bleibt das Anwenden, und das hängt an L-34 | S | `render-produktiv.yaml` vs. `render.yaml` |
 | ~~L-36~~ | ~~Fehler werden im Frontend systematisch weggefangen~~ — **erledigt 2026-08-08**: 67 leere catch-Blöcke in 36 Dateien beseitigt, null verbleibend. Neuer Helfer `utils/apiRequest.js` (`loadJson`/`saveJson`/`apiRequest`) mit 15 jest-Tests, erstmals Frontend-Unit-Tests in der CI. Dabei gefunden: neun Speicher-Aktionen, die Erfolg meldeten, ohne den Status je zu prüfen — darunter Go-Live („Website ist live! 🎉" trotz gescheitertem PUT), Briefing-Autosave, QA-Checkliste und Bild-Uploads. Bewusst stille Stellen (Keepalive, Brotkrumen, Passwort-vergessen) tragen jetzt `quiet` mit Begründung | — | — |
 | ~~L-37~~ | ~~Newsletter komplett tot: `import brevo_python` scheitert immer, weil `brevo-python` das Modul `brevo` liefert~~ — **erledigt 2026-08-08**: Anbindung auf die REST-API v3 über httpx umgestellt, SDK aus den Requirements entfernt, 15 Tests ergänzt. Gleich mitgefunden: Statistik las `open_rate`/`click_rate`, die es bei Brevo nicht gibt (heißt `opensRate`, Klickrate gar nicht) → Analytics zeigte immer leere Werte; Massenimport zählte abgelehnte Kontakte als importiert | — | — |
@@ -233,22 +233,36 @@ Zur Fairness gegenüber den beiden Mai-Audits — diese Befunde sind erledigt:
 
 ## 5. Empfohlene Reihenfolge
 
-*Stand 2026-08-15. Die Reihenfolge vom 07.08. ist abgearbeitet — L-01 bis L-03,
-L-06, L-07 und L-36 sind erledigt, L-09 hat ein tragendes Fundament.*
+*Stand 2026-08-19. Die Reihenfolge vom 15.08. ist zur Hälfte abgearbeitet:
+L-05 ist real durchgesetzt (fünf Rechte statt zwei), L-10 und L-11 sind
+geschlossen, L-34 steht auf halbem Weg.*
 
-1. **L-34** — Backend nach Frankfurt. Nach dem 15.08. der klare erste Platz:
-   Die Region hat die Startphasen gekippt (L-41) und zwingt die Datenbank ins
-   offene Internet (L-40). Ein Umzug löst beides.
-2. **L-05, L-12** — Rollenrechte entweder real durchsetzen oder das
-   irreführende UI entfernen. Ein Berechtigungs-Dialog ohne Wirkung ist
-   schlimmer als keiner.
-3. **L-10, L-11** — Monitoring und Backup-Dokumentation. Die beiden letzten
-   echten Betriebslücken.
-4. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
-5. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
-   die sich verschlechtert, und die Ursache der meisten Reibung beim Arbeiten.
-6. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen,
-   dann Ausbau 2) oder **L-15/L-17** (Conversion und Barrierefreiheit).
+1. **L-34 zu Ende bringen** — bleibt auf Platz eins, solange die Domain noch
+   auf Oregon zeigt. Der Dienst in Frankfurt läuft und ist gemessen; was fehlt,
+   ist das Umhängen. Zwingende Reihenfolge:
+   **Branch prüfen → L-57 → Webhooks → Domain → `RENDER_SERVICE_BACKEND_PROD`
+   → alten Dienst suspendieren.**
+2. **L-57** — Oregons Build-Befehl reparieren. Steht hier so weit oben, weil er
+   der **Rückweg** ist: Suspendieren und späteres Fortsetzen löst bei Render
+   einen Deploy aus, und der würde heute scheitern.
+3. **L-44** — Inbound-Regel der Produktiv-DB schließen. Erst nach L-34, dann
+   aber zügig; es ist die letzte Stelle, an der Produktivdaten im offenen
+   Internet stehen.
+4. **L-12** — der zweite Teil der Rollenrechte. L-05 hat fünf Rechte
+   durchgesetzt; die Matrix kennt mehr.
+5. **L-29** — die Preiswidersprüche. Vier Stellen, bereits auseinandergelaufen
+   (Premium 2.500 gegen 2.800, Kompagnon 2.000 gegen 3.500). **Welcher Preis
+   gilt, ist eine Entscheidung von David** — bis dahin lässt sich nur die
+   Behauptung aus dem Quelltext ziehen, nicht der Widerspruch auflösen.
+6. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
+7. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
+   die sich verschlechtert.
+8. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen)
+   oder **L-15/L-17** (Conversion und Barrierefreiheit — eine Klasse von zwanzig
+   namenlosen Schaltflächen ist am 19.08. geschlossen worden, der Rest steht).
 
-**L-08** (Dependabot) und **L-34/L-35** (Render-Region und Blueprints) hängen
-am Render-Zugang, der weiterhin `unauthorized` meldet.
+**L-08** (Dependabot) und **L-35** (Blueprints anwenden) hängen weiter am
+Render-Zugang, der über den MCP `unauthorized` meldet — im Dashboard geht es.
+
+**Tagesberichte:** `stand-2026-08-08.md` · `stand-2026-08-14.md` ·
+`stand-2026-08-15.md` · `stand-2026-08-19.md`

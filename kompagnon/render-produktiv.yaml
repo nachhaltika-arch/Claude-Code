@@ -86,12 +86,23 @@ services:
     plan: standard
     branch: main
     rootDir: kompagnon/backend
-    # Am 19.08.2026 am laufenden Dienst abgelesen — hier stand vorher nur
-    # `pip install -r requirements.txt`. Ohne die beiden Playwright-Zeilen
-    # baut Frankfurt **ohne Browser**, und Screenshots sowie die
-    # Browser-Schritte des Audits fallen still aus. Aufgefallen waere das
-    # erst nach dem Umhaengen der Domain.
-    buildCommand: pip install -r requirements.txt && python -m playwright install chromium && python -m playwright install-deps chromium
+    # **Zurueckgenommen am 19.08.2026.** Kurz zuvor stand hier der Befehl des
+    # Oregon-Dienstes, inklusive
+    # `python -m playwright install chromium && … install-deps chromium`.
+    # Das war ein Fehler: Der Befehl wurde zwar am laufenden Dienst
+    # abgelesen, aber nicht daraufhin geprueft, ob er **funktioniert**.
+    #
+    # Er tut es nicht. `playwright` steht in **keiner** `requirements.txt`,
+    # weder auf `staging` noch auf `main`, und im Backend importiert es nur
+    # eine Testdatei. Der erste Build in Frankfurt scheiterte prompt:
+    # „No module named playwright". Screenshots kommen ueber externe Dienste
+    # (`services/screenshot.py`: thum.io, microlink), nicht ueber einen
+    # eigenen Browser.
+    #
+    # Daraus folgt der eigentliche Befund — siehe L-57: Der **Oregon-Dienst
+    # laesst sich heute nicht mehr von Grund auf bauen.** Er laeuft auf einem
+    # Build-Artefakt, das sich nicht reproduzieren laesst.
+    buildCommand: pip install -r requirements.txt
     # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
     # alten Blueprints es behaupten. Hier steht, was er tut.
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT

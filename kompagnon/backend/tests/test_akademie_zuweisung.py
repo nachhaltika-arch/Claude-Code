@@ -356,3 +356,39 @@ def test_zwei_zahlenraeume_koennen_sich_ueberschneiden(kunde_user, fremder_betri
     assert isinstance(kunde_user.id, int)
     assert isinstance(fremder_betrieb, int)
     assert kunde_user.lead_id is not None
+
+
+# ── Der Fortschritt im Kundenblatt ────────────────────────────────────
+
+def test_das_kundenblatt_zeigt_den_fortschritt_des_richtigen_menschen(
+        client, auth_headers, kunde_user, db):
+    """Beiläufig mitrepariert am 19.08. — deshalb hier festgehalten.
+
+    `get_customer_courses` reichte die **Betriebs-ID** aus dem Pfad an
+    `_progress_summary(…, user_id)` und an die Zertifikatssuche weiter. Der
+    Fortschritt im Kundenblatt bezog sich damit auf einen Benutzer, den es
+    unter dieser Nummer meist gar nicht gibt — angezeigt wurde stillschweigend
+    null. Seit die Kennung beim Eintritt aufgelöst wird, stimmt er.
+    """
+    from database import AcademyProgress
+    from datetime import datetime
+
+    # Arrange — ein Kurs mit zwei Lektionen, eine davon erledigt
+    kurs = _kurs(db, TITEL_OFFEN)
+    modul = _modul(db, kurs.id, "Modul A", lektionen=2, minuten=3)
+    lektion = db.query(AcademyLesson).filter(
+        AcademyLesson.module_id == modul.id).first()
+    db.add(AcademyProgress(user_id=kunde_user.id, lesson_id=lektion.id,
+                           completed_at=datetime.utcnow()))
+    client.post(f"/api/academy/customer/{kunde_user.lead_id}/courses/{kurs.id}/assign",
+                headers=auth_headers)
+    db.commit()
+
+    # Act — abgefragt mit der Betriebs-ID, wie es die Oberfläche tut
+    antwort = client.get(f"/api/academy/customer/{kunde_user.lead_id}/courses",
+                         headers=auth_headers)
+
+    # Assert
+    zeile = [z for z in antwort.json() if z["course_id"] == kurs.id][0]
+    assert zeile["total_lessons"] == 2
+    assert zeile["completed"] == 1, "Der Fortschritt zeigt auf die falsche Kennung"

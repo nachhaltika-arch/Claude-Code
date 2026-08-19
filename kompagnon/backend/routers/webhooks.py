@@ -2,13 +2,20 @@ import os
 import hashlib
 import hmac
 import logging
-from fastapi import APIRouter, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, HTTPException
 from sqlalchemy import text
 from database import SessionLocal
+from routers.auth_router import require_innendienst
 from services.base_urls import self_base_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
+
+# Wie viele Protokollzeilen ein Aufruf höchstens zieht. Der Deckel ist der
+# Unterschied zwischen „nachsehen, was zuletzt ankam" und „den Bestand
+# herunterladen"; ohne ihn hätte ein einziger Aufruf gereicht.
+PROTOKOLL_VORGABE = 50
+PROTOKOLL_HOECHSTMENGE = 200
 
 def _check_secret(request: Request):
     """Ohne Geheimnis ist der Endpunkt zu — nicht offen.
@@ -159,12 +166,30 @@ async def webhook_telefon(request: Request):
         return {"ok": True}
 
 
-@router.get("/log")
-def get_webhook_log(limit: int = 50):
+@router.get("/log", dependencies=[Depends(require_innendienst)])
+def get_webhook_log(
+    limit: int = Query(PROTOKOLL_VORGABE, ge=1, le=PROTOKOLL_HOECHSTMENGE),
+):
+    """Die zuletzt eingegangenen Fremdaufrufe — nur für den Innendienst.
+
+    Bis zum 19.08.2026 stand hier weder eine Anmeldung noch ein Deckel: Die
+    Route lieferte produktiv **200 an jeden**, und ``limit`` nahm jede Zahl
+    entgegen. Der Inhalt sind Kontaktdaten eingehender Leads.
+
+    Dass es nicht aufgefallen ist, lag allein daran, dass die Liste leer war —
+    der Schreibweg ist seit dem 16.08. hinter ``WEBHOOK_SECRET`` zu, und die
+    Variable war produktiv nie gesetzt. Die Lücke wäre mit dem ersten Lead
+    scharf geworden, nicht mit dem nächsten Umbau.
+
+    Die Spalten stehen einzeln da statt als ``SELECT *``: Was das Protokoll
+    herausgibt, soll hier zu lesen sein und nicht davon abhängen, welche
+    Spalte eine spätere Migration danebenlegt.
+    """
     db = SessionLocal()
     try:
         rows = db.execute(text(
-            "SELECT * FROM webhook_log ORDER BY created_at DESC LIMIT :l"
+            "SELECT id, source, email, company, created_at "
+            "FROM webhook_log ORDER BY created_at DESC LIMIT :l"
         ), {"l": limit}).fetchall()
         return [dict(r._mapping) for r in rows]
     finally:

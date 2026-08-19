@@ -88,6 +88,13 @@ def _kurse_zusammenfuehren():
     zusammenfuehren_beim_start()
 
 
+def _zuweisungs_kennungen_nachziehen():
+    """Startphase: Altzeilen der Akademie-Zuweisung auf die Benutzer-ID ziehen."""
+    from services.zuweisung_kennung import nachziehen_beim_start
+
+    nachziehen_beim_start()
+
+
 def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
@@ -1711,6 +1718,9 @@ async def lifespan(app: FastAPI):
             # Muss nach "DB init" laufen: Sie schreibt in
             # `academy_courses`, und die legt erst `create_all` an.
             Phase("Kurse zusammenführen", _kurse_zusammenfuehren),
+            # Muss nach "Kurse zusammenführen" laufen: Beide schreiben in
+            # die Akademie, und der Nachtrag will alle Zeilen sehen.
+            Phase("Zuweisungs-Kennungen", _zuweisungs_kennungen_nachziehen),
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),

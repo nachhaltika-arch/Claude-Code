@@ -312,6 +312,42 @@ sind jetzt belegt.
 
 ---
 
+## Stand am 19.08. abends — der Dienst steht, die Domain nicht
+
+**Angelegt: `kompagnon-backend-fra`, `srv-da30dg3bc2fs73fomi0g`.**
+
+| Einstellung | Wert | woher |
+|---|---|---|
+| Region | **Frankfurt (EU Central)** | der Grund des Umzugs |
+| Plan | Standard, 1 CPU / 2 GB | wie Oregon |
+| Branch / Root | `main` / `kompagnon/backend` | wie Oregon |
+| Build | `pip install -r requirements.txt` | **nicht** wie Oregon — siehe L-57 |
+| Start | `uvicorn main:app --host 0.0.0.0 --port $PORT` | wie Oregon |
+| Datentraeger | 1 GB auf `/var/data` | wie Oregon |
+| Health-Check | `/health` | **besser** als Oregon (dort leer) |
+| Auto-Deploy | Off | wie Oregon; die CI loest aus |
+| Variablen | Gruppe `kompagnon-produktiv` (15) | neu, geteilt |
+| `DATABASE_URL` | **intern**, je Dienst gesetzt | der Punkt, an dem L-44 moeglich wird |
+| Adresse | `https://kompagnon-backend-fra.onrender.com` | ohne Domain, ohne Verkehr |
+
+**Noch offen, in dieser Reihenfolge:**
+
+1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst
+2. Fachliche Probe: anmelden, Betriebsliste, ein Audit ansehen
+3. Webhooks bei Trackdesk, Netlify (2×), Brevo, Stripe (2×) umstellen
+4. **Domain umhaengen** — der erste unumkehrbare Schritt
+5. `RENDER_SERVICE_BACKEND_PROD` in den Repo-Variablen auf
+   `srv-da30dg3bc2fs73fomi0g` aendern, sonst deployt die CI weiter nach Oregon
+   und meldet trotzdem gruen
+6. Alten Dienst suspendieren (nicht loeschen)
+7. **Dann L-44**: Inbound-Regel der Datenbank zu
+
+**Kosten in der Zwischenzeit:** Zwei Standard-Dienste laufen parallel. Renders
+Prognose fuer August stieg dadurch auf 294,99 $ (Stand 19.08. abends,
+Monat bis dahin 179,85 $).
+
+---
+
 ## Der eigentliche Umzug (danach, eigene Sitzung)
 
 - [ ] Neuen Web Service in **Frankfurt** anlegen: gleiches Repo, Branch `main`,

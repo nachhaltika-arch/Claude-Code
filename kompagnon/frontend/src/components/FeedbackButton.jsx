@@ -59,7 +59,7 @@ export default function FeedbackButton() {
                     <div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>Feedback & Support</div>
                     <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>Antwort innerhalb von 24 Stunden</div>
                   </div>
-                  <button onClick={reset} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  <button aria-label="Schließen" onClick={reset} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                 </div>
                 <div style={{ padding: 20 }}>
                   <Lbl>Art der Anfrage</Lbl>

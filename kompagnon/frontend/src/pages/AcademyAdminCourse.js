@@ -176,7 +176,7 @@ function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete }) {
         {lesson.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Ohne Titel</span>}
       </span>
       {dur && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>{dur}</span>}
-      <button
+      <button aria-label="Bearbeiten"
         onClick={onEdit}
         style={{
           padding: '3px 8px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
@@ -184,7 +184,7 @@ function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete }) {
           fontSize: 11, cursor: 'pointer', flexShrink: 0,
         }}
       >✏️</button>
-      <button
+      <button aria-label="Löschen"
         onClick={onDelete}
         style={{
           padding: '3px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',

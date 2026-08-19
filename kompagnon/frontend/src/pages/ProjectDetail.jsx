@@ -320,7 +320,7 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
       <div style={panel}>
         <div style={header}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Projektdaten bearbeiten</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={body}>
@@ -512,7 +512,7 @@ function ApprovalModal({ projectId, token, onClose }) {
       <div style={panel}>
         <div style={header}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Freigabe anfordern</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={body}>

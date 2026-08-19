@@ -220,7 +220,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Online Fertig Projekt</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Manuelles Projekt anlegen (ohne Stripe-Checkout)</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
         </div>
 
         {/* Form */}
@@ -369,7 +369,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>IMPULS-Projekt anlegen</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>ISB-Förderprojekt (ISB-158)</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>

@@ -471,7 +471,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Content-Management</span>
             {leadName && !isMobile && <span style={{ fontSize: 13, color: 'var(--text-tertiary)', marginLeft: 8 }}>— {leadName}</span>}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>✕</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
 
         {/* Mobile: horizontale Tab-Bar */}

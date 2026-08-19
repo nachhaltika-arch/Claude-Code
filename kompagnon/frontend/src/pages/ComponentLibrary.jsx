@@ -752,7 +752,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               Opus 5 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
             </div>
           </div>
-          <button type="button" onClick={onClose} disabled={status === 'running'}
+          <button aria-label="Schließen" type="button" onClick={onClose} disabled={status === 'running'}
             style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#fff', lineHeight: 1, opacity: status === 'running' ? 0.4 : 1 }}>×</button>
         </div>
 
@@ -1134,7 +1134,7 @@ function Editor({
                 placeholder="Tag eingeben + Enter"
                 style={{ ...inputStyle(false), flex: 1 }}
               />
-              <button type="button" onClick={addTag}
+              <button aria-label="Hinzufügen" type="button" onClick={addTag}
                 style={{ padding: '6px 10px', fontSize: 11, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}>+</button>
             </div>
           </Field>

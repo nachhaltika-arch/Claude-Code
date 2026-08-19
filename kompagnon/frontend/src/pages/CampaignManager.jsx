@@ -304,7 +304,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
               Quelle wählen + Details
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>

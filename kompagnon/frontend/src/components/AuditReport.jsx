@@ -333,7 +333,7 @@ export default function AuditReport({ auditData, onClose }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
       {/* Close button */}
       {onClose && (
-        <button
+        <button aria-label="Schließen"
           onClick={onClose}
           style={{
             position: 'absolute', top: 16, right: 16, zIndex: 200,

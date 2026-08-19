@@ -1933,7 +1933,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK }}>
           Seiten-Details
         </div>
-        <button type="button" onClick={onClose}
+        <button aria-label="Schließen" type="button" onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)', padding: 0 }}>×</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2103,7 +2103,7 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: KC_DARK }}>
             Section auswählen
           </h3>
-          <button type="button" onClick={onClose}
+          <button aria-label="Schließen" type="button" onClick={onClose}
             style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>

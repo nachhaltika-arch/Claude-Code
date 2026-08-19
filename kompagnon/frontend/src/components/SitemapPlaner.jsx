@@ -359,7 +359,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
           <span style={{ fontWeight: 700, fontSize: 15, color: '#1A2C32' }}>
             Seite bearbeiten — {page.page_name}
           </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#8A9BA8' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#8A9BA8' }}>×</button>
         </div>
 
         {/* Body */}
@@ -678,7 +678,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
             📄 PDF exportieren
           </button>
 
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8A9BA8', lineHeight: 1, padding: 4 }}>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8A9BA8', lineHeight: 1, padding: 4 }}>
             ×
           </button>
         </div>

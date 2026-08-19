@@ -194,7 +194,7 @@ function QuizEditor({ questions, setQuestions }) {
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {modal.idx === null ? 'Neue Frage' : 'Frage bearbeiten'}
               </span>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 4px' }}>×</button>
+              <button aria-label="Schließen" onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 4px' }}>×</button>
             </div>
 
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>

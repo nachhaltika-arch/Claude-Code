@@ -58,7 +58,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               <span style={{ fontFamily: 'monospace', color: 'var(--text-tertiary)', marginRight: 6 }}>{value.code}</span>
               {value.title}
             </span>
-            <button onClick={handleClear} style={{
+            <button aria-label="Schließen" onClick={handleClear} style={{
               flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--text-tertiary)', fontSize: 14, padding: 0, lineHeight: 1,
               fontFamily: 'var(--font-sans)',

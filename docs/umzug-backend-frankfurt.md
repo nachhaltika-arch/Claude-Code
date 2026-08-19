@@ -362,6 +362,14 @@ damit kaputt, genau dann, wenn man ihn braucht. **Also: L-57 zuerst** (die
 zwei Playwright-Zeilen aus Oregons Build-Befehl entfernen, Testbau ausloesen),
 **dann** suspendieren.
 
+**Schritt 0 der naechsten Sitzung, vor allem anderen:** Nachsehen, aus
+welchem **Branch** `kompagnon-backend-fra` deployt. Der Dienst wurde von Hand
+angelegt, nicht aus dem Blueprint — die Vorgabe steht also nirgends
+geschrieben. Haengt er an `staging`, wuerde das Umhaengen der Domain den
+gesamten heutigen, produktiv ungetesteten Stand live schalten. Erwartet ist
+`main`, geprueft ist es nicht. (Ueber den Render-MCP nicht nachzusehen — er
+antwortet `unauthorized`; also im Dashboard.)
+
 **Noch offen, in dieser Reihenfolge:**
 
 1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst

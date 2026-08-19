@@ -1,4 +1,19 @@
-# ✅ KOMPAGNON Implementation Checklist
+# Umsetzungs-Checkliste — **historischer Stand (Mai 2026)**
+
+> **Diese Datei beschreibt nicht den heutigen Stand.** Sie ist am 09.05.2026
+> zuletzt angefasst worden und hakt einen Frühstand als vollständig ab — etwa
+> „7 Models" in `database.py`, wo es inzwischen rund fünfzig sind. Wer sie als
+> Prüfliste benutzt, prüft gegen ein System, das es so nicht mehr gibt.
+>
+> **Der maßgebliche Stand steht in `docs/soll-ist-analyse.md`** (Abschnitt 3,
+> die konsolidierte Lückenliste). Diese Datei bleibt als Beleg dafür stehen,
+> was im Mai fertig war — nicht als Aufgabenliste.
+>
+> Vermerkt am 2026-08-19 (L-31). Sie wird nicht fortgeschrieben; wer sie
+> ersetzen will, ersetzt sie durch nichts, denn ihre Aufgabe erfüllt die
+> Lückenliste bereits.
+
+---
 
 Complete checklist to verify all components are implemented.
 

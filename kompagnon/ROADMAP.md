@@ -1,5 +1,19 @@
 # KOMPAGNON — Feature Roadmap & Produktentwicklung
 
+> **Achtung: In dieser Datei stehen zwei Fahrpläne übereinander.**
+> Der erste ordnet nach Priorität (`Priorität 1–3`, ab „Bereits
+> implementiert"), der zweite nach Zustand (`Umgesetzt (Deployed & Live)` /
+> `In Entwicklung / Geplant`, weiter unten). Sie überschneiden sich und
+> widersprechen sich stellenweise — wer nur einen davon liest, bekommt ein
+> falsches Bild.
+>
+> **Für „was ist offen" ist `docs/soll-ist-analyse.md` maßgeblich**, nicht
+> diese Datei. Hier steht, was einmal geplant *war*.
+>
+> Vermerkt am 2026-08-19 (L-30). Die beiden zusammenzuführen ist eine
+> Produktentscheidung und keine Aufräumarbeit — deshalb steht hier ein
+> Hinweis und keine dritte Fassung.
+>
 > Branch: `staging`
 > Zuletzt aktualisiert: April 2026
 

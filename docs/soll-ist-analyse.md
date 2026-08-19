@@ -206,8 +206,8 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | L-27 | Zwei Briefing-Strukturen und zwei Briefing-Router parallel | M | `briefing.py` / `briefings.py` |
 | L-28 | Zwei Template-Router (`templates.py`, `website_templates.py`) | S | Router-Inventar |
 | L-29 | Preise an drei Stellen gepflegt statt zentral | S | `payments.py`, `products`, GEO-Helper |
-| L-30 | `ROADMAP.md` enthält zwei widersprüchliche Roadmaps, Stand April | S | Datei |
-| L-31 | `CHECKLIST.md` beschreibt einen längst überholten Frühstand als aktuell | S | Datei |
+| L-30 | ~~`ROADMAP.md` enthaelt zwei widersprüchliche Roadmaps~~ — **gekennzeichnet 2026-08-19**: Nachgezaehlt, der Befund stimmt (Prioritaeten-Fahrplan ab Zeile 8, Zustands-Fahrplan ab Zeile 143). Die Datei sagt das jetzt im Kopf und verweist auf diese Liste. **Zusammenfuehren bleibt offen** — das ist eine Produktentscheidung, keine Aufraeumarbeit, und eine dritte Fassung waere die dritte Wahrheit | S | `ROADMAP.md` |
+| L-31 | ~~`CHECKLIST.md` beschreibt einen laengst ueberholten Fruehstand als aktuell~~ — **gekennzeichnet 2026-08-19**: Sie hakte „7 Models" als vollstaendig ab, wo es rund fuenfzig sind. Traegt jetzt im Kopf, dass sie ein Stand vom Mai ist, und verweist auf die Lueckenliste. Sie wird **nicht** ersetzt: Ihre Aufgabe erfuellt diese Liste bereits | — | `CHECKLIST.md` |
 | L-32 | Online-Fertig-Editor definiert Markenfarben als lokale Konstanten (26 Stellen in 6 Dateien) statt über Tokens — durch die dokumentierte Ausnahme gedeckt, aber außerhalb des Token-Systems | S | `KASSidebar.jsx:35-38` u. a. |
 | L-33 | `CustomerDetail.js` als `.js` statt `.jsx`, 2.505 Zeilen | S | Dateiliste |
 

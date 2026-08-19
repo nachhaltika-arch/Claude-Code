@@ -238,6 +238,8 @@ def _run_migrations():
         # Missing columns on academy_modules (for existing deployments)
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0",
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500) DEFAULT ''",
         """CREATE TABLE IF NOT EXISTS academy_lessons (
             id SERIAL PRIMARY KEY,
             module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,

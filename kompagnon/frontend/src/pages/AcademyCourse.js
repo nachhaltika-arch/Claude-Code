@@ -285,8 +285,18 @@ export default function AcademyCourse() {
                       transition: 'border-left-color 0.15s',
                     }}
                   >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.3, flex: 1, fontFamily: T.font }}>
-                      {mod.title}
+                    {/* Titel und darunter, worum es geht — der Grund, warum
+                        das Feld ueberhaupt existiert (19.08.2026). Fehlt die
+                        Beschreibung, entsteht auch keine leere Zeile. */}
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.3, fontFamily: T.font }}>
+                        {mod.title}
+                      </span>
+                      {mod.description ? (
+                        <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: T.textMuted, lineHeight: 1.35, fontFamily: T.font }}>
+                          {mod.description}
+                        </span>
+                      ) : null}
                     </span>
                     <span style={{ fontSize: 10, color: T.textMuted, marginRight: 8, fontFamily: T.font, flexShrink: 0 }}>
                       {mDone}/{mLessons.length}

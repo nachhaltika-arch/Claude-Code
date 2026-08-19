@@ -196,12 +196,39 @@ function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete }) {
   );
 }
 
+// Ein Feld, das beim Verlassen speichert statt bei jedem Tastendruck.
+// Der Modulname darueber tut Letzteres seit jeher — bei einem ganzen Satz
+// waere das eine Schreibanfrage je Buchstabe.
+function BlurFeld({ wert, platzhalter, onSpeichern, stil }) {
+  const [text, setText] = useState(wert || '');
+
+  useEffect(() => { setText(wert || ''); }, [wert]);
+
+  return (
+    <input
+      value={text}
+      placeholder={platzhalter}
+      onChange={e => setText(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onBlur={() => { if (text !== (wert || '')) onSpeichern(text); }}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+      onFocus={e => { e.target.style.borderColor = 'var(--border-medium)'; }}
+      style={{
+        ...S.input, padding: '4px 8px', fontSize: 12,
+        background: 'transparent', border: '1px solid transparent',
+        color: 'var(--text-secondary)', ...stil,
+      }}
+    />
+  );
+}
+
+
 // ── Module block ───────────────────────────────────────────────
 
 function ModuleBlock({
   mod, modIdx, isDragTarget, modDragHandlers,
   courseId, token, h,
-  onUpdateTitle, onToggleLock, onDeleteModule, onFehler,
+  onUpdateFeld, onDeleteModule, onFehler,
 }) {
   const navigate = useNavigate();
   const [lessons, setLessons]       = useState(mod.lessons || []);
@@ -269,7 +296,7 @@ function ModuleBlock({
 
         <input
           value={mod.title}
-          onChange={e => onUpdateTitle(mod.id, e.target.value)}
+          onChange={e => onUpdateFeld(mod.id, 'title', e.target.value)}
           onClick={e => e.stopPropagation()}
           style={{
             ...S.input, flex: 1, padding: '5px 8px', fontSize: 13,
@@ -288,7 +315,7 @@ function ModuleBlock({
           <input
             type="checkbox"
             checked={mod.is_locked || false}
-            onChange={() => onToggleLock(mod.id, !mod.is_locked)}
+            onChange={() => onUpdateFeld(mod.id, 'is_locked', !mod.is_locked)}
             style={{ accentColor: 'var(--brand-primary)', width: 14, height: 14 }}
           />
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Gesperrt</span>
@@ -316,6 +343,42 @@ function ModuleBlock({
           onClick={() => setCollapsed(c => !c)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, padding: '0 2px' }}
         >{collapsed ? '▼' : '▲'}</button>
+      </div>
+
+      {/* Zweite Zeile: worum es geht, und ein Bild dazu.
+          Aus dem Memberspot-Vergleich (docs/akademie-vorbild-memberspot.md) —
+          dort traegt jedes Modul beides, und genau deshalb ist die Modulliste
+          dort lesbar, waehrend unsere eine Aufzaehlung von Ueberschriften war. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '0 12px 8px 30px', background: 'var(--bg-app)',
+        borderBottom: collapsed ? 'none' : '1px solid var(--border-light)',
+      }}>
+        {mod.thumbnail_url ? (
+          <img
+            src={mod.thumbnail_url}
+            alt=""
+            style={{
+              width: 44, height: 28, objectFit: 'cover', flexShrink: 0,
+              borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)',
+            }}
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        ) : null}
+
+        <BlurFeld
+          wert={mod.description}
+          platzhalter="Worum geht es in diesem Modul?"
+          onSpeichern={wert => onUpdateFeld(mod.id, 'description', wert)}
+          stil={{ flex: 1 }}
+        />
+
+        <BlurFeld
+          wert={mod.thumbnail_url}
+          platzhalter="Bildadresse"
+          onSpeichern={wert => onUpdateFeld(mod.id, 'thumbnail_url', wert)}
+          stil={{ width: 150, fontSize: 11 }}
+        />
       </div>
 
       {/* Lesson list */}
@@ -521,19 +584,23 @@ export default function AcademyAdminCourse() {
     setAddingModule(false);
   };
 
-  const updateModuleTitle = async (id, title) => {
-    setModules(prev => prev.map(m => m.id === id ? { ...m, title } : m));
-    const { ok, fehler: meldung } = await schreibe(() => fetch(
-      `${API_BASE_URL}/api/academy/modules/${id}`,
-      { method: 'PUT', headers: h, body: JSON.stringify({ title }) }), 'Der Modulname');
-    setFehler(ok ? '' : meldung);
+  // Ein Weg fuer alle Modulfelder statt einer Funktion je Feld. Vorher gab es
+  // zwei fast gleiche, und mit Beschreibung und Vorschaubild waeren es vier
+  // geworden — genau die Bauart, an der im Backend die zwei Anlegewege
+  // auseinandergelaufen waeren.
+  const FELDNAME = {
+    title: 'Der Modulname',
+    is_locked: 'Die Sperre',
+    description: 'Die Modulbeschreibung',
+    thumbnail_url: 'Das Vorschaubild',
   };
 
-  const toggleModuleLock = async (id, locked) => {
-    setModules(prev => prev.map(m => m.id === id ? { ...m, is_locked: locked } : m));
+  const updateModulFeld = async (id, feld, wert) => {
+    setModules(prev => prev.map(m => m.id === id ? { ...m, [feld]: wert } : m));
     const { ok, fehler: meldung } = await schreibe(() => fetch(
       `${API_BASE_URL}/api/academy/modules/${id}`,
-      { method: 'PUT', headers: h, body: JSON.stringify({ is_locked: locked }) }), 'Die Sperre');
+      { method: 'PUT', headers: h, body: JSON.stringify({ [feld]: wert }) }),
+      FELDNAME[feld] || 'Das Feld');
     setFehler(ok ? '' : meldung);
   };
 
@@ -762,8 +829,7 @@ export default function AcademyAdminCourse() {
                   courseId={savedId}
                   token={token}
                   h={h}
-                  onUpdateTitle={updateModuleTitle}
-                  onToggleLock={toggleModuleLock}
+                  onUpdateFeld={updateModulFeld}
                   onDeleteModule={deleteModule}
                   onFehler={setFehler}
                 />

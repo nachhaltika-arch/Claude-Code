@@ -49,6 +49,8 @@ def _serialize_module(m):
         'position': m.position or 0,
         'is_locked': bool(m.is_locked),
         'sort_order': m.sort_order or 0,
+        'description': m.description or '',
+        'thumbnail_url': m.thumbnail_url or '',
     }
 
 
@@ -259,6 +261,8 @@ def create_module(data: dict, db: Session = Depends(get_db), _=Depends(require_a
         position=data.get('position', 0),
         is_locked=data.get('is_locked', False),
         sort_order=data.get('sort_order', data.get('position', 0)),
+        description=data.get('description', ''),
+        thumbnail_url=data.get('thumbnail_url', ''),
     )
     db.add(m)
     db.commit()
@@ -277,6 +281,8 @@ def create_module_for_course(course_id: int, data: dict, db: Session = Depends(g
         position=data.get('position', data.get('sort_order', 0)),
         is_locked=data.get('is_locked', False),
         sort_order=data.get('sort_order', data.get('position', 0)),
+        description=data.get('description', ''),
+        thumbnail_url=data.get('thumbnail_url', ''),
     )
     db.add(m)
     db.commit()
@@ -290,7 +296,8 @@ def update_module(module_id: int, data: dict, db: Session = Depends(get_db), _=D
     m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
     if not m:
         raise HTTPException(404, 'Modul nicht gefunden')
-    for key in ['title', 'position', 'is_locked', 'sort_order']:
+    for key in ['title', 'position', 'is_locked', 'sort_order',
+                'description', 'thumbnail_url']:
         if key in data:
             setattr(m, key, data[key])
     db.commit()

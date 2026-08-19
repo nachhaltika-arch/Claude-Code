@@ -730,6 +730,13 @@ class AcademyModule(Base):
     position = Column(Integer, default=0)
     is_locked = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
+    # Aus dem Memberspot-Vergleich vom 19.08.2026: Dort traegt jedes Modul
+    # eine Zeile, die sagt, worum es geht, und ein Bild. Ohne beides ist eine
+    # Modulliste eine Aufzaehlung von Ueberschriften.
+    # `default=''` statt NULL: Die Oberflaeche soll nicht zwei Faelle
+    # unterscheiden muessen, wo einer reicht.
+    description = Column(Text, default='')
+    thumbnail_url = Column(String(500), default='')
 
 
 class AcademyLesson(Base):

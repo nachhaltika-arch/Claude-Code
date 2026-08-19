@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
-const PRIMARY = '#008eaa';
+const PRIMARY = 'var(--kc-mid)';
 const BASE_URL = 'https://kompagnon-frontend.onrender.com/kampagne';
 
 export default function QRGenerator() {

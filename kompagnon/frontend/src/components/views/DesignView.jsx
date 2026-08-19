@@ -33,9 +33,9 @@ import { useAuth } from '../../context/AuthContext';
 import { buildOverrideCSS } from '../../utils/brandOverride';
 import { blockMarkup, seitenHtml } from '../../utils/pageHtml';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
+const KC_YELLOW = 'var(--kc-yellow)';
 
 export default function DesignView({
   projectId,

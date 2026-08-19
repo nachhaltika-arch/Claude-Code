@@ -32,9 +32,9 @@ import { useEffect, useMemo, useState } from 'react';
 // ueber Reloads erhalten bleibt.
 const COLLAPSE_KEY = 'kas:sidebar:collapsed';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
+const KC_YELLOW = 'var(--kc-yellow)';
 const GREEN = '#1D9E75';
 
 // ── 17 Schritte in 6 Phasen — aus dem Online-Fertig-Spec ────────────────────

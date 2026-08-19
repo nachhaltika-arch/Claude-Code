@@ -14,8 +14,8 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
 
 const CATEGORIES = ['Alle', 'NAV', 'HERO', 'LEIST', 'TRUST', 'SEO', 'CTA', 'HW', 'FOOT'];
 

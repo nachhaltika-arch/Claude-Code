@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import { stufeAnzeige } from '../utils/homepageStandard';
 
-const TEAL    = '#008eaa';
+const TEAL    = 'var(--kc-mid)';
 const DARK1   = '#04293a';
-const DARK2   = '#004f59';
+const DARK2   = 'var(--kc-dark)';
 const DARK3   = '#006880';
 
 const MSGS = [

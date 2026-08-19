@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
-const PRIMARY = '#008eaa';
+const PRIMARY = 'var(--kc-mid)';
 
 const FREEMAILS = [
   'gmail.com', 'googlemail.com', 'gmx.de', 'gmx.net',

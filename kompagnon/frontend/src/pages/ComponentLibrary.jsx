@@ -14,8 +14,8 @@ import toast from 'react-hot-toast';
 import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/BlockContract';
 import { mitBlockMarkierung } from '../utils/blockMarkup';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
 
 const CATEGORY_OPTIONS = [
   'NAV', 'HERO', 'LEIST', 'TRUST', 'SEO', 'CTA', 'HW', 'FOOT', 'CUSTOM',

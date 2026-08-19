@@ -31,9 +31,9 @@ import DesignView from './views/DesignView';
 // Step ein component-Mapping hat (KASSidebar SCHRITTE).
 import { SchrittInhalt } from './ProzessFlow';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
+const KC_YELLOW = 'var(--kc-yellow)';
 
 export default function OnlineFertigEditor() {
   const { id: projectId } = useParams();

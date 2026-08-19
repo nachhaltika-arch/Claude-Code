@@ -350,6 +350,18 @@ startup_missing: []   environment: production
 - Der Start brauchte **60 Sekunden**. Oregon brauchte 264 und verlor dabei
   sieben von acht Startphasen (L-41). Hier ist `startup_missing` leer.
 
+**Gleichheitsprobe, ohne Zugangsdaten moeglich und deshalb sofort gemacht:**
+`GET /openapi.json` liefert auf beiden Diensten **401 Routen, null Abweichung**
+— es ist dieselbe Anwendung. Fuenf Stichproben verhalten sich identisch
+(`/health`, `/info`, `/api/widget/config` je 200; `/api/leads/` je 401).
+
+**Reihenfolge-Falle, vor dem Suspendieren zu beachten:** Solange L-57 offen
+ist, laesst sich der Oregon-Dienst **nicht neu bauen**. Suspendieren und
+spaeter fortsetzen loest bei Render einen Deploy aus — der Rueckweg waere
+damit kaputt, genau dann, wenn man ihn braucht. **Also: L-57 zuerst** (die
+zwei Playwright-Zeilen aus Oregons Build-Befehl entfernen, Testbau ausloesen),
+**dann** suspendieren.
+
 **Noch offen, in dieser Reihenfolge:**
 
 1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst

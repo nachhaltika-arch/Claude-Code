@@ -545,6 +545,15 @@ class AuditResult(Base):
     coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
     collection_notes = Column(Text, default="{}") # warum eine Prüfung ausfiel
 
+    # Über wie viele Seiten das Audit urteilt. Bis zum 21.08.2026 war es immer
+    # genau eine — die Startseite. Ohne diese Zahl vergleicht jemand später
+    # eine alte Note mit einer neuen, ohne zu merken, dass die eine über eine
+    # Seite und die andere über zwanzig gefällt wurde. Die Vorgabe 1 ist für
+    # Altzeilen deshalb keine Behelfszahl, sondern die Wahrheit.
+    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    seiten_geprueft = Column(Integer, default=1)
+    seiten_gefunden = Column(Integer, nullable=True)
+
     # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
     # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
     # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.

@@ -583,6 +583,12 @@ def _run_migrations():
         # produktiv `/api/dashboard/alerts` mit 500 beantwortet.
         "UPDATE projects SET scope_creep_flags = 0 WHERE scope_creep_flags IS NULL",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        # Über wie viele Seiten ein Audit urteilt (21.08.2026). Altzeilen
+        # bekommen 1: Sie kannten nur die Startseite.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS "
+        "seiten_geprueft INTEGER DEFAULT 1",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS "
+        "seiten_gefunden INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_phase VARCHAR(30)",
         "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_phase "
         "ON leads(lifecycle_phase)",

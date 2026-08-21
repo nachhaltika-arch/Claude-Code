@@ -286,6 +286,8 @@ def audit_teaser(token: str, db: Session = Depends(get_db)):
         "total_score": audit.total_score,
         "level": audit.level,
         "coverage": getattr(audit, "coverage", None),
+        "seiten_geprueft": getattr(audit, "seiten_geprueft", None) or 1,
+        "seiten_gefunden": getattr(audit, "seiten_gefunden", None),
         "top_issues": issues[:TOP_ISSUES_IN_TEASER],
         "blocker_count": len(blockers),
         "email_sent": row.report_sent_at is not None,

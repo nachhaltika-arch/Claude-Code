@@ -1,10 +1,25 @@
 """
 Faktenerhebung für das Website-Audit.
 
-Lädt die Startseite einmal und leitet daraus alle DOM-basierten Prüfungen ab.
-Netzwerkabhängige Erhebungen laufen parallel; jede darf einzeln scheitern, ohne
-das Audit zu stoppen — das betroffene Kriterium wird dann als 'nicht erhoben'
-geführt.
+Prüft die **ganze Website**, nicht nur die Startseite: `audit_seiten` sucht die
+Unterseiten, jede wird einzeln erhoben, und `audit_aggregat` fasst die Befunde
+zu je einem Wert pro Kriterium zusammen. Netzwerkabhängige Erhebungen laufen
+parallel; jede darf einzeln scheitern, ohne das Audit zu stoppen — das
+betroffene Kriterium wird dann als 'nicht erhoben' geführt.
+
+**Bis zum 21.08.2026 war es genau eine Seite.** Was dadurch nie gemessen wurde,
+steht auf Handwerkerseiten typischerweise nicht auf der Startseite: das
+Kontaktformular auf `/kontakt`, die Leistungsseiten als eigene Seiten,
+Zertifikate und Referenzen, und Tracker, die erst auf der Kontaktseite laden.
+Ein Betrieb mit tadelloser Startseite und einem Formular ohne
+Einwilligungshaken bekam die volle Punktzahl.
+
+**Die Bewertung blieb unberührt.** `audit_aggregat` liefert dieselben
+Faktenschlüssel in derselben Form wie zuvor — nur über alle Seiten statt über
+eine. Was sich ändert, ist die Grundlage, nicht die Rechnung. Dass sich
+dadurch Punktzahlen verschieben, ist der Zweck der Änderung; damit niemand
+zwei unvergleichbare Zahlen vergleicht, führt jedes Ergebnis mit, **wie
+viele** Seiten geprüft wurden.
 
 Bindet die bereits vorhandenen Dienste ein, die im Altcode ungenutzt herumlagen:
 qa_scanner (~45 echte Checks), hosting_scraper und link_checker.
@@ -16,14 +31,27 @@ from typing import Optional
 import httpx
 from bs4 import BeautifulSoup
 
-from services import audit_collectors as collectors
+from services import audit_aggregat, audit_collectors as collectors
 from services.audit_pagespeed import fetch_pagespeed
+from services.audit_seiten import MAX_SEITEN, finde_unterseiten
 from services.url_guard import UnsafeUrlError, fetch_guarded
 
 logger = logging.getLogger(__name__)
 
 HOMEPAGE_TIMEOUT = 15.0
 COLLECTION_TIMEOUT = 200.0  # Faktenerhebung; die KI-Bewertung läuft danach
+
+# Eigene Zeitgrenze für die Unterseiten. Reißt sie, bewertet das Audit die
+# Startseite allein statt gar nichts — und sagt es im Ergebnis.
+UNTERSEITEN_TIMEOUT = 120.0
+UNTERSEITEN_GLEICHZEITIG = 5
+UNTERSEITEN_TIMEOUT_JE_SEITE = 10.0
+
+# Wie viel Seitentext die KI-Bewertung zu sehen bekommt. Vorher waren es 6.000
+# Zeichen der Startseite; jetzt derselbe Umfang, aber über die Seiten verteilt,
+# damit die Einschätzung nicht weiter allein auf der Startseite fußt.
+TEXT_GESAMT = 12000
+TEXT_JE_SEITE = 2500
 
 # Verbindungsversuche für die Startseite. Ein einzelner Fehlversuch beendet
 # sonst das ganze Audit — der Besucher liest „Audit fehlgeschlagen“, obwohl
@@ -136,12 +164,125 @@ async def _run_link_check(url: str) -> dict:
     return await asyncio.to_thread(LinkChecker.check_links, url)
 
 
+async def _seitenfakten(url: str, html: str, current_year: int) -> dict:
+    """Alle DOM-Befunde **einer** Seite.
+
+    Genau die Erhebungen, die an einem einzelnen Dokument haengen. Was die
+    Domain als Ganzes betrifft — Zertifikat, Weiterleitung, Hosting,
+    Sicherheits-Header, PageSpeed —, gehoert nicht hierher: Es waere auf jeder
+    Seite dasselbe Ergebnis zu einem Vielfachen der Abrufe.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    bilder = await _safe(collectors.analyse_images(soup, url), f"bilder {url}")
+
+    return {
+        "url": url,
+        "consent": collectors.detect_consent(html),
+        "third_parties": collectors.detect_third_parties(html),
+        "forms": collectors.analyse_forms(soup, url),
+        "contact": collectors.analyse_contact(soup),
+        "cta": collectors.analyse_cta(soup),
+        "trust": collectors.analyse_trust(soup),
+        "services": collectors.analyse_service_pages(soup, url),
+        "freshness": collectors.analyse_freshness(html, current_year),
+        "shop": collectors.detect_shop(html),
+        "shop_legal_markers": _shop_legal_markers(html),
+        "images": bilder if isinstance(bilder, dict) else {"collected": False},
+        "word_count": len(soup.get_text(" ").split()),
+        "page_text": soup.get_text(" ", strip=True)[:TEXT_JE_SEITE],
+    }
+
+
+async def _hole_und_erhebe(client, sperre, url: str, current_year: int):
+    """Eine Unterseite abrufen und erheben — oder ``None``, wenn das scheitert.
+
+    Eine Seite, die nicht antwortet, wird uebergangen statt als leer gewertet:
+    Sonst zoege ein 500er auf `/blog` die Bilder- und Wortzahl der ganzen
+    Website nach unten, und der Betrieb bekaeme fuer einen Serverfehler eine
+    schlechtere Note in Kriterien, die damit nichts zu tun haben.
+    """
+    async with sperre:
+        try:
+            antwort = await fetch_guarded(client, url,
+                                          timeout=UNTERSEITEN_TIMEOUT_JE_SEITE,
+                                          follow_redirects=True)
+            if antwort.status_code >= 400:
+                return None
+            if not antwort.headers.get("content-type", "").lower().startswith("text/html"):
+                return None
+            return await _seitenfakten(url, antwort.text, current_year)
+        except Exception as fehler:  # noqa: BLE001
+            logger.debug("Unterseite %s nicht erhoben: %s", url, fehler)
+            return None
+
+
+async def _alle_seiten(base_url: str, startseiten_html: str,
+                       current_year: int, max_seiten: int) -> tuple:
+    """Die Befunde aller Seiten und der Bericht darueber, welche das waren.
+
+    Gibt `(befunde, seiten_block)` zurueck. Der zweite Teil ist kein Beiwerk:
+    Ein Audit ueber 25 von 400 Seiten sagt etwas anderes als eines ueber alle
+    acht, und ein Ergebnis, dem man die Grundlage nicht ansieht, laedt dazu
+    ein, es mit einem aelteren zu vergleichen, das nur die Startseite kannte.
+    """
+    startseite = await _seitenfakten(base_url, startseiten_html, current_year)
+
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:
+            gefunden = await finde_unterseiten(client, base_url, startseiten_html,
+                                               max_seiten=max_seiten)
+            unterseiten = gefunden["seiten"][1:]   # [0] ist die Startseite
+
+            sperre = asyncio.Semaphore(UNTERSEITEN_GLEICHZEITIG)
+            ergebnisse = await asyncio.wait_for(
+                asyncio.gather(*[
+                    _hole_und_erhebe(client, sperre, u, current_year)
+                    for u in unterseiten
+                ]),
+                timeout=UNTERSEITEN_TIMEOUT,
+            )
+    except asyncio.TimeoutError:
+        logger.warning("Unterseiten fuer %s: Zeitgrenze erreicht", base_url)
+        return [startseite], {"collected": True, "quelle": "abgebrochen", "geprueft": 1,
+                              "gefunden": 1, "gekappt": False, "seiten": [base_url],
+                              "hinweis": "Zeitgrenze erreicht — nur die Startseite bewertet"}
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Unterseiten fuer %s nicht gefunden: %s", base_url, fehler)
+        return [startseite], {"collected": False, "geprueft": 1, "seiten": [base_url]}
+
+    erhoben = [e for e in ergebnisse if e]
+    befunde = [startseite] + erhoben
+
+    return befunde, {
+        **gefunden,
+        "seiten": [b["url"] for b in befunde],
+        "geprueft": len(befunde),
+        "nicht_erreichbar": len(unterseiten) - len(erhoben),
+    }
+
+
+def _gesamttext(befunde: list) -> str:
+    """Seitentext fuer die KI-Bewertung — ueber die Seiten verteilt, gedeckelt."""
+    stuecke = []
+    laenge = 0
+    for b in befunde:
+        text = (b.get("page_text") or "").strip()
+        if not text:
+            continue
+        stuecke.append(f"[{b['url']}]\n{text}")
+        laenge += len(text)
+        if laenge >= TEXT_GESAMT:
+            break
+    return "\n\n".join(stuecke)[:TEXT_GESAMT]
+
+
 async def collect_facts(
     url: str,
     company_name: str = "",
     trade: str = "",
     city: str = "",
     current_year: int = 2026,
+    max_seiten: int = MAX_SEITEN,
 ) -> dict:
     """Erhebt alle Fakten zu einer Website. Wirft nie — meldet Teilausfälle."""
     homepage = await fetch_homepage(url)
@@ -158,16 +299,19 @@ async def collect_facts(
     soup = BeautifulSoup(html, "html.parser")
     base_url = homepage.get("final_url") or url
 
-    # Netzwerkabhängige Erhebungen parallel
+    # Netzwerkabhängige Erhebungen parallel — alle auf Domain-Ebene, deshalb
+    # weiter an der Startseite und nicht je Unterseite.
     tasks = {
         "psi_mobile": _safe(fetch_pagespeed(base_url, "mobile"), "pagespeed"),
         "qa": _safe(_run_qa_scanner(base_url, company_name, trade), "qa_scanner"),
         "hosting": _safe(_run_hosting(base_url), "hosting_scraper"),
         "links": _safe(_run_link_check(base_url), "link_checker"),
         "legal": _safe(collectors.check_legal_pages(base_url, soup), "rechtsseiten"),
-        "images": _safe(collectors.analyse_images(soup, base_url), "bilder"),
         "redirect": _safe(collectors.check_https_redirect(base_url), "https_redirect"),
         "tls": _safe(asyncio.to_thread(collectors.check_tls, base_url), "tls"),
+        "seitenweise": _safe(
+            _alle_seiten(base_url, html, current_year, max_seiten), "unterseiten"
+        ),
     }
 
     try:
@@ -180,6 +324,15 @@ async def collect_facts(
         logger.warning(f"Faktenerhebung für {url}: Gesamt-Timeout erreicht")
         collected = {}
 
+    seitenweise = collected.pop("seitenweise", None)
+    if isinstance(seitenweise, tuple):
+        befunde, seiten_block = seitenweise
+    else:
+        # Auch der Rueckfall bewertet noch die Startseite — ohne ihn stuenden
+        # alle DOM-Kriterien auf 'nicht erhoben', und das Audit waere leer.
+        befunde = [await _seitenfakten(base_url, html, current_year)]
+        seiten_block = {"collected": False, "geprueft": 1, "seiten": [base_url]}
+
     facts = {
         "url": url,
         "final_url": base_url,
@@ -188,22 +341,14 @@ async def collect_facts(
         "trade": trade,
         "reachable": True,
         "status_code": homepage.get("status_code"),
-        # DOM-basiert — kein zusätzlicher Netzwerkaufruf nötig
-        "consent": collectors.detect_consent(html),
-        "third_parties": collectors.detect_third_parties(html),
-        "forms": collectors.analyse_forms(soup, base_url),
+        # Über alle geprüften Seiten zusammengefasst (`audit_aggregat`)
+        **audit_aggregat.fasse_zusammen(befunde),
+        # Nur die Startseite: die Navigation ist auf allen Seiten dieselbe.
         "navigation": collectors.analyse_navigation(soup),
-        "contact": collectors.analyse_contact(soup),
-        "cta": collectors.analyse_cta(soup),
-        "trust": collectors.analyse_trust(soup),
-        "services": collectors.analyse_service_pages(soup, base_url),
-        "freshness": collectors.analyse_freshness(html, current_year),
-        "shop": collectors.detect_shop(html),
-        "shop_legal_markers": _shop_legal_markers(html),
         "cdn": collectors.detect_cdn(homepage.get("headers", {})),
         "security_headers": _security_headers(homepage.get("headers", {})),
-        "word_count": len(soup.get_text(" ").split()),
-        "page_text": soup.get_text(" ", strip=True)[:6000],
+        "page_text": _gesamttext(befunde),
+        "seiten": seiten_block,
     }
 
     for key, value in collected.items():
@@ -220,8 +365,16 @@ def summarise_facts(facts: dict) -> dict:
     legal = facts.get("legal") or {}
     links = facts.get("links") or {}
     hosting = facts.get("hosting") or {}
+    seiten = facts.get("seiten") or {}
 
     return {
+        # Der Umfang gehoert ins Ergebnis, nicht nur ins Log: Ein Audit ueber
+        # 25 von 400 Seiten sagt etwas anderes als eines ueber alle acht — und
+        # Ergebnisse von vor dem 21.08.2026 kannten nur die Startseite.
+        "seiten_geprueft": seiten.get("geprueft", 1),
+        "seiten_gefunden": seiten.get("gefunden"),
+        "seiten_gekappt": bool(seiten.get("gekappt")),
+        "seiten_quelle": seiten.get("quelle"),
         "lcp_value": psi.get("lcp_seconds"),
         "cls_value": psi.get("cls_value"),
         "inp_value": psi.get("inp_ms"),

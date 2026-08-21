@@ -28,7 +28,7 @@ const lies = (datei) => fs.readFileSync(path.join(SEITEN, datei), 'utf8');
 
 describe('Wege im Akademie-Editor', () => {
   test('der Bearbeiten-Knopf an einer Lektion führt zum Lektions-Editor', () => {
-    const quelle = lies('AcademyAdminCourse.js');
+    const quelle = lies('AcademyAdminCourse.jsx');
 
     const onEdit = quelle.match(/onEdit=\{[^}]*\}/g) || [];
 

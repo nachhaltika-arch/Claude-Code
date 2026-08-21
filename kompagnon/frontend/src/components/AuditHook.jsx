@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import { stufeAnzeige } from '../utils/homepageStandard';
+import usePakete from '../hooks/usePakete';
+
+const PAKET_DARSTELLUNG = [{ id: 'kompagnon' }];
 
 const TEAL    = 'var(--kc-mid)';
 const DARK1   = '#04293a';
@@ -21,6 +24,8 @@ const scoreColor = (s) =>
   s >= 70 ? '#1d9e75' : s >= 50 ? '#e67e22' : '#c0392b';
 
 export default function AuditHook() {
+  const { pakete } = usePakete(PAKET_DARSTELLUNG);
+  const [kompagnon] = pakete;
   const navigate = useNavigate();
   const [url,      setUrl]      = useState('');
   const [email,    setEmail]    = useState('');
@@ -583,8 +588,16 @@ export default function AuditHook() {
             <div style={{ fontSize: 14, fontWeight: 700, color:'#fff', marginBottom: 2 }}>
               Jetzt Ihre kostenlose Analyse starten
             </div>
+            {/* „Festpreis 3.500 €" stand hier fest, waehrend die Kasse fuer
+                Kompagnon 2.000 abbucht (L-29) — und dieses Widget laeuft auf
+                fremden Seiten. Jetzt aus derselben Zeile wie Stripe; kennt
+                der Server den Preis nicht, steht dort keiner.
+                Die Zahl „340 Handwerksbetriebe" ist unbelegt und bleibt
+                vorerst stehen — sie zu aendern oder zu belegen ist eine
+                Entscheidung von David (L-65). */}
             <div style={{ fontSize: 11, color:'rgba(255,255,255,.7)' }}>
-              Über 340 Handwerksbetriebe analysiert · Festpreis 3.500 €
+              Über 340 Handwerksbetriebe analysiert
+              {kompagnon && kompagnon.preisBekannt && ` · Festpreis ${kompagnon.preisLabel} €`}
             </div>
           </div>
           <button

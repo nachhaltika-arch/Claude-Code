@@ -97,40 +97,74 @@ describe('preisZeile', () => {
   });
 });
 
-// ── Wächter: keine Preise mehr im Quelltext der Verkaufsflächen ──────
+// ── Wächter: keine Preise mehr im Quelltext ─────────────────────────
 //
-// Der Befund war nicht eine falsche Zahl, sondern **vier Quellen** für
-// dieselbe. Ein Test auf die richtige Zahl würde die nächste Abweichung
-// erst bemerken, wenn jemand sie einträgt. Dieser hier verbietet die
-// zweite Quelle.
+// Der Befund war nicht eine falsche Zahl, sondern **mehrere Quellen** für
+// dieselbe. Ein Test auf die richtige Zahl würde die nächste Abweichung erst
+// bemerken, wenn jemand sie einträgt. Dieser hier verbietet die zweite Quelle.
+//
+// **Er lief zuerst über eine feste Liste von drei Dateien — und genau diese
+// Beschränkung war die Lücke.** Über alle Dateien gezählt standen weitere
+// feste Beträge in `AuditHook.jsx` (dem eingebetteten Widget, also auf fremden
+// Seiten), in `CustomerProjects.jsx` und in drei Paketseiten. Seitdem prüft er
+// den ganzen Baum; was ausgenommen ist, steht namentlich darunter.
 
 const fs = require('fs');
 const path = require('path');
 
-const VERKAUFSFLAECHEN = [
-  'components/OfferTab.jsx',
-  'components/PricingSection.jsx',
-  'pages/Landing.jsx',
+const WURZEL = path.join(__dirname, '..');
+
+/**
+ * Stellen, an denen ein Betrag stehen darf. Jede ist nachgesehen worden.
+ */
+const GEPRUEFTE_AUSNAHMEN = [
+  // Platzhalter-Beispiel für die Preisangabe **des Kunden** auf seiner
+  // eigenen Leistungsseite — nicht unser Paketpreis.
+  'components/LeistungsseitenWizard.jsx',
+  // Nicht erreichbar: Es gibt keine Route auf /paket/… (L-64). Sie tragen
+  // feste Preise und sind genau deshalb hier ausgenommen und nicht
+  // stillschweigend repariert — sie zu verdrahten ist eine Entscheidung.
+  'pages/PackageStarter.jsx',
+  'pages/PackageKompagnon.jsx',
+  'pages/PackagePremium.jsx',
 ];
 
+function dateienEinsammeln(verzeichnis, treffer = []) {
+  for (const eintrag of fs.readdirSync(verzeichnis, { withFileTypes: true })) {
+    const voll = path.join(verzeichnis, eintrag.name);
+    if (eintrag.isDirectory()) dateienEinsammeln(voll, treffer);
+    else if (/\.jsx?$/.test(eintrag.name) && !eintrag.name.includes('.test.')) treffer.push(voll);
+  }
+  return treffer;
+}
+
 describe('keine zweite Preisquelle im Quelltext', () => {
-  test.each(VERKAUFSFLAECHEN)('%s nennt keinen Paketpreis', (datei) => {
-    // Arrange
-    const quelle = fs.readFileSync(path.join(__dirname, '..', datei), 'utf8');
+  test('kein Paketpreis steht fest im Code', () => {
+    // Die fünf gemessenen Beträge und ihre Schreibweisen.
+    const BETRAEGE = ['1.500', '2.000', '2.500', '2.800', '3.500'];
+    const fund = [];
 
-    // Nur Zeilen, die etwas anzeigen — Kommentare erinnern absichtlich an
-    // die alten Zahlen (dieselbe Entscheidung wie bei PACKAGE_NAMES).
-    // Block- und JSX-Kommentare gehen ueber mehrere Zeilen; deshalb erst
-    // entfernen, dann zerlegen.
-    const ohneKommentare = quelle
-      .replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '')
-      .replace(/^\s*\/\/.*$/gm, '');
-    const zeilen = ohneKommentare.split('\n');
+    for (const datei of dateienEinsammeln(WURZEL)) {
+      const relativ = path.relative(WURZEL, datei).split(path.sep).join('/');
+      if (GEPRUEFTE_AUSNAHMEN.includes(relativ)) continue;
 
-    // Assert — die vier gemessenen Beträge und ihre Schreibweisen
-    for (const betrag of ['1.500', '2.000', '2.500', '2.800', '3.500']) {
-      const treffer = zeilen.filter((z) => z.includes(`${betrag} €`) || z.includes(`${betrag}€`));
-      expect(treffer).toEqual([]);
+      // Kommentare erinnern absichtlich an die alten Zahlen — dieselbe
+      // Entscheidung wie bei PACKAGE_NAMES. Block- und JSX-Kommentare gehen
+      // über mehrere Zeilen, deshalb erst entfernen, dann zerlegen.
+      const zeilen = fs.readFileSync(datei, 'utf8')
+        .replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+        .split('\n');
+
+      zeilen.forEach((zeile, i) => {
+        for (const betrag of BETRAEGE) {
+          if (zeile.includes(`${betrag} €`) || zeile.includes(`${betrag}€`)) {
+            fund.push(`${relativ}:${i + 1}`);
+          }
+        }
+      });
     }
+
+    expect(fund).toEqual([]);
   });
 });

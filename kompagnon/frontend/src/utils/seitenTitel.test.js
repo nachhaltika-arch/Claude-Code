@@ -53,8 +53,19 @@ function seiten() {
   });
 }
 
+/**
+ * Seiten ohne eigene Darstellung. Jede ist nachgesehen.
+ */
+const GEPRUEFTE_AUSNAHMEN = [
+  // Eine reine Weiche: Sie gibt entweder eine der drei Paketseiten zurück —
+  // die tragen ihre eigene Überschrift — oder leitet zur Kasse um. Eigenes
+  // Markup hat sie keines.
+  'PaketSeite.jsx',
+];
+
 test('jede Seite hat genau eine Hauptüberschrift', () => {
   const ohne = seiten()
+    .filter((s) => !GEPRUEFTE_AUSNAHMEN.includes(s.name))
     .filter((s) => !s.hatTitelBaustein && !s.stufen.includes(1))
     .map((s) => s.name);
 

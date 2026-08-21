@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
+import usePakete from '../hooks/usePakete';
 import { aufTaste } from '../utils/tastaturBedienung';
 
-const PACKAGE_NAMES = {
-  starter: 'Starter',
-  kompagnon: 'KOMPAGNON Standard',
-  premium: 'Premium',
-};
+// Hier stand eine feste Namensliste — dieselbe Konstante, die L-29 aus
+// `payments.py` entfernt hat, nur eine Ebene weiter. Der Name kommt jetzt aus
+// derselben Zeile wie der Betrag.
 
 export default function CheckoutSuccess() {
   const [params] = useSearchParams();
@@ -20,7 +19,7 @@ export default function CheckoutSuccess() {
 
   useEffect(() => {
     if (sessionId) {
-      fetch(`${API_BASE_URL}/api/stripe/session/${sessionId}`)
+      fetch(`${API_BASE_URL}/api/payments/session/${sessionId}`)
         .then(r => r.json())
         .then(d => { setSession(d); setLoading(false); })
         .catch(() => setLoading(false));
@@ -29,7 +28,8 @@ export default function CheckoutSuccess() {
     }
   }, [sessionId]);
 
-  const pkgName = PACKAGE_NAMES[packageId] || 'Ihr Paket';
+  const { pakete } = usePakete([{ id: packageId }]);
+  const pkgName = (pakete[0] && pakete[0].name) || 'Ihr Paket';
 
   return (
     <div style={{

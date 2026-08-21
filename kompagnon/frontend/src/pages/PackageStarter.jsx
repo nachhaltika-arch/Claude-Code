@@ -3,8 +3,18 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
 import { aufTaste } from '../utils/tastaturBedienung';
+import usePakete from '../hooks/usePakete';
+import { PREIS_UNBEKANNT } from '../utils/paketpreise';
+
+// Preis und Name kommen aus derselben `products`-Zeile, aus der auch die
+// Stripe-Sitzung ihren Betrag zieht (L-29). Diese Seite war bis zum
+// 21.08.2026 gar nicht erreichbar (L-64) und trug feste Betraege.
+const DARSTELLUNG = [{ id: 'starter' }];
 
 export default function PackageStarter() {
+  const { pakete } = usePakete(DARSTELLUNG);
+  const [paket] = pakete;
+  const preis = paket && paket.preisBekannt ? `${paket.preisLabel} €` : PREIS_UNBEKANNT;
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const cancelled = params.get('cancelled');
@@ -17,7 +27,7 @@ export default function PackageStarter() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+      const res = await fetch(`${API_BASE_URL}/api/payments/create-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ package: 'starter', email }),
@@ -91,10 +101,9 @@ export default function PackageStarter() {
             Eine professionelle, rechtskonforme Website für Ihren Handwerksbetrieb — schnell, einfach und bezahlbar.
           </p>
           <div className="fade4" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 52, fontWeight: 700, color: '#b3e0ea', letterSpacing: '-0.03em' }}>1.500 €</span>
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>netto</span>
+            <span style={{ fontSize: 52, fontWeight: 700, color: '#b3e0ea', letterSpacing: '-0.03em' }}>{preis}</span>
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>7–10 Werktage · Vorkasse · zzgl. MwSt.</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>7–10 Werktage · Vorkasse</div>
         </div>
       </div>
 
@@ -102,7 +111,7 @@ export default function PackageStarter() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px var(--kc-mid-a-12)', border: '2px solid var(--kc-mid)' }}>
             <div style={{ display: 'inline-block', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Starter — 1.500 € netto</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{`Starter — ${preis}`}</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
             <form onSubmit={handleCheckout}>

@@ -121,12 +121,9 @@ const GEPRUEFTE_AUSNAHMEN = [
   // Platzhalter-Beispiel für die Preisangabe **des Kunden** auf seiner
   // eigenen Leistungsseite — nicht unser Paketpreis.
   'components/LeistungsseitenWizard.jsx',
-  // Nicht erreichbar: Es gibt keine Route auf /paket/… (L-64). Sie tragen
-  // feste Preise und sind genau deshalb hier ausgenommen und nicht
-  // stillschweigend repariert — sie zu verdrahten ist eine Entscheidung.
-  'pages/PackageStarter.jsx',
-  'pages/PackageKompagnon.jsx',
-  'pages/PackagePremium.jsx',
+  // Die drei Paketseiten standen hier, solange /paket/… keine Route hatte.
+  // Seit dem 21.08.2026 sind sie erreichbar (L-64) und holen ihre Preise
+  // über `usePakete` — die Ausnahme ist damit hinfällig.
 ];
 
 function dateienEinsammeln(verzeichnis, treffer = []) {

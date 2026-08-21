@@ -26,8 +26,10 @@ const path = require('path');
 
 const WURZEL = path.join(__dirname, '..');
 
-/** Der Stand vom 21.08.2026. Nur nach unten anpassen. */
-const VERBLEIBEND = 54;
+/** Der Stand vom 21.08.2026. Nur nach unten anpassen.
+ *  54 → 53 beim Fertigstellen von M4: `ProductManager.jsx` ist entfernt.
+ *  Er war gegen eine Produkt-Schnittstelle geschrieben, die es nicht gibt. */
+const VERBLEIBEND = 53;
 
 function tagEnde(text, start) {
   let tiefe = 0;

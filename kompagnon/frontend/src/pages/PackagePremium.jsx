@@ -3,8 +3,31 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
 import { aufTaste } from '../utils/tastaturBedienung';
+import usePakete from '../hooks/usePakete';
+import { PREIS_UNBEKANNT } from '../utils/paketpreise';
+
+// Preis und Name kommen aus derselben `products`-Zeile, aus der auch die
+// Stripe-Sitzung ihren Betrag zieht (L-29). Diese Seite war bis zum
+// 21.08.2026 gar nicht erreichbar (L-64) und trug feste Betraege.
+const DARSTELLUNG = [{ id: 'premium' }];
+
+// Reihenfolge, Lieferzeit und Hervorhebung sind Darstellung; Preis und Name
+// kommen vom Server.
+const VERGLEICH_DARSTELLUNG = [
+  { id: 'starter', name: 'Starter', delivery: '7–10 Tage' },
+  { id: 'kompagnon', name: 'KOMPAGNON', delivery: '14 Tage', recommended: true },
+  { id: 'premium', name: 'Premium', delivery: '14–21 Tage', active: true },
+];
 
 export default function PackagePremium() {
+  const { pakete } = usePakete(DARSTELLUNG);
+  const [paket] = pakete;
+  const { pakete: alle } = usePakete(VERGLEICH_DARSTELLUNG);
+  const vergleich = alle.map((p) => ({
+    ...p,
+    price: p.preisBekannt ? `${p.preisLabel} €` : PREIS_UNBEKANNT,
+  }));
+  const preis = paket && paket.preisBekannt ? `${paket.preisLabel} €` : PREIS_UNBEKANNT;
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const cancelled = params.get('cancelled');
@@ -18,7 +41,7 @@ export default function PackagePremium() {
     setError('');
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/stripe/create-checkout-session`,
+        `${API_BASE_URL}/api/payments/create-checkout`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -138,11 +161,10 @@ export default function PackagePremium() {
             Für Betriebe, die ihre Region digital dominant besetzen wollen — mit mehr Seiten, mehr Content-Tiefe und maximalem Sichtbarkeits-Ausbau.
           </p>
           <div className="fade4" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 52, fontWeight: 700, color: '#c4b5fd', letterSpacing: '-0.03em' }}>2.500 €</span>
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>netto</span>
+            <span style={{ fontSize: 52, fontWeight: 700, color: '#c4b5fd', letterSpacing: '-0.03em' }}>{preis}</span>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
-            14–21 Werktage · Vorkasse · zzgl. MwSt.
+            14–21 Werktage · Vorkasse
           </div>
         </div>
       </div>
@@ -164,7 +186,7 @@ export default function PackagePremium() {
               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12,
             }}>Premium</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-              Premium — 2.500 € netto
+              {`Premium — ${preis}`}
             </div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>
               Einmalige Zahlung · keine laufenden Kosten
@@ -237,11 +259,11 @@ export default function PackagePremium() {
         <div style={{ marginTop: 40, background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20, textAlign: 'center' }}>Alle Pakete im Vergleich</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {[
-              { id: 'starter', name: 'Starter', price: '1.500 €', delivery: '7–10 Tage' },
-              { id: 'kompagnon', name: 'KOMPAGNON', price: '2.000 €', delivery: '14 Tage', recommended: true },
-              { id: 'premium', name: 'Premium', price: '2.500 €', delivery: '14–21 Tage', active: true },
-            ].map(pkg => (
+            {/* Die Betraege standen hier fest — und diese Tabelle war bis zum
+                21.08.2026 unerreichbar, also hat sie niemand nachgezogen
+                (L-29, L-64). Jetzt aus derselben `products`-Zeile wie die
+                Kasse; was der Server nicht kennt, steht als „auf Anfrage" da. */}
+            {vergleich.map(pkg => (
               <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/paket/${pkg.id}`))} key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
                 padding: '16px 14px', borderRadius: 12,
                 border: `2px solid ${pkg.active ? '#7c3aed' : pkg.recommended ? '#d4a017' : '#e8eef2'}`,

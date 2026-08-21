@@ -113,7 +113,7 @@ export default function Checkout() {
         {step === 1 && (
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Einmaliger Festpreis — es kommt nichts hinzu.</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {packages.map((p) => (
                 <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelected(p.id))} key={p.id} onClick={() => setSelected(p.id)} style={{
@@ -178,7 +178,7 @@ export default function Checkout() {
 
               {/* Package summary */}
               <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}-Paket</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Einmaliger Festpreis zzgl. MwSt.</div></div>
+                <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Einmaliger Festpreis</div></div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{pkg.price} Euro</div>
               </div>
 

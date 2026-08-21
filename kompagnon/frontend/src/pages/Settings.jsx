@@ -6,6 +6,7 @@ import { useVersand } from '../context/VersandContext';
 import { reportApiError } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 import Feld from '../components/ui/Feld';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 
@@ -368,7 +369,7 @@ function SubscriptionTab() {
 function Card({ title, icon, children }) {
   return (
     <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', padding: 24, marginBottom: 16 }}>
-      {title && <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{icon} {title}</h3>}
+      {title && <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{icon} {title}</h2>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
     </div>
   );
@@ -398,6 +399,7 @@ function Btn({ children, onClick, type = 'button', loading, secondary, danger, s
       fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
       opacity: loading ? 0.6 : 1, ...extraStyle,
     }}>
+      <SeitenTitel>Einstellungen</SeitenTitel>
       {loading ? 'Speichern...' : children}
     </button>
   );

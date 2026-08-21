@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 const STATUS_COLORS = {
   running:   { bg: '#FEF9C3', text: '#854D0E', label: 'Laeuft' },
@@ -183,6 +184,7 @@ export default function ScraperControl() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '4px 0' }}>
+      <SeitenTitel>Kaltakquise</SeitenTitel>
 
       {/* Header */}
       <div>

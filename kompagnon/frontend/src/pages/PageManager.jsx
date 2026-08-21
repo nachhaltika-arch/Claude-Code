@@ -424,9 +424,9 @@ export default function PageManager() {
             width: '100%', maxWidth: 480,
             maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
           }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
               Neue Seite anlegen
-            </h3>
+            </h2>
 
             {/* Name (intern) — Slug wird daraus auto-suggeriert solange der
                 User den Slug nicht selbst editiert hat. */}
@@ -537,9 +537,9 @@ export default function PageManager() {
             width: '100%', maxWidth: 440,
             maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
           }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
               Template hochladen
-            </h3>
+            </h2>
             <div style={{ marginBottom: 12 }}>
               <label style={{
                 display: 'block', fontSize: 11, fontWeight: 600,

@@ -93,7 +93,7 @@ export default function Profile() {
       {tab === 'sicherheit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Passwort aendern</h3>
+            <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Passwort aendern</h2>
             <form onSubmit={changePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field label="Aktuelles Passwort" type="password" value={pwForm.current_password} onChange={(v) => setPwForm((f) => ({ ...f, current_password: v }))} />
               <Field label="Neues Passwort" type="password" value={pwForm.new_password} onChange={(v) => setPwForm((f) => ({ ...f, new_password: v }))} />
@@ -104,7 +104,7 @@ export default function Profile() {
             </form>
           </div>
           <div>
-            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h3>
+            <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h2>
             <div style={{ fontSize: 14, color: user?.totp_enabled ? '#2a9a5a' : '#c03030', fontWeight: 600, marginBottom: 12 }}>
               {user?.totp_enabled ? '2FA ist aktiviert' : '2FA ist nicht aktiviert'}
             </div>
@@ -201,7 +201,7 @@ function SignatureTab() {
 
   return (
     <div>
-      <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</h3>
+      <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</h2>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
         Zeichnen Sie Ihre Unterschrift fuer Audit-Berichte:
       </p>

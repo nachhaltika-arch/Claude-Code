@@ -6,6 +6,7 @@ import API_BASE_URL from '../config';
 import { schreibe } from '../utils/schreiben';
 import { loeschfrage } from '../utils/loeschfrage';
 import Feld from '../components/ui/Feld';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -626,6 +627,7 @@ export default function AcademyAdminCourse() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
+      <SeitenTitel>Kurs bearbeiten</SeitenTitel>
 
       {/* ── Topbar / Breadcrumb ───────────────────────────────── */}
       <div style={{

@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 const A = '#D4A017';
@@ -72,6 +73,7 @@ export default function Checkout() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans)' }}>
+      <SeitenTitel>Bestellung</SeitenTitel>
       {/* Header */}
       <div style={{ background: 'var(--brand-primary)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>

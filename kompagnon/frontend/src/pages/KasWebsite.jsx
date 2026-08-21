@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GrapesEditor from '../components/GrapesEditor';
 import KompagnonLogo from '../components/KompagnonLogo';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function KasWebsite() {
   const { token, user, isSuperadmin } = useAuth();
@@ -174,6 +175,7 @@ export default function KasWebsite() {
 
   return (
     <div>
+      <SeitenTitel>Verkaufsseite</SeitenTitel>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         <KompagnonLogo variant="color" height={36} />

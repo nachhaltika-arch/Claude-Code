@@ -4,6 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export const SOURCES = [
   { key: 'facebook',   label: 'Facebook',   icon: '📘', color: '#1877F2' },
@@ -224,6 +225,7 @@ function QrCodePanel({ campaign, color }) {
       border: '1px solid var(--border-light)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
     }}>
+      <SeitenTitel>Kampagnen</SeitenTitel>
       <div ref={ref} style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
         <QRCodeCanvas
           value={campaign.tracking_url}

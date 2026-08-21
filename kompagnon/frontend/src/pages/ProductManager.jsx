@@ -134,7 +134,7 @@ export default function ProductManager() {
       {showCreate && (
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
           <div style={modal}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{editProduct ? 'Produkt bearbeiten' : 'Neues Produkt'}</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{editProduct ? 'Produkt bearbeiten' : 'Neues Produkt'}</h2>
             <div><label style={label}>Name</label><input aria-label="Name" style={input} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. KOMPAGNON Starter" /></div>
             <div><label style={label}>Beschreibung</label><textarea aria-label="Beschreibung" style={{ ...input, minHeight: 60, resize: 'vertical' }} value={form.beschreibung} onChange={e => setForm(f => ({ ...f, beschreibung: e.target.value }))} /></div>
             <div><label style={label}>Leistungsumfang</label><textarea aria-label="Leistungsumfang" style={{ ...input, minHeight: 80, resize: 'vertical' }} value={form.leistungsumfang} onChange={e => setForm(f => ({ ...f, leistungsumfang: e.target.value }))} placeholder="Bullet Points der Leistungen" /></div>

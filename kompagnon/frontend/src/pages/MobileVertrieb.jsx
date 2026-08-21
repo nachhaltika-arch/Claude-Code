@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 const KACHELN = [
   { label: 'Pipeline',      desc: 'Deals & Phasen',      icon: '📋', path: '/app/deals',      primary: true },
@@ -22,6 +23,7 @@ export default function MobileVertrieb() {
 
   return (
     <div style={{ padding: '14px 14px 20px', background: 'var(--bg-app)', minHeight: '100%' }}>
+      <SeitenTitel>Vertrieb unterwegs</SeitenTitel>
       <div style={{
         fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)',
         textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12,

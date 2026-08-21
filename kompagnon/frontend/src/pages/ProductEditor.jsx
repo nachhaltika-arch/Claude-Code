@@ -622,9 +622,9 @@ export default function ProductEditor() {
           display: 'flex', alignItems: 'center', gap: 12,
           marginBottom: 16, flexWrap: 'wrap',
         }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
             {product.name || 'Neues Produkt'}
-          </h2>
+          </h1>
           <span style={{
             padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600,
             background: statusDot.bg + '22', color: statusDot.bg,

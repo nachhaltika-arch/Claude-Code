@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function ContentApprovalPage() {
   const { token } = useParams();
@@ -90,6 +91,7 @@ export default function ContentApprovalPage() {
 
   return (
     <div style={wrap}>
+      <SeitenTitel>Inhalte freigeben</SeitenTitel>
       <div style={card}>
         {/* Header */}
         <div style={{ background: 'var(--kc-mid)', padding: '24px 32px' }}>

@@ -298,9 +298,9 @@ export default function AcademyAdmin() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 22, margin: '0 auto 14px',
             }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
               Kurs löschen?
-            </h3>
+            </h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.55 }}>
               <strong>{deletingCourse?.title}</strong> wird dauerhaft gelöscht.<br />
               Diese Aktion kann nicht rückgängig gemacht werden.

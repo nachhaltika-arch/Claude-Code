@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 
@@ -61,6 +62,7 @@ export default function TwoFactorSetup() {
 
   return (
     <div style={cardStyle}>
+      <SeitenTitel>Zwei-Faktor-Authentifizierung</SeitenTitel>
       {step === 'start' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>

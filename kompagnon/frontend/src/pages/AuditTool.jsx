@@ -470,9 +470,9 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontFamily: 'var(--font-sans)' }}>
+            <h2 style={{ margin: 0, fontSize: '16px', fontFamily: 'var(--font-sans)' }}>
               Lead anlegen
-            </h3>
+            </h2>
           </div>
           <button
             onClick={onClose}

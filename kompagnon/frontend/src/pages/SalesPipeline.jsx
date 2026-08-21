@@ -9,6 +9,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz } from '../utils/datum';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
@@ -296,7 +297,7 @@ export default function SalesPipeline() {
           onClick={() => setDeleteConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
               <strong>{leads.find(l => l.id === deleteConfirm)?.company_name}</strong> wird dauerhaft gelöscht.
             </p>
@@ -314,7 +315,7 @@ export default function SalesPipeline() {
           onClick={() => setWonConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
               Der Lead <strong>{wonConfirm.lead?.company_name || 'Unbekannt'}</strong> wurde als gewonnen markiert.
               Soll automatisch ein Projekt angelegt werden?
@@ -502,6 +503,7 @@ function MItem({ children, onClick, danger, style }) {
     }}
     onMouseEnter={e => e.currentTarget.style.background = danger ? 'var(--status-danger-bg)' : 'var(--bg-hover)'}
     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+      <SeitenTitel>Vertriebstrichter</SeitenTitel>
       {children}
     </button>
   );

@@ -319,7 +319,7 @@ export default function Newsletter() {
       {showNewList && (
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowNewList(false)}>
           <div style={modal}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Neue Liste erstellen</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Neue Liste erstellen</h2>
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Name</label>
               <input aria-label="Name" style={input} value={newListForm.name} onChange={e => setNewListForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. Bestandskunden" />
@@ -340,7 +340,7 @@ export default function Newsletter() {
       {showImport && (
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowImport(false)}>
           <div style={modal}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Kontakte importieren</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Kontakte importieren</h2>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
               Eine Zeile pro Kontakt: <code style={{ background: 'var(--bg-app)', padding: '1px 4px', borderRadius: 4, fontSize: 11 }}>email, vorname, nachname</code>
             </p>

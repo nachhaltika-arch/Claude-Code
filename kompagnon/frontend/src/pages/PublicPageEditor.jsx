@@ -9,6 +9,7 @@ import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorCon
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function PublicPageEditor() {
   const { pageId } = useParams();
@@ -141,6 +142,7 @@ export default function PublicPageEditor() {
       zIndex: 500,
       display: 'flex', flexDirection: 'column', background: '#fff',
     }}>
+      <SeitenTitel>Verkaufsseite bearbeiten</SeitenTitel>
       {/* Toolbar */}
       <div style={{
         height: 48, background: '#1a2c32', flexShrink: 0,

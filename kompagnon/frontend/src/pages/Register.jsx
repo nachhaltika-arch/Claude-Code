@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import KompagnonLogo from '../components/KompagnonLogo';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 const AMBER = '#D4A017';
@@ -83,6 +84,7 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
+      <SeitenTitel>Konto erstellen</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>

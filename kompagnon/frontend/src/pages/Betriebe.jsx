@@ -32,6 +32,7 @@ import {
   quellenAusBetrieben,
   BETRIEB_SORTIERUNGEN,
 } from '../utils/betriebeListe';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 // Wie viele Betriebe hoechstens geholt werden. Kein stiller Deckel: Kommen
 // genau so viele zurueck, sagt die Seite es (siehe `amDeckel` unten).
@@ -488,6 +489,7 @@ function MiniStat({ label, value, color, onClick, active }) {
         transition: 'all 0.15s', textAlign: 'left', font: 'inherit', width: '100%',
       }}
     >
+      <SeitenTitel>Betriebe</SeitenTitel>
       <div style={{
         fontSize: 20, fontWeight: 500, fontFamily: 'var(--font-sans)',
         color: color || (active ? 'var(--brand-primary)' : 'var(--text-primary)'),

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 // ── Design tokens (CSS variables — auto-adapt to dark mode) ────
 const T = {
@@ -65,6 +66,7 @@ export default function AcademyCertificate() {
       padding: '40px 16px',
       fontFamily: T.font,
     }}>
+      <SeitenTitel>Zertifikat</SeitenTitel>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @media print {

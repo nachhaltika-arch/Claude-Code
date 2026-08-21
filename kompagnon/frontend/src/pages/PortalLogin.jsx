@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function PortalLogin() {
   const [mode, setMode]               = useState('login');
@@ -93,6 +94,7 @@ export default function PortalLogin() {
       alignItems: 'center', justifyContent: 'center',
       padding: 20,
     }}>
+      <SeitenTitel>Kundenportal — Anmelden</SeitenTitel>
       {/* Karte */}
       <div style={{
         width: '100%', maxWidth: 420,

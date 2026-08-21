@@ -5,6 +5,7 @@ import Logo from '../components/Logo';
 import KompagnonLogo from '../components/KompagnonLogo';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -99,6 +100,7 @@ export default function Login() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 20, fontFamily: 'var(--font-sans)',
     }}>
+      <SeitenTitel>Anmelden</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 380 }}>
 
         {/* Logo */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
+import SeitenTitel from '../../components/ui/SeitenTitel';
 
 const statusLabels = { offen: 'Offen', bezahlt: 'Bezahlt', paid: 'Bezahlt', overdue: 'Überfällig' };
 
@@ -28,6 +29,7 @@ export default function MeineRechnungen() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 0 40px' }}>
+      <SeitenTitel>Meine Rechnungen</SeitenTitel>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         💳 Rechnungen
       </div>

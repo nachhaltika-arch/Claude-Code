@@ -5,6 +5,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { schreibe } from '../utils/schreiben';
 import Feld from '../components/ui/Feld';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -472,6 +473,7 @@ export default function AcademyAdminLesson() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
+      <SeitenTitel>Lektion bearbeiten</SeitenTitel>
       {/* Siehe utils/schreiben.js: Ein Speichern, das stillschweigend
         * scheitert, ist schlimmer als eines, das hakt. */}
       {fehler && (

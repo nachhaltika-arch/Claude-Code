@@ -84,7 +84,7 @@ export default function RoleManagement() {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Rollenverwaltung</h2>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Rollenverwaltung</h1>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Definieren Sie Berechtigungen pro Rolle</p>
       </div>
 
@@ -143,9 +143,9 @@ export default function RoleManagement() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 440, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}>
               {ROLE_META[editing]?.icon} {ROLE_META[editing]?.label} — Berechtigungen
-            </h3>
+            </h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
               Aktivieren oder deaktivieren Sie einzelne Berechtigungen. Als
               <em> beschreibend</em> gekennzeichnete Angaben halten fest, was gelten

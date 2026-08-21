@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
+import SeitenTitel from '../../components/ui/SeitenTitel';
 
 const statusLabels = { open: 'Offen', in_progress: 'In Bearbeitung', resolved: 'Gelöst' };
 const prioLabels  = { low: 'Niedrig', medium: 'Normal', high: 'Dringend' };
@@ -58,6 +59,7 @@ export default function SupportTickets() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 0 40px' }}>
+      <SeitenTitel>Support-Anfragen</SeitenTitel>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         🎫 Support-Tickets
       </div>

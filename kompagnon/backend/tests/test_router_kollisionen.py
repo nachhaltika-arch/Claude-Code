@@ -67,14 +67,12 @@ def _belegte_adressen():
 
 #: Kollisionen, die bleiben duerfen — jede mit Grund.
 #: Diese Liste soll schrumpfen, nie wachsen.
-GEPRUEFTE_AUSNAHMEN = {
-    # `projects.py` scrapt die Website fuer **Branddesign** (Farben,
-    # Schriften), `content_scraper_router.py` startet einen **Inhalts**-Lauf im
-    # Hintergrund. Zwei verschiedene Dinge unter einem Namen; heute gewinnt
-    # `projects.py`, der andere ist unerreichbar. Welcher bleibt und wie der
-    # andere heisst, ist eine Produktentscheidung (Modulkarte, M5 gegen M6).
-    ("POST", "/api/projects/{}/scrape"),
-}
+#
+#: **Sie ist am 21.08.2026 leer geworden.** Die letzte Ausnahme war
+#: `POST /api/projects/{}/scrape` — zwei verschiedene Dinge unter einem
+#: Namen (Branddesign gegen mehrseitigen Inhalts-Lauf). Aufgeloest durch
+#: Umbenennen: `/{id}/scrape-pages`.
+GEPRUEFTE_AUSNAHMEN = set()
 
 
 def test_keine_zwei_router_auf_derselben_adresse():
@@ -90,10 +88,89 @@ def test_keine_zwei_router_auf_derselben_adresse():
     )
 
 
-@pytest.mark.parametrize("adresse", sorted(GEPRUEFTE_AUSNAHMEN))
-def test_jede_ausnahme_ist_noch_eine(adresse):
-    """Sonst steht hier bald eine Liste, die niemand mehr prueft."""
+def test_jede_ausnahme_ist_noch_eine():
+    """Sonst steht hier bald eine Liste, die niemand mehr prueft.
+
+    Bewusst **nicht** parametrisiert: Bei leerer Liste meldet pytest sonst
+    „skipped", und ein uebersprungener Test liest sich wie ein kaputter.
+    Leer ist hier der gute Zustand.
+    """
     belegt = _belegte_adressen()
-    assert len(belegt.get(adresse, ())) > 1, (
-        f"{adresse} kollidiert nicht mehr — die Ausnahme gehoert entfernt."
+    veraltet = [a for a in GEPRUEFTE_AUSNAHMEN if len(belegt.get(a, ())) <= 1]
+
+    assert veraltet == [], (
+        f"Diese Ausnahmen kollidieren nicht mehr und gehoeren entfernt: {veraltet}"
     )
+
+
+def test_keine_tabelle_hat_zwei_modelle():
+    """Zwei Klassen auf einer Tabelle brechen `create_all`.
+
+    Gefunden am 21.08.2026: `routers/mockups.py` und `routers/designs.py`
+    bildeten beide `mockup_versions` ab — Zeichen fuer Zeichen dieselbe
+    Klasse, nur anders benannt. `extend_existing=True` verhindert den Fehler
+    beim Import, nicht beim Anlegen: `create_all` schickt die Index-Befehle
+    zweimal und Postgres antwortet `relation already exists`.
+
+    `mockups.py` war ausserdem **nirgends eingebunden** — vier Routen, die es
+    nicht gab, und eine Kopie von `designs.py` ohne dessen Sperre aus L-51.
+    Entfernt.
+    """
+    import collections
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    wo = collections.defaultdict(list)
+    for datei in sorted(wurzel.rglob("*.py")):
+        if "venv" in str(datei) or "/tests/" in str(datei):
+            continue
+        text = datei.read_text(encoding="utf-8", errors="ignore")
+        for treffer in re.finditer(
+            r'class (\w+)\(Base\):(?:[^\n]*\n){0,6}?\s*__tablename__ = ["\'](\w+)["\']',
+            text,
+        ):
+            wo[treffer.group(2)].append(f"{datei.name}::{treffer.group(1)}")
+
+    doppelt = {t: v for t, v in wo.items() if len(v) > 1}
+    assert doppelt == {}, f"Tabellen mit mehr als einem Modell: {doppelt}"
+
+
+# ── Die letzte Kollision ist am 21.08.2026 aufgeloest ────────────────
+#
+# `POST /api/projects/{id}/scrape` gab es zweimal, mit zwei verschiedenen
+# Bedeutungen:
+#
+#   projects.py               liest **Branddesign** aus der Website
+#                             (Farben, Schriften) und schreibt es ans Projekt
+#   content_scraper_router.py startet einen **mehrseitigen Inhalts-Lauf**
+#                             (`ProjectScrapeJob`, `ProjectScrapedPage`)
+#
+# `projects.py` war frueher eingebunden und gewann; der Inhalts-Lauf war als
+# manueller Ausloeser unerreichbar. Angelegt wird er trotzdem — `projects.py`
+# startet ihn beim Anlegen eines Projekts von selbst (`_run_content_scrape`).
+# Es fehlte also nur der Weg, ihn **noch einmal** anzustossen.
+#
+# Aufgeloest durch Umbenennen statt Loeschen: `/{id}/scrape-pages` sagt, was
+# geschieht, und `/{id}/scrape` bleibt beim Branddesign.
+
+def test_der_mehrseitige_lauf_hat_einen_eigenen_namen():
+    from routers import content_scraper_router, projects
+
+    inhalt = {r.path for r in content_scraper_router.router.routes}
+    marke = {r.path for r in projects.router.routes}
+
+    assert "/api/projects/{project_id}/scrape-pages" in inhalt
+    assert "/api/projects/{project_id}/scrape" not in inhalt
+    assert "/api/projects/{project_id}/scrape" in marke
+
+
+def test_und_er_ist_erreichbar(client, auth_headers):
+    """Vorher war er tot. Eine tote Route ist eine ungepruefte Route (L-68) —
+    deshalb wird sie hier einmal wirklich angefasst.
+
+    404 fuer ein Projekt, das es nicht gibt, beweist: durch die Sperre,
+    durch die Adressaufloesung, bis zur Datenbank.
+    """
+    antwort = client.post("/api/projects/999999/scrape-pages", headers=auth_headers)
+    assert antwort.status_code == 404, antwort.text[:200]

@@ -13,9 +13,19 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_innendienst
 
-router = APIRouter(prefix="/api/projects", tags=["export"])
+# Vorgabe am Router, nicht an der einzelnen Route. Bis zum 21.08.2026 trugen
+# diese Routen nur `require_any_auth` und **keine Zeilenpruefung**: Sie holen
+# das Projekt per `project_id` und antworten. Kunden haben Konten — ein
+# angemeldeter Kunde kam damit an **jedes** Projekt (Naht `/api/projects`,
+# `docs/module-karte.md`; dieselbe Bauart wie L-66).
+#
+# Alle Aufrufer haengen an `roles={{'admin', 'auditor'}}`, also am Innendienst.
+# Die Sperre stand in der Oberflaeche statt am Endpunkt — und eine
+# Oberflaechenpruefung ist keine Sperre.
+router = APIRouter(prefix="/api/projects", tags=["export"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 def _slugify(name: str) -> str:
@@ -46,7 +56,6 @@ def _build_full_html(page_name: str, html: str, css: str) -> str:
 def export_project_zip(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     """
     Gibt alle gespeicherten Seiten des Projekts als ZIP-Datei zurück.

@@ -13,11 +13,21 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db, ProjectScrapeJob, ProjectScrapedPage, Project, SessionLocal
-from routers.auth_router import require_admin, require_any_auth
+from routers.auth_router import require_admin, require_innendienst
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/projects", tags=["content-scraper"])
+# Vorgabe am Router, nicht an der einzelnen Route. Bis zum 21.08.2026 trugen
+# diese Routen nur `require_any_auth` und **keine Zeilenpruefung**: Sie holen
+# das Projekt per `project_id` und antworten. Kunden haben Konten — ein
+# angemeldeter Kunde kam damit an **jedes** Projekt (Naht `/api/projects`,
+# `docs/module-karte.md`; dieselbe Bauart wie L-66).
+#
+# Alle Aufrufer haengen an `roles={{'admin', 'auditor'}}`, also am Innendienst.
+# Die Sperre stand in der Oberflaeche statt am Endpunkt — und eine
+# Oberflaechenpruefung ist keine Sperre.
+router = APIRouter(prefix="/api/projects", tags=["content-scraper"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Background task ────────────────────────────────────────────────────────────
@@ -85,7 +95,6 @@ async def scrape_full_analysis(
     project_id: int,
     force: bool = False,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     """Single-page full analysis: SEO, text, assets, links, contact.
     Cache: reuses existing result if < 24h old unless force=true.
@@ -143,7 +152,6 @@ async def scrape_full_analysis(
 def get_scrape_full_cached(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     """Returns cached scrape-full result. Fast, no network call."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -160,7 +168,16 @@ def get_scrape_full_cached(
     return data
 
 
-@router.post("/{project_id}/scrape")
+# `/scrape-pages`, nicht `/scrape`: Denselben Namen trug `projects.py` fuer
+# etwas anderes — dort wird **Branddesign** aus der Website gelesen (Farben,
+# Schriften). `projects.py` war frueher eingebunden und gewann; dieser
+# mehrseitige Inhalts-Lauf war als manueller Ausloeser unerreichbar
+# (Naht `/api/projects`, `docs/module-karte.md`).
+#
+# Angelegt wird der Lauf trotzdem: `projects.py` startet ihn beim Anlegen
+# eines Projekts von selbst. Es fehlte nur der Weg, ihn noch einmal
+# anzustossen — etwa nach einem Relaunch der Kundenwebsite.
+@router.post("/{project_id}/scrape-pages")
 def start_scrape(
     project_id: int,
     background_tasks: BackgroundTasks,
@@ -197,7 +214,6 @@ def start_scrape(
 def scrape_status(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     job = (
         db.query(ProjectScrapeJob)
@@ -219,7 +235,6 @@ def scrape_status(
 def scraped_content(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     pages = (
         db.query(ProjectScrapedPage)

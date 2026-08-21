@@ -167,10 +167,9 @@ Zeiterfassung, Projekt-Assistent.
 | Tabellen | `projects`, `project_checklists`, `project_files`, `project_credentials`, `briefings`, `time_tracking` |
 | Automatik | `daily_check_overdue_phases`, `daily_update_margins`, `daily_send_briefing_reminders`, `daily_phase_postgolive_transitions`, `daily_check_missing_materials` |
 
-**Naht ⚠️ (zwei):** `projects.py` ist mit 4.848 Zeilen die größte Datei des
-Systems — sie allein trägt vier Teilbereiche. Und `/api/briefings` wird von
-**zwei** Routern bedient (L-27); ein Test verhindert seit dem 21.08., dass sich
-Routen still verdecken.
+**Naht ✅ aufgetrennt am 21.08.2026** — siehe „Die zweite Naht" unten.
+`projects.py` bleibt mit 4.848 Zeilen die größte Datei des Systems (L-25).
+Offen bleibt `/api/briefings`, die dritte Naht (L-27).
 
 **Offen:** L-25 (Dateigröße) · L-27 (zwei Briefing-Strukturen — Entscheidung) ·
 L-14 (Assistent fachlich unbeurteilt) · L-50-Rest (`project_files` speichert
@@ -190,8 +189,10 @@ Qualitätsschleife.
 | Tabellen | `sitemap_pages`, `component_library`, `website_templates`, `website_versions`, `kas_pages`, `kas_gjs_data`, `mockup_versions`, `content_sections`, `content_media` |
 | Automatik | `netlify_dns_check_every_15min`, `netlify_ssl_check` |
 
-**Naht ⚠️:** `component_library` bedient **sowohl** `/api/components` als auch
-`/api/projects` — es sitzt auf M5 und M6 zugleich.
+**Naht ✅:** `component_library` bedient `/api/components` **und**
+`/api/projects` — über zwei getrennte Router-Objekte, die beide zu M6 gehören.
+Ein Schalter am Router trifft also das Richtige. Der `/api/projects`-Router
+trägt seit dem 21.08. dieselbe Sperre wie sein Nachbar (L-69).
 
 **Offen:** L-26 (drei Editor-Generationen parallel) · L-40 (Qualitätsschleife
 nie am Stück gelaufen — fehlende Netlify-Variable) · L-19 (keine eigene Domain
@@ -405,6 +406,43 @@ lag.
 von 19 Kollisionen bleibt **eine**, und die ist namentlich als Entscheidung
 vermerkt (`POST /api/projects/{}/scrape` — Branddesign gegen Inhalt).
 
+### Die zweite Naht: `/api/projects` (21.08.2026)
+
+Vier Router, **dasselbe Muster wie bei der ersten** — und wieder größer als die
+Naht:
+
+**Dreizehn Routen ließen jeden Angemeldeten an jedes Projekt** (L-69).
+`projects.router` trug `require_innendienst` und war richtig; die drei anderen
+trugen nur eine Anmeldung und **keine Zeilenprüfung**. Ein angemeldeter Kunde
+konnte die fertige Website **jedes** Projekts als ZIP laden, jeden Wireframe
+lesen **und überschreiben**, und auf jedem Projekt einen Inhalts-Lauf starten.
+
+Kein Kundenbildschirm braucht sie — alle Aufrufer hängen an
+`roles={'admin','auditor'}`, und `export-zip` hat gar keinen Aufrufer. **Die
+Sperre stand wieder in der Oberfläche statt am Endpunkt.**
+
+**Zwei Modelle auf einer Tabelle** (L-70). `routers/mockups.py` und
+`routers/designs.py` bildeten beide `mockup_versions` ab — Zeichen für Zeichen
+dieselbe Klasse. Aufgefallen ist es nur, weil der neue Kollisionstest **alle**
+Router importiert; vorher hatte nie etwas beide Dateien zugleich geladen.
+`mockups.py` war zudem **nirgends eingebunden** — vier Routen, die es nicht
+gab, eine Kopie ohne die Sperre, die ihr Zwilling im August bekam. Entfernt.
+
+**Die letzte Kollision ist aufgelöst.** `POST /api/projects/{id}/scrape` gab es
+zweimal mit zwei Bedeutungen: Branddesign lesen (`projects.py`, gewann) und
+mehrseitiger Inhalts-Lauf (`content_scraper_router.py`, unerreichbar). Der
+Inhalts-Lauf heißt jetzt `/{id}/scrape-pages` — er wird beim Anlegen eines
+Projekts ohnehin automatisch gestartet, es fehlte nur der Weg, ihn noch einmal
+anzustoßen.
+
+**Damit ist `GEPRUEFTE_AUSNAHMEN` leer:** null Kollisionen unter 471 Aufrufen.
+
+**Ein Fehlalarm, offen berichtet:** Ich hatte „vier vollständig offene Routen"
+gemeldet, als ich `mockups.py` ohne Sperre sah. Nachgemessen — produktiv
+`GET /api/mockups/1` → 404 gegen `GET /api/designs/1` → 401 — war der Router
+nirgends eingebunden. Kein Loch, tote Datei. Der Unterschied zwischen „ungesichert"
+und „nicht vorhanden" ist eine Registrierungszeile, und die gehört nachgesehen,
+bevor man Alarm schlägt.
 ---
 
 ## Der nächste Schritt

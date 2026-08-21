@@ -381,9 +381,12 @@ antwortet `unauthorized`; also im Dashboard.)
    `srv-da30dg3bc2fs73fomi0g` aendern, sonst deployt die CI weiter nach Oregon
    und meldet trotzdem gruen — **das kommt jetzt vor dem Umhaengen**, siehe
    die Reihenfolge-Falle vom 21.08.
-5. Frankfurt einmal neu bauen lassen und nachmessen, dass
-   `/api/dashboard/kpis` dort **401** antwortet — sonst traegt der Dienst den
-   Stand von vor den Sicherheitsfixes
+5. Frankfurt einmal von Hand neu bauen lassen und danach
+   **`scripts/umzug-bereitschaft.sh`** laufen lassen — es beendet sich nur mit
+   0, wenn der Dienst den aktuellen Stand traegt. Am 21.08. gegen Frankfurt
+   gemessen: drei Fehlschlaege (`/api/dashboard/kpis` und `/api/webhooks/log`
+   antworten **200** statt 401, und fuenf Routen fehlen, waehrend zwei
+   entfallene noch da sind) — bei gleichzeitig makellosem `/health` in 0,20 s
 6. **Domain umhaengen** — der erste unumkehrbare Schritt
 7. Alten Dienst suspendieren (nicht loeschen) — **erst nach L-57**
 8. **Dann L-44**: Inbound-Regel der Datenbank zu
@@ -438,8 +441,14 @@ scharf** — nach aussen sieht alles gesund aus, `/health` antwortet in 0,17 s.
 
 **Also gilt zwischen Schritt 4 und 5 der Liste eine neue Zwischenstufe:**
 erst `RENDER_SERVICE_BACKEND_PROD` umstellen **und** Frankfurt einmal von Hand
-neu bauen lassen, dann pruefen, dass `/api/dashboard/kpis` dort **401**
-antwortet — und **erst dann** die Domain umhaengen.
+neu bauen lassen, dann messen — und **erst dann** die Domain umhaengen.
+
+Dafuer gibt es seit dem 21.08. **`scripts/umzug-bereitschaft.sh`**. Es prueft
+nicht, ob Routen *existieren*, sondern was sie **antworten, wenn niemand
+angemeldet ist** — denn genau dort liegt der Unterschied zwischen den beiden
+Staenden. Die Vollstaendigkeit misst es **gegen einen laufenden Dienst**
+(Vorgabe: Staging), nicht gegen eine Zahl im Skript; eine hart notierte 401
+waere schon heute falsch, Staging traegt 404.
 
 ### L-57 praeziser gefasst — die Behauptung war zu breit
 

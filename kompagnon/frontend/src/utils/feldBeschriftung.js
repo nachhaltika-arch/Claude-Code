@@ -31,6 +31,14 @@
  * @param {string} erzeugteId  eine eindeutige Kennung (aus `useId()`)
  * @returns {{id: string|undefined, verknuepfen: boolean, zusatz: object}}
  */
+/** Was `htmlFor` überhaupt verknüpfen darf. Zeigt es auf ein `<div>`, ist die
+ *  Verknüpfung ungültig — dann lieber keine. */
+const VERKNUEPFBAR = new Set(['input', 'select', 'textarea']);
+
+export function istVerknuepfbar(typ) {
+  return typeof typ === 'string' && VERKNUEPFBAR.has(typ);
+}
+
 export function feldVerknuepfung(props = {}, erzeugteId = '') {
   // Ein Feld, das bereits einen Namen trägt, bekommt keinen zweiten:
   // `aria-label` sticht die Beschriftung, und zwei Namen, die auseinander-
@@ -60,4 +68,15 @@ export function feldVerknuepfung(props = {}, erzeugteId = '') {
 export function beschriftungsText(label) {
   if (typeof label !== 'string') return '';
   return label.replace(/\s*[*:]+\s*$/, '').trim();
+}
+
+/**
+ * Trug die Beschriftung ein Pflicht-Sternchen?
+ *
+ * `beschriftungsText` nimmt es heraus, damit ein Screenreader nicht „Stern"
+ * vorliest. Sichtbar bleiben muss es trotzdem — sonst sieht ein Pflichtfeld
+ * aus wie ein freiwilliges.
+ */
+export function tail(label) {
+  return typeof label === 'string' && /\s*\*\s*$/.test(label);
 }

@@ -2,7 +2,7 @@
  * L-17: Eine Beschriftung, die danebensteht, ist für einen Screenreader
  * keine Beschriftung.
  */
-import { beschriftungsText, feldVerknuepfung } from './feldBeschriftung';
+import { beschriftungsText, feldVerknuepfung, istVerknuepfbar } from './feldBeschriftung';
 
 describe('feldVerknuepfung', () => {
   test('ein Feld ohne Kennung bekommt die erzeugte', () => {
@@ -59,5 +59,24 @@ describe('beschriftungsText', () => {
   test('was keine Zeichenkette ist, ergibt keinen Namen', () => {
     expect(beschriftungsText(undefined)).toBe('');
     expect(beschriftungsText(42)).toBe('');
+  });
+});
+
+describe('istVerknuepfbar', () => {
+  // Gelernt aus einem roten CI-Lauf: Zeigt htmlFor auf ein <div>, ist die
+  // Verknüpfung ungültig — dann ist keine besser als eine falsche.
+  test('nur echte Formularelemente', () => {
+    expect(istVerknuepfbar('input')).toBe(true);
+    expect(istVerknuepfbar('select')).toBe(true);
+    expect(istVerknuepfbar('textarea')).toBe(true);
+  });
+
+  test('ein div ist keines', () => {
+    expect(istVerknuepfbar('div')).toBe(false);
+  });
+
+  test('eine eigene Komponente ist keines — ihr Typ ist eine Funktion', () => {
+    expect(istVerknuepfbar(() => null)).toBe(false);
+    expect(istVerknuepfbar(undefined)).toBe(false);
   });
 });

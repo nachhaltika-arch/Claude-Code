@@ -75,7 +75,13 @@ function unbenannteFelder() {
     const relativ = path.relative(WURZEL, datei).split(path.sep).join('/');
     if (GEPRUEFTE_AUSNAHMEN.includes(relativ)) continue;
 
-    const text = fs.readFileSync(datei, 'utf8');
+    // Kommentare erst entfernen: Dieser Wächter meldete sich selbst, weil in
+    // der Beschreibung von `Feld.jsx` das Wort `<select>` steht. Dieselbe
+    // Lehre wie beim Überschriften-Wächter — was in Text steht, ist kein
+    // Element.
+    const text = fs.readFileSync(datei, 'utf8')
+      .replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
     const verknuepfteIds = new Set([...text.matchAll(/htmlFor=["']([^"']+)["']/g)].map((m) => m[1]));
 
     const muster = /<(input|select|textarea)\b/g;

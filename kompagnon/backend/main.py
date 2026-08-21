@@ -1927,6 +1927,11 @@ app.include_router(content.router)
 from routers import designs
 app.include_router(designs.router)
 
+# Der Canvas liest dieselben Zeilen wie die vier KAS-Ansichten und schreibt
+# ueber `mockup_versions` zurueck — deshalb steht er direkt hinter `designs`.
+from routers import design_canvas
+app.include_router(design_canvas.router)
+
 from routers import content_scraper_router
 app.include_router(content_scraper_router.router)
 

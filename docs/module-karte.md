@@ -37,7 +37,7 @@ Stelle, an der das Abschalten heute nicht sauber ginge.
 | **M1** | Akquise | ja | M2, M3 | 🟡 |
 | **M2** | Audit & Bewertung | nein¹ | M0 | 🟢 |
 | **M3** | Vertrieb | nein¹ | M0 | 🟢 |
-| **M4** | Angebot & Zahlung | ja | M3 | 🔴 **Bestellweg tot** |
+| **M4** | Angebot & Zahlung | ja | M3 | 🟢 **fertig 21.08.** |
 | **M5** | Projektabwicklung | ja | M3 | 🟢 |
 | **M6** | Website-Bau (KAS) | ja | M5 | 🟡 |
 | **M7** | Kundenportal | ja | M5 | 🟢 |
@@ -142,10 +142,18 @@ Affiliate.
 | Tabellen | `products`, `invoices`, `public_pages`, `page_templates`, `affiliate_conversions` |
 | Bildschirme | Pakete, Verkaufsseiten |
 
-**🔴 Der Bestellweg endet auf der Anmeldeseite (L-64).** Im Browser belegt:
-`/paket/premium`, `/paket/starter`, `/checkout` und `/checkout/kompagnon`
-leiten alle nach `/login`. Betroffen ist auch der Rücksprung **nach bezahlter
-Rechnung**. Die Bausteine existieren und werden von nichts importiert.
+**🟢 Geschlossen am 21.08.2026.** Der Bestellweg lief von `/paket/premium`
+bis `/checkout/success` nur nach `/login` — die Bausteine lagen im Quellbaum
+und wurden von nichts importiert (L-64). Vier Routen später läuft er im
+Browser durch: Paketseite mit Preis aus der Datenbank, Kasse mit vorgewähltem
+Paket, Rücksprung mit Paketnamen vom Server.
+
+Beim Verdrahten kam heraus, dass die ganze Strecke **gegen eine Schnittstelle
+geschrieben war, die es nicht gibt** — sechs falsche Adressen, darunter zwei in
+der Paketverwaltung, die zusätzlich Felder las, die die Tabelle nicht hat
+(L-71). Der Wächter `test_frontend_adressen.py` vergleicht seitdem jeden
+Frontend-Aufruf mit den geladenen Routen. Die Preisbeschriftung ist auf
+Endpreise korrigiert (L-61, Davids Entscheidung).
 
 **Offen:** L-64 (Bestellweg) · L-61 (MwSt.-Widerspruch) · L-29-Rest (drei
 unerreichbare Paketseiten mit festen Preisen) · L-20 (WebSprint-Landingpage
@@ -193,6 +201,17 @@ Qualitätsschleife.
 `/api/projects` — über zwei getrennte Router-Objekte, die beide zu M6 gehören.
 Ein Schalter am Router trifft also das Richtige. Der `/api/projects`-Router
 trägt seit dem 21.08. dieselbe Sperre wie sein Nachbar (L-69).
+
+**Design-Canvas seit 21.08.:** Die vier Ansichten liegen an vier Stellen und
+haben je einen eigenen Editor; keine zeigt zwei Seiten nebeneinander.
+`GET /api/design-canvas/{lead_id}` gibt dieselben Daten als Artboards aus —
+eine Fläche, vier Seiten, ein Artboard je Kundenseite. Bearbeitet kommen sie
+über `POST /api/design-canvas/{lead_id}/import` zurück nach
+`sitemap_pages.mockup_html`, versioniert über `mockup_versions`.
+
+Der mittlere Schritt — aus den Dateien einen Canvas machen — läuft in Claude
+Code, nicht im Server: dafür gibt es keine Schnittstelle. `scripts/canvas-export.py`
+ist der Weg dorthin, wenn man ohnehin an der Datenbank sitzt.
 
 **Offen:** L-26 (drei Editor-Generationen parallel) · L-40 (Qualitätsschleife
 nie am Stück gelaufen — fehlende Netlify-Variable) · L-19 (keine eigene Domain
@@ -317,11 +336,12 @@ Bedingung 5 ist die, an der heute am meisten hängt: Neun Fragen warten auf dich
 **Erst die Kette, die Geld verdient — alles andere aus.**
 
 Ein Kunde durchläuft: **M1 → M2 → M4 → M5 → M6 → M7.** Bricht ein Glied, ist
-der Rest Vorleistung. Heute bricht **M4**.
+der Rest Vorleistung. **M4 hielt bis zum 21.08. nicht** — seitdem läuft der
+Bestellweg durch, und das nächste Glied ist M5.
 
 | Schritt | Modul | Warum jetzt | Aufwand |
 |---|---|---|---|
-| **1** | **M4 Angebot & Zahlung** | Der Bestellweg ist tot (L-64). Ohne ihn verdient kein anderes Modul etwas | S |
+| ~~1~~ | ~~**M4 Angebot & Zahlung**~~ | ~~Der Bestellweg ist tot (L-64)~~ — **erledigt 21.08.2026** | S |
 | **2** | **M2 + M3** | Beide fast fertig — nur Entscheidungen offen, kein Code | S |
 | **3** | **M5 + M6** | Die Lieferung. Größtes Stück, aber der Kunde wartet darauf | M–L |
 | **4** | **M7 Kundenportal** | Übergabe. Fast fertig | S |

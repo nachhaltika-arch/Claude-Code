@@ -362,7 +362,9 @@ damit kaputt, genau dann, wenn man ihn braucht. **Also: L-57 zuerst** (die
 zwei Playwright-Zeilen aus Oregons Build-Befehl entfernen, Testbau ausloesen),
 **dann** suspendieren.
 
-**Schritt 0 der naechsten Sitzung, vor allem anderen:** Nachsehen, aus
+**Schritt 0 der naechsten Sitzung, vor allem anderen** — am 21.08.
+beantwortet, siehe den Abschnitt weiter unten: Es ist `main`. Der urspruengliche
+Auftrag lautete: Nachsehen, aus
 welchem **Branch** `kompagnon-backend-fra` deployt. Der Dienst wurde von Hand
 angelegt, nicht aus dem Blueprint — die Vorgabe steht also nirgends
 geschrieben. Haengt er an `staging`, wuerde das Umhaengen der Domain den
@@ -375,16 +377,90 @@ antwortet `unauthorized`; also im Dashboard.)
 1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst
 2. Fachliche Probe: anmelden, Betriebsliste, ein Audit ansehen
 3. Webhooks bei Trackdesk, Netlify (2×), Brevo, Stripe (2×) umstellen
-4. **Domain umhaengen** — der erste unumkehrbare Schritt
-5. `RENDER_SERVICE_BACKEND_PROD` in den Repo-Variablen auf
+4. `RENDER_SERVICE_BACKEND_PROD` in den Repo-Variablen auf
    `srv-da30dg3bc2fs73fomi0g` aendern, sonst deployt die CI weiter nach Oregon
-   und meldet trotzdem gruen
-6. Alten Dienst suspendieren (nicht loeschen)
-7. **Dann L-44**: Inbound-Regel der Datenbank zu
+   und meldet trotzdem gruen — **das kommt jetzt vor dem Umhaengen**, siehe
+   die Reihenfolge-Falle vom 21.08.
+5. Frankfurt einmal neu bauen lassen und nachmessen, dass
+   `/api/dashboard/kpis` dort **401** antwortet — sonst traegt der Dienst den
+   Stand von vor den Sicherheitsfixes
+6. **Domain umhaengen** — der erste unumkehrbare Schritt
+7. Alten Dienst suspendieren (nicht loeschen) — **erst nach L-57**
+8. **Dann L-44**: Inbound-Regel der Datenbank zu
 
 **Kosten in der Zwischenzeit:** Zwei Standard-Dienste laufen parallel. Renders
 Prognose fuer August stieg dadurch auf 294,99 $ (Stand 19.08. abends,
 Monat bis dahin 179,85 $).
+
+---
+
+## Schritt 0 beantwortet — am Dienst gemessen, nicht im Dashboard gelesen (21.08.)
+
+Der Render-MCP antwortet den **vierten Tag in Folge `unauthorized`**. Die Frage
+liess sich trotzdem beantworten — nicht an der Einstellung, sondern an dem,
+was der Dienst tatsaechlich ausliefert.
+
+**Der Messpunkt:** Am 19.08. wurden auf `staging` 55 offene Routen geschlossen.
+Diese Aenderung haengt an `dependencies=` der Router — sie veraendert die
+`openapi.json` **nicht**, aber sie veraendert die Antwort zur Laufzeit. Damit
+unterscheidet sie `staging`-Code von `main`-Code, ohne dass man sich anmelden
+muss.
+
+| ohne Anmeldung | Staging (Referenz) | Frankfurt | Oregon (produktiv) |
+|---|---|---|---|
+| `/api/dashboard/kpis` | **401** | **200** | **200** |
+| `/api/webhooks/log` | **401** | **200** | **200** |
+| `/health` | 200 (0,2 s) | 200 (**0,17 s**) | 200 (**2,2 s**) |
+
+Dazu: `GET /openapi.json` ist auf Frankfurt und Oregon **Byte fuer Byte
+identisch** (358.699 Byte, 401 Pfade, gleiche Pruefsumme ueber das sortierte
+JSON).
+
+**Schluss:** Frankfurt laeuft auf `main`-Code. Der Dienst wurde am 19.08. gegen
+22 Uhr gebaut, als die Sicherheitsfixes auf `staging` laengst lagen — haette er
+an `staging` gehangen, traege der Bau sie. Er traegt sie nicht. Auto-Deploy ist
+Off, ein zweiter Bau kann es also auch nicht gewesen sein.
+
+**Was diese Messung nicht ist:** ein Blick in die Einstellung. Sie belegt den
+**ausgelieferten Bau**, nicht die eingetragene Vorgabe. Fuer den naechsten
+Schritt reicht das — beim naechsten Dashboard-Besuch trotzdem nachsehen.
+
+### Die Reihenfolge-Falle, die dadurch sichtbar wurde
+
+Frankfurt hat **Auto-Deploy Off**, und die CI deployt nach
+`RENDER_SERVICE_BACKEND_PROD` — das steht nachweislich immer noch auf Oregon
+(`srv-d74ptinfte5s73bjbv90`, abgelesen im Deploy-Job von Lauf `32122610100`).
+
+Daraus folgt: **Ein Merge nach `main` erreicht Frankfurt nicht.** Nach dem
+Freitags-PR laeuft Oregon auf dem neuen Stand und Frankfurt weiter auf dem
+alten. Wer dann die Domain umhaengt, schaltet die **55 offenen Routen wieder
+scharf** — nach aussen sieht alles gesund aus, `/health` antwortet in 0,17 s.
+
+**Also gilt zwischen Schritt 4 und 5 der Liste eine neue Zwischenstufe:**
+erst `RENDER_SERVICE_BACKEND_PROD` umstellen **und** Frankfurt einmal von Hand
+neu bauen lassen, dann pruefen, dass `/api/dashboard/kpis` dort **401**
+antwortet — und **erst dann** die Domain umhaengen.
+
+### L-57 praeziser gefasst — die Behauptung war zu breit
+
+Notiert war: „Der Oregon-Dienst laesst sich nicht mehr von Grund auf bauen."
+Am Objekt geprueft stimmt das so nicht. Der Deploy-Job der CI loest mit
+`{"clearCache":"do_not_clear"}` aus, und Lauf `32122610100` (PR #42, 18.08.)
+zeigt fuer Oregon `build_in_progress` ueber 45 s, dann `update_in_progress`,
+dann `live`. Ein echter Bau auf einer echten Code-Aenderung, **erfolgreich**,
+vor drei Tagen.
+
+Der Kern der Luecke bleibt, nur enger: Der Bau gelingt, **weil** der Cache das
+`playwright`-Programm aus einer frueheren Abhaengigkeitsliste noch enthaelt.
+Ohne Cache faellt der Build-Befehl auf einen Befehl zurueck, den niemand mehr
+installiert.
+
+- **Der Freitags-Merge ist damit unbedenklich** — er nimmt den Cache-Weg.
+- **Suspendieren, Fortsetzen, Rollback und jeder Bau mit `clear` sind es
+  nicht** — genau dort greift der Cache nicht.
+
+L-57 ist damit keine Blockade fuer den PR, aber weiterhin eine **vor** dem
+Suspendieren (Schritt 6).
 
 ---
 

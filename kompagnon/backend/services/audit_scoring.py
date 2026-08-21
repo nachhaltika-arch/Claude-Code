@@ -314,6 +314,28 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
             1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
         ]), Source.MEASURED)
 
+    # KI-Lesbarkeit (L-58 a). Die Werte stehen in `qa`, nicht eine Ebene
+    # hoeher: `summarise_facts` hebt sie zwar hoch, aber `routers/audit.py:180`
+    # uebergibt an `score_audit` die Ausgabe von **`collect_facts`**. Ein
+    # Kriterium, das oben nachsieht, waere still nie gelaufen — dieselbe
+    # Familie wie L-55 (gebaut, nie angeschlossen). Beim ersten Entwurf genau
+    # so passiert und erst am Referenztest aufgefallen.
+    #
+    # `None` heisst ausdruecklich **unbekannt** und ist nicht dasselbe wie
+    # `False`; ein Audit von vor dem 16.08. kennt die Felder gar nicht und
+    # darf nicht rueckwirkend Punkte verlieren.
+    _llms = qa.get("llms_txt") if qa else None
+    _gesperrt = qa.get("gesperrte_ki_crawler") if qa else None
+    if _llms is None and _gesperrt is None:
+        sheet.skip("se_ki_lesbar")
+    else:
+        # Wer GPTBot aussperrt, ist fuer ChatGPT nicht vorhanden — das wiegt
+        # schwerer als eine fehlende `llms.txt`, die kaum eine Seite hat.
+        sheet.set("se_ki_lesbar", sum([
+            2 if not (_gesperrt or []) else 0,
+            1 if _llms else 0,
+        ]), Source.MEASURED)
+
     links = facts.get("links") or {}
     if links and "broken_links" in links:
         sheet.set("se_links", 1 if not links.get("broken_links") else 0, Source.MEASURED)

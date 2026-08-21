@@ -74,7 +74,8 @@ def test_das_anwendbare_maximum_der_klasse_ohne_betrieb():
     Zahl, die niemand nachrechnet.
     """
     assert anwendbares_maximum("K6") == TOTAL_POINTS - 22
-    assert anwendbares_maximum("K6") == 78
+    # 78 -> 81: der Katalog traegt seit L-58 (a) drei Punkte mehr.
+    assert anwendbares_maximum("K6") == 81
 
 
 def test_recht_und_sicherheit_gelten_immer():

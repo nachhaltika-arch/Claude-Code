@@ -40,6 +40,10 @@ def _fakten(**overrides) -> dict:
         "images": {"collected": True, "total": 10, "modern_share": 90,
                    "lazy_share": 80, "dimension_share": 100, "oversized": 0},
         "qa": {
+            # Seit L-58 (a) Teil des Katalogs: KI-Crawler nicht ausgesperrt,
+            # `llms.txt` vorhanden. Eine tadellose Website erfuellt beides.
+            "llms_txt": True,
+            "gesperrte_ki_crawler": [],
             "title_vorhanden": True, "title_laenge_ok": True,
             # Ort **und** Leistung: Der Ort trägt den Punkt in den lokalen
             # Klassen, die Leistung dort, wo ein Ort nicht erwartet wird.
@@ -292,7 +296,9 @@ def test_der_ueberregionale_anbieter_verliert_die_lokalen_signale():
     assert result["sources"]["se_lokal"] == Source.NOT_APPLICABLE.value
     # Kein Abzug: der Nenner wird kleiner, nicht der Zähler.
     assert result["total_score"] == 100
-    assert result["anwendbares_maximum"] == 97
+    # 97 -> 100: `se_ki_lesbar` (L-58 a) hat den Katalog um 3 Punkte
+    # erweitert; diese Klasse verwirft weiterhin dieselben drei.
+    assert result["anwendbares_maximum"] == 100
     # Alles Anwendbare wurde erhoben.
     assert result["coverage"] == 100
 
@@ -306,7 +312,7 @@ def test_die_klasse_ohne_betrieb_verwirft_die_angebotskriterien():
                 "cv_angebot", "ih_leistungsseiten", "ih_textqualitaet",
                 "se_lokal"):
         assert result["sources"][key] == Source.NOT_APPLICABLE.value, key
-    assert result["anwendbares_maximum"] == 78
+    assert result["anwendbares_maximum"] == 81
     assert result["total_score"] == 100
 
 
@@ -333,7 +339,7 @@ def test_ohne_jede_erkennung_wird_der_ganze_katalog_bewertet():
     result = score_audit(_fakten(), ai={})
 
     assert result["branchenklasse"] == ""
-    assert result["anwendbares_maximum"] == 100
+    assert result["anwendbares_maximum"] == 103
     assert result["sources"]["se_lokal"] != Source.NOT_APPLICABLE.value
 
 

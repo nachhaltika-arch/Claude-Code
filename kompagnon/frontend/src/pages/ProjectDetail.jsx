@@ -22,6 +22,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import ProzessFlowV3 from '../components/ProzessFlowV3';
 import Feld from '../components/ui/Feld';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -1653,7 +1654,7 @@ export default function ProjectDetail() {
       {showNewMessageModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setShowNewMessageModal(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-xl)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-xl)' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>💬 Nachricht schreiben</div>
             <textarea aria-label="Nachricht eingeben..."
               value={newMessageText}

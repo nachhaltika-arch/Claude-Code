@@ -11,6 +11,7 @@ import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorCon
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import handwerkPlugin from '../grapesjs/handwerk-plugin';
 import { renderBlock } from '../grapesjs/handwerk-blocks';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function WebsiteDesigner({
   projectId, leadId, initialHtml, initialCss, onSave, onClose, brandData,
@@ -289,7 +290,7 @@ export default function WebsiteDesigner({
               Oder eine <code>.grapesjs</code>-Datei.
             </p>
 
-            <div
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => fileInputRef.current?.click())}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {

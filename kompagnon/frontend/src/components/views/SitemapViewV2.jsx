@@ -21,6 +21,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -897,7 +898,7 @@ function PageCard({
   };
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(cardClick)}
       ref={cardRef}
       onClick={cardClick}
       style={{
@@ -1069,7 +1070,7 @@ function PageCard({
 
       {/* Phase C: Link-Footer — zeigt Anzahl interner/externer Links der Page */}
       {hasLinks && (
-        <div data-noselect style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => { e.stopPropagation(); setLinksOpen((v) => !v); })} data-noselect style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 12px',
           borderTop: '1px solid var(--border-light)',
@@ -1106,7 +1107,7 @@ function PageCard({
 
       {/* Phase C: Link-Detail-Popover — eingeklappte Liste der Ziele */}
       {hasLinks && linksOpen && (
-        <div data-noselect onClick={(e) => e.stopPropagation()} style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.stopPropagation())} data-noselect onClick={(e) => e.stopPropagation()} style={{
           padding: '8px 10px',
           background: 'var(--bg-app)',
           borderTop: '1px solid var(--border-light)',

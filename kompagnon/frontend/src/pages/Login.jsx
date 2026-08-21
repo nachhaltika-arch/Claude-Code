@@ -6,6 +6,7 @@ import KompagnonLogo from '../components/KompagnonLogo';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 380 }}>
 
         {/* Logo */}
-        <div style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

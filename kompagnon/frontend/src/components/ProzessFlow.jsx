@@ -18,6 +18,7 @@ import { useAudit } from '../hooks/useAudit';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import API_BASE_URL from '../config';
 import { loadJson, saveJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PHASEN = [
   {
@@ -967,7 +968,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
             <>
               <div style={{ padding: '8px 14px', fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
               {pflichtPages.map(p => (
-                <div key={p.id} onClick={() => setSelectedId(p.id)} style={{
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedId(p.id))} key={p.id} onClick={() => setSelectedId(p.id)} style={{
                   padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',
                   background: selectedId === p.id ? 'var(--bg-app)' : 'transparent', opacity: 0.7,
                 }}>
@@ -1024,7 +1025,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                     <button onClick={() => savePage(selected.id, { page_name: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
-                  <div onClick={() => !selected.ist_pflichtseite && setEditField({ field: 'page_name', value: selected.page_name })} style={{ fontSize: 13, color: 'var(--text-primary)', cursor: selected.ist_pflichtseite ? 'default' : 'pointer', padding: '4px 0' }}>{selected.page_name}</div>
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => !selected.ist_pflichtseite && setEditField({ field: 'page_name', value: selected.page_name }))} onClick={() => !selected.ist_pflichtseite && setEditField({ field: 'page_name', value: selected.page_name })} style={{ fontSize: 13, color: 'var(--text-primary)', cursor: selected.ist_pflichtseite ? 'default' : 'pointer', padding: '4px 0' }}>{selected.page_name}</div>
                 )}
               </div>
 
@@ -1045,7 +1046,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                     <button onClick={() => savePage(selected.id, { ziel_keyword: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
-                  <div onClick={() => setEditField({ field: 'ziel_keyword', value: selected.ziel_keyword || '' })} style={{ fontSize: 12, color: selected.ziel_keyword ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.ziel_keyword ? 'normal' : 'italic' }}>{selected.ziel_keyword || 'Klicken zum Setzen...'}</div>
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setEditField({ field: 'ziel_keyword', value: selected.ziel_keyword || '' }))} onClick={() => setEditField({ field: 'ziel_keyword', value: selected.ziel_keyword || '' })} style={{ fontSize: 12, color: selected.ziel_keyword ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.ziel_keyword ? 'normal' : 'italic' }}>{selected.ziel_keyword || 'Klicken zum Setzen...'}</div>
                 )}
               </div>
 
@@ -1058,7 +1059,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                     <button onClick={() => savePage(selected.id, { cta_text: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
-                  <div onClick={() => setEditField({ field: 'cta_text', value: selected.cta_text || '' })} style={{ fontSize: 12, color: selected.cta_text ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.cta_text ? 'normal' : 'italic' }}>{selected.cta_text || 'Klicken zum Setzen...'}</div>
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setEditField({ field: 'cta_text', value: selected.cta_text || '' }))} onClick={() => setEditField({ field: 'cta_text', value: selected.cta_text || '' })} style={{ fontSize: 12, color: selected.cta_text ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.cta_text ? 'normal' : 'italic' }}>{selected.cta_text || 'Klicken zum Setzen...'}</div>
                 )}
               </div>
             </div>
@@ -1075,7 +1076,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   </div>
                 </div>
               ) : (
-                <div onClick={() => setEditField({ field: 'zweck', value: selected.zweck || '' })} style={{ fontSize: 12, color: selected.zweck ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.zweck ? 'normal' : 'italic' }}>{selected.zweck || 'Klicken zum Beschreiben...'}</div>
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setEditField({ field: 'zweck', value: selected.zweck || '' }))} onClick={() => setEditField({ field: 'zweck', value: selected.zweck || '' })} style={{ fontSize: 12, color: selected.zweck ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.zweck ? 'normal' : 'italic' }}>{selected.zweck || 'Klicken zum Beschreiben...'}</div>
               )}
             </div>
 
@@ -1091,7 +1092,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   </div>
                 </div>
               ) : (
-                <div onClick={() => setEditField({ field: 'notizen', value: selected.notizen || '' })} style={{ fontSize: 12, color: selected.notizen ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.notizen ? 'normal' : 'italic' }}>{selected.notizen || 'Klicken fuer Notizen...'}</div>
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setEditField({ field: 'notizen', value: selected.notizen || '' }))} onClick={() => setEditField({ field: 'notizen', value: selected.notizen || '' })} style={{ fontSize: 12, color: selected.notizen ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.notizen ? 'normal' : 'italic' }}>{selected.notizen || 'Klicken fuer Notizen...'}</div>
               )}
             </div>
 
@@ -1560,7 +1561,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Stil-Vorlage waehlen</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
           {PRESETS.map(p => (
-            <div key={p.id} onClick={() => setSelectedTpl(p.id)}
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedTpl(p.id))} key={p.id} onClick={() => setSelectedTpl(p.id)}
               style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 border: `2px solid ${selectedTpl === p.id ? p.color : 'var(--border-light)'}`,
                 background: selectedTpl === p.id ? `${p.color}12` : 'var(--bg-surface)', transition: 'all .15s' }}>
@@ -1570,7 +1571,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
             </div>
           ))}
           {dbTemplates.map(t => (
-            <div key={`db-${t.id}`} onClick={() => setSelectedTpl(`db-${t.id}`)}
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedTpl(`db-${t.id}`))} key={`db-${t.id}`} onClick={() => setSelectedTpl(`db-${t.id}`)}
               style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 border: `2px solid ${selectedTpl === `db-${t.id}` ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 background: selectedTpl === `db-${t.id}` ? 'var(--bg-active)' : 'var(--bg-surface)' }}>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function PackagePremium() {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ export default function PackagePremium() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
           <Logo size="small" />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -241,7 +242,7 @@ export default function PackagePremium() {
               { id: 'kompagnon', name: 'KOMPAGNON', price: '2.000 €', delivery: '14 Tage', recommended: true },
               { id: 'premium', name: 'Premium', price: '2.500 €', delivery: '14–21 Tage', active: true },
             ].map(pkg => (
-              <div key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/paket/${pkg.id}`))} key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
                 padding: '16px 14px', borderRadius: 12,
                 border: `2px solid ${pkg.active ? '#7c3aed' : pkg.recommended ? '#d4a017' : '#e8eef2'}`,
                 background: pkg.active ? 'var(--status-neutral-bg)' : 'var(--bg-surface)',

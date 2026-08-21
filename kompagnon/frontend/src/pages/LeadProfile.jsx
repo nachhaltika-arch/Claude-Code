@@ -32,6 +32,7 @@ import { datumKurz, datumUndZeit } from '../utils/datum';
 import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
 import { naechsterSchritt } from '../utils/naechsterSchritt';
 import { aufteilung } from '../utils/betriebReiter';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -1165,7 +1166,7 @@ export default function LeadProfile() {
                 <>
                   {/* Ein Klick daneben schließt. Ohne das bleibt das Menü
                     * offen und verdeckt, was man als Nächstes anklicken will. */}
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setMehrOffen(false))}
                     onClick={() => setMehrOffen(false)}
                     style={{ position: 'fixed', inset: 0, zIndex: 19 }}
                   />
@@ -1395,7 +1396,7 @@ export default function LeadProfile() {
                     )}
                   </>
                 ) : (
-                  <div onClick={createScreenshot} style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', cursor: lead.website_url ? 'pointer' : 'default', gap: 8 }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(createScreenshot)} onClick={createScreenshot} style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', cursor: lead.website_url ? 'pointer' : 'default', gap: 8 }}
                     onMouseEnter={e => { if (lead.website_url) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-app)'; }}
                   >
@@ -1726,7 +1727,7 @@ export default function LeadProfile() {
                 </div>
               ) : qrData ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ background: 'white', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 8, flexShrink: 0, cursor: 'pointer' }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); })} style={{ background: 'white', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 8, flexShrink: 0, cursor: 'pointer' }}
                     onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
                     title="Klicken zum Herunterladen">
                     <img src={`data:image/png;base64,${qrData.qr_code_base64}`} alt="QR-Code" style={{ width: 90, height: 90, display: 'block' }} />
@@ -2209,7 +2210,7 @@ export default function LeadProfile() {
 
       {/* TEMPLATE SELECTION MODAL */}
       {showTemplateModal && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowTemplateModal(false))} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
           <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
             {allTemplates.length === 0 ? (
@@ -2220,7 +2221,7 @@ export default function LeadProfile() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                 {allTemplates.map(tpl => (
-                  <div key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => assignTemplate(tpl.id))} key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
                     onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
                   >
@@ -2531,7 +2532,7 @@ export default function LeadProfile() {
 
                       return (
                         <>
-                          <tr
+                          <tr role="button" tabIndex={0} onKeyDown={aufTaste(() => setCrawlExpandedRow(isExpanded ? null : rowKey))}
                             key={rowKey}
                             onClick={() => setCrawlExpandedRow(isExpanded ? null : rowKey)}
                             style={{
@@ -2752,7 +2753,7 @@ export default function LeadProfile() {
       {openAudit && createPortal(
         <>
           {/* Overlay — zwei separate fixed-Elemente, außerhalb des page-enter-Transform-Kontexts */}
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setOpenAudit(null))} style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
             onClick={() => setOpenAudit(null)} />
           <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 1001, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
             <div style={{ maxWidth: 900, width: '100%', maxHeight: 'calc(100vh - 40px)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: 'auto' }}>
@@ -2769,7 +2770,7 @@ export default function LeadProfile() {
       {deleteAuditId && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteAuditId(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--status-danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 14px' }}>🗑️</div>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Audit löschen?</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.</p>
@@ -2786,7 +2787,7 @@ export default function LeadProfile() {
       {wonModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonModal(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#EAF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🎉</div>
             <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Glückwunsch!</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.6 }}>

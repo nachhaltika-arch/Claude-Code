@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 
@@ -140,7 +141,7 @@ export default function RoleManagement() {
 
       {/* Edit Modal */}
       {editing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => { if (e.target === e.currentTarget) setEditing(null); })} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 440, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}>

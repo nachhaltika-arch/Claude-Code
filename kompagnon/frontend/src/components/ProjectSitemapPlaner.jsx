@@ -6,6 +6,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PAGE_TYPES = ['Landing', 'Info', 'Leistung', 'Kontakt', 'Blog'];
 
@@ -141,7 +142,7 @@ export default function ProjectSitemapPlaner({ projectId, briefingData, onClose 
 
   return createPortal(
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose?.()}>
-      <div style={modal} onClick={e => e.stopPropagation()}>
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} style={modal} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>

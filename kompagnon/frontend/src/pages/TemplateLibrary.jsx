@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import WebsiteDesigner from '../components/WebsiteDesigner';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const LS_KEY = 'kompagnon_deleted_local_tpl';
 
@@ -376,7 +377,7 @@ export default function TemplateLibrary() {
 
       {/* ZIP Modal */}
       {showZipModal && (
-        <div style={overlay} onClick={e => e.target === e.currentTarget && setShowZipModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowZipModal(false))} style={overlay} onClick={e => e.target === e.currentTarget && setShowZipModal(false)}>
           <div style={modal}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>📁 ZIP-Template hochladen</div>
             <input aria-label="Template-Name *" style={inp} placeholder="Template-Name *" value={zipForm.name} onChange={e => setZipForm(f => ({ ...f, name: e.target.value }))} />
@@ -392,7 +393,7 @@ export default function TemplateLibrary() {
 
       {/* URL Modal */}
       {showUrlModal && (
-        <div style={overlay} onClick={e => e.target === e.currentTarget && setShowUrlModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowUrlModal(false))} style={overlay} onClick={e => e.target === e.currentTarget && setShowUrlModal(false)}>
           <div style={modal}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>🌐 Template per URL importieren</div>
             <input aria-label="Template-Name *" style={inp} placeholder="Template-Name *" value={urlForm.name} onChange={e => setUrlForm(f => ({ ...f, name: e.target.value }))} />

@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/BlockContract';
 import { mitBlockMarkierung } from '../utils/blockMarkup';
 import Feld from '../components/ui/Feld';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -727,7 +728,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
   }, [result]);
 
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+    <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.target === e.currentTarget && onClose())} onClick={(e) => e.target === e.currentTarget && onClose()} style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(0,0,0,0.55)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,

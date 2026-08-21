@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Design tokens (CSS variables — auto-adapt to dark mode) ────
 const T = {
@@ -235,7 +236,7 @@ export default function Academy() {
             const certCode = p?.certificate_code;
 
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/app/academy/${course.id}`))}
                 key={course.id}
                 onClick={() => navigate(`/app/academy/${course.id}`)}
                 style={{

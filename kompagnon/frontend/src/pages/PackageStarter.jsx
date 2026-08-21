@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function PackageStarter() {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function PackageStarter() {
       `}</style>
 
       <nav style={{ background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}><Logo size="small" /></div>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{ cursor: 'pointer' }} onClick={() => navigate('/')}><Logo size="small" /></div>
         <div style={{ display: 'flex', gap: 8 }}>
           {[
             { label: 'Starter', path: '/paket/starter', active: true },

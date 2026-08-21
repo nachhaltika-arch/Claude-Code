@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
@@ -138,7 +139,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {sucheErgebnisse.length > 0 && (
               <div style={{ marginTop: 8, border: "1px solid #eee", borderRadius: 8, overflow: "hidden" }}>
                 {sucheErgebnisse.map(lead => (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => handleLeadWaehlen(lead))}
                     key={lead.id}
                     onClick={() => handleLeadWaehlen(lead)}
                     style={{

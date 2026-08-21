@@ -4,6 +4,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import Logo from '../components/Logo';
 import { datumKurz, nurZeit } from '../utils/datum';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const LEVEL_COLORS = {
   'Homepage Standard Platin': '#4a90d9',
@@ -641,7 +642,7 @@ export default function CustomerPortal() {
                   { field: 'has_logo', icon: '🎨', title: 'Logo vorhanden', text: 'Wir haben bereits ein Firmenlogo' },
                   { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
                 ].map(({ field, icon, title, text }) => (
-                  <div key={field} onClick={() => toggleField(field)} style={{
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => toggleField(field))} key={field} onClick={() => toggleField(field)} style={{
                     border: onboardingData[field] ? '2px solid var(--kc-mid)' : '2px solid var(--border-light)',
                     background: onboardingData[field] ? 'var(--status-success-bg)' : 'var(--bg-app)',
                     borderRadius: 12, padding: '16px 12px', cursor: 'pointer',

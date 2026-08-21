@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const STAGES = [
   { key: 'neu',              label: 'Neu',              color: 'var(--text-tertiary)' },
@@ -145,7 +146,7 @@ export default function Deals() {
                     Keine Deals
                   </div>
                 ) : stage.deals.map(deal => (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => openEdit(deal.id))}
                     key={deal.id}
                     onClick={() => openEdit(deal.id)}
                     style={{
@@ -242,7 +243,7 @@ export default function Deals() {
           }}
           onClick={() => !deleting && setDeleteConfirm(null)}
         >
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
             onClick={e => e.stopPropagation()}
             style={{
               position: 'relative',
@@ -432,7 +433,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
   const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
 
   return createPortal(
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed',

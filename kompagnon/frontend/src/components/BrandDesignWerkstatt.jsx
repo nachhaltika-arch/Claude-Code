@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const STILE = ['Klassisch', 'Modern', 'Minimalistisch', 'Verspielt', 'Industriell', 'Natürlich'];
 const RADIEN = [
@@ -179,7 +180,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
               </div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                 {allColors.slice(3, 12).map((c, i) => (
-                  <div key={i} onClick={() => setPrimaryColor(c)} title={c}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setPrimaryColor(c))} key={i} onClick={() => setPrimaryColor(c)} title={c}
                     style={{ width: 28, height: 28, borderRadius: 6, background: c, border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer' }} />
                 ))}
               </div>
@@ -215,7 +216,14 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                   KI-Empfehlungen (klick = übernehmen)
                 </div>
                 {fontSuggestions.map(f => (
-                  <div key={f.name} onClick={() => {
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => {
+                    if (f.use?.toLowerCase().includes('überschrift') || f.use?.toLowerCase().includes('head')) {
+                      setFontPrimary(f.name);
+                    } else {
+                      setFontSecondary(f.name);
+                    }
+                    toast.success(`${f.name} übernommen`);
+                  })} key={f.name} onClick={() => {
                     if (f.use?.toLowerCase().includes('überschrift') || f.use?.toLowerCase().includes('head')) {
                       setFontPrimary(f.name);
                     } else {

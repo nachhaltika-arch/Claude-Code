@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const SCHRITTE = [
   { nr: 1, titel: 'Willkommen',       icon: '👋' },
@@ -239,7 +240,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                       hint: 'JPG, PNG, WebP · max. 20 MB · mehrere möglich' };
                 return (
                   <div key={type}>
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => st !== 'done' && ref.current?.click())}
                       onClick={() => st !== 'done' && ref.current?.click()}
                       style={{
                         border: st === 'done'

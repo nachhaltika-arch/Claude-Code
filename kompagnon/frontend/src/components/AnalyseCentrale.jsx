@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import { loadJson, reportApiError } from '../utils/apiRequest';
 import toast from 'react-hot-toast';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Pipeline-Schritte ────────────────────────────────────────────────────────
 
@@ -622,7 +623,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                     try { path = new URL(page.url).pathname || '/'; } catch { /* keep */ }
 
                     return (
-                      <div
+                      <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { setSelectedPage(page); setShowFullText(false); })}
                         key={i}
                         onClick={() => { setSelectedPage(page); setShowFullText(false); }}
                         style={{
@@ -1028,7 +1029,7 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
                     .filter(c => ![designData.colors?.primary, designData.colors?.secondary, designData.colors?.accent, designData.colors?.background, designData.colors?.text].includes(c))
                     .slice(0, 6).map(c => ({ color: c, label: '' })),
                 ].filter(e => e.color).map(({ color, label }, i) => (
-                  <div key={i} title={`${label ? label + ': ' : ''}${color}`} onClick={() => navigator.clipboard?.writeText(color)} style={{ flexShrink: 0, cursor: 'pointer' }}>
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigator.clipboard?.writeText(color))} key={i} title={`${label ? label + ': ' : ''}${color}`} onClick={() => navigator.clipboard?.writeText(color)} style={{ flexShrink: 0, cursor: 'pointer' }}>
                     <div style={{ width: label ? 28 : 20, height: label ? 28 : 20, borderRadius: 4, background: color, border: '1px solid var(--border-light)' }} />
                     {label && <div style={{ fontSize: 8, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 2 }}>{label}</div>}
                   </div>

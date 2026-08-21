@@ -10,6 +10,7 @@ import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz } from '../utils/datum';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
@@ -295,7 +296,7 @@ export default function SalesPipeline() {
       {deleteConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
@@ -313,7 +314,7 @@ export default function SalesPipeline() {
       {wonConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
@@ -369,7 +370,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
   const certStyle = CERT_STYLES[certKey];
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onOpen)}
       draggable
       onDragStart={e => onDragStart(e, lead)}
       onClick={onOpen}
@@ -478,7 +479,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
 
       {/* ── Row 5: Projekt-Karte (nur bei won + Projekt vorhanden) ── */}
       {lead.status === 'won' && project && (
-        <div
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => { e.stopPropagation(); onProjectClick?.(project.id); })}
           onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
           style={{ background: 'var(--kc-mid-a-08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
         >

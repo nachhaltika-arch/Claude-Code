@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const CONTENT_TABS = [
   { id: 'inhalte',    label: 'Seiteninhalte',   icon: '📄', desc: 'Texte & KI' },
@@ -212,7 +213,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                 const hasContent = !!pageContent[page.id];
                 const isSelected = selectedPage?.id === page.id;
                 return (
-                  <div key={page.id} onClick={() => handlePageSelect(page)}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => handlePageSelect(page))} key={page.id} onClick={() => handlePageSelect(page)}
                     style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: isSelected ? 'var(--bg-active, var(--bg-elevated))' : 'transparent', borderLeft: `3px solid ${isSelected ? 'var(--brand-primary)' : 'transparent'}` }}
                     onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>

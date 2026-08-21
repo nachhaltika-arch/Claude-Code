@@ -4,6 +4,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 const A = '#D4A017';
@@ -76,7 +77,7 @@ export default function Checkout() {
       <SeitenTitel>Bestellung</SeitenTitel>
       {/* Header */}
       <div style={{ background: 'var(--brand-primary)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => nav('/'))} onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: A, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: 13 }}>HS</span>
           </div>
@@ -115,7 +116,7 @@ export default function Checkout() {
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {packages.map((p) => (
-                <div key={p.id} onClick={() => setSelected(p.id)} style={{
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelected(p.id))} key={p.id} onClick={() => setSelected(p.id)} style={{
                   background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 24, cursor: 'pointer', position: 'relative',
                   border: `2px solid ${selected === p.id ? 'var(--brand-primary)' : p.highlight ? A + '60' : '#e8eaf2'}`,
                   transform: p.highlight ? 'scale(1.02)' : 'none',

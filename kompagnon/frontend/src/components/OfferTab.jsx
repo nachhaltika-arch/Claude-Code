@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import usePakete from '../hooks/usePakete';
 import { preisZeile, PREIS_UNBEKANNT } from '../utils/paketpreise';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const DARSTELLUNG = [
   {
@@ -87,7 +88,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
           const isSelected = selectedPkg === p.id;
           const isRec = recommended === p.id;
           return (
-            <div key={p.id} onClick={() => setSelectedPkg(p.id)} style={{
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedPkg(p.id))} key={p.id} onClick={() => setSelectedPkg(p.id)} style={{
               background: isSelected ? `${p.accentColor}08` : 'var(--bg-surface)',
               border: `2px solid ${isSelected ? p.accentColor : 'var(--border-light)'}`,
               borderRadius: 'var(--radius-lg)', padding: 16, cursor: 'pointer', transition: 'all 0.15s', position: 'relative', overflow: 'hidden',

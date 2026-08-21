@@ -7,6 +7,7 @@ import { schreibe } from '../utils/schreiben';
 import { loeschfrage } from '../utils/loeschfrage';
 import Feld from '../components/ui/Feld';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -912,7 +913,7 @@ export default function AcademyAdminCourse() {
                 {form.is_published ? 'Für Nutzer sichtbar' : 'Nicht öffentlich'}
               </div>
             </div>
-            <div
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setF('is_published')(!form.is_published))}
               onClick={() => setF('is_published')(!form.is_published)}
               style={{
                 width: 40, height: 22, borderRadius: 11, cursor: 'pointer',

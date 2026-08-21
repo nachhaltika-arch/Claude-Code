@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Status-Farben ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
@@ -254,7 +255,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
         </>
       ) : (
         <>
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => fileRef.current?.click())}
             onClick={() => fileRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
@@ -510,7 +511,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                 const { total, done } = pageProgress(page);
                 const isActive = activePage?.sitemap_page_id === page.sitemap_page_id;
                 return (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setActivePage(page))}
                     key={page.sitemap_page_id}
                     onClick={() => setActivePage(page)}
                     style={{ padding: '10px 14px', cursor: 'pointer', background: isActive ? '#E6F1FB' : 'transparent', borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent', display: 'flex', alignItems: 'center', gap: 8 }}

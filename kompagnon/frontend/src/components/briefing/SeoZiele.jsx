@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { loadJson } from '../../utils/apiRequest';
 import { useConfirmStep } from '../../hooks/useConfirmStep';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const ALL_SOCIAL = [
   'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok',
@@ -130,7 +131,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
               fontSize: 12, fontWeight: 700,
             }}>
               {kw}
-              <span
+              <span role="button" tabIndex={0} onKeyDown={aufTaste(() => removeKeyword(kw))}
                 onClick={() => removeKeyword(kw)}
                 style={{ cursor: 'pointer', opacity: 0.6, fontSize: 14, lineHeight: 1 }}
               >×</span>

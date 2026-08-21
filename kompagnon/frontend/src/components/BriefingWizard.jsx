@@ -8,6 +8,7 @@ import { textUebernehmen } from '../utils/assistentUebernahme';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useAuth } from '../context/AuthContext';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TEAL   = 'var(--brand-primary)';
 const STEPS  = [
@@ -924,7 +925,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       />
 
       {/* ── Modal-Box ── */}
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
         onClick={e => e.stopPropagation()}
         style={{
           ...panelStyle,

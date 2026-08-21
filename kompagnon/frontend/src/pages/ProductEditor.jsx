@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { saveJson } from '../utils/apiRequest';
 import { parseApiError } from '../utils/apiError';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const FRONTEND_URL = 'https://kompagnon-frontend.onrender.com';
 
@@ -135,7 +136,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
                   }}
                 >▼</button>
               </div>
-              <div onClick={() => onSelect(p)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => onSelect(p))} onClick={() => onSelect(p)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot.bg, flexShrink: 0 }} />
                   <span style={{

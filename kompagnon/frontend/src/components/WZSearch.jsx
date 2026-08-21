@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import wzData from '../data/wz2025.json';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function WZSearch({ value, onChange, placeholder = 'Branche suchen...' }) {
   const [query, setQuery] = useState('');
@@ -91,7 +92,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               Keine Ergebnisse für „{query}"
             </div>
           ) : results.map((entry, i) => (
-            <div
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => handleSelect(entry))}
               key={i}
               onClick={() => handleSelect(entry)}
               style={{

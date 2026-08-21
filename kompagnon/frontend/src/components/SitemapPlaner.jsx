@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -632,7 +633,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
   };
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose?.())}
       style={{
         position: 'fixed', inset: 0, zIndex: 2000,
         background: 'rgba(0,0,0,0.5)',

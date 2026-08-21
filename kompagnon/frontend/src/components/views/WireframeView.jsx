@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -936,7 +937,7 @@ function BlockCard({
   const stop = (e) => e.stopPropagation();
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onEdit)}
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}

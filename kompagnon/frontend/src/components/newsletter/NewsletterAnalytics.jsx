@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 export default function NewsletterAnalytics({ campaignId, onClose }) {
   const { token } = useAuth();
@@ -49,7 +50,7 @@ export default function NewsletterAnalytics({ campaignId, onClose }) {
   );
 
   return (
-    <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={modal}>
         <h3 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Kampagnen-Statistiken</h3>
 

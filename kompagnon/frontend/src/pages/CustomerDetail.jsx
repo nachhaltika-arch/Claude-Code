@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import GrapesEditor from '../components/GrapesEditor';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── PageSpeed helpers ──────────────────────────────────────────
 
@@ -2160,7 +2161,7 @@ export default function CustomerDetail() {
                     { label: 'Text',         color: brandData.text_color },
                   ].filter(c => c.color).map(({ label, color }) => (
                     <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                      <div
+                      <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { navigator.clipboard.writeText(color); toast.success(color + ' kopiert!'); })}
                         style={{ width: 52, height: 52, borderRadius: 8, background: color, border: '1px solid var(--border-light)', cursor: 'pointer' }}
                         onClick={() => { navigator.clipboard.writeText(color); toast.success(color + ' kopiert!'); }}
                       />
@@ -2174,7 +2175,7 @@ export default function CustomerDetail() {
                     {brandData.all_colors.map((c, i) => {
                       const hex = c.startsWith('#') ? c : '#' + c;
                       return (
-                        <div key={i} style={{ width: 24, height: 24, borderRadius: 4, background: hex, border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigator.clipboard.writeText(hex))} key={i} style={{ width: 24, height: 24, borderRadius: 4, background: hex, border: '1px solid var(--border-light)', cursor: 'pointer' }}
                           onClick={() => navigator.clipboard.writeText(hex)} title={hex} />
                       );
                     })}
@@ -2392,7 +2393,7 @@ export default function CustomerDetail() {
       {showModal && (
         <>
           {/* Backdrop */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setShowModal(false))}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }}
             onClick={() => setShowModal(false)}
           />

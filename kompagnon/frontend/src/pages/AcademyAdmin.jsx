@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const AUDIENCE_LABEL = {
   employee: 'Intern',
@@ -283,7 +284,7 @@ export default function AcademyAdmin() {
             style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
             onClick={() => setDeleteId(null)}
           />
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
             onClick={e => e.stopPropagation()}
             style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',

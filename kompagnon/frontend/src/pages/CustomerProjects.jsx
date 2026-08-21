@@ -9,6 +9,7 @@ import NewProjectModal from '../components/NewProjectModal';
 import ProjekteLoeschenModal from '../components/ProjekteLoeschenModal';
 import { alleGewaehlt, alleUmschalten, umschalten } from '../utils/projektAuswahl';
 import toast from 'react-hot-toast';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: 'var(--kc-mid)' },
@@ -212,7 +213,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
 
   return createPortal(
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -361,7 +362,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
   const numInp = { ...inp, width: '100%' };
 
   return createPortal(
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 500, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

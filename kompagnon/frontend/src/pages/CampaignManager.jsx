@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export const SOURCES = [
   { key: 'facebook',   label: 'Facebook',   icon: '📘', color: '#1877F2' },
@@ -283,7 +284,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
   const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' };
 
   return createPortal(
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2000,

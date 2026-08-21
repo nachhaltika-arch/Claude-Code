@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PACKAGE_NAMES = {
   starter: 'Starter',
@@ -46,7 +47,7 @@ export default function CheckoutSuccess() {
       `}</style>
 
       <div style={{ maxWidth: 500, width: '100%', textAlign: 'center' }}>
-        <div style={{ marginBottom: 32, cursor: 'pointer' }} onClick={() => navigate('/')}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{ marginBottom: 32, cursor: 'pointer' }} onClick={() => navigate('/')}>
           <Logo size="default" />
         </div>
 

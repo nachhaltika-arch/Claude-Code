@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 function adjustColor(hex, amount) {
   if (!hex || !hex.startsWith('#') || hex.length < 7) return hex;
@@ -276,7 +277,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {(brandData.all_colors || []).slice(0, 10).map((c, i) => (
-                    <div key={i} onClick={() => t.setter(c)} title={c}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(c))} key={i} onClick={() => t.setter(c)} title={c}
                       style={{ width: 22, height: 22, borderRadius: 4, background: c, border: c === t.color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -290,7 +291,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {QUICK_ACCENTS.map(c => (
-                    <div key={c} onClick={() => t.setter(c)}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(c))} key={c} onClick={() => t.setter(c)}
                       style={{ width: 22, height: 22, borderRadius: 4, background: c, border: c === t.color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -304,7 +305,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[60, 40, 20, -20, -40, -60].map(amt => (
-                    <div key={amt} onClick={() => t.setter(adjustColor(t.color, amt))} title={`${amt > 0 ? '+' : ''}${amt}`}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(adjustColor(t.color, amt)))} key={amt} onClick={() => t.setter(adjustColor(t.color, amt))} title={`${amt > 0 ? '+' : ''}${amt}`}
                       style={{ flex: 1, height: 20, borderRadius: 4, background: adjustColor(t.color, amt), border: '1px solid rgba(0,0,0,.06)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -396,7 +397,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
                         {(brandData?.all_colors || []).slice(0, 6).map((c, i) => (
-                          <div key={'ac' + i} onClick={() => setColor(c)}
+                          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setColor(c))} key={'ac' + i} onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}

@@ -3,6 +3,7 @@ import Logo from '../components/Logo';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 
@@ -54,7 +55,7 @@ export default function ResetPassword() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
       <SeitenTitel>Passwort zuruecksetzen</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 420 }}>
-        <div style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }} onClick={() => nav('/')}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => nav('/'))} style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }} onClick={() => nav('/')}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
             {/* Hier stand ein goldenes „HS" neben dem Wort KOMPAGNON — ein
               * fremdes Monogramm auf der Seite, auf der ein Kunde sein Passwort

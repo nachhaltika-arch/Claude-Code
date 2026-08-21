@@ -8,6 +8,7 @@ import API_BASE_URL from '../config';
 import AuditReport from '../components/AuditReport';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz } from '../utils/datum';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
@@ -452,7 +453,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
         padding: isMobile ? 0 : '16px',
       }}
     >
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.stopPropagation())}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--bg-surface)',

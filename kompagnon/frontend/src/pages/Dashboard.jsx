@@ -10,6 +10,7 @@ import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
 import OnboardingWizard from '../components/OnboardingWizard';
 import { datumKurz } from '../utils/datum';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function Dashboard() {
   const { token, user } = useAuth();
@@ -351,7 +352,7 @@ export default function Dashboard() {
             </div>
           ) : (
             leads.map((lead, i) => (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/app/betriebe/${lead.id}`))}
                 key={lead.id}
                 onClick={() => navigate(`/app/betriebe/${lead.id}`)}
                 style={{

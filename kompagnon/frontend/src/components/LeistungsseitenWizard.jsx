@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Konstanten ───────────────────────────────────────────────────────────────
 
@@ -604,7 +605,7 @@ export default function LeistungsseitenWizard({
       />
 
       {/* Modal-Box */}
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
         onClick={e => e.stopPropagation()}
         style={{
           ...panelStyle,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TYPES = [
   { id: 'bug', label: 'Fehler melden', color: '#dc2626' },
@@ -49,7 +50,7 @@ export default function FeedbackButton() {
       }} title="Feedback & Support">💬</button>
 
       {open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: isMobile ? 0 : 24 }}
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => { if (e.target === e.currentTarget) reset(); })} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: isMobile ? 0 : 24 }}
           onClick={(e) => { if (e.target === e.currentTarget) reset(); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 16, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: isMobile ? '90vh' : 'auto', overflowY: 'auto' }}>
             {step === 'form' ? (

@@ -14,6 +14,7 @@
  * / DesignView lesen weiter colors.primary etc.
  */
 import { useEffect, useRef, useState } from 'react';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -918,7 +919,7 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
   const fg = hex ? readableOn(hex) : '#0F172A';
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(handleClick)}
       onClick={handleClick}
       style={{
         background: bg,
@@ -1127,7 +1128,7 @@ function UIStylingSection({
 
 function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
   return (
-    <div onClick={onClick}
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onClick)} onClick={onClick}
       title="Klicken um den UI-Stil zu wechseln"
       style={{
         background: '#fff',
@@ -1184,7 +1185,7 @@ function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants, onCli
   const imgBg = 'linear-gradient(135deg, var(--text-tertiary) 0%, var(--text-secondary) 50%, var(--text-secondary) 100%)';
 
   return (
-    <div onClick={onClick}
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onClick)} onClick={onClick}
       title="Klicken um die Card-Variante zu wechseln"
       style={{
         background: '#fff',

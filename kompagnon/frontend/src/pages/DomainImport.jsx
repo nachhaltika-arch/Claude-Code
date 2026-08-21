@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function DomainImport() {
   const navigate = useNavigate();
@@ -171,7 +172,7 @@ export default function DomainImport() {
 
           {mode === 'csv' && (
             <div>
-              <div onClick={() => fileRef.current?.click()} style={{
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => fileRef.current?.click())} onClick={() => fileRef.current?.click()} style={{
                 border: `2px dashed ${file ? 'var(--brand-primary)' : 'var(--border-medium)'}`,
                 borderRadius: 'var(--radius-lg)', padding: '32px 20px', textAlign: 'center', cursor: 'pointer',
                 background: file ? 'var(--bg-active)' : 'var(--bg-app)', transition: 'all 0.15s',
@@ -267,7 +268,7 @@ export default function DomainImport() {
                   {/* Domain list with status */}
                   <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', maxHeight: 220, overflowY: 'auto' }}>
                     {checkResult.results.filter(r => importFilter === 'all' || !r.exists).map((r, i, arr) => (
-                      <div key={i}
+                      <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { if (r.exists && r.lead_id) window.open(`/app/betriebe/${r.lead_id}`, '_blank'); })} key={i}
                         onClick={() => { if (r.exists && r.lead_id) window.open(`/app/betriebe/${r.lead_id}`, '_blank'); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
@@ -383,7 +384,7 @@ export default function DomainImport() {
                 Verarbeitete Domains
               </div>
               {jobStatus.results.map((r, i) => (
-                <div key={i} onClick={() => r.lead_id && navigate(`/app/betriebe/${r.lead_id}`)} style={{
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => r.lead_id && navigate(`/app/betriebe/${r.lead_id}`))} key={i} onClick={() => r.lead_id && navigate(`/app/betriebe/${r.lead_id}`)} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px',
                   borderBottom: i < jobStatus.results.length - 1 ? '1px solid var(--border-light)' : 'none',
                   cursor: r.lead_id ? 'pointer' : 'default', borderRadius: 'var(--radius-sm)', transition: 'background 0.1s',

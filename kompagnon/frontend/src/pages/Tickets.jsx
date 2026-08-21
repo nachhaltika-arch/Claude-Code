@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 const TC = { bug: { label: 'Fehler', icon: '🐛', color: '#dc2626', bg: 'var(--status-danger-bg)' }, feature: { label: 'Idee', icon: '💡', color: '#7c3aed', bg: 'var(--status-neutral-bg)' }, feedback: { label: 'Feedback', icon: '💬', color: 'var(--brand-primary)', bg: 'var(--bg-hover)' }, question: { label: 'Frage', icon: '❓', color: '#d97706', bg: 'var(--status-warning-bg)' } };
@@ -54,7 +55,7 @@ export default function Tickets() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20, minWidth: 0, width: '100%' }}>
         {[{ l: 'Offen', v: kpis.open, c: '#2563eb', i: '📬', f: () => setFStatus('open') }, { l: 'In Bearbeitung', v: kpis.wip, c: '#d97706', i: '⚙️', f: () => setFStatus('in_progress') }, { l: 'Kritisch', v: kpis.crit, c: '#dc2626', i: '🚨', f: () => setFStatus('open') }, { l: 'Geloest', v: kpis.done, c: '#059669', i: '✅', f: () => setFStatus('resolved') }].map((k) => (
-          <div key={k.l} onClick={k.f} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(k.f)} key={k.l} onClick={k.f} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 20 }}>{k.i}</span>
               <span style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</span>
@@ -91,7 +92,7 @@ export default function Tickets() {
             const pc = PC[t.priority] || PC.medium;
             const sel = selected?.id === t.id;
             return (
-              <div key={t.id} onClick={() => openT(t)} style={{
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => openT(t))} key={t.id} onClick={() => openT(t)} style={{
                 background: sel ? 'var(--bg-hover)' : 'var(--bg-surface)', borderRadius: 10, border: `1.5px solid ${sel ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 padding: '14px 16px', cursor: 'pointer', transition: 'all 0.15s',
               }}>

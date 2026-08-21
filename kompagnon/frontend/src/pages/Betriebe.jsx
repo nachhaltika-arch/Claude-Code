@@ -33,6 +33,7 @@ import {
   BETRIEB_SORTIERUNGEN,
 } from '../utils/betriebeListe';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // Wie viele Betriebe hoechstens geholt werden. Kein stiller Deckel: Kommen
 // genau so viele zurueck, sagt die Seite es (siehe `amDeckel` unten).
@@ -351,7 +352,7 @@ export default function Betriebe() {
             const stufe = score > 0 ? stufeFuerScore(score) : null;
 
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/app/betriebe/${betrieb.id}`))}
                 key={betrieb.id}
                 onClick={() => navigate(`/app/betriebe/${betrieb.id}`)}
                 style={{

@@ -40,12 +40,29 @@ Tests: 927 + 98 → **1.538 Backend + 370 Frontend**.
    nichts auf.** Kein `automatic_tax`, keine `tax_rates`; der Kunde las
    1.785 € und wurde mit 1.500 € belastet.
 
-## Sieben Fragen, die bei David liegen
+## Der schwerste Fund kam zuletzt
 
-L-61 (MwSt. — die dringendste), L-62 (Mailstrecke für Kaltakquise?), L-59
+**L-64 — der Bestellweg endet auf der Anmeldeseite.** Im Browser am
+Produktivsystem belegt: `kas.kompagnon.group/paket/premium` → `/login`, ebenso
+`/paket/starter`, `/checkout` und `/checkout/kompagnon`. `App.jsx` fuehrt 82
+Routen und **keine** fuer `/paket/…` oder `/checkout`; die Auffangroute
+schickt alles Unbekannte zur Anmeldung. `Checkout.jsx`, `CheckoutSuccess.jsx`
+und die drei `PackageX.jsx` liegen da und werden von nichts importiert.
+
+Betroffen: der Bestelllink in der Angebotsmail, die Knoepfe „Paket waehlen"
+**und der Ruecksprung nach bezahlter Rechnung**. `public_pages` fuehrt
+`/paket/starter` dabei als **live**.
+
+**Nicht repariert** — Routen nachzutragen wuerde drei Seiten mit festen,
+falschen Preisen veroeffentlichen, und ob das Werkzeug den oeffentlichen
+Verkaufstrichter tragen soll, ist eine Produktentscheidung (L-19/L-20).
+
+## Neun Fragen, die bei David liegen
+
+**L-64 (der Bestellweg — die dringendste)**, L-61 (MwSt.), L-62 (Mailstrecke für Kaltakquise?), L-59
 (Rechtsgrundlage für elf Quellen), L-58 (welches Kriterium wird leichter?),
 L-56 (Konto mitlöschen?), L-60 (Lehrplan), L-27 (welche Briefing-Struktur
-bleibt?). Sie stehen als Tabelle in `docs/stand-2026-08-21.md`.
+bleibt?), L-65 (sind die Werbezahlen belegt?). Sie stehen als Tabelle in `docs/stand-2026-08-21.md`.
 
 ## Morgen
 

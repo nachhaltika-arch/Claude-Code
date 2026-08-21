@@ -6,7 +6,7 @@ metadata:
 ---
 
 Eine selbstgeschriebene Messung ist kein Beleg, sondern eine Behauptung mit
-Zwischenschritt. Am 2026-08-21 haben sieben eigene Zahlen nicht gestimmt —
+Zwischenschritt. Am 2026-08-21 haben acht eigene Zahlen nicht gestimmt —
 **jede wurde beim Nachprüfen am Gegenstand gefunden, keine beim Nachdenken.**
 
 Die wiederkehrenden Fehlerquellen, nach Häufigkeit:
@@ -31,11 +31,18 @@ Die wiederkehrenden Fehlerquellen, nach Häufigkeit:
 7. **Erster statt letzter Treffer.** `re.search` fand die erste Beschriftung
    vor einem Feld statt der nächstgelegenen.
 
-**Why:** Eine falsche Messung ist teurer als keine — sie sieht aus wie ein
-Ergebnis und wird weitergereicht. Zwei der sieben hätten eine Reparatur
-vorgetäuscht, die es nicht gab.
+8. **Eine Schranke, die eine Liste prueft statt einer Regel.** Der
+   Preis-Waechter deckte drei von 77 Dateien ab — und ich habe die Luecke
+   daraufhin als geschlossen gemeldet. Ueber alle Dateien gezaehlt standen
+   feste Preise an vierzehn weiteren Stellen, eine davon im **eingebetteten
+   Widget** auf fremden Seiten.
 
-**How to apply:** Nach jeder selbstgebauten Zählung eine Handprobe an zwei bis
-drei Treffern. Beim Ergebnis immer mitprüfen, ob die eigene Änderung im
+**Why:** Eine falsche Messung ist teurer als keine — sie sieht aus wie ein
+Ergebnis und wird weitergereicht. Drei der acht haben eine Reparatur vorgetaeuscht, die es nicht gab — eine davon habe ich dem Nutzer ausdruecklich als „geschlossen" gemeldet und spaeter zuruecknehmen muessen.
+
+**How to apply:** Nach jeder selbstgebauten Zaehlung eine Handprobe an zwei bis
+drei Treffern. **Ein Waechter prueft eine Regel, nie eine Liste** — eine
+Schranke ueber drei Dateien sichert drei Dateien. Ausnahmen gehoeren
+namentlich in den Waechter, nicht in seinen Suchbereich. Beim Ergebnis immer mitprüfen, ob die eigene Änderung im
 Zählverfahren überhaupt sichtbar wäre. Und wo ein Test grün ist, fragen: an
 welchem Gegenstand? Siehe [[feedback-am-gegenstand-pruefen]].

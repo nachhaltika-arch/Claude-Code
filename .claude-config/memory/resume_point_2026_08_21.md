@@ -1,76 +1,66 @@
 ---
 name: resume-point-2026-08-21
-description: "Stand 2026-08-21 — 18 Commits ohne Render-Zugang: L-29/L-59/L-17/L-58a/L-33/L-38/L-28/L-63/L-07/L-05/L-27/L-08/L-09 geschlossen; sieben Entscheidungen liegen bei David, L-34 bleibt blockiert"
+description: Stand vom 21.08.2026 — 32 Commits, M4 fertig, Design-Canvas, Website-weiter Audit, Legacy-Editor weg, Modellwechsel; morgen M5
 metadata:
   type: project
 ---
 
-**Ein Freitag, an dem nur ging, was im Code liegt.** Der Render-MCP meldet den
-**fünften Tag** `unauthorized`; damit blieben L-34 (Umzug), L-57, L-40, L-44
-und L-35 blockiert. Alles Übrige aus der Lückenliste ist abgearbeitet.
+**32 Commits auf `staging`, alle mit grüner CI.** Backend 1.679 Tests
+(morgens 1.538), Frontend 396 (morgens 370). Nichts live — PR #43
+`staging → main` steht offen, der Merge ist Davids Schritt. Voller Bericht:
+`docs/stand-2026-08-21.md` (667 Zeilen, zwei Teile).
 
-## Geschlossen
+**Der Tag hat zwei Hälften.** Bis Abschnitt 9 Lückenliste, ab Abschnitt 10 die
+Arbeit nach `docs/module-karte.md` — entstanden aus Davids Satz „ich will fertig
+werden, und gerade fühlt es sich an, als ob wir alles gleichzeitig entwickeln".
 
-L-29 (Preise), L-59 (Rechtsgrundlage), L-17 (Formularfelder + Überschriften),
-L-58 (a) (KI-Lesbarkeit im Audit), L-33 (Dateiendungen), L-38 (Mai-Audit),
-L-28 (Template-Router), L-63 (neu), L-07 (durch Messen), L-05 (vierter
-Schritt), L-27 (abgesichert), L-08 (teilweise), L-09 (Zahlungen).
+## Was geschlossen wurde
 
-Tests: 927 + 98 → **1.538 Backend + 370 Frontend**.
+* **M4 ist fertig** (L-64, L-71, L-61). Der Bestellweg lief nur nach `/login`;
+  die ganze Strecke war gegen eine Schnittstelle geschrieben, die es nicht gibt.
+  `ProductManager` (Menüziel!) las Felder, die die Tabelle nicht hat — jedes
+  Speichern wirkungslos. Wächter: `test_frontend_adressen.py`.
+* **Design-Canvas** (L-72): `GET/POST /api/design-canvas/{lead_id}` gibt die vier
+  KAS-Ansichten als Artboards aus und nimmt sie bearbeitet zurück, versioniert
+  über `mockup_versions`. **Keine Oberfläche im Werkzeug** — Canvas entstehen in
+  Claude Code, dafür gibt es keine Schnittstelle. `scripts/canvas-export.py`.
+* **Audit bewertet die ganze Website** (L-73): `audit_seiten` + `audit_aggregat`,
+  25 Seiten gedeckelt. Vorher blieb das Kontaktformular auf `/kontakt` unsichtbar.
+  Jedes Ergebnis trägt `seiten_geprueft`; alte stehen auf 1.
+* **Legacy-Editor weg** (L-26): 2.402 Zeilen. Vorher umgezogen: GrapesJS in den
+  Editor, GEO = Schritt 3, Leistungsseiten = Schritt 9.
+* **Modellwechsel** (L-74): 49 Angaben, davon 16 auf `claude-sonnet-4-20250514`
+  (zurückgezogen 15.06.2026). Staffelung blieb — Sonnet 5 / Opus 5 / Haiku 4.5.
+* Nähte aufgetrennt (L-66…L-70): 13 offene Routen, 19 Router-Kollisionen.
 
-## Die drei Funde, die niemand gesucht hat
+## Drei Fallen, die morgen wieder greifen könnten
 
-1. **L-63 — zwei Endpunkte scheiterten seit vier Monaten an jedem Aufruf.**
-   `templates.py` schrieb `%(name)s` in einem `sqlalchemy.text(...)`; das
-   bindet nichts, Postgres antwortet `syntax error at or near "%"`. Betroffen:
-   `POST /api/templates/upload` und `/import-url` — beide ruft das Frontend
-   auf, seit dem 10.04.2026. Der damalige Commit nennt als Grund die Angst vor
-   `:root` im CSS. Die Sorge ist unbegründet: SQLAlchemy liest **nur den
-   SQL-Text**, nie die gebundenen Werte.
-
-2. **L-62 — fünf von acht Werten in `AUTO_SEQUENCE_SOURCES` werden nirgends
-   geschrieben.** Die Webhooks schreiben `facebook`/`linkedin`/`google`, die
-   Liste erwartet `webhook_facebook` usw. Und `postkarte`, das in beiden
-   Listen steht, greift auch nicht: `_upsert_lead` schreibt mit rohem SQL und
-   läuft an `create_lead` vorbei. Von fünf Lead-Wegen bekommt **keiner** die
-   automatische Mailstrecke — unbemerkt, weil das Ausbleiben einer Mail nichts
-   protokolliert.
-
-3. **L-61 — die Verkaufsseite versprach „zzgl. MwSt.", die Kasse schlägt
-   nichts auf.** Kein `automatic_tax`, keine `tax_rates`; der Kunde las
-   1.785 € und wurde mit 1.500 € belastet.
-
-## Der schwerste Fund kam zuletzt
-
-**L-64 — der Bestellweg endet auf der Anmeldeseite.** Im Browser am
-Produktivsystem belegt: `kas.kompagnon.group/paket/premium` → `/login`, ebenso
-`/paket/starter`, `/checkout` und `/checkout/kompagnon`. `App.jsx` fuehrt 82
-Routen und **keine** fuer `/paket/…` oder `/checkout`; die Auffangroute
-schickt alles Unbekannte zur Anmeldung. `Checkout.jsx`, `CheckoutSuccess.jsx`
-und die drei `PackageX.jsx` liegen da und werden von nichts importiert.
-
-Betroffen: der Bestelllink in der Angebotsmail, die Knoepfe „Paket waehlen"
-**und der Ruecksprung nach bezahlter Rechnung**. `public_pages` fuehrt
-`/paket/starter` dabei als **live**.
-
-**Nicht repariert** — Routen nachzutragen wuerde drei Seiten mit festen,
-falschen Preisen veroeffentlichen, und ob das Werkzeug den oeffentlichen
-Verkaufstrichter tragen soll, ist eine Produktentscheidung (L-19/L-20).
-
-## Neun Fragen, die bei David liegen
-
-**L-64 (der Bestellweg — die dringendste)**, L-61 (MwSt.), L-62 (Mailstrecke für Kaltakquise?), L-59
-(Rechtsgrundlage für elf Quellen), L-58 (welches Kriterium wird leichter?),
-L-56 (Konto mitlöschen?), L-60 (Lehrplan), L-27 (welche Briefing-Struktur
-bleibt?), L-65 (sind die Werbezahlen belegt?). Sie stehen als Tabelle in `docs/stand-2026-08-21.md`.
+1. **Adaptives Denken ist die Vorgabe.** Wer eine neue KI-Aufrufstelle schreibt
+   und `thinking` weglässt, bekommt Denken — und 21 Stellen lesen `content[0]`,
+   wo dann ein Denkblock steht. `tests/test_modellwahl.py` hält das offen.
+2. **Die Schrittkette bricht an jedem unbestätigten Schritt.** Seit heute nicht
+   mehr an `optional` markierten. Wer einen Pflichtschritt einfügt, sperrt jedes
+   laufende Projekt ab dort. `utils/schrittkette.js`, `schrittkette.test.js`.
+3. **Ein Router, der eine Adresse überdeckt, kann die Sicherheitsarbeit machen.**
+   `test_router_kollisionen.py`, Ausnahmeliste leer.
 
 ## Morgen
 
-Erst prüfen, ob der Render-Zugang wieder geht — daran hängt die ganze obere
-Hälfte der Reihenfolge. Sonst: L-25/L-26 (Dateigrößen und Editor-Generationen)
-oder der Rest von L-17 (Tastaturbedienung, Fokus, Kontraste).
+1. **M5 zu Ende**, damit ein Kunde vollständig durchläuft. Offen: L-27
+   (Briefing-Struktur — Davids Entscheidung), L-25 (`projects.py`, 4.848 Zeilen),
+   L-14 (Assistent unbewertet), L-50-Rest.
+2. **Knopf für den Design-Canvas** in der KAS-Seitenleiste — heute nur Endpunkte.
+3. **Fehlerprotokoll prüfen** (Verwaltung): Liefen Schriftvorschläge,
+   Briefing-Vorbefüllung und der Perf-Kommentar im Scheduler wochenlang ins
+   Leere? 16 Stellen standen auf einem zurückgezogenen Modell — **nicht
+   gemessen**, lokal liegt kein Schlüssel.
+4. **Ein echter Betrieb im Canvas.** Testbetrieb 1 hat zwei Pflichtseiten und
+   keine Markendaten.
 
-PR #43 (`staging → main`) stand am Vormittag offen und trägt alle heutigen
-Commits.
+## Blockiert bei David
 
-Siehe [[feedback-am-gegenstand-pruefen]], [[messfehler-eigene-zahlen]].
+Render-Zugang **fünften Tag** `unauthorized` → L-34, L-35, L-40, L-44, L-57.
+Offene Entscheidungen: L-27, L-56, L-58, L-60, L-62, L-65.
+
+Verwandt: [[messfehler_eigene_zahlen]] · [[module_karte]] ·
+[[deploy_laeuft_ueber_ci]] · [[feedback_am_gegenstand_pruefen]]

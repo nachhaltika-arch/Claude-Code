@@ -8,7 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, UniqueConstraint, create_engine
 from sqlalchemy import text as sa_text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -666,6 +666,15 @@ class RolePermission(Base):
     role = Column(String(20), nullable=False)
     permission = Column(String(50), nullable=False)
     is_allowed = Column(Boolean, default=True)
+
+    # Ein Recht je Rolle, genau einmal. `services/rechte.hat_recht` liest mit
+    # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
+    # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
+    # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
+    # Der Bestand wird in `main.py::_run_migrations` zusammengefuehrt.
+    __table_args__ = (
+        UniqueConstraint("role", "permission", name="uq_role_permission"),
+    )
 
 
 class Briefing(Base):

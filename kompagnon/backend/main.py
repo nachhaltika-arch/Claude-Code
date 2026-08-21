@@ -600,6 +600,21 @@ def _run_migrations():
         # Der Wortschatz steht in `services/lead_quellen.SCHREIBWEISEN`.
         "UPDATE leads SET lead_source = 'manual' WHERE lead_source = 'Manuell'",
         "UPDATE leads SET lead_source = 'audit' WHERE lead_source = 'Audit'",
+        # `role_permissions` hatte keinen eindeutigen Schluessel auf
+        # (role, permission) — und `services/rechte.hat_recht` liest mit
+        # `.first()` **ohne** Sortierung. Zwei Zeilen mit verschiedenem
+        # `is_allowed` haetten die Antwort dem Zufall ueberlassen: ein
+        # entzogenes Recht kaeme still zurueck. Der Schreibpfad prueft zwar
+        # vorher, aber nichts **verhindert** es (L-05).
+        # Erst zusammenfuehren, dann sperren — die juengste Zeile gewinnt,
+        # denn sie ist die zuletzt gespeicherte Entscheidung.
+        """DELETE FROM role_permissions a
+             USING role_permissions b
+            WHERE a.role = b.role
+              AND a.permission = b.permission
+              AND a.id < b.id""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_role_permissions_eindeutig "
+        "ON role_permissions(role, permission)",
         "CREATE INDEX IF NOT EXISTS idx_audit_results_public_token "
         "ON audit_results(public_token)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",

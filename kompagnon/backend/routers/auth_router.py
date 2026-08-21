@@ -460,7 +460,7 @@ def update_signature(req: SignatureUpdate, user: User = Depends(get_current_user
 # Admin User Management
 # ═══════════════════════════════════════════════════════════
 
-@admin_router.get("/users")
+@admin_router.get("/users", dependencies=[Depends(verlangt_recht("view_users"))])
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [_user_dict(u) for u in users]

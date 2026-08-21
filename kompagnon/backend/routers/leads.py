@@ -146,7 +146,7 @@ class LeadConvertRequest(BaseModel):
     assigned_person: str = "KOMPAGNON-Team"
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verlangt_recht("create_leads"))])
 def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
         result = db.execute(text("""
@@ -1013,7 +1013,7 @@ def get_lead(
     return lead
 
 
-@router.patch("/{lead_id}")
+@router.patch("/{lead_id}", dependencies=[Depends(verlangt_recht("edit_leads"))])
 def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
     """Update a lead — saves all provided fields."""
     db_lead = db.query(Lead).filter(Lead.id == lead_id).first()

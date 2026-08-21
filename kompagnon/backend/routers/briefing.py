@@ -1,3 +1,24 @@
+"""Briefing — die veraendernden Aufrufe und die beiden KI-Analysen.
+
+**Achtung: Dieselbe Adresse wie `routers/briefings.py`.** Beide Module tragen
+`prefix="/api/briefings"`, und `BriefingTab.jsx` ruft beide auf — `GET` aus
+dem einen, `PATCH` aus dem anderen. Getrennt sind sie nach HTTP-Verb, nicht
+nach Zustaendigkeit; das ist so gewachsen und nicht entworfen (L-27).
+
+Zusammengelegt sind sie **nicht**, weil eine Datei daraus rund 980 Zeilen
+haette und damit gegen die eigene 800-Zeilen-Grenze liefe (L-25).
+
+Was daran gefaehrlich ist und wovor `tests/test_briefing_router.py` schuetzt:
+Wer hier eine Route ergaenzt, die es drueben schon gibt, verdeckt sie
+**still** — es gewinnt der zuerst eingebundene Router, und keine Meldung sagt
+es. Der Test verbietet jedes doppelte Verb-Pfad-Paar.
+
+Anders als drueben traegt dieser Router **keine** Vorgabe am Router selbst:
+`PATCH /{id}/freigabe` muss ein Kunde erreichen, und `require_innendienst`
+wuerde ihn sperren. Die Pruefung haengt deshalb an jeder Route einzeln — die
+Bauart, die am 19.08. 55 offene Routen erzeugt hat (L-51). Derselbe Test
+zaehlt sie deshalb nach.
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from routers.auth_router import require_innendienst
 from sqlalchemy.orm import Session

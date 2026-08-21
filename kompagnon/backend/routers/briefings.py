@@ -1,8 +1,7 @@
-"""
-Briefings CRUD — flat project-briefing fields.
-GET  /api/briefings/{lead_id}  → load (auto-creates if missing)
-POST /api/briefings/{lead_id}  → create or overwrite
-PUT  /api/briefings/{lead_id}  → partial update
+"""Briefing — Lesen, Anlegen, PDF und die KI-Vorbefuellung.
+
+**Achtung: Dieselbe Adresse wie `routers/briefing.py`.** Siehe den Kopf dort
+und `tests/test_briefing_router.py` (L-27).
 """
 import json
 import logging

@@ -16,6 +16,8 @@
 - [Wiederaufnahme 2026-05-08](resume_point_2026_05_08.md) — Style-Guide-Redesign + Tool-CI P0-P5 fertig; --brand-primary Token-Switch Mid→Dark; Audit-Methode etabliert
 - [Immer Empfehlung statt offener Frage](feedback_always_recommend.md) — nie mit "soll ich X oder Y?" enden; Empfehlung + Begründung, dann handeln
 - [CI nach jedem Push prüfen](feedback_ci_pruefen_nach_push.md) — lokale Tests sind nicht CI; der Playwright-E2E-Job findet, was die Backend-Tests nicht finden können
+- [Wiederaufnahme 2026-08-21](resume_point_2026_08_21.md) — 18 Commits ohne Render-Zugang; 13 Lücken zu, drei ungesuchte Funde, sieben Entscheidungen liegen bei David
+- [Eigene Messungen haben Bugs](messfehler_eigene_zahlen.md) — sieben Fehlmessungen an einem Tag; Zeichenketten, Kommentare und die eigene Reparatur werden mitgezählt
 - [Wiederaufnahme 2026-08-19](resume_point_2026_08_19.md) — 30 Commits: Frankfurt läuft (0,18s vs 3,1s), 55 offene Routen zu, ein Kurssystem statt zwei; morgen L-34 zu Ende, Branch prüfen und L-57 zuerst
 - [Wiederaufnahme 2026-08-18](resume_point_2026_08_18.md) — CI-Hänger, zwölf blockierende KI-Aufrufe, Farbsystem für Kundenseiten und Innendienst, PR #42 produktiv
 - [Wiederaufnahme 2026-08-17](resume_point_2026_08_17.md) - Mail-Vorfall, PR #41 produktiv; danach Zugriffsschutz, Löschfunktion, DSGVO-Nachweise, Impressum-Sucher und UX-Pakete 3-6; 23 Commits auf staging

@@ -1,6 +1,6 @@
 # KOMPAGNON — Soll-Ist-Analyse der Gesamtplattform
 
-> **Fortlaufend geführt.** Letzte Durchsicht: 2026-08-15.
+> **Fortlaufend geführt.** Letzte Durchsicht: 2026-08-21.
 > Diese Datei hieß bis dahin `soll-ist-analyse-2026-08-07.md`. Das Datum im
 > Namen war der Grund, warum sie veraltete: Sie las sich wie ein Stand und
 > wurde wie eine Übersicht benutzt. Sie wird jetzt fortgeschrieben; die
@@ -28,7 +28,7 @@ begründet sie, mehr nicht.
 | Bereich | Stand | Einschätzung | Geprüft |
 |---|---|---|---|
 | A — Betrieb & Release | 🟡 | `main` geschützt, CI mit Pflichtjobs, dual-branch etabliert. **Aber:** produktiv liefen sieben von acht Startphasen nie (L-41, behoben 08-15), und das Backend steht in der falschen Region (L-34) | 08-15 |
-| B — Sicherheit & Compliance | 🟡 | Anmeldung am Router, teure Endpunkte begrenzt, Zugangsdaten rotiert, `/info` geschlossen, `ENVIRONMENT=production`, Demo-Konten deaktiviert. Offen: Rollenrechte ohne Wirkung (L-05/L-12), Produktiv-DB im offenen Internet (L-40, hängt an L-34) | 08-15 |
+| B — Sicherheit & Compliance | 🟡 | Anmeldung am Router, teure Endpunkte begrenzt, Zugangsdaten rotiert, `/info` geschlossen, Demo-Konten deaktiviert, 55 offene Routen zu (L-51), **acht von 18 Rechten durchgesetzt** (L-05), Rechtsgrundlage am Lead geführt (L-59). Offen: zehn Rechte ohne Sperre, Produktiv-DB im offenen Internet (L-44, hängt an L-34) | 08-21 |
 | C — Vertrieb & Lead-Gewinnung | 🟡 | Widget produktiv, Double-Opt-in, Bericht und PDF tragen die Marke. Offen: Einbau in die Ziel-Landingpage, Brevo-Klick-Tracking | 08-15 |
 | D — Verkauf & Zahlung | 🟡 | Stripe funktioniert; Preise weiterhin an mehreren Stellen | 08-07 |
 | E — Projektabwicklung | 🟢 | 7 Phasen, Checkliste, Marge, Automationen laufen | 08-07 |
@@ -37,8 +37,8 @@ begründet sie, mehr nicht.
 | H — Projekt-Assistent | 🟡 | Ausbau 1 gebaut (`routers/assistant.py`), fachlich noch von niemandem beurteilt; Ausbau 2 unberührt | 08-15 |
 | I — Academy | 🟢 | Kurse, Module, Quiz, Zertifikate, Admin | 08-07 |
 | J — Eigene Web-Präsenz | 🟠 | KAS-Seiten ohne Custom-Domain-Endpunkt, WebSprint außerhalb des Systems | 08-07 |
-| K — Qualitätssicherung | 🟡 | 927 Backend- und 98 Frontend-Tests, vier Pflichtjobs in der CI, Referenz-Website für die Erhebung. Offen: Monitoring, Backup-Doku | 08-15 |
-| L — Code-Struktur | 🟠 | **11 Backend-Dateien über 800 Zeilen** (`projects.py` mit 4.673), sechs im Frontend; Doppelstrukturen ungeräumt | 08-15 |
+| K — Qualitätssicherung | 🟢 | **1.538 Backend- und 370 Frontend-Tests**, sechs Pflichtjobs, Referenz-Website für die Erhebung. Monitoring (L-10) und Backup-Doku (L-11) geschlossen; Zahlungen seit 21.08. abgedeckt. Offen: Wireframe, Style-Guide-Freigabe, Design-View | 08-21 |
+| L — Code-Struktur | 🟠 | **11 Backend-Dateien über 800 Zeilen** (`projects.py` mit 4.673), sechs im Frontend. Doppelstrukturen: Template-Router zusammengelegt (L-28), Briefing-Router abgesichert statt zusammengelegt (L-27), sechs Dateien auf `.jsx` (L-33). Offen: drei Editor-Generationen (L-26), Dateigrößen (L-25) | 08-21 |
 
 **Kurzfassung:** Die Fachlichkeit trägt, und die Qualitätssicherung ist seit dem
 07.08. von „praktisch nichts" zu einem tragenden Fundament geworden. Die
@@ -239,36 +239,39 @@ Zur Fairness gegenüber den beiden Mai-Audits — diese Befunde sind erledigt:
 
 ## 5. Empfohlene Reihenfolge
 
-*Stand 2026-08-19. Die Reihenfolge vom 15.08. ist zur Hälfte abgearbeitet:
-L-05 ist real durchgesetzt (fünf Rechte statt zwei), L-10 und L-11 sind
-geschlossen, L-34 steht auf halbem Weg.*
+*Stand 2026-08-21. Die Reihenfolge vom 19.08. ist abgearbeitet, soweit sie
+ohne Render-Zugang ging: L-29, L-59, L-17 (zwei Klassen), L-58 (a), L-33,
+L-38, L-28, L-63, L-07, L-05 (vierter Schritt), L-27, L-08 und L-09 sind
+geschlossen oder wesentlich vorangekommen. Was oben steht, hängt am
+Render-Zugang — er meldet den **fünften Tag** `unauthorized`.*
 
-1. **L-34 zu Ende bringen** — bleibt auf Platz eins, solange die Domain noch
-   auf Oregon zeigt. Der Dienst in Frankfurt läuft und ist gemessen; was fehlt,
-   ist das Umhängen. Zwingende Reihenfolge:
-   **Branch prüfen → L-57 → Webhooks → Domain → `RENDER_SERVICE_BACKEND_PROD`
-   → alten Dienst suspendieren.**
-2. **L-57** — Oregons Build-Befehl reparieren. Steht hier so weit oben, weil er
-   der **Rückweg** ist: Suspendieren und späteres Fortsetzen löst bei Render
-   einen Deploy aus, und der würde heute scheitern.
+1. **L-34 zu Ende bringen** — bleibt auf Platz eins, solange die Domain auf
+   Oregon zeigt. Der Frankfurter Dienst läuft und ist gemessen; was fehlt, ist
+   das Umhängen. Zwingende Reihenfolge:
+   **Branch prüfen → L-57 → Webhooks → `RENDER_SERVICE_BACKEND_PROD` +
+   Handbau → messen → Domain → alten Dienst suspendieren.**
+   Die Zwischenstufe vor der Domain steht in `umzug-backend-frankfurt.md`;
+   `scripts/umzug-bereitschaft.sh` entscheidet sie.
+2. **L-57** — Oregons Build-Befehl reparieren. Steht so weit oben, weil er der
+   **Rückweg** ist: Suspendieren und späteres Fortsetzen löst einen Deploy
+   aus, und der würde ohne Cache scheitern.
 3. **L-44** — Inbound-Regel der Produktiv-DB schließen. Erst nach L-34, dann
-   aber zügig; es ist die letzte Stelle, an der Produktivdaten im offenen
-   Internet stehen.
-4. **L-12** — der zweite Teil der Rollenrechte. L-05 hat fünf Rechte
-   durchgesetzt; die Matrix kennt mehr.
-5. **L-29** — die Preiswidersprüche. Vier Stellen, bereits auseinandergelaufen
-   (Premium 2.500 gegen 2.800, Kompagnon 2.000 gegen 3.500). **Welcher Preis
-   gilt, ist eine Entscheidung von David** — bis dahin lässt sich nur die
-   Behauptung aus dem Quelltext ziehen, nicht der Widerspruch auflösen.
-6. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
-7. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
-   die sich verschlechtert.
-8. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen)
-   oder **L-15/L-17** (Conversion und Barrierefreiheit — eine Klasse von zwanzig
-   namenlosen Schaltflächen ist am 19.08. geschlossen worden, der Rest steht).
+   zügig; es ist die letzte Stelle, an der Produktivdaten im offenen Internet
+   stehen.
+4. **Die sieben Entscheidungen** aus `stand-2026-08-21.md` § „Was David
+   entscheiden muss". Sechs davon kosten Minuten und geben je eine Lücke frei;
+   **L-61 (MwSt.) ist die dringendste**, weil sie eine Aussage auf der
+   Verkaufsseite betrifft, die heute nicht stimmt.
+5. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
+6. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
+   die sich verschlechtert; sie hängt mit L-27 zusammen (zusammenlegen geht
+   erst, wenn `briefings.py` geteilt ist) und mit L-08 (die restlichen
+   npm-Befunde lösen sich erst mit dem Abschied von `react-scripts`).
+7. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen),
+   **L-15** (Hormozi-Offer-Stack) oder der Rest von **L-17**
+   (Tastaturbedienung, Fokusreihenfolge, Kontraste).
 
-**L-08** (Dependabot) und **L-35** (Blueprints anwenden) hängen weiter am
-Render-Zugang, der über den MCP `unauthorized` meldet — im Dashboard geht es.
+**L-35** (Blueprints anwenden) hängt weiter am Render-Zugang.
 
 **Tagesberichte:** `stand-2026-08-08.md` · `stand-2026-08-14.md` ·
 `stand-2026-08-15.md` · `stand-2026-08-19.md`

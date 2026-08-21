@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 // Hiess LeadPipeline und zeigte Projekte — der Name im Code war
 // derselbe Irrtum wie die Adresse.
 import Projektpipeline from './pages/Projektpipeline';
-import ProjectDetail from './pages/ProjectDetail';
 import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
 import ContactImport from './pages/ContactImport';
@@ -225,12 +224,14 @@ function App() {
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
-          {/* ── Online-Fertig-Editor — jetzt Default für /app/projects/:id ──
+          {/* ── Der Projekt-Editor ────────────────────────────────────────
             * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.
-            * /app/projects/:id              → Default (neu)
-            * /app/projects/:id/online-fertig → Alias (alte URL, bleibt aktiv)
-            * Der Legacy-ProzessFlowV3 ist auf /app/projects/:id/legacy
-            * umgezogen (siehe AppLayout-Block weiter unten). */}
+            * /app/projects/:id              → Default
+            * /app/projects/:id/online-fertig → Alias (alte URL, es gibt
+            *                                   Lesezeichen darauf)
+            * Seit dem 21.08.2026 der einzige: `/app/projects/:id/legacy` und
+            * mit ihr `ProzessFlowV3` und `pages/ProjectDetail.jsx` sind
+            * entfernt. */}
           <Route
             path="/app/projects/:id"
             element={
@@ -275,10 +276,6 @@ function App() {
             <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
             <Route path="leads/:leadId" element={<LeadRedirect />} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
-              * der frühere Default ist auf /legacy umgezogen, weil
-              * /app/projects/:id jetzt den Online-Fertig-Editor zeigt. */}
-            <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere

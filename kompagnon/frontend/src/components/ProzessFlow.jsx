@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
+// Beide Schritte lebten bis zum 21.08.2026 nur in `ProzessFlowV3` — dem
+// Legacy-Editor. Ihre Dateien ueberleben dessen Abbau; sie brauchten nur
+// einen Platz im gemeinsamen Renderer.
+import GeoOptimizerStep from './GeoOptimizerStep';
+import { LeistungsseitenStep } from './LeistungsseitenWizard';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
@@ -533,6 +538,28 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return lead
         ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>
         : <Spinner />;
+
+    case 'GeoOptimizer':
+      return (
+        <div style={pad}>
+          <GeoOptimizerStep
+            projectId={project?.id}
+            onComplete={(score) => onAnalyseUpdate && onAnalyseUpdate({ geoScore: score })}
+          />
+        </div>
+      );
+
+    case 'LeistungsseitenWizard':
+      return (
+        <LeistungsseitenStep
+          projectId={project?.id}
+          leadId={leadId}
+          token={token}
+          brandData={brandData}
+          confirmedSteps={project?.steps_confirmed}
+          onSave={() => { onProjectRefresh?.(); }}
+        />
+      );
 
     case 'AnalyseZentrale':
       return (

@@ -234,6 +234,13 @@ def _ruf_modell(*, systemprompt: str, inhalt, schema: dict, max_tokens: int,
     if effort:
         output_config["effort"] = effort
 
+    # **Der einzige Aufruf im Haus, der bewusst denkt.** Auf Sonnet 5 und
+    # Opus 5 ist adaptives Denken die Vorgabe, wenn `thinking` fehlt — und
+    # genau das brechen die uebrigen Aufrufstellen: Sie lesen `content[0]`,
+    # wo dann ein Denkblock steht, und ihre `max_tokens` (200-800) teilen
+    # sich Denken und Antwort. Hier stimmt beides: Die Extraktion sucht den
+    # Textblock (`b.type == "text"`), das Budget ist grosszuegig, und die
+    # Bewertung eines Audits ist die Stelle, an der Nachdenken sich lohnt.
     try:
         client = Anthropic(api_key=api_key(), max_retries=1, timeout=REQUEST_TIMEOUT)
         response = client.messages.create(

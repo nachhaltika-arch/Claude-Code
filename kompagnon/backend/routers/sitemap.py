@@ -903,7 +903,7 @@ async def generate_sitemap(
             client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
             response = await frag_modell(
                 client,
-                model="claude-sonnet-4-6",
+                model="claude-sonnet-5", thinking={"type": "disabled"},
                 max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}],
             )
@@ -1032,7 +1032,7 @@ async def generate_more_pages(
         client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
         response = await frag_modell(
             client,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1616,7 +1616,7 @@ Antworte NUR als JSON-Array:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 1500,
                     "messages": [{"role": "user", "content": prompt}],
                 },

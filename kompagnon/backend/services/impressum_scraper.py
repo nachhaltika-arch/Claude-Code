@@ -266,7 +266,7 @@ Gib NUR das JSON zurück."""
             # (17.08.2026, mit David am Bildschirm gefunden).
             response = await asyncio.to_thread(
                 lambda: client.messages.create(
-                    model='claude-sonnet-4-6',
+                    model='claude-sonnet-5', thinking={"type": "disabled"},
                     max_tokens=1000,
                     messages=[{'role': 'user', 'content': prompt}],
                     timeout=20.0,

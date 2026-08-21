@@ -2740,7 +2740,7 @@ Antworte als JSON:
         client = Anthropic(api_key=api_key)
         response = await frag_modell(
             client,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=3000,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
@@ -3815,7 +3815,7 @@ Erstelle einen JSON-Report mit GENAU dieser Struktur (nur JSON, kein Markdown):
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 2000,
                     "messages": [{"role": "user", "content": prompt}],
                 },
@@ -3909,7 +3909,7 @@ Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 600,
                     "messages": [{"role": "user", "content": prompt}],
                 },
@@ -4012,7 +4012,7 @@ Gib NUR JSON zurück:
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 600, "messages": [{"role": "user", "content": prompt}]},
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 600, "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
         txt = resp.json()["content"][0]["text"].strip()
@@ -4143,7 +4143,7 @@ Nur JSON, kein Markdown, keine Erklärungen."""
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 4000,
                     "messages": [{"role": "user", "content": prompt}],
                 },
@@ -4293,7 +4293,7 @@ async def generate_page_content(
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 3000, "messages": [{"role": "user", "content": prompt}]},
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 3000, "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
         raw_text = resp.json()["content"][0]["text"].strip()
@@ -4505,7 +4505,7 @@ Gib NUR das JSON zurück, keine Erklärung, kein Markdown."""
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 3000,
                     "messages": [{"role": "user", "content": prompt}],
                 },
@@ -4763,7 +4763,7 @@ async def generate_design_json(
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 4000,
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 4000,
                       "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()

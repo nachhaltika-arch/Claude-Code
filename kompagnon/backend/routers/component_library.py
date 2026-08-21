@@ -356,7 +356,7 @@ Output:
     try:
         client = Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -2030,7 +2030,7 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
         # ValueError("Streaming is required..."). Daher hier ueber stream() —
         # final_message hat dieselbe Struktur wie ein gewoehnliches Response.
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=32000,
             messages=[{"role": "user", "content": prompt}],
         ) as stream:

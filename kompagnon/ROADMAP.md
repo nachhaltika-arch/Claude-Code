@@ -241,7 +241,7 @@
 | Frontend | React |
 | Datenbank | PostgreSQL (Render) |
 | Deployment | Render.com |
-| KI | Anthropic Claude (claude-sonnet-4-6) |
+| KI | Anthropic Claude (claude-sonnet-5, claude-opus-5, claude-haiku-4-5) |
 | PDF | ReportLab |
 | Zahlungen | Stripe |
 | Performance | Google PageSpeed API |

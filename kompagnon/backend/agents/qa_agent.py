@@ -19,7 +19,7 @@ class QaAgent:
             raise ImportError("anthropic library not installed. Install with: pip install anthropic")
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.client = Anthropic(api_key=self.api_key)
-        self.model = "claude-sonnet-4-6"
+        self.model = "claude-sonnet-5"
 
     def conduct_qa(
         self,
@@ -91,7 +91,7 @@ Liefere das Ergebnis als JSON:
 }}"""
 
             message = self.client.messages.create(
-                model=self.model,
+                model=self.model, thinking={"type": "disabled"},
                 max_tokens=2000,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],

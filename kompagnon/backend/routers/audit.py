@@ -14,6 +14,7 @@ import logging
 import threading
 from datetime import datetime, timezone
 from typing import Optional
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import Response
@@ -21,7 +22,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
-from routers.auth_router import optional_auth
+from routers.auth_router import optional_auth, require_innendienst
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
 from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
@@ -373,7 +374,7 @@ def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:
         logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {e}")
 
 
-@router.get("/recent")
+@router.get("/recent", dependencies=[Depends(require_innendienst)])
 def get_recent_audits(
     limit: Optional[int] = 10,
     skip: Optional[int] = 0,
@@ -471,11 +472,15 @@ async def start_audit(
             scraped_phone=scraped.get("phone", ""),
             scraped_email=scraped.get("email", ""),
             scraped_description=scraped.get("meta_description", ""),
+            # Das Geheimnis, mit dem der Interessent sein eigenes Ergebnis
+            # abholt. Ohne es waere die Kennung eine fortlaufende Zahl (L-52).
+            public_token=secrets.token_urlsafe(24),
         )
         db2.add(audit)
         db2.commit()
         db2.refresh(audit)
         audit_id = audit.id
+        audit_token = audit.public_token
     finally:
         db2.close()
 
@@ -507,6 +512,7 @@ async def start_audit(
 
     return {
         "id": audit_id,
+        "token": audit_token,
         "status": "pending",
         "scraped": {
             "company_name": company_name,
@@ -520,12 +526,34 @@ async def start_audit(
     }
 
 
-@router.get("/status/{audit_id}")
-def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
-    """Poll audit status (pending / running / completed / failed)."""
+def _audit_oder_404(db, audit_id: int, token: Optional[str], nutzer):
+    """Das Audit — oder 404, wenn der Fragende es nichts angeht.
+
+    Zwei Wege fuehren hier herein: der Innendienst mit Anmeldung, und die
+    oeffentliche Landingpage mit dem Geheimnis, das sie beim Start bekommen
+    hat. Alles andere bekommt 404 und nicht 403: Ob es ein Audit mit dieser
+    Nummer gibt, ist bereits eine Auskunft.
+
+    Bestandsdaten ohne Geheimnis sind damit nur angemeldet erreichbar. Das ist
+    gewollt — ein Audit von gestern holt niemand mehr ueber die Landingpage ab.
+    """
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
         raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    if nutzer is not None:
+        return audit
+    if audit.public_token and token and secrets.compare_digest(
+            str(token), str(audit.public_token)):
+        return audit
+    raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+
+
+@router.get("/status/{audit_id}")
+def get_audit_status(audit_id: int, db: Session = Depends(get_db),
+                     token: Optional[str] = None,
+                     nutzer=Depends(optional_auth)):
+    """Poll audit status (pending / running / completed / failed)."""
+    audit = _audit_oder_404(db, audit_id, token, nutzer)
     result = {"id": audit.id, "status": audit.status}
     if audit.status == "failed":
         result["error"] = audit.error_message
@@ -534,7 +562,7 @@ def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{audit_id}/pdf")
+@router.get("/{audit_id}/pdf", dependencies=[Depends(require_innendienst)])
 def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
     """Download audit result as PDF report."""
     try:
@@ -568,7 +596,7 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"PDF-Generierung fehlgeschlagen: {str(e)}")
 
 
-@router.get("/{audit_id}/angebot")
+@router.get("/{audit_id}/angebot", dependencies=[Depends(require_innendienst)])
 def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
     """Angebots-PDF für ein abgeschlossenes Audit herunterladen."""
     try:
@@ -599,12 +627,12 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{audit_id}")
-def get_audit(audit_id: int, db: Session = Depends(get_db)):
+def get_audit(audit_id: int, db: Session = Depends(get_db),
+              token: Optional[str] = None,
+              nutzer=Depends(optional_auth)):
     """Get a stored audit result."""
     try:
-        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
-        if not audit:
-            raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+        audit = _audit_oder_404(db, audit_id, token, nutzer)
         if audit.status == "pending" or audit.status == "running":
             return {"id": audit.id, "status": audit.status, "message": "Audit läuft noch..."}
         if audit.status == "failed":
@@ -618,7 +646,7 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f'Audit konnte nicht geladen werden: {str(e)}')
 
 
-@router.delete("/{audit_id}")
+@router.delete("/{audit_id}", dependencies=[Depends(require_innendienst)])
 def delete_audit(audit_id: int, db: Session = Depends(get_db)):
     """Delete a single audit. Updates lead screenshot if needed."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -639,7 +667,7 @@ def delete_audit(audit_id: int, db: Session = Depends(get_db)):
     return {"success": True, "message": "Audit geloescht"}
 
 
-@router.patch("/{audit_id}/link-lead")
+@router.patch("/{audit_id}/link-lead", dependencies=[Depends(require_innendienst)])
 def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db)):
     """Link an existing audit to a lead."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -653,7 +681,7 @@ def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depend
     return {"id": audit.id, "lead_id": req.lead_id, "message": "Audit mit Lead verknüpft"}
 
 
-@router.get("/lead/{lead_id}")
+@router.get("/lead/{lead_id}", dependencies=[Depends(require_innendienst)])
 def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
     """Get all audits for a specific lead."""
     audits = (

@@ -29,6 +29,78 @@ export const LEAD_STATUS = {
   customer:      { label: 'Kunde',        variant: 'info'    },
 };
 
+/**
+ * Wo ein Betrieb im Trichter steht — getrennt davon, wie weit die Bearbeitung
+ * ist. Der Status oben beantwortete beides gleichzeitig und deshalb keines
+ * richtig (19.08.2026, aus dem HubSpot-Vergleich).
+ *
+ * Die Schlüssel spiegeln `backend/services/lebenszyklus.py`. Ein Test hält
+ * beide Seiten zusammen — laufen sie auseinander, bekommt ein Betrieb eine
+ * Phase, die hier keinen Namen hat.
+ *
+ * `null` ist ein gültiger Wert und heißt „nicht einzuordnen". Er wird
+ * angezeigt, nicht versteckt.
+ */
+export const LEAD_PHASE = {
+  interessent:   { label: 'Interessent',  variant: 'neutral' },
+  im_gespraech:  { label: 'Im Gespräch',  variant: 'info'    },
+  kunde:         { label: 'Kunde',        variant: 'success' },
+  ausgeschieden: { label: 'Ausgeschieden', variant: 'danger' },
+};
+
+/** Beschriftung einer Phase — auch für den unbekannten Fall. */
+export function leadPhaseLabel(phase) {
+  if (!phase) return 'Phase offen';
+  return LEAD_PHASE[phase]?.label || lesbar(phase) || 'Phase offen';
+}
+
+/**
+ * Woher die Daten kamen — selbst gemeldet oder von uns erhoben.
+ *
+ * Die Schlüssel spiegeln `backend/services/lead_quellen.py`. Ein Test hält
+ * beide Seiten zusammen; laufen sie auseinander, steht im Betriebsblatt ein
+ * Wert ohne Namen (L-59).
+ */
+export const DATEN_HERKUNFT = {
+  eingehend:   { label: 'Selbst gemeldet',  variant: 'success' },
+  kaltakquise: { label: 'Von uns erhoben',  variant: 'warning' },
+};
+
+/**
+ * Rechtsgrundlage nach Art. 6 Abs. 1 DSGVO.
+ *
+ * Wir prüfen sie bei Kunden — `audit_collectors.py:255` sucht auf fremden
+ * Seiten nach „Art. 6" — und führten sie für die eigenen Leaddaten nirgends.
+ *
+ * Eingetragen ist nur, was im Quelltext belegbar ist. Alles Übrige steht
+ * offen und **soll auffallen**: `RECHTSGRUNDLAGE_OFFEN` ist keine neutrale
+ * Leerstelle, sondern eine sichtbare Aufgabe.
+ */
+export const RECHTSGRUNDLAGE = {
+  art6_1_a: { kurz: 'Art. 6 I a', label: 'Einwilligung' },
+  art6_1_b: { kurz: 'Art. 6 I b', label: 'Vertrag oder vorvertragliche Maßnahme' },
+  art6_1_f: { kurz: 'Art. 6 I f', label: 'Berechtigtes Interesse' },
+};
+
+export const RECHTSGRUNDLAGE_OFFEN = 'Rechtsgrundlage offen';
+
+/** Beschriftung einer Herkunft — `null` heißt „ungeführte Quelle". */
+export function herkunftLabel(herkunft) {
+  if (!herkunft) return 'Herkunft ungeklärt';
+  return DATEN_HERKUNFT[herkunft]?.label || lesbar(herkunft);
+}
+
+export function herkunftVariant(herkunft) {
+  return DATEN_HERKUNFT[herkunft]?.variant || 'neutral';
+}
+
+/** Beschriftung einer Rechtsgrundlage — auch für den offenen Fall. */
+export function rechtsgrundlageLabel(wert) {
+  if (!wert) return RECHTSGRUNDLAGE_OFFEN;
+  const eintrag = RECHTSGRUNDLAGE[wert];
+  return eintrag ? `${eintrag.kurz} — ${eintrag.label}` : lesbar(wert);
+}
+
 /** Woher ein Betrieb kam. Freitext ist erlaubt — Kampagnennamen stehen hier. */
 export const LEAD_SOURCE = {
   domain_import:   'Domain-Import',
@@ -43,6 +115,14 @@ export const LEAD_SOURCE = {
   manual:          'Von Hand',
   hwk:             'Handwerkskammer',
   stripe_checkout: 'Kauf',
+  csv_import:      'CSV-Import',
+  trackdesk:       'Partner (Trackdesk)',
+  facebook:        'Facebook Lead-Ad',
+  linkedin:        'LinkedIn Lead-Ad',
+  google:          'Google Lead-Formular',
+  postkarte:       'Postkarten-Rücklauf',
+  telefon:         'Telefonische Meldung',
+  isb_impuls:      'ISB-Impuls',
 };
 
 /**

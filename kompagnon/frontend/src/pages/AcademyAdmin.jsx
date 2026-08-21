@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const AUDIENCE_LABEL = {
   employee: 'Intern',
@@ -98,23 +99,20 @@ export default function AcademyAdmin() {
       }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
-            Kursverwaltung
+            Kurse verwalten
           </h1>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>
             {courses.length} {courses.length === 1 ? 'Kurs' : 'Kurse'} · Reihenfolge per Drag & Drop ändern
           </p>
         </div>
+        {/* „← Zurück" stand hier neben der Brotkrume, die denselben Weg zeigt —
+          * zwei Wege für ein Ziel (UX-24, andernorts am 17.08. entfernt).
+          * Die Adressen zeigten ausserdem auf `/app/akademie/…`, obwohl dieser
+          * Bildschirm unter `/app/academy/…` erreicht wird: Ein Klick wechselte
+          * den Adressraum. */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={() => navigate('/app/akademie')}
-            style={{
-              padding: '7px 14px', background: 'transparent', color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
-              fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-            }}
-          >← Zurück</button>
-          <button
-            onClick={() => navigate('/app/akademie/admin/course/new')}
+            onClick={() => navigate('/app/academy/admin/course/new')}
             style={{
               padding: '7px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
               border: 'none', borderRadius: 'var(--radius-md)',
@@ -286,7 +284,7 @@ export default function AcademyAdmin() {
             style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
             onClick={() => setDeleteId(null)}
           />
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
             onClick={e => e.stopPropagation()}
             style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
@@ -301,9 +299,9 @@ export default function AcademyAdmin() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 22, margin: '0 auto 14px',
             }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
               Kurs löschen?
-            </h3>
+            </h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.55 }}>
               <strong>{deletingCourse?.title}</strong> wird dauerhaft gelöscht.<br />
               Diese Aktion kann nicht rückgängig gemacht werden.

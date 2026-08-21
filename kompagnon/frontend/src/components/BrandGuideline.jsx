@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import { useConfirmStep } from '../hooks/useConfirmStep';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TABS = ['Farben', 'Typografie', 'Abstände', 'Komponenten', 'Vorschau', 'Export'];
 
@@ -193,7 +194,10 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
               }}>
                 {Object.entries(g.tokens || g.colors || {}).map(([tk, hex]) => (
                   <div key={tk} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => {
+                        navigator.clipboard?.writeText(hex);
+                        toast.success(`${hex} kopiert`);
+                      })}
                       style={{
                         width: '100%', height: 52, borderRadius: 8, background: hex,
                         border: '0.5px solid rgba(0,0,0,.08)', cursor: 'pointer',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  icon: '📋', color: 'var(--kc-mid)' },
@@ -282,7 +283,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
   const certSt  = CERT_STYLES[certKey];
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onOpen)}
       draggable={!!card.projectId}
       onDragStart={e => onDragStart(e, card)}
       onClick={onOpen}

@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import KompagnonLogo from '../components/KompagnonLogo';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 const AMBER = '#D4A017';
@@ -56,7 +58,7 @@ export default function Register() {
       <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
               </div>
@@ -83,10 +85,11 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
+      <SeitenTitel>Konto erstellen</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div onClick={() => navigate('/')} style={{ display: 'inline-flex', cursor: 'pointer' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} onClick={() => navigate('/')} style={{ display: 'inline-flex', cursor: 'pointer' }}>
             <KompagnonLogo variant="color" height={36} />
           </div>
         </div>
@@ -124,24 +127,24 @@ export default function Register() {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={lbl}>Vorname</label>
-                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Max" style={inp} />
+                <input aria-label="Vorname" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Max" style={inp} />
               </div>
               <div>
                 <label style={lbl}>Nachname</label>
-                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Mustermann" style={inp} />
+                <input aria-label="Nachname" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Mustermann" style={inp} />
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>E-Mail-Adresse</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inp} />
+              <input aria-label="E-Mail-Adresse" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inp} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Passwort (min. 8 Zeichen)</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sicheres Passwort" required style={inp} />
+              <input aria-label="Passwort (min. 8 Zeichen)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sicheres Passwort" required style={inp} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Passwort wiederholen</label>
-              <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="Passwort bestaetigen" required style={inp} />
+              <input aria-label="Passwort wiederholen" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="Passwort bestaetigen" required style={inp} />
             </div>
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#4a5a74', cursor: 'pointer', marginBottom: 20 }}>

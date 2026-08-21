@@ -47,11 +47,86 @@ _check_stripe_config()
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
-PACKAGE_NAMES = {
-    "starter":   "Starter (5 Seiten · 1.500 EUR)",
-    "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)",
-    "premium":   "Premium (12 Seiten · 2.800 EUR)",
-}
+def paketbezeichnung(db, slug: str) -> str:
+    """Name und Preis eines Pakets — aus derselben Zeile, aus der auch
+    abgerechnet wird.
+
+    Hier stand bis zum 19.08.2026 eine feste Liste:
+
+        "starter":   "Starter (5 Seiten · 1.500 EUR)"
+        "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)"
+        "premium":   "Premium (12 Seiten · 2.800 EUR)"
+
+    Benutzt wird sie an genau einer Stelle — im **Text der Kundenmail** nach
+    dem Kauf. Der Betrag daneben kommt aus `products`, das von Hand gepflegt
+    wird. Zwei Quellen fuer dieselbe Zahl, und die eine steht in einer Mail,
+    die der Kunde aufhebt.
+
+    Sie waren bereits auseinandergelaufen: Premium stand im Frontend zweimal
+    mit 2.500, hier mit 2.800; Landing.jsx nennt Kompagnon mit 3.500 statt
+    2.000 (L-29).
+
+    Ist das Produkt unbekannt, steht dort die Kennung — und **kein erfundener
+    Preis**. Lieber nackt als falsch.
+    """
+    from sqlalchemy import text as _text
+
+    try:
+        zeile = db.execute(
+            _text("SELECT name, price_brutto FROM products WHERE slug = :s"),
+            {"s": slug},
+        ).fetchone()
+    except Exception:  # noqa: BLE001 — fehlende Tabelle darf die Mail nicht kippen
+        db.rollback()
+        return slug
+
+    if not zeile:
+        return slug
+
+    name = zeile[0] or slug
+    betrag = float(zeile[1] or 0)
+    if betrag <= 0:
+        return name
+
+    # Deutsche Schreibweise: 1.500 statt 1,500
+    return f"{name} ({betrag:,.0f} EUR)".replace(",", ".")
+
+def projekt_festpreis(db, slug: str, bezahlt: float):
+    """Der Festpreis eines Projekts — aus derselben Zeile, aus der auch
+    abgerechnet wird.
+
+    Hier stand bis zum 21.08.2026 eine zweite feste Liste, dieselbe Bauart
+    wie `PACKAGE_NAMES` (L-29), nur folgenschwerer: Auf dieser Zahl rechnet
+    `services/margin_calculator.py`. Ein Kunde, der 2.500 zahlte, bekam ein
+    Projekt mit 2.800 Umsatz eingetragen — die Marge war zu hoch, und nichts
+    im System haette widersprochen.
+
+    Der Vorgabewert war der schlimmere Teil: Ein unbekanntes Paket bekam
+    2.000 EUR **erfunden**, obwohl der tatsaechlich gezahlte Betrag im selben
+    Aufruf danebenstand.
+
+    Reihenfolge: die Produktzeile, sonst der gezahlte Betrag, sonst nichts.
+    `None` heisst — die Spalte behaelt ihre Modellvorgabe, und niemand hat
+    hier eine Zahl behauptet.
+    """
+    from sqlalchemy import text as _text
+
+    try:
+        zeile = db.execute(
+            _text("SELECT price_brutto FROM products WHERE slug = :s"),
+            {"s": slug},
+        ).fetchone()
+    except Exception:  # noqa: BLE001 — fehlende Tabelle darf den Kauf nicht kippen
+        db.rollback()
+        zeile = None
+
+    if zeile:
+        betrag = float(zeile[0] or 0)
+        if betrag > 0:
+            return betrag
+
+    return float(bezahlt) if bezahlt and float(bezahlt) > 0 else None
+
 
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
@@ -114,7 +189,7 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
     }
 
     if not stripe.api_key:
-        raise HTTPException(500, "Stripe nicht konfiguriert")
+        raise HTTPException(503, "Stripe nicht eingerichtet")
 
     if row["stripe_price_id"]:
         line_items_param = [{"price": row["stripe_price_id"], "quantity": 1}]
@@ -293,16 +368,15 @@ def _handle_successful_payment(session: dict, db: Session):
             Project.lead_id == lead.id
         ).first()
         if not existing_project:
+            # Der Preis kommt aus der Produktzeile, sonst aus dem, was
+            # Stripe tatsaechlich abgebucht hat (L-29).
+            festpreis = projekt_festpreis(db, package_id, amount)
             project = Project(
                 lead_id        = lead.id,
                 status         = "phase_1",
                 payment_status = "bezahlt",
                 start_date     = datetime.utcnow(),
-                fixed_price    = {
-                    "starter":   1500.0,
-                    "kompagnon": 2000.0,
-                    "premium":   2800.0,
-                }.get(package_id, 2000.0),
+                fixed_price    = festpreis,
                 hourly_rate    = 45.0,
                 ai_tool_costs  = 50.0,
             )
@@ -367,7 +441,7 @@ def _handle_successful_payment(session: dict, db: Session):
                 if lead.customer_token
                 else public_base_url() + "/portal/login"
             )
-            paket_name = PACKAGE_NAMES.get(package_id, package_id)
+            paket_name = paketbezeichnung(db, package_id)
 
             # Passwort-Abschnitt: nur anzeigen wenn neuer User
             if temp_pw:
@@ -554,7 +628,7 @@ def _handle_successful_payment(session: dict, db: Session):
 @router.get("/session/{session_id}")
 async def get_session_status(session_id: str):
     if not stripe.api_key:
-        raise HTTPException(500, "Stripe nicht konfiguriert")
+        raise HTTPException(503, "Stripe nicht eingerichtet")
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         return {

@@ -5,14 +5,17 @@ GET /api/dashboard/alerts - Active alerts
 POST /api/automations/trigger - Manual trigger
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from routers.auth_router import require_innendienst
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
+from services.lebenszyklus import KUNDE
 from services.margin_calculator import MarginCalculator
 
-router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
+router = APIRouter(prefix="/api", tags=["dashboard", "automations"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 class KPIData(BaseModel):
@@ -99,7 +102,11 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
 
     # Lead / Usercard counts — prefer leads table, fallback to usercards
     leads_total = db.query(Lead).count()
-    leads_won   = db.query(Lead).filter(Lead.status == "won").count()
+    # Ueber die Phase, nicht ueber eine Aufzaehlung von Statuswerten: Vorher
+    # stand hier `status == "won"`, und ein Betrieb, den jemand im Bildschirm
+    # auf „Kunde" (`customer`) gesetzt hat, fehlte in der Zahl. Niemand merkt
+    # eine Kennzahl, die um eins zu klein ist (19.08.2026).
+    leads_won   = db.query(Lead).filter(Lead.lifecycle_phase == KUNDE).count()
     if leads_total == 0:
         try:
             leads_total = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0
@@ -162,13 +169,19 @@ def get_dashboard_alerts(db: Session = Depends(get_db)):
             )
 
         # Check for scope creep
-        if project.scope_creep_flags > 0:
+        #
+        # `or 0`, weil die Spalte NULL enthalten kann: Das `default=0` im
+        # Modell ist eine Python-Vorgabe und greift nur beim Anlegen ueber das
+        # Modell. Produktiv war das ein 500 auf dem ganzen Endpunkt — ein
+        # einziges Projekt ohne Zaehler nahm die gesamte Alarmliste mit.
+        scope_creep = project.scope_creep_flags or 0
+        if scope_creep > 0:
             alerts.append(
                 Alert(
                     alert_type="scope_creep",
                     severity="warning",
                     project_id=project.id,
-                    message=f"Projekt {project.id}: {project.scope_creep_flags} Scope-Creep-Vorfälle",
+                    message=f"Projekt {project.id}: {scope_creep} Scope-Creep-Vorfälle",
                     timestamp=datetime.utcnow(),
                 )
             )

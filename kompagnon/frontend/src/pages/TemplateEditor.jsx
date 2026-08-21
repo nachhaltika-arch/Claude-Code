@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 const TOOLBAR_H = 56;
 
@@ -125,6 +126,7 @@ export default function TemplateEditor() {
       zIndex: 9999, background: '#fff',
       display: 'flex', flexDirection: 'column',
     }}>
+      <SeitenTitel>Vorlage bearbeiten</SeitenTitel>
       <div style={{
         height: TOOLBAR_H, flexShrink: 0, background: '#1A2C32',
         display: 'flex', alignItems: 'center', gap: 10,
@@ -137,7 +139,7 @@ export default function TemplateEditor() {
           ← Zurück
         </Link>
 
-        <input
+        <input aria-label="Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".zip,.grapesjs"
@@ -154,7 +156,7 @@ export default function TemplateEditor() {
           {importing ? '⏳ Lädt…' : '📂 Template importieren'}
         </button>
 
-        <input
+        <input aria-label="Template-Name"
           value={name}
           onChange={e => setName(e.target.value)}
           style={{

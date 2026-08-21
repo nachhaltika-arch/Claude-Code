@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { loadJson } from '../../utils/apiRequest';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 export default function AssetsKlaeren({ leadId, token, onSaved }) {
   const [status, setStatus] = useState(null);
@@ -119,7 +120,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Medien
         </label>
-        <textarea
+        <textarea aria-label="Zusätzliche Hinweise zu Medien"
           value={hinweis}
           onChange={e => setHinweis(e.target.value)}
           placeholder="z.B. Fotos werden nachgeliefert, Logo kommt per E-Mail, CI-Handbuch in Arbeit"
@@ -176,7 +177,7 @@ function AssetRow({ icon, label, checked, onChange, autoDetected, autoLabel, det
           )}
           {detail}
         </div>
-        <div
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => onChange(!checked))}
           onClick={() => onChange(!checked)}
           style={{
             width: 44, height: 24, borderRadius: 12, flexShrink: 0,

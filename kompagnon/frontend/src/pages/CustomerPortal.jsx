@@ -4,6 +4,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import Logo from '../components/Logo';
 import { datumKurz, nurZeit } from '../utils/datum';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const LEVEL_COLORS = {
   'Homepage Standard Platin': '#4a90d9',
@@ -179,7 +180,7 @@ function FileUploadSection({ token }) {
             marginBottom: 14,
           }}
         >
-          <input ref={fileInputRef} id="portal-file-input" name="portal-file-input" type="file" style={{ display: 'none' }} onChange={handleFileInput} />
+          <input aria-label="Datei auswaehlen" ref={fileInputRef} id="portal-file-input" name="portal-file-input" type="file" style={{ display: 'none' }} onChange={handleFileInput} />
           {pendingFile ? (
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
@@ -208,7 +209,7 @@ function FileUploadSection({ token }) {
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Dateityp
               </label>
-              <select
+              <select aria-label="Dateityp"
                 id="portal-file-type"
                 name="portal-file-type"
                 value={fileType}
@@ -224,7 +225,7 @@ function FileUploadSection({ token }) {
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Anmerkung (optional)
               </label>
-              <input
+              <input aria-label="Anmerkung (optional)"
                 id="portal-file-note"
                 name="portal-file-note"
                 type="text"
@@ -496,7 +497,7 @@ export default function CustomerPortal() {
           <form onSubmit={handleVerify}>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
+              <input aria-label="Ihre geschäftliche E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
                 style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
                 onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
@@ -564,7 +565,7 @@ export default function CustomerPortal() {
               </div>
               <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '20px 0' }} />
               <label style={labelStyle}>Ihre Website-URL</label>
-              <input
+              <input aria-label="Ihre Website-URL"
                 type="url"
                 value={onboardingData.website_url}
                 onChange={e => setOnboardingData(prev => ({ ...prev, website_url: e.target.value }))}
@@ -592,7 +593,7 @@ export default function CustomerPortal() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label style={labelStyle}>Gewerk / Branche</label>
-                  <input
+                  <input aria-label="Gewerk / Branche"
                     type="text"
                     value={onboardingData.gewerk}
                     onChange={e => setOnboardingData(prev => ({ ...prev, gewerk: e.target.value }))}
@@ -602,7 +603,7 @@ export default function CustomerPortal() {
                 </div>
                 <div>
                   <label style={labelStyle}>Ihre Leistungen</label>
-                  <textarea
+                  <textarea aria-label="Ihre Leistungen"
                     value={onboardingData.leistungen}
                     onChange={e => setOnboardingData(prev => ({ ...prev, leistungen: e.target.value }))}
                     placeholder="Was bieten Sie an? z.B. Badezimmer, Heizung, Notdienst, Wartung..."
@@ -612,7 +613,7 @@ export default function CustomerPortal() {
                 </div>
                 <div>
                   <label style={labelStyle}>Einzugsgebiet / Region</label>
-                  <input
+                  <input aria-label="Einzugsgebiet / Region"
                     type="text"
                     value={onboardingData.einzugsgebiet}
                     onChange={e => setOnboardingData(prev => ({ ...prev, einzugsgebiet: e.target.value }))}
@@ -641,7 +642,7 @@ export default function CustomerPortal() {
                   { field: 'has_logo', icon: '🎨', title: 'Logo vorhanden', text: 'Wir haben bereits ein Firmenlogo' },
                   { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
                 ].map(({ field, icon, title, text }) => (
-                  <div key={field} onClick={() => toggleField(field)} style={{
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => toggleField(field))} key={field} onClick={() => toggleField(field)} style={{
                     border: onboardingData[field] ? '2px solid var(--kc-mid)' : '2px solid var(--border-light)',
                     background: onboardingData[field] ? 'var(--status-success-bg)' : 'var(--bg-app)',
                     borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
@@ -655,7 +656,7 @@ export default function CustomerPortal() {
               </div>
               <div style={{ marginBottom: 20 }}>
                 <label style={labelStyle}>Sonstige Hinweise (optional)</label>
-                <textarea
+                <textarea aria-label="Sonstige Hinweise (optional)"
                   value={onboardingData.anmerkungen}
                   onChange={e => setOnboardingData(prev => ({ ...prev, anmerkungen: e.target.value }))}
                   placeholder="Gibt es noch etwas das wir wissen sollten?"
@@ -955,7 +956,7 @@ export default function CustomerPortal() {
 
               {/* Eingabe */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <textarea
+                <textarea aria-label="Hier antworten..."
                   value={msgText}
                   onChange={e => setMsgText(e.target.value)}
                   placeholder="Hier antworten..."

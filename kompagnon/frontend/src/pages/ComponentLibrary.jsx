@@ -13,9 +13,11 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/BlockContract';
 import { mitBlockMarkierung } from '../utils/blockMarkup';
+import Feld from '../components/ui/Feld';
+import { aufTaste } from '../utils/tastaturBedienung';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
 
 const CATEGORY_OPTIONS = [
   'NAV', 'HERO', 'LEIST', 'TRUST', 'SEO', 'CTA', 'HW', 'FOOT', 'CUSTOM',
@@ -558,7 +560,7 @@ export default function ComponentLibrary() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
+        <input aria-label="Suchen (Slug / Name / Tag)…"
           type="text" placeholder="Suchen (Slug / Name / Tag)…"
           value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -602,7 +604,7 @@ export default function ComponentLibrary() {
             );
           })}
         </div>
-        <select
+        <select aria-label="Nach Kategorie filtern"
           value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
           style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, background: '#fff' }}
         >
@@ -726,7 +728,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
   }, [result]);
 
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+    <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.target === e.currentTarget && onClose())} onClick={(e) => e.target === e.currentTarget && onClose()} style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(0,0,0,0.55)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
@@ -752,7 +754,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               Opus 5 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
             </div>
           </div>
-          <button type="button" onClick={onClose} disabled={status === 'running'}
+          <button aria-label="Schließen" type="button" onClick={onClose} disabled={status === 'running'}
             style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#fff', lineHeight: 1, opacity: status === 'running' ? 0.4 : 1 }}>×</button>
         </div>
 
@@ -1134,7 +1136,7 @@ function Editor({
                 placeholder="Tag eingeben + Enter"
                 style={{ ...inputStyle(false), flex: 1 }}
               />
-              <button type="button" onClick={addTag}
+              <button aria-label="Hinzufügen" type="button" onClick={addTag}
                 style={{ padding: '6px 10px', fontSize: 11, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}>+</button>
             </div>
           </Field>
@@ -1226,15 +1228,13 @@ function Editor({
 
 // ── Tiny helpers ─────────────────────────────────────────────────────────────
 
+// Beschriftung und Feld waren hier Geschwister ohne `htmlFor` — dieselbe
+// Form wie in sieben weiteren Dateien (L-17). Der Baustein verknüpft beide.
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{
-        display: 'block', fontSize: 10, fontWeight: 700, color: '#475569',
-        textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4,
-      }}>{label}</label>
+    <Feld label={label} style={{ marginBottom: 12 }} labelStyle={{ color: '#475569' }}>
       {children}
-    </div>
+    </Feld>
   );
 }
 

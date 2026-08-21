@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const STAGES = [
   { key: 'neu',              label: 'Neu',              color: 'var(--text-tertiary)' },
@@ -85,6 +87,7 @@ export default function Deals() {
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 1600, margin: '0 auto' }}>
+      <SeitenTitel>Deals</SeitenTitel>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
@@ -143,7 +146,7 @@ export default function Deals() {
                     Keine Deals
                   </div>
                 ) : stage.deals.map(deal => (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => openEdit(deal.id))}
                     key={deal.id}
                     onClick={() => openEdit(deal.id)}
                     style={{
@@ -240,7 +243,7 @@ export default function Deals() {
           }}
           onClick={() => !deleting && setDeleteConfirm(null)}
         >
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
             onClick={e => e.stopPropagation()}
             style={{
               position: 'relative',
@@ -262,13 +265,13 @@ export default function Deals() {
             }}>
               🗑️
             </div>
-            <h3 style={{
+            <h2 style={{
               fontSize: 17, fontWeight: 700,
               color: 'var(--text-primary)', margin: '0 0 8px',
               fontFamily: 'var(--font-sans)',
             }}>
               Deal löschen?
-            </h3>
+            </h2>
             <p style={{
               fontSize: 13, color: 'var(--text-primary)',
               margin: '0 0 6px', lineHeight: 1.55,
@@ -430,7 +433,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
   const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
 
   return createPortal(
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed',
@@ -474,7 +477,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               {form.title || 'Unbenannter Deal'}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
         </div>
 
         {/* Body */}
@@ -482,11 +485,11 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Titel *</label>
-              <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="z.B. Website-Relaunch Müller GmbH" />
+              <input aria-label="Titel" style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="z.B. Website-Relaunch Müller GmbH" />
             </div>
             <div>
               <label style={labelStyle}>Status</label>
-              <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              <select aria-label="Status" style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
             </div>
@@ -494,7 +497,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Unternehmen</label>
-            <select style={inputStyle} value={form.company_id || ''} onChange={e => setForm({ ...form, company_id: e.target.value ? parseInt(e.target.value) : null })}>
+            <select aria-label="Unternehmen" style={inputStyle} value={form.company_id || ''} onChange={e => setForm({ ...form, company_id: e.target.value ? parseInt(e.target.value) : null })}>
               <option value="">— Kein Unternehmen —</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.company_name || `Lead #${c.id}`}</option>)}
             </select>
@@ -502,7 +505,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Notizen</label>
-            <textarea style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Interne Notizen zum Deal…" />
+            <textarea aria-label="Notizen" style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Interne Notizen zum Deal…" />
           </div>
 
           {/* Positionen */}
@@ -522,19 +525,19 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               </div>
               {form.items.map((item, i) => (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, marginBottom: 6, alignItems: 'center' }}>
-                  <input
+                  <input aria-label="Position"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12 }}
                     value={item.position}
                     onChange={e => updateItem(i, 'position', e.target.value)}
                     placeholder="z.B. Website-Design"
                   />
-                  <input
+                  <input aria-label="Menge"
                     type="number" step="0.5"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, textAlign: 'right' }}
                     value={item.quantity}
                     onChange={e => updateItem(i, 'quantity', e.target.value)}
                   />
-                  <input
+                  <input aria-label="Einzelpreis"
                     type="number" step="0.01"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, textAlign: 'right' }}
                     value={item.unit_price}

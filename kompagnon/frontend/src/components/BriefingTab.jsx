@@ -505,11 +505,11 @@ export default function BriefingTab({ lead, isMobile }) {
                           ))}
                         </div>
                       ) : field.type === 'textarea' ? (
-                        <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
+                        <textarea aria-label={ph} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
                           rows={field.rows || 3} placeholder={ph}
                           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, minHeight: isMobile ? 88 : undefined }} />
                       ) : (
-                        <input type={field.type || 'text'} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
+                        <input aria-label={ph} type={field.type || 'text'} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
                           placeholder={ph} style={inputStyle} />
                       )}
                     </div>

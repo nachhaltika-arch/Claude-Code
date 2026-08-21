@@ -6,7 +6,7 @@
 //
 // Alle Funktionen geben neue Listen zurueck und fassen die Eingabe nicht an.
 
-import { LEAD_STATUS, leadSourceLabel, leadStatusLabel } from './leadStatus';
+import { LEAD_PHASE, LEAD_STATUS, leadPhaseLabel, leadSourceLabel, leadStatusLabel } from './leadStatus';
 
 /** Sortierungen der Liste. `key` steht im Auswahlfeld. */
 export const BETRIEB_SORTIERUNGEN = [
@@ -63,6 +63,20 @@ export function filterNachStatus(betriebe, status) {
   return betriebe.filter((b) => b.status === status);
 }
 
+/**
+ * Nach Lebenszyklus-Phase filtern.
+ *
+ * `offen` trifft die Betriebe **ohne** Phase — die mit einem Status, den die
+ * Zuordnung nicht kennt. Sie bekommen bewusst eine eigene Schaltfläche: Ein
+ * unbekannter Wert soll sich zeigen, nicht verschwinden (dieselbe Lehre wie
+ * bei `statusAusBetrieben` weiter unten).
+ */
+export function filterNachPhase(betriebe, phase) {
+  if (!phase || phase === 'alle') return [...betriebe];
+  if (phase === 'offen') return betriebe.filter((b) => !b.lifecycle_phase);
+  return betriebe.filter((b) => b.lifecycle_phase === phase);
+}
+
 export function filterNachQuelle(betriebe, quelle) {
   if (!quelle || quelle === 'alle') return [...betriebe];
   if (quelle === 'manual') {
@@ -97,10 +111,42 @@ export function sortiereBetriebe(betriebe, sortierung) {
  * Suche, beide Filter und Sortierung in einem Durchgang.
  * @returns {Array} neue Liste
  */
-export function betriebeAufbereiten({ betriebe = [], suche = '', status = 'alle', quelle = 'alle', sortierung = 'name' } = {}) {
+export function betriebeAufbereiten({ betriebe = [], suche = '', status = 'alle', quelle = 'alle', phase = 'alle', sortierung = 'name' } = {}) {
   const gesucht  = sucheBetriebe(betriebe, suche);
-  const gefiltert = filterNachQuelle(filterNachStatus(gesucht, status), quelle);
+  const gefiltert = filterNachPhase(
+    filterNachQuelle(filterNachStatus(gesucht, status), quelle),
+    phase,
+  );
   return sortiereBetriebe(gefiltert, sortierung);
+}
+
+/**
+ * Die Phasen, die in den Daten vorkommen — samt derer **ohne** Phase.
+ *
+ * Anders als bei den Status ist die Menge hier bekannt und klein; trotzdem
+ * wird gezaehlt und nicht aufgezaehlt, damit die Summe der Schaltflaechen der
+ * Zahl der Betriebe entspricht. Genau daran ist es beim Status aufgefallen.
+ */
+export function phasenAusBetrieben(betriebe = []) {
+  const zaehler = new Map();
+  for (const betrieb of betriebe) {
+    const key = betrieb.lifecycle_phase || 'offen';
+    zaehler.set(key, (zaehler.get(key) || 0) + 1);
+  }
+
+  const reihenfolge = [...Object.keys(LEAD_PHASE), 'offen'];
+  const rang = (key) => {
+    const platz = reihenfolge.indexOf(key);
+    return platz === -1 ? reihenfolge.length : platz;
+  };
+
+  return [...zaehler.entries()]
+    .map(([key, anzahl]) => ({
+      key,
+      label: key === 'offen' ? 'Phase offen' : leadPhaseLabel(key),
+      anzahl,
+    }))
+    .sort((a, b) => rang(a.key) - rang(b.key));
 }
 
 /**
@@ -149,5 +195,6 @@ export function betriebeStatistik(betriebe = []) {
     mitScore: mitScore.length,
     durchschnittsScore: mitScore.length ? Math.round(summe / mitScore.length) : 0,
     statusZaehler: statusAusBetrieben(betriebe),
+    phasenZaehler: phasenAusBetrieben(betriebe),
   };
 }

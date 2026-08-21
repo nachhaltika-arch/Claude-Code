@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
-const PRIMARY = '#008eaa';
+const PRIMARY = 'var(--kc-mid)';
 const BASE_URL = 'https://kompagnon-frontend.onrender.com/kampagne';
 
 export default function QRGenerator() {
@@ -39,7 +39,7 @@ export default function QRGenerator() {
         }}>
           Kampagnen-Slug
         </label>
-        <input
+        <input aria-label="Kampagnen-Slug"
           type="text"
           value={slug}
           onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}

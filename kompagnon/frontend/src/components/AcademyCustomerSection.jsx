@@ -15,6 +15,14 @@ export default function AcademyCustomerSection({ leadId }) {
   const [assigning, setAssigning]   = useState(null);
   const [removing, setRemoving]     = useState(null);
 
+  // Modulzuweisung: der Pflichtteil eines Kurses gilt fuer alle, die
+  // gesperrten Module nur fuer Zugewiesene. Damit wird aus einem Kurs je
+  // Zielgruppe ein Kurs mit Zweigen (docs/akademie-vorbild-memberspot.md).
+  const [module, setModule]         = useState([]);
+  const [modulKandidaten, setModulKandidaten] = useState([]);
+  const [modulModal, setModulModal] = useState(false);
+  const [modulLaeuft, setModulLaeuft] = useState(null);
+
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE_URL}/api/academy/customer/${leadId}/courses`, { headers: h }).then(r => r.json()),
@@ -23,6 +31,7 @@ export default function AcademyCustomerSection({ leadId }) {
       .then(([assignedData, coursesData]) => {
         setAssigned(Array.isArray(assignedData) ? assignedData : []);
         setAllCourses(Array.isArray(coursesData) ? coursesData : []);
+        ladeModule(Array.isArray(assignedData) ? assignedData : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -50,6 +59,57 @@ export default function AcademyCustomerSection({ leadId }) {
     setRemoving(null);
   };
 
+  // Kandidaten sind die gesperrten Module der zugewiesenen Kurse — ein Modul,
+  // das ohnehin fuer alle sichtbar ist, braucht keine Zuweisung.
+  async function ladeModule(zugewieseneKurse) {
+    try {
+      const schon = await fetch(`${API_BASE_URL}/api/academy/customer/${leadId}/modules`, { headers: h }).then(r => r.json());
+      setModule(Array.isArray(schon) ? schon : []);
+
+      const kurse = await Promise.all(
+        (zugewieseneKurse || []).map(k =>
+          fetch(`${API_BASE_URL}/api/academy/courses/${k.course_id}`, { headers: h })
+            .then(r => r.json()).catch(() => null))
+      );
+      const gesperrt = [];
+      kurse.filter(Boolean).forEach(kurs => {
+        (kurs.modules || []).filter(m => m.is_locked).forEach(m => {
+          gesperrt.push({ ...m, course_title: kurs.title });
+        });
+      });
+      setModulKandidaten(gesperrt);
+    } catch {
+      setModule([]);
+      setModulKandidaten([]);
+    }
+  }
+
+  const modulZuweisen = async (modulId) => {
+    setModulLaeuft(modulId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${leadId}/modules/${modulId}/assign`, { method: 'POST', headers: h });
+      if (res.ok) {
+        await ladeModule(assigned);
+        setModulModal(false);
+      }
+    } finally {
+      setModulLaeuft(null);
+    }
+  };
+
+  const modulEntziehen = async (modulId) => {
+    setModulLaeuft(modulId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${leadId}/modules/${modulId}`, { method: 'DELETE', headers: h });
+      if (res.ok) await ladeModule(assigned);
+    } finally {
+      setModulLaeuft(null);
+    }
+  };
+
+  const modulIds = new Set(module.map(m => m.module_id));
+  const offeneModule = modulKandidaten.filter(m => !modulIds.has(m.id));
+
   const assignedIds = new Set(assigned.map(a => a.course_id));
   const available = allCourses.filter(c => {
     const aud = c.target_audience || c.audience;
@@ -63,7 +123,7 @@ export default function AcademyCustomerSection({ leadId }) {
         <div style={{ padding: isMobile ? '12px 16px' : '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 10 : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🎓</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademy</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademie</span>
             {!loading && assigned.length > 0 && (
               <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{assigned.length}</span>
             )}
@@ -120,7 +180,77 @@ export default function AcademyCustomerSection({ leadId }) {
             </div>
           )}
         </div>
+
+        {/* Freigeschaltete Module — nur sinnvoll, wenn es gesperrte gibt */}
+        {!loading && (modulKandidaten.length > 0 || module.length > 0) && (
+          <div style={{ borderTop: '1px solid var(--border-light)', padding: isMobile ? '12px 16px' : '14px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: module.length ? 10 : 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Freigeschaltete Module
+                {module.length > 0 && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}> · {module.length}</span>}
+              </span>
+              {offeneModule.length > 0 && (
+                <button onClick={() => setModulModal(true)} style={{ padding: '5px 12px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                  + Modul freischalten
+                </button>
+              )}
+            </div>
+
+            {module.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Dieser Betrieb sieht nur die Module, die für alle offen sind.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {module.map(m => (
+                  <span key={m.module_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                    {m.module_title}
+                    {m.course_title && <span style={{ color: 'var(--text-tertiary)' }}>· {m.course_title}</span>}
+                    <button onClick={() => modulEntziehen(m.module_id)} disabled={modulLaeuft === m.module_id} title="Freischaltung entziehen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Modul freischalten */}
+      {modulModal && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} onClick={() => setModulModal(false)} />
+          <div style={isMobile ? {
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0',
+            padding: '20px 16px 32px', zIndex: 101, maxHeight: '80vh', overflowY: 'auto',
+          } : {
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)',
+            padding: 28, zIndex: 101, width: 480, maxHeight: '80vh', overflowY: 'auto',
+            boxShadow: 'var(--shadow-xl)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Modul freischalten</span>
+              <button onClick={() => setModulModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {offeneModule.map(m => (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{m.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                      {m.course_title}{m.description ? ` · ${m.description}` : ''}
+                    </div>
+                  </div>
+                  <button onClick={() => modulZuweisen(m.id)} disabled={modulLaeuft === m.id} style={{ padding: '6px 14px', background: modulLaeuft === m.id ? 'var(--bg-elevated)' : 'var(--brand-primary)', color: modulLaeuft === m.id ? 'var(--text-tertiary)' : 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: modulLaeuft === m.id ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, marginLeft: 12 }}>
+                    {modulLaeuft === m.id ? '…' : 'Freischalten'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Assign Modal */}
       {showModal && (

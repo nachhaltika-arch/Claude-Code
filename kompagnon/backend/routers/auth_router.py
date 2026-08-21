@@ -74,6 +74,17 @@ def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
+#: Wer zum Innendienst gehoert, **wenn niemand etwas anderes eingestellt hat**.
+#: Fuer die eigentliche Frage siehe `require_innendienst`: Die liest die
+#: Rechteverwaltung, statt Rollen aufzuzaehlen.
+INNENDIENST = ("superadmin", "admin", "auditor")
+
+#: Admin und Superadmin bleiben drin, was auch immer jemand anhakt. Die
+#: Oberflaeche laesst beide Rollen nicht bearbeiten; hier steht derselbe Boden
+#: noch einmal, weil eine Oberflaechenpruefung keine Sperre ist.
+IMMER_INNENDIENST = ("superadmin", "admin")
+
+
 def require_innendienst(user: User = Depends(get_current_user)):
     """Alles ausser Kundenzugaengen.
 
@@ -86,10 +97,52 @@ def require_innendienst(user: User = Depends(get_current_user)):
     `view_projects` haben superadmin, admin und auditor. Was ein Kunde
     braucht, haengt am `kunden_router` des jeweiligen Bereichs und prueft
     dort einzeln, ob die Zeile ihm gehoert.
+
+    **18.08.2026:** Die Sperre zaehlte auf, wer *nicht* darf — und liess
+    damit die Rolle `nutzer` durch. Die hat laut derselben Matrix nur
+    Dashboard, Audits und PDF, bekam ueber `GET /api/leads/` aber den
+    vollstaendigen Bestand (am laufenden Server nachgestellt: HTTP 200).
+    Dieselbe Luecke wie am 17.08. bei den Kundenzugaengen, eine Rolle weiter.
+
+    Jetzt umgekehrt: Es zaehlt auf, **wer darf**. Eine spaeter erfundene Rolle
+    ist damit erst einmal draussen, statt aus Versehen drin.
+
+    **18.08.2026, zweiter Schritt (L-05):** Es zaehlt nicht mehr selbst auf,
+    sondern fragt die Rechteverwaltung nach `view_leads`. Damit tut der Haken
+    im Bildschirm „Rollen" endlich etwas — vorher liess er sich setzen und
+    wegnehmen, ohne dass irgendetwas geschah.
     """
-    if user.role == "kunde":
+    if user.role in IMMER_INNENDIENST:
+        return user
+
+    from services.rechte import hat_recht
+
+    if not hat_recht(user.role, "view_leads"):
         raise HTTPException(403, "Nur fuer den Innendienst")
     return user
+
+
+def verlangt_recht(recht: str):
+    """Eine Abhaengigkeit, die genau **ein** Recht verlangt.
+
+    Der Unterschied zu `require_admin` ist der Punkt: Die Rolle sagt, wer
+    jemand ist — das Recht sagt, was er darf. Solange eine Route nur die Rolle
+    fragt, laesst sich das Haeckchen im Bildschirm „Rollen" setzen und
+    wegnehmen, ohne dass irgendetwas geschieht.
+
+    Wer diese Abhaengigkeit an eine Route haengt, traegt das Recht **auch** in
+    `services.rechte.DURCHGESETZTE_RECHTE` ein — sonst kennzeichnet der
+    Bildschirm es weiter als bloss beschreibend, und er luegt wieder, nur
+    andersherum.
+    """
+    def pruefung(user: User = Depends(get_current_user)):
+        from services.rechte import hat_recht
+
+        if not hat_recht(user.role, recht):
+            raise HTTPException(403, f"Fehlendes Recht: {recht}")
+        return user
+
+    return pruefung
 
 
 def require_kunde(user: User = Depends(get_current_user)):
@@ -407,13 +460,13 @@ def update_signature(req: SignatureUpdate, user: User = Depends(get_current_user
 # Admin User Management
 # ═══════════════════════════════════════════════════════════
 
-@admin_router.get("/users")
+@admin_router.get("/users", dependencies=[Depends(verlangt_recht("view_users"))])
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [_user_dict(u) for u in users]
 
 
-@admin_router.post("/users")
+@admin_router.post("/users", dependencies=[Depends(verlangt_recht("manage_users"))])
 def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
         raise HTTPException(400, "E-Mail bereits vergeben")
@@ -442,7 +495,7 @@ def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: 
     }
 
 
-@admin_router.patch("/users/{user_id}")
+@admin_router.patch("/users/{user_id}", dependencies=[Depends(verlangt_recht("manage_users"))])
 def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -460,7 +513,7 @@ def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(requir
     return _user_dict(user)
 
 
-@admin_router.delete("/users/{user_id}")
+@admin_router.delete("/users/{user_id}", dependencies=[Depends(verlangt_recht("manage_users"))])
 def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -472,7 +525,7 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
     return {"message": "Benutzer geloescht"}
 
 
-@admin_router.post("/users/{user_id}/reset-password")
+@admin_router.post("/users/{user_id}/reset-password", dependencies=[Depends(verlangt_recht("manage_users"))])
 def admin_reset_password(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

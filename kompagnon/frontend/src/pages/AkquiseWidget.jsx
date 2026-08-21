@@ -48,7 +48,7 @@ function Abschnitt({ titel, hinweis, kopfzeile, children }) {
     <section className="kc-card" style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
                     gap: 12, flexWrap: 'wrap' }}>
-        <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>{titel}</h3>
+        <h2 style={{ margin: '0 0 4px', fontSize: 15 }}>{titel}</h2>
         {kopfzeile}
       </div>
       {hinweis && (
@@ -371,7 +371,7 @@ export default function AkquiseWidget() {
       <div style={{ marginBottom: 20 }}>
         <span style={{ fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase',
                        color: 'var(--text-tertiary)' }}>Akquise</span>
-        <h2 style={{ margin: '4px 0 14px' }}>Analyse-Widget</h2>
+        <h1 style={{ margin: '4px 0 14px', fontSize: 20, fontWeight: 700 }}>Analyse-Widget</h1>
         <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <Kennzahl wert={widget.requests_total} label="Anfragen insgesamt" />
           <Kennzahl wert={versendet} label={`Berichte versendet (letzte ${anfragen.limit})`} />

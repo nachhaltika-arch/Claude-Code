@@ -14,10 +14,11 @@
  * / DesignView lesen weiter colors.primary etc.
  */
 import { useEffect, useRef, useState } from 'react';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
+const KC_YELLOW = 'var(--kc-yellow)';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Color Concepts — kuratierte Paletten
@@ -918,7 +919,7 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
   const fg = hex ? readableOn(hex) : '#0F172A';
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(handleClick)}
       onClick={handleClick}
       style={{
         background: bg,
@@ -963,7 +964,7 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
 
       {/* Hidden Color-Picker */}
       {!isReadonly && (
-        <input
+        <input aria-label="Farbe waehlen"
           ref={inputRef}
           type="color"
           value={hex || '#000000'}
@@ -1033,7 +1034,7 @@ function TypographySection({ typoPairing, fontScale, onScaleChange, onShuffle })
       title="Typography"
       right={
         <>
-          <select
+          <select aria-label="Schriftgroessen-Stufe"
             value={fontScale}
             onChange={(e) => onScaleChange(e.target.value)}
             style={{
@@ -1127,7 +1128,7 @@ function UIStylingSection({
 
 function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
   return (
-    <div onClick={onClick}
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onClick)} onClick={onClick}
       title="Klicken um den UI-Stil zu wechseln"
       style={{
         background: '#fff',
@@ -1184,7 +1185,7 @@ function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants, onCli
   const imgBg = 'linear-gradient(135deg, var(--text-tertiary) 0%, var(--text-secondary) 50%, var(--text-secondary) 100%)';
 
   return (
-    <div onClick={onClick}
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onClick)} onClick={onClick}
       title="Klicken um die Card-Variante zu wechseln"
       style={{
         background: '#fff',
@@ -1526,8 +1527,8 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
             gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: gap * 0.7,
           }}>
-            <input type="text" placeholder="Name" style={inputStyle(forms, palette, ui)} />
-            <input type="email" placeholder="E-Mail" style={inputStyle(forms, palette, ui)} />
+            <input aria-label="Name" type="text" placeholder="Name" style={inputStyle(forms, palette, ui)} />
+            <input aria-label="E-Mail" type="email" placeholder="E-Mail" style={inputStyle(forms, palette, ui)} />
             <button type="button" style={{
               background: primary.bg, color: primary.fg,
               border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { VersandProvider } from './context/VersandContext';
@@ -30,19 +30,14 @@ import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
-import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
-import AcademyLesson from './pages/AcademyLesson';
 import AcademyAdmin from './pages/AcademyAdmin';
 import AcademyAdminCourse from './pages/AcademyAdminCourse';
 import AcademyAdminLesson from './pages/AcademyAdminLesson';
-import AcademyEdit from './pages/AcademyEdit';
-import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
 import Betriebe from './pages/Betriebe';
 import CustomerDashboard from './pages/CustomerDashboard';
-import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
 import ScraperControl from './pages/ScraperControl';
 import KasWebsite from './pages/KasWebsite';
@@ -56,6 +51,7 @@ import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
+import Fehlerprotokoll from './pages/Fehlerprotokoll';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import Barrierefreiheit from './pages/Barrierefreiheit';
@@ -72,9 +68,6 @@ import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
 import ContentApprovalPage from './pages/ContentApprovalPage';
 import MobileVertrieb  from './pages/MobileVertrieb';
-import MobileLeads     from './pages/MobileLeads';
-import MobileProjekte  from './pages/MobileProjekte';
-import MobileSettings  from './pages/MobileSettings';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -145,6 +138,36 @@ function DashboardRoute() {
 }
 
 // ── Main App ──
+
+/**
+ * Lenkt jede alte `/app/akademie/…`-Adresse auf ihre Entsprechung in
+ * `/app/academy/…`. Zwei Bildschirme haben keine: der zweite Kurseditor
+ * (seine Felder erscheinen nirgends) und der alte Lektions-Spieler. Sie
+ * landen beim nächstgelegenen Ziel, das es gibt.
+ */
+function AkademieUmleitung() {
+  const { pathname, search } = useLocation();
+  const rest = pathname.replace(/^\/app\/akademie/, '');
+
+  const ziel = (() => {
+    if (rest.startsWith('/admin/modul/')) return '/app/academy/admin';
+    if (rest === '/admin/neu') return '/app/academy/admin/course/new';
+
+    const kursEditor = rest.match(/^\/admin\/(\d+)$/);
+    if (kursEditor) return `/app/academy/admin/course/${kursEditor[1]}`;
+
+    const kurs = rest.match(/^\/kurs\/(\d+)$/);
+    if (kurs) return `/app/academy/${kurs[1]}`;
+
+    // Den alten Lektions-Spieler gibt es nicht mehr; der Kurs ist der Ort,
+    // von dem aus man die Lektion ohnehin öffnet.
+    if (rest.startsWith('/lektion/')) return '/app/academy';
+
+    return `/app/academy${rest}`;
+  })();
+
+  return <Navigate to={ziel + search} replace />;
+}
 
 function App() {
   return (
@@ -267,7 +290,6 @@ function App() {
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
-            <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
             <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />
@@ -279,27 +301,31 @@ function App() {
             <Route path="academy/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
             <Route path="academy/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
             <Route path="academy/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            {/* Legacy-Routen (Rückwärtskompatibilität) */}
-            <Route path="akademie" element={<Academy />} />
-            <Route path="akademie/kurs/:kursId" element={<AcademyCourseNew />} />
-            <Route path="akademie/lektion/:lessonId" element={<AcademyLesson />} />
-            <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
-            <Route path="akademie/admin/course/new" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
-            <Route path="akademie/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
-            <Route path="akademie/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            <Route path="akademie/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
-            <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
-            <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
-            <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
+            {/* Die Akademie hatte zwei Adressräume — und das waren keine
+              * Aliasse: Hinter `akademie/admin/:id` lag ein anderer Kurseditor
+              * als hinter `academy/admin/course/:id`, und der Modul-Editor war
+              * nur über den alten Pfad erreichbar. Ein Klick auf „Bearbeiten"
+              * wechselte den Raum, ohne dass man es sah (UX-42, 18.08.2026).
+              *
+              * Die alten Adressen bleiben gültig — als Weiterleitung, damit
+              * Lesezeichen und alte Links nicht ins Leere laufen. */}
+            <Route path="akademie/*" element={<AkademieUmleitung />} />
 
             {/* Mobile hub pages */}
+            {/* `m-vertrieb` war eine zweite Adresse fuer denselben Bildschirm,
+              * von nirgends verlinkt — entfernt am 18.08.2026. Die Mobilleiste
+              * fuehrt auf `/app/vertrieb`. */}
             <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
-            <Route path="m-vertrieb"  element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
-            <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
-            <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />
-            <Route path="m-settings"  element={<PrivateRoute><MobileSettings /></PrivateRoute>} />
+            {/* `m-leads`, `m-projekte` und `m-settings` standen hier, ohne dass
+              * irgendetwas auf sie zeigte — und sie doppelten, was es schon
+              * gibt: `/app/settings` rendert eine eigene Mobilansicht, die
+              * uebrigen Ziele stehen direkt in der Mobilleiste. Entfernt am
+              * 18.08.2026 (UX-43). */}
 
             {/* Settings with sub-navigation */}
+            {/* Was der Server nicht verarbeiten konnte — L-10. */}
+            <Route path="fehler" element={<PrivateRoute roles={['admin']}><Fehlerprotokoll /></PrivateRoute>} />
+
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/app/settings/profile" replace />} />
               <Route path="profile" element={<Settings tab="profile" />} />

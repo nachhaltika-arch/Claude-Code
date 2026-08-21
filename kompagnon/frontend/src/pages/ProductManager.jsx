@@ -134,19 +134,19 @@ export default function ProductManager() {
       {showCreate && (
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
           <div style={modal}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{editProduct ? 'Produkt bearbeiten' : 'Neues Produkt'}</h3>
-            <div><label style={label}>Name</label><input style={input} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. KOMPAGNON Starter" /></div>
-            <div><label style={label}>Beschreibung</label><textarea style={{ ...input, minHeight: 60, resize: 'vertical' }} value={form.beschreibung} onChange={e => setForm(f => ({ ...f, beschreibung: e.target.value }))} /></div>
-            <div><label style={label}>Leistungsumfang</label><textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={form.leistungsumfang} onChange={e => setForm(f => ({ ...f, leistungsumfang: e.target.value }))} placeholder="Bullet Points der Leistungen" /></div>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{editProduct ? 'Produkt bearbeiten' : 'Neues Produkt'}</h2>
+            <div><label style={label}>Name</label><input aria-label="Name" style={input} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. KOMPAGNON Starter" /></div>
+            <div><label style={label}>Beschreibung</label><textarea aria-label="Beschreibung" style={{ ...input, minHeight: 60, resize: 'vertical' }} value={form.beschreibung} onChange={e => setForm(f => ({ ...f, beschreibung: e.target.value }))} /></div>
+            <div><label style={label}>Leistungsumfang</label><textarea aria-label="Leistungsumfang" style={{ ...input, minHeight: 80, resize: 'vertical' }} value={form.leistungsumfang} onChange={e => setForm(f => ({ ...f, leistungsumfang: e.target.value }))} placeholder="Bullet Points der Leistungen" /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div><label style={label}>Typ</label><select style={input} value={form.typ} onChange={e => setForm(f => ({ ...f, typ: e.target.value }))}><option value="paket">Paket</option><option value="retainer">Retainer</option><option value="addon">Add-on</option></select></div>
-              <div><label style={label}>Zielgruppe</label><select style={input} value={form.zielgruppe} onChange={e => setForm(f => ({ ...f, zielgruppe: e.target.value }))}><option value="oeffentlich">Oeffentlich</option><option value="intern">Intern</option></select></div>
+              <div><label style={label}>Typ</label><select aria-label="Typ" style={input} value={form.typ} onChange={e => setForm(f => ({ ...f, typ: e.target.value }))}><option value="paket">Paket</option><option value="retainer">Retainer</option><option value="addon">Add-on</option></select></div>
+              <div><label style={label}>Zielgruppe</label><select aria-label="Zielgruppe" style={input} value={form.zielgruppe} onChange={e => setForm(f => ({ ...f, zielgruppe: e.target.value }))}><option value="oeffentlich">Oeffentlich</option><option value="intern">Intern</option></select></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div><label style={label}>Preis einmalig (Cent)</label><input style={input} type="number" value={form.preis_einmalig} onChange={e => setForm(f => ({ ...f, preis_einmalig: e.target.value }))} placeholder="249000" /></div>
-              <div><label style={label}>Preis monatlich (Cent)</label><input style={input} type="number" value={form.preis_monatlich} onChange={e => setForm(f => ({ ...f, preis_monatlich: e.target.value }))} placeholder="8900" /></div>
+              <div><label style={label}>Preis einmalig (Cent)</label><input aria-label="Preis einmalig (Cent)" style={input} type="number" value={form.preis_einmalig} onChange={e => setForm(f => ({ ...f, preis_einmalig: e.target.value }))} placeholder="249000" /></div>
+              <div><label style={label}>Preis monatlich (Cent)</label><input aria-label="Preis monatlich (Cent)" style={input} type="number" value={form.preis_monatlich} onChange={e => setForm(f => ({ ...f, preis_monatlich: e.target.value }))} placeholder="8900" /></div>
             </div>
-            <div><label style={label}>Landing Page URL</label><input style={input} value={form.landing_page_url} onChange={e => setForm(f => ({ ...f, landing_page_url: e.target.value }))} placeholder="https://kompagnon.eu/paket/..." /></div>
+            <div><label style={label}>Landing Page URL</label><input aria-label="Landing Page URL" style={input} value={form.landing_page_url} onChange={e => setForm(f => ({ ...f, landing_page_url: e.target.value }))} placeholder="https://kompagnon.eu/paket/..." /></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={btnSecondary} onClick={() => { setShowCreate(false); setEditProduct(null); }}>Abbrechen</button>
               <button style={btnPrimary} onClick={save} disabled={submitting}>{submitting ? 'Speichern...' : 'Speichern'}</button>

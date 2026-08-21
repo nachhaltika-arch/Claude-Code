@@ -13,7 +13,7 @@ import secrets
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from datetime import datetime
@@ -44,7 +44,9 @@ from seed_checklists import seed_checklists
 
 # Import all routers
 from routers import (
+    fehler_router,
     usercards_router,
+    usercards_kunden_router,
     leads_alias_router,
     usercards_customers_alias_router,
     leads_router,
@@ -77,6 +79,27 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+
+def _kurse_zusammenfuehren():
+    """Startphase: die alte Kurstabelle in die Akademie überführen."""
+    from services.kurse_zusammenfuehren import zusammenfuehren_beim_start
+
+    zusammenfuehren_beim_start()
+
+
+def _zuweisungs_kennungen_nachziehen():
+    """Startphase: Altzeilen der Akademie-Zuweisung auf die Benutzer-ID ziehen."""
+    from services.zuweisung_kennung import nachziehen_beim_start
+
+    nachziehen_beim_start()
+
+
+def _lebenszyklus_phasen_nachtragen():
+    """Startphase: Lebenszyklus-Phase fuer Bestandsbetriebe nachtragen."""
+    from services.lebenszyklus_nachtrag import nachtragen_beim_start
+
+    nachtragen_beim_start()
 
 
 def _run_migrations():
@@ -229,6 +252,18 @@ def _run_migrations():
         # Missing columns on academy_modules (for existing deployments)
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0",
         "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
+        """CREATE TABLE IF NOT EXISTS academy_module_access (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER NOT NULL,
+            module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,
+            assigned_at TIMESTAMP DEFAULT NOW(),
+            assigned_by INTEGER
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_academy_module_access_kunde "
+        "ON academy_module_access(customer_id)",
         """CREATE TABLE IF NOT EXISTS academy_lessons (
             id SERIAL PRIMARY KEY,
             module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,
@@ -546,6 +581,42 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_tool_costs FLOAT DEFAULT 50.0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS margin_percent FLOAT DEFAULT 0.0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scope_creep_flags INTEGER DEFAULT 0",
+        # Zeilen, die vor der Spalte entstanden oder am Modell vorbei
+        # angelegt wurden, tragen NULL. Ein einziges solches Projekt hat
+        # produktiv `/api/dashboard/alerts` mit 500 beantwortet.
+        "UPDATE projects SET scope_creep_flags = 0 WHERE scope_creep_flags IS NULL",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_phase VARCHAR(30)",
+        "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_phase "
+        "ON leads(lifecycle_phase)",
+        # Eine Schreibweise je Quelle (L-59, gemessen 21.08.2026).
+        # `routers/leads.py:1354` schrieb `Manuell`, drei Frontend-Stellen
+        # schreiben `manual` — und der Quellenfilter der Betriebsliste
+        # vergleicht auf `manual` (`utils/betriebeListe.js:83`). Von Hand
+        # angelegte Betriebe aus dem Backend waren ueber „Von Hand" nicht zu
+        # finden; sie bekamen eine eigene Gruppe und sahen aus wie eine eigene
+        # Quelle. Beim Lesen wird die Zuordnung angewandt — der Filter aber
+        # vergleicht den gespeicherten Wert, deshalb auch hier.
+        # Der Wortschatz steht in `services/lead_quellen.SCHREIBWEISEN`.
+        "UPDATE leads SET lead_source = 'manual' WHERE lead_source = 'Manuell'",
+        "UPDATE leads SET lead_source = 'audit' WHERE lead_source = 'Audit'",
+        # `role_permissions` hatte keinen eindeutigen Schluessel auf
+        # (role, permission) — und `services/rechte.hat_recht` liest mit
+        # `.first()` **ohne** Sortierung. Zwei Zeilen mit verschiedenem
+        # `is_allowed` haetten die Antwort dem Zufall ueberlassen: ein
+        # entzogenes Recht kaeme still zurueck. Der Schreibpfad prueft zwar
+        # vorher, aber nichts **verhindert** es (L-05).
+        # Erst zusammenfuehren, dann sperren — die juengste Zeile gewinnt,
+        # denn sie ist die zuletzt gespeicherte Entscheidung.
+        """DELETE FROM role_permissions a
+             USING role_permissions b
+            WHERE a.role = b.role
+              AND a.permission = b.permission
+              AND a.id < b.id""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_role_permissions_eindeutig "
+        "ON role_permissions(role, permission)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_public_token "
+        "ON audit_results(public_token)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",
@@ -1680,6 +1751,13 @@ async def lifespan(app: FastAPI):
             Phase("Default admin", _create_default_admin),
             Phase("Disable demo accounts", _disable_demo_accounts_in_production),
             Phase("Academy seed", _academy_seed),
+            # Muss nach "DB init" laufen: Sie schreibt in
+            # `academy_courses`, und die legt erst `create_all` an.
+            Phase("Kurse zusammenführen", _kurse_zusammenfuehren),
+            # Muss nach "Kurse zusammenführen" laufen: Beide schreiben in
+            # die Akademie, und der Nachtrag will alle Zeilen sehen.
+            Phase("Zuweisungs-Kennungen", _zuweisungs_kennungen_nachziehen),
+            Phase("Lebenszyklus-Phasen", _lebenszyklus_phasen_nachtragen),
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),
@@ -1757,6 +1835,10 @@ app.add_middleware(
 )
 
 # Include all routers — specific routers BEFORE alias/fallback routers
+# Zuerst der Kundenweg: Die Profilroute liegt dort und prueft je Zeile.
+# Danach der geschlossene Hauptrouter.
+app.include_router(fehler_router)
+app.include_router(usercards_kunden_router)
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first
 # Die ausdrücklich öffentlichen Lead-Routen: Formular der Landingpage und der
@@ -1805,8 +1887,9 @@ app.include_router(briefing_router)       # PATCH + AI endpoints
 from routers.kampagne import router as kampagne_router
 app.include_router(kampagne_router)
 
-from routers.courses import router as courses_router
-app.include_router(courses_router)
+# `routers/courses.py` ist am 19.08.2026 entfallen. Es bediente eine
+# strukturlose Tabelle neben der Akademie — siehe
+# services/kurse_zusammenfuehren.py.
 
 try:
     from routers.academy import router as _academy_router
@@ -1855,8 +1938,9 @@ app.include_router(branddesign_router)
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 
-from routers import website_templates as website_templates_router
-app.include_router(website_templates_router.router)
+# `website_templates` ist am 21.08.2026 in `templates` aufgegangen (L-28):
+# derselbe Tabellenzugriff unter zwei Praefixen, und das zweite rief
+# nachweislich nichts auf. Die Tabelle heisst weiterhin so.
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)
@@ -1918,12 +2002,34 @@ from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
 
 
-# Global exception handler — catches unhandled errors
+# Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
+#
+# Bis zum 18.08.2026 stand hier nur `logger.error`. Ins Serverlog sieht
+# niemand taeglich, und so blieb der 500er beim Anlegen einer Lektion
+# monatelang unbemerkt (L-10). Seitdem landet dasselbe zusaetzlich in
+# `fehlerprotokoll` und ist unter `/api/fehler/` abrufbar.
+#
+# Es gab hier **zwei** gleichnamige Handler; der zweite ueberschrieb den
+# ersten stillschweigend. Jetzt einer.
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error(
-        f'Unbehandelter Fehler: {type(exc).__name__}: {exc}\n{traceback.format_exc()}'
-    )
+    spur = traceback.format_exc()
+    logger.error(f'Unbehandelter Fehler: {type(exc).__name__}: {exc}\n{spur}')
+
+    try:
+        from services.fehlerprotokoll import merke_fehler
+        benutzer = getattr(getattr(request, "state", None), "user_id", None)
+        merke_fehler(
+            pfad=str(getattr(request, "url", "")).split("?")[0][:500],
+            methode=getattr(request, "method", ""),
+            art=type(exc).__name__,
+            meldung=str(exc),
+            spur=spur,
+            benutzer_id=benutzer,
+        )
+    except Exception:      # pragma: no cover — das Protokoll reisst nichts mit
+        pass
+
     return JSONResponse(
         status_code=500,
         content={'detail': 'Interner Serverfehler', 'type': type(exc).__name__},
@@ -1940,6 +2046,15 @@ async def api_health():
 async def api_ping():
     """Ultra-lightweight keepalive alias."""
     return "pong"
+
+def _ablage_zustand() -> dict:
+    """Zustand der Dateiablage fuer die Gesundheitspruefung."""
+    try:
+        from services.dateiablage import ablage_zustand
+        return ablage_zustand()
+    except Exception as fehler:
+        return {"grund": f"{type(fehler).__name__}: {fehler}"}
+
 
 @app.get("/health")
 def health_check():
@@ -1965,13 +2080,23 @@ def health_check():
             # monatelang unbemerkt, dass sieben von acht Startphasen ausfielen.
             "startup_complete": _STARTZUSTAND["vollstaendig"],
             "startup_missing": _STARTZUSTAND["ausgefallen"],
+            # Ob hochgeladene Dateien den naechsten Deploy ueberleben. Ohne
+            # eingehaengten Datentraeger schreibt der Dienst munter weiter —
+            # und beim Deploy ist alles weg (16.08.2026). Von aussen abfragbar,
+            # damit man es nicht im Dashboard nachsehen muss.
+            "uploads": _ablage_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:
         return {"status": "degraded", "database": db_status, "detail": str(e)}
 
 
-@app.get("/api/scheduler/status")
+# Der Scheduler verrät die interne Jobliste und lässt sich neu starten.
+# Beides stand bis zum 19.08.2026 ohne Anmeldung offen; der Neustart
+# antwortete beim Nachmessen mit 200 und startete tatsächlich neu.
+from routers.auth_router import require_innendienst
+
+@app.get("/api/scheduler/status", dependencies=[Depends(require_innendienst)])
 def scheduler_status():
     """Check if scheduler is running and list active jobs."""
     try:
@@ -1990,7 +2115,7 @@ def scheduler_status():
         return {"running": False, "error": str(e)}
 
 
-@app.post("/api/scheduler/restart")
+@app.post("/api/scheduler/restart", dependencies=[Depends(require_innendienst)])
 def scheduler_restart():
     """Manually (re)start the scheduler — useful if background_init failed."""
     try:
@@ -2032,18 +2157,8 @@ def root():
     }
 
 
-# Error handlers
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Handle uncaught exceptions."""
-    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": "Internal server error",
-            "error_type": type(exc).__name__,
-        },
-    )
+# (Der zweite, gleichnamige Handler stand hier und ueberschrieb den oberen.
+#  Entfernt am 18.08.2026 — siehe dort.)
 
 
 # Info endpoint for deployment

@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Status-Farben ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
@@ -136,7 +137,7 @@ function SectionCard({ section, token, onUpdated }) {
         {/* Vom Kunden */}
         <div style={{ background: '#FFFBEB', padding: 12, borderRight: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#D97706', marginBottom: 6 }}>Vom Kunden</div>
-          <textarea
+          <textarea aria-label="Hier den Text des Kunden eintragen..."
             value={kunde}
             onChange={e => { setKunde(e.target.value); saveKunde(e.target.value); }}
             placeholder="Hier den Text des Kunden eintragen..."
@@ -148,7 +149,7 @@ function SectionCard({ section, token, onUpdated }) {
         {/* Finaler Text */}
         <div style={{ background: '#F0FDF4', padding: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#065F46', marginBottom: 6 }}>Finaler Text</div>
-          <textarea
+          <textarea aria-label="Finaler Text für den Mockup..."
             value={final}
             onChange={e => { setFinal(e.target.value); saveFinal(e.target.value); }}
             placeholder="Finaler Text für den Mockup..."
@@ -254,7 +255,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
         </>
       ) : (
         <>
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => fileRef.current?.click())}
             onClick={() => fileRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
@@ -277,7 +278,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
           )}
         </>
       )}
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
+      <input aria-label="Bild auswaehlen" ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
     </div>
   );
 }
@@ -471,7 +472,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Content-Management</span>
             {leadName && !isMobile && <span style={{ fontSize: 13, color: 'var(--text-tertiary)', marginLeft: 8 }}>— {leadName}</span>}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>✕</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
 
         {/* Mobile: horizontale Tab-Bar */}
@@ -510,7 +511,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                 const { total, done } = pageProgress(page);
                 const isActive = activePage?.sitemap_page_id === page.sitemap_page_id;
                 return (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setActivePage(page))}
                     key={page.sitemap_page_id}
                     onClick={() => setActivePage(page)}
                     style={{ padding: '10px 14px', cursor: 'pointer', background: isActive ? '#E6F1FB' : 'transparent', borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent', display: 'flex', alignItems: 'center', gap: 8 }}

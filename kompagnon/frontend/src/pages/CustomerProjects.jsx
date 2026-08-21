@@ -9,6 +9,7 @@ import NewProjectModal from '../components/NewProjectModal';
 import ProjekteLoeschenModal from '../components/ProjekteLoeschenModal';
 import { alleGewaehlt, alleUmschalten, umschalten } from '../utils/projektAuswahl';
 import toast from 'react-hot-toast';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: 'var(--kc-mid)' },
@@ -212,7 +213,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
 
   return createPortal(
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -220,7 +221,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Online Fertig Projekt</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Manuelles Projekt anlegen (ohne Stripe-Checkout)</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
         </div>
 
         {/* Form */}
@@ -228,7 +229,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           {/* Paket */}
           <div>
             <label style={lbl}>Paket</label>
-            <select value={form.paket} onChange={set('paket')} style={inp}>
+            <select aria-label="Paket" value={form.paket} onChange={set('paket')} style={inp}>
               <option value="starter">Starter — 1.500 €</option>
               <option value="kompagnon">Kompagnon — 3.500 €</option>
               <option value="premium">Premium — 2.500 €</option>
@@ -238,13 +239,13 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           {/* Unternehmensname */}
           <div>
             <label style={lbl}>Unternehmensname *</label>
-            <input value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Haustechnik GmbH" style={inp} autoFocus />
+            <input aria-label="Unternehmensname" value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Haustechnik GmbH" style={inp} autoFocus />
           </div>
 
           {/* Website / Domain — Pflichtfeld */}
           <div>
             <label style={lbl}>Website / Domain *</label>
-            <input value={form.website_url} onChange={set('website_url')} placeholder="z.B. mueller-haustechnik.de" style={inp} autoComplete="url" />
+            <input aria-label="Website / Domain" value={form.website_url} onChange={set('website_url')} placeholder="z.B. mueller-haustechnik.de" style={inp} autoComplete="url" />
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
           </div>
 
@@ -252,18 +253,18 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Ansprechpartner</label>
-              <input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
+              <input aria-label="Ansprechpartner" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
             </div>
             <div>
               <label style={lbl}>Telefon</label>
-              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
+              <input aria-label="Telefon" type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
             </div>
           </div>
 
           {/* E-Mail */}
           <div>
             <label style={lbl}>E-Mail</label>
-            <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
+            <input aria-label="E-Mail" type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
           </div>
 
           {/* Actions */}
@@ -361,7 +362,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
   const numInp = { ...inp, width: '100%' };
 
   return createPortal(
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 500, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -369,7 +370,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>IMPULS-Projekt anlegen</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>ISB-Förderprojekt (ISB-158)</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -378,29 +379,29 @@ function ImpulsModal({ token, onClose, onCreated }) {
 
           <div>
             <label style={lbl}>Unternehmensname *</label>
-            <input value={form.company_name} onChange={set('company_name')} placeholder="Mustermann GmbH" style={inp} autoFocus />
+            <input aria-label="Unternehmensname" value={form.company_name} onChange={set('company_name')} placeholder="Mustermann GmbH" style={inp} autoFocus />
           </div>
 
           <div>
             <label style={lbl}>Website / Domain *</label>
-            <input value={form.website_url} onChange={set('website_url')} placeholder="mustermann-gmbh.de" style={inp} autoComplete="url" />
+            <input aria-label="Website / Domain" value={form.website_url} onChange={set('website_url')} placeholder="mustermann-gmbh.de" style={inp} autoComplete="url" />
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Für Audit und Website-Erstellung erforderlich.</div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Ansprechpartner</label>
-              <input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
+              <input aria-label="Ansprechpartner" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
             </div>
             <div>
               <label style={lbl}>Telefon</label>
-              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
+              <input aria-label="Telefon" type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
             </div>
           </div>
 
           <div>
             <label style={lbl}>E-Mail</label>
-            <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
+            <input aria-label="E-Mail" type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
           </div>
 
           {/* ISB-Förderdaten */}
@@ -409,19 +410,19 @@ function ImpulsModal({ token, onClose, onCreated }) {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={lbl}>Antragsdatum</label>
-                <input type="date" value={form.isb_antrag_datum} onChange={set('isb_antrag_datum')} style={inp} />
+                <input aria-label="Antragsdatum" type="date" value={form.isb_antrag_datum} onChange={set('isb_antrag_datum')} style={inp} />
               </div>
               <div>
                 <label style={lbl}>Bewilligungsdatum</label>
-                <input type="date" value={form.isb_bewilligung_datum} onChange={set('isb_bewilligung_datum')} style={inp} />
+                <input aria-label="Bewilligungsdatum" type="date" value={form.isb_bewilligung_datum} onChange={set('isb_bewilligung_datum')} style={inp} />
               </div>
               <div>
                 <label style={lbl}>Fördervolumen (€)</label>
-                <input type="number" value={form.foerder_volumen} onChange={set('foerder_volumen')} style={numInp} min={0} />
+                <input aria-label="Fördervolumen (€)" type="number" value={form.foerder_volumen} onChange={set('foerder_volumen')} style={numInp} min={0} />
               </div>
               <div>
                 <label style={lbl}>Tagewerke gesamt</label>
-                <input type="number" value={form.tagewerke} onChange={set('tagewerke')} style={numInp} min={1} />
+                <input aria-label="Tagewerke gesamt" type="number" value={form.tagewerke} onChange={set('tagewerke')} style={numInp} min={1} />
               </div>
             </div>
           </div>
@@ -551,13 +552,13 @@ export default function CustomerProjects() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: '1 1 200px' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: 13 }}>🔍</span>
-          <input
+          <input aria-label="Firma oder Domain suchen…"
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Firma oder Domain suchen…"
             style={{ width: '100%', padding: '8px 12px 8px 30px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
           />
         </div>
-        <select
+        <select aria-label="Nach Phase filtern"
           value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}
           style={{ padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}
         >

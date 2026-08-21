@@ -32,12 +32,19 @@ keinen Status, sondern nur einen abgebrochenen `fetch`.
 und prüfen, ob er während des Aufrufs drankommt. Vorher: **null Durchläufe**.
 Das ist stabiler als eine Dauermessung.
 
-**Noch offen:** Neun weitere Module rufen `messages.create` genauso auf —
-`agents/qa_agent`, `agents/content_writer`, `agents/review_agent`,
-`agents/seo_geo_agent`, `agents/lead_analyst`, `services/qa_scanner`,
-`services/geo_optimizer`, `services/audit_ai`, `services/geo_generator`.
-Die meisten laufen in Hintergrund-Threads, wo Blockieren nichts kostet — vor
-einer Umstellung ist je Stelle zu prüfen, ob sie an einer Anfrage hängt.
+**Erledigt am 18.08.2026.** Ein AST-Durchlauf fand nicht neun, sondern
+**zwölf** blockierende Stellen: zehn direkt in `async def` und zwei, bei denen
+eine synchrone Zwischenebene den Aufruf verdeckte (`geo_optimizer.analyze`,
+`GeoGeneratorAgent.generate_all`, das das Modell zweimal ruft). Alle laufen
+jetzt über `services/ki_aufruf.frag_modell`.
+
+Die Helfer in `agents/`, `assistant`, `audit_ai`, `component_library` blieben
+unangetastet — sie laufen in FastAPIs Threadpool oder in einem eigenen Thread,
+standen also nie auf der Schleife. Das sagt jetzt der Test, nicht die
+Vermutung: `tests/test_keine_ki_blockiert_die_schleife.py` prüft zwei Regeln
+über das ganze Backend, die zweite transitiv. **Die Auflösung nach
+Funktionsnamen kann einen Fehlalarm erzeugen — das kostet einen Blick, ein
+übersehener Fall einen 503.**
 
 **Merksatz für die Diagnose:** Wenn ein Aufruf scheitert und `health` gleichzeitig
 antwortet, ist der Server nicht tot — er war nur beschäftigt. Erst den

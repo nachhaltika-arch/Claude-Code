@@ -21,10 +21,11 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
-const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
+const KC_DARK = 'var(--kc-dark)';
+const KC_MID = 'var(--kc-mid)';
+const KC_YELLOW = 'var(--kc-yellow)';
 
 // Spiegelung des Backend-SECTION_CATALOG (routers/sitemap.py).
 const SECTION_CATALOG = {
@@ -897,7 +898,7 @@ function PageCard({
   };
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(cardClick)}
       ref={cardRef}
       onClick={cardClick}
       style={{
@@ -1069,7 +1070,7 @@ function PageCard({
 
       {/* Phase C: Link-Footer — zeigt Anzahl interner/externer Links der Page */}
       {hasLinks && (
-        <div data-noselect style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => { e.stopPropagation(); setLinksOpen((v) => !v); })} data-noselect style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 12px',
           borderTop: '1px solid var(--border-light)',
@@ -1106,7 +1107,7 @@ function PageCard({
 
       {/* Phase C: Link-Detail-Popover — eingeklappte Liste der Ziele */}
       {hasLinks && linksOpen && (
-        <div data-noselect onClick={(e) => e.stopPropagation()} style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.stopPropagation())} data-noselect onClick={(e) => e.stopPropagation()} style={{
           padding: '8px 10px',
           background: 'var(--bg-app)',
           borderTop: '1px solid var(--border-light)',
@@ -1703,7 +1704,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
 
       {/* Search */}
       <div style={{ padding: 10, borderBottom: '1px solid var(--border-light)' }}>
-        <input
+        <input aria-label="Suchen…"
           type="search" placeholder="Suchen…"
           value={search} onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -1933,7 +1934,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK }}>
           Seiten-Details
         </div>
-        <button type="button" onClick={onClose}
+        <button aria-label="Schließen" type="button" onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)', padding: 0 }}>×</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1944,14 +1945,14 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         )}
         <div>
           <label style={lblStyle}>Page-Name</label>
-          <input type="text" value={form.page_name} disabled={isPflicht}
+          <input aria-label="Page-Name" type="text" value={form.page_name} disabled={isPflicht}
             onChange={(e) => setForm((f) => ({ ...f, page_name: e.target.value }))}
             style={inpStyle(isPflicht)} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div>
             <label style={lblStyle}>Type</label>
-            <select value={form.page_type} disabled={isPflicht}
+            <select aria-label="Type" value={form.page_type} disabled={isPflicht}
               onChange={(e) => setForm((f) => ({ ...f, page_type: e.target.value }))}
               style={{ ...inpStyle(isPflicht), cursor: isPflicht ? 'not-allowed' : 'pointer' }}>
               {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1959,7 +1960,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
           </div>
           <div>
             <label style={lblStyle}>Status</label>
-            <select value={form.status}
+            <select aria-label="Status" value={form.status}
               onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
               style={{ ...inpStyle(false), cursor: 'pointer' }}>
               <option value="geplant">Geplant</option>
@@ -1971,7 +1972,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         </div>
         <div>
           <label style={lblStyle}>KI-Anweisung (optional)</label>
-          <textarea value={form.ai_prompt}
+          <textarea aria-label="KI-Anweisung (optional)" value={form.ai_prompt}
             onChange={(e) => setForm((f) => ({ ...f, ai_prompt: e.target.value }))}
             placeholder="Goal / Per-Page-Kontext für KI-Generator"
             rows={4}
@@ -2045,13 +2046,13 @@ function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
         </p>
         <div style={{ marginBottom: 10 }}>
           <label style={lblStyle}>Seitenname *</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+          <input aria-label="Seitenname" type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="z.B. Wallbox-Installation"
             style={inpStyle(false)} autoFocus />
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={lblStyle}>Page-Type</label>
-          <select value={pageType} onChange={(e) => setPageType(e.target.value)}
+          <select aria-label="Page-Type" value={pageType} onChange={(e) => setPageType(e.target.value)}
             style={{ ...inpStyle(false), cursor: 'pointer' }}>
             {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -2103,11 +2104,11 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: KC_DARK }}>
             Section auswählen
           </h3>
-          <button type="button" onClick={onClose}
+          <button aria-label="Schließen" type="button" onClick={onClose}
             style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>
-          <input type="search" placeholder="Suchen…"
+          <input aria-label="Suchen…" type="search" placeholder="Suchen…"
             value={search} onChange={(e) => setSearch(e.target.value)}
             style={inpStyle(false)} autoFocus />
         </div>

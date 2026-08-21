@@ -1,8 +1,7 @@
-"""
-Briefings CRUD — flat project-briefing fields.
-GET  /api/briefings/{lead_id}  → load (auto-creates if missing)
-POST /api/briefings/{lead_id}  → create or overwrite
-PUT  /api/briefings/{lead_id}  → partial update
+"""Briefing — Lesen, Anlegen, PDF und die KI-Vorbefuellung.
+
+**Achtung: Dieselbe Adresse wie `routers/briefing.py`.** Siehe den Kopf dort
+und `tests/test_briefing_router.py` (L-27).
 """
 import json
 import logging
@@ -16,11 +15,12 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db, Briefing, Lead, Project
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, require_innendienst
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/briefings", tags=["briefings"])
+router = APIRouter(prefix="/api/briefings", tags=["briefings"],
+                   dependencies=[Depends(require_innendienst)])
 
 FLAT_FIELDS = [
     "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",

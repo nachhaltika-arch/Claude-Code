@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const SCHRITTE = [
   { nr: 1, titel: 'Willkommen',       icon: '👋' },
@@ -162,7 +163,7 @@ export default function OnboardingWizard({ user, onComplete }) {
               </p>
 
               <label style={LBL}>Ihre aktuelle Website-URL</label>
-              <input
+              <input aria-label="Ihre aktuelle Website-URL"
                 type="url"
                 value={form.website_url}
                 onChange={upd('website_url')}
@@ -190,7 +191,7 @@ export default function OnboardingWizard({ user, onComplete }) {
               </p>
 
               <label style={LBL}>Gewerk / Branche *</label>
-              <input
+              <input aria-label="Gewerk / Branche"
                 type="text"
                 value={form.gewerk}
                 onChange={upd('gewerk')}
@@ -199,7 +200,7 @@ export default function OnboardingWizard({ user, onComplete }) {
               />
 
               <label style={LBL}>Ihre Leistungen</label>
-              <textarea
+              <textarea aria-label="Ihre Leistungen"
                 rows={3}
                 value={form.leistungen}
                 onChange={upd('leistungen')}
@@ -208,7 +209,7 @@ export default function OnboardingWizard({ user, onComplete }) {
               />
 
               <label style={LBL}>Einzugsgebiet / Region</label>
-              <input
+              <input aria-label="Einzugsgebiet / Region"
                 type="text"
                 value={form.einzugsgebiet}
                 onChange={upd('einzugsgebiet')}
@@ -239,7 +240,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                       hint: 'JPG, PNG, WebP · max. 20 MB · mehrere möglich' };
                 return (
                   <div key={type}>
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => st !== 'done' && ref.current?.click())}
                       onClick={() => st !== 'done' && ref.current?.click()}
                       style={{
                         border: st === 'done'
@@ -279,7 +280,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                         </div>
                       )}
                     </div>
-                    <input
+                    <input aria-label="Datei auswaehlen"
                       ref={ref}
                       type="file"
                       accept={type === 'logo'
@@ -298,7 +299,7 @@ export default function OnboardingWizard({ user, onComplete }) {
               })}
 
               <label style={LBL}>Sonstige Hinweise (optional)</label>
-              <textarea
+              <textarea aria-label="Sonstige Hinweise (optional)"
                 rows={2}
                 value={form.anmerkungen}
                 onChange={upd('anmerkungen')}

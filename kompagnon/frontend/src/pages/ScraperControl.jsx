@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 const STATUS_COLORS = {
   running:   { bg: '#FEF9C3', text: '#854D0E', label: 'Laeuft' },
@@ -183,6 +184,7 @@ export default function ScraperControl() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '4px 0' }}>
+      <SeitenTitel>Kaltakquise</SeitenTitel>
 
       {/* Header */}
       <div>
@@ -202,7 +204,7 @@ export default function ScraperControl() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 16 }}>
           <div>
             <label style={labelStyle}>Kammer</label>
-            <select value={selectedChamber} onChange={e => setChamber(e.target.value)} style={inputStyle}>
+            <select aria-label="Kammer" value={selectedChamber} onChange={e => setChamber(e.target.value)} style={inputStyle}>
               {chambers.length === 0 && <option value="muenchen">Muenchen</option>}
               {chambers.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -211,7 +213,7 @@ export default function ScraperControl() {
           </div>
           <div>
             <label style={labelStyle}>Gewerk</label>
-            <select value={selectedTrade} onChange={e => setTrade(e.target.value)} style={inputStyle}>
+            <select aria-label="Gewerk" value={selectedTrade} onChange={e => setTrade(e.target.value)} style={inputStyle}>
               {trades.length === 0 && <option value="">Keine Gewerke geladen</option>}
               {trades.map(t => (
                 <option key={t.value} value={t.value}>{t.name}</option>
@@ -220,7 +222,7 @@ export default function ScraperControl() {
           </div>
           <div>
             <label style={labelStyle}>PLZ (kommagetrennt)</label>
-            <input
+            <input aria-label="PLZ (kommagetrennt)"
               type="text"
               value={citiesInput}
               onChange={e => setCitiesInput(e.target.value)}

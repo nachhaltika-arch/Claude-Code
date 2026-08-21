@@ -9,6 +9,7 @@ import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorCon
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function PageTemplateEditor() {
   const { id }     = useParams();
@@ -139,6 +140,7 @@ export default function PageTemplateEditor() {
       zIndex: 500,
       display: 'flex', flexDirection: 'column', background: '#fff',
     }}>
+      <SeitenTitel>Seitenvorlage bearbeiten</SeitenTitel>
       {/* Toolbar */}
       <div style={{
         height: 48, background: '#1a2c32', flexShrink: 0,
@@ -149,7 +151,7 @@ export default function PageTemplateEditor() {
           ← Zurück
         </button>
 
-        <input
+        <input aria-label="Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".zip,.grapesjs"

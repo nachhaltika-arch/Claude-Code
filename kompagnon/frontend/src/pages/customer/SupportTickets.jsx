@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
+import SeitenTitel from '../../components/ui/SeitenTitel';
 
 const statusLabels = { open: 'Offen', in_progress: 'In Bearbeitung', resolved: 'Gelöst' };
 const prioLabels  = { low: 'Niedrig', medium: 'Normal', high: 'Dringend' };
@@ -58,6 +59,7 @@ export default function SupportTickets() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 0 40px' }}>
+      <SeitenTitel>Support-Anfragen</SeitenTitel>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         🎫 Support-Tickets
       </div>
@@ -65,13 +67,13 @@ export default function SupportTickets() {
       {/* Neues Ticket */}
       <div style={cardStyle}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Neues Ticket</div>
-        <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Titel des Problems"
+        <input aria-label="Titel des Problems" style={{ ...inputStyle, marginBottom: 10 }} placeholder="Titel des Problems"
           value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-        <textarea style={{ ...inputStyle, marginBottom: 10, minHeight: 80, resize: 'vertical' }}
+        <textarea aria-label="Beschreibung…" style={{ ...inputStyle, marginBottom: 10, minHeight: 80, resize: 'vertical' }}
           placeholder="Beschreibung…" value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select style={{ ...inputStyle, width: 'auto' }} value={form.priority}
+          <select aria-label="Dringlichkeit" style={{ ...inputStyle, width: 'auto' }} value={form.priority}
             onChange={e => setForm({ ...form, priority: e.target.value })}>
             <option value="low">Niedrig</option>
             <option value="medium">Normal</option>

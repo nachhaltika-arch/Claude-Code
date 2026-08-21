@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import Logo from '../components/Logo';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 
@@ -50,13 +53,14 @@ export default function ResetPassword() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
+      <SeitenTitel>Passwort zuruecksetzen</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 420 }}>
-        <div style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }} onClick={() => nav('/')}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => nav('/'))} style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }} onClick={() => nav('/')}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#D4A017', fontWeight: 900, fontSize: 13 }}>HS</span>
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>KOMPAGNON</span>
+            {/* Hier stand ein goldenes „HS" neben dem Wort KOMPAGNON — ein
+              * fremdes Monogramm auf der Seite, auf der ein Kunde sein Passwort
+              * zuruecksetzt. Jetzt die echte Marke. */}
+            <Logo size="default" />
           </div>
         </div>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>
@@ -76,7 +80,7 @@ export default function ResetPassword() {
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Neues Passwort</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 Zeichen" required style={{ ...inp, paddingRight: 44 }} />
+                    <input aria-label="Min. 8 Zeichen" type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 Zeichen" required style={{ ...inp, paddingRight: 44 }} />
                     <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-tertiary)', padding: 0 }}>
                       {showPw ? '🙈' : '👁️'}
                     </button>
@@ -91,7 +95,7 @@ export default function ResetPassword() {
                 </div>
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Passwort bestaetigen</label>
-                  <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Passwort wiederholen" required
+                  <input aria-label="Passwort bestaetigen" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Passwort wiederholen" required
                     style={{ ...inp, borderColor: confirm && confirm !== password ? '#fca5a5' : confirm && confirm === password ? '#86efac' : '#d4d8e8' }} />
                   {confirm && confirm === password && <div style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>Passwoerter stimmen ueberein</div>}
                 </div>

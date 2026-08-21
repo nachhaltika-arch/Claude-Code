@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function Impressum() {
   return (
@@ -7,7 +8,7 @@ export default function Impressum() {
       {/* Header */}
       <div className="kc-legal__band py-12">
         <div className="max-w-3xl mx-auto px-6">
-          <div onClick={() => window.history.back()} className="kc-legal__band-leise text-sm cursor-pointer hover:opacity-100 mb-4 flex items-center gap-2">
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => window.history.back())} onClick={() => window.history.back()} className="kc-legal__band-leise text-sm cursor-pointer hover:opacity-100 mb-4 flex items-center gap-2">
             ← Zurück
           </div>
           <h1 className="text-3xl font-extrabold">Impressum</h1>

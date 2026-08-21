@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { loadJson } from '../../utils/apiRequest';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const TOOL_OPTIONS = [
   'Trustpilot', 'Google Maps', 'Instagram', 'Facebook',
@@ -164,7 +165,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Funktionen
         </label>
-        <textarea
+        <textarea aria-label="Zusätzliche Hinweise zu Funktionen"
           value={toolsDetails}
           onChange={e => setToolsDetails(e.target.value)}
           placeholder="z.B. Kontaktformular mit Datei-Upload, Newsletter-Anmeldung, Mitgliederbereich"
@@ -224,7 +225,7 @@ function FnRow({ icon, label, desc, checked, onChange, autoDetected, hint }) {
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</div>
         </div>
-        <div
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => onChange(!checked))}
           onClick={() => onChange(!checked)}
           style={{
             width: 44, height: 24, borderRadius: 12, flexShrink: 0,

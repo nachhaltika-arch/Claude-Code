@@ -1,0 +1,149 @@
+# Sicherung und Wiederherstellung
+
+> Erstellt am 2026-08-19 (L-11, offen seit dem 07.08.). Gegenstand ist die
+> Frage, die im Ernstfall zählt: **Wie lange dauert es, und was ist dann weg?**
+>
+> Was hier steht, ist entweder belegt oder ausdrücklich als offen markiert.
+> Der Render-MCP ist seit zwei Tagen `unauthorized` (am 19.08. dreimal
+> versucht, zuletzt nach einem Neuverbinden), deshalb konnte die
+> Aufbewahrungsdauer nicht am Dienst nachgesehen werden — sie steht unten als
+> die eine Frage, die du beantworten musst.
+
+---
+
+## 1. Was überhaupt zu sichern ist
+
+Eine Datenbanksicherung allein rettet den Betrieb **nicht**. Es sind drei
+Dinge, und nur eines davon liegt in der Datenbank:
+
+| Was | Wo es liegt | In einer DB-Sicherung? |
+|---|---|---|
+| **Fachdaten** — Betriebe, Audits, Projekte, Kurse, Nachrichten | Postgres (`Kompangnon-dB`, Frankfurt) | ja |
+| **Hochgeladene Dateien** — Kundendateien, Bilder, Auftragsbestätigungs-PDFs | Datenträger am Dienst, `/var/data` (1 GB, seit 18.08.) | **nein** |
+| **Geheimnisse und Konfiguration** — 44 Umgebungsvariablen | Render-Dienst | **nein** |
+
+**Der Datenträger ist der Punkt, der übersehen wird.** Er ist erst seit dem
+18.08. überhaupt vorhanden; davor lagen Uploads auf einem flüchtigen
+Dateisystem, und die eine vorhandene Datei war bereits verloren, als wir
+nachsahen. Er gehört zum **Dienst**, nicht zum Repo und nicht zur Datenbank —
+und er zieht beim Umzug nach Frankfurt nicht mit (siehe
+`umzug-backend-frankfurt.md`).
+
+Die Umgebungsvariablen sind der zweite. Sie stehen zwar seit dem 16.08. in
+`kompagnon/render-produktiv.yaml` **beschrieben**, aber die Werte nicht — und
+das ist richtig so. Ohne `CMS_ENCRYPTION_KEY` und `CREDENTIALS_KEY` sind
+gespeicherte Zugangsdaten selbst nach einer vollständigen DB-Wiederherstellung
+**unlesbar**. Eine Sicherung ohne die Schlüssel ist eine halbe Sicherung.
+
+---
+
+## 2. Die drei Wege zurück
+
+### Weg A — Renders eigener Wiederherstellungspunkt *(schnellster Weg)*
+
+Render führt für verwaltete Postgres-Instanzen Wiederherstellungspunkte. Im
+Dashboard unter der Datenbank → *Recovery*. Ein Wiederherstellungspunkt
+erzeugt eine **neue** Instanz; die alte bleibt stehen.
+
+**Danach ist Handarbeit nötig:** Die neue Instanz hat eine neue interne
+Adresse. `DATABASE_URL` wird produktiv **von Hand** gepflegt (der Blueprint
+lässt sie bewusst offen, damit ein danebenliegender `databases:`-Block nicht
+eine zweite, leere Datenbank anlegt). Also: Adresse eintragen, Deploy
+auslösen, `/health` abwarten.
+
+- [ ] **Offen: Wie weit reicht der Zeitraum zurück?** Im Dashboard bei
+      *Recovery* abzulesen. Davon hängt die einzige Zahl ab, die im Ernstfall
+      zählt
+
+### Weg B — Eigener Auszug mit `pg_dump`
+
+Läuft **innerhalb** von Render und braucht deshalb keine offene
+Inbound-Regel — wichtig, sobald L-44 zugeht:
+
+```bash
+render psql kompagnon-backend      # oder: Shell am Dienst öffnen
+pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f /tmp/kompagnon.dump
+```
+
+Zurückspielen in eine leere Instanz:
+
+```bash
+pg_restore --no-owner --no-privileges -d "$DATABASE_URL" /tmp/kompagnon.dump
+```
+
+`-Fc` statt einer Textdatei: Das Format lässt sich selektiv zurückspielen,
+etwa nur eine Tabelle. Nach einem versehentlichen `DELETE` ist genau das der
+Unterschied zwischen zehn Minuten und einem halben Tag.
+
+**Größenordnung:** Die Datenbank ist `Basic-256mb` mit 1 GB Speicher, davon
+18,7 % belegt (Stand 16.08.). Ein Auszug ist also klein genug, um ihn
+herunterzuladen.
+
+### Weg C — Der Datenträger
+
+Für `/var/data` gibt es **keinen** Wiederherstellungspunkt. Was dort liegt,
+ist weg, wenn der Dienst weg ist.
+
+```bash
+# Am Dienst, in der Render-Shell:
+find /var/data -type f | wc -l        # zählen, bevor man etwas behauptet
+tar czf /tmp/uploads.tgz -C /var/data .
+```
+
+Am 18.08. lagen dort **null Dateien**. Solange das so bleibt, ist dieser Weg
+ein Nebensatz. Sobald Kunden Bilder hochladen, ist er der wichtigste.
+
+---
+
+## 3. Was du entscheiden musst
+
+Zwei Zahlen, und ohne sie ist jede Sicherungsstrategie Geschmackssache:
+
+- **Wie viel Datenverlust ist hinnehmbar?** (RPO) Eine Stunde? Ein Tag?
+  Davon hängt ab, ob Renders Wiederherstellungspunkte reichen oder ob ein
+  täglicher eigener Auszug dazugehört.
+- **Wie lange darf es dauern?** (RTO) Weg A ist Minuten plus Handarbeit an
+  `DATABASE_URL`. Weg B ist so lange, wie ein `pg_restore` braucht.
+
+**Meine Empfehlung:** Weg A als Normalfall, dazu **ein monatlicher eigener
+Auszug**, den du herunterlädst. Nicht wegen der Datenbank — die ist bei Render
+gut aufgehoben —, sondern weil ein Auszug außerhalb von Render der einzige
+Stand ist, der ein Konto-Problem überlebt. Bei rund 190 MB belegtem Speicher — ein Auszug
+fällt kleiner aus, weil Indizes nicht mitkommen — ist das eine Fingerübung.
+
+Die Schlüssel gehören in denselben Ablauf: `CMS_ENCRYPTION_KEY`,
+`CREDENTIALS_KEY`, `SECRET_KEY`. Ohne sie ist der Auszug teilweise unlesbar.
+
+---
+
+## 4. Die Probe
+
+Eine Sicherung, die nie zurückgespielt wurde, ist eine Vermutung. Der
+Nachweis, den ich vorschlage — einmal, dann jährlich:
+
+1. Auszug ziehen (Weg B)
+2. In die **Staging**-Datenbank zurückspielen, nicht in die Produktion
+3. Staging-Backend neu starten und `/health` prüfen: `startup_complete: true`,
+   `startup_missing: []`
+4. Im Werkzeug anmelden, eine Betriebsliste öffnen, ein Audit ansehen
+5. Aufschreiben, **wie lange es gedauert hat** — das ist die Antwort auf
+   „wie lange dauert es", und sie steht sonst nirgends
+
+Schritt 2 ist der einzige mit Risiko: Er überschreibt Staging. Das ist der
+Preis dafür, es einmal wirklich zu wissen.
+
+---
+
+## 5. Was heute belegt ist — und was nicht
+
+| Aussage | Stand |
+|---|---|
+| Datenbank liegt in Frankfurt, `Basic-256mb`, 1 GB, 18,7 % belegt | belegt, 16.08. |
+| Datenträger 1 GB auf `/var/data`, am Dienst nachgewiesen | belegt, 18.08. |
+| Am 18.08. null Dateien auf dem Datenträger | belegt |
+| `pg_dump` über die Render-Shell funktioniert ohne offene Inbound-Regel | plausibel, **nicht durchgeführt** |
+| Renders Aufbewahrungsdauer für Wiederherstellungspunkte | **unbekannt** — Dashboard |
+| Eine Wiederherstellung wurde je durchgeführt | **nein** |
+
+Die letzten beiden Zeilen sind der eigentliche Inhalt dieser Datei: Wir haben
+Wege zurück, aber keinen davon je gegangen.

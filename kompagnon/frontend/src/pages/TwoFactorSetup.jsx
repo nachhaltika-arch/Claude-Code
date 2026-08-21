@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 
@@ -61,6 +62,7 @@ export default function TwoFactorSetup() {
 
   return (
     <div style={cardStyle}>
+      <SeitenTitel>Zwei-Faktor-Authentifizierung</SeitenTitel>
       {step === 'start' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
@@ -96,7 +98,7 @@ export default function TwoFactorSetup() {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 6 }}>6-stelliger Code</label>
-            <input
+            <input aria-label="6-stelliger Code"
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               style={{ width: '100%', padding: '12px', border: '2px solid #d4d8e8', borderRadius: 'var(--radius-md)', fontSize: 22, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.3em', boxSizing: 'border-box' }}
               placeholder="000000" inputMode="numeric" maxLength={6}

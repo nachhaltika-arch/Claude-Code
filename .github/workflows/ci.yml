@@ -56,7 +56,12 @@ jobs:
           ANTHROPIC_API_KEY: ci-dummy
           ENVIRONMENT: development
         run: |
-          python -c "import main; routes = len(main.app.routes); print(f'OK: {routes} routes registered'); assert routes > 30, f'expected > 30 routes, got {routes}'"
+          # `app.routes` zaehlt seit FastAPI 0.141 nur die eingehaengten Router,
+          # nicht die Endpunkte — die entstehen erst beim Start. Die Schwelle 30
+          # war damit fast nicht mehr zu reissen: 61 Wrapper bestehen sie auch,
+          # wenn kein einziger Endpunkt dahinter haengt. Das OpenAPI-Verzeichnis
+          # zaehlt, was wirklich erreichbar ist (18.08.2026: 401).
+          python -c "import main; pfade = main.app.openapi().get('paths', {}); print(f'OK: {len(pfade)} Endpunkte'); assert len(pfade) > 300, f'nur {len(pfade)} Endpunkte — Router nicht geladen?'"
 
   backend-tests:
     name: Backend — Tests (pytest)
@@ -221,15 +226,26 @@ jobs:
 
       - name: Install Playwright
         working-directory: kompagnon/e2e
-        # `--with-deps` ruft apt-get auf. Eine Rueckfrage dort (needrestart,
-        # debconf) haelt den Schritt an, ohne dass etwas rot wird — genau das
-        # ist am 17.08. sechs Stunden lang passiert.
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          NEEDRESTART_MODE: a
+        # **Ohne `--with-deps`** — und das ist die Lehre aus zwei Ausfaellen:
+        #
+        # 17.08., Lauf #359: `--with-deps` blieb im `apt-get` haengen und lief
+        # sechs Stunden in GitHubs Notbremse. Daraufhin kam die Zeitgrenze je
+        # Versuch (`ci-retry.sh`).
+        #
+        # 18.08., Laeufe #386/#387: Die Zeitgrenze griff nach 600s — aber
+        # `timeout` beendet den Vorgang, den es gestartet hat, nicht dessen
+        # Kindeskinder. Das `apt-get` (PID 3085) lief weiter und hielt die
+        # Sperre unter /var/lib/apt/lists/. Die beiden Wiederholungen starben
+        # sofort an „Could not get lock". Aus sechs Stunden Haengen wurden
+        # dreizehn Minuten Scheitern — besser, aber immer noch rot.
+        #
+        # Die Wurzel ist apt, nicht die Wartezeit. Das Runner-Abbild von GitHub
+        # bringt die Bibliotheken fuer Chromium mit; wir brauchen nur den
+        # Browser selbst. Faellt eine Bibliothek doch, meldet sich Chromium
+        # beim Start — sichtbar und in Sekunden, statt lautlos in Minuten.
         run: |
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci
-          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install chromium
 
       - name: Run browser tests
         working-directory: kompagnon/e2e
@@ -414,4 +430,57 @@ jobs:
           wait_for_deploy "$BACKEND_SERVICE"  "$backend_deploy"  "Backend"
           wait_for_deploy "$FRONTEND_SERVICE" "$frontend_deploy" "Frontend"
 
-          echo "✓ $TARGET_LABEL vollständig deployt"
+          echo "✓ $TARGET_LABEL deployt — warte auf Betriebsbereitschaft"
+
+          # Renders `live` heisst: der Prozess antwortet. Es heisst nicht: der
+          # Dienst ist hochgefahren. Die acht Startphasen (Migrationen,
+          # Scheduler, Demokonten-Abschaltung) laufen als Hintergrundaufgabe
+          # weiter, nachdem der Server schon Anfragen beantwortet.
+          #
+          # Am 18.08.2026 lagen dazwischen viereinhalb Minuten: `live` um
+          # 09:43:58, `startup_complete` erst um 09:48:32. Waere in der Zeit
+          # eine Phase gescheitert, waere der Deploy-Job trotzdem gruen
+          # gewesen — und genau dieser Fall (sieben von acht Phasen fielen
+          # aus) blieb hier schon einmal monatelang unbemerkt.
+          READY_MAX_SECONDS=600
+
+          backend_url="$(curl -sS "$API/services/$BACKEND_SERVICE" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            | jq -r '.serviceDetails.url // empty')"
+
+          if [ -z "$backend_url" ]; then
+            echo "::error::Keine URL für $BACKEND_SERVICE — Bereitschaft nicht prüfbar."
+            exit 1
+          fi
+
+          waited=0
+          while [ "$waited" -lt "$READY_MAX_SECONDS" ]; do
+            gesundheit="$(curl -sS --max-time 20 "$backend_url/health" || echo '{}')"
+            # Waehrend eines Neustarts antwortet der Proxy auch mal mit HTML.
+            # Ohne diesen Auffangbogen liesse `jq` den Schritt sofort sterben —
+            # eine Zwischenausgabe wuerde als Ergebnis gelten.
+            if ! printf '%s' "$gesundheit" | jq -e . > /dev/null 2>&1; then
+              gesundheit='{}'
+            fi
+            fertig="$(printf '%s' "$gesundheit"  | jq -r '.startup_complete // "null"')"
+            fehlend="$(printf '%s' "$gesundheit" | jq -r '(.startup_missing // []) | join(", ")')"
+
+            if [ -n "$fehlend" ]; then
+              echo "::error::$TARGET_LABEL: Startphasen ausgefallen: $fehlend"
+              printf '%s\n' "$gesundheit"
+              exit 1
+            fi
+
+            if [ "$fertig" = "true" ]; then
+              echo "✓ $TARGET_LABEL betriebsbereit nach ${waited}s"
+              exit 0
+            fi
+
+            echo "  Start läuft noch (startup_complete=$fertig) … (${waited}s)"
+            sleep "$POLL_INTERVAL_SECONDS"
+            waited=$((waited + POLL_INTERVAL_SECONDS))
+          done
+
+          echo "::error::$TARGET_LABEL: Start nicht abgeschlossen nach ${READY_MAX_SECONDS}s"
+          printf '%s\n' "$gesundheit"
+          exit 1

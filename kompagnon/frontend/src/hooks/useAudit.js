@@ -106,6 +106,11 @@ export function useAudit({
       const auditId = startData.audit_id || startData.id;
       if (!auditId) throw new Error('Keine Audit-ID erhalten');
 
+      // Das Geheimnis aus der Startantwort mitfuehren. Wer angemeldet ist,
+      // braucht es nicht — wer nicht, kommt ohne es nicht an sein eigenes
+      // Ergebnis (L-52). So funktioniert derselbe Haken auf beiden Seiten.
+      const abfrage = startData.token ? `?token=${encodeURIComponent(startData.token)}` : '';
+
       // ── Polling — IMMER GET /api/audit/{id} ──────────────────────────────
       let attempts = 0;
       await new Promise((resolve, reject) => {
@@ -121,7 +126,7 @@ export function useAudit({
 
           try {
             const pollRes = await fetch(
-              `${API_BASE_URL}/api/audit/${auditId}`,
+              `${API_BASE_URL}/api/audit/${auditId}${abfrage}`,
               { headers }
             );
             if (!pollRes.ok) return; // Netzwerk-Hickup → weiter polling

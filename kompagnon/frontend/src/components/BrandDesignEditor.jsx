@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 function adjustColor(hex, amount) {
   if (!hex || !hex.startsWith('#') || hex.length < 7) return hex;
@@ -263,9 +264,9 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 36, height: 36, borderRadius: 6, background: t.color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
-              <input value={t.color} onChange={e => t.setter(e.target.value)} placeholder="#000000"
+              <input aria-label="Farbwert als Hex-Code" value={t.color} onChange={e => t.setter(e.target.value)} placeholder="#000000"
                 style={{ width: 100, padding: '6px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, fontFamily: 'monospace', color: 'var(--text-primary)', background: 'var(--bg-surface)' }} />
-              <input type="color" value={t.color?.length === 7 ? t.color : '#000000'} onChange={e => t.setter(e.target.value)}
+              <input aria-label="Farbe waehlen" type="color" value={t.color?.length === 7 ? t.color : '#000000'} onChange={e => t.setter(e.target.value)}
                 style={{ width: 36, height: 36, cursor: 'pointer', border: 'none', background: 'none' }} />
             </div>
 
@@ -276,7 +277,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {(brandData.all_colors || []).slice(0, 10).map((c, i) => (
-                    <div key={i} onClick={() => t.setter(c)} title={c}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(c))} key={i} onClick={() => t.setter(c)} title={c}
                       style={{ width: 22, height: 22, borderRadius: 4, background: c, border: c === t.color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -290,7 +291,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {QUICK_ACCENTS.map(c => (
-                    <div key={c} onClick={() => t.setter(c)}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(c))} key={c} onClick={() => t.setter(c)}
                       style={{ width: 22, height: 22, borderRadius: 4, background: c, border: c === t.color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -304,7 +305,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[60, 40, 20, -20, -40, -60].map(amt => (
-                    <div key={amt} onClick={() => t.setter(adjustColor(t.color, amt))} title={`${amt > 0 ? '+' : ''}${amt}`}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => t.setter(adjustColor(t.color, amt)))} key={amt} onClick={() => t.setter(adjustColor(t.color, amt))} title={`${amt > 0 ? '+' : ''}${amt}`}
                       style={{ flex: 1, height: 20, borderRadius: 4, background: adjustColor(t.color, amt), border: '1px solid rgba(0,0,0,.06)', cursor: 'pointer' }} />
                   ))}
                 </div>
@@ -365,7 +366,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             {/* Body: select + color picker + preview + KI suggestion */}
             <div style={{ padding: '10px 12px' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <select value={value} onChange={e => setter(e.target.value)}
+                <select aria-label="Schriftart" value={value} onChange={e => setter(e.target.value)}
                   style={{ flex: 1, padding: '7px 10px', border: '0.5px solid var(--border-light)', borderRadius: 6,
                            fontSize: 12, background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
                   {GOOGLE_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -381,11 +382,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 4, background: color, flexShrink: 0 }} />
-                        <input value={color} onChange={e => setColor(e.target.value)}
+                        <input aria-label="Farbwert als Hex-Code" value={color} onChange={e => setColor(e.target.value)}
                           style={{ flex: 1, padding: '4px 7px', fontSize: 11, fontFamily: 'monospace',
                                    border: '0.5px solid var(--border-light)', borderRadius: 4,
                                    background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
-                        <input type="color" value={color?.length === 7 ? color : '#ffffff'}
+                        <input aria-label="Farbe waehlen" type="color" value={color?.length === 7 ? color : '#ffffff'}
                           onChange={e => setColor(e.target.value)}
                           style={{ width: 28, height: 28, cursor: 'pointer', border: 'none' }} />
                       </div>
@@ -396,7 +397,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
                         {(brandData?.all_colors || []).slice(0, 6).map((c, i) => (
-                          <div key={'ac' + i} onClick={() => setColor(c)}
+                          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setColor(c))} key={'ac' + i} onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}

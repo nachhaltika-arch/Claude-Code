@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 export default function PortalLogin() {
   const [mode, setMode]               = useState('login');
@@ -93,6 +94,7 @@ export default function PortalLogin() {
       alignItems: 'center', justifyContent: 'center',
       padding: 20,
     }}>
+      <SeitenTitel>Kundenportal — Anmelden</SeitenTitel>
       {/* Karte */}
       <div style={{
         width: '100%', maxWidth: 420,
@@ -130,7 +132,7 @@ export default function PortalLogin() {
 
             <form onSubmit={handleLogin}>
               <label style={lbl}>E-Mail-Adresse</label>
-              <input
+              <input aria-label="E-Mail-Adresse"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -139,7 +141,7 @@ export default function PortalLogin() {
                 style={inp}
               />
               <label style={lbl}>Passwort</label>
-              <input
+              <input aria-label="Passwort"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -175,7 +177,7 @@ export default function PortalLogin() {
             </p>
             <form onSubmit={handleForgot}>
               <label style={lbl}>E-Mail-Adresse</label>
-              <input
+              <input aria-label="E-Mail-Adresse"
                 type="email"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}

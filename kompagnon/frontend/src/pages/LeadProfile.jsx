@@ -9,6 +9,9 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import {
+  herkunftLabel, herkunftVariant, leadSourceLabel, rechtsgrundlageLabel,
+} from '../utils/leadStatus';
 import Button from '../components/ui/Button';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
@@ -29,6 +32,7 @@ import { datumKurz, datumUndZeit } from '../utils/datum';
 import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
 import { naechsterSchritt } from '../utils/naechsterSchritt';
 import { aufteilung } from '../utils/betriebReiter';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -917,14 +921,14 @@ export default function LeadProfile() {
 
             {editingName ? (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
+                <input aria-label="Anzeigename des Betriebs"
                   value={displayName}
                   onChange={e => setDisplayName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveDisplayName(); if (e.key === 'Escape') setEditingName(false); }}
                   autoFocus
                   style={{ ...inputStyle, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', fontSize: 20, fontWeight: 600, flex: 1, minWidth: 200 }}
                 />
-                <button onClick={saveDisplayName} style={{ background: 'white', color: 'var(--brand-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✓</button>
+                <button aria-label="Speichern" onClick={saveDisplayName} style={{ background: 'white', color: 'var(--brand-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✓</button>
                 <button onClick={() => setEditingName(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 'var(--radius-md)', color: 'white', padding: '7px 10px', fontSize: 12, cursor: 'pointer' }}>✕</button>
               </div>
             ) : (
@@ -1060,7 +1064,7 @@ export default function LeadProfile() {
             </button>
           )}
 
-          <select value={lead.status} onChange={e => updateStatus(e.target.value)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '7px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', outline: 'none', width: isMobile ? '100%' : undefined }}>
+          <select aria-label="Status des Betriebs" value={lead.status} onChange={e => updateStatus(e.target.value)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '7px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', outline: 'none', width: isMobile ? '100%' : undefined }}>
             <option value="new">Neu</option>
             <option value="contacted">Kontaktiert</option>
             <option value="qualified">Qualifiziert</option>
@@ -1162,7 +1166,7 @@ export default function LeadProfile() {
                 <>
                   {/* Ein Klick daneben schließt. Ohne das bleibt das Menü
                     * offen und verdeckt, was man als Nächstes anklicken will. */}
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setMehrOffen(false))}
                     onClick={() => setMehrOffen(false)}
                     style={{ position: 'fixed', inset: 0, zIndex: 19 }}
                   />
@@ -1258,14 +1262,14 @@ export default function LeadProfile() {
             {/* Eingabebereich */}
             <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {msgChannel === 'email' && (
-                <input
+                <input aria-label="Betreff der E-Mail…"
                   value={msgSubject}
                   onChange={e => setMsgSubject(e.target.value)}
                   placeholder="Betreff der E-Mail…"
                   style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
                 />
               )}
-              <textarea
+              <textarea aria-label="Nachricht schreiben… (Ctrl+Enter zum Senden)"
                 value={msgText}
                 onChange={e => setMsgText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMessage(); }}
@@ -1316,36 +1320,40 @@ export default function LeadProfile() {
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
         <>
-        {/* Lead-Quelle (nur intern) */}
-        {(lead.utm_source || lead.kampagne_quelle) && (() => {
-          const SOURCE_MAP = {
-            facebook:   { icon: '📘', label: 'Facebook' },
-            linkedin:   { icon: '💼', label: 'LinkedIn' },
-            google_ads: { icon: '🔍', label: 'Google Ads' },
-            briefkarte: { icon: '📬', label: 'Briefkarte' },
-            instagram:  { icon: '📸', label: 'Instagram' },
-            email:      { icon: '✉️', label: 'E-Mail' },
-            postkarte:  { icon: '📬', label: 'Postkarte' },
-            sonstige:   { icon: '📌', label: 'Sonstige' },
-          };
-          const src = lead.utm_source || lead.kampagne_quelle;
-          const cfg = SOURCE_MAP[src] || { icon: '📌', label: src };
-          return (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 14px', background: 'var(--bg-surface)',
-              border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-              fontSize: 12, marginBottom: 12, width: 'fit-content',
-            }}>
-              <span style={{ fontSize: 16 }}>{cfg.icon}</span>
-              <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cfg.label}</span>
-              {lead.utm_campaign && (
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>· {lead.utm_campaign}</span>
-              )}
-            </div>
-          );
-        })()}
+        {/* Herkunft und Rechtsgrundlage (nur intern) — L-59.
+            Hier stand eine eigene, vierte Quellenliste (SOURCE_MAP mit
+            facebook/linkedin/google_ads/briefkarte/…), und der Block zeigte
+            sich nur, wenn `utm_source` oder `kampagne_quelle` gesetzt war —
+            also bei den wenigsten Betrieben. Die Quelle, die tatsächlich
+            geführt wird (`lead_source`), stand gar nicht da, und die
+            Rechtsgrundlage nirgends im ganzen System.
+
+            Jetzt eine Liste (`utils/leadStatus.js`, gespiegelt von
+            `services/lead_quellen.py`) und immer sichtbar: Eine ungeführte
+            Quelle oder eine offene Rechtsgrundlage soll auffallen, nicht
+            verschwinden. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          padding: '8px 14px', background: 'var(--bg-surface)',
+          border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+          fontSize: 12, marginBottom: 12, width: 'fit-content', maxWidth: '100%',
+        }}>
+          <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {leadSourceLabel(lead.lead_source)}
+          </span>
+          <Badge variant={herkunftVariant(lead.datenherkunft)}>
+            {herkunftLabel(lead.datenherkunft)}
+          </Badge>
+          <Badge variant={lead.rechtsgrundlage ? 'info' : 'warning'}>
+            {rechtsgrundlageLabel(lead.rechtsgrundlage)}
+          </Badge>
+          {(lead.utm_campaign || lead.kampagne_quelle) && (
+            <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+              · {lead.utm_campaign || lead.kampagne_quelle}
+            </span>
+          )}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}
@@ -1388,7 +1396,7 @@ export default function LeadProfile() {
                     )}
                   </>
                 ) : (
-                  <div onClick={createScreenshot} style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', cursor: lead.website_url ? 'pointer' : 'default', gap: 8 }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(createScreenshot)} onClick={createScreenshot} style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', cursor: lead.website_url ? 'pointer' : 'default', gap: 8 }}
                     onMouseEnter={e => { if (lead.website_url) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-app)'; }}
                   >
@@ -1590,7 +1598,7 @@ export default function LeadProfile() {
 
               {domainFormOffen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: domains.length ? 10 : 0, borderTop: domains.length ? '1px solid var(--border-light)' : 'none' }}>
-                <input
+                <input aria-label="Adresse der Domain"
                   value={domainForm.url}
                   onChange={e => setDomainForm(f => ({ ...f, url: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDomain()}
@@ -1602,7 +1610,7 @@ export default function LeadProfile() {
                     fontFamily: 'var(--font-sans)', outline: 'none',
                   }}
                 />
-                <input
+                <input aria-label="Label (z.B. Shop, Karriere)"
                   value={domainForm.label}
                   onChange={e => setDomainForm(f => ({ ...f, label: e.target.value }))}
                   placeholder="Label (z.B. Shop, Karriere)"
@@ -1719,7 +1727,7 @@ export default function LeadProfile() {
                 </div>
               ) : qrData ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ background: 'white', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 8, flexShrink: 0, cursor: 'pointer' }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); })} style={{ background: 'white', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 8, flexShrink: 0, cursor: 'pointer' }}
                     onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
                     title="Klicken zum Herunterladen">
                     <img src={`data:image/png;base64,${qrData.qr_code_base64}`} alt="QR-Code" style={{ width: 90, height: 90, display: 'block' }} />
@@ -1825,7 +1833,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1851,13 +1859,13 @@ export default function LeadProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Straße</div>
-                    <input value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
+                    <input aria-label="Musterstraße" value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Nr.</div>
-                    <input value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
+                    <input aria-label="12a" value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1866,13 +1874,13 @@ export default function LeadProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>PLZ</div>
-                    <input value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
+                    <input aria-label="Postleitzahl" value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Ort</div>
-                    <input value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
+                    <input aria-label="Koblenz" value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1891,7 +1899,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1908,7 +1916,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1916,7 +1924,7 @@ export default function LeadProfile() {
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, marginTop: 8 }}>Notizen</div>
-                  <textarea value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
+                  <textarea aria-label="Interne Notizen..." value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
                     style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
                     onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
@@ -2202,7 +2210,7 @@ export default function LeadProfile() {
 
       {/* TEMPLATE SELECTION MODAL */}
       {showTemplateModal && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowTemplateModal(false))} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
           <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
             {allTemplates.length === 0 ? (
@@ -2213,7 +2221,7 @@ export default function LeadProfile() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                 {allTemplates.map(tpl => (
-                  <div key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => assignTemplate(tpl.id))} key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
                     onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
                   >
@@ -2524,7 +2532,7 @@ export default function LeadProfile() {
 
                       return (
                         <>
-                          <tr
+                          <tr role="button" tabIndex={0} onKeyDown={aufTaste(() => setCrawlExpandedRow(isExpanded ? null : rowKey))}
                             key={rowKey}
                             onClick={() => setCrawlExpandedRow(isExpanded ? null : rowKey)}
                             style={{
@@ -2745,7 +2753,7 @@ export default function LeadProfile() {
       {openAudit && createPortal(
         <>
           {/* Overlay — zwei separate fixed-Elemente, außerhalb des page-enter-Transform-Kontexts */}
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setOpenAudit(null))} style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
             onClick={() => setOpenAudit(null)} />
           <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 1001, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
             <div style={{ maxWidth: 900, width: '100%', maxHeight: 'calc(100vh - 40px)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: 'auto' }}>
@@ -2762,7 +2770,7 @@ export default function LeadProfile() {
       {deleteAuditId && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteAuditId(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--status-danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 14px' }}>🗑️</div>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Audit löschen?</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.</p>
@@ -2779,7 +2787,7 @@ export default function LeadProfile() {
       {wonModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonModal(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#EAF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🎉</div>
             <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Glückwunsch!</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.6 }}>

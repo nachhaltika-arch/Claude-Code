@@ -157,20 +157,20 @@ export function renderBlock(type, data, brand) {
     </p>
     <form style="display:flex; flex-direction:column; gap:16px;">
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-        <input type="text" placeholder="Vorname" style="padding:12px 16px;
+        <input aria-label="Vorname" type="text" placeholder="Vorname" style="padding:12px 16px;
           border:1px solid #e2e8f0; border-radius:${radius}; font-size:14px;
           font-family:${font}; outline:none;">
-        <input type="text" placeholder="Nachname" style="padding:12px 16px;
+        <input aria-label="Nachname" type="text" placeholder="Nachname" style="padding:12px 16px;
           border:1px solid #e2e8f0; border-radius:${radius}; font-size:14px;
           font-family:${font}; outline:none;">
       </div>
-      <input type="email" placeholder="E-Mail-Adresse" style="padding:12px 16px;
+      <input aria-label="E-Mail-Adresse" type="email" placeholder="E-Mail-Adresse" style="padding:12px 16px;
         border:1px solid #e2e8f0; border-radius:${radius}; font-size:14px;
         font-family:${font}; outline:none;">
-      <input type="tel" placeholder="Telefonnummer" style="padding:12px 16px;
+      <input aria-label="Telefonnummer" type="tel" placeholder="Telefonnummer" style="padding:12px 16px;
         border:1px solid #e2e8f0; border-radius:${radius}; font-size:14px;
         font-family:${font}; outline:none;">
-      <textarea placeholder="${data.nachricht_placeholder || 'Ihre Nachricht...'}"
+      <textarea aria-label="${data.nachricht_placeholder || 'Ihre Nachricht...'}" placeholder="${data.nachricht_placeholder || 'Ihre Nachricht...'}"
         rows="5" style="padding:12px 16px; border:1px solid #e2e8f0;
         border-radius:${radius}; font-size:14px; font-family:${font};
         resize:vertical; outline:none;"></textarea>

@@ -63,9 +63,15 @@ async function bibliothekOeffnen(page) {
  *  abgeleiteten, damit ein Rest aus einem frueheren Lauf sofort auffaellt. */
 async function probeblockAnlegen(page, html) {
   await page.getByRole('button', { name: /Neue Komponente/ }).click();
-  await page.getByLabel('Slug').fill(SLUG);
-  await page.getByLabel('Name').fill(NAME);
-  await page.getByLabel('HTML-Template').fill(html);
+  // `exact` ist noetig, seit die Formularfelder Namen tragen (L-17,
+  // 21.08.2026): Das Suchfeld der Bibliothek heisst „Suchen (Slug / Name /
+  // Tag)…" und enthaelt damit sowohl „Slug" als auch „Name". Ohne `exact`
+  // trifft der Sucher zwei Felder und bricht ab. Nicht die Seite ist falsch
+  // geworden, sondern der Sucher war zu weit — er fand vorher nur ein Feld,
+  // weil ausser diesem keines einen Namen hatte.
+  await page.getByLabel('Slug', { exact: true }).fill(SLUG);
+  await page.getByLabel('Name', { exact: true }).fill(NAME);
+  await page.getByLabel('HTML-Template', { exact: true }).fill(html);
   await page.getByRole('button', { name: 'Anlegen' }).click();
 }
 

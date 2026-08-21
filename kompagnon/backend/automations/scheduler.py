@@ -590,6 +590,16 @@ def _bereits_gesendet(db, project_id: int) -> set:
     return {z[0] for z in zeilen}
 
 
+def job_fehlerprotokoll_aufraeumen():
+    """Raeumt Eintraege weg, die dreissig Tage lang nicht mehr auftraten."""
+    from services.fehlerprotokoll import alte_aufraeumen
+
+    entfernt = alte_aufraeumen()
+    if entfernt:
+        logger.info(f"Fehlerprotokoll: {entfernt} alte Eintraege entfernt")
+    return entfernt
+
+
 def job_check_missing_materials():
     """Erinnert einmal an fehlende Materialien — nicht jeden Morgen.
 
@@ -1219,6 +1229,16 @@ class CompagnonScheduler:
 
     def _register_daily_jobs(self):
         """Register cron jobs using standalone functions."""
+        # Das Fehlerprotokoll waechst sonst ohne Ende. Was dreissig Tage lang
+        # nicht mehr aufgetreten ist, hat niemanden mehr interessiert.
+        self.scheduler.add_job(
+            job_fehlerprotokoll_aufraeumen,
+            "cron",
+            hour=4, minute=30,
+            id="fehlerprotokoll_aufraeumen",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
         self.scheduler.add_job(
             job_check_all_domains,
             "interval", hours=6,

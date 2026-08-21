@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useScreenSize } from '../../utils/responsive';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 export default function ModalSheet({
   open, onClose, title, subtitle, children,
@@ -72,7 +73,7 @@ export default function ModalSheet({
         backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
         animation: 'bwFadeIn 0.15s ease',
       }} />
-      <div style={isMobile ? mobileStyle : desktopStyle} onClick={e => e.stopPropagation()}>
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} style={isMobile ? mobileStyle : desktopStyle} onClick={e => e.stopPropagation()}>
         {isMobile && (
           <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
             style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', cursor: 'grab', flexShrink: 0,

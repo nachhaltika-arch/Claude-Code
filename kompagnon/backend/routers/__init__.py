@@ -1,6 +1,8 @@
 """API routers for KOMPAGNON."""
 
+from .fehler import router as fehler_router
 from .usercards import router as usercards_router
+from .usercards import kunden_router as usercards_kunden_router
 from .usercards import leads_alias_router, customers_alias_router as usercards_customers_alias_router
 from .leads import router as leads_router
 from .leads import customers_alias_router
@@ -28,7 +30,9 @@ __all__ = [
     "portal_router",
     "newsletter_router",
     "versand_router",
+    "fehler_router",
     "usercards_router",
+    "usercards_kunden_router",
     "leads_alias_router",
     "usercards_customers_alias_router",
     "leads_router",

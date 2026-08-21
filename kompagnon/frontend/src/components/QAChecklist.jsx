@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { saveJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const KATEGORIEN = [
   {
@@ -223,7 +224,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
               const isAuto    = item.id === 'pagespeed_mobile' || item.id === 'pagespeed_desktop';
 
               return (
-                <div
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => !isAuto && toggle(item.id))}
                   key={item.id}
                   onClick={() => !isAuto && toggle(item.id)}
                   style={{

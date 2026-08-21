@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const CONTENT_TABS = [
   { id: 'inhalte',    label: 'Seiteninhalte',   icon: '📄', desc: 'Texte & KI' },
@@ -212,7 +213,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                 const hasContent = !!pageContent[page.id];
                 const isSelected = selectedPage?.id === page.id;
                 return (
-                  <div key={page.id} onClick={() => handlePageSelect(page)}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => handlePageSelect(page))} key={page.id} onClick={() => handlePageSelect(page)}
                     style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: isSelected ? 'var(--bg-active, var(--bg-elevated))' : 'transparent', borderLeft: `3px solid ${isSelected ? 'var(--brand-primary)' : 'transparent'}` }}
                     onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
@@ -303,16 +304,16 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     ].map(({ field, label, rows }) => (
                       <div key={field} style={{ marginBottom: 10 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
-                        <textarea value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)} rows={rows}
+                        <textarea aria-label={label} value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)} rows={rows}
                           style={{ width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
                       </div>
                     ))}
                     {(pageContent[selectedPage.id].sections || []).map((section, i) => (
                       <div key={i} style={{ background: 'var(--bg-app)', borderRadius: 8, padding: '10px 12px', marginBottom: 8, borderLeft: '3px solid var(--brand-primary-mid, var(--border-medium))' }}>
-                        <input value={editedContent[selectedPage.id]?.sections?.[i]?.titel ?? section.titel}
+                        <input aria-label="Abschnitt-Titel" value={editedContent[selectedPage.id]?.sections?.[i]?.titel ?? section.titel}
                           onChange={e => { const secs = [...(editedContent[selectedPage.id]?.sections || pageContent[selectedPage.id].sections.map(s => ({...s})))]; secs[i] = { ...secs[i], titel: e.target.value }; setEdit(selectedPage.id, 'sections', secs); }}
                           style={{ width: '100%', fontSize: 13, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6, outline: 'none', boxSizing: 'border-box' }} placeholder="Abschnitt-Titel" />
-                        <textarea value={editedContent[selectedPage.id]?.sections?.[i]?.text ?? section.text}
+                        <textarea aria-label="Abschnitt-Text" value={editedContent[selectedPage.id]?.sections?.[i]?.text ?? section.text}
                           onChange={e => { const secs = [...(editedContent[selectedPage.id]?.sections || pageContent[selectedPage.id].sections.map(s => ({...s})))]; secs[i] = { ...secs[i], text: e.target.value }; setEdit(selectedPage.id, 'sections', secs); }}
                           rows={3} style={{ width: '100%', fontSize: 12, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' }} />
                       </div>
@@ -322,7 +323,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
 
                 <div>
                   <FieldLabel>Eigene Ergaenzungen</FieldLabel>
-                  <textarea value={newContent[selectedPage.id] || ''} onChange={e => setNewContent(prev => ({ ...prev, [selectedPage.id]: e.target.value }))}
+                  <textarea aria-label="Eigene Texte, Ergaenzungen oder Hinweise fuer diese Seite" value={newContent[selectedPage.id] || ''} onChange={e => setNewContent(prev => ({ ...prev, [selectedPage.id]: e.target.value }))}
                     rows={4} placeholder="Eigene Texte, Ergaenzungen oder Hinweise fuer diese Seite"
                     style={{ width: '100%', padding: '10px 12px', fontSize: 12, border: '1px dashed var(--border-medium)', borderRadius: 8, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.7 }} />
                 </div>
@@ -333,7 +334,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     {[{ field: 'meta_title', label: 'Meta-Titel (max. 60 Z.)' }, { field: 'meta_description', label: 'Meta-Description (max. 155 Z.)' }, { field: 'cta', label: 'Call-to-Action' }].map(({ field, label }) => (
                       <div key={field} style={{ marginBottom: 8 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
-                        <input value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)}
+                        <input aria-label={label} value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)}
                           style={{ width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }} />
                       </div>
                     ))}

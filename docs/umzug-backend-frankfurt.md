@@ -46,9 +46,7 @@ Das ist die eigentliche Arbeit. Nicht der Umzug — die Adresse.
 | ~~`services/widget_report.py`~~, ~~`routers/files.py`~~ | hatten je eine eigene Zeile mit der Produktiv-Adresse — zusammengelegt (`22480d1`) | erledigt |
 | **Gespeicherte Seiteninhalte in der DB** | absolute Bild-Adressen, vom Editor hineingeschrieben | **erledigt 16.08.** |
 | **Bereits versendete Berichts-Mails** | **fest in der Mail** | **nein** |
-| **Webhook bei Trackdesk** | bei einem Dritten registriert | nur dort |
-| **Webhook bei Netlify** | bei einem Dritten registriert | nur dort |
-| **Webhook bei Brevo** | bei einem Dritten registriert | nur dort |
+| **Elf Webhook-Endpunkte** | bei Dritten registriert | nur dort — siehe die vollständige Liste unten |
 
 **Die versendeten Berichtslinks sind der Punkt, der weh tut.** Jeder Empfänger
 einer Widget-Analyse hat eine Mail mit
@@ -93,14 +91,40 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 
 ## Ablauf (Weg A, Schritte 1–2 für morgen)
 
+### Vorher — am 19.08. gemeinsam im Dashboard erhoben
+
+Alles Folgende ist **gemessen**, nicht erinnert. Es stand bis dahin nirgends
+im Repo, und genau das war der Punkt.
+
+| Frage | Antwort | Bedeutung für den Umzug |
+|---|---|---|
+| **Wiederherstellungspunkt** | Point-in-Time über **7 Tage**, dazu Exporte (≥ 7 Tage) | Der Rückweg steht. Beantwortet zugleich die offene Frage aus L-11 |
+| **Dateien auf `/var/data`** | **0** (32 K von 974 M belegt, das Verzeichnis selbst) | **Kein Kopierschritt.** Der heikelste Teil des Umzugs entfällt |
+| **Umschreibungsregeln der Static Site** | Genau **eine**: `/*` → `/index.html`, Action *Rewrite* | Muss am neuen Dienst nachgebaut werden — eine Zeile |
+| **Verschluckt die Regel das Widget?** | **Nein.** `/embed/audit-widget.html` liefert 31.464 Bytes mit Titel „KOMPAGNON — Gratis Webseiten-Analyse", 0 React-Merkmale, verschieden von `index.html` (987 B) | Die Sorge weiter unten war unbegründet. Render wendet die Regel nur als Rückfall an |
+
+**Kennungen, die beim Umzug gebraucht werden:**
+
+| Was | Wert |
+|---|---|
+| Backend (Oregon) | `srv-d74ptinfte5s73bjbv90` — Standard, Python 3, Branch `main` |
+| Frontend (Static) | `srv-d74qd7oule4c73f7v4t0` — Domain `kas.kompagnon.group` |
+| Datenbank | `dpg-d74t6ttm5p6s73fd6qv0-a` — **`Kompangnon-dB`**, Basic-256mb, Postgres 18, Frankfurt, 19,02 % von 1 GB |
+| Interne Adresse Backend | `claude-code-znq2:10000` |
+
+**Latenz, frisch gemessen (19.08., 18:49 UTC):** Produktiv `/health` **2,6 · 3,1
+· 3,2 s** — Staging in Frankfurt **0,23 · 0,17 · 0,18 s**. Faktor **15**. Das
+ist die ganze Begründung, und sie gilt heute.
+
 ### Vorher
 
 - [x] **Entschieden am 16.08.: `api.kompagnon.group`.** DNS liegt bei IONOS
       (`ns*.ui-dns.*`), die Subdomain war frei, und die Domain ist bereits die
       bei Brevo verifizierte Absenderdomain — Mail und API an einer Stelle.
       `kompagnon.eu` (EuroDNS) und `kompagnon.de` (de-nserver) bleiben unberührt
-- [ ] **Datenbank-Sicherung**: Render Recovery-Punkt notieren, damit es einen
-      Rückweg gibt
+- [x] **Datenbank-Sicherung**: Point-in-Time über 7 Tage — erhoben 19.08.
+- [x] **Zahl der Dateien auf dem Datenträger**: **0** — erhoben 19.08. Der
+      Umzug ist damit **kein** Kopierschritt
 - [x] Aufschreiben, was gerade läuft — **gemessen 16.08., 12:41 UTC:**
       produktiv `/health` 200, `startup_complete: true`, `scheduler_running:
       true`, `startup_missing: []`, **2,10–2,63 s**; `/info`
@@ -128,16 +152,15 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 - [x] **`REACT_APP_API_URL` beim Frontend gesetzt (16.08.).** Im
       ausgelieferten Bundle nachgeprüft, dazu Preflight und GET gegen die neue
       Domain mit der Frontend-Herkunft: `access-control-allow-origin` stimmt.
-- [ ] Webhook-Adresse bei **Trackdesk** ändern
-- [ ] Webhook-Adresse bei **Netlify** ändern
-- [ ] Webhook-Adresse bei **Brevo** ändern
-- [ ] Im Code die Rückfallwerte auf die Domain ändern — es sind seit dem
-      16.08. nur noch zwei Stellen: `services/base_urls.py`
-      (`FALLBACK_API_BASE_URL`) und `frontend/src/config.js`. Dazu die
-      Beispieladressen in `render-staging.yaml`, `ci.yml` und der
-      Trackdesk-Anleitung. **Erst wenn die Domain antwortet** — vorher zeigt
-      jeder Rückfall auf einen Namen, den es noch nicht gibt.
-      Commit auf `staging`, PR wie üblich freitags
+- [ ] Webhook-Adressen bei den Dritten ändern — **elf Endpunkte, nicht drei.**
+      Die vollständige Liste steht unter „Die elf Webhook-Endpunkte" weiter
+      unten; sie ist am 19.08. am laufenden Dienst gemessen, nicht geschätzt
+- [x] **Im Code die Rückfallwerte auf die Domain geändert — bereits am 16.08.
+      erledigt** (`714b441`), der Haken fehlte nur. Nachgeprüft am 19.08.:
+      `services/base_urls.py` trägt `FALLBACK_API_BASE_URL =
+      "https://api.kompagnon.group"`, `frontend/src/config.js` denselben Wert.
+      Die verbliebenen `onrender.com`-Zeilen in `render-staging.yaml` sind
+      **Staging**-Adressen und bleiben richtig; in `ci.yml` steht gar keine
 
 ### Prüfen
 
@@ -146,6 +169,307 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
       Berichtslink prüfen
 - [ ] Alte Adresse muss weiter funktionieren (sie tut es, solange der Dienst
       steht) — die alten Mails hängen daran
+
+---
+
+## Die elf Webhook-Endpunkte — gezählt am 19.08. am laufenden Dienst
+
+Der Plan nannte oben **drei** Webhooks bei Dritten. Der Dienst kennt **elf**.
+Gemessen wurde nicht am Quelltext, sondern an `GET /openapi.json` der
+Produktiv-Adresse — 401 Routen, davon diese:
+
+| Endpunkt | Wer ruft dort an | Geheimnis | Im Plan bisher |
+|---|---|---|---|
+| `POST /api/webhooks/trackdesk` | Trackdesk | `TRACKDESK_WEBHOOK_SECRET` | ja |
+| `POST /api/webhooks/netlify/audit-anfrage` | Netlify | `NETLIFY_WEBHOOK_SECRET` | als *ein* Netlify-Haken |
+| `POST /api/webhooks/netlify/kontakt` | Netlify | `NETLIFY_WEBHOOK_SECRET` | — |
+| `POST /api/mail-events/brevo/{secret}` | Brevo | Geheimnis **im Pfad** | ja |
+| `POST /api/payments/webhook` | **Stripe** | `STRIPE_WEBHOOK_SECRET` | **nein** |
+| `POST /api/geo-payments/webhook` | **Stripe** | `STRIPE_WEBHOOK_SECRET_GEO` | **nein** |
+| `POST /api/webhooks/facebook` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/linkedin` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/google` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/postkarte` | unbekannt | `WEBHOOK_SECRET` | nein |
+| `POST /api/webhooks/telefon` | unbekannt | `WEBHOOK_SECRET` | nein |
+
+**Stripe fehlte ganz.** Zwei getrennte Registrierungen mit zwei getrennten
+Geheimnissen — Buch-Checkout und GEO. Beide zeigen heute auf die alte Adresse.
+Sie sind produktiv nicht scharf (`STRIPE_SECRET_KEY` fehlt, siehe die offenen
+Punkte vom 18.08.), aber wer den Schlüssel setzt, ohne die URL zu ändern,
+verkauft an einen Dienst, den es nach dem Umzug nicht mehr gibt — und Zahlungen
+verschwinden still, weil ein fehlgeschlagener Webhook den Kauf nicht abbricht.
+
+**„Unbekannt" heißt unbekannt, nicht „unwichtig".** Ob die fünf Lead-Wege bei
+Facebook, Google oder einem Zapier-Zwischenstück registriert sind, steht
+nirgends im Repo. Zwei Messwerte grenzen es ein: `WEBHOOK_SECRET` war produktiv
+nie gesetzt, also weist der Server dort seit dem 16.08. **jeden** Aufruf ab —
+und `webhook_log` war am 19.08. **leer**. Es kommt heute also nichts an. Das
+ist kein Beleg dafür, dass nichts registriert ist; es ist einer dafür, dass
+beim Umzug nichts kaputtgehen kann, was nicht schon still steht.
+
+**Zu tun, bevor der alte Dienst abgeschaltet wird:** Bei Trackdesk, Netlify,
+Brevo und Stripe nachsehen, welche URL dort tatsächlich eingetragen ist, und
+sie auf `https://api.kompagnon.group/...` umstellen. Die Domain zeigt heute
+noch auf Oregon — das Umstellen ist also **jetzt schon** gefahrlos möglich und
+genau der Zweck von Weg A.
+
+### Nebenbefund am selben Tag: `GET /api/webhooks/log` war offen
+
+Beim Zählen fiel auf, dass diese zwölfte Route **ohne Anmeldung** mit 200
+antwortete — `SELECT *` über `webhook_log`, also Mailadressen und Firmen
+eingehender Leads, mit ungedeckeltem `limit`. Geschlossen am 19.08. (`ef08c31`,
+zwölf Tests). Sie steht hier, weil sie zum selben Bild gehört: Der Bereich
+„Webhooks" war nie als Ganzes durchgesehen worden.
+
+---
+
+## Was der Blueprint trägt — Abgleich vom 19.08.
+
+`kompagnon/render-produktiv.yaml` behauptet, alle Variablen zu tragen, die der
+Quelltext liest. Nachgezählt: **44 Schlüssel im Blueprint, 56 im Quelltext
+gelesen.** Die Differenz sieht nach zwölf Lücken aus und ist keine — jede der
+17 Abweichungen (in beide Richtungen) hat einen Grund:
+
+| Gruppe | Warum die Abweichung in Ordnung ist |
+|---|---|
+| `PORT`, `RENDER_EXTERNAL_URL`, `RENDER_INTERNAL_HOSTNAME` | setzt Render je Dienst selbst |
+| `ADMIN_*`, `AUDITOR_*`, `NUTZER_*`, `KUNDE_*` (Demo-Konten) | der Seed läuft nur, wenn `ENVIRONMENT` **nicht** `production` ist |
+| `SMTP_HOST/PORT/USER/PASSWORD/FROM/SENDER_*` | produktiv bewusst leer — der Versand läuft über die Brevo-API; am Dienst gemessen: `/info` meldet `smtp_configured: false` |
+| `USE_MOCK_EMAIL` | Vorgabe ist `false`, und `false` ist der gewünschte Zustand |
+| `PAGESPEED_API_KEY`, `NETLIFY_VORSCHAU_SITE_ID` | werden über eine Konstante bzw. einen Aliasnamen gelesen — meine Suche fand sie nicht, der Quelltext nutzt sie sehr wohl |
+| `REACT_APP_*`, `PYTHON_VERSION` | gehören zur Static Site bzw. zur Laufzeit |
+
+**Ergebnis: keine echte Lücke.** Der Blueprint ist umzugsreif.
+
+Was dieser Abgleich **nicht** beantworten kann: ob am laufenden Oregon-Dienst
+Variablen gesetzt sind, die weder Quelltext noch Blueprint kennen. Das zeigt
+nur der Export im Dashboard — der Render-MCP ist auch am 19.08. `unauthorized`.
+
+### Zwei Korrekturen am Plan
+
+- **`ENVIRONMENT=production` ist gesetzt**, entgegen der Notiz weiter unten
+  („war beim alten Dienst nie gesetzt, siehe L-42"). Am 19.08. gemessen:
+  `/info` gibt `environment: production` aus, und dieses Feld ist nichts
+  anderes als `os.getenv("ENVIRONMENT", "development")`. Die Folge ist
+  beruhigend: Die vier Demo-Konten werden produktiv **übersprungen**. Für den
+  neuen Dienst bleibt der Punkt trotzdem stehen — dort ist die Variable neu zu
+  setzen, und wer sie vergisst, legt sich Demo-Konten in die Produktivdaten.
+- **Der Bereitschafts-Check hängt an der Service-ID, nicht an einer Adresse.**
+  Der Deploy-Job holt `serviceDetails.url` über die Render-API und prüft
+  `/health` dort. Beim Umzug ist also wirklich **nur** die Repository-Variable
+  `RENDER_SERVICE_BACKEND_PROD` zu ändern; in `ci.yml` steht keine URL, die
+  jemand vergessen könnte.
+
+---
+
+## Planänderung vom 19.08.: kein Blueprint, sondern von Hand
+
+Der Plan sah vor, den neuen Dienst **über den Blueprint** entstehen zu lassen
+und damit L-35 gleich mitzuschließen. Beim Anlauf stellte sich heraus, dass
+drei Dinge dagegen stehen — alle drei am Objekt geprüft, nicht vermutet:
+
+1. **Namenskonflikt mit zwei laufenden Diensten.** Der Blueprint benennt
+   `kompagnon-backend` **und** `kompagnon-frontend`; beide gibt es. Das
+   Umbenennen des alten Dienstes ließ sich im Dashboard **nicht speichern** —
+   der Knopf „Save changes" bleibt inaktiv, auch nach mehreren Versuchen.
+2. **Die Datei liegt nicht, wo Render sucht.** Es gibt kein `render.yaml` im
+   Wurzelverzeichnis, nur `kompagnon/render-produktiv.yaml`.
+3. **Das laufende Frontend würde mitübernommen.** Es soll unangetastet
+   bleiben; es zieht ohnehin nicht um.
+
+**Entschieden: den Frankfurter Dienst von Hand anlegen.** Jedes Feld ist
+bekannt (siehe Tabelle oben). L-35 („nichts ist blueprint-verwaltet") bleibt
+offen und wird ein eigener Schritt — einen Regionsumzug mit einer
+Infrastruktur-als-Code-Umstellung zu vermischen verdoppelt die Wege, auf denen
+er schiefgehen kann.
+
+**Der Name des neuen Dienstes ist damit frei wählbar** (`kompagnon-backend-fra`),
+und das blockierte Umbenennen entfällt vollständig.
+
+### Die Variablen: eine Gruppe statt Abtippen
+
+Auf der Umgebungsseite gibt es „Create environment group". Der Dialog kommt
+**vorbefüllt** — die Geheimnisse verlassen Render dabei nie, niemand muss sie
+sehen oder in eine Zwischenablage legen.
+
+**Angelegt am 19.08.: `kompagnon-produktiv`, 15 Variablen**, keinem Dienst
+zugeordnet (Spalte *Environment*: `—`), der laufende Betrieb also unberührt.
+Nachgeprüft: produktiv weiterhin `startup_complete: true`,
+`scheduler_running: true`, 2,4–2,6 s.
+
+**`DATABASE_URL` wurde bewusst aus der Gruppe entfernt.** Sie ist die eine
+Variable, die sich zwischen den beiden Diensten unterscheidet: Oregon braucht
+die externe Adresse, Frankfurt bekommt die **interne** — und genau das ist der
+Punkt, an dem die Datenbank aus dem Internet verschwinden kann (L-44).
+
+**Nebenbefund, der mehrere offene Punkte auf einmal bestätigt:** Produktiv
+sind **15 Variablen** gesetzt, der Blueprint deklariert **44**. Es fehlen
+also 29 — darunter `WEBHOOK_SECRET` (deshalb sind die fünf Lead-Webhooks zu),
+`STRIPE_SECRET_KEY` (deshalb ist Stripe nicht scharf), `CMS_ENCRYPTION_KEY`
+(deshalb wären gespeicherte Zugangsdaten nach einer Wiederherstellung
+unlesbar) und `NETLIFY_VORSCHAU_SITE_ID` (L-40). Alle vier waren vermutet und
+sind jetzt belegt.
+
+---
+
+## Stand am 19.08. abends — der Dienst steht, die Domain nicht
+
+**Angelegt: `kompagnon-backend-fra`, `srv-da30dg3bc2fs73fomi0g`.**
+
+| Einstellung | Wert | woher |
+|---|---|---|
+| Region | **Frankfurt (EU Central)** | der Grund des Umzugs |
+| Plan | Standard, 1 CPU / 2 GB | wie Oregon |
+| Branch / Root | `main` / `kompagnon/backend` | wie Oregon |
+| Build | `pip install -r requirements.txt` | **nicht** wie Oregon — siehe L-57 |
+| Start | `uvicorn main:app --host 0.0.0.0 --port $PORT` | wie Oregon |
+| Datentraeger | 1 GB auf `/var/data` | wie Oregon |
+| Health-Check | `/health` | **besser** als Oregon (dort leer) |
+| Auto-Deploy | Off | wie Oregon; die CI loest aus |
+| Variablen | Gruppe `kompagnon-produktiv` (15) | neu, geteilt |
+| `DATABASE_URL` | **intern**, je Dienst gesetzt | der Punkt, an dem L-44 moeglich wird |
+| Adresse | `https://kompagnon-backend-fra.onrender.com` | ohne Domain, ohne Verkehr |
+
+**Am 19.08. um 22:02 gemessen — der Dienst laeuft und ist gesund:**
+
+```
+status: ok            database: connected      ← ueber die INTERNE Adresse
+scheduler_running: true                        startup_complete: true
+startup_missing: []   environment: production
+```
+
+| | Frankfurt (neu) | Oregon (produktiv) |
+|---|---|---|
+| `/health`, fuenf Messungen | 0,30 · 0,22 · **0,18** · 0,20 · **0,17 s** | 3,14 · 3,47 · **2,22** · 3,10 · 2,52 s |
+
+**Faktor 15.** Dazu zwei Dinge, die keine Messung sind, sondern Beweise:
+
+- **`database: connected`** heisst, die interne Adresse traegt. Genau das
+  konnte Oregon nie — und deshalb steht die Datenbank bis heute im offenen
+  Internet (L-44).
+- Der Start brauchte **60 Sekunden**. Oregon brauchte 264 und verlor dabei
+  sieben von acht Startphasen (L-41). Hier ist `startup_missing` leer.
+
+**Gleichheitsprobe, ohne Zugangsdaten moeglich und deshalb sofort gemacht:**
+`GET /openapi.json` liefert auf beiden Diensten **401 Routen, null Abweichung**
+— es ist dieselbe Anwendung. Fuenf Stichproben verhalten sich identisch
+(`/health`, `/info`, `/api/widget/config` je 200; `/api/leads/` je 401).
+
+**Reihenfolge-Falle, vor dem Suspendieren zu beachten:** Solange L-57 offen
+ist, laesst sich der Oregon-Dienst **nicht neu bauen**. Suspendieren und
+spaeter fortsetzen loest bei Render einen Deploy aus — der Rueckweg waere
+damit kaputt, genau dann, wenn man ihn braucht. **Also: L-57 zuerst** (die
+zwei Playwright-Zeilen aus Oregons Build-Befehl entfernen, Testbau ausloesen),
+**dann** suspendieren.
+
+**Schritt 0 der naechsten Sitzung, vor allem anderen** — am 21.08.
+beantwortet, siehe den Abschnitt weiter unten: Es ist `main`. Der urspruengliche
+Auftrag lautete: Nachsehen, aus
+welchem **Branch** `kompagnon-backend-fra` deployt. Der Dienst wurde von Hand
+angelegt, nicht aus dem Blueprint — die Vorgabe steht also nirgends
+geschrieben. Haengt er an `staging`, wuerde das Umhaengen der Domain den
+gesamten heutigen, produktiv ungetesteten Stand live schalten. Erwartet ist
+`main`, geprueft ist es nicht. (Ueber den Render-MCP nicht nachzusehen — er
+antwortet `unauthorized`; also im Dashboard.)
+
+**Noch offen, in dieser Reihenfolge:**
+
+1. Erfolgreicher Build und `startup_complete: true` am neuen Dienst
+2. Fachliche Probe: anmelden, Betriebsliste, ein Audit ansehen
+3. Webhooks bei Trackdesk, Netlify (2×), Brevo, Stripe (2×) umstellen
+4. `RENDER_SERVICE_BACKEND_PROD` in den Repo-Variablen auf
+   `srv-da30dg3bc2fs73fomi0g` aendern, sonst deployt die CI weiter nach Oregon
+   und meldet trotzdem gruen — **das kommt jetzt vor dem Umhaengen**, siehe
+   die Reihenfolge-Falle vom 21.08.
+5. Frankfurt einmal von Hand neu bauen lassen und danach
+   **`scripts/umzug-bereitschaft.sh`** laufen lassen — es beendet sich nur mit
+   0, wenn der Dienst den aktuellen Stand traegt. Am 21.08. gegen Frankfurt
+   gemessen: drei Fehlschlaege (`/api/dashboard/kpis` und `/api/webhooks/log`
+   antworten **200** statt 401, und fuenf Routen fehlen, waehrend zwei
+   entfallene noch da sind) — bei gleichzeitig makellosem `/health` in 0,20 s
+6. **Domain umhaengen** — der erste unumkehrbare Schritt
+7. Alten Dienst suspendieren (nicht loeschen) — **erst nach L-57**
+8. **Dann L-44**: Inbound-Regel der Datenbank zu
+
+**Kosten in der Zwischenzeit:** Zwei Standard-Dienste laufen parallel. Renders
+Prognose fuer August stieg dadurch auf 294,99 $ (Stand 19.08. abends,
+Monat bis dahin 179,85 $).
+
+---
+
+## Schritt 0 beantwortet — am Dienst gemessen, nicht im Dashboard gelesen (21.08.)
+
+Der Render-MCP antwortet den **vierten Tag in Folge `unauthorized`**. Die Frage
+liess sich trotzdem beantworten — nicht an der Einstellung, sondern an dem,
+was der Dienst tatsaechlich ausliefert.
+
+**Der Messpunkt:** Am 19.08. wurden auf `staging` 55 offene Routen geschlossen.
+Diese Aenderung haengt an `dependencies=` der Router — sie veraendert die
+`openapi.json` **nicht**, aber sie veraendert die Antwort zur Laufzeit. Damit
+unterscheidet sie `staging`-Code von `main`-Code, ohne dass man sich anmelden
+muss.
+
+| ohne Anmeldung | Staging (Referenz) | Frankfurt | Oregon (produktiv) |
+|---|---|---|---|
+| `/api/dashboard/kpis` | **401** | **200** | **200** |
+| `/api/webhooks/log` | **401** | **200** | **200** |
+| `/health` | 200 (0,2 s) | 200 (**0,17 s**) | 200 (**2,2 s**) |
+
+Dazu: `GET /openapi.json` ist auf Frankfurt und Oregon **Byte fuer Byte
+identisch** (358.699 Byte, 401 Pfade, gleiche Pruefsumme ueber das sortierte
+JSON).
+
+**Schluss:** Frankfurt laeuft auf `main`-Code. Der Dienst wurde am 19.08. gegen
+22 Uhr gebaut, als die Sicherheitsfixes auf `staging` laengst lagen — haette er
+an `staging` gehangen, traege der Bau sie. Er traegt sie nicht. Auto-Deploy ist
+Off, ein zweiter Bau kann es also auch nicht gewesen sein.
+
+**Was diese Messung nicht ist:** ein Blick in die Einstellung. Sie belegt den
+**ausgelieferten Bau**, nicht die eingetragene Vorgabe. Fuer den naechsten
+Schritt reicht das — beim naechsten Dashboard-Besuch trotzdem nachsehen.
+
+### Die Reihenfolge-Falle, die dadurch sichtbar wurde
+
+Frankfurt hat **Auto-Deploy Off**, und die CI deployt nach
+`RENDER_SERVICE_BACKEND_PROD` — das steht nachweislich immer noch auf Oregon
+(`srv-d74ptinfte5s73bjbv90`, abgelesen im Deploy-Job von Lauf `32122610100`).
+
+Daraus folgt: **Ein Merge nach `main` erreicht Frankfurt nicht.** Nach dem
+Freitags-PR laeuft Oregon auf dem neuen Stand und Frankfurt weiter auf dem
+alten. Wer dann die Domain umhaengt, schaltet die **55 offenen Routen wieder
+scharf** — nach aussen sieht alles gesund aus, `/health` antwortet in 0,17 s.
+
+**Also gilt zwischen Schritt 4 und 5 der Liste eine neue Zwischenstufe:**
+erst `RENDER_SERVICE_BACKEND_PROD` umstellen **und** Frankfurt einmal von Hand
+neu bauen lassen, dann messen — und **erst dann** die Domain umhaengen.
+
+Dafuer gibt es seit dem 21.08. **`scripts/umzug-bereitschaft.sh`**. Es prueft
+nicht, ob Routen *existieren*, sondern was sie **antworten, wenn niemand
+angemeldet ist** — denn genau dort liegt der Unterschied zwischen den beiden
+Staenden. Die Vollstaendigkeit misst es **gegen einen laufenden Dienst**
+(Vorgabe: Staging), nicht gegen eine Zahl im Skript; eine hart notierte 401
+waere schon heute falsch, Staging traegt 404.
+
+### L-57 praeziser gefasst — die Behauptung war zu breit
+
+Notiert war: „Der Oregon-Dienst laesst sich nicht mehr von Grund auf bauen."
+Am Objekt geprueft stimmt das so nicht. Der Deploy-Job der CI loest mit
+`{"clearCache":"do_not_clear"}` aus, und Lauf `32122610100` (PR #42, 18.08.)
+zeigt fuer Oregon `build_in_progress` ueber 45 s, dann `update_in_progress`,
+dann `live`. Ein echter Bau auf einer echten Code-Aenderung, **erfolgreich**,
+vor drei Tagen.
+
+Der Kern der Luecke bleibt, nur enger: Der Bau gelingt, **weil** der Cache das
+`playwright`-Programm aus einer frueheren Abhaengigkeitsliste noch enthaelt.
+Ohne Cache faellt der Build-Befehl auf einen Befehl zurueck, den niemand mehr
+installiert.
+
+- **Der Freitags-Merge ist damit unbedenklich** — er nimmt den Cache-Weg.
+- **Suspendieren, Fortsetzen, Rollback und jeder Bau mit `clear` sind es
+  nicht** — genau dort greift der Cache nicht.
+
+L-57 ist damit keine Blockade fuer den PR, aber weiterhin eine **vor** dem
+Suspendieren (Schritt 6).
 
 ---
 
@@ -166,6 +490,34 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 - [ ] **Dann L-44**: Inbound-Regel der Datenbank von `0.0.0.0/0` auf „kein
       externer Verkehr" wie bei Staging
 - [ ] Nach ein paar ruhigen Tagen: alten Dienst löschen
+
+### Was seit dem 18.08. dazugehört
+
+Vier Dinge sind an diesem Tag entstanden, die den Umzug betreffen. Sie stehen
+hier, damit sie morgen nicht als Überraschung auftauchen.
+
+- [ ] **Der Datenträger zieht nicht mit.** Am 18.08. wurde am *Oregon*-Dienst
+      ein Datenträger angehängt (1 GB, `/var/data`, `UPLOAD_ROOT=/var/data/uploads`).
+      Datenträger gehören zum Dienst, nicht zum Repo: Der Frankfurter Dienst
+      braucht einen **eigenen**, und die Dateien darauf müssen kopiert werden,
+      **bevor** der alte suspendiert wird. Heute liegen dort null Dateien —
+      wenn das morgen noch stimmt, ist es ein Nebensatz. Wenn nicht, ist es
+      der heikelste Schritt des Umzugs.
+      *Prüfung vorher:* `find /var/data -type f | wc -l` in der Render-Shell.
+- [ ] **`/health` sagt es jetzt selbst.** Der neue Dienst ist erst in Ordnung,
+      wenn dort steht: `"uploads": {"dauerhaft": true}`. Das ist die Probe
+      dafür, dass der Datenträger wirklich eingehängt ist — nicht das
+      Dashboard.
+- [ ] **Der Deploy-Job wartet auf `startup_complete`.** Seit dem 18.08. prüft
+      die CI nach dem Deploy die Betriebsbereitschaft des Dienstes (600 s
+      Grenze). Beim Umzug ändern sich die **Service-IDs** in den
+      Repository-Variablen (`RENDER_SERVICE_BACKEND_PROD`) — wer sie vergisst,
+      deployt weiter nach Oregon, und die CI meldet trotzdem grün.
+- [ ] **Zwei neue Tabellen entstehen beim Start** (`fehlerprotokoll`, und die
+      Spalten aus dem Modellabgleich). `Base.metadata.create_all` legt Tabellen
+      an, aber **keine Spalten** — beim ersten Start in Frankfurt läuft
+      derselbe Migrationsblock wie heute, gegen dieselbe Datenbank. Es ist
+      also nichts zu tun; es ist nur nichts zu vergessen.
 
 ### Gelegenheit beim Schopf
 

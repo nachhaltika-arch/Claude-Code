@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
 import { saveJson } from '../../utils/apiRequest';
+import SeitenTitel from '../../components/ui/SeitenTitel';
 
 export default function Freigaben() {
   const { token } = useAuth();
@@ -86,6 +87,7 @@ export default function Freigaben() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 0 40px' }}>
+      <SeitenTitel>Freigaben</SeitenTitel>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         ✅ Freigaben
       </div>
@@ -139,7 +141,7 @@ export default function Freigaben() {
                   Vorschau öffnen →
                 </a>
               )}
-              <textarea
+              <textarea aria-label="Kommentar (optional)…"
                 placeholder="Kommentar (optional)…"
                 value={comments[seiteId] || ''}
                 onChange={e => setComments(c => ({ ...c, [seiteId]: e.target.value }))}

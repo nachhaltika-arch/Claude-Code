@@ -5,6 +5,8 @@ import Logo from '../components/Logo';
 import KompagnonLogo from '../components/KompagnonLogo';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -99,10 +101,11 @@ export default function Login() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 20, fontFamily: 'var(--font-sans)',
     }}>
+      <SeitenTitel>Anmelden</SeitenTitel>
       <div style={{ width: '100%', maxWidth: 380 }}>
 
         {/* Logo */}
-        <div style={{
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -144,7 +147,7 @@ export default function Login() {
               <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: 14 }}>
                   <label style={labelStyle}>E-Mail</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inputStyle}
+                  <input aria-label="E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inputStyle}
                     onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
@@ -152,7 +155,7 @@ export default function Login() {
                 <div style={{ marginBottom: 8 }}>
                   <label style={labelStyle}>Passwort</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                    <input aria-label="••••••••" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••" required style={{ ...inputStyle, paddingRight: 40 }}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
@@ -203,7 +206,7 @@ export default function Login() {
 
               <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
                 {totp.map((d, i) => (
-                  <input key={i} id={`t${i}`} type="text" inputMode="numeric" maxLength={1} value={d}
+                  <input aria-label={`Ziffer ${i + 1} von 6`} key={i} id={`t${i}`} type="text" inputMode="numeric" maxLength={1} value={d}
                     onChange={e => {
                       if (!/^\d*$/.test(e.target.value)) return;
                       const n = [...totp];
@@ -251,7 +254,7 @@ export default function Login() {
                 <form onSubmit={handleForgot}>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>E-Mail</label>
-                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                    <input aria-label="E-Mail" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
                       placeholder="ihre@email.de" required style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />

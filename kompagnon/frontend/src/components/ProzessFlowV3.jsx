@@ -9,6 +9,7 @@ import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import GeoOptimizerStep from './GeoOptimizerStep';
 import { LeistungsseitenStep } from './LeistungsseitenWizard';
+import { aufTaste } from '../utils/tastaturBedienung';
 import {
   BriefingUnternehmenEmbed,
   AuditEmbed,
@@ -370,7 +371,7 @@ export default function ProzessFlowV3({
                   ? 'rgba(255,255,255,.25)'
                   : 'rgba(255,255,255,.09)';
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setOffenerSchritt(s.id))}
                 key={s.id}
                 onClick={() => setOffenerSchritt(s.id)}
                 title={`${s.nr}. ${s.label}`}
@@ -524,7 +525,7 @@ export default function ProzessFlowV3({
 function BreadcrumbItem({ onClick, icon, label, dot }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onClick)}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}

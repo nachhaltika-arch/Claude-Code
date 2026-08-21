@@ -145,7 +145,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={lbl} htmlFor="betrieb-firmenname">Firmenname *</label>
-            <input
+            <input aria-label="Firmenname"
               id="betrieb-firmenname"
               value={form.company_name} onChange={set('company_name')}
               placeholder="z.B. Müller Haustechnik GmbH"
@@ -154,7 +154,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
           </div>
           <div>
             <label style={lbl} htmlFor="betrieb-website">Website / Domain</label>
-            <input
+            <input aria-label="Website / Domain"
               id="betrieb-website"
               value={form.website_url} onChange={set('website_url')}
               placeholder="z.B. mueller-haustechnik.de"
@@ -164,7 +164,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl} htmlFor="betrieb-ansprechpartner">Ansprechpartner</label>
-              <input
+              <input aria-label="Ansprechpartner"
                 id="betrieb-ansprechpartner"
                 value={form.contact_name} onChange={set('contact_name')}
                 placeholder="Vor- und Nachname" style={inp}
@@ -172,7 +172,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
             </div>
             <div>
               <label style={lbl} htmlFor="betrieb-telefon">Telefon</label>
-              <input
+              <input aria-label="Telefon"
                 id="betrieb-telefon"
                 type="tel" value={form.phone} onChange={set('phone')}
                 placeholder="+49 …" style={inp}
@@ -182,7 +182,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl} htmlFor="betrieb-email">E-Mail</label>
-              <input
+              <input aria-label="E-Mail"
                 id="betrieb-email"
                 type="email" value={form.email} onChange={set('email')}
                 placeholder="info@firma.de" style={inp}
@@ -190,7 +190,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
             </div>
             <div>
               <label style={lbl} htmlFor="betrieb-stadt">Stadt</label>
-              <input
+              <input aria-label="Stadt"
                 id="betrieb-stadt"
                 value={form.city} onChange={set('city')}
                 placeholder="Boppard" style={inp}
@@ -199,7 +199,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
           </div>
           <div>
             <label style={lbl} htmlFor="betrieb-gewerk">Gewerk</label>
-            <select
+            <select aria-label="Gewerk"
               id="betrieb-gewerk"
               value={form.trade} onChange={set('trade')}
               style={{ ...inp, cursor: 'pointer' }}

@@ -3,6 +3,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import toast from 'react-hot-toast';
 import { renderPage } from '../grapesjs/handwerk-blocks';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 function enrichBlocksWithKiContent(blocks, kiPage) {
   return blocks.map(block => {
@@ -114,7 +115,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         ].map((s, i) => (
           <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {i > 0 && <div style={{ width: 24, height: 2, background: step > i ? 'var(--brand-primary)' : 'var(--border-light)' }} />}
-            <div onClick={() => step > s.n && setStep(s.n)} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: step > s.n ? 'pointer' : 'default' }}>
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => step > s.n && setStep(s.n))} onClick={() => step > s.n && setStep(s.n)} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: step > s.n ? 'pointer' : 'default' }}>
               <div style={{
                 width: 24, height: 24, borderRadius: '50%',
                 background: step >= s.n ? 'var(--brand-primary)' : 'var(--bg-elevated)',
@@ -142,7 +143,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Stil-Vorlagen</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
               {TEMPLATE_PRESETS.map(t => (
-                <div
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { setSelectedTemplate(t); setStep(2); })}
                   key={t.id}
                   onClick={() => { setSelectedTemplate(t); setStep(2); }}
                   style={{
@@ -167,7 +168,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Gespeicherte Templates</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                   {dbTemplates.map(t => (
-                    <div key={t.id} onClick={() => { setSelectedTemplate(t); setStep(2); }}
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { setSelectedTemplate(t); setStep(2); })} key={t.id} onClick={() => { setSelectedTemplate(t); setStep(2); }}
                       style={{ borderRadius: 10, overflow: 'hidden', border: `2px solid ${selectedTemplate?.id === t.id ? 'var(--brand-primary)' : 'var(--border-light)'}`, cursor: 'pointer' }}>
                       {t.thumbnail_url ? (
                         <img src={t.thumbnail_url} alt={t.name} style={{ width: '100%', height: 80, objectFit: 'cover' }} />
@@ -248,7 +249,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Fuer welche Seite soll der Entwurf erstellt werden?</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 20 }}>
               {sitemapPages.map(page => (
-                <div key={page.id} onClick={() => setSelectedPage(page)}
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedPage(page))} key={page.id} onClick={() => setSelectedPage(page)}
                   style={{
                     padding: '12px 14px', borderRadius: 8,
                     border: `2px solid ${selectedPage?.id === page.id ? 'var(--brand-primary)' : 'var(--border-light)'}`,

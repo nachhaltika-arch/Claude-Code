@@ -120,7 +120,7 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
             </h3>
             <label style={{ display:'block',marginBottom:6,fontSize:13,
                             color:'var(--text-secondary)' }}>Empfaenger (E-Mail)</label>
-            <input type="email" value={sendTo}
+            <input aria-label="Empfaenger (E-Mail)" type="email" value={sendTo}
               onChange={(e) => setSendTo(e.target.value)}
               placeholder="kunde@beispiel.de"
               style={{ width:'100%',padding:'10px 12px',borderRadius:6,
@@ -129,7 +129,7 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
                        background:'var(--bg-app)',color:'var(--text-primary)' }} />
             <label style={{ display:'block',marginBottom:6,fontSize:13,
                             color:'var(--text-secondary)' }}>Betreff</label>
-            <input type="text" value={subject}
+            <input aria-label="Betreff" type="text" value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Ihr Newsletter von KOMPAGNON"
               style={{ width:'100%',padding:'10px 12px',borderRadius:6,

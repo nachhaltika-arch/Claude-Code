@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import wzData from '../data/wz2025.json';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function WZSearch({ value, onChange, placeholder = 'Branche suchen...' }) {
   const [query, setQuery] = useState('');
@@ -58,14 +59,14 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               <span style={{ fontFamily: 'monospace', color: 'var(--text-tertiary)', marginRight: 6 }}>{value.code}</span>
               {value.title}
             </span>
-            <button onClick={handleClear} style={{
+            <button aria-label="Schließen" onClick={handleClear} style={{
               flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--text-tertiary)', fontSize: 14, padding: 0, lineHeight: 1,
               fontFamily: 'var(--font-sans)',
             }}>✕</button>
           </>
         ) : (
-          <input
+          <input aria-label={placeholder}
             value={query}
             onChange={e => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
@@ -91,7 +92,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               Keine Ergebnisse für „{query}"
             </div>
           ) : results.map((entry, i) => (
-            <div
+            <div role="button" tabIndex={0} onKeyDown={aufTaste(() => handleSelect(entry))}
               key={i}
               onClick={() => handleSelect(entry)}
               style={{

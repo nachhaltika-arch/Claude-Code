@@ -7,6 +7,8 @@ import {
   betriebeStatistik,
   quellenAusBetrieben,
   statusAusBetrieben,
+  filterNachPhase,
+  phasenAusBetrieben,
   BETRIEB_SORTIERUNGEN,
 } from './betriebeListe';
 
@@ -255,6 +257,7 @@ describe('betriebeStatistik', () => {
   test('eine leere Liste ergibt Nullen statt eines Fehlers', () => {
     expect(betriebeStatistik([])).toEqual({
       gesamt: 0, mitScore: 0, durchschnittsScore: 0, statusZaehler: [],
+      phasenZaehler: [],
     });
   });
 
@@ -365,5 +368,44 @@ describe('quellenAusBetrieben', () => {
 
   test('eine leere Liste ergibt nur „Alle Quellen"', () => {
     expect(quellenAusBetrieben([])).toEqual([{ key: 'alle', label: 'Alle Quellen', anzahl: 0 }]);
+  });
+});
+
+// ── Lebenszyklus-Phase ────────────────────────────────────────────────
+//
+// Aus dem HubSpot-Vergleich vom 19.08.2026: Der Status beantwortete „wo im
+// Trichter" und „wie weit die Bearbeitung" gleichzeitig. Die Phase trennt das
+// heraus; der Status bleibt daneben stehen.
+
+describe('Filter nach Lebenszyklus-Phase', () => {
+  const mit = (id, phase) => betrieb({ id, lifecycle_phase: phase });
+
+  test('alle heisst alle', () => {
+    const liste = [mit(1, 'kunde'), mit(2, 'interessent')];
+    expect(filterNachPhase(liste, 'alle')).toHaveLength(2);
+  });
+
+  test('eine Phase trifft nur ihre Betriebe', () => {
+    const liste = [mit(1, 'kunde'), mit(2, 'interessent'), mit(3, 'kunde')];
+    expect(filterNachPhase(liste, 'kunde').map((b) => b.id)).toEqual([1, 3]);
+  });
+
+  test('offen trifft die ohne Phase', () => {
+    // Der Fall, der beim Status den dreissigsten Betrieb verschwinden liess:
+    // ein Wert, den die Zuordnung nicht kennt.
+    const liste = [mit(1, 'kunde'), mit(2, null), betrieb({ id: 3 })];
+    expect(filterNachPhase(liste, 'offen').map((b) => b.id)).toEqual([2, 3]);
+  });
+
+  test('die Zaehler summieren sich auf alle Betriebe', () => {
+    // Genau diese Probe hat den Status-Fehler aufgedeckt: 27 + 2 bei 30.
+    const liste = [mit(1, 'kunde'), mit(2, 'interessent'), mit(3, null)];
+    const summe = phasenAusBetrieben(liste).reduce((s, e) => s + e.anzahl, 0);
+    expect(summe).toBe(liste.length);
+  });
+
+  test('die Betriebe ohne Phase bekommen eine eigene Schaltflaeche', () => {
+    const eintraege = phasenAusBetrieben([mit(1, null)]);
+    expect(eintraege).toEqual([{ key: 'offen', label: 'Phase offen', anzahl: 1 }]);
   });
 });

@@ -13,9 +13,11 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import (
-    require_admin, require_any_auth, require_innendienst, get_current_user,
+    INNENDIENST, require_admin, require_any_auth, require_innendienst,
+    verlangt_recht,
+    get_current_user,
 )
-from services import betriebsname
+from services import betriebsname, lead_quellen
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
@@ -144,7 +146,7 @@ class LeadConvertRequest(BaseModel):
     assigned_person: str = "KOMPAGNON-Team"
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verlangt_recht("create_leads"))])
 def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
         result = db.execute(text("""
@@ -239,6 +241,8 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             'city': row[6] or '',
             'trade': row[7] or '',
             'lead_source': row[8] or '',
+            'datenherkunft': lead_quellen.herkunft_fuer(row[8]),
+            'rechtsgrundlage': lead_quellen.rechtsgrundlage_fuer(row[8]),
             'status': row[9] or 'new',
             'analysis_score': row[10] or 0,
             'geo_score': row[11] or 0,
@@ -282,6 +286,7 @@ def list_leads(
                 'city': lead.city or '',
                 'trade': lead.trade or '',
                 'status': lead.status or 'new',
+                'lifecycle_phase': lead.lifecycle_phase,
                 'lead_source': lead.lead_source or '',
                 'analysis_score': lead.analysis_score or 0,
                 'geo_score': lead.geo_score or 0,
@@ -993,8 +998,13 @@ def get_lead(
     Die einzige Lead-Route, die auch ein Kunde aufrufen darf — für den
     eigenen Betrieb. Die eigene Nummer hochzuzählen ist der naheliegendste
     Angriff, deshalb steht die Prüfung hier und nicht in der Oberfläche.
+
+    **18.08.2026:** Die Prüfung fragte, ob jemand `kunde` ist — und liess
+    damit die Rolle `nutzer` durch, die laut Rechtematrix kein `view_leads`
+    hat. Jetzt umgekehrt: Wer nicht zum Innendienst gehört, sieht nur den
+    eigenen Betrieb. Dieselbe Umkehrung wie in `require_innendienst`.
     """
-    if current_user.role == "kunde" and current_user.lead_id != lead_id:
+    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1003,7 +1013,7 @@ def get_lead(
     return lead
 
 
-@router.patch("/{lead_id}")
+@router.patch("/{lead_id}", dependencies=[Depends(verlangt_recht("edit_leads"))])
 def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
     """Update a lead — saves all provided fields."""
     db_lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1021,7 +1031,7 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
     return {"success": True, "id": db_lead.id}
 
 
-@router.delete("/{lead_id}")
+@router.delete("/{lead_id}", dependencies=[Depends(verlangt_recht("delete_leads"))])
 def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     """Delete a lead and all associated data in correct dependency order."""
     # 1. Prüfen ob Lead existiert
@@ -1052,6 +1062,28 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
 
     # 6. Lead selbst löschen
+    #
+    # Ein Betrieb mit Kundenzugang scheiterte hier am Fremdschlüssel
+    # `users.lead_id` — unbehandelt, also **500** mit einer Meldung, aus der
+    # niemand schließen kann, was zu tun ist (gefunden 19.08.2026).
+    #
+    # Der Zugang wird hier **nicht** mitgelöscht: Ob das Löschen eines
+    # Betriebs das Konto seines Kunden mitnehmen soll, ist eine
+    # Datenschutz-Entscheidung und keine Zeile Code (L-56). Bis sie gefallen
+    # ist, sagt der Endpunkt wenigstens, was im Weg steht — das kann nichts
+    # brechen, denn heute scheitert der Aufruf ohnehin.
+    konto = db.execute(
+        text("SELECT email FROM users WHERE lead_id = :id LIMIT 1"),
+        {"id": lead_id},
+    ).fetchone()
+    if konto:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(f"Der Betrieb hat noch einen Kundenzugang ({konto[0]}). "
+                    "Erst den Zugang entfernen, dann den Betrieb löschen."),
+        )
+
     db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
 
@@ -1321,7 +1353,9 @@ def import_lead_manual(
         website_url=lead_data.website_url.strip(),
         city=lead_data.city.strip(),
         trade=lead_data.trade.strip(),
-        lead_source="Manuell",
+        # Eine Schreibweise je Quelle — `manual` schreiben auch die drei
+        # Frontend-Stellen, und der Quellenfilter vergleicht darauf (L-59).
+        lead_source="manual",
         status="new",
     )
     db.add(lead)
@@ -1481,6 +1515,12 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "trade": lead.trade,
             "status": lead.status,
             "lead_source": lead.lead_source,
+            # Woher der Betrieb kam und unter welcher Rechtsgrundlage wir ihn
+            # fuehren — abgeleitet aus derselben gespeicherten Quelle, damit
+            # es keine zweite Wahrheit gibt (L-59).
+            "datenherkunft": lead_quellen.herkunft_fuer(lead.lead_source),
+            "rechtsgrundlage": lead_quellen.rechtsgrundlage_fuer(lead.lead_source),
+            "quelle_gefuehrt": lead_quellen.quelle_bekannt(lead.lead_source),
             "notes": lead.notes,
             "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
             "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,

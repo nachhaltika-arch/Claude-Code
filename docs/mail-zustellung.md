@@ -79,10 +79,15 @@ hat.
    Settings → Webhooks* eine Adresse anlegen:
 
    ```
-   https://claude-code-znq2.onrender.com/api/mail-events/brevo/<geheimnis>
+   https://api.kompagnon.group/api/mail-events/brevo/<geheimnis>
    ```
 
    Für Staging entsprechend `kompagnon-backend-staging.onrender.com`.
+
+   **Nicht** die alte Adresse `claude-code-znq2.onrender.com` eintragen, auch
+   wenn Brevo sie heute noch akzeptiert: Sie verschwindet mit dem Umzug nach
+   Frankfurt (L-34). `api.kompagnon.group` zeigt derzeit auf denselben Dienst
+   und übersteht den Umzug — das ist der ganze Zweck der eigenen Domain.
    Anzuhaken sind: *Hard bounce*, *Soft bounce*, *Blocked*, *Spam*,
    *Invalid email*, *Error*. Zustellungen und Öffnungen bitte **nicht** —
    sie werden ohnehin verworfen und kosten nur Aufrufe.

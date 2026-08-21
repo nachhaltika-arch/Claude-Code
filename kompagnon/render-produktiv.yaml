@@ -86,10 +86,30 @@ services:
     plan: standard
     branch: main
     rootDir: kompagnon/backend
+    # **Zurueckgenommen am 19.08.2026.** Kurz zuvor stand hier der Befehl des
+    # Oregon-Dienstes, inklusive
+    # `python -m playwright install chromium && … install-deps chromium`.
+    # Das war ein Fehler: Der Befehl wurde zwar am laufenden Dienst
+    # abgelesen, aber nicht daraufhin geprueft, ob er **funktioniert**.
+    #
+    # Er tut es nicht. `playwright` steht in **keiner** `requirements.txt`,
+    # weder auf `staging` noch auf `main`, und im Backend importiert es nur
+    # eine Testdatei. Der erste Build in Frankfurt scheiterte prompt:
+    # „No module named playwright". Screenshots kommen ueber externe Dienste
+    # (`services/screenshot.py`: thum.io, microlink), nicht ueber einen
+    # eigenen Browser.
+    #
+    # Daraus folgt der eigentliche Befund — siehe L-57: Der **Oregon-Dienst
+    # laesst sich heute nicht mehr von Grund auf bauen.** Er laeuft auf einem
+    # Build-Artefakt, das sich nicht reproduzieren laesst.
     buildCommand: pip install -r requirements.txt
     # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
     # alten Blueprints es behaupten. Hier steht, was er tut.
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Der laufende Oregon-Dienst hat **keinen** Health-Check eingetragen —
+    # das Feld ist leer (19.08. nachgesehen). Render prueft dort also gar
+    # nicht, ob der Dienst antwortet. Hier bleibt `/health` stehen: Das ist
+    # die bessere Einstellung, und der Unterschied ist gewollt.
     healthCheckPath: /health
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
     # erst nach gruener CI. Das setzt voraus, dass Auto-Deploy im Dashboard

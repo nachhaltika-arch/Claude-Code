@@ -39,6 +39,31 @@ describe('Aufbau des Menüs', () => {
     });
   });
 
+  test('jeder eigene Bereich hat einen Weg im Menü', () => {
+    // Gefunden von David am 18.08.2026: Die **Akademie** stand in keiner
+    // Gruppe. Fünf Kurse, eine Kursverwaltung, Urkunden für Kunden — und auf
+    // dem Desktop kein Weg dorthin; nur die Mobilleiste kannte sie unter
+    // „Mehr". Ein Bereich ohne Menüeintrag ist für alle, die die Adresse
+    // nicht auswendig kennen, nicht vorhanden.
+    //
+    // Die Liste hier ist bewusst kurz: Sie nennt die Bereiche, die eine
+    // eigene Welt sind, nicht jede Unterseite.
+    // Das Dashboard steht bewusst nicht in der Liste: Es hängt in der
+    // Seitenleiste über den Gruppen, nicht in einer davon.
+    const BEREICHE = [
+      '/app/projects',
+      '/app/betriebe',
+      '/app/deals',
+      '/app/audit',
+      '/app/newsletter',
+      '/app/tickets',
+      '/app/academy',
+    ];
+    const pfade = alleEintraege().map(e => e.path);
+
+    expect(BEREICHE.filter(b => !pfade.includes(b))).toEqual([]);
+  });
+
   test('keine zwei Einträge heißen fast gleich', () => {
     // UX-17: „Produkt-Editor", „Produkte" und „Produktentwicklung" standen
     // nebeneinander. Aus den Namen war nicht ableitbar, welcher wofür ist.

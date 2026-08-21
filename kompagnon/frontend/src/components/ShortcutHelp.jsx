@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const SHORTCUTS = [
   { keys: ['⌘', 'K'], desc: 'Command Palette öffnen' },
@@ -25,7 +26,7 @@ export default function ShortcutHelp({ open, onClose }) {
         padding: 20,
       }}
     >
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--bg-surface)',

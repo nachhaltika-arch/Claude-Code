@@ -746,7 +746,11 @@
     .then(function (start) {
       var auditId = start.audit_id || start.id;
       if (!auditId) throw new Error('Audit konnte nicht gestartet werden.');
-      pollAudit(root, source, auditId, cleanUrl, msgTimer);
+      // Das Geheimnis aus der Startantwort. Ohne es kaeme der Interessent
+      // nicht an sein eigenes Ergebnis — und mit einer blossen Nummer kaeme
+      // jeder an fremde (L-52, 19.08.2026).
+      var auditToken = start.token || '';
+      pollAudit(root, source, auditId, cleanUrl, msgTimer, auditToken);
     })
     .catch(function (err) {
       clearInterval(msgTimer);
@@ -754,7 +758,8 @@
     });
   }
 
-  function pollAudit(root, source, auditId, cleanUrl, msgTimer) {
+  function pollAudit(root, source, auditId, cleanUrl, msgTimer, auditToken) {
+    var auditQuery = auditToken ? '?token=' + encodeURIComponent(auditToken) : '';
     var attempts = 0;
     var poll = setInterval(function () {
       attempts++;
@@ -763,7 +768,7 @@
         renderError(root, source, 'Zeitüberschreitung — bitte erneut versuchen.');
         return;
       }
-      fetch(API_BASE + '/api/audit/' + encodeURIComponent(auditId))
+      fetch(API_BASE + '/api/audit/' + encodeURIComponent(auditId) + auditQuery)
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (d.status === 'completed') {

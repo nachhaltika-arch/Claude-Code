@@ -18,13 +18,24 @@ from services.audit_criteria import (
     find_criterion,
     item_keys,
     score_all,
+    ERWARTETE_GESAMTPUNKTE,
 )
 
 
 # ── Katalog-Konsistenz ────────────────────────────────────────────────
 
-def test_katalog_ergibt_genau_hundert_punkte():
-    assert TOTAL_POINTS == 100
+def test_die_gesamtpunktzahl_ist_die_erklaerte():
+    """Nicht „100", sondern „die Zahl, die jemand hingeschrieben hat".
+
+    Der Test verlangte bis zum 21.08.2026 exakt 100 — und widersprach damit
+    dem Kopf von `audit_criteria.py`, der sagt, dass die Gewichte nicht auf
+    100 aufgehen muessen, weil normiert wird. Beides konnte nicht stimmen.
+
+    Jetzt haelt er, was er halten soll: Eine **versehentliche** Verschiebung
+    faellt weiterhin auf; eine beabsichtigte muss in
+    `ERWARTETE_GESAMTPUNKTE` eingetragen werden, mit Datum und Grund.
+    """
+    assert TOTAL_POINTS == ERWARTETE_GESAMTPUNKTE
 
 
 def test_kategorie_maximum_entspricht_summe_ihrer_kriterien():

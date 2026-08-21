@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // ── Konstanten ───────────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ const inputBase = {
 
 function Input({ value, onChange, placeholder, onBlur, hasError, id, type = 'text' }) {
   return (
-    <input
+    <input aria-label={placeholder}
       id={id}
       type={type}
       value={value}
@@ -121,7 +122,7 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, ma
     : tooLong ? 'var(--status-danger-text)' : 'var(--text-tertiary)';
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
+      <textarea aria-label={placeholder}
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -604,7 +605,7 @@ export default function LeistungsseitenWizard({
       />
 
       {/* Modal-Box */}
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
         onClick={e => e.stopPropagation()}
         style={{
           ...panelStyle,

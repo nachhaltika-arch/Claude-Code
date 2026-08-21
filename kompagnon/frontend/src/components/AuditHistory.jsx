@@ -4,6 +4,7 @@ import axios from 'axios';
 import API_BASE_URL from '../config';
 import AuditReport from './AuditReport';
 import { useScreenSize } from '../utils/responsive';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { color: '#283593', icon: '\uD83C\uDFC6' },
@@ -216,7 +217,7 @@ export default function AuditHistory({ leadId }) {
       {openAudit && createPortal(
         <>
           {/* Backdrop */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setOpenAudit(null))}
             style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(0,0,0,0.75)',

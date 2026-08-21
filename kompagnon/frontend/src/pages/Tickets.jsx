@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 const TC = { bug: { label: 'Fehler', icon: '🐛', color: '#dc2626', bg: 'var(--status-danger-bg)' }, feature: { label: 'Idee', icon: '💡', color: '#7c3aed', bg: 'var(--status-neutral-bg)' }, feedback: { label: 'Feedback', icon: '💬', color: 'var(--brand-primary)', bg: 'var(--bg-hover)' }, question: { label: 'Frage', icon: '❓', color: '#d97706', bg: 'var(--status-warning-bg)' } };
@@ -54,7 +55,7 @@ export default function Tickets() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20, minWidth: 0, width: '100%' }}>
         {[{ l: 'Offen', v: kpis.open, c: '#2563eb', i: '📬', f: () => setFStatus('open') }, { l: 'In Bearbeitung', v: kpis.wip, c: '#d97706', i: '⚙️', f: () => setFStatus('in_progress') }, { l: 'Kritisch', v: kpis.crit, c: '#dc2626', i: '🚨', f: () => setFStatus('open') }, { l: 'Geloest', v: kpis.done, c: '#059669', i: '✅', f: () => setFStatus('resolved') }].map((k) => (
-          <div key={k.l} onClick={k.f} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(k.f)} key={k.l} onClick={k.f} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 20 }}>{k.i}</span>
               <span style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</span>
@@ -66,7 +67,7 @@ export default function Tickets() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche..." style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+        <input aria-label="Suche..." value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche..." style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         {[{ v: '', l: 'Alle' }, { v: 'open', l: 'Offen' }, { v: 'in_progress', l: 'Bearbeitung' }, { v: 'resolved', l: 'Geloest' }, { v: 'closed', l: 'Geschlossen' }].map((s) => (
           <button key={s.v} onClick={() => setFStatus(s.v)} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${fStatus === s.v ? 'var(--brand-primary)' : 'var(--border-light)'}`,
@@ -74,7 +75,7 @@ export default function Tickets() {
             fontSize: 12, fontWeight: fStatus === s.v ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 36,
           }}>{s.l}</button>
         ))}
-        <select value={fType} onChange={(e) => setFType(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+        <select aria-label="Nach Art filtern" value={fType} onChange={(e) => setFType(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
           <option value="">Alle Typen</option>
           {Object.entries(TC).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
         </select>
@@ -91,7 +92,7 @@ export default function Tickets() {
             const pc = PC[t.priority] || PC.medium;
             const sel = selected?.id === t.id;
             return (
-              <div key={t.id} onClick={() => openT(t)} style={{
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => openT(t))} key={t.id} onClick={() => openT(t)} style={{
                 background: sel ? 'var(--bg-hover)' : 'var(--bg-surface)', borderRadius: 10, border: `1.5px solid ${sel ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 padding: '14px 16px', cursor: 'pointer', transition: 'all 0.15s',
               }}>
@@ -152,7 +153,7 @@ export default function Tickets() {
                 ))}
               </div>
               <Lbl>Entwickler-Notiz</Lbl>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Interne Notiz..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box', outline: 'none', marginBottom: 14 }} />
+              <textarea aria-label="Interne Notiz..." value={note} onChange={(e) => setNote(e.target.value)} placeholder="Interne Notiz..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box', outline: 'none', marginBottom: 14 }} />
               <button onClick={save} disabled={saving} style={{ width: '100%', padding: 11, background: saving ? '#64748b' : '#059669', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', minHeight: 44, opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Speichern...' : 'Speichern'}
               </button>

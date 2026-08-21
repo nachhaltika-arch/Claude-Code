@@ -4,6 +4,8 @@ import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export const SOURCES = [
   { key: 'facebook',   label: 'Facebook',   icon: '📘', color: '#1877F2' },
@@ -115,7 +117,7 @@ export default function CampaignManager() {
                     Tracking-URL
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input
+                    <input aria-label="Tracking-Adresse"
                       readOnly
                       value={c.tracking_url}
                       onClick={e => e.target.select()}
@@ -224,6 +226,7 @@ function QrCodePanel({ campaign, color }) {
       border: '1px solid var(--border-light)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
     }}>
+      <SeitenTitel>Kampagnen</SeitenTitel>
       <div ref={ref} style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
         <QRCodeCanvas
           value={campaign.tracking_url}
@@ -281,7 +284,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
   const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' };
 
   return createPortal(
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
       onClick={e => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2000,
@@ -304,7 +307,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
               Quelle wählen + Details
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
@@ -337,12 +340,12 @@ function NewCampaignModal({ onClose, onCreated, token }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Kampagnen-Name *</label>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Facebook April 2026 Koblenz" />
+            <input aria-label="Kampagnen-Name" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Facebook April 2026 Koblenz" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Ziel-URL</label>
-            <input style={inputStyle} value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://kompagnon.eu" />
+            <input aria-label="Ziel-URL" style={inputStyle} value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://kompagnon.eu" />
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
               Wohin der Kunde nach Klick weitergeleitet wird. Bei Briefkarten wird automatisch die Landing-Page verwendet.
             </div>
@@ -350,7 +353,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Beschreibung (optional)</label>
-            <textarea
+            <textarea aria-label="Beschreibung (optional)"
               style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }}
               value={description}
               onChange={e => setDescription(e.target.value)}

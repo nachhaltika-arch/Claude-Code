@@ -599,13 +599,117 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ---
 
+## Paket 8 — Akademie und Mobil · 2026-08-18
+
+*Beide Flächen standen als „nicht angesehen". Sie waren es nicht.*
+
+### Erledigt
+
+- [x] **UX-35** · **Leere Seite auf dem Desktop.** `/app/vertrieb` — die
+      Adresse, die in der Mobilleiste steht — zeigte auf einem breiten
+      Bildschirm **nichts**. Alle vier Mobil-Einstiege riefen `navigate()` im
+      Rumpf der Komponente auf; der Router verwirft das, `return null` bleibt
+      stehen. Jetzt `<Navigate replace />`. *Geprüft:* `/app/vertrieb` landet
+      auf `/app/deals`.
+- [x] **UX-36** · **Erfundene Zahlen auf den Kacheln.** „12" Leads, „5" neue,
+      „3" Projekte, „2 offen", „54 Punkte / Projekt", „5 Rollen",
+      „2 Seiten live" — und ein **„Abonnement: Professional"**, das eine
+      Zahlungstatsache behauptet. In der lokalen Datenbank steht **ein**
+      Betrieb. Eine erfundene Zahl ist schlimmer als keine: Sie wird geglaubt.
+      Entfernt, bis sie aus den Daten kommt.
+- [x] **UX-37** · **„Akademy" an neun weiteren Stellen** — gestern wurde ein
+      Reiter umbenannt. Der Rest stand noch: die Überschrift der Akademie
+      selbst, der Reiter in der Kundenkartei, und **zweimal die Urkunde**,
+      die der Kunde ausgedruckt behält.
+- [x] **UX-38** · **Fremdes Monogramm.** Auf der Passwort-zurücksetzen-Seite
+      stand ein goldenes **„HS"** neben dem Wort KOMPAGNON. Jetzt die echte
+      Marke.
+- [x] **UX-39** · **Ein Bildschirm, zwei Namen und zwei Adressräume.**
+      Brotkrume „Kurse verwalten", Überschrift „Kursverwaltung"; die eigenen
+      Knöpfe zeigten auf `/app/akademie/…`, während der Bildschirm unter
+      `/app/academy/…` erreicht wird — ein Klick wechselte den Adressraum.
+      Dazu „← Zurück" neben der Brotkrume (UX-24-Klasse).
+- [x] **UX-40** · **Unsichtbarer Kreis — mein Fehler von heute Vormittag.**
+      Der Umbau aus UX-34 zog einen Avatar-Kreis von `--kc-mid` auf
+      `--brand-primary` — auf eine Karte, die selbst `--brand-primary` ist.
+      Zwei Stellen. Die Regel „Markenfläche trägt lesbare Tinte" ist richtig
+      und sagt nichts über eine Fläche, die sich von ihrer **Nachbarfläche**
+      abheben muss.
+- [x] **UX-41** · Die Mobil-Einstiege folgten dem Farbsystem nicht (`#9AACAE`
+      als Beschriftungsfarbe = 2.13 auf Weiß). Jetzt Tokens.
+- [x] Totes Gewicht: `pages/Akademie.jsx` war importiert und an keiner Route;
+      `m-vertrieb` war eine zweite Adresse für einen Bildschirm, den nichts
+      verlinkt.
+
+### Offen — jeweils mit Empfehlung
+
+- [x] **UX-42** · **M** · ~~Die Akademie gibt es zweimal~~ **erledigt
+      2026-08-18.** Ein Adressraum: `/app/akademie/*` leitet vollständig auf
+      `/app/academy/*` um (eine Weiterleitung statt elf Routen, alte
+      Lesezeichen bleiben gültig). Der zweite Kurseditor, der Modul-Editor und
+      der alte Lektions-Spieler sind entfernt — **zu portieren war nichts**,
+      ihre Mehrfelder erscheinen auf keinem Bildschirm.
+      **Davor** (Schritt 1 der Empfehlung): Ein gescheitertes Speichern ist
+      jetzt sichtbar. `utils/schreiben.js` fängt beides ab — die geworfene
+      Ausnahme **und** die Antwort, die nicht `ok` ist — und macht aus dem
+      Statuscode einen Satz. *Geprüft am Gegenstand:* Modul im Hintergrund
+      gelöscht, dann „+ Lektion hinzufügen" gedrückt → „Die Lektion nicht
+      gespeichert. Das Ziel gibt es nicht (mehr)." Vorher: nichts.
+      **Offen daraus:** ob Checklisten je Lektion ein Merkmal bleiben sollen —
+      sie waren nur im entfernten Modul-Editor pflegbar und nur im entfernten
+      Lektions-Spieler sichtbar; die Daten stehen weiter in der Spalte
+      `checklist_items_json`. Ebenso `category`, `category_color`, `formats`:
+      im Modell, nirgends angezeigt.
+
+- [x] **UX-43** · **S** · ~~Drei Mobil-Einstiege sind von nirgends verlinkt~~
+      **erledigt 2026-08-18: entfernt.** Angebunden hätte sie verdoppelt, was
+      es schon gibt — `/app/settings` rendert unter `SettingsLayout` eine
+      **eigene** Mobilansicht und steht im „Mehr"-Fach; die übrigen Ziele
+      (Projektpipeline, Alle Projekte, Betriebe, Tickets) stehen direkt in der
+      Mobilleiste. Geblieben ist `MobileVertrieb` — der Einstieg, auf den die
+      Leiste unter „Vertrieb" tatsächlich zeigt. Mit den drei Seiten fiel auch
+      die gemeinsame Komponente `MobileHub`, die sonst niemand benutzte.
+
+- [x] **UX-44** · **S** · ~~Zwei Arten, eine Löschung zu bestätigen~~
+      **erledigt 2026-08-18 — anders als vorgeschlagen.** Beim Nachzählen:
+      **26 Stellen** nutzen die Browserfrage, **eine** einen eigenen Dialog
+      (Kursliste), **eine** einen mit Vorschau (Projekte löschen). 26 Stellen
+      auf einen Dialog umzubauen wäre viel Arbeit für wenig — die Browserfrage
+      ist eindeutig, tastaturfähig und nicht zu übersehen.
+
+      **Die Regel, die stattdessen gilt** (`utils/loeschfrage.js`): Nicht die
+      Bauform entscheidet, sondern was auf dem Spiel steht.
+
+      | Was verschwindet | Wie gefragt wird |
+      |---|---|
+      | eine einzelne, ersetzbare Sache | Browserfrage genügt |
+      | etwas mit Anhang | die Frage **nennt den Anhang** |
+      | Unwiderrufliches mit vielen Abhängigkeiten | eigener Dialog mit Vorschau |
+
+      Umgesetzt an den beiden Stellen der Akademie: Aus „Modul und alle
+      Lektionen darin löschen?" wird „Modul „Grundlagen" löschen? — Damit geht
+      auch: 3 Lektionen." Die Frage sagt jetzt, **wie viel** mitgeht.
+
+### Offen
+
+- [ ] **193 Stellen** weiße Schrift auf einer Fläche, die die Datei nicht
+      nennt: geerbt, ein Verlauf, oder aus den Daten. Von außen nicht
+      messbar. Sie sind **nicht** geprüft — nur gezählt.
+- [ ] **Kein Wächter gegen verwaiste Adressen.** UX-35 und UX-43 waren beide
+      derselbe Fall: ein Bildschirm ohne Weg dorthin. Ein Test, der das
+      allgemein hält, fehlt — mein schneller Durchlauf dazu meldete 18
+      Adressen, von denen die meisten Fehltreffer waren (verschachtelte
+      Routen unter `settings`, legitime Weiterleitungen). Ohne saubere
+      Auflösung der Verschachtelung ist so ein Test mehr Lärm als Nutzen.
+
+---
+
 ## Noch nicht geprüft — vor dem Abhaken zu erheben
 
 Diese Flächen sind nicht angesehen worden. Sie sind **nicht** „in Ordnung",
 sondern unbekannt:
 
-- [ ] Academy-Verwaltung (14 Routen), Mobil-Ansichten (5),
-      Newsletter-Designer, Template-Editor, Component-Library,
+- [ ] Newsletter-Designer, Template-Editor, Component-Library,
       Online-fertig-Editor
 - [ ] Das Kundenportal **von innen** — braucht einen echten Kundenzugang
 - [ ] Barrierefreiheit — hier nicht gemessen; die Lückenliste führt sie als

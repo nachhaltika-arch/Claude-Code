@@ -134,6 +134,39 @@ def auth_headers(client, admin_user):
     return {"Authorization": f"Bearer {token}"}
 
 
+AUDITOR_EMAIL = "pytest-auditor@kompagnon.local"
+AUDITOR_PASSWORT = "pytest-auditor-passwort"
+
+
+@pytest.fixture(scope="session")
+def auditor_headers(client, app):
+    """Ein Auditor — die Rolle, an der sich zeigt, ob Rechte wirken.
+
+    Sie steht zwischen Innendienst und Kunde: laut Rechtematrix darf sie
+    Betriebe sehen, aber keine loeschen und keine Benutzer verwalten.
+    """
+    from auth import hash_password
+    from database import SessionLocal, User
+
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.email == AUDITOR_EMAIL).first():
+            db.add(User(
+                email=AUDITOR_EMAIL,
+                password_hash=hash_password(AUDITOR_PASSWORT),
+                first_name="Pytest", last_name="Auditor",
+                role="auditor", is_active=True, is_verified=True,
+            ))
+            db.commit()
+    finally:
+        db.close()
+
+    antwort = client.post("/api/auth/login",
+                          json={"email": AUDITOR_EMAIL, "password": AUDITOR_PASSWORT})
+    assert antwort.status_code == 200, antwort.text
+    return {"Authorization": f"Bearer {antwort.json()['access_token']}"}
+
+
 KUNDE_EMAIL = "pytest-kunde@example.com"
 KUNDE_PASSWORD = "Pytest-Kunde-2026!"
 

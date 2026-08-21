@@ -9,6 +9,8 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz } from '../utils/datum';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
@@ -174,11 +176,11 @@ export default function SalesPipeline() {
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, flexWrap: isMobile ? undefined : 'wrap' }}>
         <div style={{ position: 'relative', flex: isMobile ? undefined : '1 1 180px' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: 13 }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Firma oder Stadt suchen..."
+          <input aria-label="Firma oder Stadt suchen..." value={search} onChange={e => setSearch(e.target.value)} placeholder="Firma oder Stadt suchen..."
             style={{ width: '100%', padding: '8px 12px 8px 30px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-surface)' }} />
         </div>
         {trades.length > 0 && (
-          <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)}
+          <select aria-label="Nach Gewerk filtern" value={filterTrade} onChange={e => setFilterTrade(e.target.value)}
             style={{ width: isMobile ? '100%' : 'auto', padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
             <option value="">Alle Gewerke</option>
             {trades.map(t => <option key={t} value={t}>{t}</option>)}
@@ -294,9 +296,9 @@ export default function SalesPipeline() {
       {deleteConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
               <strong>{leads.find(l => l.id === deleteConfirm)?.company_name}</strong> wird dauerhaft gelöscht.
             </p>
@@ -312,9 +314,9 @@ export default function SalesPipeline() {
       {wonConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h3>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
               Der Lead <strong>{wonConfirm.lead?.company_name || 'Unbekannt'}</strong> wurde als gewonnen markiert.
               Soll automatisch ein Projekt angelegt werden?
@@ -368,7 +370,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
   const certStyle = CERT_STYLES[certKey];
 
   return (
-    <div
+    <div role="button" tabIndex={0} onKeyDown={aufTaste(onOpen)}
       draggable
       onDragStart={e => onDragStart(e, lead)}
       onClick={onOpen}
@@ -477,7 +479,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
 
       {/* ── Row 5: Projekt-Karte (nur bei won + Projekt vorhanden) ── */}
       {lead.status === 'won' && project && (
-        <div
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => { e.stopPropagation(); onProjectClick?.(project.id); })}
           onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
           style={{ background: 'var(--kc-mid-a-08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
         >
@@ -502,6 +504,7 @@ function MItem({ children, onClick, danger, style }) {
     }}
     onMouseEnter={e => e.currentTarget.style.background = danger ? 'var(--status-danger-bg)' : 'var(--bg-hover)'}
     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+      <SeitenTitel>Vertriebstrichter</SeitenTitel>
       {children}
     </button>
   );

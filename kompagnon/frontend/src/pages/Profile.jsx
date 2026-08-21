@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import Feld from '../components/ui/Feld';
 
 
 
@@ -92,7 +93,7 @@ export default function Profile() {
       {tab === 'sicherheit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Passwort aendern</h3>
+            <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Passwort aendern</h2>
             <form onSubmit={changePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field label="Aktuelles Passwort" type="password" value={pwForm.current_password} onChange={(v) => setPwForm((f) => ({ ...f, current_password: v }))} />
               <Field label="Neues Passwort" type="password" value={pwForm.new_password} onChange={(v) => setPwForm((f) => ({ ...f, new_password: v }))} />
@@ -103,7 +104,7 @@ export default function Profile() {
             </form>
           </div>
           <div>
-            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h3>
+            <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h2>
             <div style={{ fontSize: 14, color: user?.totp_enabled ? '#2a9a5a' : '#c03030', fontWeight: 600, marginBottom: 12 }}>
               {user?.totp_enabled ? '2FA ist aktiviert' : '2FA ist nicht aktiviert'}
             </div>
@@ -122,17 +123,18 @@ export default function Profile() {
   );
 }
 
+// Beschriftung und Feld waren Geschwister ohne `htmlFor`; der Name kam aus
+// dem Platzhalter statt aus der Beschriftung, die danebenstand (L-17).
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
-    <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
+    <Feld label={label} labelStyle={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
       <input
         type={type} value={value} placeholder={placeholder}
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         disabled={disabled}
-        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }}
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 14, background: disabled ? 'var(--bg-app)' : 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
       />
-    </div>
+    </Feld>
   );
 }
 
@@ -199,7 +201,7 @@ function SignatureTab() {
 
   return (
     <div>
-      <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</h3>
+      <h2 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</h2>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
         Zeichnen Sie Ihre Unterschrift fuer Audit-Berichte:
       </p>

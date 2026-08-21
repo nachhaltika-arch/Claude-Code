@@ -21,6 +21,8 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import ProzessFlowV3 from '../components/ProzessFlowV3';
+import Feld from '../components/ui/Feld';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -308,11 +310,9 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
   const textarea = { ...input, resize: 'vertical', minHeight: 72 };
   const checkRow = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' };
 
+  // Verknüpft statt nur danebengestellt (L-17).
   const Field = ({ label: lbl, children }) => (
-    <div>
-      <label style={label}>{lbl}</label>
-      {children}
-    </div>
+    <Feld label={lbl} labelStyle={label}>{children}</Feld>
   );
 
   return createPortal(
@@ -320,7 +320,7 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
       <div style={panel}>
         <div style={header}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Projektdaten bearbeiten</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={body}>
@@ -412,7 +412,7 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
 
           {/* Top-Probleme */}
           <Field label="Top-Probleme aus Audit (eine pro Zeile, max. 3)">
-            <textarea style={textarea} value={form.top_problems} onChange={e => set('top_problems', e.target.value)} placeholder={"Problem 1\nProblem 2\nProblem 3"} rows={3} />
+            <textarea aria-label={"Problem 1\nProblem 2\nProblem 3"} style={textarea} value={form.top_problems} onChange={e => set('top_problems', e.target.value)} placeholder={"Problem 1\nProblem 2\nProblem 3"} rows={3} />
           </Field>
 
           {/* E-Mail-Benachrichtigungen */}
@@ -512,7 +512,7 @@ function ApprovalModal({ projectId, token, onClose }) {
       <div style={panel}>
         <div style={header}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Freigabe anfordern</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+          <button aria-label="Schließen" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={body}>
@@ -528,7 +528,7 @@ function ApprovalModal({ projectId, token, onClose }) {
 
           <div>
             <label style={labelSt}>Thema der Freigabe *</label>
-            <input
+            <input aria-label="Thema der Freigabe"
               style={inputSt}
               value={topic}
               onChange={e => setTopic(e.target.value)}
@@ -538,7 +538,7 @@ function ApprovalModal({ projectId, token, onClose }) {
 
           <div>
             <label style={labelSt}>Hinweise / Details (optional)</label>
-            <textarea
+            <textarea aria-label="Hinweise / Details (optional)"
               style={{ ...inputSt, resize: 'vertical', minHeight: 80 }}
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -1654,9 +1654,9 @@ export default function ProjectDetail() {
       {showNewMessageModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setShowNewMessageModal(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-xl)' }}>
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-xl)' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>💬 Nachricht schreiben</div>
-            <textarea
+            <textarea aria-label="Nachricht eingeben..."
               value={newMessageText}
               onChange={e => setNewMessageText(e.target.value)}
               placeholder="Nachricht eingeben..."

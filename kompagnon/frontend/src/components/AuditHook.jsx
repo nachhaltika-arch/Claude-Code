@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import { stufeAnzeige } from '../utils/homepageStandard';
 
-const TEAL    = '#008eaa';
+const TEAL    = 'var(--kc-mid)';
 const DARK1   = '#04293a';
-const DARK2   = '#004f59';
+const DARK2   = 'var(--kc-dark)';
 const DARK3   = '#006880';
 
 const MSGS = [
@@ -78,6 +78,10 @@ export default function AuditHook() {
       const auditStart = await auditRes.json();
       const auditId    = auditStart.audit_id || auditStart.id;
       if (!auditId) throw new Error('Audit konnte nicht gestartet werden');
+      // Diese Komponente steht auf der oeffentlichen Landing-Seite: ohne das
+      // Geheimnis aus der Startantwort kaeme der Interessent nicht an sein
+      // eigenes Ergebnis (L-52).
+      const abfrage = auditStart.token ? `?token=${encodeURIComponent(auditStart.token)}` : '';
 
       let attempts = 0;
       const poll = setInterval(async () => {
@@ -88,7 +92,7 @@ export default function AuditHook() {
           return;
         }
         try {
-          const r = await fetch(`${API_BASE_URL}/api/audit/${auditId}`);
+          const r = await fetch(`${API_BASE_URL}/api/audit/${auditId}${abfrage}`);
           const d = await r.json();
           if (d.status === 'completed') {
             clearInterval(poll); clearInterval(iv);
@@ -206,7 +210,7 @@ export default function AuditHook() {
                           letterSpacing:'.06em', marginBottom: 4 }}>
             Geschäftliche E-Mail
           </label>
-          <input
+          <input aria-label="Geschäftliche E-Mail"
             type="email" required value={email}
             onChange={e => handleEmailChange(e.target.value)}
             placeholder="max@klempner-mueller.de"
@@ -238,7 +242,7 @@ export default function AuditHook() {
                 borderRadius:'50%', background: TEAL,
               }}/>
             )}
-            <input
+            <input aria-label="Adresse Ihrer Website"
               type="text" required value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="www.ihr-betrieb.de"

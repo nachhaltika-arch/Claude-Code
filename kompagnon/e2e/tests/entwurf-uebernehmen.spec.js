@@ -67,8 +67,22 @@ test.describe('Entwurf auf die Seite übernehmen', () => {
     page.on('dialog', (d) => d.accept());
     await anmelden(page);
 
+    // Das Projekt des Testbetriebs suchen, nicht das erste der Liste: Die
+    // Liste kommt `ORDER BY id DESC`, und der Start legt in der
+    // Entwicklungsumgebung einen Demo-Kunden samt Projekt an. Das war lange
+    // folgenlos, weil dieses Anlegen an einem TypeError scheiterte und der
+    // Fehler nur als Warnung im Log stand — seit der behoben ist, steht das
+    // Demo-Projekt vorn, und der Test richtete den Style-Guide am falschen
+    // Projekt frei. Die Ansicht blieb gesperrt, der Knopf grau.
     const projekte = await (await alsAngemeldet(page, '/api/projects')).json();
-    const projekt = (Array.isArray(projekte) ? projekte : projekte.items || [])[0];
+    const liste = Array.isArray(projekte) ? projekte : projekte.items || [];
+    const projekt = liste.find(p => (p.customer_name || '').includes(E2E_COMPANY));
+    if (!projekt) {
+      throw new Error(
+        `Kein Projekt fuer ${E2E_COMPANY} gefunden — Seed gelaufen? `
+        + `Vorhanden: ${liste.map(p => p.customer_name).join(', ')}`,
+      );
+    }
     projektId = projekt.id;
     leadId = projekt.lead_id;
     await styleGuideFreigeben(page, projektId, true);

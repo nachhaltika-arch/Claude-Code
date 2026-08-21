@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { loadJson } from '../../utils/apiRequest';
 import { useConfirmStep } from '../../hooks/useConfirmStep';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const ALL_SOCIAL = [
   'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok',
@@ -130,7 +131,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
               fontSize: 12, fontWeight: 700,
             }}>
               {kw}
-              <span
+              <span role="button" tabIndex={0} onKeyDown={aufTaste(() => removeKeyword(kw))}
                 onClick={() => removeKeyword(kw)}
                 style={{ cursor: 'pointer', opacity: 0.6, fontSize: 14, lineHeight: 1 }}
               >×</span>
@@ -139,7 +140,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>
-          <input
+          <input aria-label="Keyword eingeben + Enter"
             value={kwInput}
             onChange={e => setKwInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addKeyword()}
@@ -184,7 +185,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             {gbStatus.includes('Vorhanden') ? '✅' : gbStatus === 'unbekannt' ? '❓' : '⚠️'}
           </span>
           <div style={{ flex: 1 }}>{gbStatus || 'Nicht geprüft'}</div>
-          <select
+          <select aria-label="Google-Business-Eintrag"
             value={gbStatus}
             onChange={e => setGbStatus(e.target.value)}
             style={{

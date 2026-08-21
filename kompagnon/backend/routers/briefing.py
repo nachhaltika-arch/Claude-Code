@@ -1,4 +1,26 @@
+"""Briefing — die veraendernden Aufrufe und die beiden KI-Analysen.
+
+**Achtung: Dieselbe Adresse wie `routers/briefings.py`.** Beide Module tragen
+`prefix="/api/briefings"`, und `BriefingTab.jsx` ruft beide auf — `GET` aus
+dem einen, `PATCH` aus dem anderen. Getrennt sind sie nach HTTP-Verb, nicht
+nach Zustaendigkeit; das ist so gewachsen und nicht entworfen (L-27).
+
+Zusammengelegt sind sie **nicht**, weil eine Datei daraus rund 980 Zeilen
+haette und damit gegen die eigene 800-Zeilen-Grenze liefe (L-25).
+
+Was daran gefaehrlich ist und wovor `tests/test_briefing_router.py` schuetzt:
+Wer hier eine Route ergaenzt, die es drueben schon gibt, verdeckt sie
+**still** — es gewinnt der zuerst eingebundene Router, und keine Meldung sagt
+es. Der Test verbietet jedes doppelte Verb-Pfad-Paar.
+
+Anders als drueben traegt dieser Router **keine** Vorgabe am Router selbst:
+`PATCH /{id}/freigabe` muss ein Kunde erreichen, und `require_innendienst`
+wuerde ihn sperren. Die Pruefung haengt deshalb an jeder Route einzeln — die
+Bauart, die am 19.08. 55 offene Routen erzeugt hat (L-51). Derselbe Test
+zaehlt sie deshalb nach.
+"""
 from fastapi import APIRouter, Depends, HTTPException
+from routers.auth_router import require_innendienst
 from sqlalchemy.orm import Session
 from database import get_db, Briefing, Lead
 from datetime import datetime
@@ -11,7 +33,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/briefings', tags=['briefings'])
 
 
-@router.patch('/{lead_id}')
+@router.patch('/{lead_id}', dependencies=[Depends(require_innendienst)])
 def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db)):
     """Update one or more briefing sections."""
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
@@ -127,7 +149,7 @@ def _serialize(b):
     }
 
 
-@router.post('/{lead_id}/zielgruppenanalyse')
+@router.post('/{lead_id}/zielgruppenanalyse', dependencies=[Depends(require_innendienst)])
 async def zielgruppenanalyse(lead_id: int, db: Session = Depends(get_db)):
     """AI-powered target audience analysis based on lead trade + city."""
     from anthropic import Anthropic
@@ -185,7 +207,7 @@ Schreibe kompakt und praxisnah. Maximal 400 Wörter. Auf Deutsch."""
         raise HTTPException(500, f'Analyse fehlgeschlagen: {str(e)}')
 
 
-@router.post('/{lead_id}/wettbewerbsanalyse')
+@router.post('/{lead_id}/wettbewerbsanalyse', dependencies=[Depends(require_innendienst)])
 async def wettbewerbsanalyse(lead_id: int, db: Session = Depends(get_db)):
     """AI-powered competitor analysis based on lead trade + city + region."""
     from anthropic import Anthropic

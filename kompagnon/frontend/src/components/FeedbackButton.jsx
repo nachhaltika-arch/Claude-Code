@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TYPES = [
   { id: 'bug', label: 'Fehler melden', color: '#dc2626' },
@@ -49,7 +50,7 @@ export default function FeedbackButton() {
       }} title="Feedback & Support">💬</button>
 
       {open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: isMobile ? 0 : 24 }}
+        <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => { if (e.target === e.currentTarget) reset(); })} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: isMobile ? 0 : 24 }}
           onClick={(e) => { if (e.target === e.currentTarget) reset(); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 16, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: isMobile ? '90vh' : 'auto', overflowY: 'auto' }}>
             {step === 'form' ? (
@@ -59,7 +60,7 @@ export default function FeedbackButton() {
                     <div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>Feedback & Support</div>
                     <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>Antwort innerhalb von 24 Stunden</div>
                   </div>
-                  <button onClick={reset} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  <button aria-label="Schließen" onClick={reset} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                 </div>
                 <div style={{ padding: 20 }}>
                   <Lbl>Art der Anfrage</Lbl>
@@ -73,9 +74,9 @@ export default function FeedbackButton() {
                     ))}
                   </div>
                   <Lbl>Betreff *</Lbl>
-                  <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Kurze Beschreibung..." maxLength={100} style={{ ...inp, marginBottom: 12 }} />
+                  <input aria-label="Kurze Beschreibung..." value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Kurze Beschreibung..." maxLength={100} style={{ ...inp, marginBottom: 12 }} />
                   <Lbl>Beschreibung *</Lbl>
-                  <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
+                  <textarea aria-label="Details..." value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>ℹ️ Seite und Browser-Info werden automatisch mitgesendet</div>
                   <button onClick={submit} disabled={loading || !form.title || !form.description} style={{
                     width: '100%', padding: 12, background: 'var(--brand-primary)', opacity: loading || !form.title || !form.description ? 0.5 : 1,

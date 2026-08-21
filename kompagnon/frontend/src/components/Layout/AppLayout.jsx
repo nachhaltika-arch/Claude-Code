@@ -14,6 +14,7 @@ import ShortcutHelp from '../ShortcutHelp';
 import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
+import { aufTaste } from '../../utils/tastaturBedienung';
 
 const MOBILE_HEADER_H = 52;   // px — fixed top bar
 const MOBILE_NAV_H    = 64;   // px — fixed bottom nav (ohne safe-area)
@@ -116,9 +117,8 @@ const PAGE_NAMES = {
   '/app/sales': 'Vertriebspipeline',
   '/app/projektpipeline': 'Projektpipeline',
   '/app/audit': 'Website Audit',
-  '/app/akademie': 'Akademy',
-  '/app/courses': 'Kurse',
-  '/app/academy': 'Akademy',
+  '/app/akademie': 'Akademie',
+  '/app/academy': 'Akademie',
   '/app/akademie/admin': 'Kurse verwalten',
   '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
@@ -296,7 +296,7 @@ function SidebarNav({ badges }) {
       zIndex: 40, overflowY: 'auto',
     }}>
       {/* Logo */}
-      <div style={{
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/app/dashboard'))} style={{
         padding: '18px 14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
       }} onClick={() => navigate('/app/dashboard')}>
@@ -435,8 +435,9 @@ function SidebarNav({ badges }) {
       </nav>
 
       {/* ── Theme Toggle ─────────────────────────────────────────── */}
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(toggleTheme)}
         onClick={toggleTheme}
+        aria-label={theme === 'dark' ? 'Helles Design' : 'Dunkles Design'}
         title={theme === 'dark' ? 'Helles Design' : 'Dunkles Design'}
         style={{
           display: 'flex',
@@ -533,7 +534,7 @@ function SidebarNav({ badges }) {
                 borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
                 padding: 4, zIndex: 51, marginBottom: 4,
               }}>
-                <div
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(toggleTheme)}
                   onClick={toggleTheme}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -701,7 +702,7 @@ function BottomNav() {
       {/* Mehr-Overlay */}
       {moreOpen && (
         <>
-          <div
+          <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setMoreOpen(false))}
             onClick={() => setMoreOpen(false)}
             style={{
               position: 'fixed', inset: 0,
@@ -1030,7 +1031,7 @@ export default function AppLayout() {
               </button>
               {mobileMenuOpen && (
                 <>
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setMobileMenuOpen(false))}
                     style={{ position: 'fixed', inset: 0, zIndex: 50 }}
                     onClick={() => setMobileMenuOpen(false)}
                   />
@@ -1048,7 +1049,7 @@ export default function AppLayout() {
                         {user?.role}
                       </div>
                     </div>
-                    <div
+                    <div role="button" tabIndex={0} onKeyDown={aufTaste(toggleTheme)}
                       onClick={toggleTheme}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

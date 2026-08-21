@@ -8,7 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, UniqueConstraint, create_engine
 from sqlalchemy import text as sa_text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -63,6 +63,22 @@ class Lead(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_name = Column(String(255), default="")
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Diese Spalten legt `main.py::_run_migrations` beim Start an. Im Modell
+    # fehlten sie — und wer sie zuweist, verliert den Wert stillschweigend:
+    # SQLAlchemy legt ihn auf dem Python-Objekt ab und schreibt ihn nie.
+    # Gefunden am 18.08.2026 beim Vergleich Migration gegen Modell.
+    onboarding_completed = Column(Boolean, default=False)
+    onboarding_completed_at = Column(DateTime, nullable=True)
+    unread_messages = Column(Integer, default=0)
+    pagespeed_mobile_score = Column(Integer, nullable=True)
+    pagespeed_desktop_score = Column(Integer, nullable=True)
+    pagespeed_lcp_mobile = Column(Float, nullable=True)
+    pagespeed_cls_mobile = Column(Float, nullable=True)
+    pagespeed_inp_mobile = Column(Float, nullable=True)
+    pagespeed_fcp_mobile = Column(Float, nullable=True)
+    pagespeed_checked_at = Column(DateTime, nullable=True)
     contact_name = Column(String(255), nullable=True, default=None)
     phone = Column(String(20), nullable=True, default=None)
     mobile = Column(String(20), nullable=True, default=None)
@@ -72,6 +88,13 @@ class Lead(Base):
     trade = Column(String(100), nullable=True, default=None)
     lead_source = Column(String(100), default="")
     status = Column(String(50), default="new")
+    # Wo im Trichter — getrennt davon, wie weit die Bearbeitung ist.
+    # `status` beantwortete beides gleichzeitig und deshalb keines richtig
+    # (19.08.2026, aus dem HubSpot-Vergleich). Wird **nicht** von Hand
+    # gepflegt: Ein Ereignis unten zieht sie beim Setzen von `status` mit.
+    # `None` heisst „nicht einzuordnen" und ist ein sichtbarer Zustand, kein
+    # Fehler — siehe services/lebenszyklus.py.
+    lifecycle_phase = Column(String(30), nullable=True, index=True)
     analysis_score = Column(Integer, default=0)
     geo_score = Column(Integer, default=0)
     notes = Column(Text, nullable=True, default=None)
@@ -171,6 +194,12 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Siehe Lead: von `_run_migrations` angelegt, im Modell vergessen — jede
+    # Zuweisung ging still verloren.
+    current_phase = Column(Integer, default=1)
+    auftragsbestaetigung_pdf = Column(String(500), nullable=True)
     status = Column(String(50), default="phase_1")  # phase_1 to phase_7, completed
     start_date = Column(DateTime)
     target_go_live = Column(DateTime)
@@ -331,6 +360,35 @@ class Communication(Base):
     project = relationship("Project", back_populates="communications")
 
 
+class Fehlerprotokoll(Base):
+    """Was der Server nicht verarbeiten konnte — zusammengefasst.
+
+    Luecke L-10: Produktiv gab es keine Fehlerauskunft. Der 500er beim Anlegen
+    einer Lektion stand monatelang, ohne dass jemand davon wusste; die
+    Oberflaeche verschluckte ihn, und ins Log sieht niemand taeglich.
+
+    Zusammengefasst statt gesammelt: Gleiche Art an gleicher Stelle zaehlt
+    hoch. Ein kaputter Endpunkt schreibt sonst tausende gleiche Zeilen, und
+    eine unlesbare Liste ist so gut wie keine.
+
+    Die Spur wird gekuerzt aufbewahrt — in einem Traceback koennen Werte aus
+    Kundendaten stehen, und was nicht gebraucht wird, wird nicht gespeichert.
+    """
+    __tablename__ = "fehlerprotokoll"
+
+    id = Column(Integer, primary_key=True, index=True)
+    kennung = Column(String(64), index=True)     # Art + Pfad + erste Spurzeile
+    art = Column(String(120))                    # TypeError, ProgrammingError, …
+    pfad = Column(String(500))
+    methode = Column(String(10))
+    meldung = Column(Text, default="")
+    spur = Column(Text, default="")
+    benutzer_id = Column(Integer, nullable=True)
+    anzahl = Column(Integer, default=1)
+    zuerst = Column(DateTime, default=datetime.utcnow)
+    zuletzt = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class AutomationLog(Base):
     """Log of automation triggers and execution."""
     __tablename__ = "automation_logs"
@@ -355,6 +413,17 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+
+    # ── Nachgezogene Spalten ─────────────────────────────────────────
+    # Siehe Lead: von `_run_migrations` angelegt, im Modell vergessen — jede
+    # Zuweisung ging still verloren.
+    pagespeed_mobile_score = Column(Integer, nullable=True)
+    pagespeed_desktop_score = Column(Integer, nullable=True)
+    pagespeed_lcp_mobile = Column(Float, nullable=True)
+    pagespeed_cls_mobile = Column(Float, nullable=True)
+    pagespeed_inp_mobile = Column(Float, nullable=True)
+    pagespeed_fcp_mobile = Column(Float, nullable=True)
+    pagespeed_checked_at = Column(DateTime, nullable=True)
     next_touchpoint_date = Column(DateTime)  # When to contact next
     next_touchpoint_type = Column(String(100))  # e.g., "maintenance_offer", "feature_request"
     upsell_status = Column(String(50), default="none")  # none, offered, accepted
@@ -411,6 +480,15 @@ class AuditResult(Base):
     # Async status: pending -> running -> completed / failed
     status = Column(String(50), default="pending")
     error_message = Column(Text)
+
+    # Das Geheimnis, mit dem ein Interessent ohne Konto sein eigenes Ergebnis
+    # abholt. Ohne das war die Kennung eine fortlaufende Zahl, und wer sie
+    # hochzaehlte, las fremde Audits (L-52, 19.08.2026). Das Widget macht es
+    # unter `/api/widget/report/{token}` seit jeher so.
+    # Bestandsdaten haben keins und bleiben damit nur ueber eine Anmeldung
+    # erreichbar — ein Audit von gestern holt niemand mehr ueber die
+    # Landingpage ab.
+    public_token = Column(String(64), nullable=True, index=True)
 
     # Scores (6 categories)
     total_score = Column(Integer, default=0)  # 0-100
@@ -589,6 +667,15 @@ class RolePermission(Base):
     permission = Column(String(50), nullable=False)
     is_allowed = Column(Boolean, default=True)
 
+    # Ein Recht je Rolle, genau einmal. `services/rechte.hat_recht` liest mit
+    # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
+    # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
+    # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
+    # Der Bestand wird in `main.py::_run_migrations` zusammengefuehrt.
+    __table_args__ = (
+        UniqueConstraint("role", "permission", name="uq_role_permission"),
+    )
+
 
 class Briefing(Base):
     """Briefing questionnaire for web design projects."""
@@ -648,6 +735,12 @@ class AcademyCourse(Base):
     linear_progress = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # „Nur fuer Zugewiesene" — das Gegenstueck zu Memberspots „Manuell".
+    # Vorgabe False: Ein Kurs ohne Sperre bleibt sichtbar wie bisher. Waere
+    # die Zuweisung ab sofort zwingend, verschwaende der Bestand vor den Augen
+    # der heutigen Kunden. Erst dieses Feld gibt `AcademyCustomerAccess`
+    # ueberhaupt eine Wirkung — bis zum 19.08.2026 fragte es kein Lesepfad ab.
+    is_locked = Column(Boolean, default=False)
 
 
 class AcademyChecklistItem(Base):
@@ -668,6 +761,13 @@ class AcademyModule(Base):
     position = Column(Integer, default=0)
     is_locked = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
+    # Aus dem Memberspot-Vergleich vom 19.08.2026: Dort traegt jedes Modul
+    # eine Zeile, die sagt, worum es geht, und ein Bild. Ohne beides ist eine
+    # Modulliste eine Aufzaehlung von Ueberschriften.
+    # `default=''` statt NULL: Die Oberflaeche soll nicht zwei Faelle
+    # unterscheiden muessen, wo einer reicht.
+    description = Column(Text, default='')
+    thumbnail_url = Column(String(500), default='')
 
 
 class AcademyLesson(Base):
@@ -684,6 +784,11 @@ class AcademyLesson(Base):
     file_url = Column(String(500), default='')
     duration_minutes = Column(Integer, default=0)
     sort_order = Column(Integer, default=0)
+    # Stand nur in der Datenbank (main.py::_run_migrations), nicht im Modell.
+    # Der Router uebergab das Feld beim Anlegen — und SQLAlchemy wies es ab:
+    # `POST /api/academy/modules/{id}/lessons` antwortete mit 500, seit es
+    # den Endpunkt gibt. Kurse und Module liessen sich anlegen, Lektionen nie.
+    checklist_items_json = Column(Text, default='[]')
 
 
 class AcademyLessonProgress(Base):
@@ -724,6 +829,22 @@ class AcademyQuizQuestion(Base):
     question = Column(Text, nullable=False)
     answers_json = Column(Text, default='[]')   # [{text, is_correct}]
     sort_order = Column(Integer, default=0)
+
+
+class AcademyModuleAccess(Base):
+    """Welche gesperrten Module ein Kunde freigeschaltet bekommen hat.
+
+    Das Gegenstueck zu `AcademyCustomerAccess`, eine Ebene tiefer. Damit wird
+    aus einem Kurs je Zielgruppe **ein** Kurs mit Zweigen: Der Pflichtteil
+    gilt fuer alle, die gewerkespezifischen Module nur fuer die passenden
+    Betriebe.
+    """
+    __tablename__ = "academy_module_access"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, nullable=False)
+    module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+    assigned_by = Column(Integer, nullable=True)
 
 
 class AcademyCustomerAccess(Base):
@@ -822,19 +943,16 @@ class CrawlResult(Base):
     crawled_at = Column(DateTime, default=datetime.utcnow)
 
 
-class Course(Base):
-    """Internal / customer / product training courses."""
-    __tablename__ = "courses"
-    id                = Column(Integer, primary_key=True, index=True)
-    title             = Column(String(255), nullable=False)
-    description       = Column(Text, default="")
-    category          = Column(String(50), default="intern")   # intern | kunde | produkt
-    thumbnail_color   = Column(String(20), default="#008eaa")
-    chapter_count     = Column(Integer, default=0)
-    participant_count = Column(Integer, default=0)
-    duration_minutes  = Column(Integer, default=0)
-    created_at        = Column(DateTime, default=datetime.utcnow)
-    created_by        = Column(Integer, ForeignKey("users.id"), nullable=True)
+# `Course` (Tabelle `courses`) ist am 19.08.2026 entfallen. Es war das zweite
+# von zwei Kurssystemen — ohne Module, ohne Lektionen, ohne Fortschritt: nur
+# `chapter_count`, `participant_count` und `duration_minutes` als mitgeführte
+# Zahlen, die niemand nachrechnete. Die Akademie (`AcademyCourse` und
+# Nachbarn) kann alles davon und mehr.
+#
+# Die Tabelle bleibt vorerst in der Datenbank stehen — ein DROP ist nicht
+# umkehrbar, und `services/kurse_zusammenfuehren.py` liest sie bei jedem Start,
+# um von Hand angelegte Kurse nachzuholen. Sie fällt, wenn feststeht, dass
+# nichts mehr darin ist.
 
 
 class ProjectScrapedPage(Base):
@@ -1177,3 +1295,37 @@ class MailEvent(Base):
 
     occurred_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ── Die Phase folgt dem Status ────────────────────────────────────────────────
+#
+# Als Ereignis und nicht als Zeile in jedem Schreibweg: `Lead.status` wird an
+# fuenf Stellen im Backend gesetzt und ueber `PATCH /api/leads/{id}` per
+# `setattr` an beliebig vielen weiteren. Wer die Phase dort ueberall von Hand
+# mitpflegen muesste, vergaesse sie — und ein Feld, das manchmal stimmt, ist
+# schlechter als keines.
+#
+# Gefunden am 19.08.2026 beim Lifecycle-Umbau.
+from sqlalchemy import event as _sa_event  # noqa: E402
+
+
+@_sa_event.listens_for(Lead.status, "set", propagate=True)
+def _phase_mitziehen(ziel, wert, alt, initiator):
+    """Setzt `lifecycle_phase` neu, sobald `status` gesetzt wird."""
+    from services.lebenszyklus import phase_zu
+
+    ziel.lifecycle_phase = phase_zu(wert)
+
+
+@_sa_event.listens_for(Lead, "before_insert")
+def _phase_beim_anlegen(mapper, verbindung, ziel):
+    """Auch ein Betrieb, dem niemand einen Status gibt, bekommt seine Phase.
+
+    Der Haken oben greift nur, wenn `status` **zugewiesen** wird. Wird ein
+    Lead ohne Status angelegt, setzt erst die Datenbank die Vorgabe `new` —
+    und die Phase bliebe leer, bis der naechste Nachtrag laeuft.
+    """
+    from services.lebenszyklus import phase_zu
+
+    if ziel.lifecycle_phase is None:
+        ziel.lifecycle_phase = phase_zu(ziel.status or "new")

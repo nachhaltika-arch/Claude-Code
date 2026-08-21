@@ -32,6 +32,8 @@ import {
   quellenAusBetrieben,
   BETRIEB_SORTIERUNGEN,
 } from '../utils/betriebeListe';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 // Wie viele Betriebe hoechstens geholt werden. Kein stiller Deckel: Kommen
 // genau so viele zurueck, sagt die Seite es (siehe `amDeckel` unten).
@@ -80,6 +82,9 @@ export default function Betriebe() {
 
   const [suche, setSuche] = useState('');
   const [status, setStatus] = useState('alle');
+  // Wo im Trichter — getrennt vom Bearbeitungsstand. Der Status oben
+  // beantwortete beides gleichzeitig (19.08.2026).
+  const [phase, setPhase] = useState('alle');
   const [quelle, setQuelle] = useState('alle');
   const [sortierung, setSortierung] = useState('name');
   const [dialogOffen, setDialogOffen] = useState(false);
@@ -104,8 +109,8 @@ export default function Betriebe() {
   useEffect(() => { laden(); }, [laden]);
 
   const gefiltert = useMemo(
-    () => betriebeAufbereiten({ betriebe, suche, status, quelle, sortierung }),
-    [betriebe, suche, status, quelle, sortierung],
+    () => betriebeAufbereiten({ betriebe, suche, status, quelle, phase, sortierung }),
+    [betriebe, suche, status, quelle, phase, sortierung],
   );
   const stat    = useMemo(() => betriebeStatistik(betriebe), [betriebe]);
   const quellen = useMemo(() => quellenAusBetrieben(betriebe), [betriebe]);
@@ -228,6 +233,32 @@ export default function Betriebe() {
         </button>
       </div>
 
+      {/* Phasenfilter — wo im Trichter. „Phase offen" ist die Schaltflaeche
+        * fuer Betriebe mit einem Status, den die Zuordnung nicht kennt: Ein
+        * unbekannter Wert soll sich zeigen, nicht verschwinden. */}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {[{ key: 'alle', label: 'Alle Phasen', anzahl: betriebe.length }, ...stat.phasenZaehler].map(p => {
+          const aktiv = phase === p.key;
+          return (
+            <button
+              key={p.key} type="button" onClick={() => setPhase(p.key)}
+              aria-pressed={aktiv}
+              style={{
+                padding: '5px 10px', borderRadius: 'var(--radius-full)',
+                border: `1px solid ${aktiv ? 'var(--border-medium)' : 'var(--border-light)'}`,
+                background: aktiv ? 'var(--bg-active)' : 'transparent',
+                color: aktiv ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                fontSize: 11, fontWeight: aktiv ? 500 : 400, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', transition: 'all 0.1s', whiteSpace: 'nowrap',
+              }}
+            >
+              {p.label}
+              <span style={{ marginLeft: 4, opacity: 0.6 }}>{p.anzahl}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Statusfilter — aus den Daten, damit auch ein unbekannter Status
         * erreichbar ist und die Zahlen aufgehen */}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -321,7 +352,7 @@ export default function Betriebe() {
             const stufe = score > 0 ? stufeFuerScore(score) : null;
 
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/app/betriebe/${betrieb.id}`))}
                 key={betrieb.id}
                 onClick={() => navigate(`/app/betriebe/${betrieb.id}`)}
                 style={{
@@ -459,6 +490,7 @@ function MiniStat({ label, value, color, onClick, active }) {
         transition: 'all 0.15s', textAlign: 'left', font: 'inherit', width: '100%',
       }}
     >
+      <SeitenTitel>Betriebe</SeitenTitel>
       <div style={{
         fontSize: 20, fontWeight: 500, fontFamily: 'var(--font-sans)',
         color: color || (active ? 'var(--brand-primary)' : 'var(--text-primary)'),

@@ -212,13 +212,17 @@ ERWARTETE_KATEGORIEN = {
     "sicherheit": (8, 8),
     "performance": (0, 3),
     "barrierefreiheit": (4, 4),
-    "seo": (12, 15),
+    "seo": (15, 18),
     "design": (1, 1),
     "conversion": (8, 9),
     "inhalt": (2, 3),
 }
-ERWARTETE_PUNKTZAHL = 87
-ERWARTETE_ABDECKUNG = 63
+# 87 -> 88: Die Referenzseite hat eine `llms.txt` und sperrt keinen
+# KI-Crawler aus. Seit `se_ki_lesbar` (L-58 a) bekommt sie dafuer Punkte —
+# vorher war die Eigenschaft erhoben und wurde nicht bewertet.
+ERWARTETE_PUNKTZAHL = 88
+# 63 -> 64: ein Kriterium mehr, und es ist an dieser Seite erhoben.
+ERWARTETE_ABDECKUNG = 64
 
 
 def test_die_referenzseite_erreicht_ihre_bekannte_punktzahl(bewertung):

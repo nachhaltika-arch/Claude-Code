@@ -1,0 +1,404 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
+
+// ── Design tokens (CSS variables — auto-adapt to dark mode) ────
+const T = {
+  primary:    'var(--brand-primary)',
+  primaryBg:  'var(--brand-primary-light)',
+  appBg:      'var(--bg-app)',
+  surface:    'var(--bg-surface)',
+  border:     'var(--border-light)',
+  borderMed:  'var(--border-medium)',
+  text:       'var(--text-primary)',
+  textSub:    'var(--text-secondary)',
+  textMuted:  'var(--text-tertiary)',
+  radiusLg:   '12px',
+  radiusXl:   '16px',
+  radiusFull: '9999px',
+  shadow:     'var(--shadow-card)',
+  font:       "'DM Sans', system-ui, sans-serif",
+  successBg:  'var(--status-success-bg)',
+  successText:'var(--status-success-text)',
+  certBg:     'var(--status-warning-bg)',
+  certText:   'var(--status-warning-text)',
+};
+
+const AUDIENCE_BADGE = {
+  customer: { label: 'Kunden',       bg: 'var(--brand-primary)',       color: 'var(--text-inverse)'   },
+  employee: { label: 'Mitarbeiter',  bg: '#6366f1',                    color: '#fff'                  },
+  both:     { label: 'Für alle',     bg: 'var(--status-neutral-bg)',   color: 'var(--text-secondary)' },
+};
+
+// ── Tab definitions per role ───────────────────────────────────
+function buildTabs(role) {
+  if (role === 'admin') {
+    return [
+      { id: 'employee', label: 'Mitarbeiter' },
+      { id: 'customer', label: 'Kunden' },
+      { id: 'all',      label: 'Alle' },
+    ];
+  }
+  if (role === 'kunde') {
+    return null; // no tabs for Kunde
+  }
+  // nutzer / auditor
+  return [
+    { id: 'mine',     label: 'Meine Kurse' },
+    { id: 'customer', label: 'Für Kunden' },
+  ];
+}
+
+export default function Academy() {
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
+  const role = user?.role;
+  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+  const tabs = buildTabs(role);
+  const defaultTab = tabs?.[0]?.id ?? null;
+
+  const [courses, setCourses]         = useState([]);
+  const [progressMap, setProgressMap] = useState({});
+  const [loading, setLoading]         = useState(true);
+  const [tab, setTab]                 = useState(defaultTab);
+  const [search, setSearch]           = useState('');
+
+  useEffect(() => {
+    const uid = user?.id;
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/academy/courses`, { headers: h }).then(r => r.json()),
+      uid
+        ? fetch(`${API_BASE_URL}/api/academy/progress/all?user_id=${uid}`, { headers: h }).then(r => r.json())
+        : Promise.resolve({}),
+    ])
+      .then(([data, pMap]) => {
+        setCourses(Array.isArray(data) ? data : []);
+        setProgressMap(pMap || {});
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line
+
+  const visible = courses.filter(c => {
+    const aud = c.target_audience || c.audience;
+
+    // Audience tab filter
+    if (tab === 'employee') {
+      if (aud !== 'employee' && aud !== 'both') return false;
+    } else if (tab === 'customer') {
+      if (aud !== 'customer' && aud !== 'both') return false;
+    } else if (tab === 'mine') {
+      const p = progressMap[c.id];
+      if (!p || p.completed === 0) return false;
+    }
+    // tab === 'all' → no audience filter
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      if (!c.title?.toLowerCase().includes(q) && !c.description?.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  return (
+    <div style={{ fontFamily: T.font, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* ── Header ──────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 16,
+        paddingBottom: 24, borderBottom: `1px solid ${T.border}`,
+      }}>
+        <div>
+          <h1 style={{
+            fontSize: 26, fontWeight: 700, color: T.text,
+            margin: '0 0 4px', letterSpacing: '-0.01em', lineHeight: 1.2,
+            fontFamily: T.font,
+          }}>
+            KOMPAGNON Akademie
+          </h1>
+          <p style={{ fontSize: 14, color: T.textMuted, margin: 0, fontFamily: T.font }}>
+            {role === 'admin' ? 'Alle Kurse — Mitarbeiter & Kunden'
+              : role === 'kunde' ? 'Dein Lernbereich — Wissen & Kurse'
+              : 'Schulungen & internes Wissen für das Team'}
+          </p>
+        </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+            stroke={T.textMuted} strokeWidth="1.6"
+            style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <circle cx="6.5" cy="6.5" r="4.5" /><path d="M10.5 10.5L14 14" strokeLinecap="round" />
+          </svg>
+          <input aria-label="Kurse suchen…"
+            type="text"
+            placeholder="Kurse suchen…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              paddingLeft: 33, paddingRight: 14, paddingTop: 9, paddingBottom: 9,
+              background: T.surface, border: `1px solid ${T.borderMed}`,
+              borderRadius: T.radiusLg, fontSize: 13, color: T.text,
+              fontFamily: T.font, outline: 'none', width: 224,
+              boxShadow: T.shadow, transition: 'border-color 0.15s',
+            }}
+            onFocus={e => e.target.style.borderColor = T.primary}
+            onBlur={e => e.target.style.borderColor = T.borderMed}
+          />
+        </div>
+      </div>
+
+      {/* ── Filter tabs ─────────────────────────────────────── */}
+      {(tabs || role === 'admin') && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          {tabs && (
+            <div style={{ display: 'flex', borderBottom: `1px solid ${T.border}` }}>
+              {tabs.map(f => {
+                const active = tab === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setTab(f.id)}
+                    style={{
+                      padding: '9px 18px',
+                      background: 'none', border: 'none',
+                      borderBottom: active ? `2px solid ${T.primary}` : '2px solid transparent',
+                      marginBottom: -1,
+                      color: active ? T.primary : T.textSub,
+                      fontSize: 13, fontWeight: active ? 600 : 400,
+                      cursor: 'pointer', fontFamily: T.font,
+                      transition: 'color 0.15s',
+                    }}
+                  >{f.label}</button>
+                );
+              })}
+            </div>
+          )}
+          {!tabs && <div />}
+
+          {role === 'admin' && (
+            <button
+              onClick={() => navigate('/app/akademie/admin')}
+              style={{
+                padding: '7px 14px',
+                background: T.appBg, color: T.textSub,
+                border: `1px solid ${T.borderMed}`, borderRadius: T.radiusLg,
+                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: T.font,
+              }}
+            >⚙️ Kurse verwalten</button>
+          )}
+        </div>
+      )}
+
+      {/* ── Grid ────────────────────────────────────────────── */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: `3px solid ${T.primaryBg}`,
+            borderTopColor: T.primary,
+            animation: 'spin 0.8s linear infinite',
+          }} />
+        </div>
+
+      ) : visible.length === 0 ? (
+        /* ── Empty state ── */
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ fontSize: 52, marginBottom: 14, opacity: 0.25 }}>🎓</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: T.textSub, marginBottom: 6, fontFamily: T.font }}>
+            {search
+              ? 'Keine Kurse gefunden'
+              : tab === 'mine' ? 'Noch kein Kurs gestartet'
+              : 'Noch keine Kurse verfügbar'}
+          </div>
+          <div style={{ fontSize: 13, color: T.textMuted, fontFamily: T.font }}>
+            {search ? `Keine Ergebnisse für „${search}"` : 'Inhalte werden vorbereitet.'}
+          </div>
+        </div>
+
+      ) : (
+        /* ── Course grid ── */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: 20,
+        }}>
+          {visible.map(course => {
+            const p        = progressMap[course.id];
+            const pct      = p?.progress_pct || 0;
+            const started  = p && p.completed > 0;
+            const done     = pct === 100;
+            const aud      = course.target_audience || course.audience;
+            const certCode = p?.certificate_code;
+
+            return (
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/app/academy/${course.id}`))}
+                key={course.id}
+                onClick={() => navigate(`/app/academy/${course.id}`)}
+                style={{
+                  background: T.surface,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.radiusLg,
+                  boxShadow: T.shadow,
+                  display: 'flex', flexDirection: 'column',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.2s, transform 0.18s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = '0 6px 20px var(--kc-mid-a-12)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = T.shadow;
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                {/* ── Thumbnail (16:9) ── */}
+                <div style={{
+                  paddingTop: '56.25%',
+                  position: 'relative',
+                  background: course.thumbnail_url
+                    ? `url(${course.thumbnail_url}) center/cover`
+                    : `linear-gradient(135deg, ${T.primary} 0%, #005f74 100%)`,
+                  borderRadius: `${T.radiusLg} ${T.radiusLg} 0 0`,
+                  flexShrink: 0,
+                }}>
+                  {/* Audience badge — top left */}
+                  <div style={{
+                    position: 'absolute', top: 10, left: 10,
+                    background: AUDIENCE_BADGE[aud]?.bg || T.primary,
+                    color: AUDIENCE_BADGE[aud]?.color || '#fff',
+                    borderRadius: T.radiusFull,
+                    fontSize: 11, fontWeight: 600,
+                    padding: '3px 10px',
+                    fontFamily: T.font,
+                    letterSpacing: '0.02em',
+                  }}>
+                    {AUDIENCE_BADGE[aud]?.label || aud}
+                  </div>
+
+                  {/* Status badge — top right */}
+                  {done && (
+                    <div style={{
+                      position: 'absolute', top: 10, right: 10,
+                      background: T.certBg, color: T.certText,
+                      borderRadius: T.radiusFull,
+                      fontSize: 11, fontWeight: 600, padding: '3px 10px',
+                      fontFamily: T.font,
+                    }}>🏆 Zertifikat</div>
+                  )}
+                  {!done && started && (
+                    <div style={{
+                      position: 'absolute', top: 10, right: 10,
+                      background: 'rgba(0,0,0,0.5)', color: '#fff',
+                      borderRadius: T.radiusFull,
+                      fontSize: 11, fontWeight: 500, padding: '3px 10px',
+                      fontFamily: T.font,
+                    }}>{pct}% erledigt</div>
+                  )}
+
+                  {!course.thumbnail_url && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 44, opacity: 0.25,
+                    }}>🎓</div>
+                  )}
+                </div>
+
+                {/* ── Card body ── */}
+                <div style={{
+                  padding: '16px 18px 18px',
+                  flex: 1, display: 'flex', flexDirection: 'column', gap: 10,
+                }}>
+                  {/* Title */}
+                  <div style={{
+                    fontSize: 15, fontWeight: 600, color: T.text,
+                    lineHeight: 1.35, fontFamily: T.font,
+                  }}>{course.title}</div>
+
+                  {/* Description — 2 lines max */}
+                  <div style={{
+                    fontSize: 14, color: T.textSub, lineHeight: 1.55,
+                    flex: 1, fontFamily: T.font,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}>{course.description}</div>
+
+                  {/* Module · Lektionen · Dauer — die drei Zahlen, die
+                      „wie gross ist das hier?" beantworten. Berechnet, nicht
+                      mitgefuehrt: Die alte Kurstabelle fuehrte sie als Zaehler,
+                      die niemand nachrechnete. */}
+                  {(course.module_count > 0 || course.lesson_count > 0) && (
+                    <div style={{ fontSize: 11, color: T.textMuted, fontFamily: T.font, marginTop: -4 }}>
+                      {course.module_count} {course.module_count === 1 ? 'Modul' : 'Module'}
+                      {' · '}{course.lesson_count} {course.lesson_count === 1 ? 'Lektion' : 'Lektionen'}
+                      {course.duration_minutes > 0 && ` · ${course.duration_minutes} Min.`}
+                    </div>
+                  )}
+
+                  {/* Progress bar + percent */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: T.textMuted, fontFamily: T.font }}>
+                        {!p || p.total_lessons === 0
+                          ? 'Noch nicht gestartet'
+                          : done ? 'Abgeschlossen'
+                          : `${p.completed} von ${p.total_lessons} Lektionen`}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: T.textMuted, fontFamily: T.font }}>
+                        {pct}%
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 6, background: T.primaryBg,
+                      borderRadius: 3, overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${pct}%`, height: '100%',
+                        background: done ? T.successText : T.primary,
+                        borderRadius: 3, transition: 'width 0.4s ease',
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* CTA button */}
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (done && certCode) navigate(`/academy/certificate/${certCode}`);
+                      else navigate(`/app/academy/${course.id}`);
+                    }}
+                    style={{
+                      marginTop: 2, width: '100%', padding: '10px 16px',
+                      background: done ? T.certBg : T.primary,
+                      color:      done ? T.certText : '#fff',
+                      border: 'none', borderRadius: '8px',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: T.font,
+                      transition: 'opacity 0.15s',
+                      letterSpacing: '0.01em',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  >
+                    {done
+                      ? (certCode ? 'Zertifikat anzeigen →' : '✓ Abgeschlossen')
+                      : started ? 'Fortsetzen →' : 'Starten →'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

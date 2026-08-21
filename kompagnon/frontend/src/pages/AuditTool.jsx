@@ -8,6 +8,7 @@ import API_BASE_URL from '../config';
 import AuditReport from '../components/AuditReport';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz } from '../utils/datum';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
@@ -406,7 +407,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
     // welche welche ist (UX-06b). Das Audit hängt am Betrieb, die Punktzahl
     // steht in der Betriebsansicht unter „Letzter Audit" — und zwar aktuell.
     notes: '',
-    lead_source: 'Audit',
+    lead_source: 'audit',  // eine Schreibweise je Quelle (L-59)
   });
 
   const setField = (field) => (e) => setLeadForm((f) => ({ ...f, [field]: e.target.value }));
@@ -452,7 +453,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
         padding: isMobile ? 0 : '16px',
       }}
     >
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.stopPropagation())}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--bg-surface)',
@@ -470,9 +471,9 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontFamily: 'var(--font-sans)' }}>
+            <h2 style={{ margin: 0, fontSize: '16px', fontFamily: 'var(--font-sans)' }}>
               Lead anlegen
-            </h3>
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -543,7 +544,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
             </div>
             <div>
               <Label>Gewerk</Label>
-              <select value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
+              <select aria-label="Gewerk" value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
                 <option value="">Bitte wählen...</option>
                 {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -551,7 +552,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           </div>
           <div>
             <Label>Notiz</Label>
-            <textarea
+            <textarea aria-label="Notiz"
               value={leadForm.notes}
               onChange={setField('notes')}
               rows={2}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import API_BASE_URL from '../config';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 export default function PackagePremium() {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ export default function PackagePremium() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate('/'))} style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
           <Logo size="small" />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -178,7 +179,7 @@ export default function PackagePremium() {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                   Ihre geschäftliche E-Mail
                 </label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                <input aria-label="Ihre geschäftliche E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="kontakt@ihrbetrieb.de" required
                   style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
@@ -241,7 +242,7 @@ export default function PackagePremium() {
               { id: 'kompagnon', name: 'KOMPAGNON', price: '2.000 €', delivery: '14 Tage', recommended: true },
               { id: 'premium', name: 'Premium', price: '2.500 €', delivery: '14–21 Tage', active: true },
             ].map(pkg => (
-              <div key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
+              <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigate(`/paket/${pkg.id}`))} key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
                 padding: '16px 14px', borderRadius: 12,
                 border: `2px solid ${pkg.active ? '#7c3aed' : pkg.recommended ? '#d4a017' : '#e8eef2'}`,
                 background: pkg.active ? 'var(--status-neutral-bg)' : 'var(--bg-surface)',

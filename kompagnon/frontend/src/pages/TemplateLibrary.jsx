@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import WebsiteDesigner from '../components/WebsiteDesigner';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const LS_KEY = 'kompagnon_deleted_local_tpl';
 
@@ -114,7 +115,7 @@ const LOCAL_TEMPLATES = [
     name: 'Kontaktseite',
     category: 'Kontakt',
     description: 'Kontaktformular und Infos',
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: -apple-system, sans-serif; } .hero { background: #059669; color: white; padding: 60px 40px; text-align: center; } .content { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; margin: 0 auto; padding: 60px 40px; } .info h2 { margin-bottom: 20px; } .info-item { display: flex; gap: 12px; margin-bottom: 16px; } .form input, .form textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; margin-bottom: 12px; } .form button { background: #059669; color: white; border: none; padding: 12px 28px; border-radius: 6px; cursor: pointer; font-size: 15px; }</style></head><body><div class="hero"><h1>Kontakt aufnehmen</h1><p>Wir freuen uns auf Ihre Anfrage</p></div><div class="content"><div class="info"><h2>So erreichen Sie uns</h2><div class="info-item"><span>📞</span><div><strong>Telefon</strong><br>+49 XXX XXXXXXX</div></div><div class="info-item"><span>✉️</span><div><strong>E-Mail</strong><br>info@beispiel.de</div></div><div class="info-item"><span>📍</span><div><strong>Adresse</strong><br>Musterstraße 1, 12345 Musterstadt</div></div></div><div class="form"><h2>Nachricht senden</h2><input placeholder="Ihr Name"><input placeholder="Ihre E-Mail"><textarea rows="5" placeholder="Ihre Nachricht"></textarea><button>Absenden</button></div></div></body></html>`,
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: -apple-system, sans-serif; } .hero { background: #059669; color: white; padding: 60px 40px; text-align: center; } .content { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; margin: 0 auto; padding: 60px 40px; } .info h2 { margin-bottom: 20px; } .info-item { display: flex; gap: 12px; margin-bottom: 16px; } .form input, .form textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; margin-bottom: 12px; } .form button { background: #059669; color: white; border: none; padding: 12px 28px; border-radius: 6px; cursor: pointer; font-size: 15px; }</style></head><body><div class="hero"><h1>Kontakt aufnehmen</h1><p>Wir freuen uns auf Ihre Anfrage</p></div><div class="content"><div class="info"><h2>So erreichen Sie uns</h2><div class="info-item"><span>📞</span><div><strong>Telefon</strong><br>+49 XXX XXXXXXX</div></div><div class="info-item"><span>✉️</span><div><strong>E-Mail</strong><br>info@beispiel.de</div></div><div class="info-item"><span>📍</span><div><strong>Adresse</strong><br>Musterstraße 1, 12345 Musterstadt</div></div></div><div class="form"><h2>Nachricht senden</h2><input aria-label="Ihr Name" placeholder="Ihr Name"><input aria-label="Ihre E-Mail" placeholder="Ihre E-Mail"><textarea aria-label="Ihre Nachricht" rows="5" placeholder="Ihre Nachricht"></textarea><button>Absenden</button></div></div></body></html>`,
   },
   {
     id: 'local-6',
@@ -376,12 +377,12 @@ export default function TemplateLibrary() {
 
       {/* ZIP Modal */}
       {showZipModal && (
-        <div style={overlay} onClick={e => e.target === e.currentTarget && setShowZipModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowZipModal(false))} style={overlay} onClick={e => e.target === e.currentTarget && setShowZipModal(false)}>
           <div style={modal}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>📁 ZIP-Template hochladen</div>
-            <input style={inp} placeholder="Template-Name *" value={zipForm.name} onChange={e => setZipForm(f => ({ ...f, name: e.target.value }))} />
-            <input style={inp} placeholder="Beschreibung (optional)" value={zipForm.description} onChange={e => setZipForm(f => ({ ...f, description: e.target.value }))} />
-            <input ref={fileRef} type="file" accept=".zip" style={inp} />
+            <input aria-label="Template-Name *" style={inp} placeholder="Template-Name *" value={zipForm.name} onChange={e => setZipForm(f => ({ ...f, name: e.target.value }))} />
+            <input aria-label="Beschreibung (optional)" style={inp} placeholder="Beschreibung (optional)" value={zipForm.description} onChange={e => setZipForm(f => ({ ...f, description: e.target.value }))} />
+            <input aria-label="ZIP-Datei auswaehlen" ref={fileRef} type="file" accept=".zip" style={inp} />
             <button onClick={handleZipUpload} disabled={uploading} style={{ padding: '11px', background: '#0d6efd', opacity: uploading ? 0.5 : 1, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'Wird hochgeladen...' : 'Hochladen'}
             </button>
@@ -392,12 +393,12 @@ export default function TemplateLibrary() {
 
       {/* URL Modal */}
       {showUrlModal && (
-        <div style={overlay} onClick={e => e.target === e.currentTarget && setShowUrlModal(false)}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowUrlModal(false))} style={overlay} onClick={e => e.target === e.currentTarget && setShowUrlModal(false)}>
           <div style={modal}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>🌐 Template per URL importieren</div>
-            <input style={inp} placeholder="Template-Name *" value={urlForm.name} onChange={e => setUrlForm(f => ({ ...f, name: e.target.value }))} />
-            <input style={inp} placeholder="URL (z.B. https://...) *" value={urlForm.url} onChange={e => setUrlForm(f => ({ ...f, url: e.target.value }))} />
-            <input style={inp} placeholder="Beschreibung (optional)" value={urlForm.description} onChange={e => setUrlForm(f => ({ ...f, description: e.target.value }))} />
+            <input aria-label="Template-Name *" style={inp} placeholder="Template-Name *" value={urlForm.name} onChange={e => setUrlForm(f => ({ ...f, name: e.target.value }))} />
+            <input aria-label="URL (z.B. https://...) *" style={inp} placeholder="URL (z.B. https://...) *" value={urlForm.url} onChange={e => setUrlForm(f => ({ ...f, url: e.target.value }))} />
+            <input aria-label="Beschreibung (optional)" style={inp} placeholder="Beschreibung (optional)" value={urlForm.description} onChange={e => setUrlForm(f => ({ ...f, description: e.target.value }))} />
             <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e' }}>
               ⚠️ Gib die öffentliche Demo-URL des Templates ein. Die KI rekonstruiert das Layout. Stelle sicher dass du eine Lizenz besitzt.
             </div>

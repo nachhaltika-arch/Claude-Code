@@ -173,6 +173,17 @@ CATALOGUE: Tuple[Category, ...] = (
                       assumes_local=True),
             Criterion("se_links", "Keine defekten Links", 1, Source.MEASURED,
                       "Linkprüfung über die Startseite"),
+            # L-58 (a), 2026-08-21. Der Katalog hatte kein einziges Kriterium
+            # für KI — kein Treffer auf ChatGPT, Perplexity oder AEO —,
+            # während `audit_runner.audit_facts` die Werte seit dem 16.08.
+            # bereits erhebt und das PDF sie druckt. Bewertet hat sie niemand.
+            #
+            # Der Name sagt **Lesbarkeit**, nicht Sichtbarkeit: Gemessen wird,
+            # ob eine Maschine den Betrieb lesen *kann*. Ob sie ihn auf eine
+            # Frage hin *nennt*, misst hier nichts — das ist L-58 (b), kostet
+            # je Lauf Geld und ist ein eigenes Produkt.
+            Criterion("se_ki_lesbar", "Lesbarkeit für KI-Systeme", 3, Source.MEASURED,
+                      "KI-Crawler in robots.txt nicht ausgesperrt, llms.txt vorhanden"),
         ),
     ),
     Category(
@@ -294,6 +305,22 @@ def ai_criteria() -> List[Criterion]:
 
 
 TOTAL_POINTS: int = sum(cat.max_points for cat in CATALOGUE)
+
+#: Die Rohpunktsumme, die der Katalog **haben soll**.
+#:
+#: Sie stand bis zum 21.08.2026 als nackte `100` in der Pruefung — und
+#: widersprach damit dem Kopf dieser Datei, der ausdruecklich sagt, dass die
+#: Gewichte nicht auf 100 aufgehen muessen, weil normiert wird. Beides konnte
+#: nicht stimmen. Jetzt steht die Zahl hier, mit einem Grund daneben: Der
+#: Waechter faengt weiterhin jede **versehentliche** Verschiebung, aber eine
+#: beabsichtigte wird sichtbar und muss hier eingetragen werden.
+#:
+#: 2026-08-11: 100 — Freigabe nach `docs/Audit/audit-anforderungen-2026-08-11.md`
+#: 2026-08-21: 103 — `se_ki_lesbar` (3 P) ergaenzt, L-58 (a). Bewusst **ohne**
+#:   anderswo Gewicht wegzunehmen: Welches Kriterium dafuer leichter wird, ist
+#:   eine Produktentscheidung und gehoert David. Bis dahin wiegt jedes
+#:   bestehende Kriterium rechnerisch 100/103 seines bisherigen Anteils.
+ERWARTETE_GESAMTPUNKTE: int = 103
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -468,9 +495,11 @@ def _validate() -> None:
         if crit.max_points <= 0:
             raise ValueError(f"Bewertetes Kriterium ohne Punkte: {crit.key}")
 
-    if TOTAL_POINTS != 100:
+    if TOTAL_POINTS != ERWARTETE_GESAMTPUNKTE:
         raise ValueError(
-            f"Katalog ergibt {TOTAL_POINTS} statt 100 Punkte — Gewichtung prüfen"
+            f"Katalog ergibt {TOTAL_POINTS} statt {ERWARTETE_GESAMTPUNKTE} Punkte — "
+            "entweder ist eine Gewichtung verrutscht, oder die Aenderung war "
+            "gewollt und gehoert in ERWARTETE_GESAMTPUNKTE, mit Datum und Grund."
         )
 
 

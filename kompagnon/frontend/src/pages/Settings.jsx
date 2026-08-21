@@ -5,6 +5,8 @@ import { useAuth, apiCall } from '../context/AuthContext';
 import { useVersand } from '../context/VersandContext';
 import { reportApiError } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
+import Feld from '../components/ui/Feld';
+import SeitenTitel from '../components/ui/SeitenTitel';
 
 
 
@@ -367,19 +369,24 @@ function SubscriptionTab() {
 function Card({ title, icon, children }) {
   return (
     <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', padding: 24, marginBottom: 16 }}>
-      {title && <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{icon} {title}</h3>}
+      {title && <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{icon} {title}</h2>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
     </div>
   );
 }
 
+// Beschriftung und Feld waren Geschwister ohne `htmlFor`; der Name kam aus
+// dem Platzhalter statt aus der Beschriftung, die danebenstand (L-17).
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
-    <div>
-      <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
-      <input type={type} value={value} placeholder={placeholder} onChange={onChange ? (e) => onChange(e.target.value) : undefined} disabled={disabled}
-        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }} />
-    </div>
+    <Feld label={label} labelStyle={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
+      <input
+        type={type} value={value} placeholder={placeholder}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        disabled={disabled}
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 14, background: disabled ? 'var(--bg-app)' : 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+      />
+    </Feld>
   );
 }
 
@@ -392,6 +399,7 @@ function Btn({ children, onClick, type = 'button', loading, secondary, danger, s
       fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
       opacity: loading ? 0.6 : 1, ...extraStyle,
     }}>
+      <SeitenTitel>Einstellungen</SeitenTitel>
       {loading ? 'Speichern...' : children}
     </button>
   );

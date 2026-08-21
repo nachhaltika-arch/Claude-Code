@@ -171,7 +171,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           </div>
 
           {type === 'textarea' ? (
-            <textarea
+            <textarea aria-label={placeholder}
               value={data[key]}
               onChange={e => setData(p => ({ ...p, [key]: e.target.value }))}
               placeholder={placeholder}
@@ -179,7 +179,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
               style={{ ...inputStyle(kiKey), resize: 'vertical' }}
             />
           ) : type === 'select' ? (
-            <select
+            <select aria-label={label}
               value={data[key]}
               onChange={e => setData(p => ({ ...p, [key]: e.target.value }))}
               style={inputStyle(kiKey)}
@@ -188,7 +188,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
               {options.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           ) : (
-            <input
+            <input aria-label={placeholder}
               type="text"
               value={data[key]}
               onChange={e => setData(p => ({ ...p, [key]: e.target.value }))}

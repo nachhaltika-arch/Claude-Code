@@ -8,6 +8,7 @@ import { textUebernehmen } from '../utils/assistentUebernahme';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useAuth } from '../context/AuthContext';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const TEAL   = 'var(--brand-primary)';
 const STEPS  = [
@@ -114,7 +115,7 @@ const inputBase = {
 
 function Input({ value, onChange, placeholder, onFocus, onBlur, hasError, id }) {
   return (
-    <input
+    <input aria-label={placeholder}
       id={id}
       value={value}
       onChange={e => onChange(e.target.value)}
@@ -133,7 +134,7 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, mi
   const counterColor = len === 0 ? 'var(--text-tertiary)' : tooLong ? 'var(--status-danger-text)' : !tooShort ? 'var(--status-success-text)' : 'var(--text-tertiary)';
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
+      <textarea aria-label={placeholder}
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -924,7 +925,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       />
 
       {/* ── Modal-Box ── */}
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.stopPropagation())}
         onClick={e => e.stopPropagation()}
         style={{
           ...panelStyle,

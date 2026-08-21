@@ -5,6 +5,8 @@ from database import (
     get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson,
     AcademyLessonProgress, AcademyProgress, AcademyCertificate, AcademyQuizQuestion,
     AcademyCustomerAccess,
+    AcademyModuleAccess,
+    User,
 )
 from routers.auth_router import get_current_user, require_admin
 from datetime import datetime
@@ -18,6 +20,96 @@ router = APIRouter(prefix='/api/academy', tags=['academy'])
 
 
 # ── Helpers ───────────────────────────────────────────────
+
+# Wer den Bestand pflegt, muss ihn auch sehen — sonst waere ein gesperrter
+# Kurs unbearbeitbar. Die Sperre richtet sich an Kunden, nicht an den Betrieb.
+def _ist_kunde(user) -> bool:
+    return getattr(user, 'role', None) == 'kunde'
+
+
+def _kunde_user_id(db, kennung: int) -> int:
+    """Uebersetzt die Kennung aus dem Pfad in die Benutzer-ID des Kunden.
+
+    Zweideutigkeit im Bestand, aufgedeckt am 19.08.2026: Das Kundenblatt ruft
+    `/api/academy/customer/{id}/...` mit der **Betriebs-ID** (`lead.id`,
+    `LeadProfile.jsx`), waehrend die Akademie alles andere ueber die
+    **Benutzer-ID** fuehrt — `AcademyProgress.user_id`,
+    `AcademyCertificate.user_id`. Zugewiesen wurde unter der einen Kennung,
+    gelesen unter der anderen. Folgenlos war das nur, solange **niemand** die
+    Zuweisung abfragte.
+
+    Aufgeloest wird beim **Schreiben**, nicht beim Lesen. Der naheliegende Weg
+    — beim Lesen einfach beide Kennungen zulassen — waere eine Hintertuer:
+    Benutzer-IDs und Betriebs-IDs sind verschiedene, fortlaufende Zahlenraeume
+    und koennen sich ueberschneiden. Dann schaltete die Zuweisung eines
+    fremden Betriebs jemanden frei, den niemand gemeint hat.
+
+    Gespeichert wird deshalb immer die Benutzer-ID.
+    """
+    kunde = db.query(User).filter(User.lead_id == kennung,
+                                  User.role == 'kunde').first()
+    return kunde.id if kunde else kennung
+
+
+def _freigeschaltete_kurse(db, user) -> set:
+    return {
+        kurs_id for (kurs_id,) in
+        db.query(AcademyCustomerAccess.course_id)
+        .filter(AcademyCustomerAccess.customer_id == user.id).all()
+    }
+
+
+def _freigeschaltete_module(db, user) -> set:
+    return {
+        modul_id for (modul_id,) in
+        db.query(AcademyModuleAccess.module_id)
+        .filter(AcademyModuleAccess.customer_id == user.id).all()
+    }
+
+
+def _sichtbare_module(db, course_id, user):
+    """Die Module eines Kurses in Reihenfolge — gefiltert, wenn noetig.
+
+    Ein gesperrtes Modul ist fuer einen Kunden nicht versteckt, sondern nicht
+    zugewiesen. Der Unterschied zaehlt: Es fehlt vollstaendig, statt als
+    Schloss dazustehen und Neugier zu wecken.
+    """
+    module = (
+        db.query(AcademyModule)
+        .filter(AcademyModule.course_id == course_id)
+        .order_by(AcademyModule.position, AcademyModule.sort_order, AcademyModule.id)
+        .all()
+    )
+    if not _ist_kunde(user):
+        return module
+
+    frei = _freigeschaltete_module(db, user)
+    return [m for m in module if not m.is_locked or m.id in frei]
+
+
+def _kursumfang(db, course_id) -> dict:
+    """Module, Lektionen und Gesamtdauer — berechnet, nicht mitgefuehrt.
+
+    Die alte `courses`-Tabelle fuehrte genau diese drei als Zaehler, die
+    niemand nachrechnete. Zaehler driften; eine Abfrage nicht.
+    """
+    modul_ids = [
+        m_id for (m_id,) in
+        db.query(AcademyModule.id).filter(AcademyModule.course_id == course_id).all()
+    ]
+    if not modul_ids:
+        return {'module_count': 0, 'lesson_count': 0, 'duration_minutes': 0}
+
+    lektionen = (
+        db.query(AcademyLesson.duration_minutes)
+        .filter(AcademyLesson.module_id.in_(modul_ids)).all()
+    )
+    return {
+        'module_count': len(modul_ids),
+        'lesson_count': len(lektionen),
+        'duration_minutes': sum((d or 0) for (d,) in lektionen),
+    }
+
 
 def _serialize_course(c):
     try:
@@ -36,6 +128,7 @@ def _serialize_course(c):
         'audience': c.audience or 'employee',
         'formats': formats,
         'linear_progress': bool(c.linear_progress),
+        'is_locked': bool(c.is_locked),
         'sort_order': c.sort_order or 0,
         'created_at': str(c.created_at)[:10] if c.created_at else '',
     }
@@ -49,6 +142,8 @@ def _serialize_module(m):
         'position': m.position or 0,
         'is_locked': bool(m.is_locked),
         'sort_order': m.sort_order or 0,
+        'description': m.description or '',
+        'thumbnail_url': m.thumbnail_url or '',
     }
 
 
@@ -121,9 +216,18 @@ def list_courses(db: Session = Depends(get_db), current_user=Depends(get_current
         )
 
     courses = q.order_by(AcademyCourse.sort_order, AcademyCourse.id).all()
+
+    # Gesperrte Kurse nur fuer ausdruecklich Zugewiesene. Bis zum 19.08.2026
+    # fragte diese Liste `AcademyCustomerAccess` gar nicht ab — die Zuweisung
+    # war eine Tabelle ohne Wirkung.
+    if role == 'kunde':
+        frei = _freigeschaltete_kurse(db, current_user)
+        courses = [c for c in courses if not c.is_locked or c.id in frei]
+
     result = []
     for c in courses:
         data = _serialize_course(c)
+        data.update(_kursumfang(db, c.id))
         data['progress'] = _progress_summary(c.id, current_user.id, db)
         result.append(data)
     return result
@@ -136,12 +240,13 @@ def get_course(course_id: int, db: Session = Depends(get_db), current_user=Depen
     if not course:
         raise HTTPException(404, 'Kurs nicht gefunden')
 
-    modules = (
-        db.query(AcademyModule)
-        .filter(AcademyModule.course_id == course_id)
-        .order_by(AcademyModule.position, AcademyModule.sort_order, AcademyModule.id)
-        .all()
-    )
+    # Ein gesperrter Kurs ohne Zuweisung ist fuer den Kunden nicht vorhanden.
+    # 404 statt 403: Ob es ihn gibt, geht ihn nichts an.
+    if (_ist_kunde(current_user) and course.is_locked
+            and course.id not in _freigeschaltete_kurse(db, current_user)):
+        raise HTTPException(404, 'Kurs nicht gefunden')
+
+    modules = _sichtbare_module(db, course_id, current_user)
     modules_data = []
     for m in modules:
         lessons = (
@@ -162,6 +267,7 @@ def get_course(course_id: int, db: Session = Depends(get_db), current_user=Depen
     )
 
     result = _serialize_course(course)
+    result.update(_kursumfang(db, course_id))
     result['modules'] = modules_data
     result['checklist_items'] = [{'id': i.id, 'label': i.label, 'sort_order': i.sort_order} for i in checklist_items]
     result['progress'] = _progress_summary(course_id, current_user.id, db)
@@ -237,13 +343,11 @@ def get_module(module_id: int, db: Session = Depends(get_db), _=Depends(get_curr
 
 
 @router.get('/courses/{course_id}/modules')
-def list_modules(course_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    modules = (
-        db.query(AcademyModule)
-        .filter(AcademyModule.course_id == course_id)
-        .order_by(AcademyModule.position, AcademyModule.sort_order, AcademyModule.id)
-        .all()
-    )
+def list_modules(course_id: int, db: Session = Depends(get_db),
+                 current_user=Depends(get_current_user)):
+    # Zwei Wege fuehren zu denselben Modulen — der Kursdetail-Aufruf und
+    # dieser. Beide muessen filtern, sonst ist die Sperre einen Aufruf weit weg.
+    modules = _sichtbare_module(db, course_id, current_user)
     return [_serialize_module(m) for m in modules]
 
 
@@ -259,6 +363,8 @@ def create_module(data: dict, db: Session = Depends(get_db), _=Depends(require_a
         position=data.get('position', 0),
         is_locked=data.get('is_locked', False),
         sort_order=data.get('sort_order', data.get('position', 0)),
+        description=data.get('description', ''),
+        thumbnail_url=data.get('thumbnail_url', ''),
     )
     db.add(m)
     db.commit()
@@ -277,6 +383,8 @@ def create_module_for_course(course_id: int, data: dict, db: Session = Depends(g
         position=data.get('position', data.get('sort_order', 0)),
         is_locked=data.get('is_locked', False),
         sort_order=data.get('sort_order', data.get('position', 0)),
+        description=data.get('description', ''),
+        thumbnail_url=data.get('thumbnail_url', ''),
     )
     db.add(m)
     db.commit()
@@ -290,7 +398,8 @@ def update_module(module_id: int, data: dict, db: Session = Depends(get_db), _=D
     m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
     if not m:
         raise HTTPException(404, 'Modul nicht gefunden')
-    for key in ['title', 'position', 'is_locked', 'sort_order']:
+    for key in ['title', 'position', 'is_locked', 'sort_order',
+                'description', 'thumbnail_url']:
         if key in data:
             setattr(m, key, data[key])
     db.commit()
@@ -796,6 +905,91 @@ def seed_academy_courses(db: Session):
 
 # ── Customer Course Access (Admin only) ──────────────────
 
+@router.get('/customer/{customer_id}/modules')
+def get_customer_modules(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Welche gesperrten Module dieser Kunde freigeschaltet hat."""
+    customer_id = _kunde_user_id(db, customer_id)
+    zuweisungen = db.query(AcademyModuleAccess).filter(
+        AcademyModuleAccess.customer_id == customer_id
+    ).all()
+    ergebnis = []
+    for z in zuweisungen:
+        modul = db.query(AcademyModule).filter(AcademyModule.id == z.module_id).first()
+        if not modul:
+            continue
+        kurs = db.query(AcademyCourse).filter(
+            AcademyCourse.id == modul.course_id).first()
+        ergebnis.append({
+            'id': z.id,
+            'module_id': modul.id,
+            'module_title': modul.title,
+            'course_id': modul.course_id,
+            'course_title': kurs.title if kurs else '',
+            'assigned_at': str(z.assigned_at)[:10] if z.assigned_at else '',
+        })
+    return ergebnis
+
+
+@router.post('/customer/{customer_id}/modules/{module_id}/assign')
+def assign_module_to_customer(
+    customer_id: int,
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Modul dem Kunden freischalten."""
+    modul = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not modul:
+        raise HTTPException(404, 'Modul nicht gefunden')
+    customer_id = _kunde_user_id(db, customer_id)
+    vorhanden = db.query(AcademyModuleAccess).filter(
+        AcademyModuleAccess.customer_id == customer_id,
+        AcademyModuleAccess.module_id == module_id,
+    ).first()
+    if vorhanden:
+        raise HTTPException(409, 'Modul bereits zugewiesen')
+    zuweisung = AcademyModuleAccess(
+        customer_id=customer_id,
+        module_id=module_id,
+        assigned_at=datetime.utcnow(),
+        assigned_by=current_user.id,
+    )
+    db.add(zuweisung)
+    db.commit()
+    db.refresh(zuweisung)
+    return {
+        'id': zuweisung.id,
+        'customer_id': customer_id,
+        'module_id': module_id,
+        'module_title': modul.title,
+        'assigned_at': str(zuweisung.assigned_at)[:10],
+    }
+
+
+@router.delete('/customer/{customer_id}/modules/{module_id}')
+def remove_module_from_customer(
+    customer_id: int,
+    module_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Modul-Zugang fuer Kunden entfernen."""
+    customer_id = _kunde_user_id(db, customer_id)
+    zuweisung = db.query(AcademyModuleAccess).filter(
+        AcademyModuleAccess.customer_id == customer_id,
+        AcademyModuleAccess.module_id == module_id,
+    ).first()
+    if not zuweisung:
+        raise HTTPException(404, 'Modulzugang nicht gefunden')
+    db.delete(zuweisung)
+    db.commit()
+    return {'success': True}
+
+
 @router.get('/customer/{customer_id}/courses')
 def get_customer_courses(
     customer_id: int,
@@ -803,6 +997,7 @@ def get_customer_courses(
     current_user=Depends(require_admin),
 ):
     """Alle Kurse mit Fortschritt und Zertifikat-Status für einen Kunden."""
+    customer_id = _kunde_user_id(db, customer_id)
     accesses = db.query(AcademyCustomerAccess).filter(
         AcademyCustomerAccess.customer_id == customer_id
     ).all()
@@ -841,6 +1036,7 @@ def assign_course_to_customer(
     course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
     if not course:
         raise HTTPException(404, 'Kurs nicht gefunden')
+    customer_id = _kunde_user_id(db, customer_id)
     existing = db.query(AcademyCustomerAccess).filter(
         AcademyCustomerAccess.customer_id == customer_id,
         AcademyCustomerAccess.course_id == course_id,
@@ -873,6 +1069,7 @@ def remove_course_from_customer(
     current_user=Depends(require_admin),
 ):
     """Kurs-Zugang für Kunden entfernen."""
+    customer_id = _kunde_user_id(db, customer_id)
     access = db.query(AcademyCustomerAccess).filter(
         AcademyCustomerAccess.customer_id == customer_id,
         AcademyCustomerAccess.course_id == course_id,

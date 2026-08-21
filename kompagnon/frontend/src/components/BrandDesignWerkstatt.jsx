@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const STILE = ['Klassisch', 'Modern', 'Minimalistisch', 'Verspielt', 'Industriell', 'Natürlich'];
 const RADIEN = [
@@ -164,7 +165,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
             { label: 'Akzentfarbe',   value: accentColor,    set: setAccentColor    },
           ].map(({ label, value, set }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <input type="color" value={value} onChange={e => set(e.target.value)}
+              <input aria-label={`${label} waehlen`} type="color" value={value} onChange={e => set(e.target.value)}
                 style={{ width: 40, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</div>
@@ -179,7 +180,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
               </div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                 {allColors.slice(3, 12).map((c, i) => (
-                  <div key={i} onClick={() => setPrimaryColor(c)} title={c}
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setPrimaryColor(c))} key={i} onClick={() => setPrimaryColor(c)} title={c}
                     style={{ width: 28, height: 28, borderRadius: 6, background: c, border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer' }} />
                 ))}
               </div>
@@ -202,11 +203,11 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
               </button>
             </div>
             <F label="Überschriften-Font">
-              <input value={fontPrimary} onChange={e => setFontPrimary(e.target.value)} placeholder="z.B. Georgia, Montserrat…"
+              <input aria-label="Überschriften-Schriftart" value={fontPrimary} onChange={e => setFontPrimary(e.target.value)} placeholder="z.B. Georgia, Montserrat…"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 14, fontWeight: 700, border: '1px solid var(--border-light)', borderRadius: 6, fontFamily: fontPrimary || 'inherit', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-app)' }} />
             </F>
             <F label="Fließtext-Font">
-              <input value={fontSecondary} onChange={e => setFontSecondary(e.target.value)} placeholder="z.B. Arial, Inter…"
+              <input aria-label="Fließtext-Schriftart" value={fontSecondary} onChange={e => setFontSecondary(e.target.value)} placeholder="z.B. Arial, Inter…"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, fontFamily: fontSecondary || 'inherit', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-app)' }} />
             </F>
             {fontSuggestions.length > 0 && (
@@ -215,7 +216,14 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                   KI-Empfehlungen (klick = übernehmen)
                 </div>
                 {fontSuggestions.map(f => (
-                  <div key={f.name} onClick={() => {
+                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => {
+                    if (f.use?.toLowerCase().includes('überschrift') || f.use?.toLowerCase().includes('head')) {
+                      setFontPrimary(f.name);
+                    } else {
+                      setFontSecondary(f.name);
+                    }
+                    toast.success(`${f.name} übernommen`);
+                  })} key={f.name} onClick={() => {
                     if (f.use?.toLowerCase().includes('überschrift') || f.use?.toLowerCase().includes('head')) {
                       setFontPrimary(f.name);
                     } else {

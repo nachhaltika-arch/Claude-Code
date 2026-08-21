@@ -10,12 +10,13 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db, CrawlJob, CrawlResult, SessionLocal
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_innendienst
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix='/api/crawler', tags=['crawler'])
+router = APIRouter(prefix='/api/crawler', tags=['crawler'],
+                   dependencies=[Depends(require_innendienst)])
 
 
 @router.get('/status')

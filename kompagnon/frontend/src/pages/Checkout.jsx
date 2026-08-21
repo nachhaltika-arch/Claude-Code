@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
+import SeitenTitel from '../components/ui/SeitenTitel';
+import { aufTaste } from '../utils/tastaturBedienung';
 
 
 const A = '#D4A017';
@@ -72,9 +74,10 @@ export default function Checkout() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans)' }}>
+      <SeitenTitel>Bestellung</SeitenTitel>
       {/* Header */}
       <div style={{ background: 'var(--brand-primary)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+        <div role="button" tabIndex={0} onKeyDown={aufTaste(() => nav('/'))} onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: A, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: 13 }}>HS</span>
           </div>
@@ -113,7 +116,7 @@ export default function Checkout() {
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {packages.map((p) => (
-                <div key={p.id} onClick={() => setSelected(p.id)} style={{
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelected(p.id))} key={p.id} onClick={() => setSelected(p.id)} style={{
                   background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 24, cursor: 'pointer', position: 'relative',
                   border: `2px solid ${selected === p.id ? 'var(--brand-primary)' : p.highlight ? A + '60' : '#e8eaf2'}`,
                   transform: p.highlight ? 'scale(1.02)' : 'none',
@@ -158,19 +161,19 @@ export default function Checkout() {
 
             <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div><label style={lbl}>Ihr Name *</label><input style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
-                <div><label style={lbl}>Firma *</label><input style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
+                <div><label style={lbl}>Ihr Name *</label><input aria-label="Ihr Name" style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
+                <div><label style={lbl}>Firma *</label><input aria-label="Firma" style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={lbl}>Website / Domain *</label>
-                <input style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
+                <input aria-label="Website / Domain" style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
               </div>
-              <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
-              <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
+              <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input aria-label="E-Mail" style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
+              <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input aria-label="Telefon" style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
               <div style={{ marginBottom: 24 }}>
                 <label style={lbl}>Nachricht (optional)</label>
-                <textarea style={{ ...inp, resize: 'vertical', minHeight: 60 }} value={form.message} onChange={set('message')} placeholder="Besondere Wuensche..." rows={3} />
+                <textarea aria-label="Nachricht (optional)" style={{ ...inp, resize: 'vertical', minHeight: 60 }} value={form.message} onChange={set('message')} placeholder="Besondere Wuensche..." rows={3} />
               </div>
 
               {/* Package summary */}

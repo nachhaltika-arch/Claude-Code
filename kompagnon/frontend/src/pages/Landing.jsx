@@ -4,6 +4,8 @@ import { useScreenSize } from '../utils/responsive';
 import PricingSection from '../components/PricingSection';
 import AuditHook from '../components/AuditHook';
 import KompagnonLogo from '../components/KompagnonLogo';
+import usePakete from '../hooks/usePakete';
+import { PREIS_UNBEKANNT } from '../utils/paketpreise';
 
 // ── Markenfarben kompagnon.eu ─────────────────────────────────
 const C = {
@@ -48,6 +50,12 @@ export default function Landing() {
   const px = isMobile ? '20px' : '60px';
   const go  = (pkg) => nav(`/checkout/${pkg}`);
 
+  // Die Seite nannte Kompagnon an drei Stellen mit 3.500 €, waehrend die
+  // Kasse 2.000 abbuchte (L-29). Jetzt aus derselben Zeile wie Stripe.
+  const { pakete } = usePakete([{ id: 'starter' }, { id: 'kompagnon' }]);
+  const [starter, kompagnon] = pakete;
+  const preisOder = (paket) => (paket && paket.preisBekannt ? `${paket.preisLabel} €` : PREIS_UNBEKANNT);
+
   const LEISTUNGEN = [
     { icon: '✏️', title: 'Konzeption & Texte',
       desc: 'Individuelle KI-Texte für Ihren Betrieb, Ihre Region und Ihre Zielgruppe.' },
@@ -71,7 +79,7 @@ export default function Landing() {
     'Trustpilot 4.9/5',
     'Trusted Shops',
     'DSGVO-konform',
-    'Festpreis 3.500 €',
+    `Festpreis ${preisOder(kompagnon)}`,
     '14 Tage Lieferzeit',
   ];
 
@@ -217,7 +225,7 @@ export default function Landing() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {[
                 ['14', 'Werktage bis Go-live'],
-                ['3.500 €', 'Festpreis garantiert'],
+                [preisOder(kompagnon), 'Festpreis garantiert'],
                 ['340+', 'Handwerksbetriebe'],
                 ['4.9 ★', 'Trustpilot'],
               ].map(([num, label]) => (
@@ -439,7 +447,7 @@ export default function Landing() {
               Gratis Erstgespräch buchen
             </div>
             {['Ihr Name', 'Ihre E-Mail', 'Telefonnummer', 'Ihre Website (optional)'].map(ph => (
-              <input key={ph} placeholder={ph} disabled style={{
+              <input aria-label={ph} key={ph} placeholder={ph} disabled style={{
                 width: '100%', marginBottom: 10, padding: '11px 14px',
                 background: 'rgba(255,255,255,.08)',
                 border: '1px solid rgba(255,255,255,.2)',
@@ -503,7 +511,7 @@ export default function Landing() {
           {/* Links */}
           {[
             ['Leistungen', ['Webdesign','KI-Texte','SEO','Rechtssicher','Portal']],
-            ['Pakete', ['Starter 1.500€','Kompagnon 3.500€','Premium','Förderung']],
+            ['Pakete', [`Starter ${preisOder(starter)}`, `Kompagnon ${preisOder(kompagnon)}`, 'Premium', 'Förderung']],
             ['Rechtliches', ['Impressum','Datenschutz','Barrierefreiheit']],
           ].map(([title, links]) => (
             <div key={title} style={{ marginBottom: isMobile ? 20 : 0 }}>

@@ -8,9 +8,11 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import SystemSettings, RolePermission, get_db
-from routers.auth_router import require_admin
+from routers.auth_router import require_admin, verlangt_recht
 
 logger = logging.getLogger(__name__)
+
+from services.rechte import DURCHGESETZTE_RECHTE
 
 router = APIRouter(prefix="/api/admin", tags=["admin-settings"])
 
@@ -76,7 +78,7 @@ def get_settings(admin=Depends(require_admin), db: Session = Depends(get_db)):
     return {r.key: r.value for r in rows}
 
 
-@router.patch("/settings")
+@router.patch("/settings", dependencies=[Depends(verlangt_recht("manage_settings"))])
 def update_settings(req: SettingsUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
     for key, value in req.settings.items():
         existing = db.query(SystemSettings).filter(SystemSettings.key == key).first()
@@ -110,12 +112,20 @@ def get_roles(admin=Depends(require_admin), db: Session = Depends(get_db)):
         _seed_permissions(db)
         rows = db.query(RolePermission).all()
 
-    result = {}
+    rollen = {}
     for r in rows:
-        if r.role not in result:
-            result[r.role] = {}
-        result[r.role][r.permission] = r.is_allowed
-    return result
+        rollen.setdefault(r.role, {})[r.permission] = r.is_allowed
+
+    # Bis zum 18.08.2026 wurde diese Tabelle **nirgends** zur Rechtevergabe
+    # gelesen (L-05): Ein Haken liess sich setzen und wegnehmen, ohne dass
+    # etwas geschah. Jetzt haengt an einem Teil davon wirklich eine Sperre —
+    # und der Bildschirm muss beides auseinanderhalten koennen. Was hier nicht
+    # steht, ist Beschreibung, keine Zusicherung.
+    return {
+        **rollen,
+        "rollen": rollen,
+        "durchgesetzt": sorted(DURCHGESETZTE_RECHTE),
+    }
 
 
 @router.patch("/roles/{role}")

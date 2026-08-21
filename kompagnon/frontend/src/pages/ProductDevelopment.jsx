@@ -135,18 +135,18 @@ export default function ProductDevelopment() {
               <button type="button" onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ padding: 20 }}>
-              <Lbl>Titel *</Lbl><input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Feature-Titel..." style={{ ...inp, marginBottom: 14 }} autoFocus />
-              <Lbl>Beschreibung</Lbl><textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={3} style={{ ...inp, resize: 'vertical', marginBottom: 14 }} />
+              <Lbl>Titel *</Lbl><input aria-label="Feature-Titel..." value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Feature-Titel..." style={{ ...inp, marginBottom: 14 }} autoFocus />
+              <Lbl>Beschreibung</Lbl><textarea aria-label="Details..." value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={3} style={{ ...inp, resize: 'vertical', marginBottom: 14 }} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                <div><Lbl>Kategorie</Lbl><select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} style={inp}>{CATS.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select></div>
-                <div><Lbl>Phase</Lbl><select value={form.stage} onChange={(e) => setForm((p) => ({ ...p, stage: e.target.value }))} style={inp}>{STAGES.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}</select></div>
+                <div><Lbl>Kategorie</Lbl><select aria-label="Kategorie" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} style={inp}>{CATS.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select></div>
+                <div><Lbl>Phase</Lbl><select aria-label="Phase" value={form.stage} onChange={(e) => setForm((p) => ({ ...p, stage: e.target.value }))} style={inp}>{STAGES.map((s) => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}</select></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                <div><Lbl>Prioritaet</Lbl><select value={form.priority} onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value }))} style={inp}>{PRIOS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></div>
-                <div><Lbl>Faellig am</Lbl><input type="date" value={form.due_date} onChange={(e) => setForm((p) => ({ ...p, due_date: e.target.value }))} style={inp} /></div>
+                <div><Lbl>Prioritaet</Lbl><select aria-label="Prioritaet" value={form.priority} onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value }))} style={inp}>{PRIOS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></div>
+                <div><Lbl>Faellig am</Lbl><input aria-label="Faellig am" type="date" value={form.due_date} onChange={(e) => setForm((p) => ({ ...p, due_date: e.target.value }))} style={inp} /></div>
               </div>
-              <Lbl>Ticket-Referenz</Lbl><input value={form.ticket_ref} onChange={(e) => setForm((p) => ({ ...p, ticket_ref: e.target.value }))} placeholder="TKT-2603-1234" style={{ ...inp, marginBottom: 14 }} />
-              <Lbl>Tags (kommagetrennt)</Lbl><input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="frontend, api..." style={{ ...inp, marginBottom: 20 }} />
+              <Lbl>Ticket-Referenz</Lbl><input aria-label="TKT-2603-1234" value={form.ticket_ref} onChange={(e) => setForm((p) => ({ ...p, ticket_ref: e.target.value }))} placeholder="TKT-2603-1234" style={{ ...inp, marginBottom: 14 }} />
+              <Lbl>Tags (kommagetrennt)</Lbl><input aria-label="frontend, api..." value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="frontend, api..." style={{ ...inp, marginBottom: 20 }} />
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: 11, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
                 <button type="submit" disabled={!form.title.trim()} style={{ flex: 2, padding: 11, background: !form.title.trim() ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: !form.title.trim() ? 'not-allowed' : 'pointer', minHeight: 44 }}>{editItem ? 'Speichern' : '+ Anlegen'}</button>

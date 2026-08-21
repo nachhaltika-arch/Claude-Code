@@ -58,7 +58,7 @@ async def create_geo_subscription(
 ):
     """Erstellt eine Stripe Checkout Session fuer das GEO Add-on Abo."""
     if not stripe.api_key:
-        raise HTTPException(500, "Stripe nicht konfiguriert (STRIPE_SECRET_KEY fehlt)")
+        raise HTTPException(503, "Stripe nicht eingerichtet (STRIPE_SECRET_KEY fehlt)")
 
     analysis = _get_analysis_or_404(project_id, db)
     project, lead = _get_project_lead(project_id, db)

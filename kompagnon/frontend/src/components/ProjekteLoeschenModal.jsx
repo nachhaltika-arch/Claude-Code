@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import API_BASE_URL from "../config";
 import { loeschFrage, vorschauZeilen } from "../utils/projektAuswahl";
+import { aufTaste } from '../utils/tastaturBedienung';
 
 const ROT = "#dc2626";
 
@@ -72,7 +73,7 @@ export default function ProjekteLoeschenModal({ ids, namen, token, onClose, onGe
         zIndex: 1000, padding: 16,
       }}
     >
-      <div
+      <div role="button" tabIndex={0} onKeyDown={aufTaste((e) => e.stopPropagation())}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff", borderRadius: 12, padding: 32, width: "100%", maxWidth: 520,

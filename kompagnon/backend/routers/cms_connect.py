@@ -11,9 +11,21 @@ from pydantic import BaseModel
 from typing import Optional
 
 from database import get_db, Customer
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_admin, require_innendienst
 
-router = APIRouter(prefix="/api/customers", tags=["cms"])
+# Vorgabe am Router, nicht an der einzelnen Route — genau diese Bauart hat am
+# 19.08. 55 offene Routen erzeugt (L-51). Bis zum 21.08.2026 trugen alle vier
+# Routen nur `require_any_auth` und **keine Zeilenpruefung**: Ein angemeldeter
+# Kunde konnte die CMS-Adresse jedes anderen Kunden lesen und beliebiges HTML
+# auf dessen Live-Website veroeffentlichen. Das Passwort sieht er dabei nie —
+# der Server entschluesselt es selbst. Genau das macht es schlimmer: Er
+# braucht es nicht.
+#
+# Der einzige Aufrufer ist `CustomerDetail.jsx`, und der haengt an
+# `roles={['admin']}`. Die Sperre stand also in der Oberflaeche statt am
+# Endpunkt — und eine Oberflaechenpruefung ist keine Sperre.
+router = APIRouter(prefix="/api/customers", tags=["cms"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────
@@ -51,7 +63,6 @@ def save_cms_connection(
     customer_id: int,
     data: CmsConnectionIn,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     customer = _get_customer_or_404(customer_id, db)
     from utils.encryption import encrypt_password
@@ -76,7 +87,6 @@ def save_cms_connection(
 def get_cms_connection(
     customer_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     customer = _get_customer_or_404(customer_id, db)
     return {
@@ -91,7 +101,6 @@ def get_cms_connection(
 async def test_cms_connection(
     customer_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     customer = _get_customer_or_404(customer_id, db)
 
@@ -115,12 +124,11 @@ async def test_cms_connection(
     }
 
 
-@router.post("/{customer_id}/publish")
+@router.post("/{customer_id}/publish", dependencies=[Depends(require_admin)])
 async def publish_to_cms(
     customer_id: int,
     data: PublishIn,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
 ):
     customer = _get_customer_or_404(customer_id, db)
 

@@ -449,22 +449,24 @@ def delete_usercard(card_id: int, db: Session = Depends(get_db)):
     return {"success": True, "message": f"UserCard {card_id} gelöscht"}
 
 
-# ── Alias routers (/api/leads and /api/customers → same handlers) ─────────────
-
-# Die Aliasse zeigen auf dieselben Funktionen. Ohne dieselbe Abhaengigkeit
-# waere die Absicherung des Hauptrouters nur ein Umweg entfernt.
-leads_alias_router    = APIRouter(prefix="/api/leads",     tags=["usercards"],
-                                  dependencies=[Depends(require_innendienst)])
-customers_alias_router = APIRouter(prefix="/api/customers", tags=["usercards"],
-                                   dependencies=[Depends(require_innendienst)])
-
-for _alias in (leads_alias_router, customers_alias_router):
-    _alias.add_api_route("/",                    list_usercards,           methods=["GET"])
-    _alias.add_api_route("/",                    create_usercard,          methods=["POST"])
-    _alias.add_api_route("/{card_id}",           get_usercard,             methods=["GET"])
-    _alias.add_api_route("/{card_id}",           update_usercard,          methods=["PUT", "PATCH"])
-    _alias.add_api_route("/{card_id}",           delete_usercard,          methods=["DELETE"])
-    _alias.add_api_route("/{card_id}/profile",   get_usercard_profile,     methods=["GET"])
-    _alias.add_api_route("/{card_id}/audits",    get_usercard_audits,      methods=["GET"])
-    _alias.add_api_route("/{card_id}/pagespeed", get_usercard_pagespeed,   methods=["GET"])
-    _alias.add_api_route("/{card_id}/pagespeed", run_usercard_pagespeed,   methods=["POST"])
+# ── Keine Alias-Router mehr (21.08.2026) ─────────────────────────────────────
+#
+# Hier standen zwei Router, die dieselben Funktionen zusaetzlich unter
+# `/api/leads` und `/api/customers` anboten — „damit Aufrufe an beide Praefixe
+# transparent funktionieren". Gemessen beim Auftrennen der Nahtstellen
+# (Modulkarte):
+#
+#   * Die `/api/leads`-Aliasse waren **vollstaendig tot**. Der echte
+#     `leads.router` ist frueher eingebunden und gewinnt jede dieser Routen.
+#   * Der `/api/customers`-Alias war **nicht** tot — er ueberdeckte
+#     `routers/customers.py`. `GET /api/customers/` lieferte deshalb
+#     **UserCards statt Customers**: zwei verschiedene Entitaeten auf einer
+#     Adresse, und die Antwort haing an der Reihenfolge in `main.py`.
+#     Nachgewiesen am laufenden Server mit einer UserCard und null Customers.
+#   * Nebenwirkung: Der Alias trug `require_innendienst`, `customers.py` nur
+#     `require_any_auth`. Die Ueberdeckung hat die Sicherheitsarbeit gemacht.
+#     `customers.py` traegt jetzt selbst die richtige Sperre.
+#
+# Kein Aufrufer im Repo benutzte die Aliasse — weder Frontend noch
+# Browser-Tests noch Dokumentation. `tests/test_router_kollisionen.py` haelt
+# die Adressen von nun an eindeutig.

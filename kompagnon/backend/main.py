@@ -47,10 +47,7 @@ from routers import (
     fehler_router,
     usercards_router,
     usercards_kunden_router,
-    leads_alias_router,
-    usercards_customers_alias_router,
     leads_router,
-    customers_alias_router,
     projects_router,
     agents_router,
     customers_router,
@@ -1849,10 +1846,11 @@ app.include_router(leads_public_router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)
-app.include_router(leads_alias_router)                # alias after
-app.include_router(usercards_customers_alias_router)
-app.include_router(customers_router)                  # real customers router first
-app.include_router(customers_alias_router)            # alias after
+# Die drei Alias-Router sind am 21.08.2026 entfernt (Modulkarte, Nahtstelle
+# `/api/customers`). Der Kommentar hier sagte „real customers router first" —
+# er war es nicht: `usercards_customers_alias_router` stand eine Zeile davor
+# und ueberdeckte ihn samt seiner Antwortform.
+app.include_router(customers_router)
 app.include_router(projects_router)
 # Freigabe des Kunden über den Link aus der E-Mail. Alles andere hängt am
 # `projects_router` und verlangt eine Anmeldung.

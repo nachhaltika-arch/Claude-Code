@@ -122,8 +122,9 @@ Geld und ist ein eigenes Produkt.
 | Tabellen | `leads` (**101 Spalten**, davon 72 im ORM), `deals`, `deal_items`, `customers`, `usercards` |
 | Bildschirme | Betriebe, Betriebsblatt, Deals, Export |
 
-**Naht ⚠️:** Vier Router bedienen `/api/customers` — `leads`, `usercards`,
-`customers`, `cms_connect`. Die Grenze ist an der Adresse nicht ablesbar.
+**Naht ✅ aufgetrennt am 21.08.2026.** Vier Router bedienten `/api/customers`.
+Das Auftrennen hat drei Dinge freigelegt, die vorher niemand sehen konnte —
+siehe „Was die erste Naht gekostet hat" am Ende dieser Datei.
 
 **Offen:** L-56 (Löschen eines Betriebs mit Kundenzugang — Entscheidung) ·
 L-59-Rest (Rechtsgrundlage für elf Quellen — Entscheidung) · L-24
@@ -281,11 +282,15 @@ system_settings:  modul.m1_akquise = "aus"
 **Was ein Schalter ausdrücklich nicht tut:** Daten löschen. Aus heißt
 unsichtbar und untätig, nicht weg.
 
-**Die Nähte sind der Grund, warum das noch nicht gebaut ist.** An drei Stellen
-liegen Module heute auf derselben Adresse (`/api/customers`, `/api/projects`,
-`/api/briefings`). Ein Router-Schalter dort würde Nachbarmodule mit abschalten.
-Diese drei Nähte gehören vor dem Schalter aufgetrennt — es sind zusammen
-höchstens zwei Tage.
+**Korrektur vom 21.08.2026:** Hier stand, die Nähte blockierten den Schalter.
+Nachgemessen stimmt das nicht — **kein Router bedient zwei Module**, und ein
+Schalter am Router funktioniert unabhängig vom Präfix. Der Schalter ist also
+**nicht blockiert** und kann gebaut werden.
+
+Die Nähte bleiben trotzdem dran, aber aus einem anderen Grund: Auf einer
+geteilten Adresse gewinnt der zuerst eingebundene Router, der andere ist tot —
+und tote Routen sind ungeprüfte Routen. Was das erste Auftrennen zutage
+gefördert hat, steht weiter unten.
 
 ---
 
@@ -354,6 +359,51 @@ Vier Dinge, die vorher niemand so gesehen hat:
 4. **Die Kette bricht genau an der Kasse.** Alles davor ist gebaut und
    geprüft, alles danach auch. Der eine Punkt, an dem Geld fließt, ist der
    einzige, der nicht funktioniert.
+
+---
+
+## Was die erste Naht gekostet hat — und was sie erbracht hat
+
+Die Naht `/api/customers` ist am 21.08.2026 aufgetrennt. Der Befund war
+**größer als die Naht**.
+
+**Zuerst eine Korrektur an dieser Datei.** Oben stand, die Nähte blockierten
+den Schalter, weil Module auf derselben Adresse lägen. Nachgemessen stimmt das
+so nicht: **Kein Router bedient zwei Module.** Ein Schalter am *Router* — nicht
+am Präfix — hätte von Anfang an funktioniert. Die Nähte blockieren den Schalter
+also nicht. Sie sind trotzdem gefährlich, nur aus einem anderen Grund:
+
+**19 Kollisionen**, gemessen mit normalisierten Platzhaltern (`{card_id}` und
+`{lead_id}` sind verschiedene Zeichenketten und treffen dieselben Aufrufe — eine
+erste, wörtliche Messung übersah sechs davon).
+
+Drei Dinge, die dabei herauskamen:
+
+1. **`GET /api/customers/` lieferte UserCards statt Customers.** Zwei
+   verschiedene Entitäten auf einer Adresse; welche antwortet, hing an der
+   Reihenfolge in `main.py`. Am laufenden Server nachgewiesen — mit einer
+   UserCard und null Customers kam die UserCard zurück. Und die
+   OpenAPI-Beschreibung nannte einen **dritten** Handler, weil FastAPI dort den
+   *zuletzt* registrierten einträgt, während der *erste* antwortet.
+2. **Die Überdeckung machte die Sicherheitsarbeit** (L-66, L-68). Der
+   überdeckende Alias trug `require_innendienst`, der überdeckte Router nur
+   `require_any_auth`. Wer den Alias entfernt, ohne das zu bemerken, öffnet
+   den Kundenbestand für jeden angemeldeten Kunden. Und die überdeckte Route
+   war nicht bloß ungenutzt — sie war **kaputt**: Sie antwortete 500, sobald
+   eine Kundenzeile keinen Termin hatte.
+3. **Vier Routen ließen jeden Angemeldeten auf fremde Websites
+   veröffentlichen** (L-66). `cms_connect.py` hing mit `require_any_auth` und
+   ohne Zeilenprüfung unter `/api/customers`. Ein angemeldeter Kunde konnte
+   beliebiges HTML in die Live-Website eines anderen Kunden schieben.
+
+**Der Lehrsatz:** Eine tote Route ist nicht nur ungenutzt, sie ist
+**ungeprüft**. Wer eine Überdeckung entfernt, schaltet scharf, was nie jemand
+gesehen hat — deshalb gehört zu jedem Auftrennen ein Blick auf das, was darunter
+lag.
+
+`tests/test_router_kollisionen.py` hält die Adressen von jetzt an eindeutig:
+von 19 Kollisionen bleibt **eine**, und die ist namentlich als Entscheidung
+vermerkt (`POST /api/projects/{}/scrape` — Branddesign gegen Inhalt).
 
 ---
 

@@ -75,11 +75,37 @@ def test_aber_kein_fremdes(client, kunde_headers, eigene_karte):
     assert antwort.status_code == 403, antwort.text
 
 
-def test_die_alias_router_tragen_dieselbe_sperre():
-    """Sonst ist die Absicherung einen Umweg entfernt."""
+def test_es_gibt_keine_alias_router_mehr():
+    """Der Umweg ist weg — und das ist besser als ein gesicherter Umweg.
+
+    Bis zum 21.08.2026 bot `usercards.py` dieselben Funktionen zusaetzlich
+    unter `/api/leads` und `/api/customers` an. Beide Aliasse trugen zwar
+    dieselbe Sperre, aber der `/api/customers`-Alias **ueberdeckte**
+    `routers/customers.py`: Die Adresse lieferte UserCards statt Customers,
+    und die strengere Sperre des Alias hat unbemerkt die Sicherheitsarbeit
+    fuer den schwaecher gesicherten Router mitgemacht (Modulkarte,
+    Nahtstelle `/api/customers`).
+
+    Entfernt statt abgesichert. `tests/test_router_kollisionen.py` haelt die
+    Adressen jetzt eindeutig.
+    """
     from routers import usercards
 
-    for name in ("router", "leads_alias_router", "customers_alias_router"):
-        router = getattr(usercards, name)
-        namen = [d.dependency.__name__ for d in router.dependencies]
-        assert "require_innendienst" in namen, f"{name}: {namen}"
+    assert not hasattr(usercards, "leads_alias_router")
+    assert not hasattr(usercards, "customers_alias_router")
+
+
+def test_der_hauptrouter_traegt_die_sperre_selbst():
+    from routers import usercards
+
+    namen = [d.dependency.__name__ for d in usercards.router.dependencies]
+    assert "require_innendienst" in namen, namen
+
+
+def test_und_customers_py_ebenfalls():
+    """Es trug nur `require_any_auth` — was nicht auffiel, weil die Route
+    gar nicht dort ankam."""
+    from routers import customers
+
+    namen = [d.dependency.__name__ for d in customers.router.dependencies]
+    assert "require_innendienst" in namen, namen

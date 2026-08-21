@@ -58,7 +58,10 @@ GESPERRT_LESEND = (
     "/api/scraper/health",
     "/api/scraper/status",
     "/api/sitemap/1/pdf",
-    "/api/website-templates/suggestions",
+    # Am 21.08. von `/api/website-templates/suggestions` hierher gezogen:
+    # Die beiden Router lagen auf derselben Tabelle, und den zweiten rief
+    # nichts auf (L-28).
+    "/api/templates/suggestions",
 )
 
 GESPERRT_VERAENDERND = (
@@ -169,7 +172,6 @@ def test_was_offen_bleiben_muss_bleibt_offen(client, methode, pfad, grund):
 ROUTER_MIT_VORGABE = (
     "automations", "agents", "branddesign", "briefings",
     "crawler", "designs", "scraper", "sitemap", "templates",
-    "website_templates",
 )
 
 

@@ -1923,8 +1923,9 @@ app.include_router(branddesign_router)
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 
-from routers import website_templates as website_templates_router
-app.include_router(website_templates_router.router)
+# `website_templates` ist am 21.08.2026 in `templates` aufgegangen (L-28):
+# derselbe Tabellenzugriff unter zwei Praefixen, und das zweite rief
+# nachweislich nichts auf. Die Tabelle heisst weiterhin so.
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)

@@ -1,16 +1,33 @@
 """
-Website Templates API
-POST /api/templates/upload      - Upload a ZIP containing HTML/CSS template (admin only)
-POST /api/templates/import-url  - Import a template from a public URL using AI reconstruction
-GET  /api/templates/            - List all active templates
-GET  /api/templates/{id}        - Get single template
+Website Templates API — die eine Stelle fuer die Tabelle `website_templates`.
+
+POST   /api/templates/upload              ZIP mit HTML/CSS hochladen (nur Admin)
+POST   /api/templates/import-url          Vorlage aus einer oeffentlichen Adresse
+POST   /api/templates/import-bulk         mehrere ZIPs auf einmal
+GET    /api/templates/                    Liste
+GET    /api/templates/suggestions         Referenz-Adressen je Gewerk
+GET    /api/templates/{id}                eine Vorlage
+GET    /api/templates/{id}/preview        HTML-Vorschau fuer ein iframe
+PUT    /api/templates/{id}                Metadaten und Marken aendern
+DELETE /api/templates/{id}                loeschen
+POST   /api/templates/{id}/assign-project  einem Projekt zuweisen
+POST   /api/templates/{id}/assign-lead     einem Betrieb zuweisen
+
+Bis zum 21.08.2026 lag daneben ein zweiter Router `website_templates` unter
+`/api/website-templates` — dieselbe Tabelle, drei gleiche Endpunkte, und
+aufgerufen hat ihn nichts (L-28). Seine drei eigenen Endpunkte
+(`import-bulk`, `suggestions`, `{id}/preview`) sind hierher gezogen.
 """
 import io
+import json
+import logging
 import os
+import re
 import zipfile
-from datetime import datetime
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -18,8 +35,95 @@ from database import get_db
 from routers.auth_router import require_admin, require_innendienst
 from services.ki_aufruf import frag_modell
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/templates", tags=["templates"],
                    dependencies=[Depends(require_innendienst)])
+
+
+# ── Hilfen, uebernommen aus dem frueheren `website_templates.py` ────
+# Beide Router lagen auf derselben Tabelle; der zweite wurde von nichts
+# aufgerufen (L-28, gemessen 21.08.2026).
+
+def _make_slug(name: str) -> str:
+    s = (name or "").lower().strip()
+    for a, b in [("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")]:
+        s = s.replace(a, b)
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s[:200] or "template"
+
+
+def _unique_slug(base: str, db: Session) -> str:
+    slug = base
+    counter = 2
+    while db.execute(
+        text("SELECT id FROM website_templates WHERE slug = :s"), {"s": slug}
+    ).first():
+        slug = f"{base}-{counter}"
+        counter += 1
+    return slug
+
+
+def _extract_from_zip(zip_bytes: bytes, filename: str) -> dict:
+    """Extracts HTML/CSS or GrapesJS JSON from a ZIP archive."""
+    result = {
+        "name": (filename or "template").replace(".zip", ""),
+        "html": "",
+        "css": "",
+        "gjs_data": None,
+    }
+    try:
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            files = zf.namelist()
+
+            # Prefer GrapesJS JSON
+            gjs_file = next(
+                (f for f in files
+                 if f.endswith(".grapesjs") or f.endswith("grapesjs.json")
+                 or f.endswith("gjs.json")),
+                None,
+            )
+            if gjs_file:
+                try:
+                    result["gjs_data"] = zf.read(gjs_file).decode("utf-8", errors="ignore")
+                    gjs = json.loads(result["gjs_data"])
+                    pages = gjs.get("pages") or []
+                    if pages:
+                        comps = pages[0].get("frames", [{}])[0].get("component", {})
+                        if isinstance(comps, dict):
+                            inner = comps.get("components", "")
+                            if isinstance(inner, str):
+                                result["html"] = inner
+                except Exception:
+                    pass
+                return result
+
+            # HTML/CSS fallback
+            html_file = next(
+                (f for f in files if f.endswith("index.html")),
+                next((f for f in files if f.endswith(".html")), None),
+            )
+            css_file = next(
+                (f for f in files if f.endswith("style.css") or f.endswith("main.css")),
+                next((f for f in files if f.endswith(".css")), None),
+            )
+
+            if html_file:
+                raw_html = zf.read(html_file).decode("utf-8", errors="ignore")
+                body_match = re.search(r"<body[^>]*>([\s\S]*?)</body>", raw_html, re.I)
+                result["html"] = body_match.group(1).strip() if body_match else raw_html
+
+                if css_file:
+                    result["css"] = zf.read(css_file).decode("utf-8", errors="ignore")
+                else:
+                    # Inline <style> tags
+                    styles = re.findall(r"<style[^>]*>([\s\S]*?)</style>", raw_html, re.I)
+                    result["css"] = "\n".join(styles)
+
+    except zipfile.BadZipFile:
+        result["error"] = "Keine gültige ZIP-Datei"
+    except Exception as e:
+        result["error"] = str(e)
+    return result
 
 
 @router.post("/upload")
@@ -60,12 +164,19 @@ async def upload_template(
     if not html_content:
         raise HTTPException(status_code=400, detail="Keine HTML-Datei im ZIP gefunden")
 
+    # `:name` und nicht `%(name)s`. Der Wechsel auf die Prozent-Schreibweise
+    # (`afa35a3`, 10.04.2026) sollte „colon conflicts with CSS :root and ::
+    # pseudo-elements" vermeiden — die Sorge ist unbegruendet: SQLAlchemy liest
+    # nur den SQL-Text nach Platzhaltern ab, nie die gebundenen Werte. Ein
+    # `:root` im CSS kann dort nicht ankommen. Die Vorsichtsmassnahme hat
+    # diesen Endpunkt vier Monate lang mit einem Syntaxfehler beantwortet
+    # (L-63). Ein Test schiebt jetzt `:root`, `::before` und `a:hover` durch.
     row = db.execute(
         text("""
             INSERT INTO website_templates
               (name, description, source, html_content, css_content, tags, category, created_at, updated_at)
             VALUES
-              (%(name)s, %(desc)s, 'upload', %(html)s, %(css)s, %(tags)s, %(cat)s, NOW(), NOW())
+              (:name, :desc, 'upload', :html, :css, :tags, :cat, NOW(), NOW())
             RETURNING id, name, created_at
         """),
         {
@@ -174,12 +285,11 @@ async def import_template_from_url(
         cleaned_html = html_body
 
     # 4. Save to DB
-    from datetime import datetime as dt
     row = db.execute(
         text("""
             INSERT INTO website_templates
               (name, description, source, source_url, html_content, css_content, created_at, updated_at)
-            VALUES (%(name)s, %(desc)s, 'url', %(url)s, %(html)s, %(css)s, NOW(), NOW())
+            VALUES (:name, :desc, 'url', :url, :html, :css, NOW(), NOW())
             RETURNING id, name, html_content, created_at
         """),
         {"name": name, "desc": description, "url": url, "html": cleaned_html, "css": css_content},
@@ -214,6 +324,139 @@ def get_lead_template(lead_id: int, db: Session = Depends(get_db)):
     if not row:
         return None
     return dict(row._mapping)
+
+
+# ── Umgezogen aus `website_templates.py` (L-28) ─────────────────────
+#
+# `suggestions` steht **vor** `/{template_id}`. Andersherum liest
+# FastAPI „suggestions" als Zahl und antwortet 422 — genau so ist am
+# 07.05. `/layout-presets` hinter einem Catch-all verschwunden und
+# lieferte drei Monate lang 404, ohne dass es auffiel.
+
+@router.get("/suggestions")
+def inspiration_suggestions(gewerk: Optional[str] = None):
+    """Statische Liste guter Referenz-Websites pro Gewerk."""
+    suggestions = {
+        "sanitaer": [
+            "https://www.breunig-sanitaer.de",
+            "https://www.wolff-heizung-sanitaer.de",
+            "https://www.meier-haustechnik.de",
+        ],
+        "heizung": [
+            "https://www.buderus.de",
+            "https://www.vaillant.de",
+            "https://www.wolff-heizung-sanitaer.de",
+        ],
+        "elektro": [
+            "https://www.elektro-schmid.de",
+            "https://www.elektro-franke.de",
+            "https://www.elektro-koerner.de",
+        ],
+        "maler": [
+            "https://www.maler-heyse.de",
+            "https://www.malerkronenberg.de",
+            "https://www.malerbetrieb-muenchen.de",
+        ],
+        "dachdecker": [
+            "https://www.dachdecker-seifert.de",
+            "https://www.dachdecker-wiesbaden.de",
+            "https://www.dachdecker-berlin.de",
+        ],
+        "schreiner": [
+            "https://www.schreinerei-lang.de",
+            "https://www.schreinerei-gebele.de",
+        ],
+        "fliesenleger": [
+            "https://www.fliesen-koch.de",
+            "https://www.fliesen-meyer.de",
+        ],
+    }
+    key = (gewerk or "").lower()
+    for k in suggestions:
+        if k in key:
+            return {"gewerk": k, "suggestions": suggestions[k]}
+    # Fallback
+    return {
+        "gewerk": "allgemein",
+        "suggestions": [
+            "https://www.handwerker-muster.de",
+            "https://www.handwerksmeister-beispiel.de",
+            "https://www.qualitaets-handwerk.de",
+        ],
+    }
+
+
+@router.post("/import-bulk")
+async def import_bulk(
+    files: List[UploadFile] = File(...),
+    category: str = Form("allgemein"),
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Mehrere ZIP-Dateien gleichzeitig importieren."""
+    results = []
+    for f in files:
+        try:
+            content = await f.read()
+            extracted = _extract_from_zip(content, f.filename or "")
+            if extracted.get("error"):
+                results.append({"file": f.filename, "error": extracted["error"], "ok": False})
+                continue
+
+            slug = _unique_slug(_make_slug(extracted["name"]), db)
+            db.execute(text("""
+                INSERT INTO website_templates
+                  (name, slug, category, html_content, css_content,
+                   grapes_data, source_file, gewerk_tags, source)
+                VALUES
+                  (:name, :slug, :category, :html, :css,
+                   CAST(:gjs AS JSONB), :source_file, '["alle"]', 'upload')
+            """), {
+                "name":        extracted["name"],
+                "slug":        slug,
+                "category":    category,
+                "html":        extracted.get("html", ""),
+                "css":         extracted.get("css", ""),
+                "gjs":         extracted.get("gjs_data"),
+                "source_file": f.filename,
+            })
+            results.append({"file": f.filename, "slug": slug, "ok": True})
+        except Exception as e:
+            logger.warning(f"Template import {f.filename} failed: {e}")
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            results.append({"file": f.filename, "error": str(e), "ok": False})
+
+    db.commit()
+    return {
+        "imported": len([r for r in results if r.get("ok")]),
+        "failed":   len([r for r in results if not r.get("ok")]),
+        "results":  results,
+    }
+
+
+@router.get("/{template_id}/preview", response_class=HTMLResponse)
+def get_preview(template_id: int, db: Session = Depends(get_db)):
+    """HTML-Vorschau eines Templates — iframe-safe."""
+    row = db.execute(
+        text("SELECT html_content, css_content FROM website_templates WHERE id=:id"),
+        {"id": template_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Template nicht gefunden")
+
+    html = row.html_content or ""
+    css  = row.css_content or ""
+
+    full = f"""<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>{css}</style>
+</head><body>{html}</body></html>"""
+    return HTMLResponse(content=full)
 
 
 @router.get("/{template_id}")

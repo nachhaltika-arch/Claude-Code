@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 
-const PACKAGES = [
+import usePakete from '../hooks/usePakete';
+import { PREIS_UNBEKANNT } from '../utils/paketpreise';
+
+const DARSTELLUNG = [
   {
     id: 'starter',
     badge: 'Einstieg',
@@ -8,7 +11,6 @@ const PACKAGES = [
     badgeBg: 'var(--kc-mid-a-12)',
     name: 'Starter',
     tagline: 'Schnell. Sauber. Professionell.',
-    price: '1.500',
     delivery: '7–10 Werktage',
     accentColor: 'var(--kc-mid)',
     ctaBg: 'var(--kc-mid)',
@@ -34,7 +36,6 @@ const PACKAGES = [
     badgeBg: 'rgba(212,160,23,0.15)',
     name: 'KOMPAGNON',
     tagline: 'Individuell. Vertriebsstark. Zukunftssicher.',
-    price: '2.000',
     delivery: '14 Werktage',
     accentColor: '#d4a017',
     ctaBg: '#d4a017',
@@ -59,7 +60,6 @@ const PACKAGES = [
     badgeBg: 'rgba(124,58,237,0.12)',
     name: 'Premium',
     tagline: 'Sichtbar. Führend. Ausbaufähig.',
-    price: '2.500',
     delivery: '14–21 Werktage',
     accentColor: '#7c3aed',
     ctaBg: '#7c3aed',
@@ -95,6 +95,9 @@ const COMPARE_ROWS = [
 
 export default function PricingSection() {
   const navigate = useNavigate();
+
+  // Der Preis kommt aus derselben Zeile, aus der Stripe abbucht (L-29).
+  const { pakete: PACKAGES } = usePakete(DARSTELLUNG);
 
   return (
     <section id="pakete" style={{
@@ -189,12 +192,17 @@ export default function PricingSection() {
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
                 <span style={{ fontSize: 42, fontWeight: 700, color: pkg.accentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                  {pkg.price} €
+                  {pkg.preisBekannt ? `${pkg.preisLabel} €` : PREIS_UNBEKANNT}
                 </span>
-                <span style={{ fontSize: 13, color: '#8fa8b0' }}>netto</span>
+                {/* Stand 21.08.2026: Die Kasse legt nichts auf diesen Betrag
+                    drauf — kein `automatic_tax`, keine `tax_rates`. Hier stand
+                    „netto · zzgl. MwSt."; das versprach 1.785 €, abgebucht
+                    wurden 1.500 €. Welche der beiden Seiten sich bewegt, ist
+                    eine Entscheidung von David (L-61). */}
+                <span style={{ fontSize: 13, color: '#8fa8b0' }}>Gesamtbetrag</span>
               </div>
               <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 22 }}>
-                📅 {pkg.delivery} · zzgl. MwSt.
+                📅 {pkg.delivery}
               </div>
 
               <div style={{ marginBottom: 20 }}>
@@ -274,10 +282,10 @@ export default function PricingSection() {
           display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
           gap: 8, borderBottom: '2px solid #e8eef2',
         }}>
-          <div style={{ fontSize: 12, color: '#8fa8b0', fontWeight: 600 }}>Festpreis netto</div>
+          <div style={{ fontSize: 12, color: '#8fa8b0', fontWeight: 600 }}>Festpreis</div>
           {PACKAGES.map(pkg => (
             <div key={pkg.id} style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, color: pkg.accentColor }}>
-              {pkg.price} €
+              {pkg.preisBekannt ? `${pkg.preisLabel} €` : PREIS_UNBEKANNT}
             </div>
           ))}
         </div>

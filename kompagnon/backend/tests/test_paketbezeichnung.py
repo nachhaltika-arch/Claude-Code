@@ -140,3 +140,95 @@ def test_die_feste_paketliste_ist_weg():
     assert not hasattr(payments, "PACKAGE_NAMES"), (
         "Die feste Paketliste ist zurück — damit auch die zweite Preisquelle."
     )
+
+
+# ── Der Festpreis des Projekts — zweiter Teil von L-29 ────────────────
+#
+# Befund vom 21.08.2026: `_handle_successful_payment` legte das Projekt mit
+# einer zweiten festen Liste an:
+#
+#     fixed_price = {"starter": 1500.0, "kompagnon": 2000.0,
+#                    "premium": 2800.0}.get(package_id, 2000.0)
+#
+# Das ist dieselbe Bauart wie `PACKAGE_NAMES`, nur folgenschwerer: Auf dieser
+# Zahl rechnet der Margenrechner. Ein Kunde, der ueber Stripe 2.500 zahlt,
+# bekam ein Projekt mit 2.800 Umsatz — die Marge war um 300 EUR zu hoch,
+# und niemand haette es gemerkt.
+#
+# Der Vorgabewert war der schlimmere Teil: Ein unbekanntes Paket bekam
+# **2.000 EUR erfunden**, obwohl der tatsaechlich gezahlte Betrag im selben
+# Aufruf danebenstand.
+
+
+def test_der_festpreis_kommt_aus_der_produktzeile(db):
+    # Arrange
+    _anlegen(db, "probe-kompagnon", "KOMPAGNON", 2000)
+
+    # Act
+    from routers.payments import projekt_festpreis
+    preis = projekt_festpreis(db, "probe-kompagnon", bezahlt=2000.0)
+
+    # Assert
+    assert preis == 2000.0
+
+
+def test_ein_unbekanntes_paket_nimmt_den_gezahlten_betrag(db):
+    """Der gezahlte Betrag steht im selben Aufruf — er ist immer wahrer als
+    eine Vorgabe aus dem Quelltext."""
+    # Act
+    from routers.payments import projekt_festpreis
+    preis = projekt_festpreis(db, "gibt-es-nicht", bezahlt=2500.0)
+
+    # Assert
+    assert preis == 2500.0
+
+
+def test_ohne_produkt_und_ohne_zahlung_wird_nichts_erfunden(db):
+    """Lieber keine Zahl als eine geratene — der Margenrechner rechnet darauf."""
+    # Act
+    from routers.payments import projekt_festpreis
+    preis = projekt_festpreis(db, "gibt-es-nicht", bezahlt=0.0)
+
+    # Assert
+    assert preis is None
+
+
+def test_ohne_die_tabelle_faellt_der_festpreis_auf_das_gezahlte_zurueck(db):
+    # Arrange
+    db.execute(text("DROP TABLE IF EXISTS products"))
+    db.commit()
+
+    # Act
+    from routers.payments import projekt_festpreis
+    preis = projekt_festpreis(db, "probe-starter", bezahlt=1500.0)
+
+    # Assert
+    assert preis == 1500.0
+
+
+def test_die_feste_festpreisliste_steht_nicht_mehr_im_quelltext():
+    """Zwei Preisquellen waren der Befund — eine davon war diese hier.
+
+    Geprueft wird am ausfuehrbaren Teil der Datei, nicht am Kommentar: Die
+    alten Zahlen sollen als Erinnerung nachlesbar bleiben.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    from routers import payments
+
+    quelle = inspect.getsource(payments._handle_successful_payment)
+    baum = ast.parse(textwrap.dedent(quelle))
+
+    zahlen = [
+        knoten.value
+        for knoten in ast.walk(baum)
+        if isinstance(knoten, ast.Constant) and isinstance(knoten.value, float)
+    ]
+
+    for verboten in (1500.0, 2000.0, 2800.0):
+        assert verboten not in zahlen, (
+            f"{verboten} steht wieder fest in der Projektanlage — "
+            "damit gibt es wieder zwei Preisquellen."
+        )

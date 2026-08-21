@@ -91,6 +91,43 @@ def paketbezeichnung(db, slug: str) -> str:
     # Deutsche Schreibweise: 1.500 statt 1,500
     return f"{name} ({betrag:,.0f} EUR)".replace(",", ".")
 
+def projekt_festpreis(db, slug: str, bezahlt: float):
+    """Der Festpreis eines Projekts — aus derselben Zeile, aus der auch
+    abgerechnet wird.
+
+    Hier stand bis zum 21.08.2026 eine zweite feste Liste, dieselbe Bauart
+    wie `PACKAGE_NAMES` (L-29), nur folgenschwerer: Auf dieser Zahl rechnet
+    `services/margin_calculator.py`. Ein Kunde, der 2.500 zahlte, bekam ein
+    Projekt mit 2.800 Umsatz eingetragen — die Marge war zu hoch, und nichts
+    im System haette widersprochen.
+
+    Der Vorgabewert war der schlimmere Teil: Ein unbekanntes Paket bekam
+    2.000 EUR **erfunden**, obwohl der tatsaechlich gezahlte Betrag im selben
+    Aufruf danebenstand.
+
+    Reihenfolge: die Produktzeile, sonst der gezahlte Betrag, sonst nichts.
+    `None` heisst — die Spalte behaelt ihre Modellvorgabe, und niemand hat
+    hier eine Zahl behauptet.
+    """
+    from sqlalchemy import text as _text
+
+    try:
+        zeile = db.execute(
+            _text("SELECT price_brutto FROM products WHERE slug = :s"),
+            {"s": slug},
+        ).fetchone()
+    except Exception:  # noqa: BLE001 — fehlende Tabelle darf den Kauf nicht kippen
+        db.rollback()
+        zeile = None
+
+    if zeile:
+        betrag = float(zeile[0] or 0)
+        if betrag > 0:
+            return betrag
+
+    return float(bezahlt) if bezahlt and float(bezahlt) > 0 else None
+
+
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
     from sqlalchemy import text
@@ -331,16 +368,15 @@ def _handle_successful_payment(session: dict, db: Session):
             Project.lead_id == lead.id
         ).first()
         if not existing_project:
+            # Der Preis kommt aus der Produktzeile, sonst aus dem, was
+            # Stripe tatsaechlich abgebucht hat (L-29).
+            festpreis = projekt_festpreis(db, package_id, amount)
             project = Project(
                 lead_id        = lead.id,
                 status         = "phase_1",
                 payment_status = "bezahlt",
                 start_date     = datetime.utcnow(),
-                fixed_price    = {
-                    "starter":   1500.0,
-                    "kompagnon": 2000.0,
-                    "premium":   2800.0,
-                }.get(package_id, 2000.0),
+                fixed_price    = festpreis,
                 hourly_rate    = 45.0,
                 ai_tool_costs  = 50.0,
             )

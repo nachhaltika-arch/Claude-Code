@@ -1,25 +1,27 @@
 import { useState } from 'react';
 
-const PACKAGES = [
+import usePakete from '../hooks/usePakete';
+import { preisZeile, PREIS_UNBEKANNT } from '../utils/paketpreise';
+
+const DARSTELLUNG = [
   {
-    id: 'starter', name: 'Starter', price: 1500, priceLabel: '1.500', delivery: '7–10 Werktage',
+    id: 'starter', name: 'Starter', delivery: '7–10 Werktage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
     features: ['Kompakte WordPress-Webseite', 'Individuelle Texte (4 Seiten)', 'Mobiloptimierung', 'SEO-Basis', 'Impressum & Datenschutz', 'Go-live & Einweisung'],
   },
   {
-    id: 'kompagnon', name: 'KOMPAGNON', price: 2000, priceLabel: '2.000', delivery: '14 Werktage',
+    id: 'kompagnon', name: 'KOMPAGNON', delivery: '14 Werktage',
     accentColor: '#d4a017', badgeBg: 'rgba(212,160,23,0.12)', badgeColor: '#b8960a', recommended: true,
     features: ['Individuelle WordPress-Webseite', 'Individuelle Texterstellung', 'SEO-Volloptimierung', 'GEO / KI-Optimierung', 'Wettbewerbs- & Sichtbarkeitsanalyse', 'Persönlicher Strategie-Workshop', 'Google Business Optimierung', 'Rechtssicherheit', 'Nachbetreuung nach Go-live'],
   },
   {
-    id: 'premium', name: 'Premium', price: 2500, priceLabel: '2.500', delivery: '14–21 Werktage',
+    id: 'premium', name: 'Premium', delivery: '14–21 Werktage',
     accentColor: '#7c3aed', badgeBg: 'rgba(124,58,237,0.1)', badgeColor: '#6d28d9',
     features: ['Alles aus KOMPAGNON', 'Erweiterte Seitenstruktur', 'FAQ-, Partner- oder Karriere-Seite', 'Vertiefte GEO-Umsetzung', 'Stärkerer regionaler Bezug', 'Zweite Korrekturschleife', 'Erweiterte Nachbetreuung', 'Optionaler BFSG-Baustein'],
   },
 ];
 
 const COMPARE = [
-  { label: 'Preis netto', values: ['1.500 €', '2.000 €', '2.500 €'] },
   { label: 'Lieferzeit', values: ['7–10 Tage', '14 Tage', '14–21 Tage'] },
   { label: 'SEO-Optimierung', values: ['Basis', '✓ voll', '✓ voll'] },
   { label: 'GEO / KI', values: ['–', '✓', '✓'] },
@@ -32,6 +34,10 @@ const COMPARE = [
 export default function OfferTab({ lead, currentScore, currentLevel, isMobile }) {
   const [copied, setCopied] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState('kompagnon');
+
+  // Preise kommen aus derselben Zeile, aus der Stripe abbucht (L-29).
+  const { pakete: PACKAGES } = usePakete(DARSTELLUNG);
+  const COMPARE_MIT_PREIS = [{ label: 'Gesamtpreis', values: preisZeile(PACKAGES) }, ...COMPARE];
 
   const recommended = currentScore === null ? 'kompagnon' : currentScore >= 70 ? 'premium' : currentScore >= 40 ? 'kompagnon' : 'starter';
   const scoreColor = (s) => s >= 70 ? 'var(--status-success-text)' : s >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
@@ -49,7 +55,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
     const link = `${window.location.origin}/paket/${selectedPkg}`;
     const subject = encodeURIComponent('Ihr persönliches Angebot — KOMPAGNON');
     const body = encodeURIComponent(
-      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n✓ ${pkg.priceLabel} € netto (einmalig)\n✓ Fertigstellung in ${pkg.delivery}\n✓ Festpreis — keine versteckten Kosten\n\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
+      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n` : ''}✓ Fertigstellung in ${pkg.delivery}\n✓ Festpreis — keine versteckten Kosten\n\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
     );
     window.location.href = `mailto:${lead.email || ''}?subject=${subject}&body=${body}`;
   };
@@ -93,7 +99,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
                 {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--bg-surface)' }} />}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{p.name}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: isSelected ? p.accentColor : 'var(--text-primary)', marginBottom: 4, transition: 'color 0.15s' }}>{p.priceLabel} €</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: isSelected ? p.accentColor : 'var(--text-primary)', marginBottom: 4, transition: 'color 0.15s' }}>{p.preisBekannt ? `${p.preisLabel} €` : PREIS_UNBEKANNT}</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.delivery}</div>
             </div>
           );
@@ -110,7 +116,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               {lead.city && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>📍 {lead.city}{lead.trade && ` · ${lead.trade}`}</div>}
             </div>
             <div style={{ background: `${pkg.accentColor}30`, border: `1px solid ${pkg.accentColor}60`, borderRadius: 'var(--radius-lg)', padding: '14px 20px', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
-              <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: pkg.accentColor === '#d4a017' ? '#f0c040' : 'white', lineHeight: 1 }}>{pkg.priceLabel}</div>
+              <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: pkg.accentColor === '#d4a017' ? '#f0c040' : 'white', lineHeight: 1 }}>{pkg.preisBekannt ? pkg.preisLabel : PREIS_UNBEKANNT}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>netto · einmalig</div>
             </div>
           </div>
@@ -132,7 +138,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>Festpreis zzgl. MwSt.</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: pkg.accentColor }}>{pkg.priceLabel} € netto</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: pkg.accentColor }}>{pkg.preisBekannt ? `${pkg.preisLabel} € Gesamtpreis` : PREIS_UNBEKANNT}</div>
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>
             </div>
@@ -162,8 +168,8 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
             <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 10 }}>{p.name}</div>
           ))}
         </div>
-        {COMPARE.map((row, i) => (
-          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: i < COMPARE.length - 1 ? '1px solid var(--border-light)' : 'none', background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-app)', alignItems: 'center' }}>
+        {COMPARE_MIT_PREIS.map((row, i) => (
+          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: i < COMPARE_MIT_PREIS.length - 1 ? '1px solid var(--border-light)' : 'none', background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-app)', alignItems: 'center' }}>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>{row.label}</div>
             {row.values.map((val, j) => {
               const p = PACKAGES[j];

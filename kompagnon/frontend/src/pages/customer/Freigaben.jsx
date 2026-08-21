@@ -139,7 +139,7 @@ export default function Freigaben() {
                   Vorschau öffnen →
                 </a>
               )}
-              <textarea
+              <textarea aria-label="Kommentar (optional)…"
                 placeholder="Kommentar (optional)…"
                 value={comments[seiteId] || ''}
                 onChange={e => setComments(c => ({ ...c, [seiteId]: e.target.value }))}

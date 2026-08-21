@@ -322,11 +322,11 @@ export default function Newsletter() {
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Neue Liste erstellen</h3>
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Name</label>
-              <input style={input} value={newListForm.name} onChange={e => setNewListForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. Bestandskunden" />
+              <input aria-label="Name" style={input} value={newListForm.name} onChange={e => setNewListForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. Bestandskunden" />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Beschreibung</label>
-              <textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={newListForm.description} onChange={e => setNewListForm(f => ({ ...f, description: e.target.value }))} placeholder="Optionale Beschreibung" />
+              <textarea aria-label="Beschreibung" style={{ ...input, minHeight: 80, resize: 'vertical' }} value={newListForm.description} onChange={e => setNewListForm(f => ({ ...f, description: e.target.value }))} placeholder="Optionale Beschreibung" />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={{ ...btnSecondary, color: 'var(--text-secondary)', borderColor: 'var(--border-light)' }} onClick={() => setShowNewList(false)}>Abbrechen</button>
@@ -344,7 +344,7 @@ export default function Newsletter() {
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
               Eine Zeile pro Kontakt: <code style={{ background: 'var(--bg-app)', padding: '1px 4px', borderRadius: 4, fontSize: 11 }}>email, vorname, nachname</code>
             </p>
-            <textarea
+            <textarea aria-label={'max@beispiel.de, Max, Mustermann\nlisa@firma.de, Lisa, Mueller'}
               style={{ ...input, minHeight: 140, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12 }}
               value={csvText}
               onChange={e => setCsvText(e.target.value)}

@@ -66,7 +66,7 @@ export default function Tickets() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche..." style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+        <input aria-label="Suche..." value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche..." style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         {[{ v: '', l: 'Alle' }, { v: 'open', l: 'Offen' }, { v: 'in_progress', l: 'Bearbeitung' }, { v: 'resolved', l: 'Geloest' }, { v: 'closed', l: 'Geschlossen' }].map((s) => (
           <button key={s.v} onClick={() => setFStatus(s.v)} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${fStatus === s.v ? 'var(--brand-primary)' : 'var(--border-light)'}`,
@@ -74,7 +74,7 @@ export default function Tickets() {
             fontSize: 12, fontWeight: fStatus === s.v ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 36,
           }}>{s.l}</button>
         ))}
-        <select value={fType} onChange={(e) => setFType(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+        <select aria-label="Nach Art filtern" value={fType} onChange={(e) => setFType(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
           <option value="">Alle Typen</option>
           {Object.entries(TC).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
         </select>
@@ -152,7 +152,7 @@ export default function Tickets() {
                 ))}
               </div>
               <Lbl>Entwickler-Notiz</Lbl>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Interne Notiz..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box', outline: 'none', marginBottom: 14 }} />
+              <textarea aria-label="Interne Notiz..." value={note} onChange={(e) => setNote(e.target.value)} placeholder="Interne Notiz..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box', outline: 'none', marginBottom: 14 }} />
               <button onClick={save} disabled={saving} style={{ width: '100%', padding: 11, background: saving ? '#64748b' : '#059669', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', minHeight: 44, opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Speichern...' : 'Speichern'}
               </button>

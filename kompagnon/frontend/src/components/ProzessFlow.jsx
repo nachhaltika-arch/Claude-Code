@@ -920,12 +920,12 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
         {addOpen && (
           <div style={{ padding: 12, borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Seitenname..." style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && addPage()} />
+            <input aria-label="Seitenname..." value={addName} onChange={e => setAddName(e.target.value)} placeholder="Seitenname..." style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && addPage()} />
             <div style={{ display: 'flex', gap: 6 }}>
-              <select value={addType} onChange={e => setAddType(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+              <select aria-label="Seitentyp" value={addType} onChange={e => setAddType(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
                 {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <select value={addParent} onChange={e => setAddParent(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+              <select aria-label="Uebergeordnete Seite" value={addParent} onChange={e => setAddParent(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
                 <option value="">Hauptseite</option>
                 {contentPages.map(p => <option key={p.id} value={p.id}>↳ {p.page_name}</option>)}
               </select>
@@ -1020,7 +1020,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
                 {editField?.field === 'page_name' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
+                    <input aria-label="Seitenname" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
                     <button onClick={() => savePage(selected.id, { page_name: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
@@ -1031,7 +1031,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               {/* Seitentyp */}
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
-                <select value={selected.page_type} onChange={e => savePage(selected.id, { page_type: e.target.value })} disabled={selected.ist_pflichtseite} style={inputStyle}>
+                <select aria-label="Typ" value={selected.page_type} onChange={e => savePage(selected.id, { page_type: e.target.value })} disabled={selected.ist_pflichtseite} style={inputStyle}>
                   {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -1041,7 +1041,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
                 {editField?.field === 'ziel_keyword' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
+                    <input aria-label="Ziel-Keyword" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
                     <button onClick={() => savePage(selected.id, { ziel_keyword: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
@@ -1054,7 +1054,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
                 {editField?.field === 'cta_text' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
+                    <input aria-label="Text der Handlungsaufforderung" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
                     <button onClick={() => savePage(selected.id, { cta_text: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)' }}>✓</button>
                   </div>
                 ) : (
@@ -1068,7 +1068,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
               {editField?.field === 'zweck' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
+                  <textarea aria-label="Zweck der Seite" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button onClick={() => savePage(selected.id, { zweck: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)', fontWeight: 700 }}>Speichern</button>
                     <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
@@ -1084,7 +1084,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
               {editField?.field === 'notizen' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
+                  <textarea aria-label="Notizen" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button onClick={() => savePage(selected.id, { notizen: editField.value })} style={{ ...btnSm, background: 'var(--success)', color: 'var(--text-on-brand)', fontWeight: 700 }}>Speichern</button>
                     <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
@@ -1451,13 +1451,13 @@ function ZugangsdatenEmbed({ project, headers }) {
           ].map(f => (
             <div key={f.key}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>{f.label}</div>
-              <input type={f.type || 'text'} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder}
+              <input aria-label={f.placeholder} type={f.type || 'text'} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder}
                 style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }} />
             </div>
           ))}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Typ</div>
-            <select value={form.typ} onChange={e => setForm(p => ({ ...p, typ: e.target.value }))}
+            <select aria-label="Typ" value={form.typ} onChange={e => setForm(p => ({ ...p, typ: e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
               {TYP_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -1584,7 +1584,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
       <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>KI-Design generieren</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select value={selectedPage?.id || ''} onChange={e => { const p = sitemapPages.find(s => String(s.id) === e.target.value); setSelectedPage(p || null); }}
+          <select aria-label="Seite fuer das KI-Design" value={selectedPage?.id || ''} onChange={e => { const p = sitemapPages.find(s => String(s.id) === e.target.value); setSelectedPage(p || null); }}
             style={{ flex: 1, minWidth: 180, padding: '9px 12px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 8, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
             <option value="">Seite waehlen...</option>
             {sitemapPages.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
@@ -1682,7 +1682,7 @@ function NetlifyEmbed({ project, headers }) {
       {siteId && (
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>2. HTML deployen</div>
-          <textarea value={deployHtml} onChange={e => setDeployHtml(e.target.value)}
+          <textarea aria-label={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} value={deployHtml} onChange={e => setDeployHtml(e.target.value)}
             placeholder={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} rows={5}
             style={{ ...inputStyle, resize:'vertical', fontFamily:'monospace', fontSize:11 }} />
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
@@ -1748,7 +1748,7 @@ function NetlifyEmbed({ project, headers }) {
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3. Eigene Domain verbinden</div>
           <div style={{ display:'flex', gap:8 }}>
-            <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de" style={{ ...inputStyle, flex:1 }} />
+            <input aria-label="Eigene Domain" value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de" style={{ ...inputStyle, flex:1 }} />
             <button onClick={async () => {
               if (!domain.trim()) return;
               try {
@@ -1811,7 +1811,7 @@ function DNSEmbed({ project, lead, headers }) {
           </table>
           <div style={{ marginTop:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Domain des Kunden</div>
-            <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de"
+            <input aria-label="www.kundenwebsite.de" value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de"
               style={{ width:'100%', padding:'8px 12px', fontSize:13, border:'1px solid var(--border-light)', borderRadius:6, background:'var(--bg-app)', color:'var(--text-primary)', fontFamily:'var(--font-sans)', boxSizing:'border-box' }} />
           </div>
           <button onClick={async () => {

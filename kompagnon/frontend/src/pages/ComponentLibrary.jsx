@@ -13,6 +13,7 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/BlockContract';
 import { mitBlockMarkierung } from '../utils/blockMarkup';
+import Feld from '../components/ui/Feld';
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -558,7 +559,7 @@ export default function ComponentLibrary() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
+        <input aria-label="Suchen (Slug / Name / Tag)…"
           type="text" placeholder="Suchen (Slug / Name / Tag)…"
           value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -602,7 +603,7 @@ export default function ComponentLibrary() {
             );
           })}
         </div>
-        <select
+        <select aria-label="Nach Kategorie filtern"
           value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
           style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, background: '#fff' }}
         >
@@ -1226,15 +1227,13 @@ function Editor({
 
 // ── Tiny helpers ─────────────────────────────────────────────────────────────
 
+// Beschriftung und Feld waren hier Geschwister ohne `htmlFor` — dieselbe
+// Form wie in sieben weiteren Dateien (L-17). Der Baustein verknüpft beide.
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{
-        display: 'block', fontSize: 10, fontWeight: 700, color: '#475569',
-        textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4,
-      }}>{label}</label>
+    <Feld label={label} style={{ marginBottom: 12 }} labelStyle={{ color: '#475569' }}>
       {children}
-    </div>
+    </Feld>
   );
 }
 

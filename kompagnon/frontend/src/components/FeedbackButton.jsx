@@ -73,9 +73,9 @@ export default function FeedbackButton() {
                     ))}
                   </div>
                   <Lbl>Betreff *</Lbl>
-                  <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Kurze Beschreibung..." maxLength={100} style={{ ...inp, marginBottom: 12 }} />
+                  <input aria-label="Kurze Beschreibung..." value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Kurze Beschreibung..." maxLength={100} style={{ ...inp, marginBottom: 12 }} />
                   <Lbl>Beschreibung *</Lbl>
-                  <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
+                  <textarea aria-label="Details..." value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>ℹ️ Seite und Browser-Info werden automatisch mitgesendet</div>
                   <button onClick={submit} disabled={loading || !form.title || !form.description} style={{
                     width: '100%', padding: 12, background: 'var(--brand-primary)', opacity: loading || !form.title || !form.description ? 0.5 : 1,

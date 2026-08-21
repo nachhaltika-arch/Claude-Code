@@ -139,7 +139,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>
-          <input
+          <input aria-label="Keyword eingeben + Enter"
             value={kwInput}
             onChange={e => setKwInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addKeyword()}
@@ -184,7 +184,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             {gbStatus.includes('Vorhanden') ? '✅' : gbStatus === 'unbekannt' ? '❓' : '⚠️'}
           </span>
           <div style={{ flex: 1 }}>{gbStatus || 'Nicht geprüft'}</div>
-          <select
+          <select aria-label="Google-Business-Eintrag"
             value={gbStatus}
             onChange={e => setGbStatus(e.target.value)}
             style={{

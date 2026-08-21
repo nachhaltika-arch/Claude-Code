@@ -115,7 +115,7 @@ export default function CampaignManager() {
                     Tracking-URL
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input
+                    <input aria-label="Tracking-Adresse"
                       readOnly
                       value={c.tracking_url}
                       onClick={e => e.target.select()}
@@ -337,12 +337,12 @@ function NewCampaignModal({ onClose, onCreated, token }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Kampagnen-Name *</label>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Facebook April 2026 Koblenz" />
+            <input aria-label="Kampagnen-Name" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Facebook April 2026 Koblenz" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Ziel-URL</label>
-            <input style={inputStyle} value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://kompagnon.eu" />
+            <input aria-label="Ziel-URL" style={inputStyle} value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://kompagnon.eu" />
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
               Wohin der Kunde nach Klick weitergeleitet wird. Bei Briefkarten wird automatisch die Landing-Page verwendet.
             </div>
@@ -350,7 +350,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Beschreibung (optional)</label>
-            <textarea
+            <textarea aria-label="Beschreibung (optional)"
               style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }}
               value={description}
               onChange={e => setDescription(e.target.value)}

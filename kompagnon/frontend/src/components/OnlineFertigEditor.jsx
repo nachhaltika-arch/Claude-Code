@@ -463,7 +463,7 @@ export default function OnlineFertigEditor() {
           </button>
           <span style={{ color: '#cbd5e1' }}>·</span>
           {editingName ? (
-            <input
+            <input aria-label="Projektname"
               type="text"
               defaultValue={project.company_name || `Projekt #${project.id}`}
               autoFocus

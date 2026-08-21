@@ -114,7 +114,7 @@ const inputBase = {
 
 function Input({ value, onChange, placeholder, onFocus, onBlur, hasError, id }) {
   return (
-    <input
+    <input aria-label={placeholder}
       id={id}
       value={value}
       onChange={e => onChange(e.target.value)}
@@ -133,7 +133,7 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, mi
   const counterColor = len === 0 ? 'var(--text-tertiary)' : tooLong ? 'var(--status-danger-text)' : !tooShort ? 'var(--status-success-text)' : 'var(--text-tertiary)';
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
+      <textarea aria-label={placeholder}
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}

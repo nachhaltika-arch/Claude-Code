@@ -39,7 +39,7 @@ export default function QRGenerator() {
         }}>
           Kampagnen-Slug
         </label>
-        <input
+        <input aria-label="Kampagnen-Slug"
           type="text"
           value={slug}
           onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}

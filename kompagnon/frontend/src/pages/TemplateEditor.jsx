@@ -137,7 +137,7 @@ export default function TemplateEditor() {
           ← Zurück
         </Link>
 
-        <input
+        <input aria-label="Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".zip,.grapesjs"
@@ -154,7 +154,7 @@ export default function TemplateEditor() {
           {importing ? '⏳ Lädt…' : '📂 Template importieren'}
         </button>
 
-        <input
+        <input aria-label="Template-Name"
           value={name}
           onChange={e => setName(e.target.value)}
           style={{

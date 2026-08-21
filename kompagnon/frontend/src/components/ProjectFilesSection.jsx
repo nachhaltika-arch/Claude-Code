@@ -158,7 +158,7 @@ export default function ProjectFilesSection({ leadId }) {
       <div style={{ padding: isMobile ? 16 : 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Drop zone */}
         <div style={dropZoneStyle} onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
-          <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.zip,.svg,.ai,.eps" onChange={(e) => pickFile(e.target.files[0])} />
+          <input aria-label="Datei auswaehlen" ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.zip,.svg,.ai,.eps" onChange={(e) => pickFile(e.target.files[0])} />
           {pendingFile ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <span style={{ fontSize: 20 }}>📄</span>
@@ -180,14 +180,14 @@ export default function ProjectFilesSection({ leadId }) {
         {/* Options row */}
         {pendingFile && (
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
-            <select value={fileType} onChange={(e) => setFileType(e.target.value)} style={{ flex: '0 0 160px', padding: '8px 10px', fontSize: 13, border: '0.5px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
+            <select aria-label="Dateiart" value={fileType} onChange={(e) => setFileType(e.target.value)} style={{ flex: '0 0 160px', padding: '8px 10px', fontSize: 13, border: '0.5px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
               <option value="logo">Logo</option>
               <option value="foto">Foto</option>
               <option value="text">Text</option>
               <option value="zugangsdaten">Zugangsdaten</option>
               <option value="sonstiges">Sonstiges</option>
             </select>
-            <input type="text" placeholder="Notiz (optional)" value={note} onChange={(e) => setNote(e.target.value)} style={{ flex: 1, padding: '8px 10px', fontSize: 13, border: '0.5px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }} />
+            <input aria-label="Notiz (optional)" type="text" placeholder="Notiz (optional)" value={note} onChange={(e) => setNote(e.target.value)} style={{ flex: 1, padding: '8px 10px', fontSize: 13, border: '0.5px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }} />
             <button onClick={handleUpload} disabled={uploading} style={{ padding: '8px 18px', background: uploading ? 'var(--bg-elevated)' : 'var(--brand-primary)', color: uploading ? 'var(--text-tertiary)' : 'var(--text-inverse)', border: uploading ? '1px solid var(--border-medium)' : 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, ...(isMobile ? { width: '100%', justifyContent: 'center' } : {}) }}>
               {uploading ? (<><span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Wird hochgeladen…</>) : 'Hochladen'}
             </button>

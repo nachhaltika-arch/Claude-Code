@@ -551,7 +551,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
               {pages.length} Seiten analysiert
             </div>
-            <input
+            <input aria-label="URL oder Titel suchen..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="URL oder Titel suchen..."
@@ -562,7 +562,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 fontFamily: 'var(--font-sans)', outline: 'none',
               }}
             />
-            <select
+            <select aria-label="Sortierung"
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
               style={{

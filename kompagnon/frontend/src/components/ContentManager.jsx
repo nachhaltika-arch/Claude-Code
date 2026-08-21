@@ -136,7 +136,7 @@ function SectionCard({ section, token, onUpdated }) {
         {/* Vom Kunden */}
         <div style={{ background: '#FFFBEB', padding: 12, borderRight: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#D97706', marginBottom: 6 }}>Vom Kunden</div>
-          <textarea
+          <textarea aria-label="Hier den Text des Kunden eintragen..."
             value={kunde}
             onChange={e => { setKunde(e.target.value); saveKunde(e.target.value); }}
             placeholder="Hier den Text des Kunden eintragen..."
@@ -148,7 +148,7 @@ function SectionCard({ section, token, onUpdated }) {
         {/* Finaler Text */}
         <div style={{ background: '#F0FDF4', padding: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#065F46', marginBottom: 6 }}>Finaler Text</div>
-          <textarea
+          <textarea aria-label="Finaler Text für den Mockup..."
             value={final}
             onChange={e => { setFinal(e.target.value); saveFinal(e.target.value); }}
             placeholder="Finaler Text für den Mockup..."
@@ -277,7 +277,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
           )}
         </>
       )}
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
+      <input aria-label="Bild auswaehlen" ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
     </div>
   );
 }

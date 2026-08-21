@@ -93,7 +93,7 @@ export default function CommandPalette({ open, onClose }) {
           borderBottom: '1px solid var(--border-light)',
         }}>
           <span style={{ fontSize: 16, color: 'var(--text-tertiary)', flexShrink: 0 }}>🔍</span>
-          <input
+          <input aria-label="Wohin möchtest du navigieren?"
             ref={inputRef}
             value={query}
             onChange={e => { setQuery(e.target.value); setSelected(0); }}

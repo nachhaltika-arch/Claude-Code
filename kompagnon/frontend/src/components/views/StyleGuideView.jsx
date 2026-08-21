@@ -963,7 +963,7 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
 
       {/* Hidden Color-Picker */}
       {!isReadonly && (
-        <input
+        <input aria-label="Farbe waehlen"
           ref={inputRef}
           type="color"
           value={hex || '#000000'}
@@ -1033,7 +1033,7 @@ function TypographySection({ typoPairing, fontScale, onScaleChange, onShuffle })
       title="Typography"
       right={
         <>
-          <select
+          <select aria-label="Schriftgroessen-Stufe"
             value={fontScale}
             onChange={(e) => onScaleChange(e.target.value)}
             style={{
@@ -1526,8 +1526,8 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
             gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: gap * 0.7,
           }}>
-            <input type="text" placeholder="Name" style={inputStyle(forms, palette, ui)} />
-            <input type="email" placeholder="E-Mail" style={inputStyle(forms, palette, ui)} />
+            <input aria-label="Name" type="text" placeholder="Name" style={inputStyle(forms, palette, ui)} />
+            <input aria-label="E-Mail" type="email" placeholder="E-Mail" style={inputStyle(forms, palette, ui)} />
             <button type="button" style={{
               background: primary.bg, color: primary.fg,
               border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,

@@ -127,7 +127,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
         {/* Stufe: Suche */}
         {stufe === "search" && (
           <div>
-            <input
+            <input aria-label="Firmenname suchen..."
               type="text"
               placeholder="Firmenname suchen..."
               value={suche}
@@ -180,7 +180,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             ].map(({ key, label, placeholder, type }) => (
               <div key={key}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#444", marginBottom: 4 }}>{label}</label>
-                <input
+                <input aria-label={placeholder}
                   type={type}
                   placeholder={placeholder}
                   value={form[key]}

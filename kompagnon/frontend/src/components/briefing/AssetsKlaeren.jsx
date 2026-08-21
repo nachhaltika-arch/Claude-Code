@@ -119,7 +119,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Medien
         </label>
-        <textarea
+        <textarea aria-label="Zusätzliche Hinweise zu Medien"
           value={hinweis}
           onChange={e => setHinweis(e.target.value)}
           placeholder="z.B. Fotos werden nachgeliefert, Logo kommt per E-Mail, CI-Handbuch in Arbeit"

@@ -65,7 +65,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
             }}>✕</button>
           </>
         ) : (
-          <input
+          <input aria-label={placeholder}
             value={query}
             onChange={e => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}

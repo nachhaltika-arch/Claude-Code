@@ -260,11 +260,11 @@ export default function KasWebsite() {
             padding: 16, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10,
             border: '1px solid var(--border-light)',
           }}>
-            <input style={inp} placeholder="Titel *" value={newPage.titel}
+            <input aria-label="Titel *" style={inp} placeholder="Titel *" value={newPage.titel}
               onChange={e => setNewPage(p => ({ ...p, titel: e.target.value }))} autoFocus />
-            <input style={inp} placeholder="Pfad (z.B. /leistungen) *" value={newPage.pfad}
+            <input aria-label="Pfad (z.B. /leistungen) *" style={inp} placeholder="Pfad (z.B. /leistungen) *" value={newPage.pfad}
               onChange={e => setNewPage(p => ({ ...p, pfad: e.target.value }))} />
-            <input style={inp} placeholder="Meta-Description" value={newPage.meta_description}
+            <input aria-label="Meta-Description" style={inp} placeholder="Meta-Description" value={newPage.meta_description}
               onChange={e => setNewPage(p => ({ ...p, meta_description: e.target.value }))} />
             <button onClick={addPage} style={btn()}>Seite anlegen</button>
           </div>

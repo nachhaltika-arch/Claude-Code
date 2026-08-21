@@ -543,7 +543,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
             </div>
             <div>
               <Label>Gewerk</Label>
-              <select value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
+              <select aria-label="Gewerk" value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
                 <option value="">Bitte wählen...</option>
                 {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -551,7 +551,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           </div>
           <div>
             <Label>Notiz</Label>
-            <textarea
+            <textarea aria-label="Notiz"
               value={leadForm.notes}
               onChange={setField('notes')}
               rows={2}

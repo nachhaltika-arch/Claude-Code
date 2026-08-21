@@ -739,7 +739,7 @@ export default function WireframeView({
                 ✕
               </button>
             </div>
-            <input
+            <input aria-label="Suchen…"
               type="text"
               placeholder="Suchen…"
               value={searchQuery}
@@ -1381,7 +1381,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
               Dieser Block hat bereits eine eigene Fassung.
             </div>
           )}
-          <textarea
+          <textarea aria-label="Optional: was soll anders sein? z.B. „Notdienst nach oben, Bild links"
             value={variantenWunsch}
             onChange={(e) => setVariantenWunsch(e.target.value)}
             rows={2}
@@ -1488,7 +1488,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
             background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
           }}>
             <label style={lblStyle}>✨ KI-Anweisung</label>
-            <textarea
+            <textarea aria-label="✨ KI-Anweisung"
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder='z.B. "Fokus auf Wallbox-Installation, sympathisch, lokal verankert"'
@@ -1498,7 +1498,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <div>
                 <label style={lblStyle}>Asset</label>
-                <select
+                <select aria-label="Asset"
                   value={assetType}
                   onChange={(e) => setAssetType(e.target.value)}
                   style={{ ...inpStyle, cursor: 'pointer', padding: '6px 8px' }}
@@ -1510,7 +1510,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
               </div>
               <div>
                 <label style={lblStyle}>Element</label>
-                <select
+                <select aria-label="Element"
                   value={elementType}
                   onChange={(e) => setElementType(e.target.value)}
                   style={{ ...inpStyle, cursor: 'pointer', padding: '6px 8px' }}
@@ -1558,7 +1558,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
             {slots.map((s) => (
               <div key={s.key}>
                 <label style={lblStyle}>{s.label || s.key}</label>
-                <input
+                <input aria-label={s.default || ''}
                   type="text"
                   value={values[s.key] ?? ''}
                   onChange={(e) => setValues((v) => ({ ...v, [s.key]: e.target.value }))}
@@ -1610,7 +1610,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
               </button>
               {showRawHtml && (
                 <>
-                  <textarea
+                  <textarea aria-label="HTML-Quelltext"
                     value={rawHtml}
                     onChange={(e) => setRawHtml(e.target.value)}
                     rows={12}
@@ -1642,12 +1642,12 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
                 }}>
                   <div>
                     <label style={{ ...lblStyle, color: '#92400e' }}>Slug</label>
-                    <input value={customSlug} onChange={(e) => setCustomSlug(e.target.value)}
+                    <input aria-label="Slug" value={customSlug} onChange={(e) => setCustomSlug(e.target.value)}
                       style={{ ...inpStyle, padding: '6px 8px', fontFamily: 'ui-monospace, monospace', borderColor: '#FCD34D' }} />
                   </div>
                   <div>
                     <label style={{ ...lblStyle, color: '#92400e' }}>Name</label>
-                    <input value={customName} onChange={(e) => setCustomName(e.target.value)}
+                    <input aria-label="Name" value={customName} onChange={(e) => setCustomName(e.target.value)}
                       style={{ ...inpStyle, padding: '6px 8px', borderColor: '#FCD34D' }} />
                   </div>
                   <button

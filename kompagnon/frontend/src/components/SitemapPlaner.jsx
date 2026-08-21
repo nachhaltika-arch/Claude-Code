@@ -238,20 +238,20 @@ function AddPageForm({ contentPages, leadId, onAdded, onCancel }) {
     }}>
       <div style={{ fontWeight: 700, fontSize: 13, color: '#1A2C32' }}>Neue Seite anlegen</div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <input
+        <input aria-label="Seitenname *"
           style={{ ...inp, flex: '1 1 160px' }}
           placeholder="Seitenname *"
           value={form.page_name}
           onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))}
         />
-        <select
+        <select aria-label="Seitentyp"
           style={{ ...inp, flex: '0 0 auto', cursor: 'pointer' }}
           value={form.page_type}
           onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}
         >
           {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <select
+        <select aria-label="Uebergeordnete Seite"
           style={{ ...inp, flex: '0 0 auto', cursor: 'pointer' }}
           value={form.parent_id}
           onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}
@@ -381,7 +381,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
             <label style={lbl}>Seitenname {!isPflicht && '*'}</label>
             {isPflicht
               ? <div style={{ fontSize: 14, fontWeight: 600, color: '#9CA3AF', padding: '8px 0' }}>{form.page_name}</div>
-              : <input style={inp} value={form.page_name} onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))} />
+              : <input aria-label="Seitenname" style={inp} value={form.page_name} onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))} />
             }
           </div>
 
@@ -392,7 +392,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
               {isPflicht
                 ? <div style={{ fontSize: 13, color: '#9CA3AF', padding: '8px 0' }}>Rechtlich</div>
                 : (
-                  <select style={{ ...inp, cursor: 'pointer' }} value={form.page_type} onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}>
+                  <select aria-label="Seitentyp" style={{ ...inp, cursor: 'pointer' }} value={form.page_type} onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}>
                     {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 )
@@ -400,7 +400,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
             </div>
             <div>
               <label style={lbl}>Status</label>
-              <select style={{ ...inp, cursor: 'pointer' }} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+              <select aria-label="Status" style={{ ...inp, cursor: 'pointer' }} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -413,14 +413,14 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
                 <div>
                   <label style={lbl}>Übergeordnete Seite</label>
-                  <select style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
+                  <select aria-label="Übergeordnete Seite" style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
                     <option value="">– Keine (Top-Level) –</option>
                     {parentOptions.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={lbl}>Reihenfolge</label>
-                  <input style={inp} type="number" min={0} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} />
+                  <input aria-label="Reihenfolge" style={inp} type="number" min={0} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} />
                 </div>
               </div>
             </>
@@ -433,7 +433,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
             <label style={lbl}>Zweck der Seite</label>
             {isPflicht
               ? (
-                <textarea
+                <textarea aria-label="Gesetzliche Beschreibung…"
                   style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }}
                   rows={3}
                   value={form.zweck}
@@ -442,7 +442,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
                 />
               )
               : (
-                <input style={inp} value={form.zweck} onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))} placeholder="Was soll diese Seite erreichen?" />
+                <input aria-label="Was soll diese Seite erreichen?" style={inp} value={form.zweck} onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))} placeholder="Was soll diese Seite erreichen?" />
               )
             }
           </div>
@@ -452,7 +452,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
             <>
               <div>
                 <label style={lbl}>Ziel-Keyword</label>
-                <input style={inp} value={form.ziel_keyword} onChange={e => setForm(f => ({ ...f, ziel_keyword: e.target.value }))} placeholder="z.B. Klempner Berlin" />
+                <input aria-label="Ziel-Keyword" style={inp} value={form.ziel_keyword} onChange={e => setForm(f => ({ ...f, ziel_keyword: e.target.value }))} placeholder="z.B. Klempner Berlin" />
               </div>
 
               <hr style={divider} />
@@ -460,11 +460,11 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={lbl}>CTA-Text</label>
-                  <input style={inp} value={form.cta_text} onChange={e => setForm(f => ({ ...f, cta_text: e.target.value }))} placeholder="z.B. Jetzt anfragen" />
+                  <input aria-label="CTA-Text" style={inp} value={form.cta_text} onChange={e => setForm(f => ({ ...f, cta_text: e.target.value }))} placeholder="z.B. Jetzt anfragen" />
                 </div>
                 <div>
                   <label style={lbl}>CTA-Ziel</label>
-                  <select style={{ ...inp, cursor: 'pointer' }} value={form.cta_ziel} onChange={e => setForm(f => ({ ...f, cta_ziel: e.target.value }))}>
+                  <select aria-label="CTA-Ziel" style={{ ...inp, cursor: 'pointer' }} value={form.cta_ziel} onChange={e => setForm(f => ({ ...f, cta_ziel: e.target.value }))}>
                     <option value="kontaktformular">Kontaktformular</option>
                     <option value="telefon">Telefon</option>
                     <option value="whatsapp">WhatsApp</option>
@@ -480,7 +480,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
           {/* Notizen */}
           <div>
             <label style={lbl}>Notizen</label>
-            <textarea
+            <textarea aria-label="Notizen"
               style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }}
               rows={3}
               value={form.notizen}

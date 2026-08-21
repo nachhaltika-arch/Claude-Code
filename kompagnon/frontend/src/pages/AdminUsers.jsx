@@ -132,11 +132,11 @@ export default function AdminUsers() {
         ) : (
           <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-              <input value={newUser.first_name} onChange={(e) => setNewUser((f) => ({ ...f, first_name: e.target.value }))} placeholder="Vorname" style={inpStyle} />
-              <input value={newUser.last_name} onChange={(e) => setNewUser((f) => ({ ...f, last_name: e.target.value }))} placeholder="Nachname" style={inpStyle} />
+              <input aria-label="Vorname" value={newUser.first_name} onChange={(e) => setNewUser((f) => ({ ...f, first_name: e.target.value }))} placeholder="Vorname" style={inpStyle} />
+              <input aria-label="Nachname" value={newUser.last_name} onChange={(e) => setNewUser((f) => ({ ...f, last_name: e.target.value }))} placeholder="Nachname" style={inpStyle} />
             </div>
-            <input value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} placeholder="E-Mail" type="email" required style={inpStyle} />
-            <select value={newUser.role} onChange={(e) => setNewUser((f) => ({ ...f, role: e.target.value }))} style={inpStyle}>
+            <input aria-label="E-Mail" value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} placeholder="E-Mail" type="email" required style={inpStyle} />
+            <select aria-label="Rolle" value={newUser.role} onChange={(e) => setNewUser((f) => ({ ...f, role: e.target.value }))} style={inpStyle}>
               <option value="nutzer">Nutzer</option>
               <option value="auditor">Auditor</option>
               <option value="admin">Admin</option>
@@ -146,7 +146,7 @@ export default function AdminUsers() {
               <option value="kunde">Kunde</option>
             </select>
             {newUser.role === 'auditor' && (
-              <input value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
+              <input aria-label="Position (z.B. Senior Auditor)" value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button type="submit" disabled={creating} style={{ flex: 1, background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>{creating ? 'Anlegen…' : 'Benutzer anlegen'}</button>

@@ -164,7 +164,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Funktionen
         </label>
-        <textarea
+        <textarea aria-label="Zusätzliche Hinweise zu Funktionen"
           value={toolsDetails}
           onChange={e => setToolsDetails(e.target.value)}
           placeholder="z.B. Kontaktformular mit Datei-Upload, Newsletter-Anmeldung, Mitgliederbereich"

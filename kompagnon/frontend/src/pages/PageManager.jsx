@@ -436,7 +436,7 @@ export default function PageManager() {
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name (intern)</label>
-              <input
+              <input aria-label="Name (intern)"
                 type="text" placeholder="Paket: Mein Produkt"
                 value={newPage.name}
                 onChange={e => {
@@ -459,7 +459,7 @@ export default function PageManager() {
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>URL-Pfad (slug)</label>
-              <input
+              <input aria-label="URL-Pfad (slug)"
                 type="text" placeholder="/paket/mein-produkt"
                 value={newPage.slug}
                 onChange={e => {
@@ -491,7 +491,7 @@ export default function PageManager() {
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Beschreibung (optional)</label>
-              <input
+              <input aria-label="Beschreibung (optional)"
                 type="text"
                 value={newPage.description}
                 onChange={e => setNewPage(p => ({ ...p, description: e.target.value }))}
@@ -506,7 +506,7 @@ export default function PageManager() {
               }}>
                 Typ
               </label>
-              <select
+              <select aria-label="Typ"
                 value={newPage.page_type}
                 onChange={e => setNewPage(p => ({ ...p, page_type: e.target.value }))}
                 style={{ ...S.input, cursor: 'pointer' }}>
@@ -546,7 +546,7 @@ export default function PageManager() {
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name</label>
-              <input placeholder="Mein Template" value={uploadForm.name}
+              <input aria-label="Name" placeholder="Mein Template" value={uploadForm.name}
                 onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))}
                 style={S.input}
                 autoFocus/>
@@ -557,7 +557,7 @@ export default function PageManager() {
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Kategorie</label>
-              <select value={uploadForm.category}
+              <select aria-label="Kategorie" value={uploadForm.category}
                 onChange={e => setUploadForm(f => ({ ...f, category: e.target.value }))}
                 style={{ ...S.input, cursor: 'pointer' }}>
                 {['allgemein', 'landing', 'paket', 'auth', 'kampagne'].map(c => (
@@ -573,7 +573,7 @@ export default function PageManager() {
               }}>
                 Datei (.zip oder .grapesjs)
               </label>
-              <input type="file" accept=".zip,.grapesjs"
+              <input aria-label="Datei (.zip oder .grapesjs)" type="file" accept=".zip,.grapesjs"
                 onChange={e => setUploadForm(f => ({ ...f, file: e.target.files?.[0] || null }))}
                 style={{ ...S.input, padding: '6px 12px', cursor: 'pointer' }}/>
             </div>

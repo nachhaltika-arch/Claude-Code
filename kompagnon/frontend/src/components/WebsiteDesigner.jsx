@@ -138,7 +138,7 @@ export default function WebsiteDesigner({
           {projectId ? `Projekt #${projectId}` : 'Neues Design'}
         </span>
 
-        <input
+        <input aria-label="Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".zip,.grapesjs"

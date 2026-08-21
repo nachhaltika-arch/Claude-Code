@@ -501,7 +501,7 @@ function ProjectFilesSection({ customerId, token }) {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <input
+          <input aria-label="Datei auswaehlen"
             ref={fileInputRef}
             type="file"
             style={{ display: 'none' }}
@@ -534,7 +534,7 @@ function ProjectFilesSection({ customerId, token }) {
         {/* Options row */}
         {pendingFile && (
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
-            <select
+            <select aria-label="Dateiart"
               value={fileType}
               onChange={(e) => setFileType(e.target.value)}
               style={{
@@ -550,7 +550,7 @@ function ProjectFilesSection({ customerId, token }) {
               <option value="zugangsdaten">Zugangsdaten</option>
               <option value="sonstiges">Sonstiges</option>
             </select>
-            <input
+            <input aria-label="Notiz (optional)"
               type="text"
               placeholder="Notiz (optional)"
               value={note}
@@ -1018,7 +1018,7 @@ function CmsConnectionSection({ customerId, headers }) {
       {/* CMS type */}
       <div>
         <label style={lbl}>CMS-System</label>
-        <select
+        <select aria-label="CMS-System"
           value={form.cms_type}
           onChange={e => { setForm(f => ({ ...f, cms_type: e.target.value })); setTestResult(null); }}
           style={{ ...inp, cursor: 'pointer' }}
@@ -1034,7 +1034,7 @@ function CmsConnectionSection({ customerId, headers }) {
           {!isWebflow && (
             <div>
               <label style={lbl}>Website-URL</label>
-              <input type="url" placeholder="https://meine-seite.de" value={form.cms_url}
+              <input aria-label="Website-URL" type="url" placeholder="https://meine-seite.de" value={form.cms_url}
                 onChange={e => setForm(f => ({ ...f, cms_url: e.target.value }))} style={inp} />
             </div>
           )}
@@ -1042,7 +1042,7 @@ function CmsConnectionSection({ customerId, headers }) {
           {/* Username OR Site ID */}
           <div>
             <label style={lbl}>{isWebflow ? 'Site ID' : 'Benutzername'}</label>
-            <input type="text"
+            <input aria-label={isWebflow ? 'z.B. 64a1b2c3d4e5...' : 'wp-admin'} type="text"
               placeholder={isWebflow ? 'z.B. 64a1b2c3d4e5...' : 'wp-admin'}
               value={form.cms_username}
               onChange={e => setForm(f => ({ ...f, cms_username: e.target.value }))}
@@ -1054,7 +1054,7 @@ function CmsConnectionSection({ customerId, headers }) {
           <div>
             <label style={lbl}>{isWebflow ? 'API-Token' : 'Anwendungspasswort'}</label>
             <div style={{ position: 'relative' }}>
-              <input
+              <input aria-label={isWebflow ? 'Bearer-Token aus Webflow-Einstellungen' : 'xxxx xxxx xxxx xxxx xxxx xxxx'}
                 type={showPw ? 'text' : 'password'}
                 placeholder={isWebflow ? 'Bearer-Token aus Webflow-Einstellungen' : 'xxxx xxxx xxxx xxxx xxxx xxxx'}
                 value={form.cms_password}
@@ -1637,17 +1637,17 @@ export default function CustomerDetail() {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
                   <div>
                     <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname *</label>
-                    <input value={addPageForm.page_name} onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))} placeholder="z.B. Leistungen" style={inp} />
+                    <input aria-label="Seitenname" value={addPageForm.page_name} onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))} placeholder="z.B. Leistungen" style={inp} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
-                    <select value={addPageForm.page_type} onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))} style={inp}>
+                    <select aria-label="Typ" value={addPageForm.page_type} onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))} style={inp}>
                       {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Übergeordnete Seite</label>
-                    <select value={addPageForm.parent_id} onChange={e => setAddPageForm(f => ({ ...f, parent_id: e.target.value }))} style={inp}>
+                    <select aria-label="Übergeordnete Seite" value={addPageForm.parent_id} onChange={e => setAddPageForm(f => ({ ...f, parent_id: e.target.value }))} style={inp}>
                       <option value="">– Keine –</option>
                       {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
                     </select>
@@ -1775,20 +1775,20 @@ export default function CustomerDetail() {
                     <div key={f.k} style={{ marginBottom: 12 }}>
                       <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>{f.label}</label>
                       {f.type === 'textarea'
-                        ? <textarea value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} rows={3} style={{ ...inp, resize: 'vertical' }} />
-                        : <input type="text" value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} style={inp} />
+                        ? <textarea aria-label={f.label} value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} rows={3} style={{ ...inp, resize: 'vertical' }} />
+                        : <input aria-label={f.label} type="text" value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} style={inp} />
                       }
                     </div>
                   ))}
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
-                    <select value={editPageForm.page_type || 'info'} onChange={e => setEditPageForm(p => ({ ...p, page_type: e.target.value }))} style={inp}>
+                    <select aria-label="Typ" value={editPageForm.page_type || 'info'} onChange={e => setEditPageForm(p => ({ ...p, page_type: e.target.value }))} style={inp}>
                       {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
                     </select>
                   </div>
                   <div style={{ marginBottom: 20 }}>
                     <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
-                    <select value={editPageForm.status || 'geplant'} onChange={e => setEditPageForm(p => ({ ...p, status: e.target.value }))} style={inp}>
+                    <select aria-label="Status" value={editPageForm.status || 'geplant'} onChange={e => setEditPageForm(p => ({ ...p, status: e.target.value }))} style={inp}>
                       <option value="geplant">Geplant</option>
                       <option value="in_bearbeitung">In Bearbeitung</option>
                       <option value="freigegeben">Freigegeben</option>

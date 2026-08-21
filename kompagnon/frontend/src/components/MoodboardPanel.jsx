@@ -264,7 +264,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <Card>
           <SectionTitle>5. Referenz-Websites (optional)</SectionTitle>
-          <textarea
+          <textarea aria-label={'https://beispiel.de\nhttps://weitereseite.com'}
             value={referenzUrls}
             onChange={e => setReferenzUrls(e.target.value)}
             placeholder={'https://beispiel.de\nhttps://weitereseite.com'}
@@ -282,7 +282,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
         </Card>
         <Card>
           <SectionTitle>6. Notizen & Besondere Wünsche</SectionTitle>
-          <textarea
+          <textarea aria-label={'z.B. „Bitte keine runden Ecken", „Logo muss prominent sein", „Kunden sind Senioren → große Schrift"'}
             value={notizen}
             onChange={e => setNotizen(e.target.value)}
             placeholder={'z.B. „Bitte keine runden Ecken", „Logo muss prominent sein", „Kunden sind Senioren → große Schrift"'}

@@ -482,11 +482,11 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Titel *</label>
-              <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="z.B. Website-Relaunch Müller GmbH" />
+              <input aria-label="Titel" style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="z.B. Website-Relaunch Müller GmbH" />
             </div>
             <div>
               <label style={labelStyle}>Status</label>
-              <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              <select aria-label="Status" style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
             </div>
@@ -494,7 +494,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Unternehmen</label>
-            <select style={inputStyle} value={form.company_id || ''} onChange={e => setForm({ ...form, company_id: e.target.value ? parseInt(e.target.value) : null })}>
+            <select aria-label="Unternehmen" style={inputStyle} value={form.company_id || ''} onChange={e => setForm({ ...form, company_id: e.target.value ? parseInt(e.target.value) : null })}>
               <option value="">— Kein Unternehmen —</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.company_name || `Lead #${c.id}`}</option>)}
             </select>
@@ -502,7 +502,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Notizen</label>
-            <textarea style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Interne Notizen zum Deal…" />
+            <textarea aria-label="Notizen" style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Interne Notizen zum Deal…" />
           </div>
 
           {/* Positionen */}
@@ -522,19 +522,19 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               </div>
               {form.items.map((item, i) => (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, marginBottom: 6, alignItems: 'center' }}>
-                  <input
+                  <input aria-label="Position"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12 }}
                     value={item.position}
                     onChange={e => updateItem(i, 'position', e.target.value)}
                     placeholder="z.B. Website-Design"
                   />
-                  <input
+                  <input aria-label="Menge"
                     type="number" step="0.5"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, textAlign: 'right' }}
                     value={item.quantity}
                     onChange={e => updateItem(i, 'quantity', e.target.value)}
                   />
-                  <input
+                  <input aria-label="Einzelpreis"
                     type="number" step="0.01"
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, textAlign: 'right' }}
                     value={item.unit_price}

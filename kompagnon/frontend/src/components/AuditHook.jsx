@@ -210,7 +210,7 @@ export default function AuditHook() {
                           letterSpacing:'.06em', marginBottom: 4 }}>
             Geschäftliche E-Mail
           </label>
-          <input
+          <input aria-label="Geschäftliche E-Mail"
             type="email" required value={email}
             onChange={e => handleEmailChange(e.target.value)}
             placeholder="max@klempner-mueller.de"
@@ -242,7 +242,7 @@ export default function AuditHook() {
                 borderRadius:'50%', background: TEAL,
               }}/>
             )}
-            <input
+            <input aria-label="Adresse Ihrer Website"
               type="text" required value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="www.ihr-betrieb.de"

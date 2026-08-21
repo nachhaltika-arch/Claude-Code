@@ -5,6 +5,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { schreibe } from '../utils/schreiben';
 import { loeschfrage } from '../utils/loeschfrage';
+import Feld from '../components/ui/Feld';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -76,13 +77,9 @@ function useDragSort(items, setItems, onReorder) {
 
 // ── Field component ────────────────────────────────────────────
 
+// Verknüpft statt nur danebengestellt (L-17).
 function Field({ label, children }) {
-  return (
-    <div>
-      <label style={S.label}>{label}</label>
-      {children}
-    </div>
-  );
+  return <Feld label={label} labelStyle={S.label}>{children}</Feld>;
 }
 
 // ── Thumbnail upload area ──────────────────────────────────────
@@ -93,7 +90,7 @@ function ThumbnailUpload({ url, onUrlChange }) {
   return (
     <div>
       <label style={S.label}>Thumbnail (URL oder Drag & Drop)</label>
-      <input
+      <input aria-label="Thumbnail (URL oder Drag & Drop)"
         value={url}
         onChange={e => onUrlChange(e.target.value)}
         placeholder="https://…/bild.jpg"
@@ -205,7 +202,7 @@ function BlurFeld({ wert, platzhalter, onSpeichern, stil }) {
   useEffect(() => { setText(wert || ''); }, [wert]);
 
   return (
-    <input
+    <input aria-label={platzhalter}
       value={text}
       placeholder={platzhalter}
       onChange={e => setText(e.target.value)}
@@ -294,7 +291,7 @@ function ModuleBlock({
       }}>
         <span style={{ fontSize: 14, color: 'var(--text-tertiary)', opacity: 0.5, cursor: 'grab', flexShrink: 0 }}>⠿</span>
 
-        <input
+        <input aria-label="Modultitel"
           value={mod.title}
           onChange={e => onUpdateFeld(mod.id, 'title', e.target.value)}
           onClick={e => e.stopPropagation()}
@@ -843,7 +840,7 @@ export default function AcademyAdminCourse() {
 
               {savedId && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <input
+                  <input aria-label="Modulname…"
                     value={newModTitle}
                     onChange={e => setNewModTitle(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addModule()}

@@ -133,7 +133,7 @@ export default function Academy() {
             style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <circle cx="6.5" cy="6.5" r="4.5" /><path d="M10.5 10.5L14 14" strokeLinecap="round" />
           </svg>
-          <input
+          <input aria-label="Kurse suchen…"
             type="text"
             placeholder="Kurse suchen…"
             value={search}

@@ -162,11 +162,11 @@ export default function RetainerDashboard() {
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowNewRetainer(false)}>
           <div style={modal}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Neuer Retainer-Vertrag</h3>
-            <div><label style={label}>Kundenname</label><input style={input} value={retainerForm.customer_name} onChange={e => setRetainerForm(f => ({ ...f, customer_name: e.target.value }))} /></div>
-            <div><label style={label}>E-Mail</label><input style={input} value={retainerForm.customer_email} onChange={e => setRetainerForm(f => ({ ...f, customer_email: e.target.value }))} /></div>
-            <div><label style={label}>Paket</label><input style={input} value={retainerForm.package_name} onChange={e => setRetainerForm(f => ({ ...f, package_name: e.target.value }))} /></div>
-            <div><label style={label}>Preis netto</label><input style={input} type="number" value={retainerForm.price_net} onChange={e => setRetainerForm(f => ({ ...f, price_net: e.target.value }))} /></div>
-            <div><label style={label}>Startdatum</label><input style={input} type="date" value={retainerForm.start_date} onChange={e => setRetainerForm(f => ({ ...f, start_date: e.target.value }))} /></div>
+            <div><label style={label}>Kundenname</label><input aria-label="Kundenname" style={input} value={retainerForm.customer_name} onChange={e => setRetainerForm(f => ({ ...f, customer_name: e.target.value }))} /></div>
+            <div><label style={label}>E-Mail</label><input aria-label="E-Mail" style={input} value={retainerForm.customer_email} onChange={e => setRetainerForm(f => ({ ...f, customer_email: e.target.value }))} /></div>
+            <div><label style={label}>Paket</label><input aria-label="Paket" style={input} value={retainerForm.package_name} onChange={e => setRetainerForm(f => ({ ...f, package_name: e.target.value }))} /></div>
+            <div><label style={label}>Preis netto</label><input aria-label="Preis netto" style={input} type="number" value={retainerForm.price_net} onChange={e => setRetainerForm(f => ({ ...f, price_net: e.target.value }))} /></div>
+            <div><label style={label}>Startdatum</label><input aria-label="Startdatum" style={input} type="date" value={retainerForm.start_date} onChange={e => setRetainerForm(f => ({ ...f, start_date: e.target.value }))} /></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={btnSecondary} onClick={() => setShowNewRetainer(false)}>Abbrechen</button>
               <button style={btnPrimary} onClick={createRetainer} disabled={submitting}>{submitting ? 'Erstellen...' : 'Erstellen'}</button>
@@ -180,10 +180,10 @@ export default function RetainerDashboard() {
         <div style={overlay} onClick={e => e.target === e.currentTarget && setShowNewInvoice(false)}>
           <div style={modal}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Neue Rechnung</h3>
-            <div><label style={label}>Kundenname</label><input style={input} value={invoiceForm.customer_name} onChange={e => setInvoiceForm(f => ({ ...f, customer_name: e.target.value }))} /></div>
-            <div><label style={label}>E-Mail</label><input style={input} value={invoiceForm.customer_email} onChange={e => setInvoiceForm(f => ({ ...f, customer_email: e.target.value }))} /></div>
-            <div><label style={label}>Betrag netto</label><input style={input} type="number" value={invoiceForm.amount_net} onChange={e => setInvoiceForm(f => ({ ...f, amount_net: e.target.value }))} /></div>
-            <div><label style={label}>Leistung</label><input style={input} value={invoiceForm.line_item} onChange={e => setInvoiceForm(f => ({ ...f, line_item: e.target.value }))} /></div>
+            <div><label style={label}>Kundenname</label><input aria-label="Kundenname" style={input} value={invoiceForm.customer_name} onChange={e => setInvoiceForm(f => ({ ...f, customer_name: e.target.value }))} /></div>
+            <div><label style={label}>E-Mail</label><input aria-label="E-Mail" style={input} value={invoiceForm.customer_email} onChange={e => setInvoiceForm(f => ({ ...f, customer_email: e.target.value }))} /></div>
+            <div><label style={label}>Betrag netto</label><input aria-label="Betrag netto" style={input} type="number" value={invoiceForm.amount_net} onChange={e => setInvoiceForm(f => ({ ...f, amount_net: e.target.value }))} /></div>
+            <div><label style={label}>Leistung</label><input aria-label="Leistung" style={input} value={invoiceForm.line_item} onChange={e => setInvoiceForm(f => ({ ...f, line_item: e.target.value }))} /></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={btnSecondary} onClick={() => setShowNewInvoice(false)}>Abbrechen</button>
               <button style={btnPrimary} onClick={createInvoice} disabled={submitting}>{submitting ? 'Erstellen...' : 'Erstellen'}</button>

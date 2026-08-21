@@ -28,20 +28,20 @@ function SortablePage({ page, onChange, onDelete }) {
   return (
     <div ref={setNodeRef} style={{ ...style, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '10px 12px', marginBottom: 6 }}>
       <span {...attributes} {...listeners} style={{ cursor: 'grab', fontSize: 16, color: 'var(--text-tertiary)', flexShrink: 0, userSelect: 'none' }}>&#x2807;</span>
-      <input
+      <input aria-label="Seitenname"
         value={page.name}
         onChange={e => onChange({ ...page, name: e.target.value })}
         placeholder="Seitenname"
         style={{ flex: 2, padding: '6px 10px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box', minWidth: 0 }}
       />
-      <select
+      <select aria-label="Seitentyp"
         value={page.type}
         onChange={e => onChange({ ...page, type: e.target.value })}
         style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', minWidth: 90 }}
       >
         {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
       </select>
-      <input
+      <input aria-label="Ziel-Keyword"
         value={page.keyword}
         onChange={e => onChange({ ...page, keyword: e.target.value })}
         placeholder="Ziel-Keyword"

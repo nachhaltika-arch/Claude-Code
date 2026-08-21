@@ -1703,7 +1703,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
 
       {/* Search */}
       <div style={{ padding: 10, borderBottom: '1px solid var(--border-light)' }}>
-        <input
+        <input aria-label="Suchen…"
           type="search" placeholder="Suchen…"
           value={search} onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -1944,14 +1944,14 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         )}
         <div>
           <label style={lblStyle}>Page-Name</label>
-          <input type="text" value={form.page_name} disabled={isPflicht}
+          <input aria-label="Page-Name" type="text" value={form.page_name} disabled={isPflicht}
             onChange={(e) => setForm((f) => ({ ...f, page_name: e.target.value }))}
             style={inpStyle(isPflicht)} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div>
             <label style={lblStyle}>Type</label>
-            <select value={form.page_type} disabled={isPflicht}
+            <select aria-label="Type" value={form.page_type} disabled={isPflicht}
               onChange={(e) => setForm((f) => ({ ...f, page_type: e.target.value }))}
               style={{ ...inpStyle(isPflicht), cursor: isPflicht ? 'not-allowed' : 'pointer' }}>
               {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1959,7 +1959,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
           </div>
           <div>
             <label style={lblStyle}>Status</label>
-            <select value={form.status}
+            <select aria-label="Status" value={form.status}
               onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
               style={{ ...inpStyle(false), cursor: 'pointer' }}>
               <option value="geplant">Geplant</option>
@@ -1971,7 +1971,7 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         </div>
         <div>
           <label style={lblStyle}>KI-Anweisung (optional)</label>
-          <textarea value={form.ai_prompt}
+          <textarea aria-label="KI-Anweisung (optional)" value={form.ai_prompt}
             onChange={(e) => setForm((f) => ({ ...f, ai_prompt: e.target.value }))}
             placeholder="Goal / Per-Page-Kontext für KI-Generator"
             rows={4}
@@ -2045,13 +2045,13 @@ function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
         </p>
         <div style={{ marginBottom: 10 }}>
           <label style={lblStyle}>Seitenname *</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+          <input aria-label="Seitenname" type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="z.B. Wallbox-Installation"
             style={inpStyle(false)} autoFocus />
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={lblStyle}>Page-Type</label>
-          <select value={pageType} onChange={(e) => setPageType(e.target.value)}
+          <select aria-label="Page-Type" value={pageType} onChange={(e) => setPageType(e.target.value)}
             style={{ ...inpStyle(false), cursor: 'pointer' }}>
             {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -2107,7 +2107,7 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
             style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>
-          <input type="search" placeholder="Suchen…"
+          <input aria-label="Suchen…" type="search" placeholder="Suchen…"
             value={search} onChange={(e) => setSearch(e.target.value)}
             style={inpStyle(false)} autoFocus />
         </div>

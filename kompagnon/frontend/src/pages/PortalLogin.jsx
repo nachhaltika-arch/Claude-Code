@@ -130,7 +130,7 @@ export default function PortalLogin() {
 
             <form onSubmit={handleLogin}>
               <label style={lbl}>E-Mail-Adresse</label>
-              <input
+              <input aria-label="E-Mail-Adresse"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -139,7 +139,7 @@ export default function PortalLogin() {
                 style={inp}
               />
               <label style={lbl}>Passwort</label>
-              <input
+              <input aria-label="Passwort"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -175,7 +175,7 @@ export default function PortalLogin() {
             </p>
             <form onSubmit={handleForgot}>
               <label style={lbl}>E-Mail-Adresse</label>
-              <input
+              <input aria-label="E-Mail-Adresse"
                 type="email"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}

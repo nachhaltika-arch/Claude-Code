@@ -174,11 +174,11 @@ export default function SalesPipeline() {
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, flexWrap: isMobile ? undefined : 'wrap' }}>
         <div style={{ position: 'relative', flex: isMobile ? undefined : '1 1 180px' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: 13 }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Firma oder Stadt suchen..."
+          <input aria-label="Firma oder Stadt suchen..." value={search} onChange={e => setSearch(e.target.value)} placeholder="Firma oder Stadt suchen..."
             style={{ width: '100%', padding: '8px 12px 8px 30px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-surface)' }} />
         </div>
         {trades.length > 0 && (
-          <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)}
+          <select aria-label="Nach Gewerk filtern" value={filterTrade} onChange={e => setFilterTrade(e.target.value)}
             style={{ width: isMobile ? '100%' : 'auto', padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
             <option value="">Alle Gewerke</option>
             {trades.map(t => <option key={t} value={t}>{t}</option>)}

@@ -158,19 +158,19 @@ export default function Checkout() {
 
             <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div><label style={lbl}>Ihr Name *</label><input style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
-                <div><label style={lbl}>Firma *</label><input style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
+                <div><label style={lbl}>Ihr Name *</label><input aria-label="Ihr Name" style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
+                <div><label style={lbl}>Firma *</label><input aria-label="Firma" style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={lbl}>Website / Domain *</label>
-                <input style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
+                <input aria-label="Website / Domain" style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
               </div>
-              <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
-              <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
+              <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input aria-label="E-Mail" style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
+              <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input aria-label="Telefon" style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
               <div style={{ marginBottom: 24 }}>
                 <label style={lbl}>Nachricht (optional)</label>
-                <textarea style={{ ...inp, resize: 'vertical', minHeight: 60 }} value={form.message} onChange={set('message')} placeholder="Besondere Wuensche..." rows={3} />
+                <textarea aria-label="Nachricht (optional)" style={{ ...inp, resize: 'vertical', minHeight: 60 }} value={form.message} onChange={set('message')} placeholder="Besondere Wuensche..." rows={3} />
               </div>
 
               {/* Package summary */}

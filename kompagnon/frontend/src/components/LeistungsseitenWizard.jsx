@@ -96,7 +96,7 @@ const inputBase = {
 
 function Input({ value, onChange, placeholder, onBlur, hasError, id, type = 'text' }) {
   return (
-    <input
+    <input aria-label={placeholder}
       id={id}
       type={type}
       value={value}
@@ -121,7 +121,7 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, ma
     : tooLong ? 'var(--status-danger-text)' : 'var(--text-tertiary)';
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
+      <textarea aria-label={placeholder}
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}

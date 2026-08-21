@@ -393,7 +393,7 @@ export default function KundenPortal() {
           <div ref={msgsEndRef} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input
+          <input aria-label="Nachricht schreiben…"
             value={msgText}
             onChange={e => setMsgText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
@@ -422,7 +422,7 @@ export default function KundenPortal() {
           }}>
             {uploading ? 'Lädt…' : '+ Hochladen'}
           </button>
-          <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={uploadFile} />
+          <input aria-label="Datei auswaehlen" ref={fileRef} type="file" style={{ display: 'none' }} onChange={uploadFile} />
         </div>
         {documents.length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>Noch keine Dokumente hochgeladen</div>
@@ -627,7 +627,7 @@ function InspirationsSection({ project, token }) {
           <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
             Website {n}
           </label>
-          <input
+          <input aria-label={`Website ${n}`}
             value={urls[n]}
             onChange={e => setUrls(p => ({ ...p, [n]: e.target.value }))}
             placeholder="https://www.beispiel.de"

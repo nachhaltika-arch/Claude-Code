@@ -182,7 +182,7 @@ export default function DomainImport() {
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{file ? file.name : 'CSV-Datei hier ablegen oder klicken'}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{file ? `${preview.length} Domains erkannt` : 'Alle Spalten werden nach Domains durchsucht'}</div>
               </div>
-              <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} style={{ display: 'none' }} />
+              <input aria-label="CSV-Datei auswaehlen" ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} style={{ display: 'none' }} />
             </div>
           )}
 
@@ -191,7 +191,7 @@ export default function DomainImport() {
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                 Domains eingeben (eine pro Zeile oder kommagetrennt)
               </div>
-              <textarea value={textInput} onChange={e => handleTextChange(e.target.value)}
+              <textarea aria-label={'maler-mueller.de\nsanitaer-schmidt.de\nhttps://elektro-weber.de\nwww.dachdecker-klein.de'} value={textInput} onChange={e => handleTextChange(e.target.value)}
                 placeholder={'maler-mueller.de\nsanitaer-schmidt.de\nhttps://elektro-weber.de\nwww.dachdecker-klein.de'}
                 rows={8} style={{
                   width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)',

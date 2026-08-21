@@ -920,7 +920,7 @@ export default function LeadProfile() {
 
             {editingName ? (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
+                <input aria-label="Anzeigename des Betriebs"
                   value={displayName}
                   onChange={e => setDisplayName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveDisplayName(); if (e.key === 'Escape') setEditingName(false); }}
@@ -1063,7 +1063,7 @@ export default function LeadProfile() {
             </button>
           )}
 
-          <select value={lead.status} onChange={e => updateStatus(e.target.value)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '7px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', outline: 'none', width: isMobile ? '100%' : undefined }}>
+          <select aria-label="Status des Betriebs" value={lead.status} onChange={e => updateStatus(e.target.value)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '7px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', outline: 'none', width: isMobile ? '100%' : undefined }}>
             <option value="new">Neu</option>
             <option value="contacted">Kontaktiert</option>
             <option value="qualified">Qualifiziert</option>
@@ -1261,14 +1261,14 @@ export default function LeadProfile() {
             {/* Eingabebereich */}
             <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {msgChannel === 'email' && (
-                <input
+                <input aria-label="Betreff der E-Mail…"
                   value={msgSubject}
                   onChange={e => setMsgSubject(e.target.value)}
                   placeholder="Betreff der E-Mail…"
                   style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
                 />
               )}
-              <textarea
+              <textarea aria-label="Nachricht schreiben… (Ctrl+Enter zum Senden)"
                 value={msgText}
                 onChange={e => setMsgText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMessage(); }}
@@ -1597,7 +1597,7 @@ export default function LeadProfile() {
 
               {domainFormOffen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: domains.length ? 10 : 0, borderTop: domains.length ? '1px solid var(--border-light)' : 'none' }}>
-                <input
+                <input aria-label="Adresse der Domain"
                   value={domainForm.url}
                   onChange={e => setDomainForm(f => ({ ...f, url: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDomain()}
@@ -1609,7 +1609,7 @@ export default function LeadProfile() {
                     fontFamily: 'var(--font-sans)', outline: 'none',
                   }}
                 />
-                <input
+                <input aria-label="Label (z.B. Shop, Karriere)"
                   value={domainForm.label}
                   onChange={e => setDomainForm(f => ({ ...f, label: e.target.value }))}
                   placeholder="Label (z.B. Shop, Karriere)"
@@ -1832,7 +1832,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1858,13 +1858,13 @@ export default function LeadProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Straße</div>
-                    <input value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
+                    <input aria-label="Musterstraße" value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Nr.</div>
-                    <input value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
+                    <input aria-label="12a" value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1873,13 +1873,13 @@ export default function LeadProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>PLZ</div>
-                    <input value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
+                    <input aria-label="Postleitzahl" value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Ort</div>
-                    <input value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
+                    <input aria-label="Koblenz" value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1898,7 +1898,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1915,7 +1915,7 @@ export default function LeadProfile() {
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
-                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                    <input aria-label={ph} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
@@ -1923,7 +1923,7 @@ export default function LeadProfile() {
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, marginTop: 8 }}>Notizen</div>
-                  <textarea value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
+                  <textarea aria-label="Interne Notizen..." value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
                     style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
                     onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />

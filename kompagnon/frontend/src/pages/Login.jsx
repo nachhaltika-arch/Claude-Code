@@ -144,7 +144,7 @@ export default function Login() {
               <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: 14 }}>
                   <label style={labelStyle}>E-Mail</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inputStyle}
+                  <input aria-label="E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inputStyle}
                     onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
@@ -152,7 +152,7 @@ export default function Login() {
                 <div style={{ marginBottom: 8 }}>
                   <label style={labelStyle}>Passwort</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                    <input aria-label="••••••••" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••" required style={{ ...inputStyle, paddingRight: 40 }}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
@@ -203,7 +203,7 @@ export default function Login() {
 
               <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
                 {totp.map((d, i) => (
-                  <input key={i} id={`t${i}`} type="text" inputMode="numeric" maxLength={1} value={d}
+                  <input aria-label={`Ziffer ${i + 1} von 6`} key={i} id={`t${i}`} type="text" inputMode="numeric" maxLength={1} value={d}
                     onChange={e => {
                       if (!/^\d*$/.test(e.target.value)) return;
                       const n = [...totp];
@@ -251,7 +251,7 @@ export default function Login() {
                 <form onSubmit={handleForgot}>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>E-Mail</label>
-                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                    <input aria-label="E-Mail" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
                       placeholder="ihre@email.de" required style={inputStyle}
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />

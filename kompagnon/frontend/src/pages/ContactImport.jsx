@@ -136,7 +136,7 @@ function CsvUploadTab() {
           transition: 'all var(--kc-transition-fast)',
         }}
       >
-        <input
+        <input aria-label="CSV-Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".csv"
@@ -287,7 +287,7 @@ function ManualEntryTab() {
         <label style={labelStyle}>
           Firmenname <span style={{ color: 'var(--brand-primary-mid)' }}>*</span>
         </label>
-        <input
+        <input aria-label="Firmenname"
           type="text"
           value={form.company_name}
           onChange={set('company_name')}
@@ -300,33 +300,33 @@ function ManualEntryTab() {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>Ansprechpartner</label>
-          <input type="text" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inputStyle} />
+          <input aria-label="Ansprechpartner" type="text" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inputStyle} />
         </div>
         <div>
           <label style={labelStyle}>Telefon</label>
-          <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 ..." style={inputStyle} />
+          <input aria-label="Telefon" type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 ..." style={inputStyle} />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>E-Mail</label>
-          <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inputStyle} />
+          <input aria-label="E-Mail" type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inputStyle} />
         </div>
         <div>
           <label style={labelStyle}>Website URL</label>
-          <input type="url" value={form.website_url} onChange={set('website_url')} placeholder="https://www.firma.de" style={inputStyle} />
+          <input aria-label="Website URL" type="url" value={form.website_url} onChange={set('website_url')} placeholder="https://www.firma.de" style={inputStyle} />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>Stadt</label>
-          <input type="text" value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" style={inputStyle} />
+          <input aria-label="Stadt" type="text" value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" style={inputStyle} />
         </div>
         <div>
           <label style={labelStyle}>Gewerk</label>
-          <select value={form.trade} onChange={set('trade')} style={inputStyle}>
+          <select aria-label="Gewerk" value={form.trade} onChange={set('trade')} style={inputStyle}>
             <option value="">Bitte wählen...</option>
             {TRADE_OPTIONS.map((t) => (
               <option key={t} value={t}>{t}</option>

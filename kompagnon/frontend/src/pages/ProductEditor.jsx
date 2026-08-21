@@ -162,7 +162,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}>
           <label htmlFor="prod-name" style={LBL}>Produktname *</label>
-          <input
+          <input aria-label="Produktname"
             id="prod-name"
             value={product.name}
             onChange={e => {
@@ -182,7 +182,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
             Slug (URL-Bezeichner) * {selected !== '__new__' && '(gesperrt)'}
           </label>
           <div style={{ position: 'relative' }}>
-            <input
+            <input aria-label="Slug (URL-Bezeichner)"
               value={product.slug || ''}
               onChange={e => {
                 const cleaned = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -218,17 +218,17 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
       </div>
       <div style={FIELD}>
         <label htmlFor="prod-short" style={LBL}>Kurzbeschreibung</label>
-        <input id="prod-short" value={product.short_desc || ''} onChange={e => onChange('short_desc', e.target.value)} placeholder="Wird in der Preisübersicht angezeigt" style={INP} />
+        <input aria-label="Kurzbeschreibung" id="prod-short" value={product.short_desc || ''} onChange={e => onChange('short_desc', e.target.value)} placeholder="Wird in der Preisübersicht angezeigt" style={INP} />
       </div>
       <div style={FIELD}>
         <label htmlFor="prod-long" style={LBL}>Langbeschreibung</label>
-        <textarea id="prod-long" rows={4} value={product.long_desc || ''} onChange={e => onChange('long_desc', e.target.value)} placeholder="Ausführliche Produktbeschreibung" style={{ ...INP, resize: 'vertical' }} />
+        <textarea aria-label="Langbeschreibung" id="prod-long" rows={4} value={product.long_desc || ''} onChange={e => onChange('long_desc', e.target.value)} placeholder="Ausführliche Produktbeschreibung" style={{ ...INP, resize: 'vertical' }} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 14, marginBottom: 14 }}>
-        <div style={FIELD}><label style={LBL}>Zahlungsart</label><select value={product.payment_type || 'once'} onChange={e => onChange('payment_type', e.target.value)} style={INP}><option value="once">Einmalig</option><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></div>
-        <div style={FIELD}><label style={LBL}>Lieferzeit (Tage)</label><input type="number" min={1} value={product.delivery_days || 14} onChange={e => onChange('delivery_days', parseInt(e.target.value) || 14)} style={INP} /></div>
-        <div style={FIELD}><label style={LBL}>Status</label><select value={product.status || 'draft'} onChange={e => onChange('status', e.target.value)} style={INP}><option value="draft">Entwurf</option><option value="live">Live</option><option value="archived">Archiviert</option></select></div>
-        <div style={FIELD}><label style={LBL}>Reihenfolge</label><input type="number" min={0} value={product.sort_order ?? 0} onChange={e => onChange('sort_order', parseInt(e.target.value) || 0)} style={INP} /></div>
+        <div style={FIELD}><label style={LBL}>Zahlungsart</label><select aria-label="Zahlungsart" value={product.payment_type || 'once'} onChange={e => onChange('payment_type', e.target.value)} style={INP}><option value="once">Einmalig</option><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></div>
+        <div style={FIELD}><label style={LBL}>Lieferzeit (Tage)</label><input aria-label="Lieferzeit (Tage)" type="number" min={1} value={product.delivery_days || 14} onChange={e => onChange('delivery_days', parseInt(e.target.value) || 14)} style={INP} /></div>
+        <div style={FIELD}><label style={LBL}>Status</label><select aria-label="Status" value={product.status || 'draft'} onChange={e => onChange('status', e.target.value)} style={INP}><option value="draft">Entwurf</option><option value="live">Live</option><option value="archived">Archiviert</option></select></div>
+        <div style={FIELD}><label style={LBL}>Reihenfolge</label><input aria-label="Reihenfolge" type="number" min={0} value={product.sort_order ?? 0} onChange={e => onChange('sort_order', parseInt(e.target.value) || 0)} style={INP} /></div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
@@ -237,7 +237,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
         </label>
         {product.highlighted && (
           <div style={{ flex: 1 }}>
-            <input value={product.highlight_label || ''} onChange={e => onChange('highlight_label', e.target.value)} placeholder="Label (z.B. Empfehlung)" style={{ ...INP, marginBottom: 0 }} />
+            <input aria-label="Label (z.B. Empfehlung)" value={product.highlight_label || ''} onChange={e => onChange('highlight_label', e.target.value)} placeholder="Label (z.B. Empfehlung)" style={{ ...INP, marginBottom: 0 }} />
           </div>
         )}
       </div>
@@ -245,7 +245,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Leistungsumfang</div>
         {(product.features || []).map((f, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input value={f} onChange={e => { const next = [...product.features]; next[i] = e.target.value; onChange('features', next); }} placeholder={`Feature ${i + 1}`} style={{ ...INP, flex: 1, marginBottom: 0 }} />
+            <input aria-label={`Feature ${i + 1}`} value={f} onChange={e => { const next = [...product.features]; next[i] = e.target.value; onChange('features', next); }} placeholder={`Feature ${i + 1}`} style={{ ...INP, flex: 1, marginBottom: 0 }} />
             <button onClick={() => onChange('features', product.features.filter((_, j) => j !== i))} style={{ padding: '0 10px', borderRadius: 7, border: '1px solid #FECACA', background: '#FFF1F1', color: '#A32D2D', fontSize: 16, cursor: 'pointer', flexShrink: 0 }} title="Entfernen">×</button>
           </div>
         ))}
@@ -271,9 +271,9 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: 14, marginBottom: 14 }}>
-        <div style={FIELD}><label style={LBL}>Brutto-Preis (€) *</label><input type="number" step="0.01" min={0} value={product.price_brutto ?? ''} onChange={e => onChange('price_brutto', parseFloat(e.target.value) || 0)} placeholder="0.00" style={INP} /></div>
-        <div style={FIELD}><label style={LBL}>Netto-Preis (berechnet)</label><input value={product.price_netto ? `${product.price_netto} €` : '—'} disabled style={{ ...INP, opacity: 0.6 }} /></div>
-        <div style={FIELD}><label style={LBL}>MwSt. %</label><input type="number" step="1" min={0} max={100} value={product.tax_rate ?? 19} onChange={e => onChange('tax_rate', parseInt(e.target.value) || 0)} style={INP} /></div>
+        <div style={FIELD}><label style={LBL}>Brutto-Preis (€) *</label><input aria-label="Brutto-Preis (€)" type="number" step="0.01" min={0} value={product.price_brutto ?? ''} onChange={e => onChange('price_brutto', parseFloat(e.target.value) || 0)} placeholder="0.00" style={INP} /></div>
+        <div style={FIELD}><label style={LBL}>Netto-Preis (berechnet)</label><input aria-label="Netto-Preis (berechnet)" value={product.price_netto ? `${product.price_netto} €` : '—'} disabled style={{ ...INP, opacity: 0.6 }} /></div>
+        <div style={FIELD}><label style={LBL}>MwSt. %</label><input aria-label="MwSt. %" type="number" step="1" min={0} max={100} value={product.tax_rate ?? 19} onChange={e => onChange('tax_rate', parseInt(e.target.value) || 0)} style={INP} /></div>
       </div>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

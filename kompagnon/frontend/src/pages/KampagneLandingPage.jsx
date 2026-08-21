@@ -140,7 +140,7 @@ export default function KampagneLandingPage() {
               {/* Feld 1 — E-Mail (zuerst, triggert Domain-Autofill) */}
               <div>
                 <label style={labelStyle}>E-Mail-Adresse *</label>
-                <input
+                <input aria-label="E-Mail-Adresse"
                   type="email"
                   autoComplete="email"
                   placeholder="ihre@email.de"
@@ -154,7 +154,7 @@ export default function KampagneLandingPage() {
               {/* Feld 2 — Website (auto-befüllt aus E-Mail) */}
               <div>
                 <label style={labelStyle}>Website-Adresse *</label>
-                <input
+                <input aria-label="Website-Adresse"
                   type="url"
                   autoComplete="url"
                   placeholder="https://ihr-betrieb.de"
@@ -177,7 +177,7 @@ export default function KampagneLandingPage() {
               {/* Feld 3 — Mobilnummer */}
               <div>
                 <label style={labelStyle}>WhatsApp / Mobilnummer *</label>
-                <input
+                <input aria-label="WhatsApp / Mobilnummer"
                   type="tel"
                   autoComplete="tel"
                   inputMode="numeric"

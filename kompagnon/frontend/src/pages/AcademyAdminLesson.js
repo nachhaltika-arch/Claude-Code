@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { schreibe } from '../utils/schreiben';
+import Feld from '../components/ui/Feld';
 
 // ── Shared styles ──────────────────────────────────────────────
 
@@ -34,13 +35,9 @@ const S = {
 function focusOn(e)  { e.target.style.borderColor = 'var(--brand-primary-mid)'; }
 function focusOff(e) { e.target.style.borderColor = 'var(--border-medium)'; }
 
+// Verknüpft statt nur danebengestellt (L-17).
 function Field({ label, children }) {
-  return (
-    <div>
-      <label style={S.label}>{label}</label>
-      {children}
-    </div>
-  );
+  return <Feld label={label} labelStyle={S.label}>{children}</Feld>;
 }
 
 // ── Quiz editor ────────────────────────────────────────────────
@@ -226,7 +223,7 @@ function QuizEditor({ questions, setQuestions }) {
                           style={{ accentColor: 'var(--status-success-text)', width: 16, height: 16 }}
                         />
                       </label>
-                      <input
+                      <input aria-label={`Antwort ${ai + 1}…`}
                         value={ans.text}
                         onChange={e => setModalAnswer(ai, 'text', e.target.value)}
                         placeholder={`Antwort ${ai + 1}…`}
@@ -647,7 +644,7 @@ export default function AcademyAdminLesson() {
                   <div style={S.cardHeader}>📄 Textinhalt</div>
                   <div style={S.cardBody}>
                     <Field label="Inhalt (HTML erlaubt)">
-                      <textarea
+                      <textarea aria-label={'<h2>Einleitung</h2>\n<p>Text hier…</p>'}
                         value={form.content_text}
                         onChange={e => setF('content_text')(e.target.value)}
                         rows={14}

@@ -447,7 +447,7 @@ export default function Landing() {
               Gratis Erstgespräch buchen
             </div>
             {['Ihr Name', 'Ihre E-Mail', 'Telefonnummer', 'Ihre Website (optional)'].map(ph => (
-              <input key={ph} placeholder={ph} disabled style={{
+              <input aria-label={ph} key={ph} placeholder={ph} disabled style={{
                 width: '100%', marginBottom: 10, padding: '11px 14px',
                 background: 'rgba(255,255,255,.08)',
                 border: '1px solid rgba(255,255,255,.2)',

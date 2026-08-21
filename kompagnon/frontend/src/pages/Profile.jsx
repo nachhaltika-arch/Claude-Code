@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import Feld from '../components/ui/Feld';
 
 
 
@@ -122,17 +123,18 @@ export default function Profile() {
   );
 }
 
+// Beschriftung und Feld waren Geschwister ohne `htmlFor`; der Name kam aus
+// dem Platzhalter statt aus der Beschriftung, die danebenstand (L-17).
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
-    <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
+    <Feld label={label} labelStyle={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
       <input
         type={type} value={value} placeholder={placeholder}
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         disabled={disabled}
-        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }}
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 14, background: disabled ? 'var(--bg-app)' : 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
       />
-    </div>
+    </Feld>
   );
 }
 

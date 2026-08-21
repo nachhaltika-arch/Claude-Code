@@ -151,7 +151,7 @@ export default function PublicPageEditor() {
           ← Zurück
         </button>
 
-        <input
+        <input aria-label="Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".zip,.grapesjs"

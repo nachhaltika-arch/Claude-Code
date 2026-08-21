@@ -406,7 +406,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
     // welche welche ist (UX-06b). Das Audit hängt am Betrieb, die Punktzahl
     // steht in der Betriebsansicht unter „Letzter Audit" — und zwar aktuell.
     notes: '',
-    lead_source: 'Audit',
+    lead_source: 'audit',  // eine Schreibweise je Quelle (L-59)
   });
 
   const setField = (field) => (e) => setLeadForm((f) => ({ ...f, [field]: e.target.value }));

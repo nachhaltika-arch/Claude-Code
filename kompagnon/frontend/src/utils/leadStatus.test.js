@@ -11,6 +11,10 @@ import {
   leadStatusLabel,
   leadStatusVariant,
   leadSourceLabel,
+  herkunftLabel,
+  herkunftVariant,
+  rechtsgrundlageLabel,
+  RECHTSGRUNDLAGE_OFFEN,
 } from './leadStatus';
 
 // ── Die Werte, die produktiv in der Datenbank stehen ──────────────────
@@ -87,5 +91,51 @@ describe('Herkunft', () => {
 
   test('ohne Quelle wird nichts behauptet', () => {
     expect(leadSourceLabel('')).toBe('Unbekannt');
+  });
+});
+
+// ── L-59: Herkunft und Rechtsgrundlage ──────────────────────────────
+//
+// Wir prüfen bei Kunden, ob ihre Seite eine Rechtsgrundlage nennt
+// (`audit_collectors.py:255` sucht nach „Art. 6"), und führten sie für die
+// eigenen Leaddaten an keiner Stelle. 79 Felder am Lead, keines nannte sie.
+
+describe('Herkunft der Daten', () => {
+  test('benennt beide geführten Klassen', () => {
+    expect(herkunftLabel('eingehend')).toBe('Selbst gemeldet');
+    expect(herkunftLabel('kaltakquise')).toBe('Von uns erhoben');
+  });
+
+  test('eine ungeführte Quelle bleibt sichtbar ungeklärt', () => {
+    // Ein Kampagnenname wie `HWK-Muenchen` bekommt keine Herkunft — das
+    // Betriebsblatt soll das zeigen, nicht in eine Klasse drängen.
+    expect(herkunftLabel(null)).toBe('Herkunft ungeklärt');
+    expect(herkunftVariant(null)).toBe('neutral');
+  });
+});
+
+describe('Rechtsgrundlage', () => {
+  test('nennt Artikel und Bedeutung zusammen', () => {
+    expect(rechtsgrundlageLabel('art6_1_b'))
+      .toBe('Art. 6 I b — Vertrag oder vorvertragliche Maßnahme');
+  });
+
+  test('der offene Fall ist keine Leerstelle, sondern eine Aufgabe', () => {
+    expect(rechtsgrundlageLabel(null)).toBe(RECHTSGRUNDLAGE_OFFEN);
+    expect(rechtsgrundlageLabel(undefined)).toBe(RECHTSGRUNDLAGE_OFFEN);
+  });
+
+  test('ein unbekannter Wert wird lesbar, nie roh ausgegeben', () => {
+    expect(rechtsgrundlageLabel('art9_2_a')).not.toBe('art9_2_a');
+  });
+});
+
+describe('Quellen-Wortschatz', () => {
+  test('kennt die Werte, die die Webhooks schreiben', () => {
+    // Gemessen 21.08.2026 an routers/webhooks.py:107-162 — sie schreiben
+    // facebook/linkedin/google/postkarte/telefon, nicht webhook_facebook.
+    for (const quelle of ['facebook', 'linkedin', 'google', 'postkarte', 'telefon']) {
+      expect(leadSourceLabel(quelle)).not.toBe(quelle);
+    }
   });
 });

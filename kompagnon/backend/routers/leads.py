@@ -17,7 +17,7 @@ from routers.auth_router import (
     verlangt_recht,
     get_current_user,
 )
-from services import betriebsname
+from services import betriebsname, lead_quellen
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
@@ -241,6 +241,8 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             'city': row[6] or '',
             'trade': row[7] or '',
             'lead_source': row[8] or '',
+            'datenherkunft': lead_quellen.herkunft_fuer(row[8]),
+            'rechtsgrundlage': lead_quellen.rechtsgrundlage_fuer(row[8]),
             'status': row[9] or 'new',
             'analysis_score': row[10] or 0,
             'geo_score': row[11] or 0,
@@ -1351,7 +1353,9 @@ def import_lead_manual(
         website_url=lead_data.website_url.strip(),
         city=lead_data.city.strip(),
         trade=lead_data.trade.strip(),
-        lead_source="Manuell",
+        # Eine Schreibweise je Quelle — `manual` schreiben auch die drei
+        # Frontend-Stellen, und der Quellenfilter vergleicht darauf (L-59).
+        lead_source="manual",
         status="new",
     )
     db.add(lead)
@@ -1511,6 +1515,12 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "trade": lead.trade,
             "status": lead.status,
             "lead_source": lead.lead_source,
+            # Woher der Betrieb kam und unter welcher Rechtsgrundlage wir ihn
+            # fuehren — abgeleitet aus derselben gespeicherten Quelle, damit
+            # es keine zweite Wahrheit gibt (L-59).
+            "datenherkunft": lead_quellen.herkunft_fuer(lead.lead_source),
+            "rechtsgrundlage": lead_quellen.rechtsgrundlage_fuer(lead.lead_source),
+            "quelle_gefuehrt": lead_quellen.quelle_bekannt(lead.lead_source),
             "notes": lead.notes,
             "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
             "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,

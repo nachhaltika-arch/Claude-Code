@@ -589,6 +589,17 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_phase VARCHAR(30)",
         "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_phase "
         "ON leads(lifecycle_phase)",
+        # Eine Schreibweise je Quelle (L-59, gemessen 21.08.2026).
+        # `routers/leads.py:1354` schrieb `Manuell`, drei Frontend-Stellen
+        # schreiben `manual` — und der Quellenfilter der Betriebsliste
+        # vergleicht auf `manual` (`utils/betriebeListe.js:83`). Von Hand
+        # angelegte Betriebe aus dem Backend waren ueber „Von Hand" nicht zu
+        # finden; sie bekamen eine eigene Gruppe und sahen aus wie eine eigene
+        # Quelle. Beim Lesen wird die Zuordnung angewandt — der Filter aber
+        # vergleicht den gespeicherten Wert, deshalb auch hier.
+        # Der Wortschatz steht in `services/lead_quellen.SCHREIBWEISEN`.
+        "UPDATE leads SET lead_source = 'manual' WHERE lead_source = 'Manuell'",
+        "UPDATE leads SET lead_source = 'audit' WHERE lead_source = 'Audit'",
         "CREATE INDEX IF NOT EXISTS idx_audit_results_public_token "
         "ON audit_results(public_token)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",

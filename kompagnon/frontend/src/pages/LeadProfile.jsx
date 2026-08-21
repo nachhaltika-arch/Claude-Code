@@ -9,6 +9,9 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import {
+  herkunftLabel, herkunftVariant, leadSourceLabel, rechtsgrundlageLabel,
+} from '../utils/leadStatus';
 import Button from '../components/ui/Button';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
@@ -1316,36 +1319,40 @@ export default function LeadProfile() {
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
         <>
-        {/* Lead-Quelle (nur intern) */}
-        {(lead.utm_source || lead.kampagne_quelle) && (() => {
-          const SOURCE_MAP = {
-            facebook:   { icon: '📘', label: 'Facebook' },
-            linkedin:   { icon: '💼', label: 'LinkedIn' },
-            google_ads: { icon: '🔍', label: 'Google Ads' },
-            briefkarte: { icon: '📬', label: 'Briefkarte' },
-            instagram:  { icon: '📸', label: 'Instagram' },
-            email:      { icon: '✉️', label: 'E-Mail' },
-            postkarte:  { icon: '📬', label: 'Postkarte' },
-            sonstige:   { icon: '📌', label: 'Sonstige' },
-          };
-          const src = lead.utm_source || lead.kampagne_quelle;
-          const cfg = SOURCE_MAP[src] || { icon: '📌', label: src };
-          return (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 14px', background: 'var(--bg-surface)',
-              border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-              fontSize: 12, marginBottom: 12, width: 'fit-content',
-            }}>
-              <span style={{ fontSize: 16 }}>{cfg.icon}</span>
-              <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cfg.label}</span>
-              {lead.utm_campaign && (
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>· {lead.utm_campaign}</span>
-              )}
-            </div>
-          );
-        })()}
+        {/* Herkunft und Rechtsgrundlage (nur intern) — L-59.
+            Hier stand eine eigene, vierte Quellenliste (SOURCE_MAP mit
+            facebook/linkedin/google_ads/briefkarte/…), und der Block zeigte
+            sich nur, wenn `utm_source` oder `kampagne_quelle` gesetzt war —
+            also bei den wenigsten Betrieben. Die Quelle, die tatsächlich
+            geführt wird (`lead_source`), stand gar nicht da, und die
+            Rechtsgrundlage nirgends im ganzen System.
+
+            Jetzt eine Liste (`utils/leadStatus.js`, gespiegelt von
+            `services/lead_quellen.py`) und immer sichtbar: Eine ungeführte
+            Quelle oder eine offene Rechtsgrundlage soll auffallen, nicht
+            verschwinden. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          padding: '8px 14px', background: 'var(--bg-surface)',
+          border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+          fontSize: 12, marginBottom: 12, width: 'fit-content', maxWidth: '100%',
+        }}>
+          <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {leadSourceLabel(lead.lead_source)}
+          </span>
+          <Badge variant={herkunftVariant(lead.datenherkunft)}>
+            {herkunftLabel(lead.datenherkunft)}
+          </Badge>
+          <Badge variant={lead.rechtsgrundlage ? 'info' : 'warning'}>
+            {rechtsgrundlageLabel(lead.rechtsgrundlage)}
+          </Badge>
+          {(lead.utm_campaign || lead.kampagne_quelle) && (
+            <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+              · {lead.utm_campaign || lead.kampagne_quelle}
+            </span>
+          )}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}

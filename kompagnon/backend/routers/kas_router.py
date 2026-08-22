@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db, KasPage, KasGjsData, SystemSettings
-from routers.auth_router import require_admin, require_superadmin
+from routers.auth_router import require_admin, require_superadmin, verlangt_recht
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/kas", tags=["kas"])
@@ -218,7 +218,12 @@ async def create_kas_site(
 
 # ── Deploy — NUR Superadmin ──────────────────────────────────────────────────
 
-@router.post("/deploy")
+# Das Recht `deploy_kas_pages` haengt hier — an den **eigenen** Seiten,
+# nicht an den Kundenseiten (L-05, korrigiert am 22.08.2026). Es stand
+# kurzzeitig an `POST /{id}/netlify/deploy`; der Name hatte in die Irre
+# gefuehrt, denn KAS heisst „KOMPAGNON Agentur Seiten".
+@router.post("/deploy",
+             dependencies=[Depends(verlangt_recht("deploy_kas_pages"))])
 async def deploy_kas_pages(
     db: Session = Depends(get_db),
     user=Depends(require_superadmin),

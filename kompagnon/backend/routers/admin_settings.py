@@ -28,13 +28,13 @@ DEFAULT_PERMISSIONS = {
         "view_dashboard", "view_leads", "create_leads", "edit_leads", "delete_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects", "manage_projects",
         "view_users", "manage_users", "view_settings", "manage_settings", "view_billing", "manage_billing",
-        # `deploy_kas_pages` am 22.08.2026 dazugenommen (L-05, Davids
-        # Entscheidung). Vorher stand hier „Admin darf bearbeiten aber nicht
-        # deployen" — die Routen sagten seit jeher etwas anderes
-        # (`require_admin`). Ausrollen ist Tagesgeschaeft im Website-Bau, kein
-        # Systemeingriff; haenge es am Superadmin, blockiert jede
-        # Veroeffentlichung an einer Person.
-        "deploy_kas_pages",
+        # **Kein `deploy_kas_pages`** — und die Begruendung ist am 22.08.2026
+        # praezisiert worden. KAS heisst **KOMPAGNON Agentur Seiten**: die
+        # eigene Marketingseite, nicht die Kundenseiten. Sie live zu stellen
+        # ist kein Tagesgeschaeft im Website-Bau, sondern eine Veroeffentlichung
+        # im eigenen Namen — `POST /api/kas/deploy` traegt seit jeher
+        # `require_superadmin`, und das bleibt so.
+        #
         # Kein `manage_system_settings`: Wer Rechte vergeben darf, kann sich
         # alles geben. Diese Trennung bleibt.
     ],

@@ -4,22 +4,34 @@ Sie standen offen, weil ihr Durchsetzen kein Aufräumen gewesen wäre, sondern
 eine **Verhaltensänderung** — jede hätte jemandem etwas weggenommen. David hat
 sie am 22.08. entschieden, und zwei davon gegen die Vorgabe:
 
-| Recht | Vorgabe vorher | Routen tragen | Entschieden |
+| Recht | Vorgabe | Routen tragen | Entschieden |
 |---|---|---|---|
 | `manage_projects` | admin, superadmin | `require_innendienst` | Matrix korrigiert — Auditor dazu |
-| `deploy_kas_pages` | superadmin | `require_admin` | Matrix korrigiert — Admin dazu |
+| `deploy_kas_pages` | superadmin | `require_superadmin` | unverändert — siehe unten |
 | `manage_system_settings` | superadmin | `require_admin` | Recht durchgesetzt — nur Superadmin |
 
-**Der Gedanke hinter den ersten beiden:** Die Vorgabe wurde irgendwann
+**Der Gedanke bei `manage_projects`:** Die Vorgabe wurde irgendwann
 geschrieben, die Routen sind gewachsen. Wo beide auseinandergehen, ist nicht
-automatisch die Route falsch — der Auditor arbeitet an Projekten, und
-Ausrollen ist Tagesgeschäft im Website-Bau. Erst nachdem die Matrix die
-gelebte Wirklichkeit abbildet, lässt sich das Recht durchsetzen, **ohne**
-jemandem etwas wegzunehmen.
+automatisch die Route falsch — der Auditor arbeitet an Projekten. Erst
+nachdem die Matrix die gelebte Wirklichkeit abbildet, lässt sich das Recht
+durchsetzen, **ohne** jemandem etwas wegzunehmen.
 
-**Beim dritten umgekehrt:** Wer Rechte vergeben darf, kann sich alles geben.
-Diese eine Trennung ist die Maßnahme wert — der Admin verliert die
-Rechtepflege, und das ist der Sinn.
+**Bei `manage_system_settings` umgekehrt:** Wer Rechte vergeben darf, kann
+sich alles geben. Diese eine Trennung ist die Maßnahme wert — der Admin
+verliert die Rechtepflege, und das ist der Sinn.
+
+**`deploy_kas_pages` ist ein korrigierter Irrtum, noch am selben Tag.** Es lag
+kurz beim Admin und war an den **Kundenseiten**-Deploys verdrahtet — beides
+auf Grund einer Fehldeutung des Namens: KAS heißt **KOMPAGNON Agentur
+Seiten**, die eigene Marketingseite. Sie live zu stellen ist kein
+Tagesgeschäft im Website-Bau, sondern eine Veröffentlichung im eigenen Namen;
+`POST /api/kas/deploy` trägt seit jeher `require_superadmin`, und Matrix und
+Route waren widerspruchsfrei. Es gab hier nichts zu entscheiden, nur etwas zu
+verdrahten.
+
+Der Fehler fällt in dieselbe Familie wie die Befunde, die er beheben sollte:
+Ein Name legte etwas nahe, was nicht stimmte — und keine rote Zeile hätte es
+gemeldet.
 """
 import pytest
 from sqlalchemy import text
@@ -38,10 +50,37 @@ class TestMatrixBildetDieWirklichkeitAb:
             "Die 61 Routen unter /api/projects stehen auf require_innendienst — "
             "ohne diesen Eintrag naehme das Durchsetzen dem Auditor alle weg")
 
-    def test_der_admin_darf_ausrollen(self):
+    def test_die_eigene_agenturseite_bleibt_beim_superadmin(self):
+        """**Korrigiert am 22.08.2026, noch am selben Tag.**
+
+        `deploy_kas_pages` war kurz beim Admin und an den **Kundenseiten**-
+        Deploys verdrahtet. Beides beruhte auf einem Irrtum ueber den Namen:
+        KAS heisst **KOMPAGNON Agentur Seiten** — die eigene Marketingseite.
+        Sie live zu stellen ist kein Tagesgeschaeft im Website-Bau, sondern
+        eine Veroeffentlichung im eigenen Namen; `POST /api/kas/deploy` traegt
+        seit jeher `require_superadmin`, und Matrix und Route waren
+        widerspruchsfrei.
+
+        Der Fehler faellt in dieselbe Familie wie die Befunde, die er
+        beheben sollte: Ein Name legte etwas nahe, was nicht stimmte, und
+        niemand haette es an einer roten Zeile gemerkt.
+        """
         from routers.admin_settings import DEFAULT_PERMISSIONS
 
-        assert "deploy_kas_pages" in DEFAULT_PERMISSIONS["admin"]
+        assert "deploy_kas_pages" not in DEFAULT_PERMISSIONS["admin"]
+        assert "deploy_kas_pages" in DEFAULT_PERMISSIONS["superadmin"]
+
+    def test_das_recht_haengt_an_den_eigenen_seiten(self):
+        """Und nicht an den Kundenseiten — dort trug es kurzzeitig."""
+        import pathlib
+
+        from routers import kas_router, projects_netlify
+
+        eigene = pathlib.Path(kas_router.__file__).read_text(encoding="utf-8")
+        kunden = pathlib.Path(projects_netlify.__file__).read_text(encoding="utf-8")
+
+        assert 'verlangt_recht("deploy_kas_pages")' in eigene
+        assert 'verlangt_recht("deploy_kas_pages")' not in kunden
 
     def test_die_rechtepflege_bleibt_beim_superadmin(self):
         """Die eine Trennung, die nicht aufgeweicht wird."""

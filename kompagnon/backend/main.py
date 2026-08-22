@@ -691,13 +691,14 @@ app.include_router(webhooks.router)
 from routers import retainer
 app.include_router(retainer.router)
 
-# Component-Library + KI-Wireframe-Generator (Step D des Online-Fertig-Redesigns).
-# Zwei Router in einer Datei: /api/components fuer die Bibliothek, /api/projects/...
-# fuer Wireframe-CRUD + Generator-Job.
-from routers.component_library import (
-    component_router as component_library_router,
-    wireframe_router as wireframe_router,
-)
+# Bausteinbibliothek und Wireframe-Generator (Step D des Online-Fertig-
+# Redesigns). Die beiden Router lagen bis zum 22.08.2026 in **einer** Datei
+# mit 2.143 Zeilen; der Wireframe-Teil hat seither seine eigene (L-25) — mit
+# eigenen Modellen, drei Job-Speichern und sechs Helfern, die sonst niemand
+# braucht.
+from routers.component_library import component_router as component_library_router
+from routers.component_library_wireframe import wireframe_router
+
 app.include_router(component_library_router)
 app.include_router(wireframe_router)
 

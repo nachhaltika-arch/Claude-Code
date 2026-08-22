@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, require_innendienst
 from database import get_db
 from services.brevo_service import BrevoError, BrevoService
 
@@ -37,7 +37,13 @@ def _brevo():
         service.close()
 
 
-router = APIRouter(prefix="/api/newsletter", tags=["Newsletter"])
+# Innendienst-Bestand (L-67, 22.08.2026). Die Sperre haengt am **Router**,
+# nicht je Route: Sonst ist die naechste Route, die jemand hinzufuegt, wieder
+# offen — genau die Bauart, die am 19.08. 55 offene Werkzeug-Routen erzeugt
+# hat (L-51). Vor dem Setzen gemessen, wer diese Adressen aufruft:
+# ausschliesslich Innendienst-Bildschirme, kein Pfad unter `pages/customer/`.
+router = APIRouter(prefix="/api/newsletter", tags=["Newsletter"],
+                    dependencies=[Depends(require_innendienst)])
 
 
 # ---------------------------------------------------------------------------

@@ -51,20 +51,48 @@ def _kunde_user_id(db, kennung: int) -> int:
     return kunde.id if kunde else kennung
 
 
+#: Seit diesem Tag loest der **Schreib**pfad die Kennung beim Zuweisen auf
+#: (L-55, 19.08.2026). Was danach entstand, ist sicher eine Benutzernummer;
+#: nur aeltere Zeilen koennen noch eine Betriebsnummer enthalten.
+AUFLOESUNG_SEIT = datetime(2026, 8, 19)
+
+
+def _sichere_zuweisungen(db, user, modell, feld):
+    """Die Zuweisungen dieses Nutzers, ohne die zweideutigen Altzeilen.
+
+    **Das Problem (L-54).** Altzeilen fuehren teils die **Betriebs**nummer,
+    waehrend alles andere ueber die **Benutzer**nummer laeuft. Wo eine Zahl
+    beides sein kann, laesst `services/zuweisung_kennung.py` sie beim
+    Nachtrag bewusst liegen — raten waere schlimmer als nichts tun, denn ein
+    falsch geratener Eintrag schaltet einem **fremden** Betrieb etwas frei.
+
+    Im Befund stand, das sei „heute ungefaehrlich, weil kein einziger Kurs
+    gesperrt ist" — gefaehrlich werde es mit dem ersten gesperrten. Darauf zu
+    warten war die Luecke: Der Lehrplan aus L-60 wird Kurse sperren.
+
+    **Warum der Zeitstempel und nicht die Nummer allein.** Ein erster Entwurf
+    sperrte jeden Nutzer aus, dessen Nummer zweideutig ist. Das traf auch
+    voellig gueltige Zuweisungen — die Ueberschneidung zweier Zahlenraeume
+    sagt ja nichts ueber die einzelne Zeile. Ein eigener Test hat das
+    gefangen. Uebergangen wird deshalb nur, was **vor** der Aufloesung
+    entstand und damit wirklich zweideutig sein kann.
+    """
+    from services.zuweisung_kennung import zweideutige_kennungen
+
+    abfrage = db.query(feld).filter(modell.customer_id == user.id)
+    if user.id in zweideutige_kennungen(db):
+        abfrage = abfrage.filter(modell.assigned_at >= AUFLOESUNG_SEIT)
+    return {wert for (wert,) in abfrage.all()}
+
+
 def _freigeschaltete_kurse(db, user) -> set:
-    return {
-        kurs_id for (kurs_id,) in
-        db.query(AcademyCustomerAccess.course_id)
-        .filter(AcademyCustomerAccess.customer_id == user.id).all()
-    }
+    return _sichere_zuweisungen(db, user, AcademyCustomerAccess,
+                                AcademyCustomerAccess.course_id)
 
 
 def _freigeschaltete_module(db, user) -> set:
-    return {
-        modul_id for (modul_id,) in
-        db.query(AcademyModuleAccess.module_id)
-        .filter(AcademyModuleAccess.customer_id == user.id).all()
-    }
+    return _sichere_zuweisungen(db, user, AcademyModuleAccess,
+                                AcademyModuleAccess.module_id)
 
 
 def _sichtbare_module(db, course_id, user):

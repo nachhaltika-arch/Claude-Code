@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, GeoAnalysis, Project, Lead
 from routers.auth_router import require_any_auth, require_admin
+from routers.projects_helfer import eigenes_projekt_pruefen
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +55,24 @@ def _get_project_lead(project_id: int, db: Session):
 async def create_geo_subscription(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
+    aufrufer=Depends(require_any_auth),
 ):
     """Erstellt eine Stripe Checkout Session fuer das GEO Add-on Abo."""
+    # **Wessen Projekt? (L-67, 22.08.2026)** Hier stand `_=Depends(require_any_auth)`
+    # — der angemeldete Nutzer wurde nicht einmal gebunden, geschweige denn
+    # geprueft, und die Projektnummer kommt aus der Adresse. Hochzuzaehlen ist
+    # der naheliegendste Angriff.
+    #
+    # Die Sitzung wird mit `lead.email` und `lead.company_name` erzeugt: Wer
+    # eine fremde Nummer traf, bekam eine Zahlungsseite mit **E-Mail-Adresse
+    # und Firmenname eines fremden Kunden**. Das Abo waere die zweite Folge;
+    # die erste ist ein Datenleck.
+    #
+    # Keine Rollensperre — `GeoAddonCard` haengt in `KundenPortal.jsx`, der
+    # Kunde bucht das Add-on selbst. Die Frage ist nicht „welche Rolle",
+    # sondern „wessen Zeile".
+    eigenes_projekt_pruefen(db, project_id, aufrufer)
+
     if not stripe.api_key:
         raise HTTPException(503, "Stripe nicht eingerichtet (STRIPE_SECRET_KEY fehlt)")
 
@@ -414,9 +430,15 @@ def _send_geo_welcome_email(project_id: int):
 def get_subscription_status(
     project_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
+    aufrufer=Depends(require_any_auth),
 ):
-    """Gibt den aktuellen Abo-Status zurueck."""
+    """Gibt den aktuellen Abo-Status zurueck.
+
+    Auch hier gilt „wessen Zeile" — der Stand verraet, ob ein fremder Betrieb
+    das Add-on gebucht hat und zu welchem Preis.
+    """
+    eigenes_projekt_pruefen(db, project_id, aufrufer)
+
     analysis = db.query(GeoAnalysis).filter(GeoAnalysis.project_id == project_id).first()
     if not analysis:
         return {"subscription_status": None, "upsell_active": False}

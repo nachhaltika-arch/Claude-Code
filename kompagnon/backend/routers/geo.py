@@ -17,7 +17,15 @@ from database import get_db, GeoAnalysis, Project
 from routers.auth_router import require_any_auth, require_admin, require_innendienst
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/geo", tags=["geo"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Die fuenf Routen hier
+# stossen Analysen an und lassen Dateien erzeugen — auf fremden Projekten,
+# fuer jeden Angemeldeten.
+#
+# Vor der Sperre gemessen: `GeoOptimizerStep` ueber `KASSidebar` im
+# `OnlineFertigEditor` (`roles={['admin','auditor']}`). `ProzessFlow.jsx`
+# bindet es ebenfalls ein, haengt aber in keiner Seite mehr.
+router = APIRouter(prefix="/api/geo", tags=["geo"],
+                   dependencies=[Depends(require_innendienst)])
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 

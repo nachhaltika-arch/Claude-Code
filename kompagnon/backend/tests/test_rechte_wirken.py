@@ -26,6 +26,7 @@ Geprüft wird mit dem **Auditor**: Ihm fehlen alle drei per Vorgabe, und er ist
 kein Kunde — die Sperre muss also am Recht hängen und nicht an der Rolle.
 """
 import pytest
+from sqlalchemy import text
 
 GESPERRT = 403
 
@@ -37,8 +38,18 @@ ZU_SPERREN = (
     ("delete", "/api/leads/999999", "delete_leads"),
     ("post", "/api/admin/users", "manage_users"),
     ("patch", "/api/admin/users/1", "manage_users"),
-    ("delete", "/api/admin/users/1", "manage_users"),
-    ("post", "/api/admin/users/1/reset-password", "manage_users"),
+    # **Eine Kennung, die niemandem gehoert (22.08.2026).** Hier stand `1`,
+    # und `test_mit_dem_recht_geht_es_weiter` fuehrt den Aufruf wirklich aus:
+    # Der Admin **loeschte** damit Nutzer 1. Solange das zufaellig ein
+    # unwichtiges Konto war, fiel es nicht auf — sobald die Nummer den
+    # session-weiten Testkunden traf, brach jeder folgende Test, der ihn
+    # braucht, mit **401** statt mit seiner eigenen Aussage.
+    #
+    # Geprueft wird hier die **Sperre**, nicht die Loeschung: „nur 403 darf es
+    # nicht sein". Eine Kennung, die es nicht gibt, sagt 404 und zerstoert
+    # nichts.
+    ("delete", "/api/admin/users/99999999", "manage_users"),
+    ("post", "/api/admin/users/99999999/reset-password", "manage_users"),
     ("patch", "/api/admin/settings", "manage_settings"),
 )
 
@@ -118,8 +129,57 @@ def test_was_an_teils_oeffentlichen_routen_haengt_bleibt_unwirksam(recht):
 
 # ── Nebenbefund beim Verdrahten ───────────────────────────────────────
 
+@pytest.fixture
+def betrieb_mit_zugang(app):
+    """Ein **eigener** Betrieb samt Kundenkonto — nur fuer diesen Test.
+
+    **Warum nicht `kunde_user`.** Bis zum 22.08.2026 loeschte dieser Test den
+    Betrieb des session-weiten Testkunden. Solange die Route mit 409
+    antwortet, faellt das nicht auf — nichts wird geloescht. Sobald sie aus
+    irgendeinem Grund durchlaesst, ist der geteilte Kunde weg, und **jeder
+    folgende Test**, der ihn braucht, scheitert an einer 401 statt an seiner
+    eigenen Aussage. Genau das trat im Gesamtlauf ein und kostete die Suche
+    nach einer Ursache, die es gar nicht gab: Der Fehler war nicht, dass der
+    Zugang fehlte, sondern dass dieser Test fremden Bestand anfasst.
+
+    Ein Test, der geteilten Zustand loescht, ist eine Falle mit
+    Zeitzuender.
+    """
+    from auth import hash_password
+    from database import Lead, SessionLocal, User
+
+    db = SessionLocal()
+    try:
+        db.execute(text("DELETE FROM users WHERE email = 'l56-zugang@example.com'"))
+        db.execute(text("DELETE FROM leads WHERE company_name = 'L56 Mit Zugang'"))
+        db.commit()
+
+        lead = Lead(company_name="L56 Mit Zugang", email="l56-zugang@example.com")
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+
+        db.add(User(email="l56-zugang@example.com",
+                    password_hash=hash_password("egal"),
+                    role="kunde", is_active=True, lead_id=lead.id))
+        db.commit()
+        kennung = lead.id
+    finally:
+        db.close()
+
+    yield kennung
+
+    db = SessionLocal()
+    try:
+        db.execute(text("DELETE FROM users WHERE email = 'l56-zugang@example.com'"))
+        db.execute(text("DELETE FROM leads WHERE company_name = 'L56 Mit Zugang'"))
+        db.commit()
+    finally:
+        db.close()
+
+
 def test_ein_betrieb_mit_kundenzugang_sagt_was_im_weg_steht(
-        client, auth_headers, kunde_user):
+        client, auth_headers, betrieb_mit_zugang):
     """Vorher: 500 mit einer Fremdschlüsselmeldung, aus der niemand schließen
     kann, was zu tun ist.
 
@@ -129,7 +189,7 @@ def test_ein_betrieb_mit_kundenzugang_sagt_was_im_weg_steht(
     wenigstens, was im Weg steht.
     """
     # Act
-    antwort = client.delete(f"/api/leads/{kunde_user.lead_id}", headers=auth_headers)
+    antwort = client.delete(f"/api/leads/{betrieb_mit_zugang}", headers=auth_headers)
 
     # Assert
     assert antwort.status_code == 409, f"-> {antwort.status_code}: {antwort.text[:120]}"

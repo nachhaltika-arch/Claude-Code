@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from database import get_db
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_innendienst
 from services.base_urls import api_base_url
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,18 @@ def _get_lead_by_portal_token(portal_token: str, db: Session):
         raise HTTPException(status_code=404, detail="Ungültiger Zugangslink")
     return row[0]  # lead_id
 
-router = APIRouter(prefix="/api/files", tags=["files"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Die vier Routen hier
+# fuehren die Dateien der Betriebe — Vertraege, Angebote, Fotos, Logos.
+# `GET /{lead_id}` listete sie fuer **jeden** Angemeldeten auf, und
+# `download/{file_id}` gab sie heraus. Kunden haben Konten.
+#
+# Vor der Sperre gemessen: `ProjectFilesSection` (aus `CustomerDetail` und
+# `LeadProfile`), `OnboardingWizard` (Dashboard, von dem Kunden weggeleitet
+# werden), `GrapesEditor`, `WebsiteDesigner`, `useGrapesAssetManager` —
+# alles Innendienst. Kein Aufruf aus `KundenPortal.jsx`, `pages/customer/`
+# oder `CustomerDashboard`, der Ansicht, auf der ein Kunde landet.
+router = APIRouter(prefix="/api/files", tags=["files"],
+                   dependencies=[Depends(require_innendienst)])
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 

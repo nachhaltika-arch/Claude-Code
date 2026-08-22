@@ -125,6 +125,26 @@ zählt statt Router. Statisch über alle Router-Dateien gemessen: **genau ein**
 Duplikat dieser Art in der gesamten Codebase — das hier. Der Test wird nach der
 Reparatur grün und bleibt es.
 
+### 2.5 Das Prüfwerkzeug aus Prompt 05 würde falsch messen
+
+Etappe 0 von Prompt 05 verlangt ein Werkzeug, das *„über `app.routes` läuft"* und
+als Vergleichsmaßstab für die Zerlegung dient. Beim Bauen des Kettentests gemessen:
+
+```
+app.routes            71 Einträge
+app.openapi()['paths']  ~383 Einträge
+```
+
+`app.routes` liefert unter Starlette 1.4 nur die oberste Ebene; die eingebundenen
+Unter-Router fehlen. Ein Maßstab, der 71 von 383 Endpunkten kennt, meldet nach jeder
+Etappe „keine Abweichung" — auch wenn die Hälfte verschwunden ist. **Das Werkzeug muss
+`app.openapi()["paths"]` zählen.**
+
+Die Falle ist im Projekt bereits bekannt und hat mich hier trotzdem einmal erwischt:
+Ein Test, der die neue Route über `app.routes` suchte, meldete sie als fehlend,
+während dieselbe Route im Aufruf sauber mit 200 antwortete. Am Gegenstand geprüft
+statt am Werkzeug — der Aufruf hatte recht.
+
 ---
 
 ## 3. Wo die Kette wirklich reißt
@@ -154,8 +174,8 @@ Lese-Hälfte erreichbar ist und dessen Oberfläche existiert.
 | Nr. | Stand | Anmerkung |
 |---|---|---|
 | 01 Projektanweisungen | nichts zu tun | bestätigt: `claude/kompagnon-automation-system-FapM9` gibt es remote nicht mehr; vorhanden sind `main`, `staging`, `claude/setup-mac-staging-local-N2oaA` |
-| 08 Freigabe-Schritt | ausführbar | Schritt 1c entfällt — `ProzessFlowV3.jsx` gibt es nicht |
-| 02 Freigabe-Verfahren | ausführbar | zweite Fassung; Regressionstest liegt bereits vor |
+| 08 Freigabe-Schritt | **erledigt** `68d748e` | Regel nach `utils/freigabeStand.js` ausgelagert, 12 Tests; Schritt 1c entfiel — `ProzessFlowV3.jsx` gibt es nicht |
+| 02 Freigabe-Verfahren | **erledigt** `b49bc3e` | zweite Fassung: B auf `/request-page-approval`, `require_admin` bleibt, Statusfilter geteilt mit 08 |
 | 03 GrapesJS | **blockiert** | erst nach Widerruf beim Anbieter und Render-Rebuild — sonst stehen die Editoren |
 | 04 `main.py` | ausführbar | Grenzen bestätigt: `102–1329` |
 | 05 `projects.py` | vorbereitet | Etappe 0 zuerst; Prompt 02 muss vorher durch sein |

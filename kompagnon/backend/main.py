@@ -554,7 +554,10 @@ app.include_router(leads_router)                      # real leads router first
 # Die ausdrücklich öffentlichen Lead-Routen: Formular der Landingpage und der
 # Kundenzugang über Einmal-Token. Alles andere hängt am `leads_router` und
 # verlangt eine Anmeldung.
-from routers.leads import public_router as leads_public_router
+# Die Wege ohne Innendienst-Anmeldung liegen seit dem 22.08.2026 in
+# `routers/leads_portal.py` (L-25) — Formular der Landingpage und
+# Kundenportal ueber Einmal-Token.
+from routers.leads_portal import public_router as leads_public_router
 app.include_router(leads_public_router)
 
 # Der Import von Betrieben liegt seit dem 22.08.2026 in einer eigenen Datei
@@ -570,7 +573,7 @@ from routers import leads_anreicherung, leads_kaltakquise
 app.include_router(leads_kaltakquise.router)
 app.include_router(leads_anreicherung.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
-from routers.leads import kunden_router as leads_kunden_router
+from routers.leads_portal import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)
 # Die drei Alias-Router sind am 21.08.2026 entfernt (Modulkarte, Nahtstelle
 # `/api/customers`). Der Kommentar hier sagte „real customers router first" —

@@ -71,7 +71,12 @@ def test_der_kundenzugang_ueber_token_bleibt_offen():
     Ein 404 ist hier das richtige Ergebnis: Die Route antwortet, der Token
     existiert nur nicht.
     """
-    from routers.leads import public_router
+    # Der oeffentliche Router liegt seit dem 22.08.2026 in
+    # `routers/leads_portal.py` (L-25) — zusammen mit dem Kundenweg ueber
+    # Einmal-Token. In `leads.py` standen drei Router mit drei verschiedenen
+    # Sperren nebeneinander; wer dort eine Route ergaenzte und den falschen
+    # griff, oeffnete sie oder sperrte einen Kunden aus.
+    from routers.leads_portal import public_router
 
     pfade = {r.path for r in public_router.routes}
     assert "/api/leads/portal/{token}" in pfade

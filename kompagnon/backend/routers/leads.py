@@ -256,6 +256,64 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
 
 
+@router.get("/quellen/wirkung")
+def kanalwirkung(db: Session = Depends(get_db)):
+    """Welcher Kanal bringt Kunden? (L-84)
+
+    Die Herkunft steht seit langem in `leads.lead_source`, und
+    `services/lead_quellen.py` fuehrt dazu einen gepflegten Wortschatz. Was
+    fehlte, ist die Frage, fuer die man das alles erhebt.
+
+    **Gerechnet wird auf `lifecycle_phase`, nicht auf `status`.** Der Status
+    beantwortete zwei Fragen gleichzeitig, und zwei Stellen uebersahen dabei
+    `customer` — ein Betrieb, den jemand von Hand auf „Kunde" gesetzt hatte,
+    zaehlte in **keiner** Kennzahl mit (L-26). Eine Zahl, die auf der falschen
+    Spalte rechnet, ist schlimmer als keine.
+
+    **Unbekannte Quellen werden ausgewiesen, nicht weggelassen.** Ein Wert,
+    den der Wortschatz nicht kennt, ist der interessanteste Fall: Entweder
+    schreibt ihn jemand ungepflegt — oder der Wortschatz hinkt hinterher.
+    Dasselbe gilt fuer Betriebe ohne Herkunft: Sie stillschweigend
+    auszulassen hiesse, die Summe der Kanaele als Gesamtbestand zu lesen.
+    """
+    from services import lead_quellen
+
+    zeilen = db.execute(text("""
+        SELECT lead_source,
+               COUNT(*) AS betriebe,
+               COUNT(*) FILTER (WHERE lifecycle_phase = 'kunde') AS kunden
+        FROM leads
+        GROUP BY lead_source
+    """)).fetchall()
+
+    kanaele, ohne_herkunft, gesamt = [], 0, 0
+    for quelle, betriebe, kunden in zeilen:
+        gesamt += betriebe
+        if not (quelle or "").strip():
+            ohne_herkunft += betriebe
+            continue
+
+        eintrag = lead_quellen.QUELLEN.get(lead_quellen.normalisiere(quelle) or quelle)
+        kanaele.append({
+            "quelle":   quelle,
+            "name":     (eintrag or {}).get("name") or quelle,
+            "herkunft": (eintrag or {}).get("herkunft"),
+            "bekannt":  eintrag is not None,
+            "betriebe": betriebe,
+            "kunden":   kunden,
+            "quote":    round(kunden / betriebe, 2) if betriebe else None,
+        })
+
+    # Der wirksamste Kanal zuerst; bei gleicher Quote der groessere Bestand.
+    kanaele.sort(key=lambda k: (-(k["quote"] or 0), -k["betriebe"]))
+
+    return {
+        "kanaele": kanaele,
+        "ohne_herkunft": ohne_herkunft,
+        "betriebe_gesamt": gesamt,
+    }
+
+
 @router.get("/")
 def list_leads(
     status: str = Query(None),

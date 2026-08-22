@@ -375,7 +375,8 @@ async def pruefe_ki_sichtbarkeit_endpunkt(
     Aussage ueber Systeme, die nie gefragt wurden.
     """
     from services.ki_anbieter import ANBIETER, konfigurierte_anbieter
-    from services.ki_sichtbarkeit import pruefe_ki_sichtbarkeit
+    from services.ki_sichtbarkeit import (pruefe_ki_sichtbarkeit,
+                                          verlauf_fortschreiben)
 
     daten = _get_project_data(project_id, db)
 
@@ -406,8 +407,34 @@ async def pruefe_ki_sichtbarkeit_endpunkt(
     if not analyse:
         analyse = GeoAnalysis(project_id=project_id, status="pending")
         db.add(analyse)
+    jetzt = datetime.utcnow()
     analyse.ki_sichtbarkeit = befund
-    analyse.ki_sichtbarkeit_am = datetime.utcnow()
+    analyse.ki_sichtbarkeit_am = jetzt
+    # Anhaengen statt ersetzen (L-85): Eine Momentaufnahme ist kein Produkt.
+    analyse.ki_sichtbarkeit_verlauf = verlauf_fortschreiben(
+        analyse.ki_sichtbarkeit_verlauf, befund, jetzt.isoformat(timespec="seconds"))
     db.commit()
 
-    return befund
+    return {**befund, "verlauf_laenge": len(analyse.ki_sichtbarkeit_verlauf or [])}
+
+
+@router.get("/{project_id}/ki-sichtbarkeit/verlauf")
+def ki_sichtbarkeit_verlauf(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_innendienst),
+):
+    """Wie sich die Nennungen ueber die Laeufe entwickelt haben (L-85).
+
+    Getrennt vom Lauf-Endpunkt, weil Lesen nichts kostet und Messen Geld.
+    """
+    analyse = db.query(GeoAnalysis).filter(
+        GeoAnalysis.project_id == project_id).first()
+    if not analyse:
+        return {"verlauf": [], "zuletzt": None}
+
+    return {
+        "verlauf": analyse.ki_sichtbarkeit_verlauf or [],
+        "zuletzt": analyse.ki_sichtbarkeit_am.isoformat()
+                   if analyse.ki_sichtbarkeit_am else None,
+    }

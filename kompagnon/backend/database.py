@@ -1144,6 +1144,10 @@ class GeoAnalysis(Base):
     # gefunden": Der Lauf kostet Geld und laeuft nur auf Anforderung.
     ki_sichtbarkeit = Column(JSONB, nullable=True)
     ki_sichtbarkeit_am = Column(DateTime, nullable=True)
+    # Je Lauf die Trefferzahl je System — ohne die Antworttexte, die
+    # den Verlauf in einem Jahr unlesbar machten (L-85). Nach oben
+    # begrenzt: `services/ki_sichtbarkeit.VERLAUF_MAX`.
+    ki_sichtbarkeit_verlauf = Column(JSONB, nullable=True)
 
     # Stripe Subscription
     stripe_subscription_id = Column(String(200), nullable=True)

@@ -137,3 +137,56 @@ class TestLaufEndpunkt:
 
         assert antwort.status_code == 400
         assert "Ort" in antwort.text
+
+
+# ── Der Verlauf (L-85) ───────────────────────────────────────────────
+
+def test_der_verlauf_ist_lesbar_ohne_zu_messen(client, auth_headers, projekt):
+    """Getrennt vom Lauf-Endpunkt, weil Lesen nichts kostet und Messen Geld.
+
+    Ohne je gelaufen zu sein, ist der Verlauf leer — und **nicht** ein
+    Fehler: „nie gemessen" ist eine gueltige Auskunft.
+    """
+    antwort = client.get(f"/api/geo/{projekt}/ki-sichtbarkeit/verlauf",
+                         headers=auth_headers)
+
+    assert antwort.status_code == 200
+    assert antwort.json() == {"verlauf": [], "zuletzt": None}
+
+
+def test_der_kunde_sieht_den_verlauf_nicht(client, kunde_headers, projekt):
+    antwort = client.get(f"/api/geo/{projekt}/ki-sichtbarkeit/verlauf",
+                         headers=kunde_headers)
+
+    assert antwort.status_code == 403
+
+
+def test_zwei_laeufe_stehen_nacheinander_im_verlauf(client, auth_headers, projekt, app):
+    """Der eigentliche Befund von L-85, am Gegenstand geprueft: Der zweite
+    Lauf **ersetzt** den ersten nicht."""
+    from sqlalchemy import text
+    from database import GeoAnalysis, SessionLocal
+    from services.ki_sichtbarkeit import verlauf_fortschreiben
+
+    befund = {"collected": True, "anbieter": {
+        "chatgpt": {"collected": True, "genannt_bei": 1, "von": 3, "quote": 0.33}}}
+
+    db = SessionLocal()
+    try:
+        db.execute(text(
+            "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_verlauf JSONB"))
+        db.commit()
+        analyse = GeoAnalysis(project_id=projekt, status="pending")
+        analyse.ki_sichtbarkeit_verlauf = verlauf_fortschreiben(
+            verlauf_fortschreiben(None, befund, "2026-06-01T10:00:00"),
+            befund, "2026-08-22T15:00:00")
+        db.add(analyse)
+        db.commit()
+    finally:
+        db.close()
+
+    daten = client.get(f"/api/geo/{projekt}/ki-sichtbarkeit/verlauf",
+                       headers=auth_headers).json()
+
+    assert [e["am"] for e in daten["verlauf"]] == ["2026-06-01T10:00:00",
+                                                   "2026-08-22T15:00:00"]

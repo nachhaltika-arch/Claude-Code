@@ -1209,6 +1209,11 @@ def run_migrations():
         # NULL heisst „nie gelaufen" — ausdruecklich nicht „nicht gefunden".
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit JSONB",
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_am TIMESTAMP",
+        # Der Verlauf, nicht nur der letzte Stand (L-85, 22.08.2026). Der
+        # Wert der Messung entsteht aus dem Vergleich: „vor drei Monaten
+        # null Nennungen, heute drei" ist die Aussage, fuer die ein
+        # Betrieb zahlt.
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_verlauf JSONB",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

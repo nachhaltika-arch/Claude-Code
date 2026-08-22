@@ -36,3 +36,4 @@
 - [Wiederaufnahme 2026-08-11](resume_point_2026_08_11.md) — Widget einbettungsfertig (SMTP raus, Auto-Höhe, Consent-Bug); offen: Live-Test, DSGVO, Pentest
 - [Wiederaufnahme 2026-08-08](resume_point_2026_08_08.md) — CI-Härtung + Brevo neu angebunden + L-36 geschlossen (67 catch-Blöcke); 2 Render-Aufgaben offen bei David
 - [Wiederaufnahme 2026-08-07](resume_point_2026_08_07.md) — Testfundament (35 Tests) + Deploy-Gate + Versionssperre; 4 stille Fehler gefunden
+- [Lagebild sofort nachführen](feedback_lagebild_nachfuehren.md) — nach jeder geschlossenen Lücke neu bauen, Zahlen nie von Hand

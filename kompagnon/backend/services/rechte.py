@@ -40,6 +40,14 @@ DURCHGESETZTE_RECHTE = frozenset({
     "create_leads",             # POST /api/leads/       (require_innendienst)
     "edit_leads",               # PATCH /api/leads/{id}  (require_innendienst)
     "view_users",               # GET /api/admin/users   (require_admin)
+    # Ab 22.08.2026 — gefunden beim Messen der restlichen zehn Rechte.
+    # `routers/retainer.py` trug an allen sieben Routen nur
+    # `get_current_user`; `GET /api/invoices` gab `SELECT * FROM invoices`
+    # **ohne Filter** heraus — alle Rechnungen aller Kunden, mit Namen,
+    # E-Mail und Betrag —, und zwei Routen schrieben. Der Kundenweg
+    # `GET /api/invoices/my` war daneben korrekt gebaut und bleibt offen.
+    "view_billing",             # GET /api/retainer, /api/invoices, .../pdf
+    "manage_billing",           # POST/PUT auf beide Bestaende
     #
     # **Nicht** dazugenommen, weil es eine Verhaltensaenderung waere:
     # `manage_projects` hat laut Vorgabe nur superadmin und admin, die

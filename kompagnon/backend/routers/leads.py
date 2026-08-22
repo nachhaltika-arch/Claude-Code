@@ -1032,8 +1032,26 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{lead_id}", dependencies=[Depends(verlangt_recht("delete_leads"))])
-def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated data in correct dependency order."""
+def delete_lead(lead_id: int, mit_zugang: bool = False, db: Session = Depends(get_db)):
+    """Einen Betrieb samt allem, was an ihm hängt, entfernen.
+
+    `mit_zugang=true` nimmt das Kundenkonto mit. **Ohne diesen Zusatz
+    geschieht das nicht** — die Entscheidung dazu fiel am 22.08.2026 (L-56),
+    und beide Hälften haben ihren Grund:
+
+    Wer einen Betrieb aus dem Bestand räumt — Dublette, kein Kunde mehr —,
+    soll nicht unbemerkt einen Zugang löschen, mit dem sich ein Mensch
+    anmeldet. Ein Konto darf keine Nebenwirkung einer Aufräumarbeit sein.
+
+    Ein Weg muss es aber geben: Bei einem Löschverlangen nach Art. 17 DSGVO
+    muss beides weg. Ohne ihn müsste der Innendienst das Konto in einem
+    anderen Bildschirm suchen — zwei Schritte, von denen man einen vergisst,
+    und ein übriggebliebenes Konto ist genau der Verstoß, den die Vorschrift
+    meint.
+
+    Die Antwort nennt jedes mitgelöschte Konto. Sonst wäre das Mitnehmen
+    wieder die stille Nebenwirkung, die es nicht sein soll.
+    """
     # 1. Prüfen ob Lead existiert
     lead = db.execute(
         text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
@@ -1067,27 +1085,42 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     # `users.lead_id` — unbehandelt, also **500** mit einer Meldung, aus der
     # niemand schließen kann, was zu tun ist (gefunden 19.08.2026).
     #
-    # Der Zugang wird hier **nicht** mitgelöscht: Ob das Löschen eines
-    # Betriebs das Konto seines Kunden mitnehmen soll, ist eine
-    # Datenschutz-Entscheidung und keine Zeile Code (L-56). Bis sie gefallen
-    # ist, sagt der Endpunkt wenigstens, was im Weg steht — das kann nichts
-    # brechen, denn heute scheitert der Aufruf ohnehin.
-    konto = db.execute(
-        text("SELECT email FROM users WHERE lead_id = :id LIMIT 1"),
-        {"id": lead_id},
-    ).fetchone()
-    if konto:
+    # Ein Betrieb mit Kundenzugang scheiterte hier am Fremdschlüssel
+    # `users.lead_id`. Seit dem 22.08.2026 entscheidet der Aufrufer, ob das
+    # Konto mitgeht — die Begründung steht im Docstring (L-56).
+    konten = db.execute(
+        text("SELECT email FROM users WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    adressen = [zeile[0] for zeile in konten]
+
+    if adressen and not mit_zugang:
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail=(f"Der Betrieb hat noch einen Kundenzugang ({konto[0]}). "
-                    "Erst den Zugang entfernen, dann den Betrieb löschen."),
+            detail=(
+                f"Der Betrieb hat noch {len(adressen)} Kundenzugang"
+                f"{'' if len(adressen) == 1 else '/-zugänge'} "
+                f"({', '.join(adressen)}). Entweder den Zugang zuerst "
+                f"entfernen — oder mit ?mit_zugang=true beides zusammen "
+                f"löschen, etwa bei einem Löschverlangen nach DSGVO."
+            ),
         )
+
+    if adressen:
+        # Erst die Sitzungen, dann die Konten: `user_sessions.user_id` hält
+        # sonst dagegen, und der Aufruf scheiterte an derselben Sorte
+        # Fremdschlüssel wie vorher, nur eine Tabelle weiter.
+        db.execute(text(
+            "DELETE FROM user_sessions WHERE user_id IN "
+            "(SELECT id FROM users WHERE lead_id = :id)"), {"id": lead_id})
+        db.execute(text("DELETE FROM users WHERE lead_id = :id"), {"id": lead_id})
+        logger.info("Betrieb %s gelöscht, Zugänge mitgenommen: %s",
+                    lead_id, ", ".join(adressen))
 
     db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
 
-    return {"deleted": True, "id": lead_id}
+    return {"deleted": True, "id": lead_id, "zugaenge_geloescht": adressen}
 
 
 @router.post("/{lead_id}/analyze")

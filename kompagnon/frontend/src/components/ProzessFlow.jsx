@@ -24,6 +24,7 @@ import SitemapVorschlaege from './SitemapVorschlaege';
 import API_BASE_URL from '../config';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { istContentFreigegeben } from '../utils/freigabeStand';
 
 const PHASEN = [
   {
@@ -301,12 +302,12 @@ export default function ProzessFlow({
     gbpPlaceId:            project?.gbp_place_id || null,
     screenshotBefore:      project?.screenshot_before || null,
     screenshotAfter:       project?.screenshot_after  || null,
-    contentFreigabeErteilt: (() => {
-      try {
-        const f = project?.content_freigaben ? JSON.parse(project.content_freigaben) : {};
-        return Object.keys(f).length > 0 && Object.values(f).some(v => v === true);
-      } catch { return false; }
-    })(),
+    // Die Prüfung stand hier inline und verglich mit `=== true`. Das Backend
+    // schreibt seit dem Umbau ein Objekt, und ein Objekt ist nie `=== true`:
+    // Der Schritt konnte nie fertig werden, und der Ablauf sprang beim Öffnen
+    // immer wieder hierher zurück. Regel und Belege stehen in
+    // `utils/freigabeStand.js` — dort ist sie prüfbar, hier war sie es nicht.
+    contentFreigabeErteilt: istContentFreigegeben(project?.content_freigaben),
   };
 
   // Init: erster nicht-fertiger Schritt — nur einmal beim Mount

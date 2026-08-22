@@ -28,11 +28,27 @@ DEFAULT_PERMISSIONS = {
         "view_dashboard", "view_leads", "create_leads", "edit_leads", "delete_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects", "manage_projects",
         "view_users", "manage_users", "view_settings", "manage_settings", "view_billing", "manage_billing",
-        # Kein deploy_kas_pages — Admin darf bearbeiten aber nicht deployen
+        # `deploy_kas_pages` am 22.08.2026 dazugenommen (L-05, Davids
+        # Entscheidung). Vorher stand hier „Admin darf bearbeiten aber nicht
+        # deployen" — die Routen sagten seit jeher etwas anderes
+        # (`require_admin`). Ausrollen ist Tagesgeschaeft im Website-Bau, kein
+        # Systemeingriff; haenge es am Superadmin, blockiert jede
+        # Veroeffentlichung an einer Person.
+        "deploy_kas_pages",
+        # Kein `manage_system_settings`: Wer Rechte vergeben darf, kann sich
+        # alles geben. Diese Trennung bleibt.
     ],
     "auditor": [
         "view_dashboard", "view_leads", "create_leads", "edit_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects",
+        # `manage_projects` am 22.08.2026 dazugenommen (L-05, Davids
+        # Entscheidung). Die 61 Routen unter `/api/projects` stehen seit jeher
+        # auf `require_innendienst` — der Auditor arbeitet dort. Die Vorgabe
+        # war irgendwann geschrieben, die Routen sind gewachsen; wo beide
+        # auseinandergehen, ist nicht automatisch die Route falsch. Erst
+        # dadurch laesst sich das Recht durchsetzen, ohne jemandem etwas
+        # wegzunehmen.
+        "manage_projects",
     ],
     "nutzer": [
         "view_dashboard", "view_audits", "download_pdf",
@@ -128,7 +144,11 @@ def get_roles(admin=Depends(require_admin), db: Session = Depends(get_db)):
     }
 
 
-@router.patch("/roles/{role}")
+# Wer Rechte vergeben darf, kann sich alles geben. Diese eine Trennung
+# bleibt beim Superadmin (L-05, Entscheidung 22.08.2026) — der Admin
+# verliert die Rechtepflege, und das ist der Sinn.
+@router.patch("/roles/{role}",
+              dependencies=[Depends(verlangt_recht("manage_system_settings"))])
 def update_role_permissions(role: str, req: RolePermissionsUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
     if role == "superadmin":
         raise HTTPException(400, "Superadmin-Rolle kann nicht ueber die UI geaendert werden")

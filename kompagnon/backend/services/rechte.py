@@ -52,21 +52,23 @@ DURCHGESETZTE_RECHTE = frozenset({
     # die Vorgabe gibt `view_settings` an dieselben zwei. Additiv wie die
     # drei vom 21.08.: Es nimmt niemandem etwas weg.
     "view_settings",            # GET /api/admin/settings
+    # Ab 22.08.2026 — die drei, die eine **Entscheidung** brauchten, weil
+    # jede jemandem etwas weggenommen haette. David hat sie getroffen, und
+    # zwei davon gegen die Vorgabe: Bei `manage_projects` und
+    # `deploy_kas_pages` wurde die **Matrix** korrigiert statt der Route —
+    # die Vorgabe war irgendwann geschrieben, die Routen sind gewachsen, und
+    # der Auditor arbeitet an Projekten wie der Admin ausrollt. Bei
+    # `manage_system_settings` umgekehrt: Wer Rechte vergeben darf, kann sich
+    # alles geben; diese Trennung ist die Massnahme wert.
+    "manage_projects",          # der Router /api/projects (61 Routen)
+    "deploy_kas_pages",         # POST /{id}/netlify/deploy und /deploy-all
+    "manage_system_settings",   # PATCH /api/admin/roles/{role}
     #
-    # **Nicht** dazugenommen, weil es eine Verhaltensaenderung waere:
-    # `manage_projects` hat laut Vorgabe nur superadmin und admin, die
-    # Projektrouten stehen aber auf `require_innendienst` — es naehme dem
-    # Auditor etwas weg. `download_pdf`, `view_audits` und `view_dashboard`
+    # **Noch nicht dazugenommen, und zwar aus einem anderen Grund:
+    # `download_pdf`, `view_audits` und `view_dashboard`
     # haben laut Vorgabe **alle** Rollen; sie haengen an Routen, die teils
     # oeffentlich sind (Widget, Kundenportal), und das gehoert eigens
     # gemessen, nicht nebenbei verdrahtet.
-    #
-    # **Nicht** durchgesetzt, und zwar aus demselben Grund:
-    # `deploy_kas_pages` und `manage_system_settings` hat per Vorgabe **nur**
-    # der Superadmin. Sie durchzusetzen waere keine Absicherung, sondern eine
-    # Verhaltensaenderung — sie naehme dem Admin etwas weg, das er heute tut
-    # (deployen, die Rechtematrix pflegen). Das gehoert entschieden, nicht
-    # nebenbei gemacht.
 })
 
 

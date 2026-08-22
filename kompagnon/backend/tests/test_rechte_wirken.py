@@ -95,13 +95,21 @@ def test_das_durchgesetzte_recht_steht_auch_in_der_liste(recht):
     assert recht in DURCHGESETZTE_RECHTE
 
 
-@pytest.mark.parametrize("recht", ["deploy_kas_pages", "manage_system_settings"])
-def test_was_nur_der_superadmin_hat_bleibt_unwirksam(recht):
-    """Zwei Auslassungen mit Grund, damit sie nicht als Versehen gelesen werden.
+@pytest.mark.parametrize("recht", ["view_dashboard", "download_pdf",
+                                   "view_audits", "create_audits"])
+def test_was_an_teils_oeffentlichen_routen_haengt_bleibt_unwirksam(recht):
+    """Auslassungen mit Grund, damit sie nicht als Versehen gelesen werden.
 
-    Beide hat per Vorgabe **nur** der Superadmin. Sie durchzusetzen wäre keine
-    Absicherung, sondern eine Verhaltensänderung: Sie nähme dem Admin etwas
-    weg, das er heute tut — deployen und die Rechtematrix pflegen.
+    Alle vier haengen an Routen, die teils **ohne Anmeldung** erreichbar sind
+    — das Widget, das Kundenportal, `POST /api/audit/start` mit Mengengrenze
+    statt Rollenpruefung. Ein Recht dort durchzusetzen hiesse, eine
+    Rollenpruefung an eine Stelle zu haengen, die bewusst keine hat. Das
+    gehoert eigens gemessen, nicht nebenbei verdrahtet.
+
+    **Der Test hat am 22.08.2026 seinen Gegenstand gewechselt.** Vorher
+    standen hier `deploy_kas_pages` und `manage_system_settings` — beide sind
+    seitdem entschieden und durchgesetzt (L-05). Der Test bleibt, das
+    Beispiel wandert; sonst prueft er nur noch, dass irgendetwas fehlt.
     """
     from services.rechte import DURCHGESETZTE_RECHTE
 

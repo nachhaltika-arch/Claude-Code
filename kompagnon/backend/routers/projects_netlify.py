@@ -27,7 +27,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import Project, SessionLocal, get_db
-from routers.auth_router import get_current_user, require_admin, require_any_auth
+from routers.auth_router import (get_current_user, require_admin,
+                                 require_any_auth, verlangt_recht)
 from routers.projects_router import router
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,8 @@ async def netlify_create_site(
     return {"site_id": result["site_id"], "site_url": result["site_url"]}
 
 
-@router.post("/{project_id}/netlify/deploy")
+@router.post("/{project_id}/netlify/deploy",
+             dependencies=[Depends(verlangt_recht("deploy_kas_pages"))])
 async def netlify_deploy(
     project_id: int,
     body: NetlifyDeployRequest,
@@ -160,7 +162,8 @@ def _slugify_page_name(name: str) -> str:
     return s or "seite"
 
 
-@router.post("/{project_id}/netlify/deploy-all")
+@router.post("/{project_id}/netlify/deploy-all",
+             dependencies=[Depends(verlangt_recht("deploy_kas_pages"))])
 async def netlify_deploy_all(
     project_id: int,
     db: Session = Depends(get_db),

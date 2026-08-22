@@ -19,10 +19,16 @@ Frontend bemerkt, ist ein misslungener.
 """
 from fastapi import APIRouter, Depends
 
-from routers.auth_router import require_any_auth, require_innendienst
+from routers.auth_router import (require_any_auth, require_innendienst,
+                                 verlangt_recht)
 
+# `manage_projects` haengt seit dem 22.08.2026 zusaetzlich hier (L-05). Es
+# nimmt heute niemandem etwas weg — die Matrix gibt es allen drei
+# Innendienst-Rollen —, aber es macht den Haken im Bildschirm „Rollen"
+# wirksam: Wer ihn wegnimmt, kommt an keine Projektroute mehr.
 router = APIRouter(prefix="/api/projects", tags=["projects"],
-                   dependencies=[Depends(require_innendienst)])
+                   dependencies=[Depends(require_innendienst),
+                                 Depends(verlangt_recht("manage_projects"))])
 
 # Ausdrücklich ohne Anmeldung — die Freigabe des Kunden über den Link aus der
 # E-Mail. Der Token IST der Nachweis; die Routen prüfen ihn selbst.

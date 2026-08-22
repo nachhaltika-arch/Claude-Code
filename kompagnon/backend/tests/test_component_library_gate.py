@@ -222,7 +222,10 @@ class _Antwort:
 
 def _job(monkeypatch, runden):
     """Laesst den Generator-Job mit vorgegebenen KI-Antworten laufen."""
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     folge = iter(runden)
     monkeypatch.setattr(cl, "_ki_runde",
@@ -354,7 +357,10 @@ class _RohAntwort:
 
 def _antworten(monkeypatch, texte):
     """Ersetzt den Modellaufruf durch vorgegebene Rohtexte."""
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     folge = iter(texte)
     aufrufe = []
@@ -372,7 +378,10 @@ def _json_block(slug):
 
 
 def test_kaputtes_json_bekommt_eine_zweite_chance(monkeypatch):
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     slug = "json-zweite-chance"
     aufrufe = _antworten(monkeypatch, ['{"slug": "x", "name": "kaputt}',
@@ -388,7 +397,10 @@ def test_kaputtes_json_bekommt_eine_zweite_chance(monkeypatch):
 
 
 def test_zweimal_kaputtes_json_bricht_ab(monkeypatch):
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     _antworten(monkeypatch, ['{"kaputt": ', '{"immer noch kaputt": '])
 
@@ -401,7 +413,10 @@ def test_zweimal_kaputtes_json_bricht_ab(monkeypatch):
 def test_zeilenumbruch_im_text_kostet_keinen_zweiten_aufruf(monkeypatch):
     """Ein roher Zeilenumbruch in einer Zeichenkette ist der haeufigste
     Ausrutscher — den repariert der Parser selbst, ohne ein zweites Mal zu fragen."""
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     slug = "roher-umbruch"
     mit_umbruch = json.dumps(_ki_block(slug, _sauber(slug))).replace(
@@ -417,7 +432,10 @@ def test_zeilenumbruch_im_text_kostet_keinen_zweiten_aufruf(monkeypatch):
 def test_abgeschnittene_antwort_wird_nicht_nachgefragt(monkeypatch):
     """Bei max_tokens ist die Antwort garantiert unvollstaendig — noch einmal
     zu fragen wuerde nur dasselbe Limit erneut reissen."""
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     aufrufe = []
 
@@ -437,7 +455,10 @@ def test_abgeschnittene_antwort_wird_nicht_nachgefragt(monkeypatch):
 def test_job_ueberlebt_einen_json_ausrutscher(monkeypatch):
     """Derselbe Weg, aber durch den ganzen Auftrag — das ist der Fall aus dem
     scharfen Lauf."""
-    from routers import component_library as cl
+    # Der KI-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_ki.py` (L-25) — dort haengen die
+    # Helfer, die dieser Test ersetzt.
+    from routers import component_library_ki as cl
 
     slug = "job-trotz-ausrutscher"
     _antworten(monkeypatch, ["kein JSON, sondern Prosa.", _json_block(slug)])

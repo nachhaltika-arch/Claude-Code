@@ -719,6 +719,13 @@ app.include_router(retainer.router)
 from routers.component_library import component_router as component_library_router
 from routers.component_library_wireframe import wireframe_router
 
+# **Ausdruecklich einbinden (L-25).** `component_library_ki` haengt am selben
+# `component_router`; seine Routen registrieren sich beim Import. Ohne diese
+# Zeile waeren sie nur da, solange irgendeine Importkette sie zufaellig
+# anstoesst — genau die stille Kopplung, die bei `projects` heute schon der
+# Befund war.
+from routers import component_library_ki  # noqa: F401
+
 app.include_router(component_library_router)
 app.include_router(wireframe_router)
 

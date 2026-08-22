@@ -40,12 +40,14 @@ from database import Briefing, ComponentLibrary, Project, SessionLocal, get_db
 # auseinander (`_serialize`, `PHASEN`).
 logger = logging.getLogger(__name__)
 
-from routers.component_library import (
-    _Abbruch,
+from routers.component_library import _Abbruch, _nur_freigegebene
+
+# Die drei KI-Helfer sind mit dem KI-Teil gewandert (L-25, 22.08.2026) —
+# Aufforderung bauen, Antwort lesen, Modellrunde fahren.
+from routers.component_library_ki import (
     _build_prompt,
     _extract_text_from_response,
     _ki_runde,
-    _nur_freigegebene,
 )
 
 

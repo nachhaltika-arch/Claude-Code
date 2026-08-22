@@ -8,6 +8,8 @@ from .projects import router as projects_router
 # Nur wegen der Nebenwirkung: Der Import haengt die Netlify-Routen an
 # denselben Router. Ohne ihn waeren sie nicht registriert (L-25).
 from . import projects_netlify  # noqa: F401
+from . import projects_content  # noqa: F401
+from . import projects_public  # noqa: F401
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router

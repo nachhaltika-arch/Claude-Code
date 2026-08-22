@@ -10,6 +10,7 @@ from .projects import router as projects_router
 from . import projects_netlify  # noqa: F401
 from . import projects_content  # noqa: F401
 from . import projects_public  # noqa: F401
+from . import projects_sichtbarkeit  # noqa: F401
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router

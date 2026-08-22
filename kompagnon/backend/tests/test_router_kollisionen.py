@@ -174,3 +174,46 @@ def test_und_er_ist_erreichbar(client, auth_headers):
     """
     antwort = client.post("/api/projects/999999/scrape-pages", headers=auth_headers)
     assert antwort.status_code == 404, antwort.text[:200]
+
+
+# ── Und derselbe Router darf sich nicht selbst ueberdecken ───────────
+#
+# Gefunden am 22.08.2026: `POST /api/projects/{id}/request-approval` stand
+# **zweimal in derselben Datei**, an demselben Router — Zeile 1041 und Zeile
+# 3252, zwei voellig verschiedene Implementierungen unter einem Namen.
+#
+# `test_keine_zwei_router_auf_derselben_adresse` sieht das nicht: Es zaehlt,
+# wie viele **Router** eine Adresse beanspruchen. Hier ist es nur einer, und
+# der beansprucht sie zweimal. Die Menge der Herkuenfte bleibt einelementig.
+#
+# Der Schaden ist derselbe wie bei zwei Routern, mit einem Zusatz: Python
+# ueberschreibt beim zweiten `def` den Namen, FastAPI hat den ersten
+# Decorator aber laengst ausgewertet. Geroutet wird der erste, gelesen wird
+# beim Nachschauen der zweite — und die Sperren der beiden waren
+# verschieden (`require_admin` gegen `get_current_user`).
+
+def _registrierungen_je_router():
+    """Wie oft jeder Router dieselbe (Verb, Adresse) belegt."""
+    mehrfach = {}
+    for herkunft, router in _router_objekte():
+        gezaehlt = collections.Counter()
+        for route in getattr(router, "routes", []):
+            adresse = re.sub(r"\{[^}]+\}", "{}", route.path)
+            for methode in (getattr(route, "methods", set()) or set()):
+                if methode in ("HEAD", "OPTIONS"):
+                    continue
+                gezaehlt[(methode, adresse)] += 1
+        for schluessel, anzahl in gezaehlt.items():
+            if anzahl > 1:
+                mehrfach[f"{herkunft} {schluessel[0]} {schluessel[1]}"] = anzahl
+    return mehrfach
+
+
+def test_kein_router_belegt_dieselbe_adresse_zweimal():
+    doppelt = _registrierungen_je_router()
+
+    assert doppelt == {}, (
+        "Diese Adressen sind an demselben Router mehr als einmal registriert. "
+        "Es antwortet die erste; jede weitere ist toter Code mit eigener "
+        f"Sperre: {doppelt}"
+    )

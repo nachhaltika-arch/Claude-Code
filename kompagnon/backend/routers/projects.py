@@ -3249,8 +3249,21 @@ def request_freigabe(
 
 # ── Content-Freigaben ─────────────────────────────────────────────────────────
 
-@router.post("/{project_id}/request-approval")
-def request_approval(
+# Seitenweise Freigabe fuer das Kundenportal. Lag bis zum 22.08.2026 auf
+# derselben Adresse wie die Token-Freigabe bei Zeile 1041 und war deshalb nie
+# erreichbar: FastAPI nimmt bei gleichem Pfad die zuerst registrierte Funktion.
+# Python ueberschrieb ausserdem den Namen `request_approval` — nachgelesen
+# wurde also diese Fassung, geantwortet hat die andere.
+#
+# Die Gegenstelle ist `confirm_approval` weiter unten. Ohne diese Haelfte
+# entstand nie ein Eintrag mit `status: "angefragt"`, und die Liste im
+# Kundenportal konnte nur zeigen, was bereits entschieden war.
+#
+# **Sie hat noch keinen Aufrufer.** Der Knopf, der pro Seite eine Freigabe
+# anfragt, muss in der Oberflaeche erst gebaut werden — das ist eine
+# Produktentscheidung und war nicht Teil der Reparatur.
+@router.post("/{project_id}/request-page-approval")
+def request_page_approval(
     project_id: int,
     data: dict,
     db: Session = Depends(get_db),

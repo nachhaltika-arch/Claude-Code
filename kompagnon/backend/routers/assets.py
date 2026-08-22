@@ -15,11 +15,20 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, require_innendienst
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/assets", tags=["assets"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Beide Routen fuehren
+# die Bilder eines Projekts — ansehen und hochladen —, und geprueft wurde
+# nur, dass irgendwer angemeldet ist.
+#
+# Vor der Sperre gemessen: `useGrapesAssetManager` aus `GrapesEditor` und
+# `WebsiteDesigner`, eingebunden in `KasWebsite` (admin/superadmin),
+# `CustomerDetail` (admin), `TemplateLibrary` (admin) und
+# `OnlineFertigEditor` (admin/auditor). Kein Aufruf aus dem Kundenportal.
+router = APIRouter(prefix="/api/assets", tags=["assets"],
+                   dependencies=[Depends(require_innendienst)])
 
 from services.dateiablage import upload_wurzel
 

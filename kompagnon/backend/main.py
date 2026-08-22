@@ -695,6 +695,12 @@ app.include_router(content_scraper_router.router)
 from routers.branddesign import router as branddesign_router
 app.include_router(branddesign_router)
 
+# Erhebung und Leitfaden liegen seit dem 22.08.2026 in eigenen Dateien
+# (L-25): zwei Bloecke mit je ueber 200 Zeilen. Beide haengen am selben
+# Router — ausdruecklich einbinden, damit ihre Routen nicht von einer
+# zufaelligen Importkette abhaengen.
+from routers import branddesign_erhebung, branddesign_leitfaden  # noqa: F401
+
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 

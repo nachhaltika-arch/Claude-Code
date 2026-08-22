@@ -656,7 +656,11 @@ except Exception as e:
 
 from routers import sitemap
 app.include_router(sitemap.router)
-app.include_router(sitemap.pages_router)
+# Die Seitenbearbeitung (Editor, Qualitaetspruefung) liegt seit dem
+# 22.08.2026 in `routers/sitemap_seiten.py` (L-25): Sie handelt vom Inhalt
+# einer einzelnen Seite, nicht von der Struktur der Website.
+from routers import sitemap_seiten
+app.include_router(sitemap_seiten.pages_router)
 
 # Erzeugen und Austausch liegen seit dem 22.08.2026 in eigenen Dateien
 # (L-25): sieben Routen, die ein Modell fragen, und der Weg hinein und

@@ -4,6 +4,7 @@ import API_BASE_URL from '../config';
 import { stufeAnzeige } from '../utils/homepageStandard';
 import usePakete from '../hooks/usePakete';
 import useAnalysenZahl, { analysenSatz } from '../hooks/useAnalysenZahl';
+import { herkunftDieserSeite } from '../utils/anzeigenherkunft';
 
 const PAKET_DARSTELLUNG = [{ id: 'kompagnon' }];
 
@@ -73,7 +74,12 @@ export default function AuditHook() {
       const cleanUrl = normalizeUrl(url);
       const leadRes  = await fetch(`${API_BASE_URL}/api/leads/public`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: cleanUrl, email, lead_source: 'landing_audit', status: 'new' }),
+        // Die Herkunft aus der Anzeige geht mit (L-86). Bis zum 22.08.2026
+        // schickte das Formular sie nicht mit, und sie war im Moment des
+        // Absendens verloren — die Kanalauswertung konnte bezahlte Kanaele
+        // deshalb nie ausweisen.
+        body: JSON.stringify({ website_url: cleanUrl, email, lead_source: 'landing_audit',
+                               status: 'new', ...herkunftDieserSeite() }),
       });
       const leadData = await leadRes.json();
       const leadId   = leadData.id;

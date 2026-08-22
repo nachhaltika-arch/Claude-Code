@@ -834,6 +834,36 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+#: So lang sind `utm_source`, `utm_medium` und `utm_campaign` in der Tabelle.
+UTM_MAX = 200
+
+
+def _herkunft_aus_anzeige(daten: dict) -> dict:
+    """Die UTM-Angaben aus dem Formular — begrenzt entgegengenommen (L-86).
+
+    **Der Befund.** Bis zum 22.08.2026 uebernahm dieser Weg `website_url`,
+    `email` und `lead_source`, und sonst nichts. Wer ueber eine Anzeige mit
+    `?utm_source=google` kam und das Formular ausfuellte, verlor seine
+    Herkunft im Moment des Absendens — und die Kanalauswertung (L-84) konnte
+    bezahlte Kanaele darum nie ausweisen.
+
+    Die Werte kommen **ohne Anmeldung** aus einem Widget auf fremden Seiten,
+    und `data` ist ein rohes `dict`: Was keine Zeichenkette ist, wird nicht
+    uebernommen, und was zu lang ist, wird gekuerzt statt die Anlage
+    scheitern zu lassen. Gespeichert wird roh — ausgewertet oder in HTML
+    gesetzt wird hier nichts.
+
+    Fehlt eine Angabe, bleibt das Feld leer. Eine geratene Herkunft waere
+    schlimmer als eine fehlende: Auf ihr wuerde gerechnet.
+    """
+    herkunft = {}
+    for feld in ("utm_source", "utm_medium", "utm_campaign"):
+        wert = daten.get(feld)
+        if isinstance(wert, str) and wert.strip():
+            herkunft[feld] = wert.strip()[:UTM_MAX]
+    return herkunft
+
+
 # ── Public lead creation (no auth — used by landing page audit) ──
 
 @public_router.post("/public")
@@ -860,7 +890,8 @@ async def create_public_lead(
         return {'id': existing.id}
 
     lead = Lead(website_url=website_url, email=email_addr, company_name=domain,
-                status='new', lead_source=data.get('lead_source', 'landing_audit'))
+                status='new', lead_source=data.get('lead_source', 'landing_audit'),
+                **_herkunft_aus_anzeige(data))
     db.add(lead)
     db.commit()
     db.refresh(lead)

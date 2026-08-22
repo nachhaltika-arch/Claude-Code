@@ -72,6 +72,15 @@ class Lead(Base):
     onboarding_completed = Column(Boolean, default=False)
     onboarding_completed_at = Column(DateTime, nullable=True)
     unread_messages = Column(Integer, default=0)
+
+    # Woher der Betrieb kam, wenn er ueber eine Anzeige hereinkam (L-86).
+    # Dieselbe Falle, ein zweites Mal: Die Spalten stehen seit langem in
+    # `migrations_runtime.py`, im Modell fehlten sie — und weil
+    # `routers/kampagne.py` sie mit rohem SQL schreibt, fiel es nie auf.
+    # Erst als der oeffentliche Weg sie zuweisen wollte, kam der Fehler.
+    utm_source = Column(String(200), nullable=True)
+    utm_medium = Column(String(200), nullable=True)
+    utm_campaign = Column(String(200), nullable=True)
     pagespeed_mobile_score = Column(Integer, nullable=True)
     pagespeed_desktop_score = Column(Integer, nullable=True)
     pagespeed_lcp_mobile = Column(Float, nullable=True)

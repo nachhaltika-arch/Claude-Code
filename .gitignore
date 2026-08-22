@@ -23,3 +23,7 @@ Thumbs.db
 # Local env files (rare at root but defensive)
 .env
 .env.local
+
+# macOS-Artefakte. `._*` sind AppleDouble-Dateien; eine davon
+# (`._NotoSans-Regular.ttf`) lag versioniert im Repo (L-80).
+._*

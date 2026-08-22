@@ -590,10 +590,11 @@ app.include_router(newsletter_router)
 app.include_router(versand_router)
 
 from routers import briefings
-app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT
+app.include_router(briefings.router)      # Innendienst
+app.include_router(briefings.kunden_router)   # nur die Freigabe ueber Token (L-27)
 
-from routers.briefing import router as briefing_router
-app.include_router(briefing_router)       # PATCH + AI endpoints
+# `routers/briefing.py` ist am 22.08.2026 in `briefings.py` aufgegangen
+# (L-27) — zwei Router auf demselben Praefix, getrennt nach HTTP-Verb.
 
 from routers.kampagne import router as kampagne_router
 app.include_router(kampagne_router)

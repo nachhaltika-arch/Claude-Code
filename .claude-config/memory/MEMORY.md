@@ -1,4 +1,5 @@
 - [Nutzer-Profil David](user_role.md) — Solo-Operator KOMPAGNON, Deutsch, pragmatisch, schnelle Entscheidungen
+- [Wiederaufnahme 2026-08-22](resume_point_2026_08_22.md) — Prompt-Paket durch, elf Lücken zu; jede kam aus einer zu früh gemeldeten „erledigt"
 - [Wiederaufnahme 2026-08-21](resume_point_2026_08_21.md) — 32 Commits: M4 fertig, Design-Canvas, Website-weiter Audit, Legacy-Editor weg, Modellwechsel; morgen M5
 - [Lokale Entwicklungsumgebung](lokale_entwicklungsumgebung.md) — Start, Zugänge und zwei Fallen (Migrationen, app.routes zählt falsch)
 - [Branch-Workflow staging → main](workflow_dual_branch.md) — dual-branch ab 2026-05-01, single-trunk verworfen

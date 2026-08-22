@@ -12,13 +12,13 @@ Tag der Nachprüfungen: Fast jeder geschlossene Punkt kam heraus, weil eine
 frühere Meldung „erledigt" zu früh war — und der Grund war jedes Mal derselbe:
 Das Werkzeug maß enger als der Befund reichte.
 
-**Was geschlossen wurde** (Lagebild: 71 Lücken, 22 offen, 5 teilweise, 44 zu):
+**Was geschlossen wurde** (Lagebild: 72 Lücken, 21 offen, 5 teilweise, 46 zu):
 L-78, L-79 (Freigabe-Knopf ohne `onClick`), L-19, L-54, L-84 (Kanalwirkung),
 L-83 (benannte Ansichten), L-82 (Verlauf eines Betriebs), L-29 (dritte feste
 Preisliste — **im Beleg des Kunden**), L-65 Teil A, L-38 (alle Haken geprüft),
 L-86 (UTM ging beim Absenden verloren), L-80 (Wurzel 63 → 16), L-05, L-08
 (react-router 6.20 → 7.18.2, Playwright grün), L-09, L-87, L-88, L-89.
-Dazu drei Durchgänge durch L-67: schwach geschützte Routen 120 → 52.
+L-67 **geschlossen** in vier Durchgängen: schwach geschützte Routen 120 → 46, alle 46 einzeln geprüft und begründet. L-90: alle Support-Tickets waren ohne Anmeldung lesbar.
 
 **Die drei lehrreichsten Funde:**
 
@@ -47,6 +47,16 @@ Dazu drei Durchgänge durch L-67: schwach geschützte Routen 120 → 52.
    Dieselbe Verwechslung erzeugte einen Fehlalarm (L-87), den erst ein Test
    widerlegte. Werkzeuge dafür: `tools/npm-befunde-einordnen.py`,
    `tools/schwacher-zugriffsschutz.py`.
+
+**Zwei Zugriffs-Funde, die den Tag rechtfertigen:**
+- `POST /api/messages/send-email` war ein **offenes Versandtor** — jeder Angemeldete
+  konnte beliebige Mails über die KOMPAGNON-Absenderadresse schicken, Protokolleintrag
+  als `sender_role="admin"`.
+- `GET /api/tickets/` gab **alle** Support-Tickets ohne Anmeldung heraus, samt Namen,
+  E-Mail-Adressen und Bildschirmfotos.
+
+Beide Wächter zählen jetzt am **gesamten** Routenbaum statt an einer Handliste —
+genau daran lag es, dass der offene Bestand von 42 auf 51 wuchs, ohne rot zu werden.
 
 **Was bei David liegt** — in dieser Reihenfolge:
 - PR #45 mergen (Abrechnungsdaten waren für jeden Angemeldeten lesbar, CI grün)

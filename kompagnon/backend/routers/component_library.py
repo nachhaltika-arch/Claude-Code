@@ -75,7 +75,17 @@ _compose_jobs: dict = {}
 # Component-Library: read-only Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 
-component_router = APIRouter(prefix="/api/components", tags=["components"])
+# Die Bausteine der Kundenseiten — anlegen, freigeben, loeschen. Innendienst
+# (L-67, 22.08.2026). Vor dem Setzen gemessen, wer `/api/components` aufruft:
+# `App.jsx`, `menue.js`, `SettingsLayout.jsx`, `AppLayout.jsx` — kein Pfad
+# unter `pages/customer/`. Die Kundenseiten selbst holen hier nichts: Sie
+# liegen als fertiges HTML bei Netlify.
+#
+# `wireframe_router` weiter unten trug die Sperre bereits. Dass zwei Router in
+# **einer** Datei verschieden gesichert waren, ist genau die Sorte
+# Ungleichheit, die niemand sieht.
+component_router = APIRouter(prefix="/api/components", tags=["components"],
+                             dependencies=[Depends(require_innendienst)])
 
 
 def _serialize_component(row: ComponentLibrary, include_html: bool = False,

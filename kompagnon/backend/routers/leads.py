@@ -1073,11 +1073,17 @@ def delete_lead(lead_id: int, mit_zugang: bool = False, db: Session = Depends(ge
     entfernen(db, [zeile[0] for zeile in projekte])
 
     # 3. Weitere Lead-abhängige Daten löschen
-    if tabelle_vorhanden(db, "project_files"):
-        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+    #
+    # Jede Tabelle wird vorher nachgeschlagen. `project_files` tat das schon;
+    # die drei anderen nicht — und das fiel am 22.08.2026 in der CI auf, wo
+    # die Datenbank frisch ist: `email_logs` gab es dort nicht, der Aufruf
+    # endete in einem unbehandelten `UndefinedTable`. Lokal lief derselbe
+    # Test grün, weil die Testdatenbank die Tabelle noch von einem früheren
+    # Lauf hatte. Eine Tabelle, die es nicht gibt, hat auch nichts, was zu
+    # löschen wäre.
+    for tabelle in ("project_files", "briefings", "audit_results", "email_logs"):
+        if tabelle_vorhanden(db, tabelle):
+            db.execute(text(f"DELETE FROM {tabelle} WHERE lead_id = :id"), {"id": lead_id})
 
     # 6. Lead selbst löschen
     #

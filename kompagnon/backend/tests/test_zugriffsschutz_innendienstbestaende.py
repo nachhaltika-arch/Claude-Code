@@ -14,6 +14,8 @@ drei Router sind es nicht:
     deals        7 Routen   Verkaufschancen mit Betrag und Betriebsbezug
     campaigns    7 Routen   Kampagnen, Empfängerkreise, Auswertung
     newsletter   9 Routen   Empfängerlisten und Versandverläufe
+    components  12 Routen   Bausteine der Kundenseiten, samt Anlegen,
+                            Freigeben und Löschen
 
 **Vor dem Sperren gemessen, wer sie aufruft** — das ist die Vorgabe aus L-67,
 je Router zu entscheiden statt pauschal zu sperren. Ergebnis: ausschließlich
@@ -87,6 +89,7 @@ PROBEN = [
     ("deals", "/api/deals"),
     ("campaigns", "/api/campaigns"),
     ("newsletter", "/api/newsletter/lists"),
+    ("component_library", "/api/components"),
 ]
 
 
@@ -131,12 +134,22 @@ def test_die_sperre_haengt_am_router_und_nicht_an_einzelnen_routen():
     erzeugt (L-51): Jede Route trug ihre Sperre selbst, und wer eine neue
     schrieb, vergass sie.
     """
-    from routers import campaigns, deals, newsletter
+    from routers import campaigns, component_library, deals, newsletter
 
-    for modul in (deals, campaigns, newsletter):
+    router_je_modul = [
+        (deals, deals.router),
+        (campaigns, campaigns.router),
+        (newsletter, newsletter.router),
+        # Diese Datei haelt **zwei** Router. `wireframe_router` trug die
+        # Sperre schon; `component_router` nicht — und genau der fuehrt die
+        # Bausteine der Kundenseiten samt Anlegen, Freigeben und Loeschen.
+        (component_library, component_library.component_router),
+    ]
+
+    for modul, router in router_je_modul:
         namen = {
             getattr(d.dependency, "__name__", "")
-            for d in (modul.router.dependencies or [])
+            for d in (router.dependencies or [])
         }
         assert "require_innendienst" in namen, (
             f"{modul.__name__} traegt die Sperre nicht am Router: {namen}")

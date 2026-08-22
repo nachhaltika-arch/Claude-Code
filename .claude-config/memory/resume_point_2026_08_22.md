@@ -12,13 +12,12 @@ Tag der Nachprüfungen: Fast jeder geschlossene Punkt kam heraus, weil eine
 frühere Meldung „erledigt" zu früh war — und der Grund war jedes Mal derselbe:
 Das Werkzeug maß enger als der Befund reichte.
 
-**Was geschlossen wurde** (Lagebild: 68 Lücken, 25 offen, 5 teilweise, 38 zu):
-L-78 (ruff.toml mit Begründung je Regel), L-79 (Freigabe-Knopf ohne `onClick`),
-L-19 (Domain für die eigene Agenturseite), L-54, L-84 (Kanalwirkung),
+**Was geschlossen wurde** (Lagebild: 70 Lücken, 22 offen, 5 teilweise, 43 zu):
+L-78, L-79 (Freigabe-Knopf ohne `onClick`), L-19, L-54, L-84 (Kanalwirkung),
 L-83 (benannte Ansichten), L-82 (Verlauf eines Betriebs), L-29 (dritte feste
 Preisliste — **im Beleg des Kunden**), L-65 Teil A, L-38 (alle Haken geprüft),
-L-86 (UTM ging beim Absenden verloren), L-80 (Wurzel 63 → 16), L-05 (sechster
-und letzter Schritt).
+L-86 (UTM ging beim Absenden verloren), L-80 (Wurzel 63 → 16), L-05, L-08
+(react-router 6.20 → 7.18.2, Playwright grün), L-09, L-87, L-88.
 
 **Die drei lehrreichsten Funde:**
 
@@ -31,10 +30,17 @@ und letzter Schritt).
    Mai-Audits hielten acht; die zwei *teilweise* falschen fassten je mehrere
    Aussagen zusammen, und die Mehrheit traf zu — daran sind sie schwer zu
    widerlegen.
-3. **Mein eigenes Lagebild verschluckte einen Eintrag.** L-80 fiel seit jeher
-   aus der Zählung, weil sein Beleg ein maskiertes `\|` trug und der Ausdruck
-   `[^|]*` verlangte. Die Gesamtzahl sah dabei immer plausibel aus. Siehe
-   [[messfehler_eigene_zahlen]].
+3. **Mein eigenes Lagebild log zweimal.** L-80 fiel seit jeher aus der Zählung
+   (maskiertes `\|` im Beleg), L-84 zählte als offen, obwohl geschlossen (fehlende
+   Durchstreichung). Beide Male sah die Gesamtzahl plausibel aus. Das Skript
+   bricht jetzt ab bzw. warnt. Siehe [[messfehler_eigene_zahlen]].
+4. **Zwei Zahlen waren zu hoch, weil das Werkzeug enger maß als die Wirklichkeit.**
+   „44 npm-Befunde" → 40 davon sind Bauwerkzeug, seit dem Router-Sprung erreicht
+   **keiner** den Besucher. „120 Routen ohne Prüfung" → tatsächlich 85: Der Rest
+   wird vom **Router** gesperrt, während die Signatur `require_any_auth` nennt.
+   Dieselbe Verwechslung erzeugte einen Fehlalarm (L-87), den erst ein Test
+   widerlegte. Werkzeuge dafür: `tools/npm-befunde-einordnen.py`,
+   `tools/schwacher-zugriffsschutz.py`.
 
 **Was bei David liegt** — in dieser Reihenfolge:
 - PR #45 mergen (Abrechnungsdaten waren für jeden Angemeldeten lesbar, CI grün)

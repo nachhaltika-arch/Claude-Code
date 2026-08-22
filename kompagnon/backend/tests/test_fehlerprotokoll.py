@@ -176,6 +176,18 @@ def test_eine_unbehandelte_ausnahme_landet_im_protokoll(client, app):
     except ValueError:
         # Der TestClient reicht die Ausnahme durch, der Handler lief trotzdem.
         pass
+    finally:
+        # **Die Route wieder abhaengen (22.08.2026).** Sie blieb bisher fuer
+        # den Rest des Laufs in der Anwendung stehen. Wer danach an der
+        # geladenen App misst — `tools/schwacher-zugriffsschutz.py`, der
+        # Bestandswaechter aus L-67 —, zaehlt sie mit und findet eine Route
+        # ohne Anmeldepruefung, die es gar nicht gibt. Genau daran ist der
+        # Waechter beim ersten Gesamtlauf gescheitert: 50 statt 49, und die
+        # ueberzaehlige hiess `/api/testroute-die-kracht`.
+        app.router.routes = [
+            r for r in app.router.routes
+            if getattr(r, "path", "") != "/api/testroute-die-kracht"
+        ]
 
     db = SessionLocal()
     try:

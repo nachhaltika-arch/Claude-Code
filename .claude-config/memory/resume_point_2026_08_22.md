@@ -12,12 +12,13 @@ Tag der Nachprüfungen: Fast jeder geschlossene Punkt kam heraus, weil eine
 frühere Meldung „erledigt" zu früh war — und der Grund war jedes Mal derselbe:
 Das Werkzeug maß enger als der Befund reichte.
 
-**Was geschlossen wurde** (Lagebild: 70 Lücken, 22 offen, 5 teilweise, 43 zu):
+**Was geschlossen wurde** (Lagebild: 71 Lücken, 22 offen, 5 teilweise, 44 zu):
 L-78, L-79 (Freigabe-Knopf ohne `onClick`), L-19, L-54, L-84 (Kanalwirkung),
 L-83 (benannte Ansichten), L-82 (Verlauf eines Betriebs), L-29 (dritte feste
 Preisliste — **im Beleg des Kunden**), L-65 Teil A, L-38 (alle Haken geprüft),
 L-86 (UTM ging beim Absenden verloren), L-80 (Wurzel 63 → 16), L-05, L-08
-(react-router 6.20 → 7.18.2, Playwright grün), L-09, L-87, L-88.
+(react-router 6.20 → 7.18.2, Playwright grün), L-09, L-87, L-88, L-89.
+Dazu drei Durchgänge durch L-67: schwach geschützte Routen 120 → 52.
 
 **Die drei lehrreichsten Funde:**
 
@@ -34,7 +35,12 @@ L-86 (UTM ging beim Absenden verloren), L-80 (Wurzel 63 → 16), L-05, L-08
    (maskiertes `\|` im Beleg), L-84 zählte als offen, obwohl geschlossen (fehlende
    Durchstreichung). Beide Male sah die Gesamtzahl plausibel aus. Das Skript
    bricht jetzt ab bzw. warnt. Siehe [[messfehler_eigene_zahlen]].
-4. **Zwei Zahlen waren zu hoch, weil das Werkzeug enger maß als die Wirklichkeit.**
+4. **Zwei latente Testfallen (L-89).** `test_mit_dem_recht_geht_es_weiter` rief
+   `DELETE /api/admin/users/1` **wirklich** auf; ein zweiter Test löschte den
+   Betrieb des geteilten Testkunden. Beide waren harmlos, solange die IDs zufällig
+   passten — und rissen dann Tests in ganz anderen Dateien mit 401 um. Ein Test,
+   der geteilten Zustand anfasst, ist eine Falle mit Zeitzünder.
+5. **Zwei Zahlen waren zu hoch, weil das Werkzeug enger maß als die Wirklichkeit.**
    „44 npm-Befunde" → 40 davon sind Bauwerkzeug, seit dem Router-Sprung erreicht
    **keiner** den Besucher. „120 Routen ohne Prüfung" → tatsächlich 85: Der Rest
    wird vom **Router** gesperrt, während die Signatur `require_any_auth` nennt.

@@ -72,7 +72,7 @@ class SettingsUpdate(BaseModel):
     settings: Dict[str, str]
 
 
-@router.get("/settings")
+@router.get("/settings", dependencies=[Depends(verlangt_recht("view_settings"))])
 def get_settings(admin=Depends(require_admin), db: Session = Depends(get_db)):
     rows = db.query(SystemSettings).all()
     return {r.key: r.value for r in rows}

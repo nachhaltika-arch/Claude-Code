@@ -147,3 +147,57 @@ class TestWirkung:
 
         # Assert
         assert hat_recht("superadmin", "view_users") is True
+
+
+# ── Fuenfter Schritt: view_settings (22.08.2026) ─────────────────────
+#
+# Derselbe enge Massstab wie bei den drei vom 21.08.: Ein Recht kommt nur
+# dazu, wenn die heutige Sperre der Route **genau** der Vorgabe entspricht.
+# `GET /api/admin/settings` traegt `require_admin` (superadmin, admin),
+# `DEFAULT_PERMISSIONS` gibt `view_settings` an dieselben zwei. Das
+# Durchsetzen ist damit additiv — es nimmt niemandem etwas weg, es macht den
+# Haken im Bildschirm „Rollen" wirksam.
+#
+# **Nicht dazugekommen und warum:** `create_audits` haette laut Vorgabe
+# superadmin, admin und auditor — die Route dahinter (`POST /api/audit/start`)
+# ist aber der **oeffentliche** Widget-Weg mit Mengengrenze statt Rollenpruefung.
+# Da deckt sich nichts; das gehoert eigens gemessen, so wie `download_pdf`,
+# `view_audits` und `view_dashboard`.
+
+
+def test_view_settings_wirkt_wirklich(client, auth_headers, app):
+    """Wer das Recht entzieht, kommt nicht mehr an die Einstellungen.
+
+    Das ist der Unterschied zwischen einem Haken, der etwas tut, und einem,
+    der nur dasteht — und genau der ist L-05.
+    """
+    from sqlalchemy import text
+    from database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        db.execute(text(
+            "INSERT INTO role_permissions (role, permission, is_allowed) "
+            "VALUES ('admin', 'view_settings', false) "
+            "ON CONFLICT (role, permission) DO UPDATE SET is_allowed = false"))
+        db.commit()
+
+        gesperrt = client.get("/api/admin/settings", headers=auth_headers)
+
+        db.execute(text(
+            "UPDATE role_permissions SET is_allowed = true "
+            "WHERE role = 'admin' AND permission = 'view_settings'"))
+        db.commit()
+
+        wieder_frei = client.get("/api/admin/settings", headers=auth_headers)
+    finally:
+        db.close()
+
+    assert gesperrt.status_code == 403, "der entzogene Haken wirkte nicht"
+    assert wieder_frei.status_code == 200, "der gesetzte Haken sperrt aus"
+
+
+def test_view_settings_gilt_als_durchgesetzt():
+    from services.rechte import DURCHGESETZTE_RECHTE
+
+    assert "view_settings" in DURCHGESETZTE_RECHTE

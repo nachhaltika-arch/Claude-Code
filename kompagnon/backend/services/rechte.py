@@ -48,6 +48,10 @@ DURCHGESETZTE_RECHTE = frozenset({
     # `GET /api/invoices/my` war daneben korrekt gebaut und bleibt offen.
     "view_billing",             # GET /api/retainer, /api/invoices, .../pdf
     "manage_billing",           # POST/PUT auf beide Bestaende
+    # `GET /api/admin/settings` traegt `require_admin` (superadmin, admin),
+    # die Vorgabe gibt `view_settings` an dieselben zwei. Additiv wie die
+    # drei vom 21.08.: Es nimmt niemandem etwas weg.
+    "view_settings",            # GET /api/admin/settings
     #
     # **Nicht** dazugenommen, weil es eine Verhaltensaenderung waere:
     # `manage_projects` hat laut Vorgabe nur superadmin und admin, die

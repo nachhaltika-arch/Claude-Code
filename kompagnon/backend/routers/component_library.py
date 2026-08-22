@@ -1583,7 +1583,7 @@ class WireframeData(BaseModel):
 def get_wireframe(
     project_id: int,
     db: Session = Depends(get_db),
-    user=Depends(require_any_auth),
+    user=Depends(require_innendienst),
 ):
     """Gespeicherten Wireframe abrufen. Leere Struktur wenn noch nichts."""
     proj = db.query(Project).filter(Project.id == project_id).first()
@@ -1597,7 +1597,7 @@ def save_wireframe(
     project_id: int,
     data: WireframeData,
     db: Session = Depends(get_db),
-    user=Depends(require_any_auth),
+    user=Depends(require_innendienst),
 ):
     """Manueller Save (Block-Tausch im UI, ohne KI).
 
@@ -1624,7 +1624,29 @@ def save_wireframe(
                     **befund,
                 })
 
-    proj.wireframe_data = data.dict()
+    # **Ein weggelassenes Feld loescht nichts (L-88).** `WireframeData` fuehrt
+    # drei Felder, und wer nur `pages` schickt, bekam fuer die anderen die
+    # Vorgaben — `None` und `False`. Genau das tat die Oberflaeche an fuenf
+    # von sieben Speicherstellen: Ein Blocktausch loeschte den kompletten
+    # Style-Guide samt der Freigabe, die das Tor zur DesignView ist.
+    # Stillschweigend; beim naechsten Aufruf sah die Seite einfach anders aus.
+    #
+    # Die Oberflaeche ist repariert, aber die naechste Speicherstelle kommt
+    # bestimmt — wer sie schreibt, denkt an `pages`; an einen Style-Guide, den
+    # er nicht anfasst, denkt niemand. Deshalb steht die Sperre hier.
+    #
+    # `exclude_unset` unterscheidet **nicht geschickt** von **absichtlich
+    # zurueckgenommen**: Wer `style_guide_approved: false` schickt, nimmt die
+    # Freigabe zurueck, und das muss gehen — sonst waere sie unwiderruflich.
+    geschickt = data.model_dump(exclude_unset=True)
+    bisher = proj.wireframe_data if isinstance(proj.wireframe_data, dict) else {}
+
+    zusammengefuehrt = {**bisher, **geschickt}
+    # `pages` ist das eine Feld, das immer der Absender bestimmt: Eine leere
+    # Seitenliste ist eine Aussage, kein Weglassen.
+    zusammengefuehrt["pages"] = data.model_dump()["pages"]
+
+    proj.wireframe_data = zusammengefuehrt
     db.commit()
     return {"status": "saved", "page_count": len(data.pages)}
 
@@ -1632,7 +1654,7 @@ def save_wireframe(
 # Polling-Endpoint fuer KI-Jobs unter /wireframe-jobs/ — eindeutiger Pfad,
 # damit FastAPI nicht mit /{project_id}/wireframe kollidiert.
 @wireframe_router.get("/wireframe-jobs/{job_id}")
-def get_wireframe_job(job_id: str, user=Depends(require_any_auth)):
+def get_wireframe_job(job_id: str, user=Depends(require_innendienst)):
     """Polling fuer KI-Job. Cleanup nach erstem Read von done/error."""
     job = _wireframe_jobs.get(job_id)
     if not job:
@@ -1648,7 +1670,7 @@ def get_wireframe_job(job_id: str, user=Depends(require_any_auth)):
 def generate_wireframe(
     project_id: int,
     db: Session = Depends(get_db),
-    user=Depends(require_any_auth),
+    user=Depends(require_innendienst),
 ):
     """Startet KI-Wireframe-Generierung als Background-Job.
 
@@ -1687,7 +1709,7 @@ class VarianteRequest(BaseModel):
 
 
 @wireframe_router.get("/wireframe-variant-jobs/{job_id}")
-def get_variant_job(job_id: str, user=Depends(require_any_auth)):
+def get_variant_job(job_id: str, user=Depends(require_innendienst)):
     """Polling fuer den Varianten-Auftrag. Cleanup nach dem ersten Abholen."""
     job = _variant_jobs.get(job_id)
     if not job:
@@ -1702,7 +1724,7 @@ def generate_variant(
     project_id: int,
     body: VarianteRequest,
     db: Session = Depends(get_db),
-    user=Depends(require_any_auth),
+    user=Depends(require_innendienst),
 ):
     """Startet das Umschreiben eines Blocks fuer diesen Kunden.
 
@@ -1786,7 +1808,7 @@ class KompositionRequest(BaseModel):
 
 
 @wireframe_router.get("/wireframe-compose-jobs/{job_id}")
-def get_compose_job(job_id: str, user=Depends(require_any_auth)):
+def get_compose_job(job_id: str, user=Depends(require_innendienst)):
     """Polling fuer den Kompositions-Auftrag."""
     job = _compose_jobs.get(job_id)
     if not job:
@@ -1801,7 +1823,7 @@ def compose_page(
     project_id: int,
     body: KompositionRequest,
     db: Session = Depends(get_db),
-    user=Depends(require_any_auth),
+    user=Depends(require_innendienst),
 ):
     """Schlaegt eine Abfolge fuer diese Seite vor.
 

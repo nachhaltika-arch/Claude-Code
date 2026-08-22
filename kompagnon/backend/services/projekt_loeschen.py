@@ -63,7 +63,7 @@ def tabelle_vorhanden(db: Session, name: str) -> bool:
     """Ob es die Tabelle in dieser Datenbank gibt.
 
     Ein Teil des Schemas entsteht erst beim Start in
-    `main.py::_run_migrations`. Wer davon ausgeht, dass alles da ist, bricht
+    `migrations_runtime.py::run_migrations`. Wer davon ausgeht, dass alles da ist, bricht
     die Transaktion ab, sobald es das nicht ist.
     """
     return name in set(inspect(db.get_bind()).get_table_names())
@@ -72,7 +72,7 @@ def tabelle_vorhanden(db: Session, name: str) -> bool:
 def _tabellen_mit_projektverweis(db: Session) -> frozenset:
     """Welche der genannten Tabellen es hier wirklich gibt.
 
-    Ein Teil entsteht erst zur Laufzeit in `main.py::_run_migrations` und
+    Ein Teil entsteht erst zur Laufzeit in `migrations_runtime.py::run_migrations` und
     fehlt je nach Datenbank. Fehlende werden übersprungen statt die
     Transaktion abzubrechen — wie im SQL-Skript über `to_regclass`.
     """

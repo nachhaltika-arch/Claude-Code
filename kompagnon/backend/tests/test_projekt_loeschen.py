@@ -38,7 +38,7 @@ def betrieb_id(app):
 
 
 # `email_logs` steht nicht im Modell — die Tabelle entsteht erst beim Start in
-# `main.py::_run_migrations`, und den lässt die Testeinrichtung bewusst aus.
+# `migrations_runtime.py::run_migrations`, und den lässt die Testeinrichtung bewusst aus.
 # Für diesen Test wird sie deshalb angelegt: Genau an ihr hängt die Frage, ob
 # das Versandprotokoll ein Löschen überlebt.
 EMAIL_LOGS_DDL = """

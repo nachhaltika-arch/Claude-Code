@@ -17,7 +17,7 @@ import pytest
 
 
 # `content_freigaben` steht nicht im Modell — die Spalte kommt erst beim Start
-# aus `main.py::_run_migrations`, und den lässt die Testeinrichtung aus.
+# aus `migrations_runtime.py::run_migrations`, und den lässt die Testeinrichtung aus.
 SPALTE_NACHZIEHEN = (
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_freigaben TEXT"
 )

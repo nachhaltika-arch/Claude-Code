@@ -182,7 +182,7 @@ QUELLEN = {
 #: Dasselbe bei `Audit` gegen `audit`.
 #:
 #: Die Zuordnung wird beim Lesen angewandt **und** einmalig auf den Bestand
-#: (`main.py::_run_migrations`), damit alte Zeilen nicht auf ewig danebenstehen.
+#: (`migrations_runtime.py::run_migrations`), damit alte Zeilen nicht auf ewig danebenstehen.
 SCHREIBWEISEN = {
     "Manuell": "manual",
     "Audit": "audit",

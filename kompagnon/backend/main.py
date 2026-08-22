@@ -581,6 +581,15 @@ app.include_router(leads_kunden_router)
 # und ueberdeckte ihn samt seiner Antwortform.
 app.include_router(customers_router)
 app.include_router(projects_router)
+
+# **Ausdruecklich einbinden, nicht dem Zufall ueberlassen (L-25, 22.08.2026).**
+# `projects_erhebung` und `projects_anlegen` haengen am selben Router aus
+# `projects_router.py`; ihre Routen registrieren sich beim **Import** des
+# Moduls. Ohne diese Zeilen waeren sie trotzdem da — weil `projects.py` die
+# Go-live-Kette holt und damit die Kette anstoesst. Genau das ist die stille
+# Kopplung, die man nicht will: Naehme jemand diesen einen Import weg,
+# verschwaenden elf Routen, und keine Meldung sagte es.
+from routers import projects_anlegen, projects_erhebung  # noqa: F401
 # Freigabe des Kunden über den Link aus der E-Mail. Alles andere hängt am
 # `projects_router` und verlangt eine Anmeldung.
 from routers.projects import public_router as projects_public_router

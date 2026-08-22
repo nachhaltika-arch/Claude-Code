@@ -32,6 +32,7 @@ import logging
 import os
 import uuid
 from services.ratenbegrenzung import lead_grenzen
+from services.lead_verlauf import verlauf_bauen
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +255,25 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         import logging
         logging.getLogger('leads').error(f'Lead create error: {type(e).__name__}: {e}')
         raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
+
+
+@router.get("/{lead_id}/verlauf")
+def lead_verlauf(lead_id: int, limit: int = Query(20, ge=1, le=50),
+                 db: Session = Depends(get_db)):
+    """Was bei diesem Betrieb zuletzt geschah — aus allen Quellen (L-82).
+
+    Die Ereignisse liegen in fuenf Tabellen, und keine Stelle fuehrte sie
+    zusammen; auf der Betriebsseite hiess das drei Reiter fuer eine Frage, die
+    man beim Anruf in einer Sekunde beantwortet haben will.
+
+    Ein unbekannter Betrieb ist **404**, kein leerer Verlauf: Sonst sieht ein
+    Tippfehler in der Kennung aus wie ein Betrieb, bei dem noch nichts war.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    return verlauf_bauen(db, lead, limit=limit)
 
 
 @router.get("/quellen/wirkung")

@@ -658,6 +658,13 @@ from routers import sitemap
 app.include_router(sitemap.router)
 app.include_router(sitemap.pages_router)
 
+# Erzeugen und Austausch liegen seit dem 22.08.2026 in eigenen Dateien
+# (L-25): sieben Routen, die ein Modell fragen, und der Weg hinein und
+# hinaus. Beide holen die geteilten Helfer aus `sitemap.py`.
+from routers import sitemap_austausch, sitemap_erzeugen
+app.include_router(sitemap_erzeugen.router)
+app.include_router(sitemap_austausch.router)
+
 from routers import content
 app.include_router(content.router)
 

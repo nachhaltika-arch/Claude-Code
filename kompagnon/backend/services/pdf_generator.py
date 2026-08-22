@@ -3,6 +3,9 @@ PDF Audit Report Generator — Homepage Standard 2025
 Generates a professional multi-page PDF using ReportLab.
 """
 import json
+from services.pdf_stil import BASE_TABLE_STYLE, FONT_BOLD, FONT_NORMAL, KC_BORDER, KC_DANGER, KC_DARK, KC_LIGHT, KC_TEXT_60, KC_WHITE, _clean_text, _get_styles, _register_fonts, _stil_ohne_kopfzeile
+from services.pdf_kataloge import KatalogFehlt, LEGAL_COL_WIDTHS, LEGAL_ROWS, STATUS_ERFUELLT, STATUS_OFFEN, STATUS_UNBEKANNT, geo_pruefpunkte, rechtstabelle_zellen, roadmap_massnahmen
+from services.pdf_diagramme import _stufen_abzeichen, generate_donut_chart, generate_radar_chart
 import logging
 import os
 import unicodedata
@@ -38,126 +41,24 @@ SOURCE_SHORT = {
 }
 
 
-class KatalogFehlt(ValueError):
-    """Das Audit stammt aus dem früheren Katalog und hat keine Einzelwerte."""
 
 
 # ═══════════════════════════════════════════════════════════
 # Schriftregistrierung
 # ═══════════════════════════════════════════════════════════
 
-# Noto Sans liegt im Repo unter assets/fonts. Das ist die Schrift der CI, und
-# als einzige deckt sie ab, was in diesem Bericht vorkommt.
-#
-# Vorher stand hier die Suche nach DejaVu mit dem Kommentar „for full
-# Unicode/Umlaut support". Reportlab 4 liefert DejaVu aber nicht mehr mit, der
-# Aufruf lief jedes Mal in den Fehlerzweig, und jedes bisher erzeugte PDF ist
-# in Helvetica gesetzt. Das mitgelieferte Vera waere greifbar gewesen, kennt
-# aber den Pfeil in „HTTP→HTTPS erzwungen" nicht.
-SCHRIFT_ORDNER = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
 
 
-def _register_fonts():
-    """Registriert Noto Sans; faellt zurueck, wenn die Dateien fehlen.
-
-    Die Rueckfallkette ist bewusst kurz und endet bei Helvetica. Sie greift
-    nur, wenn jemand die TTFs aus dem Repo entfernt — dann sieht das PDF
-    anders aus, bleibt aber lesbar, statt beim Erzeugen zu scheitern.
-    """
-    import reportlab
-
-    reportlab_fonts = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
-    kandidaten = [
-        (SCHRIFT_ORDNER, "NotoSans", "NotoSans-Regular.ttf", "NotoSans-Bold.ttf"),
-        (reportlab_fonts, "DejaVu", "DejaVuSans.ttf", "DejaVuSans-Bold.ttf"),
-    ]
-    for ordner, name, normal, fett in kandidaten:
-        try:
-            pdfmetrics.registerFont(TTFont(name, os.path.join(ordner, normal)))
-            pdfmetrics.registerFont(TTFont(f"{name}-Bold", os.path.join(ordner, fett)))
-            pdfmetrics.registerFontFamily(name, normal=name, bold=f"{name}-Bold")
-            return name, f"{name}-Bold"
-        except Exception as e:  # noqa: BLE001 — naechster Kandidat
-            logger.warning(f"Schrift {name} nicht nutzbar: {e}")
-            continue
-
-    logger.warning("Keine TrueType-Schrift gefunden — PDF faellt auf Helvetica "
-                   "zurueck; Sonderzeichen wie → fehlen dort.")
-    return "Helvetica", "Helvetica-Bold"
-
-FONT_NORMAL, FONT_BOLD = _register_fonts()
 
 
-# Zeichen, die keine der in Frage kommenden Schriften hat, mit dem naechsten
-# lesbaren Ersatz. Der Pfeil steht im Kriterium „HTTP→HTTPS erzwungen" und
-# verschwand in Noto Sans spurlos — mitten im Wort, ohne Fehlermeldung.
-ZEICHEN_ERSATZ = {
-    "→": "->", "←": "<-", "↔": "<->", "⇒": "=>", "⇐": "<=",
-    "↑": "^", "↓": "v",
-    "✓": "+", "✔": "+", "✗": "x", "✘": "x",
-    "●": "*", "◐": "*", "○": "-", "▪": "-", "▸": ">",
-    "≥": ">=", "≤": "<=", "≠": "!=", "≈": "~",
-    "…": "...", "™": "(TM)", "№": "Nr.",
-}
 
 
-def _unterstuetzte_zeichen() -> set:
-    """Welche Zeichen die gewaehlte Schrift tatsaechlich zeichnen kann."""
-    try:
-        for name in (FONT_NORMAL, FONT_BOLD):
-            schrift = pdfmetrics.getFont(name)
-            tabelle = getattr(getattr(schrift, "face", None), "charToGlyph", None)
-            if tabelle:
-                return set(tabelle)
-    except Exception:  # noqa: BLE001
-        pass
-    # Helvetica & Co. sind Type-1-Schriften ohne cmap. Sie koennen genau das,
-    # was WinAnsi (cp1252) abdeckt.
-    zeichen = set()
-    for code in range(0x20, 0x2200):
-        try:
-            chr(code).encode("cp1252")
-        except UnicodeEncodeError:
-            continue
-        zeichen.add(code)
-    return zeichen
 
 
-ZEICHENVORRAT = _unterstuetzte_zeichen()
 
 
-def _clean_text(text):
-    """Normalisiert Text und ersetzt, was die Schrift nicht zeichnen kann.
 
-    Ohne diesen Schritt fehlt ein nicht vorhandenes Zeichen im PDF einfach —
-    kein Kaestchen, keine Warnung, nur eine Luecke mitten im Wort. Das trifft
-    nicht nur feste Beschriftungen: Zusammenfassung, Mangelliste und
-    Empfehlungen kommen aus der KI und koennen jedes Zeichen enthalten.
-    """
-    if not text:
-        return ""
-    if not isinstance(text, str):
-        text = str(text)
-    text = unicodedata.normalize("NFC", text)
 
-    if all(ord(z) in ZEICHENVORRAT for z in text):
-        return text
-
-    heraus = []
-    for zeichen in text:
-        if ord(zeichen) in ZEICHENVORRAT:
-            heraus.append(zeichen)
-            continue
-        ersatz = ZEICHEN_ERSATZ.get(zeichen)
-        if ersatz is None:
-            # Zerlegen hilft bei zusammengesetzten Zeichen; bleibt danach
-            # etwas Unzeichenbares uebrig, faellt es weg.
-            ersatz = "".join(
-                z for z in unicodedata.normalize("NFKD", zeichen)
-                if ord(z) in ZEICHENVORRAT)
-        heraus.append(ersatz)
-    return "".join(heraus)
 
 # ═══════════════════════════════════════════════════════════
 # Colors
@@ -169,101 +70,18 @@ def _clean_text(text):
 # verschiedenen Absendern aus.
 from services import brand  # noqa: E402
 
-KC_DARK = colors.HexColor(brand.DARK)
 KC_MID = colors.HexColor(brand.MID)
 KC_YELLOW = colors.HexColor(brand.YELLOW)
-KC_LIGHT = colors.HexColor(brand.SURFACE)
-KC_WHITE = colors.white
-KC_BORDER = colors.HexColor(brand.BORDER)
-KC_TEXT = colors.HexColor(brand.TEXT)
-KC_TEXT_60 = colors.HexColor(brand.TEXT_60)
 KC_SUCCESS = colors.HexColor(brand.SUCCESS)
 KC_WARNING = colors.HexColor(brand.WARN)
-KC_DANGER = colors.HexColor(brand.ERROR)
 KC_ROT = KC_DANGER
 KC_ERROR_BG = colors.HexColor(brand.ERROR_BG)
 
-# Die Stufe als Medaillenton — aber nur als schmaler Balken neben dem
-# Abzeichen, nicht als dessen Flaeche. Als Flaeche trug sie weisse Schrift:
-# auf Silber (#C0C0C0) und Gold (#FFD700) war die Stufe praktisch unlesbar.
-LEVEL_ACCENTS = {
-    "Homepage Standard Platin": colors.HexColor("#8E9BA6"),
-    "Homepage Standard Gold": colors.HexColor("#C9A227"),
-    "Homepage Standard Silber": colors.HexColor("#9AA5AC"),
-    "Homepage Standard Bronze": colors.HexColor("#B0763A"),
-    "Nicht konform": KC_DANGER,
-}
 
 # ═══════════════════════════════════════════════════════════
 # Styles
 # ═══════════════════════════════════════════════════════════
 
-def _get_styles():
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        "KCTitle", parent=styles["Title"],
-        fontName=FONT_BOLD, fontSize=28, leading=34,
-        textColor=KC_DARK, alignment=TA_CENTER, spaceAfter=6*mm,
-    ))
-    styles.add(ParagraphStyle(
-        "KCSubtitle", parent=styles["Normal"],
-        fontName=FONT_NORMAL, fontSize=14, leading=18,
-        textColor=KC_TEXT_60, alignment=TA_CENTER, spaceAfter=10*mm,
-    ))
-    styles.add(ParagraphStyle(
-        "KCHeading", parent=styles["Heading2"],
-        fontName=FONT_BOLD, fontSize=16, leading=20,
-        textColor=KC_DARK, spaceBefore=8*mm, spaceAfter=4*mm,
-    ))
-    styles.add(ParagraphStyle(
-        "KCBody", parent=styles["Normal"],
-        fontName=FONT_NORMAL, fontSize=10, leading=14,
-        textColor=KC_DARK, spaceAfter=3*mm,
-    ))
-    styles.add(ParagraphStyle(
-        "KCSmall", parent=styles["Normal"],
-        fontName=FONT_NORMAL, fontSize=8, leading=10,
-        textColor=KC_TEXT_60,
-    ))
-    styles.add(ParagraphStyle(
-        "KCCenter", parent=styles["Normal"],
-        fontName=FONT_NORMAL, fontSize=10, leading=14,
-        textColor=KC_DARK, alignment=TA_CENTER,
-    ))
-    # Tabellenzellen, die umbrechen muessen. Groesse, Schrift und Farbe wie in
-    # BASE_TABLE_STYLE, damit eine umbrechende Zelle neben einer rohen nicht
-    # auffaellt. Die Farbe ist KC_TEXT (schwarz) und nicht KC_DARK: Der Stil
-    # setzt fuer den Tabellenkoerper keine Textfarbe, es gilt also Schwarz —
-    # mit KC_DARK stand die umbrochene Zelle sichtbar in Teal daneben.
-    styles.add(ParagraphStyle(
-        "KCZelle", parent=styles["Normal"],
-        fontName=FONT_NORMAL, fontSize=9, leading=11,
-        textColor=KC_TEXT,
-    ))
-    styles.add(ParagraphStyle(
-        "KCZelleKopf", parent=styles["Normal"],
-        fontName=FONT_BOLD, fontSize=9, leading=11,
-        textColor=KC_WHITE,
-    ))
-    styles.add(ParagraphStyle(
-        "KCBold", parent=styles["Normal"],
-        fontName=FONT_BOLD, fontSize=10, leading=14,
-        textColor=KC_DARK,
-    ))
-    # Eigener Stil fuer die grosse Zahl. Sie stand vorher als <font size="48">
-    # in einem Absatz mit leading=14 — die Glyphen liefen aus der Zeilenbox
-    # und wurden vom naechsten Element ueberzeichnet.
-    styles.add(ParagraphStyle(
-        "KCScore", parent=styles["Normal"],
-        fontName=FONT_BOLD, fontSize=52, leading=60,
-        textColor=KC_DARK, alignment=TA_CENTER,
-    ))
-    styles.add(ParagraphStyle(
-        "KCWortmarke", parent=styles["Normal"],
-        fontName=FONT_BOLD, fontSize=11, leading=14,
-        textColor=KC_WHITE, alignment=TA_CENTER,
-    ))
-    return styles
 
 
 def _marken_band(styles) -> Table:
@@ -288,31 +106,6 @@ def _marken_band(styles) -> Table:
     return band
 
 
-def _stufen_abzeichen(level: str) -> Table:
-    """Die erreichte Stufe.
-
-    Die Flaeche war frueher der Medaillenton mit weisser Schrift — auf Silber
-    (#C0C0C0) und Gold (#FFD700) war die Stufe damit kaum zu lesen. Jetzt
-    traegt sie Pantone 3165 mit weisser Schrift, und der Medaillenton steht
-    als schmaler Balken davor.
-    """
-    akzent = LEVEL_ACCENTS.get(level, KC_DANGER)
-    text = Paragraph(
-        f'<font color="{KC_WHITE.hexval()}"><b>{_clean_text(level)}</b></font>',
-        ParagraphStyle("abzeichen", fontName=FONT_BOLD, fontSize=14,
-                       leading=18, alignment=TA_CENTER, textColor=KC_WHITE))
-    tabelle = Table([["", text]], colWidths=[5*mm, 115*mm])
-    tabelle.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, 0), akzent),
-        ("BACKGROUND", (1, 0), (1, 0), KC_DARK),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("LEFTPADDING", (0, 0), (0, 0), 0),
-        ("RIGHTPADDING", (0, 0), (0, 0), 0),
-    ]))
-    tabelle.hAlign = "CENTER"
-    return tabelle
 
 
 # ═══════════════════════════════════════════════════════════
@@ -380,198 +173,22 @@ def _parse_json_field(val):
 # Table helpers
 # ═══════════════════════════════════════════════════════════
 
-BASE_TABLE_STYLE = [
-    ("FONTNAME", (0, 0), (-1, 0), FONT_BOLD),
-    ("FONTSIZE", (0, 0), (-1, 0), 9),
-    ("FONTSIZE", (0, 1), (-1, -1), 9),
-    ("FONTNAME", (0, 1), (-1, -1), FONT_NORMAL),
-    ("BACKGROUND", (0, 0), (-1, 0), KC_DARK),
-    ("TEXTCOLOR", (0, 0), (-1, 0), KC_WHITE),
-    ("ALIGN", (0, 0), (-1, 0), "LEFT"),
-    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ("GRID", (0, 0), (-1, -1), 0.5, KC_BORDER),
-    ("TOPPADDING", (0, 0), (-1, -1), 4),
-    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ("LEFTPADDING", (0, 0), (-1, -1), 6),
-    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-]
 
 
-def _stil_ohne_kopfzeile(zeilen: int) -> list:
-    """Stil fuer Tabellen, deren erste Zeile schon Inhalt ist.
-
-    ``BASE_TABLE_STYLE`` faerbt Zeile 0 als Kopf: dunkle Flaeche, weisse
-    Schrift. Wo die erste Zeile aber ein echter Wert ist, legte die
-    Zebra-Schleife danach noch eine helle Flaeche darueber — weisse Schrift
-    auf Hellgrau. Im Auditprotokoll war die erste Zeile („Website-URL") damit
-    schlicht nicht zu lesen.
-    """
-    stil = [
-        ("FONTNAME", (0, 0), (0, -1), FONT_BOLD),
-        ("FONTNAME", (1, 0), (-1, -1), FONT_NORMAL),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("TEXTCOLOR", (0, 0), (-1, -1), KC_TEXT),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -1), 0.5, KC_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-    ]
-    for i in range(zeilen):
-        if i % 2 == 0:
-            stil.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
-    return stil
 
 
-LEGAL_HEADER = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
-
-# Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz abgeloest.
-# Der Kriterienkatalog nennt laengst „§ 5 DDG"; das PDF widersprach ihm auf
-# derselben Seite.
-LEGAL_ROWS = [
-    ["DDG § 5 – Impressumspflicht", "seit 14.05.2024 (zuvor TMG § 5)",
-     "Alle komm. Websites", "Abmahnung bis 50.000 €"],
-    ["DSGVO – Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bußgeld bis 20 Mio €"],
-    ["TDDDG §25 – Cookie", "2021/2023", "Websites mit Tracking", "Bußgeld, Abmahnungen"],
-    ["BFSG – Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bußgeld"],
-    ["WCAG 2.1 Level AA", "laufend", "Technische Umsetzung", "Grundlage BFSG"],
-    ["Google Core Web Vitals", "Mai 2021", "Alle Websites", "Sichtbarkeitsverlust"],
-]
-
-# „Pflicht seit" war mit 25 mm die engste Spalte und traegt den laengsten
-# Wert. 32 mm halten die Zeilenhoehe niedrig und bleiben mit 167 mm noch
-# innerhalb der 170 mm Satzbreite (A4 minus je 20 mm Rand).
-LEGAL_COL_WIDTHS = [45*mm, 32*mm, 45*mm, 45*mm]
 
 
-def rechtstabelle_zellen():
-    """Die Zellen der Rechtstabelle — zu breite als umbrechender Absatz.
-
-    reportlab bricht eine rohe Zeichenkette in einer Tabellenzelle nicht um,
-    sie laeuft ueber die Spaltengrenze weiter. Im Bericht vom 15.08.2026 druckte
-    sich so „seit 14.05.2024 (zuvor TMG § 5)" ueber „Alle kommerziellen
-    Websites" in der Nachbarspalte; beide Angaben waren unlesbar.
-
-    Nur ein ``Paragraph`` bricht um. Er kostet etwas Hoehe, deshalb bekommt ihn
-    nur, wer ihn braucht — gemessen, nicht geraten, damit auch spaeter
-    ergaenzte Zeilen richtig gesetzt werden.
-    """
-    from reportlab.pdfbase.pdfmetrics import stringWidth
-
-    styles = _get_styles()
-    innenabstand = 12  # LEFTPADDING + RIGHTPADDING aus BASE_TABLE_STYLE
-
-    def zelle(text, breite, kopfzeile):
-        schrift = FONT_BOLD if kopfzeile else FONT_NORMAL
-        if stringWidth(text, schrift, 9) <= breite - innenabstand:
-            return text
-        stil = styles["KCZelleKopf"] if kopfzeile else styles["KCZelle"]
-        return Paragraph(_clean_text(text), stil)
-
-    zeilen = [[zelle(t, LEGAL_COL_WIDTHS[s], True)
-               for s, t in enumerate(LEGAL_HEADER)]]
-    zeilen += [[zelle(t, LEGAL_COL_WIDTHS[s], False) for s, t in enumerate(zeile)]
-               for zeile in LEGAL_ROWS]
-    return zeilen
 
 
-STATUS_ERFUELLT = "erfüllt"
-STATUS_OFFEN = "offen"
-STATUS_UNBEKANNT = "nicht erhoben"
 
 
-def _geo_status(wert):
-    """``None`` heisst unbekannt — und unbekannt ist nicht dasselbe wie fehlend."""
-    if wert is None:
-        return STATUS_UNBEKANNT
-    return STATUS_ERFUELLT if wert else STATUS_OFFEN
 
 
-def geo_pruefpunkte(audit_data: dict) -> list:
-    """Die Prüfpunkte der GEO-Seite — nur mit dem, was erhoben wurde.
-
-    Der Abschnitt las frueher Felder, die nie befuellt wurden (``llms_txt``,
-    ``robots_ai_friendly``, ``structured_data``, ``ai_mentions``), bekam
-    ueberall ``False`` und druckte fuer jeden Punkt eine Aufforderung — auch
-    „GPTBot nicht blockieren" an einen Betrieb, dessen robots.txt niemanden
-    sperrt. ``ai_overview`` war ausdruecklich aus einem nicht existierenden
-    Feld geraten.
-
-    Was hier ohne Messung steht, bekommt ``STATUS_UNBEKANNT`` und keine
-    Empfehlung. Die Statusworte folgen der Bewertungsmatrix; Haekchen kaeme
-    ohnehin niemand zu Gesicht, weil Helvetica ✓ und ✗ nicht kennt.
-    """
-    llms = audit_data.get("llms_txt")
-    robots_ai = audit_data.get("robots_ai_friendly")
-    strukturiert = audit_data.get("structured_data")
-    gesperrt = audit_data.get("gesperrte_ki_crawler") or []
-
-    def zeile(name, wert, aufforderung, erfuellt_text):
-        """Eine Zeile: Aufforderung nur bei gemessener Luecke, sonst ein Hinweis.
-
-        Die letzte Spalte bleibt nie leer — eine ueber alle Zeilen leere
-        Spalte liest sich als Fehler, und genau so sah der Abschnitt vorher
-        aus.
-        """
-        status = _geo_status(wert)
-        if status == STATUS_OFFEN:
-            return {"pruefpunkt": name, "status": status,
-                    "empfehlung": aufforderung, "hinweis": ""}
-        hinweis = (erfuellt_text if status == STATUS_ERFUELLT
-                   else "Nicht Teil dieser Analyse")
-        return {"pruefpunkt": name, "status": status,
-                "empfehlung": "", "hinweis": hinweis}
-
-    namen = ", ".join(gesperrt[:3]) if gesperrt else "KI-Crawler"
-
-    return [
-        zeile("llms.txt vorhanden", llms,
-              "Datei unter /llms.txt anlegen", "Vorhanden und abrufbar"),
-        zeile("robots.txt KI-freundlich", robots_ai,
-              f"Sperre für {namen} in der robots.txt aufheben",
-              "Kein KI-Crawler ausgesperrt"),
-        zeile("Strukturierte Daten", strukturiert,
-              "Schema.org-Auszeichnung ergänzen", "Schema.org vorhanden"),
-        # Fuer beide gibt es keine Erhebung. Sie bleiben im Bericht, weil der
-        # Leser wissen soll, dass es sie gibt — aber ohne Behauptung.
-        zeile("KI-Erwähnungen", None, "", ""),
-        zeile("Google AI Overview", None, "", ""),
-    ]
 
 
-def roadmap_massnahmen(audit_data: dict) -> dict:
-    """Die Maßnahmen der Roadmap — je Phase, nur was der Befund hergibt.
 
-    Die Liste war fest verdrahtet: „llms.txt anlegen", „Schema.org
-    LocalBusiness einbauen", „robots.txt: GPTBot-Blockierung entfernen"
-    standen in jedem Bericht.
-    """
-    punkte = {p["pruefpunkt"]: p for p in geo_pruefpunkte(audit_data)}
-    offen = lambda name: punkte[name]["status"] == STATUS_OFFEN  # noqa: E731
 
-    sofort = []
-    if offen("llms.txt vorhanden"):
-        sofort.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
-    if offen("Strukturierte Daten"):
-        sofort.append("Schema.org-Auszeichnung einbauen")
-    if offen("robots.txt KI-freundlich"):
-        sofort.append(punkte["robots.txt KI-freundlich"]["empfehlung"])
-
-    mittelfristig = ["Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen"]
-    if punkte["Strukturierte Daten"]["status"] == STATUS_ERFUELLT:
-        mittelfristig.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
-
-    return {
-        "sofort": sofort,
-        "mittelfristig": mittelfristig,
-        # Diese drei haengen an keiner Messung und gelten fuer jeden Betrieb.
-        "langfristig": [
-            "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
-            "Google Business Profil optimieren und regelmäßig pflegen",
-            "KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen",
-        ],
-    }
 
 
 def _category_table_style(n_rows):
@@ -613,23 +230,6 @@ def _footer(canvas_obj, doc):
 # Chart generators (matplotlib)
 # ═══════════════════════════════════════════════════════════
 
-def _matplotlib_schrift(plt) -> None:
-    """Gibt den Diagrammen dieselbe Schrift wie dem Text.
-
-    Ohne das setzt matplotlib seine eigene Standardschrift, und die
-    Achsenbeschriftung des Radars faellt sichtbar aus dem Rest heraus.
-    """
-    datei = os.path.join(SCHRIFT_ORDNER, "NotoSans-Regular.ttf")
-    if not os.path.exists(datei):
-        return
-    try:
-        from matplotlib import font_manager
-
-        font_manager.fontManager.addfont(datei)
-        plt.rcParams["font.family"] = font_manager.FontProperties(
-            fname=datei).get_name()
-    except Exception as e:  # noqa: BLE001 — Standardschrift ist kein Beinbruch
-        logger.warning(f"Diagrammschrift nicht gesetzt: {e}")
 
 
 def radar_beschriftung(label: str) -> str:
@@ -647,126 +247,8 @@ def radar_beschriftung(label: str) -> str:
     return name.strip()
 
 
-def generate_radar_chart(axes: list) -> bytes:
-    """Netzdiagramm über die Kategorien des Katalogs.
-
-    Erwartet [(Beschriftung, Wert 0-10), …] — die Achsenzahl folgt dem Katalog,
-    statt wie früher auf sechs feste Kategorien verdrahtet zu sein.
-    """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    _matplotlib_schrift(plt)
-
-    if not axes:
-        axes = [("Keine Daten", 0)]
-
-    labels = [a[0] for a in axes]
-    values = [float(a[1] or 0) for a in axes]
-
-    N = len(labels)
-    angles = [2 * math.pi * i / N for i in range(N)]
-    angles_closed = angles + [angles[0]]
-    values_closed = values + [values[0]]
-
-    fig, ax = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True))
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-
-    # Die Werte kommen als Zehntel der Zielerreichung herein (score/max*10).
-    # Die Ringe trugen deshalb „2, 4, 6, 8, 10" ohne Einheit — eine Zahl, die
-    # weder Punkte noch Prozent war. Beschriftet wird jetzt, was gemeint ist.
-    ax.set_ylim(0, 10)
-    # Fuenf Ringe, aber nur jeder zweite beschriftet: Fuenf Prozentangaben
-    # uebereinander drängten sich auf engem Raum.
-    ax.set_yticks([2, 4, 6, 8, 10])
-    ax.set_yticklabels(["20%", "", "60%", "", "100%"],
-                       fontsize=6, color=brand.TEXT_30)
-    # Die Beschriftung lag auf der ersten Achse und damit mitten in der
-    # gefuellten Flaeche. Sie wandert an die Achse mit dem kleinsten Wert —
-    # dort ist am meisten freier Raum — und bekommt einen hellen Grund.
-    # Gesucht ist nicht der kleinste Wert, sondern der schmalste Sektor: Die
-    # Beschriftung steht zwischen zwei Achsen, also zaehlt das niedrigste
-    # benachbarte Paar.
-    sektor = min(range(N), key=lambda i: values[i] + values[(i + 1) % N]) if values else 0
-    ax.set_rlabel_position(math.degrees(angles[sektor]) + 180.0 / N)
-    for beschriftung in ax.get_yticklabels():
-        beschriftung.set_bbox(dict(facecolor="white", edgecolor="none",
-                                   alpha=0.75, pad=0.8))
-    ax.yaxis.grid(True, color=brand.BORDER, linewidth=0.7)
-    ax.xaxis.grid(True, color=brand.BORDER, linewidth=0.7)
-    ax.spines["polar"].set_color(brand.BORDER)
-
-    ax.set_xticks(angles)
-    ax.set_xticklabels(labels, fontsize=6.5, color=brand.DARK)
-
-    ax.plot(angles_closed, values_closed, color=brand.DARK, linewidth=1.8)
-    ax.fill(angles_closed, values_closed, color=brand.MID, alpha=0.30)
-
-    plt.tight_layout(pad=1.2)
-    buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=130, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
 
 
-def generate_donut_chart(positions: dict):
-    """Keyword-Positionen als Ring. Gibt PNG-Bytes zurück — oder ``None``.
-
-    Ohne Daten zeichnete diese Funktion vier gleich grosse Viertel und
-    beschriftete jedes mit „25 %". Im Bericht stand damit eine erfundene
-    Verteilung, die der Empfaenger als Messergebnis liest — bei einem Audit,
-    das Keyword-Positionen ueberhaupt nicht erhebt. Es gibt jetzt kein
-    Platzhalter-Diagramm mehr: liegen keine Daten vor, faellt der Ring weg und
-    der Aufrufer schreibt hin, dass nichts erhoben wurde.
-    """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    _matplotlib_schrift(plt)
-
-    labels = ["Top 10", "11–20", "21–50", "51–100"]
-    values = [
-        positions.get("top10", 0),
-        positions.get("11_20", 0),
-        positions.get("21_50", 0),
-        positions.get("51_100", 0),
-    ]
-    if sum(values) == 0:
-        return None
-
-    palette = [brand.SUCCESS, brand.MID, brand.WARN, brand.ERROR]
-
-    fig, ax = plt.subplots(figsize=(4, 4))
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-
-    wedges, texts, autotexts = ax.pie(
-        values,
-        labels=labels,
-        colors=palette,
-        autopct=lambda p: f"{p:.0f}%" if p > 3 else "",
-        pctdistance=0.78,
-        startangle=90,
-        wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
-    )
-    for t in texts:
-        t.set_fontsize(8)
-        t.set_color(brand.DARK)
-    for at in autotexts:
-        at.set_fontsize(7)
-        at.set_color("white")
-        at.set_fontweight("bold")
-
-    plt.tight_layout(pad=0.5)
-    buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=130, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    buf.seek(0)
-    return buf.read()
 
 
 # ═══════════════════════════════════════════════════════════

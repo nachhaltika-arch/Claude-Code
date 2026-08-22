@@ -79,3 +79,49 @@ export function istContentFreigegeben(roh) {
   const werte = Object.values(leseFreigaben(roh));
   return werte.length > 0 && werte.some(istFreigegeben);
 }
+
+/**
+ * Der Stand einer einzelnen Seite im Freigaben-Reiter der Content-Werkstatt.
+ *
+ * **Warum es das braucht (L-79).** Der Reiter leitete den Zustand aus einer
+ * Ersatzgröße ab: Wo Inhalt vorhanden war, stand „Freigabe ausstehend" — auch
+ * wenn niemand je gefragt hatte. Das ist keine Kleinigkeit: Der Innendienst
+ * las daraus, der Kunde sei am Zug, während der Vorgang in Wahrheit nie
+ * begonnen hatte. Daneben trug der Knopf „Freigabe anfordern" **kein**
+ * `onClick` — sichtbar, klickbar, folgenlos. Dieselbe Familie wie L-55.
+ *
+ * Vier Zustände, und `anfragbar` sagt, ob der Knopf etwas zu tun hat:
+ *
+ *   ohne-inhalt   Es gibt noch keinen Text — nichts vorzulegen.
+ *   offen         Text da, nie angefragt. **Hier gehört der Knopf hin.**
+ *   angefragt     Der Kunde ist am Zug. Erneut fragen hiesse drängeln.
+ *   freigegeben   Fertig.
+ *   abgelehnt     Wieder anfragbar — nach der Überarbeitung wird neu
+ *                 vorgelegt, sonst endet der Ablauf in einer Sackgasse.
+ */
+export function standJeSeite(roh, seiteId, hatInhalt) {
+  const eintrag = leseFreigaben(roh)[String(seiteId)];
+  const status = eintrag === true ? 'freigegeben' : eintrag?.status;
+
+  if (status === 'freigegeben') {
+    const wann = eintrag?.freigegeben_am;
+    return { zustand: 'freigegeben',
+             text: wann ? `Freigegeben am ${wann}` : 'Freigegeben',
+             anfragbar: false };
+  }
+  if (status === 'abgelehnt') {
+    return { zustand: 'abgelehnt', text: 'Abgelehnt', anfragbar: true };
+  }
+  if (status) {
+    // „angefragt" und alles, was ein Backend künftig hier ablegt: Es ist
+    // etwas im Gange, also nicht noch einmal anfragen.
+    const wann = eintrag?.angefragt_am;
+    return { zustand: 'angefragt',
+             text: wann ? `Angefragt am ${wann}` : 'Angefragt',
+             anfragbar: false };
+  }
+  if (!hatInhalt) {
+    return { zustand: 'ohne-inhalt', text: 'Content fehlt', anfragbar: false };
+  }
+  return { zustand: 'offen', text: 'Noch nicht angefragt', anfragbar: true };
+}

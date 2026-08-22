@@ -27,11 +27,25 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, require_innendienst
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/pages", tags=["public-pages"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Die elf Routen hier
+# **verwalten** die oeffentlichen Seiten — sie liefern keine aus. Anlegen,
+# aendern, loeschen, Vorlagen einspielen: alles Innendienstarbeit. Sie
+# verliessen sich auf `get_current_user`, was nur „irgendwer ist angemeldet"
+# bedeutet, und **Kunden haben Konten**. `DELETE /{page_id}` stand damit
+# jedem Angemeldeten offen.
+#
+# Der Name des Routers legt etwas anderes nahe: „public-pages" meint die
+# Seiten, die oeffentlich *sind* — nicht Routen, die es sein sollen.
+#
+# Vor der Sperre gemessen: `PageManager`, `PublicPageEditor` und
+# `PageTemplateEditor` rufen diese Adressen, alle unter
+# `PrivateRoute roles={['admin']}`. Kein Aufruf aus dem Kundenportal.
+router = APIRouter(prefix="/api/pages", tags=["public-pages"],
+                   dependencies=[Depends(require_innendienst)])
 
 
 # ── TEMPLATES (zuerst, damit /templates/... nicht von /{page_id} gefressen wird) ──
@@ -238,8 +252,22 @@ def list_pages(
     params["offset"] = offset
     rows = db.execute(
         text(
+            # **`status`, nicht `is_published` (22.08.2026).** Die Abfrage
+            # las eine Spalte, die es in `public_pages` **nirgends** gibt —
+            # weder im `CREATE TABLE` noch in einer `ALTER`-Anweisung. Auf
+            # einer frisch aufgebauten Datenbank antwortete die Seitenliste
+            # deshalb mit 500; produktiv lief sie nur, weil die Spalte dort
+            # aus einer frueheren Fassung stehengeblieben war. Der Umzug nach
+            # Frankfurt (L-34) baut die Datenbank neu auf und haette sie
+            # mitgenommen.
+            #
+            # Geschrieben wurde ohnehin `status` — beim Anlegen als 'draft',
+            # beim Aendern ueber `updates`. Die Oberflaeche liest ebenfalls
+            # `status` (`PageManager.jsx:277`). `is_published` war ein toter
+            # Rest; ihn nachzuruesten hiesse, ein zweites Feld fuer dieselbe
+            # Frage einzufuehren — genau die Bauart hinter L-26.
             f"SELECT id, name, slug, page_type, meta_title, meta_description,"
-            f"       is_published, created_at, updated_at"
+            f"       status, created_at, updated_at"
             f"  FROM public_pages{base_filter}"
             f" ORDER BY page_type, name"
             f" LIMIT :limit OFFSET :offset"

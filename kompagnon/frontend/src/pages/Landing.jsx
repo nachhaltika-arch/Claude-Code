@@ -5,6 +5,7 @@ import PricingSection from '../components/PricingSection';
 import AuditHook from '../components/AuditHook';
 import KompagnonLogo from '../components/KompagnonLogo';
 import usePakete from '../hooks/usePakete';
+import useAnalysenZahl from '../hooks/useAnalysenZahl';
 import { PREIS_UNBEKANNT } from '../utils/paketpreise';
 
 // ── Markenfarben kompagnon.eu ─────────────────────────────────
@@ -48,6 +49,8 @@ export default function Landing() {
   const nav = useNavigate();
   const { isMobile } = useScreenSize();
   const px = isMobile ? '20px' : '60px';
+  // Belegbare Zahl statt fester „340+" (L-65) — sie kommt aus `audit_results`.
+  const analysenZahl = useAnalysenZahl();
   const go  = (pkg) => nav(`/checkout/${pkg}`);
 
   // Die Seite nannte Kompagnon an drei Stellen mit 3.500 €, waehrend die
@@ -226,7 +229,12 @@ export default function Landing() {
               {[
                 ['14', 'Werktage bis Go-live'],
                 [preisOder(kompagnon), 'Festpreis garantiert'],
-                ['340+', 'Handwerksbetriebe'],
+                // Die Zahl stand hier fest im Quelltext (L-65). Sie kommt
+                // jetzt aus `audit_results`, auf Zehner abgerundet — und
+                // faellt weg, wenn es zu wenige sind.
+                ...(analysenZahl >= 10
+                  ? [[`${analysenZahl.toLocaleString('de-DE')}+`, 'Handwerksbetriebe']]
+                  : []),
                 ['4.9 ★', 'Trustpilot'],
               ].map(([num, label]) => (
                 <div key={label} style={{

@@ -51,57 +51,23 @@ def _clean_text(text):
     return unicodedata.normalize("NFC", text)
 
 
-PAKETE = {
-    "starter": {
-        "name":    "Starter-Paket",
-        "netto":   1260.50,
-        "brutto":  1500.00,
-        "leistungen": [
-            "5-seitige WordPress-Website",
-            "Mobile-First Design (responsiv)",
-            "SEO-Grundoptimierung",
-            "SSL-Zertifikat & DSGVO-konform",
-            "Kontaktformular",
-            "30 Tage kostenloser Support",
-            "Lieferzeit: 7-10 Werktage",
-        ],
-    },
-    "kompagnon": {
-        "name":    "KOMPAGNON-Paket",
-        "netto":   1680.67,
-        "brutto":  2000.00,
-        "leistungen": [
-            "8-seitige WordPress-Website",
-            "Mobile-First Design (responsiv)",
-            "SEO + GEO-Optimierung (lokale Suche)",
-            "Strategy Workshop (60 Min.)",
-            "Schema Markup & KI-Optimierung",
-            "SSL-Zertifikat & DSGVO-konform",
-            "Kontakt- und Anfrageformulare",
-            "Google Business Profil-Verknuepfung",
-            "30 Tage kostenloser Support",
-            "Lieferzeit: 14 Werktage",
-        ],
-    },
-    "premium": {
-        "name":    "Premium-Paket",
-        "netto":   2352.94,
-        "brutto":  2800.00,
-        "leistungen": [
-            "12-seitige WordPress-Website",
-            "Individual-Design nach CI",
-            "SEO + GEO + KI-Volloptimierung",
-            "Strategy Workshop (90 Min.)",
-            "Professioneller Fotoshooting-Tag",
-            "Shop-Funktionalitaet (WooCommerce)",
-            "SSL-Zertifikat & DSGVO-konform",
-            "Alle Formulare & Integrationen",
-            "Google Ads Einrichtung",
-            "3 Monate kostenloser Support",
-            "Lieferzeit: 21 Werktage",
-        ],
-    },
-}
+# ── Die feste Preisliste stand hier bis zum 22.08.2026 (L-29) ────────
+#
+# `PAKETE = {"starter": {...1500.00...}, "kompagnon": {...2000.00...},
+#            "premium": {...2800.00...}}`
+#
+# Dieselbe Bauart wie das laengst entfernte `PACKAGE_NAMES`, nur in dem
+# Dokument, das der Kunde als **Beleg** bekommt. Der tatsaechlich gezahlte
+# Betrag kam als `amount_eur` herein und wurde **nirgends benutzt**; jede
+# Zahl im PDF stammte aus dieser Liste. Ein in `products` geaenderter Preis
+# stand hier weiter alt da, und ein unbekanntes Paket bekam
+# `PAKETE["kompagnon"]` — falscher Paketname, 2.000 EUR, falsch
+# ausgewiesene Umsatzsteuer.
+#
+# Die Zahlen kommen jetzt von aussen herein: `services/paket_beleg.py` holt
+# sie aus derselben Zeile, aus der auch abgerechnet wird. Die Darstellung
+# holt nichts mehr selbst — sonst haette sie wieder ihre eigene Quelle, und
+# genau das war der Fehler.
 
 
 def generate_auftragsbestaetigung(
@@ -109,14 +75,17 @@ def generate_auftragsbestaetigung(
     customer_name: str,
     customer_email: str,
     company_name: str,
-    package_id: str,
-    amount_eur: float,
+    paket: dict,
     datum: str,
 ) -> bytes:
-    """Erstellt eine Auftragsbestätigung als PDF-Bytes."""
+    """Erstellt eine Auftragsbestätigung als PDF-Bytes.
 
-    paket = PAKETE.get(package_id, PAKETE["kompagnon"])
-    mwst  = round(paket["brutto"] - paket["netto"], 2)
+    `paket` kommt aus `services/paket_beleg.py::paket_fuer_beleg` und traegt
+    Name, Brutto, Netto, Umsatzsteuer und Leistungen. Diese Funktion holt
+    **nichts** selbst — sonst haette die Darstellung wieder ihre eigene
+    Preisquelle, und genau das war der Fehler (L-29).
+    """
+    mwst = paket["mwst"]
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -298,13 +267,18 @@ def generate_auftragsbestaetigung(
 
     # ── NÄCHSTE SCHRITTE ──────────────────────────────────
     story.append(Paragraph(_clean_text("Ihre naechsten Schritte"), st_section))
-    lieferzeit = paket["leistungen"][-1].replace("Lieferzeit: ", "")
+    # Die Lieferzeit stand frueher als letzter Punkt in der Leistungsliste
+    # und wurde von dort abgelesen. Sie kommt jetzt aus `products.delivery_days`
+    # — auf `features` angewandt haette das Ablesen „30 Tage Support" als
+    # Lieferzeit ausgewiesen. Fehlt sie, behauptet der Beleg keine.
+    tage = paket.get("lieferzeit_tage")
     steps = [
         "Sie erhalten in Kuerze eine E-Mail mit Ihren Zugangsdaten zum Kundenportal.",
         "Bitte fuellen Sie das Online-Briefing in Ihrem Kundenportal aus (ca. 10 Min.).",
         "Wir melden uns innerhalb von 24 Stunden fuer den Strategy Workshop.",
-        f"Ihre neue Website ist in {lieferzeit} fertig.",
     ]
+    if tage:
+        steps.append(f"Ihre neue Website ist in {tage} Werktagen fertig.")
     for i, step in enumerate(steps, 1):
         story.append(Paragraph(
             _clean_text(f"{i}.  {step}"),
@@ -357,12 +331,21 @@ def save_auftragsbestaetigung(
     company_name: str,
     package_id: str,
     amount_eur: float,
+    db=None,
 ) -> str:
     """
     Generiert PDF, speichert unter uploads/auftragsbestaetigungen/
     und gibt den Dateipfad zurück.
+
+    Die Zahlen kommen aus der Produktzeile, sonst aus dem gezahlten Betrag
+    (`paket_fuer_beleg`). Liegt beides nicht vor, wird **kein** Beleg
+    erzeugt — ein Beleg mit erfundenen Zahlen waere schlechter als keiner.
     """
     from pathlib import Path
+
+    from services.paket_beleg import paket_fuer_beleg
+
+    paket = paket_fuer_beleg(db, package_id, amount_eur)
 
     datum     = datetime.now().strftime("%d.%m.%Y")
     pdf_bytes = generate_auftragsbestaetigung(
@@ -370,8 +353,7 @@ def save_auftragsbestaetigung(
         customer_name  = customer_name,
         customer_email = customer_email,
         company_name   = company_name,
-        package_id     = package_id,
-        amount_eur     = amount_eur,
+        paket          = paket,
         datum          = datum,
     )
 

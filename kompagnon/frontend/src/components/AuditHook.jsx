@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import { stufeAnzeige } from '../utils/homepageStandard';
 import usePakete from '../hooks/usePakete';
+import useAnalysenZahl, { analysenSatz } from '../hooks/useAnalysenZahl';
+import { herkunftDieserSeite } from '../utils/anzeigenherkunft';
 
 const PAKET_DARSTELLUNG = [{ id: 'kompagnon' }];
 
@@ -25,6 +27,7 @@ const scoreColor = (s) =>
 
 export default function AuditHook() {
   const { pakete } = usePakete(PAKET_DARSTELLUNG);
+  const analysen = analysenSatz(useAnalysenZahl());
   const [kompagnon] = pakete;
   const navigate = useNavigate();
   const [url,      setUrl]      = useState('');
@@ -71,7 +74,12 @@ export default function AuditHook() {
       const cleanUrl = normalizeUrl(url);
       const leadRes  = await fetch(`${API_BASE_URL}/api/leads/public`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: cleanUrl, email, lead_source: 'landing_audit', status: 'new' }),
+        // Die Herkunft aus der Anzeige geht mit (L-86). Bis zum 22.08.2026
+        // schickte das Formular sie nicht mit, und sie war im Moment des
+        // Absendens verloren — die Kanalauswertung konnte bezahlte Kanaele
+        // deshalb nie ausweisen.
+        body: JSON.stringify({ website_url: cleanUrl, email, lead_source: 'landing_audit',
+                               status: 'new', ...herkunftDieserSeite() }),
       });
       const leadData = await leadRes.json();
       const leadId   = leadData.id;
@@ -592,12 +600,15 @@ export default function AuditHook() {
                 Kompagnon 2.000 abbucht (L-29) — und dieses Widget laeuft auf
                 fremden Seiten. Jetzt aus derselben Zeile wie Stripe; kennt
                 der Server den Preis nicht, steht dort keiner.
-                Die Zahl „340 Handwerksbetriebe" ist unbelegt und bleibt
-                vorerst stehen — sie zu aendern oder zu belegen ist eine
-                Entscheidung von David (L-65). */}
+                „Über 340 Handwerksbetriebe analysiert" stand hier ebenso
+                fest im Quelltext (L-65) — auf fremden Seiten, ohne dass es
+                jemand haette nachsehen koennen. Die Zahl kommt jetzt aus
+                `audit_results`, auf Zehner abgerundet; sind es zu wenige
+                oder faellt die Zaehlung aus, faellt der Satz weg. */}
             <div style={{ fontSize: 11, color:'rgba(255,255,255,.7)' }}>
-              Über 340 Handwerksbetriebe analysiert
-              {kompagnon && kompagnon.preisBekannt && ` · Festpreis ${kompagnon.preisLabel} €`}
+              {analysen}
+              {analysen && kompagnon && kompagnon.preisBekannt && ' · '}
+              {kompagnon && kompagnon.preisBekannt && `Festpreis ${kompagnon.preisLabel} €`}
             </div>
           </div>
           <button

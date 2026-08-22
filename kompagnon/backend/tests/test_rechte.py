@@ -120,14 +120,11 @@ def test_die_auskunft_sagt_welche_rechte_wirklich_gelten(client, auth_headers):
     assert "view_leads" in daten["durchgesetzt"]
     # Und es behauptet nichts, was nicht stimmt.
     #
-    # Das Beispiel war bis zum 22.08.2026 `manage_billing`. Es taugt nicht
-    # mehr: Beim Messen der restlichen Rechte kam heraus, dass
-    # `routers/retainer.py` alle Rechnungen jedem Angemeldeten zeigte, und
-    # seitdem haengt eine Sperre daran. **Der Test bleibt, das Beispiel
-    # wandert** — sonst prueft er nur noch, dass irgendetwas fehlt.
-    #
-    # `manage_projects` ist der heutige Stellvertreter und bewusst offen: Die
-    # Vorgabe gibt es admin und superadmin, die Projektrouten stehen aber auf
-    # `require_innendienst` — Durchsetzen naehme dem Auditor etwas weg, und
-    # das gehoert entschieden statt nebenbei gemacht (L-05).
-    assert "manage_projects" not in daten["durchgesetzt"]
+    # **Das Beispiel ist am 22.08.2026 zweimal gewandert** — erst
+    # `manage_billing`, dann `manage_projects`, beide sind inzwischen
+    # durchgesetzt. Der Test bleibt, das Beispiel wandert; sonst prueft er
+    # nur noch, dass irgendetwas fehlt. `view_dashboard` haelt am laengsten,
+    # denn es haengt an Routen, die teils ohne Anmeldung erreichbar sind
+    # (Widget, Kundenportal). Dort eine Rollenpruefung zu erzwingen waere
+    # kein Aufraeumen, sondern eine andere Entscheidung (L-05).
+    assert "view_dashboard" not in daten["durchgesetzt"]

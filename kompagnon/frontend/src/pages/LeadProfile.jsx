@@ -17,6 +17,7 @@ import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
+import BetriebVerlauf from '../components/BetriebVerlauf';
 import BriefingWizard from '../components/BriefingWizard';
 import WZSearch from '../components/WZSearch';
 import SitemapPlaner from '../components/SitemapPlaner';
@@ -1181,6 +1182,19 @@ export default function LeadProfile() {
       })()}
 
       {/* NACHRICHTEN TAB */}
+      {/* Reiterinhalt und Verlauf nebeneinander (L-82).
+        *
+        * Der Verlauf steht **neben** den Reitern, nicht in einem: Wer beim
+        * Anruf erst klicken muss, um zu sehen, was zuletzt geschah, sieht es
+        * nicht. Auf schmalen Geraeten rutscht er darunter — dort gibt es
+        * keine zweite Spalte, und ein zusammengequetschter Verlauf waere
+        * schlechter als einer, der wartet. */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 300px',
+        gap: 16, alignItems: 'start', minWidth: 0,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
       {activeTab === 'messages' && (() => {
         const fmtTime = (iso) => {
           if (!iso) return '';
@@ -2207,6 +2221,10 @@ export default function LeadProfile() {
           )}
         </div>
       )}
+        </div>
+
+        <BetriebVerlauf leadId={lead.id} token={token} />
+      </div>
 
       {/* TEMPLATE SELECTION MODAL */}
       {showTemplateModal && createPortal(

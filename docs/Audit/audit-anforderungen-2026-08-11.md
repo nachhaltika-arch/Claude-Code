@@ -391,7 +391,7 @@ tatsächlich geprüften Kriterien normiert.
 | 2 | `qa_scanner`, `hosting_scraper`, `link_checker` verdrahten | ✅ in `audit_runner.py` |
 | 3 | Echte Erheber: TLS, Unterseiten, Bildanalyse, Consent | ✅ `audit_collectors.py` — `check_tls`, `check_https_redirect`, `check_legal_pages`, `analyse_images`, `detect_consent`, `detect_third_parties` |
 | 4 | KI auf Design/Conversion/Text begrenzen, Screenshot + Rubric | ✅ `audit_ai.py` |
-| 5 | DB-Migration für die neuen Spalten | ✅ in `main.py::_run_migrations` — der einzigen Liste, die beim Start läuft |
+| 5 | DB-Migration für die neuen Spalten | ✅ in `migrations_runtime.py::run_migrations` — der einzigen Liste, die beim Start läuft |
 | 6 | Tests je Kategorie gegen eine feste Referenz-Website | ✅ `tests/referenzseite.py` + `test_referenzseite.py` (2026-08-15) — eingefrorene Website, 15 Tests über Erhebung *und* Bewertung; Punktzahl und Kategorien festgeschrieben |
 | 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ✅ am Bericht nachgesehen (2026-08-15) — eigene Spalte „Quelle“, Erklärsatz über der Matrix, Legende darunter |
 

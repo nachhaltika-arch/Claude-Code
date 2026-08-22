@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { standJeSeite } from '../utils/freigabeStand';
 
 const CONTENT_TABS = [
   { id: 'inhalte',    label: 'Seiteninhalte',   icon: '📄', desc: 'Texte & KI' },
@@ -30,6 +31,43 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   }, [queueStop]);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  // Die Freigaben kommen vom Projekt und werden nach jeder Anfrage
+  // nachgezogen. Vorher leitete der Reiter seinen Zustand aus einer
+  // Ersatzgroesse ab — wo Inhalt war, stand „Freigabe ausstehend", auch wenn
+  // niemand je gefragt hatte (L-79).
+  const [freigaben, setFreigaben] = useState(project?.content_freigaben ?? null);
+  const [anfragend, setAnfragend] = useState(null);
+
+  useEffect(() => {
+    setFreigaben(project?.content_freigaben ?? null);
+  }, [project?.content_freigaben]);
+
+  const freigabeAnfragen = async (page) => {
+    setAnfragend(page.id);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/request-page-approval`,
+        { method: 'POST', headers,
+          body: JSON.stringify({ seite_id: String(page.id), topic: page.page_name }) },
+      );
+      const daten = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(daten.detail || 'Anfrage fehlgeschlagen');
+
+      // Die Antwort traegt den neuen Stand — kein zweiter Abruf noetig.
+      setFreigaben(daten.freigaben ?? freigaben);
+      toast.success(daten.email_sent
+        ? `Freigabe angefragt — E-Mail an ${daten.customer_email}`
+        : 'Freigabe vermerkt (keine E-Mail hinterlegt)');
+      onProjectRefresh?.();
+    } catch (fehler) {
+      // Der Knopf meldete frueher gar nichts, weil er nichts tat. Ein
+      // stiller Fehlschlag waere derselbe Zustand mit mehr Aufwand.
+      toast.error(fehler.message || 'Freigabe konnte nicht angefragt werden');
+    } finally {
+      setAnfragend(null);
+    }
+  };
 
   const generateContent = async (page) => {
     setGenerating(true);
@@ -404,19 +442,31 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
           {sitemapPages.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Erst Sitemap anlegen</div>
           ) : sitemapPages.map(page => {
-            const hasContent = !!pageContent[page.id];
+            const stand = standJeSeite(freigaben, page.id, !!pageContent[page.id]);
+            const laeuft = anfragend === page.id;
+            // Die Farbe folgt dem Zustand, nicht dem Vorhandensein von Text.
+            const farbe = {
+              freigegeben: ['var(--status-success-bg)', 'var(--status-success-text)'],
+              abgelehnt:   ['var(--status-error-bg)',   'var(--status-error-text)'],
+              angefragt:   ['var(--status-warning-bg)', 'var(--status-warning-text)'],
+            }[stand.zustand] || ['var(--bg-elevated)', 'var(--text-tertiary)'];
             return (
               <div key={page.id} style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{page.page_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: hasContent ? 'var(--status-warning-bg)' : 'var(--bg-elevated)', color: hasContent ? 'var(--status-warning-text)' : 'var(--text-tertiary)' }}>
-                  {hasContent ? 'Freigabe ausstehend' : 'Content fehlt'}
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: farbe[0], color: farbe[1] }}>
+                  {stand.text}
                 </span>
-                {hasContent && (
-                  <button style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    Freigabe anfordern
+                {stand.anfragbar && (
+                  <button
+                    onClick={() => freigabeAnfragen(page)}
+                    onKeyDown={aufTaste(() => freigabeAnfragen(page))}
+                    disabled={laeuft}
+                    aria-label={`Freigabe f\u00fcr ${page.page_name} beim Kunden anfragen`}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 600, cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                    {laeuft ? 'Sendet\u2026' : stand.zustand === 'abgelehnt' ? 'Erneut anfragen' : 'Freigabe anfordern'}
                   </button>
                 )}
               </div>

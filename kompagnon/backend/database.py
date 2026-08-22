@@ -65,13 +65,22 @@ class Lead(Base):
     company_name = Column(String(255), default="")
 
     # ── Nachgezogene Spalten ─────────────────────────────────────────
-    # Diese Spalten legt `main.py::_run_migrations` beim Start an. Im Modell
+    # Diese Spalten legt `migrations_runtime.py::run_migrations` beim Start an. Im Modell
     # fehlten sie — und wer sie zuweist, verliert den Wert stillschweigend:
     # SQLAlchemy legt ihn auf dem Python-Objekt ab und schreibt ihn nie.
     # Gefunden am 18.08.2026 beim Vergleich Migration gegen Modell.
     onboarding_completed = Column(Boolean, default=False)
     onboarding_completed_at = Column(DateTime, nullable=True)
     unread_messages = Column(Integer, default=0)
+
+    # Woher der Betrieb kam, wenn er ueber eine Anzeige hereinkam (L-86).
+    # Dieselbe Falle, ein zweites Mal: Die Spalten stehen seit langem in
+    # `migrations_runtime.py`, im Modell fehlten sie — und weil
+    # `routers/kampagne.py` sie mit rohem SQL schreibt, fiel es nie auf.
+    # Erst als der oeffentliche Weg sie zuweisen wollte, kam der Fehler.
+    utm_source = Column(String(200), nullable=True)
+    utm_medium = Column(String(200), nullable=True)
+    utm_campaign = Column(String(200), nullable=True)
     pagespeed_mobile_score = Column(Integer, nullable=True)
     pagespeed_desktop_score = Column(Integer, nullable=True)
     pagespeed_lcp_mobile = Column(Float, nullable=True)
@@ -301,7 +310,7 @@ class Project(Base):
     # Vom Nutzer bestaetigte Editor-Schritte, als JSON-Text:
     # {"<step_id>": {"confirmed": true, "confirmed_at": "<iso>"}}
     #
-    # Die Spalte legt `main.py::_run_migrations` per rohem SQL an. Hier fehlte
+    # Die Spalte legt `migrations_runtime.py::run_migrations` per rohem SQL an. Hier fehlte
     # sie — und ohne den Eintrag im Modell schreibt SQLAlchemy sie nicht:
     # `project.steps_confirmed = …` setzte nur ein Attribut am Python-Objekt,
     # `commit()` tat nichts, und die Antwort las denselben Speicher zurueck.
@@ -550,14 +559,14 @@ class AuditResult(Base):
     # eine alte Note mit einer neuen, ohne zu merken, dass die eine über eine
     # Seite und die andere über zwanzig gefällt wurde. Die Vorgabe 1 ist für
     # Altzeilen deshalb keine Behelfszahl, sondern die Wahrheit.
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
     seiten_geprueft = Column(Integer, default=1)
     seiten_gefunden = Column(Integer, nullable=True)
 
     # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
     # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
     # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
     erkannte_branche = Column(String, default="")   # Freitext des Modells
     branchenklasse = Column(String, default="")     # K1…K6
     standard_version = Column(String, default="")   # Fassung des Standards
@@ -680,7 +689,7 @@ class RolePermission(Base):
     # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
     # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
     # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
-    # Der Bestand wird in `main.py::_run_migrations` zusammengefuehrt.
+    # Der Bestand wird in `migrations_runtime.py::run_migrations` zusammengefuehrt.
     __table_args__ = (
         UniqueConstraint("role", "permission", name="uq_role_permission"),
     )
@@ -793,7 +802,7 @@ class AcademyLesson(Base):
     file_url = Column(String(500), default='')
     duration_minutes = Column(Integer, default=0)
     sort_order = Column(Integer, default=0)
-    # Stand nur in der Datenbank (main.py::_run_migrations), nicht im Modell.
+    # Stand nur in der Datenbank (migrations_runtime.py::run_migrations), nicht im Modell.
     # Der Router uebergab das Feld beim Anlegen — und SQLAlchemy wies es ab:
     # `POST /api/academy/modules/{id}/lessons` antwortete mit 500, seit es
     # den Endpunkt gibt. Kurse und Module liessen sich anlegen, Lektionen nie.
@@ -1004,7 +1013,7 @@ class AssistantConversation(Base):
 
     Neue Tabellen legt `Base.metadata.create_all` beim Start an. Neue *Spalten*
     an bestehenden Tabellen tun das nicht — die gehören in
-    `main.py::_run_migrations`.
+    `migrations_runtime.py::run_migrations`.
     """
 
     __tablename__ = "assistant_conversations"
@@ -1139,11 +1148,15 @@ class GeoAnalysis(Base):
     last_score_change = Column(Integer, nullable=True)
 
     # Ob eine KI den Betrieb auf eine Kundenfrage hin wirklich nennt (L-58 b).
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all` —
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all` —
     # siehe die Nachbarn oben. NULL heisst „nie gelaufen", nicht „nicht
     # gefunden": Der Lauf kostet Geld und laeuft nur auf Anforderung.
     ki_sichtbarkeit = Column(JSONB, nullable=True)
     ki_sichtbarkeit_am = Column(DateTime, nullable=True)
+    # Je Lauf die Trefferzahl je System — ohne die Antworttexte, die
+    # den Verlauf in einem Jahr unlesbar machten (L-85). Nach oben
+    # begrenzt: `services/ki_sichtbarkeit.VERLAUF_MAX`.
+    ki_sichtbarkeit_verlauf = Column(JSONB, nullable=True)
 
     # Stripe Subscription
     stripe_subscription_id = Column(String(200), nullable=True)

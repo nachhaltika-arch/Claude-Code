@@ -7,7 +7,7 @@ Befund vom 18.08.2026, am laufenden Backend geprueft: `POST
     for AcademyLesson
 
 Der Router uebergibt das Feld beim Anlegen, das Modell kennt es nicht — die
-Spalte existiert nur in der Datenbank, angelegt von `main.py::_run_migrations`
+Spalte existiert nur in der Datenbank, angelegt von `migrations_runtime.py::run_migrations`
 (Zeile 251). Damit ist der Kern der Akademie kaputt: Kurse und Module lassen
 sich anlegen, **Inhalte nicht**. Beide Kurseditoren rufen denselben Endpunkt.
 

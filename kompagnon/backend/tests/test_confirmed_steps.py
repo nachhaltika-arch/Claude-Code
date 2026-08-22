@@ -4,7 +4,7 @@ Gefunden am 2026-08-13 beim Versuch, die Design-Ansicht im Browser-Test zu
 erreichen: `POST /confirm-step` antwortet mit `{"saved": true}` und den
 bestätigten Schritten — in der Datenbank steht danach weiter `{}`. Der Grund
 ist die Falle, die dieses Projekt schon einmal getroffen hat: Die Spalte
-`steps_confirmed` legt `main.py::_run_migrations` per rohem SQL an, das
+`steps_confirmed` legt `migrations_runtime.py::run_migrations` per rohem SQL an, das
 ORM-Modell kennt sie nicht. `project.steps_confirmed = …` setzt dann nur ein
 Attribut am Python-Objekt, `db.commit()` schreibt nichts, und die Antwort
 liest denselben Speicher zurück.

@@ -99,3 +99,34 @@ def nachziehen_beim_start() -> None:
             "%d zweideutig liegen gelassen (von %d)",
             bericht["umgeschrieben"], bericht["zweideutig"], bericht["geprueft"],
         )
+
+
+def zweideutige_kennungen(db) -> set:
+    """Kennungen, bei denen nicht feststeht, was gemeint war.
+
+    Eine Zahl ist zweideutig, wenn sie **zugleich** eine gueltige
+    Benutzernummer ist und eine Betriebsnummer, hinter der ein **anderes**
+    Konto steht. Dann laesst sich aus der Zeile nicht ablesen, wer gemeint
+    war — und `kennungen_nachziehen` laesst sie deshalb bewusst liegen.
+
+    **Wozu die Liste ausserhalb des Nachtrags gebraucht wird.** Bis zum
+    22.08.2026 stand im Befund: „Heute ungefaehrlich, weil kein einziger Kurs
+    gesperrt ist. Gefaehrlich wird es mit dem ersten gesperrten Kurs."
+    Darauf zu warten ist die Luecke — der Lehrplan aus L-60 wird Kurse
+    sperren. Seitdem uebergeht der Lesepfad der Akademie diese Kennungen:
+    Eine Zuweisung, die zweideutig ist, schaltet **nichts** frei.
+
+    Die sichere Richtung ist die: Jemandem einen Kurs vorzuenthalten, den er
+    haben sollte, faellt auf und ist in einem Griff behoben. Ihn jemandem zu
+    zeigen, der ihn nicht sehen darf, faellt nicht auf.
+    """
+    nach_betrieb = _kunden_nach_betrieb(db)
+    if not nach_betrieb:
+        return set()
+
+    benutzernummern = {uid for (uid,) in db.query(User.id).all()}
+
+    return {
+        kennung for kennung, ziel in nach_betrieb.items()
+        if kennung in benutzernummern and ziel != kennung
+    }

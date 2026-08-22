@@ -66,8 +66,17 @@ def my_tickets(db: Session = Depends(get_db), current_user=Depends(get_current_u
     return [dict(r) for r in rows]
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_innendienst)])
 def list_tickets(status: str = Query(None), type: str = Query(None), priority: str = Query(None), db: Session = Depends(get_db)):
+    """Alle Tickets — Innendienstsicht.
+
+    **Bis zum 22.08.2026 ohne jede Anmeldepruefung (L-51).** Die Zeilen
+    tragen Name, E-Mail-Adresse, Beschreibung, Seiten-URL, Browser-Angaben
+    und `screenshot_base64`. `PATCH /{ticket_id}` daneben trug schon
+    `require_innendienst` — die Leserouten wurden uebersehen.
+
+    Der Kundenfall liegt auf `GET /my` und filtert auf die eigene Adresse.
+    """
     q = "SELECT * FROM support_tickets WHERE 1=1"
     params = {}
     if status:
@@ -84,8 +93,12 @@ def list_tickets(status: str = Query(None), type: str = Query(None), priority: s
     return [dict(r) for r in rows]
 
 
-@router.get("/{ticket_id}")
+@router.get("/{ticket_id}", dependencies=[Depends(require_innendienst)])
 def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
+    """Ein Ticket im Detail — Innendienstsicht.
+
+    Stand ebenfalls ohne Anmeldung offen und war durchzaehlbar (L-51).
+    """
     row = db.execute(text("SELECT * FROM support_tickets WHERE id = :id"), {"id": ticket_id}).mappings().first()
     if not row:
         raise HTTPException(404, "Ticket nicht gefunden")

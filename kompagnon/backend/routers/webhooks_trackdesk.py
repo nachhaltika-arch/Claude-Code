@@ -19,7 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, verlangt_recht
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["webhooks-trackdesk"])
@@ -263,12 +263,25 @@ def _handle_conversion_status(payload: dict, td_id: str, db: Session):
 
 # ── Admin List Endpoint ────────────────────────────────────────────
 
-@router.get("/api/affiliate-conversions")
+@router.get("/api/affiliate-conversions",
+            dependencies=[Depends(verlangt_recht("view_billing"))])
 def list_conversions(
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    """Alle Affiliate-Conversions — für Dashboard und Admin-Übersicht."""
+    """Alle Affiliate-Conversions — für Dashboard und Admin-Übersicht.
+
+    **Bis zum 22.08.2026 stand das jedem Angemeldeten offen (L-67).** Die
+    Antwort traegt Kundennamen, Kunden-E-Mails, Partner-E-Mails, Umsaetze und
+    Provisionen — ungefiltert, 200 Zeilen. Dieselbe Bauart wie
+    `GET /api/invoices`, das in PR #45 die Abrechnungsdaten aller Betriebe
+    herausgab.
+
+    Die Sperre haengt am **Recht** und nicht an `require_innendienst`: Es sind
+    Abrechnungsdaten, und `view_billing` gibt die Matrix an admin und
+    superadmin, nicht an den Auditor — dieselbe Entscheidung wie bei den
+    Rechnungen. Kein Bildschirm ruft die Route derzeit auf.
+    """
     rows = db.execute(text("""
         SELECT ac.id, ac.trackdesk_id, ac.event_type,
                ac.affiliate_id, ac.affiliate_email, ac.affiliate_name,

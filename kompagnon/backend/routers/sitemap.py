@@ -560,7 +560,17 @@ def delete_page(
 
 # ── GrapesJS editor endpoints ─────────────────────────────────────────────────
 
-pages_router = APIRouter(prefix="/api/pages", tags=["pages"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Die fuenfzehn Routen
+# hier fuehren die Seiten der Kundenprojekte samt Vorlagen — darunter
+# `DELETE /{page_id}`, also das Entfernen einer Kundenseite. Sie verliessen
+# sich auf `require_any_auth`; der `router` darueber traegt die Sperre seit
+# jeher, dieser hier nicht.
+#
+# Vor der Sperre gemessen: `PageManager`, `PublicPageEditor` und
+# `PageTemplateEditor` rufen die Adressen, alle unter
+# `PrivateRoute roles={['admin']}`. Kein Aufruf aus dem Kundenportal.
+pages_router = APIRouter(prefix="/api/pages", tags=["pages"],
+                         dependencies=[Depends(require_innendienst)])
 
 
 class GjsData(BaseModel):

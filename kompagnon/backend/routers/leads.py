@@ -32,6 +32,7 @@ import logging
 import os
 import uuid
 from services.ratenbegrenzung import lead_grenzen
+from services.lead_verlauf import verlauf_bauen
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +255,83 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         import logging
         logging.getLogger('leads').error(f'Lead create error: {type(e).__name__}: {e}')
         raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
+
+
+@router.get("/{lead_id}/verlauf")
+def lead_verlauf(lead_id: int, limit: int = Query(20, ge=1, le=50),
+                 db: Session = Depends(get_db)):
+    """Was bei diesem Betrieb zuletzt geschah — aus allen Quellen (L-82).
+
+    Die Ereignisse liegen in fuenf Tabellen, und keine Stelle fuehrte sie
+    zusammen; auf der Betriebsseite hiess das drei Reiter fuer eine Frage, die
+    man beim Anruf in einer Sekunde beantwortet haben will.
+
+    Ein unbekannter Betrieb ist **404**, kein leerer Verlauf: Sonst sieht ein
+    Tippfehler in der Kennung aus wie ein Betrieb, bei dem noch nichts war.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    return verlauf_bauen(db, lead, limit=limit)
+
+
+@router.get("/quellen/wirkung")
+def kanalwirkung(db: Session = Depends(get_db)):
+    """Welcher Kanal bringt Kunden? (L-84)
+
+    Die Herkunft steht seit langem in `leads.lead_source`, und
+    `services/lead_quellen.py` fuehrt dazu einen gepflegten Wortschatz. Was
+    fehlte, ist die Frage, fuer die man das alles erhebt.
+
+    **Gerechnet wird auf `lifecycle_phase`, nicht auf `status`.** Der Status
+    beantwortete zwei Fragen gleichzeitig, und zwei Stellen uebersahen dabei
+    `customer` — ein Betrieb, den jemand von Hand auf „Kunde" gesetzt hatte,
+    zaehlte in **keiner** Kennzahl mit (L-26). Eine Zahl, die auf der falschen
+    Spalte rechnet, ist schlimmer als keine.
+
+    **Unbekannte Quellen werden ausgewiesen, nicht weggelassen.** Ein Wert,
+    den der Wortschatz nicht kennt, ist der interessanteste Fall: Entweder
+    schreibt ihn jemand ungepflegt — oder der Wortschatz hinkt hinterher.
+    Dasselbe gilt fuer Betriebe ohne Herkunft: Sie stillschweigend
+    auszulassen hiesse, die Summe der Kanaele als Gesamtbestand zu lesen.
+    """
+    from services import lead_quellen
+
+    zeilen = db.execute(text("""
+        SELECT lead_source,
+               COUNT(*) AS betriebe,
+               COUNT(*) FILTER (WHERE lifecycle_phase = 'kunde') AS kunden
+        FROM leads
+        GROUP BY lead_source
+    """)).fetchall()
+
+    kanaele, ohne_herkunft, gesamt = [], 0, 0
+    for quelle, betriebe, kunden in zeilen:
+        gesamt += betriebe
+        if not (quelle or "").strip():
+            ohne_herkunft += betriebe
+            continue
+
+        eintrag = lead_quellen.QUELLEN.get(lead_quellen.normalisiere(quelle) or quelle)
+        kanaele.append({
+            "quelle":   quelle,
+            "name":     (eintrag or {}).get("name") or quelle,
+            "herkunft": (eintrag or {}).get("herkunft"),
+            "bekannt":  eintrag is not None,
+            "betriebe": betriebe,
+            "kunden":   kunden,
+            "quote":    round(kunden / betriebe, 2) if betriebe else None,
+        })
+
+    # Der wirksamste Kanal zuerst; bei gleicher Quote der groessere Bestand.
+    kanaele.sort(key=lambda k: (-(k["quote"] or 0), -k["betriebe"]))
+
+    return {
+        "kanaele": kanaele,
+        "ohne_herkunft": ohne_herkunft,
+        "betriebe_gesamt": gesamt,
+    }
 
 
 @router.get("/")
@@ -756,6 +834,36 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+#: So lang sind `utm_source`, `utm_medium` und `utm_campaign` in der Tabelle.
+UTM_MAX = 200
+
+
+def _herkunft_aus_anzeige(daten: dict) -> dict:
+    """Die UTM-Angaben aus dem Formular — begrenzt entgegengenommen (L-86).
+
+    **Der Befund.** Bis zum 22.08.2026 uebernahm dieser Weg `website_url`,
+    `email` und `lead_source`, und sonst nichts. Wer ueber eine Anzeige mit
+    `?utm_source=google` kam und das Formular ausfuellte, verlor seine
+    Herkunft im Moment des Absendens — und die Kanalauswertung (L-84) konnte
+    bezahlte Kanaele darum nie ausweisen.
+
+    Die Werte kommen **ohne Anmeldung** aus einem Widget auf fremden Seiten,
+    und `data` ist ein rohes `dict`: Was keine Zeichenkette ist, wird nicht
+    uebernommen, und was zu lang ist, wird gekuerzt statt die Anlage
+    scheitern zu lassen. Gespeichert wird roh — ausgewertet oder in HTML
+    gesetzt wird hier nichts.
+
+    Fehlt eine Angabe, bleibt das Feld leer. Eine geratene Herkunft waere
+    schlimmer als eine fehlende: Auf ihr wuerde gerechnet.
+    """
+    herkunft = {}
+    for feld in ("utm_source", "utm_medium", "utm_campaign"):
+        wert = daten.get(feld)
+        if isinstance(wert, str) and wert.strip():
+            herkunft[feld] = wert.strip()[:UTM_MAX]
+    return herkunft
+
+
 # ── Public lead creation (no auth — used by landing page audit) ──
 
 @public_router.post("/public")
@@ -782,7 +890,8 @@ async def create_public_lead(
         return {'id': existing.id}
 
     lead = Lead(website_url=website_url, email=email_addr, company_name=domain,
-                status='new', lead_source=data.get('lead_source', 'landing_audit'))
+                status='new', lead_source=data.get('lead_source', 'landing_audit'),
+                **_herkunft_aus_anzeige(data))
     db.add(lead)
     db.commit()
     db.refresh(lead)
@@ -1032,8 +1141,26 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{lead_id}", dependencies=[Depends(verlangt_recht("delete_leads"))])
-def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated data in correct dependency order."""
+def delete_lead(lead_id: int, mit_zugang: bool = False, db: Session = Depends(get_db)):
+    """Einen Betrieb samt allem, was an ihm hängt, entfernen.
+
+    `mit_zugang=true` nimmt das Kundenkonto mit. **Ohne diesen Zusatz
+    geschieht das nicht** — die Entscheidung dazu fiel am 22.08.2026 (L-56),
+    und beide Hälften haben ihren Grund:
+
+    Wer einen Betrieb aus dem Bestand räumt — Dublette, kein Kunde mehr —,
+    soll nicht unbemerkt einen Zugang löschen, mit dem sich ein Mensch
+    anmeldet. Ein Konto darf keine Nebenwirkung einer Aufräumarbeit sein.
+
+    Ein Weg muss es aber geben: Bei einem Löschverlangen nach Art. 17 DSGVO
+    muss beides weg. Ohne ihn müsste der Innendienst das Konto in einem
+    anderen Bildschirm suchen — zwei Schritte, von denen man einen vergisst,
+    und ein übriggebliebenes Konto ist genau der Verstoß, den die Vorschrift
+    meint.
+
+    Die Antwort nennt jedes mitgelöschte Konto. Sonst wäre das Mitnehmen
+    wieder die stille Nebenwirkung, die es nicht sein soll.
+    """
     # 1. Prüfen ob Lead existiert
     lead = db.execute(
         text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
@@ -1055,11 +1182,17 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     entfernen(db, [zeile[0] for zeile in projekte])
 
     # 3. Weitere Lead-abhängige Daten löschen
-    if tabelle_vorhanden(db, "project_files"):
-        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+    #
+    # Jede Tabelle wird vorher nachgeschlagen. `project_files` tat das schon;
+    # die drei anderen nicht — und das fiel am 22.08.2026 in der CI auf, wo
+    # die Datenbank frisch ist: `email_logs` gab es dort nicht, der Aufruf
+    # endete in einem unbehandelten `UndefinedTable`. Lokal lief derselbe
+    # Test grün, weil die Testdatenbank die Tabelle noch von einem früheren
+    # Lauf hatte. Eine Tabelle, die es nicht gibt, hat auch nichts, was zu
+    # löschen wäre.
+    for tabelle in ("project_files", "briefings", "audit_results", "email_logs"):
+        if tabelle_vorhanden(db, tabelle):
+            db.execute(text(f"DELETE FROM {tabelle} WHERE lead_id = :id"), {"id": lead_id})
 
     # 6. Lead selbst löschen
     #
@@ -1067,27 +1200,42 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     # `users.lead_id` — unbehandelt, also **500** mit einer Meldung, aus der
     # niemand schließen kann, was zu tun ist (gefunden 19.08.2026).
     #
-    # Der Zugang wird hier **nicht** mitgelöscht: Ob das Löschen eines
-    # Betriebs das Konto seines Kunden mitnehmen soll, ist eine
-    # Datenschutz-Entscheidung und keine Zeile Code (L-56). Bis sie gefallen
-    # ist, sagt der Endpunkt wenigstens, was im Weg steht — das kann nichts
-    # brechen, denn heute scheitert der Aufruf ohnehin.
-    konto = db.execute(
-        text("SELECT email FROM users WHERE lead_id = :id LIMIT 1"),
-        {"id": lead_id},
-    ).fetchone()
-    if konto:
+    # Ein Betrieb mit Kundenzugang scheiterte hier am Fremdschlüssel
+    # `users.lead_id`. Seit dem 22.08.2026 entscheidet der Aufrufer, ob das
+    # Konto mitgeht — die Begründung steht im Docstring (L-56).
+    konten = db.execute(
+        text("SELECT email FROM users WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    adressen = [zeile[0] for zeile in konten]
+
+    if adressen and not mit_zugang:
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail=(f"Der Betrieb hat noch einen Kundenzugang ({konto[0]}). "
-                    "Erst den Zugang entfernen, dann den Betrieb löschen."),
+            detail=(
+                f"Der Betrieb hat noch {len(adressen)} Kundenzugang"
+                f"{'' if len(adressen) == 1 else '/-zugänge'} "
+                f"({', '.join(adressen)}). Entweder den Zugang zuerst "
+                f"entfernen — oder mit ?mit_zugang=true beides zusammen "
+                f"löschen, etwa bei einem Löschverlangen nach DSGVO."
+            ),
         )
+
+    if adressen:
+        # Erst die Sitzungen, dann die Konten: `user_sessions.user_id` hält
+        # sonst dagegen, und der Aufruf scheiterte an derselben Sorte
+        # Fremdschlüssel wie vorher, nur eine Tabelle weiter.
+        db.execute(text(
+            "DELETE FROM user_sessions WHERE user_id IN "
+            "(SELECT id FROM users WHERE lead_id = :id)"), {"id": lead_id})
+        db.execute(text("DELETE FROM users WHERE lead_id = :id"), {"id": lead_id})
+        logger.info("Betrieb %s gelöscht, Zugänge mitgenommen: %s",
+                    lead_id, ", ".join(adressen))
 
     db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
 
-    return {"deleted": True, "id": lead_id}
+    return {"deleted": True, "id": lead_id, "zugaenge_geloescht": adressen}
 
 
 @router.post("/{lead_id}/analyze")

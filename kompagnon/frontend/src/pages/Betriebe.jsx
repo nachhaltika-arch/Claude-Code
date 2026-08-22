@@ -32,6 +32,8 @@ import {
   quellenAusBetrieben,
   BETRIEB_SORTIERUNGEN,
 } from '../utils/betriebeListe';
+import AnsichtReiter from '../components/AnsichtReiter';
+import { ansichtAnwenden } from '../utils/betriebAnsichten';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
 
@@ -118,6 +120,23 @@ export default function Betriebe() {
   const gefiltertWird = suche !== '' || status !== 'alle' || quelle !== 'alle';
   const amDeckel = betriebe.length === MAX_BETRIEBE;
 
+  const listenZustand = { suche, status, quelle, phase, sortierung };
+
+  /**
+   * Eine benannte Ansicht waehlen (L-83).
+   *
+   * Sie setzt **alle** Achsen auf einmal — genau das ist der Sinn: Vorher war
+   * derselbe Blick vier Handgriffe. Die Suche bleibt stehen; `ansichtAnwenden`
+   * fasst sie nicht an.
+   */
+  const ansichtWaehlen = (kennung) => {
+    const naechster = ansichtAnwenden(listenZustand, kennung);
+    setStatus(naechster.status);
+    setQuelle(naechster.quelle);
+    setPhase(naechster.phase);
+    setSortierung(naechster.sortierung);
+  };
+
   const filterZuruecksetzen = () => { setSuche(''); setStatus('alle'); setQuelle('alle'); };
 
   // ── Laden ────────────────────────────────────────────────────────────
@@ -178,6 +197,10 @@ export default function Betriebe() {
           vollständig gefüllt und zeigt womöglich nicht alle.
         </div>
       )}
+
+      {/* Benannte Ansichten (L-83) — der Blick, mit dem man anfaengt. Die
+        * Filter darunter sind das, was man danach noch verstellt. */}
+      <AnsichtReiter zustand={listenZustand} onWaehlen={ansichtWaehlen} />
 
       {/* Suche, Filter, Sortierung, Anlegen */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

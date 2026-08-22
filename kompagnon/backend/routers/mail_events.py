@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from database import Lead, MailEvent, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, require_innendienst
 
 logger = logging.getLogger(__name__)
 
@@ -141,10 +141,22 @@ async def brevo_webhook(secret: str, request: Request, db: Session = Depends(get
     return {"gespeichert": True, "event": event}
 
 
-@router.get("/lead/{lead_id}")
+@router.get("/lead/{lead_id}",
+            dependencies=[Depends(require_innendienst)])
 def stoerungen_eines_leads(lead_id: int, db: Session = Depends(get_db),
                            user=Depends(require_any_auth)):
-    """Die Zustellungsstörungen zu einem Lead — neueste zuerst."""
+    """Die Zustellungsstörungen zu einem Lead — neueste zuerst.
+
+    **Die Sperre gilt nur hier und nicht am Router (L-67, 22.08.2026).** Die
+    Antwort traegt Empfaengeradresse, Grund und Betreff jeder gescheiterten
+    Zustellung; das stand jedem Angemeldeten offen. Aufgerufen wird sie aus
+    `LeadProfile` (admin/auditor).
+
+    Der Brevo-Webhook in derselben Datei bleibt **ohne** Anmeldung: Er kommt
+    von aussen und weist sich mit seinem Geheimnis im Pfad aus. Eine
+    Router-Sperre haette ihn mitgenommen, und dann kaeme kein einziges
+    Zustellereignis mehr an.
+    """
     eintraege = (db.query(MailEvent)
                    .filter(MailEvent.lead_id == lead_id)
                    .order_by(MailEvent.created_at.desc())

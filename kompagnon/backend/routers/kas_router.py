@@ -16,6 +16,7 @@ Endpunkte:
     POST   /api/kas/deploy             — Alle Seiten live deployen (Superadmin)
 """
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -179,10 +180,13 @@ def get_kas_site(db: Session = Depends(get_db), _=Depends(require_admin)):
     site_url    = _get_setting(db, "kas_netlify_site_url")
     last_deploy = _get_setting(db, "kas_last_deploy")
     return {
-        "site_id":     site_id,
-        "site_url":    site_url,
-        "configured":  bool(site_id),
-        "last_deploy": last_deploy,
+        "site_id":       site_id,
+        "site_url":      site_url,
+        "configured":    bool(site_id),
+        "last_deploy":   last_deploy,
+        # Worauf die Seite laeuft. Steht die Domain nur bei Netlify, kann die
+        # Oberflaeche sie nicht zeigen (L-19).
+        "custom_domain": _get_setting(db, "kas_custom_domain"),
     }
 
 
@@ -329,3 +333,64 @@ def _set_setting(db: Session, key: str, value: str, user_id: Optional[int] = Non
     else:
         db.add(SystemSettings(key=key, value=value, updated_by=user_id))
     db.commit()
+
+# ── Eigene Domain — NUR Superadmin (L-19) ────────────────────────────────────
+
+class KasDomainRequest(BaseModel):
+    domain: str
+
+
+#: Eine Domain hat mindestens einen Punkt, keine Leerzeichen und kein Schema.
+#: Netlify nimmt fast alles entgegen und scheitert spaeter still — ein
+#: Tippfehler faellt dann erst beim Domain-Anbieter auf, nach einer
+#: DNS-Aenderung, die nie greifen konnte.
+_DOMAIN = re.compile(r"^(?!-)[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})+$")
+
+
+@router.post("/domain",
+             dependencies=[Depends(verlangt_recht("deploy_kas_pages"))])
+async def set_kas_domain(
+    body: KasDomainRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_superadmin),
+):
+    """Legt eine eigene Domain auf die Agenturseite (L-19).
+
+    Fuer Kundenprojekte gibt es das seit langem
+    (`POST /{id}/netlify/set-domain`) — fuer die eigene Seite fehlte nur die
+    Route; der Dienst dahinter ist derselbe.
+
+    **Anders als beim Kunden: keine E-Mail und keine Portal-Nachricht.** Der
+    Empfaenger waere der Betreiber selbst. Stattdessen kommt der
+    DNS-Leitfaden in der Antwort zurueck — er ist das, was beim
+    Domain-Anbieter einzutragen ist und was die Domain lebendig macht.
+    """
+    domain = (body.domain or "").strip().lower().rstrip(".")
+    if not _DOMAIN.match(domain):
+        raise HTTPException(
+            400, f'„{body.domain}“ ist keine Domain. Erwartet wird etwas wie '
+                 f'„kompagnon.eu“ — ohne http:// und ohne Pfad.')
+
+    site_id  = _get_setting(db, "kas_netlify_site_id")
+    site_url = _get_setting(db, "kas_netlify_site_url") or ""
+    if not site_id:
+        raise HTTPException(400, "Keine KAS-Netlify-Site vorhanden. Zuerst Site anlegen.")
+
+    from services.netlify_service import generate_dns_guide, set_custom_domain
+    try:
+        ergebnis = await set_custom_domain(site_id, domain)
+    except Exception as fehler:
+        # Nicht verschlucken: Ohne Meldung traegt jemand DNS-Eintraege fuer
+        # eine Verbindung ein, die es nicht gibt.
+        logger.error(f"KAS set_custom_domain fehlgeschlagen: {fehler}")
+        raise HTTPException(502, f"Netlify hat die Domain nicht angenommen: "
+                                 f"{str(fehler)[:150]}")
+
+    _set_setting(db, "kas_custom_domain", domain, user.id)
+    logger.info(f"KAS-Domain gesetzt: {domain}")
+
+    return {
+        "domain": domain,
+        "ssl_url": ergebnis.get("ssl_url") or f"https://{domain}",
+        "dns": generate_dns_guide(domain, site_url),
+    }

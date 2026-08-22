@@ -47,10 +47,7 @@ from routers import (
     fehler_router,
     usercards_router,
     usercards_kunden_router,
-    leads_alias_router,
-    usercards_customers_alias_router,
     leads_router,
-    customers_alias_router,
     projects_router,
     agents_router,
     customers_router,
@@ -586,6 +583,12 @@ def _run_migrations():
         # produktiv `/api/dashboard/alerts` mit 500 beantwortet.
         "UPDATE projects SET scope_creep_flags = 0 WHERE scope_creep_flags IS NULL",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS public_token VARCHAR(64)",
+        # Über wie viele Seiten ein Audit urteilt (21.08.2026). Altzeilen
+        # bekommen 1: Sie kannten nur die Startseite.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS "
+        "seiten_geprueft INTEGER DEFAULT 1",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS "
+        "seiten_gefunden INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lifecycle_phase VARCHAR(30)",
         "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_phase "
         "ON leads(lifecycle_phase)",
@@ -1270,6 +1273,14 @@ def _run_migrations():
         "ALTER TABLE component_library ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'",
         "UPDATE component_library SET status = 'approved' WHERE status IS NULL",
         "CREATE INDEX IF NOT EXISTS idx_component_library_status ON component_library(status)",
+        # ── Tatsaechliche KI-Sichtbarkeit 2026-08-22 (L-58 b) ───────────────
+        # Bis hierhin mass GEO nur die Voraussetzungen — llms.txt, offene
+        # Crawler, strukturierte Daten. Ob ChatGPT, Perplexity oder Claude den
+        # Betrieb auf eine Kundenfrage hin wirklich **nennen**, steht jetzt
+        # hier: je System die gestellten Fragen, die Belege und die Trefferzahl.
+        # NULL heisst „nie gelaufen" — ausdruecklich nicht „nicht gefunden".
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit JSONB",
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_am TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1849,10 +1860,11 @@ app.include_router(leads_public_router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)
-app.include_router(leads_alias_router)                # alias after
-app.include_router(usercards_customers_alias_router)
-app.include_router(customers_router)                  # real customers router first
-app.include_router(customers_alias_router)            # alias after
+# Die drei Alias-Router sind am 21.08.2026 entfernt (Modulkarte, Nahtstelle
+# `/api/customers`). Der Kommentar hier sagte „real customers router first" —
+# er war es nicht: `usercards_customers_alias_router` stand eine Zeile davor
+# und ueberdeckte ihn samt seiner Antwortform.
+app.include_router(customers_router)
 app.include_router(projects_router)
 # Freigabe des Kunden über den Link aus der E-Mail. Alles andere hängt am
 # `projects_router` und verlangt eine Anmeldung.
@@ -1928,6 +1940,11 @@ app.include_router(content.router)
 
 from routers import designs
 app.include_router(designs.router)
+
+# Der Canvas liest dieselben Zeilen wie die vier KAS-Ansichten und schreibt
+# ueber `mockup_versions` zurueck — deshalb steht er direkt hinter `designs`.
+from routers import design_canvas
+app.include_router(design_canvas.router)
 
 from routers import content_scraper_router
 app.include_router(content_scraper_router.router)

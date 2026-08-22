@@ -12,7 +12,7 @@ Der Weg hier hinein ist deshalb der einzige erlaubte aus einer `async def`;
 
     antwort = await frag_modell(
         client,
-        model='claude-sonnet-4-6',
+        model='claude-sonnet-5', thinking={"type": "disabled"},
         max_tokens=1000,
         messages=[{'role': 'user', 'content': prompt}],
     )

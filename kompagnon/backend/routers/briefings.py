@@ -362,7 +362,7 @@ async def suggest_field(
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 400, "messages": [{"role": "user", "content": prompt}]},
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 400, "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
         suggestion = resp.json()["content"][0]["text"].strip()
@@ -622,7 +622,7 @@ async def ki_prefill_seo(
                     "https://api.anthropic.com/v1/messages",
                     headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
                              "content-type": "application/json"},
-                    json={"model": "claude-sonnet-4-20250514", "max_tokens": 200,
+                    json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 200,
                           "messages": [{"role": "user", "content": prompt}]},
                 )
             resp.raise_for_status()
@@ -722,7 +722,7 @@ async def ki_prefill_ziele(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
                          "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 800,
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 800,
                       "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()

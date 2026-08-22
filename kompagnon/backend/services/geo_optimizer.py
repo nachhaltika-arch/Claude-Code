@@ -149,7 +149,7 @@ Antworte NUR als JSON:
         try:
             response = await frag_modell(
                 self.client,
-                model="claude-opus-4-5",
+                model="claude-opus-5", thinking={"type": "disabled"},
                 max_tokens=1000,
                 messages=[{"role": "user", "content": prompt}],
             )

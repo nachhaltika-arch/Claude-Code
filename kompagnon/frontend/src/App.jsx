@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 // Hiess LeadPipeline und zeigte Projekte — der Name im Code war
 // derselbe Irrtum wie die Adresse.
 import Projektpipeline from './pages/Projektpipeline';
-import ProjectDetail from './pages/ProjectDetail';
 import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
 import ContactImport from './pages/ContactImport';
@@ -42,6 +41,9 @@ import DomainImport from './pages/DomainImport';
 import ScraperControl from './pages/ScraperControl';
 import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
+import Checkout from './pages/Checkout';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import PaketSeite from './pages/PaketSeite';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
 import QRGenerator from './pages/QRGenerator';
@@ -57,7 +59,6 @@ import Datenschutz from './pages/Datenschutz';
 import Barrierefreiheit from './pages/Barrierefreiheit';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
-import ProductManager from './pages/ProductManager';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
@@ -195,6 +196,24 @@ function App() {
           <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
 
+          {/* ── Der Bestellweg ──────────────────────────────────────────────
+            * Bis zum 21.08.2026 gab es diese vier Routen **nicht** (L-64).
+            * `Checkout.jsx`, `CheckoutSuccess.jsx` und die drei Paketseiten
+            * lagen im Quellbaum, wurden von nichts importiert und erreichten
+            * nicht einmal das ausgelieferte Buendel. Wer auf „Paket waehlen"
+            * klickte oder den Bestelllink aus der Angebotsmail oeffnete,
+            * landete ueber die Auffangroute auf `/login` — und nach bezahlter
+            * Rechnung ebenso, denn `create_checkout` schickt Stripe auf
+            * `/checkout/success` zurueck.
+            *
+            * Oeffentlich und ohne Anmeldung: Wer kaufen will, hat noch kein
+            * Konto. Das Konto entsteht erst beim Zahlungseingang
+            * (`_handle_successful_payment`). */}
+          <Route path="/paket/:slug"       element={<PaketSeite />} />
+          <Route path="/checkout"          element={<Checkout />} />
+          <Route path="/checkout/success"  element={<CheckoutSuccess />} />
+          <Route path="/checkout/:package" element={<Checkout />} />
+
           {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──
             * `/abnahme/:projectId` stand hier, war aber nicht token-basiert:
             * Die Seite trug keinen Nachweis und rief zwei Endpunkte auf, die
@@ -205,12 +224,14 @@ function App() {
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
-          {/* ── Online-Fertig-Editor — jetzt Default für /app/projects/:id ──
+          {/* ── Der Projekt-Editor ────────────────────────────────────────
             * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.
-            * /app/projects/:id              → Default (neu)
-            * /app/projects/:id/online-fertig → Alias (alte URL, bleibt aktiv)
-            * Der Legacy-ProzessFlowV3 ist auf /app/projects/:id/legacy
-            * umgezogen (siehe AppLayout-Block weiter unten). */}
+            * /app/projects/:id              → Default
+            * /app/projects/:id/online-fertig → Alias (alte URL, es gibt
+            *                                   Lesezeichen darauf)
+            * Seit dem 21.08.2026 der einzige: `/app/projects/:id/legacy` und
+            * mit ihr `ProzessFlowV3` und `pages/ProjectDetail.jsx` sind
+            * entfernt. */}
           <Route
             path="/app/projects/:id"
             element={
@@ -255,10 +276,6 @@ function App() {
             <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
             <Route path="leads/:leadId" element={<LeadRedirect />} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
-              * der frühere Default ist auf /legacy umgezogen, weil
-              * /app/projects/:id jetzt den Online-Fertig-Editor zeigt. */}
-            <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere
@@ -282,7 +299,19 @@ function App() {
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
             <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
             <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
-            <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
+            {/* Hier stand `ProductManager`. Er war gegen eine **andere**
+              * Produkt-Schnittstelle geschrieben: deutsche Feldnamen
+              * (`beschreibung`, `preis_einmalig`, `ist_live`), die Kennung
+              * statt des Slugs, und zwei Knoepfe auf Endpunkte, die es nicht
+              * gibt (`stripe-connect`, `toggle-live`). Die Tabelle heisst
+              * `short_desc`, `price_brutto`, `status` — jedes Feld war leer,
+              * jedes Speichern wirkungslos.
+              *
+              * `ProductEditor` passt zur Schnittstelle, kennt den Slug und
+              * ruft die echte Stripe-Synchronisierung auf — er hatte nur
+              * keinen Menuepunkt. Der Menuepunkt „Pakete" fuehrt jetzt
+              * dorthin (21.08.2026, M4). */}
+            <Route path="products" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             {/* `products/editor` war eine zweite Adresse für denselben
               * Bildschirm wie `product-editor` — von nirgends verlinkt.
               * Entfernt am 17.08.2026 (UX-17). Wer die Adresse kannte, kommt

@@ -46,36 +46,52 @@ const GREEN = '#1D9E75';
 //              (BriefingUnternehmenEmbed, AuditEmbed, etc.)
 // gate       — Gate-Schritt mit Lock-Icon (Customer-Approval)
 // optional   — kein Pflichtschritt fuer Fortschritt
-export const SCHRITTE = [
+const SCHRITT_FOLGE = [
   // Phase 1 — Analyse (5)
-  { id: 'briefing-unternehmen', nr: 1,  phase: 'Analyse',     name: 'Briefing: Unternehmen', view: null,         component: 'BriefingUnternehmen' },
-  { id: 'audit',                nr: 2,  phase: 'Analyse',     name: 'Website-Audit',          view: null,         component: 'Audit' },
-  { id: 'content-vollanalyse',  nr: 3,  phase: 'Analyse',     name: 'Content-Vollanalyse',    view: null,         component: 'AnalyseZentrale' },
-  { id: 'briefing-website',     nr: 4,  phase: 'Analyse',     name: 'Briefing: Website',      view: null,         component: 'BriefingWebsite' },
-  { id: 'zugangsdaten',         nr: 5,  phase: 'Analyse',     name: 'Zugangsdaten',           view: null,         component: 'Zugangsdaten', optional: true },
+  { id: 'briefing-unternehmen', phase: 'Analyse',     name: 'Briefing: Unternehmen', view: null,         component: 'BriefingUnternehmen' },
+  { id: 'audit',                phase: 'Analyse',     name: 'Website-Audit',          view: null,         component: 'Audit' },
+  // GEO/GAIO — bis zum 21.08.2026 nur im Legacy-Editor erreichbar. Der Kopf von
+  // `GeoOptimizerStep.jsx` nennt selbst diesen Platz: zwischen Audit und
+  // Vollanalyse. Optional, damit die Kette daran nicht abreisst.
+  { id: 'geo-optimierung',      phase: 'Analyse',     name: 'GEO-Optimierung',        view: null,         component: 'GeoOptimizer', optional: true },
+  { id: 'content-vollanalyse',  phase: 'Analyse',     name: 'Content-Vollanalyse',    view: null,         component: 'AnalyseZentrale' },
+  { id: 'briefing-website',     phase: 'Analyse',     name: 'Briefing: Website',      view: null,         component: 'BriefingWebsite' },
+  { id: 'zugangsdaten',         phase: 'Analyse',     name: 'Zugangsdaten',           view: null,         component: 'Zugangsdaten', optional: true },
 
   // Phase 2 — Sitemap + Wireframe (2)
-  { id: 'sitemap-ki',           nr: 6,  phase: 'Sitemap',     name: 'KI-Sitemap',             view: 'sitemap',    component: null },
-  { id: 'wireframe-ki',         nr: 7,  phase: 'Sitemap',     name: 'KI-Wireframe',           view: 'wireframe',  component: null },
+  { id: 'sitemap-ki',           phase: 'Sitemap',     name: 'KI-Sitemap',             view: 'sitemap',    component: null },
+  { id: 'wireframe-ki',         phase: 'Sitemap',     name: 'KI-Wireframe',           view: 'wireframe',  component: null },
+  // Leistungsseiten — ebenfalls nur im Legacy-Editor. Sie gehoeren hinter die
+  // Sitemap: Welche Leistung eine eigene Seite bekommt, entscheidet sich dort.
+  { id: 'leistungsseiten',      phase: 'Sitemap',     name: 'Leistungsseiten',        view: null,         component: 'LeistungsseitenWizard', optional: true },
 
   // Phase 3 — Style Guide + Design (2, mit Gate)
-  { id: 'style-guide',          nr: 8,  phase: 'Design',      name: 'Style Guide',            view: 'styleguide', component: null, gate: true },
-  { id: 'finales-design',       nr: 9,  phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
+  { id: 'style-guide',          phase: 'Design',      name: 'Style Guide',            view: 'styleguide', component: null, gate: true },
+  { id: 'finales-design',       phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
 
   // Phase 4 — Produktion (2)
-  { id: 'ki-content',           nr: 10, phase: 'Produktion',  name: 'KI-Content',             view: null,         component: 'ContentWerkstatt' },
-  { id: 'netlify-deploy',       nr: 11, phase: 'Produktion',  name: 'Netlify Deploy',         view: null,         component: 'Netlify' },
+  { id: 'ki-content',           phase: 'Produktion',  name: 'KI-Content',             view: null,         component: 'ContentWerkstatt' },
+  { id: 'netlify-deploy',       phase: 'Produktion',  name: 'Netlify Deploy',         view: null,         component: 'Netlify' },
 
   // Phase 5 — Go Live (3, mit Gate)
-  { id: 'dns',                  nr: 12, phase: 'GoLive',      name: 'DNS',                    view: null,         component: 'DNS' },
-  { id: 'qa',                   nr: 13, phase: 'GoLive',      name: 'QA-Check',               view: null,         component: 'QA' },
-  { id: 'abnahme',              nr: 14, phase: 'GoLive',      name: 'Abnahme',                view: null,         component: 'Abnahme', gate: true },
+  { id: 'dns',                  phase: 'GoLive',      name: 'DNS',                    view: null,         component: 'DNS' },
+  { id: 'qa',                   phase: 'GoLive',      name: 'QA-Check',               view: null,         component: 'QA' },
+  { id: 'abnahme',              phase: 'GoLive',      name: 'Abnahme',                view: null,         component: 'Abnahme', gate: true },
 
   // Phase 6 — Post-Launch (3) — noch keine Legacy-Components, nur Placeholder
-  { id: 'umami',                nr: 15, phase: 'PostLaunch',  name: 'Umami einrichten',       view: null,         component: null },
-  { id: 'heatmap',              nr: 16, phase: 'PostLaunch',  name: 'Heatmap einrichten',     view: null,         component: null },
-  { id: 'monats-report',        nr: 17, phase: 'PostLaunch',  name: 'Monats-Report',          view: null,         component: null },
+  { id: 'umami',                phase: 'PostLaunch',  name: 'Umami einrichten',       view: null,         component: null },
+  { id: 'heatmap',              phase: 'PostLaunch',  name: 'Heatmap einrichten',     view: null,         component: null },
+  { id: 'monats-report',        phase: 'PostLaunch',  name: 'Monats-Report',          view: null,         component: null },
 ];
+
+// `nr` ist die Position in dieser Liste, keine gepflegte Zahl. Beim Einfuegen
+// der beiden Legacy-Schritte am 21.08.2026 lief die Handnummerierung sofort
+// auseinander — zwei Schritte trugen die 6, einer sprang von 3 auf 5. Eine
+// Nummer, die man pflegen muss, wird irgendwann falsch; eine abgeleitete nicht.
+export const SCHRITTE = SCHRITT_FOLGE.map((schritt, index) => ({
+  ...schritt,
+  nr: index + 1,
+}));
 
 const PHASE_META = {
   Analyse:    { label: 'Analyse',     icon: '🔍' },

@@ -1,0 +1,64 @@
+# Welche Regeln das Lint-Tor prüft — und warum genau diese.
+#
+# **Warum diese Datei existiert (L-78, 22.08.2026).** Die Auswahl stand nur in
+# der CI-Zeile (`ruff check --select E9,F63,F7,F82`). Zwei Folgen:
+#
+#   1. `ruff check` lokal prüfte etwas **anderes** als die CI — lokal die
+#      Standardauswahl mit 31 Befunden, in der CI vier Familien und grün. Wer
+#      lokal aufräumte, arbeitete an etwas, das das Tor nie forderte.
+#   2. Die Auswahl war nirgends begründet. Als am 22.08. eine doppelt
+#      registrierte Route auffiel, hatte Ruff sie die ganze Zeit gemeldet —
+#      `F811`, seit Monaten. Nur stand F811 nicht in der Zeile. Das Werkzeug
+#      sah den Fehler, das Tor ließ ihn durch.
+#
+# **Der Maßstab für die Aufnahme.** Eine Regel kommt hinein, wenn sie einen
+# **Laufzeitfehler oder eine Bedeutungsverschiebung** fängt — nicht, wenn sie
+# Geschmack durchsetzt. Am 22.08. gemessen, welche Regeln der Bestand heute
+# schon erfüllt: F401 (81 Befunde), F841 (15), F541 (13) und F402 (2) sind
+# **nicht** aufgenommen. Das sind Aufräumarbeiten; sie zum Tor zu machen
+# hieße, rote Läufe zu erzeugen, die niemand als Fehler liest — und ein Tor,
+# an das man sich gewöhnt, ist keines mehr.
+
+exclude = ["venv", ".venv", "__pycache__"]
+line-length = 120
+
+[lint]
+select = [
+    # ── Was den Start verhindert ────────────────────────────────────
+    "E9",    # Syntax- und IO-Fehler. Ohne sie startet gar nichts.
+
+    # ── Namen, die es nicht gibt ────────────────────────────────────
+    "F82",   # undefined name — der klassische Tippfehler, der erst zur
+             # Laufzeit auffällt, und dann an der teuersten Stelle.
+
+    # ── Vergleiche, die etwas anderes bedeuten als sie aussehen ─────
+    "F63",   # u. a. `is` mit Literalen und Vergleiche mit `str`/`bytes`.
+
+    # ── Syntax, die der Parser durchlässt und Python nicht ──────────
+    "F7",    # `continue` außerhalb einer Schleife, `return` außerhalb
+             # einer Funktion, doppelte Argumente.
+
+    # ── Doppelte Namen ──────────────────────────────────────────────
+    "F811",  # Redefinition eines ungenutzten Namens.
+             # **Der Anlass dieser Datei.** `POST /{id}/request-approval`
+             # stand zweimal in `routers/projects.py`; Python überschrieb
+             # den Namen, FastAPI hatte den ersten Decorator längst
+             # ausgewertet. Geroutet wurde der erste, nachgelesen der
+             # zweite — mit einer anderen Sperre. Ruff meldete es, das
+             # Tor filterte es weg (L-76, L-78).
+
+    # ── Formatierung, die zur Laufzeit wirft ────────────────────────
+    "F502",  # `%`-Format mit Dictionary, aber ohne Schlüssel
+    "F506",  # gemischte Platzhalter, benannt und positionsbezogen
+    "F507",  # Anzahl der Platzhalter passt nicht zu den Werten
+    "F522",  # `.format()` mit unbenutztem benanntem Argument
+    "F524",  # `.format()` mit fehlendem Argument
+             # Alle vier erzeugen einen `TypeError` erst beim Aufruf — also
+             # genau dann, wenn ein Kunde die Seite lädt. Der Bestand ist
+             # sauber, sie kosten nichts.
+
+    # ── Zwei stille Fallen ──────────────────────────────────────────
+    "F601",  # `x in (1, 2)` mit `str`-Vergleich — trifft nie zu.
+    "F901",  # `raise NotImplemented` statt `NotImplementedError`.
+             # Sieht richtig aus, wirft aber `TypeError`.
+]

@@ -77,7 +77,7 @@ Vollständiger HTML-Code:"""
         client = Anthropic(api_key=api_key, max_retries=0, timeout=120.0)
         response = await frag_modell(
             client,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=4096,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],

@@ -983,6 +983,20 @@ def generate_audit_report(audit_data: dict) -> bytes:
         story.append(blocker_box)
         story.append(Spacer(1, 5*mm))
 
+    # Über wie viele Seiten geurteilt wurde. Ohne diese Zeile liest jemand
+    # eine Note von heute wie eine von vor dem 21.08.2026 — damals bewertete
+    # das Audit ausschließlich die Startseite.
+    geprueft = audit_data.get("seiten_geprueft") or 1
+    gefunden = audit_data.get("seiten_gefunden")
+    if geprueft > 1:
+        umfang = f"Bewertet wurden {geprueft} Seiten dieser Website"
+        if gefunden and gefunden > geprueft:
+            umfang += f" von {gefunden} gefundenen"
+        story.append(Paragraph(
+            f'<font size="8" color="{KC_TEXT_60.hexval()}">{umfang}.</font>',
+            styles["KCBody"]))
+        story.append(Spacer(1, 3*mm))
+
     if coverage is not None and coverage < 100:
         story.append(Paragraph(
             # \u202f (schmales gesch. Leerzeichen) fehlt in Helvetica und kam

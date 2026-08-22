@@ -263,7 +263,7 @@ async def import_template_from_url(
             client_ai = Anthropic(api_key=api_key)
             msg = await frag_modell(
                 client_ai,
-                model="claude-sonnet-4-6",
+                model="claude-sonnet-5", thinking={"type": "disabled"},
                 max_tokens=4000,
                 system=(
                     "Du bist ein HTML-Entwickler. Bereinige und rekonstruiere "

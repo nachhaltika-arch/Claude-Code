@@ -71,7 +71,7 @@ Schreibe professionell, auf Deutsch, faktisch korrekt. KEIN Marketing-Sprech."""
 
         try:
             response = self.client.messages.create(
-                model="claude-opus-4-5",
+                model="claude-opus-5", thinking={"type": "disabled"},
                 max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}],
             )
@@ -205,7 +205,7 @@ usw."""
 
         try:
             response = self.client.messages.create(
-                model="claude-opus-4-5",
+                model="claude-opus-5", thinking={"type": "disabled"},
                 max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}],
             )

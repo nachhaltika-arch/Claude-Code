@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
+// Beide Schritte lebten bis zum 21.08.2026 nur in `ProzessFlowV3` — dem
+// Legacy-Editor. Ihre Dateien ueberleben dessen Abbau; sie brauchten nur
+// einen Platz im gemeinsamen Renderer.
+import GeoOptimizerStep from './GeoOptimizerStep';
+import { LeistungsseitenStep } from './LeistungsseitenWizard';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
@@ -19,6 +24,7 @@ import SitemapVorschlaege from './SitemapVorschlaege';
 import API_BASE_URL from '../config';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { istContentFreigegeben } from '../utils/freigabeStand';
 
 const PHASEN = [
   {
@@ -296,12 +302,12 @@ export default function ProzessFlow({
     gbpPlaceId:            project?.gbp_place_id || null,
     screenshotBefore:      project?.screenshot_before || null,
     screenshotAfter:       project?.screenshot_after  || null,
-    contentFreigabeErteilt: (() => {
-      try {
-        const f = project?.content_freigaben ? JSON.parse(project.content_freigaben) : {};
-        return Object.keys(f).length > 0 && Object.values(f).some(v => v === true);
-      } catch { return false; }
-    })(),
+    // Die Prüfung stand hier inline und verglich mit `=== true`. Das Backend
+    // schreibt seit dem Umbau ein Objekt, und ein Objekt ist nie `=== true`:
+    // Der Schritt konnte nie fertig werden, und der Ablauf sprang beim Öffnen
+    // immer wieder hierher zurück. Regel und Belege stehen in
+    // `utils/freigabeStand.js` — dort ist sie prüfbar, hier war sie es nicht.
+    contentFreigabeErteilt: istContentFreigegeben(project?.content_freigaben),
   };
 
   // Init: erster nicht-fertiger Schritt — nur einmal beim Mount
@@ -533,6 +539,28 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return lead
         ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>
         : <Spinner />;
+
+    case 'GeoOptimizer':
+      return (
+        <div style={pad}>
+          <GeoOptimizerStep
+            projectId={project?.id}
+            onComplete={(score) => onAnalyseUpdate && onAnalyseUpdate({ geoScore: score })}
+          />
+        </div>
+      );
+
+    case 'LeistungsseitenWizard':
+      return (
+        <LeistungsseitenStep
+          projectId={project?.id}
+          leadId={leadId}
+          token={token}
+          brandData={brandData}
+          confirmedSteps={project?.steps_confirmed}
+          onSave={() => { onProjectRefresh?.(); }}
+        />
+      );
 
     case 'AnalyseZentrale':
       return (

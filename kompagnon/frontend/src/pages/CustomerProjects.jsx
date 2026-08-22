@@ -10,6 +10,7 @@ import ProjekteLoeschenModal from '../components/ProjekteLoeschenModal';
 import { alleGewaehlt, alleUmschalten, umschalten } from '../utils/projektAuswahl';
 import toast from 'react-hot-toast';
 import { aufTaste } from '../utils/tastaturBedienung';
+import usePakete from '../hooks/usePakete';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: 'var(--kc-mid)' },
@@ -138,7 +139,14 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
 const EMPTY_FORM = { paket: 'kompagnon', company_name: '', website_url: '', contact_name: '', email: '', phone: '' };
 
 // ── Online Fertig Modal ───────────────────────────────────────────────────────
+const PAKET_DARSTELLUNG = [
+  { id: 'starter', name: 'Starter' },
+  { id: 'kompagnon', name: 'Kompagnon' },
+  { id: 'premium', name: 'Premium' },
+];
+
 function OnlineFertigModal({ token, onClose, onCreated }) {
+  const { pakete: PAKETE } = usePakete(PAKET_DARSTELLUNG);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const { isMobile } = useScreenSize();
@@ -229,10 +237,16 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           {/* Paket */}
           <div>
             <label style={lbl}>Paket</label>
+            {/* Die Betraege standen hier fest — Kompagnon mit 3.500, waehrend
+                die Kasse 2.000 abbucht (L-29). Jetzt aus derselben Zeile wie
+                Stripe; kennt der Server ein Paket nicht, steht dort kein
+                erfundener Preis. */}
             <select aria-label="Paket" value={form.paket} onChange={set('paket')} style={inp}>
-              <option value="starter">Starter — 1.500 €</option>
-              <option value="kompagnon">Kompagnon — 3.500 €</option>
-              <option value="premium">Premium — 2.500 €</option>
+              {PAKETE.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.preisBekannt ? `${p.name} — ${p.preisLabel} €` : p.name}
+                </option>
+              ))}
             </select>
           </div>
 

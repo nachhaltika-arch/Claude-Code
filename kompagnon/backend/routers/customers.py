@@ -12,26 +12,46 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from typing import Optional
+
 from pydantic import BaseModel
 from database import Customer, Project, get_db, SessionLocal
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_innendienst
 from services.audit_pagespeed import api_key as pagespeed_api_key
 
 # Vorgabe: geschlossen. Bis zum 14.08.2026 trug keine der sieben Routen eine
 # Anmeldung — der Kundenbestand war produktiv ohne Token abrufbar und änderbar.
+#
+# **21.08.2026: von `require_any_auth` auf `require_innendienst`.** Der
+# schwächere Wächter fiel bisher nicht auf, weil `GET /api/customers/` gar
+# nicht hier ankam: `usercards.customers_alias_router` ist eine Zeile früher
+# eingebunden (`main.py`) und hat die Route überdeckt — mitsamt seiner
+# strengeren Sperre. Die Überdeckung hat also die Sicherheitsarbeit gemacht.
+# Wer den Alias entfernt, ohne das hier zu ändern, öffnet den Kundenbestand
+# für jeden angemeldeten Kunden. Dieselbe Lücke wie L-12, nur verdeckt.
 router = APIRouter(prefix="/api/customers", tags=["customers"],
-                   dependencies=[Depends(require_any_auth)])
+                   dependencies=[Depends(require_innendienst)])
 
 
+# `x: datetime = None` heisst in Pydantic v2 **nicht** „darf None sein": Es ist
+# ein Pflichtfeld vom Typ `datetime` mit einer Vorgabe, die den Typ verletzt.
+# Beim Serialisieren einer echten `None`-Spalte schlaegt die Antwortpruefung zu
+# und die Route antwortet **500** — dieselbe Familie wie L-53, wo `NULL > 0`
+# ein `TypeError` war.
+#
+# Aufgefallen ist es erst am 21.08.2026, als der ueberdeckende Alias-Router
+# entfernt wurde (Modulkarte, Nahtstelle `/api/customers`). Die Route war
+# vorher unerreichbar — und damit war auch der Fehler unsichtbar. Eine tote
+# Route ist nicht nur ungenutzt; sie ist ungeprueft.
 class CustomerResponse(BaseModel):
     id: int
     project_id: int
-    next_touchpoint_date: datetime = None
-    next_touchpoint_type: str = None
+    next_touchpoint_date: Optional[datetime] = None
+    next_touchpoint_type: Optional[str] = None
     upsell_status: str
-    upsell_package: str = None
+    upsell_package: Optional[str] = None
     recurring_revenue: float
-    notes: str = None
+    notes: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -39,19 +59,19 @@ class CustomerResponse(BaseModel):
 
 
 class CustomerUpdate(BaseModel):
-    next_touchpoint_date: datetime = None
-    next_touchpoint_type: str = None
-    upsell_status: str = None
-    upsell_package: str = None
-    recurring_revenue: float = None
-    notes: str = None
+    next_touchpoint_date: Optional[datetime] = None
+    next_touchpoint_type: Optional[str] = None
+    upsell_status: Optional[str] = None
+    upsell_package: Optional[str] = None
+    recurring_revenue: Optional[float] = None
+    notes: Optional[str] = None
 
 
 class CustomerDetailResponse(CustomerResponse):
     company_name: str
     contact_name: str
     email: str
-    website_url: str = None
+    website_url: Optional[str] = None
     trade: str
 
 

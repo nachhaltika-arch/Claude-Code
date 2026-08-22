@@ -210,7 +210,7 @@ async def suggest_fonts(lead_id: int, db: Session = Depends(get_db)):
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 500,
+                json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 500,
                       "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
@@ -488,7 +488,7 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
                     ai_resp = await ai_client.post(
                         "https://api.anthropic.com/v1/messages",
                         headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                        json={"model": "claude-sonnet-4-20250514", "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]},
+                        json={"model": "claude-sonnet-5", "thinking": {"type": "disabled"}, "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]},
                     )
                 if ai_resp.status_code == 200:
                     content = ai_resp.json()["content"][0]["text"].strip()
@@ -567,7 +567,7 @@ def analyze_screenshot(lead_id: int, db: Session = Depends(get_db)):
     try:
         client = anthropic.Anthropic()
         msg = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=800,
+            model="claude-sonnet-5", thinking={"type": "disabled"}, max_tokens=800,
             messages=[{"role": "user", "content": [
                 {"type": "image", "source": {
                     "type": "base64",
@@ -881,7 +881,7 @@ Antworte NUR als JSON (kein Markdown):
         client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
         message = await frag_modell(
             client,
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=4000,
             messages=[{"role": "user", "content": prompt}],
         )

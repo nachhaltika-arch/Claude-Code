@@ -3,9 +3,7 @@
 from .fehler import router as fehler_router
 from .usercards import router as usercards_router
 from .usercards import kunden_router as usercards_kunden_router
-from .usercards import leads_alias_router, customers_alias_router as usercards_customers_alias_router
 from .leads import router as leads_router
-from .leads import customers_alias_router
 from .projects import router as projects_router
 from .agents import router as agents_router
 from .customers import router as customers_router
@@ -33,10 +31,7 @@ __all__ = [
     "fehler_router",
     "usercards_router",
     "usercards_kunden_router",
-    "leads_alias_router",
-    "usercards_customers_alias_router",
     "leads_router",
-    "customers_alias_router",
     "projects_router",
     "agents_router",
     "customers_router",

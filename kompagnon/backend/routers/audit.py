@@ -193,6 +193,11 @@ def _run_audit_background(audit_id: int):
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]
+
+        # Der Umfang gehört zum Ergebnis, nicht ins Log: Ein Audit über 25 von
+        # 400 Seiten sagt etwas anderes als eines über alle acht.
+        audit2.seiten_geprueft = summary["seiten_geprueft"]
+        audit2.seiten_gefunden = summary["seiten_gefunden"]
         audit2.collection_notes = json.dumps(collection_notes(facts, ai), ensure_ascii=False)
 
         # Wogegen bewertet wurde. Gehört zum Ergebnis, nicht in die Notizen:
@@ -758,6 +763,10 @@ def _format_audit(audit: AuditResult) -> dict:
         "total_score": audit.total_score,
         "level": audit.level,
         "coverage": getattr(audit, "coverage", None),
+        # Über wie viele Seiten geurteilt wurde. Ergebnisse vor dem 21.08.2026
+        # kannten nur die Startseite; die Spaltenvorgabe 1 sagt das ehrlich.
+        "seiten_geprueft": getattr(audit, "seiten_geprueft", None) or 1,
+        "seiten_gefunden": getattr(audit, "seiten_gefunden", None),
         "collection_notes": _json_field(getattr(audit, "collection_notes", None), {}),
         # Der Maßstab, gegen den bewertet wurde — siehe Bewertungslogik 2026.2.
         "erkannte_branche": getattr(audit, "erkannte_branche", "") or "",

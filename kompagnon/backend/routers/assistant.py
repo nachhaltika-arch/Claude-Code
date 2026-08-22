@@ -187,7 +187,7 @@ def _frag_das_modell(*, systemprompt: str, verlauf: list, frage: str) -> dict:
 
     client = Anthropic(api_key=api_key)
     antwort = client.messages.create(
-        model=ASSISTENT_MODELL,
+        model=ASSISTENT_MODELL, thinking={"type": "disabled"},
         max_tokens=ASSISTENT_MAX_TOKENS,
         system=systemprompt,
         messages=verlauf + [{"role": "user", "content": frage}],

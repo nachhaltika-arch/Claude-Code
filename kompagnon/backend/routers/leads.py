@@ -2292,7 +2292,7 @@ Antworte NUR mit einem JSON-Objekt:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                     "max_tokens": 800,
                     "messages": [{"role": "user", "content": prompt}],
                 },
@@ -2415,29 +2415,12 @@ Antworte NUR mit einem JSON-Objekt:
     }
 
 
-# Registers identical handlers under /api/customers/{lead_id}/... so that
-# frontend calls to either prefix work transparently.
-
-# Derselbe Bestand unter zweitem Pfad — dieselbe Absicherung, sonst ist die
-# Sperre am Hauptrouter wirkungslos.
-customers_alias_router = APIRouter(prefix="/api/customers", tags=["customers"],
-                                   dependencies=[Depends(require_any_auth)])
-
-customers_alias_router.add_api_route("/",                            list_leads,           methods=["GET"])
-customers_alias_router.add_api_route("/",                            create_lead,          methods=["POST"],   response_model=LeadResponse)
-customers_alias_router.add_api_route("/{lead_id}",                  get_lead,             methods=["GET"],    response_model=LeadResponse)
-customers_alias_router.add_api_route("/{lead_id}",                  update_lead,          methods=["PATCH"])
-customers_alias_router.add_api_route("/{lead_id}",                  delete_lead,          methods=["DELETE"])
-customers_alias_router.add_api_route("/{lead_id}/analyze",          analyze_lead,         methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/convert",          convert_lead,         methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/enrich",           enrich_single_lead,   methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/latest-screenshot",get_latest_screenshot,methods=["GET"])
-customers_alias_router.add_api_route("/{lead_id}/screenshot",       create_screenshot,    methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/profile",          get_lead_profile,     methods=["GET"])
-customers_alias_router.add_api_route("/{lead_id}/audits",           get_lead_audits,      methods=["GET"])
-customers_alias_router.add_api_route("/{lead_id}/extract-impressum",extract_impressum,    methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/qr-code",          get_qr_code,          methods=["GET"])
-customers_alias_router.add_api_route("/{lead_id}/qr-code/refresh",  refresh_qr_code,      methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/pagespeed",        get_lead_pagespeed,   methods=["GET"])
-customers_alias_router.add_api_route("/{lead_id}/pagespeed",        run_lead_pagespeed,   methods=["POST"])
-customers_alias_router.add_api_route("/{lead_id}/domain-check",     domain_check_lead,    methods=["POST"])
+# ── Kein `/api/customers`-Alias mehr (21.08.2026) ────────────────────────────
+#
+# Hier stand ein Router, der denselben Lead-Bestand zusaetzlich unter
+# `/api/customers` anbot. Er war **tot**: `usercards.customers_alias_router`
+# war frueher eingebunden und gewann jede seiner Routen — die OpenAPI-Datei
+# beschrieb allerdings *ihn*, weil FastAPI dort den zuletzt registrierten
+# Handler eintraegt. Die Beschreibung nannte also einen Endpunkt, der nie
+# antwortete. Drei Router beanspruchten diese Adresse mit drei verschiedenen
+# Entitaeten (Lead, UserCard, Customer); jetzt gehoert sie `customers.py`.

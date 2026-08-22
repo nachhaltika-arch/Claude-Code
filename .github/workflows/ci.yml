@@ -27,9 +27,16 @@ jobs:
           python-version: "3.11"
       - name: Install ruff
         run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install ruff==0.6.9
-      - name: Run ruff (critical rules only)
+      # Die Regelauswahl steht in kompagnon/backend/ruff.toml, nicht hier.
+      # Grund (L-78, 22.08.2026): Solange sie in dieser Zeile stand, prüfte
+      # `ruff check` lokal etwas anderes als das Tor — und die Auswahl war
+      # nirgends begründet. Als eine doppelt registrierte Route auffiel, hatte
+      # Ruff sie seit Monaten gemeldet (F811); nur stand F811 nicht in der
+      # Zeile. Wer eine Regel aufnehmen will, trägt sie dort mit ihrem Grund
+      # ein und sieht dasselbe Ergebnis wie die CI.
+      - name: Run ruff (Auswahl aus ruff.toml)
         working-directory: kompagnon/backend
-        run: ruff check --select E9,F63,F7,F82 --output-format=github .
+        run: ruff check --output-format=github .
 
   backend-import:
     name: Backend — Smoke import

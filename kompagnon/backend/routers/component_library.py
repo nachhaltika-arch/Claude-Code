@@ -37,7 +37,7 @@ from database import (
     SessionLocal,
     get_db,
 )
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, require_innendienst
 from services.block_contract import als_text, pruefe, slots_im_markup
 from services.block_slots import ergaenze_fehlende_slots
 from services.block_variant import VariantenAbbruch, erzeuge_variante
@@ -356,7 +356,7 @@ Output:
     try:
         client = Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1487,7 +1487,17 @@ def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: 
 # Wireframe pro Projekt: Read / manueller Save / KI-Generator
 # ─────────────────────────────────────────────────────────────────────────────
 
-wireframe_router = APIRouter(prefix="/api/projects", tags=["wireframe"])
+# Vorgabe am Router, nicht an der einzelnen Route. Bis zum 21.08.2026 trugen
+# diese Routen nur `require_any_auth` und **keine Zeilenpruefung**: Sie holen
+# das Projekt per `project_id` und antworten. Kunden haben Konten — ein
+# angemeldeter Kunde kam damit an **jedes** Projekt (Naht `/api/projects`,
+# `docs/module-karte.md`; dieselbe Bauart wie L-66).
+#
+# Alle Aufrufer haengen an `roles={{'admin', 'auditor'}}`, also am Innendienst.
+# Die Sperre stand in der Oberflaeche statt am Endpunkt — und eine
+# Oberflaechenpruefung ist keine Sperre.
+wireframe_router = APIRouter(prefix="/api/projects", tags=["wireframe"],
+                              dependencies=[Depends(require_innendienst)])
 
 
 class WireframeBlock(BaseModel):
@@ -2020,7 +2030,7 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
         # ValueError("Streaming is required..."). Daher hier ueber stream() —
         # final_message hat dieselbe Struktur wie ein gewoehnliches Response.
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=32000,
             messages=[{"role": "user", "content": prompt}],
         ) as stream:

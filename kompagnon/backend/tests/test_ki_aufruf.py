@@ -53,7 +53,7 @@ def test_waehrend_des_aufrufs_laeuft_die_schleife_weiter():
                 await asyncio.sleep(0.01)
 
         nebenher = asyncio.create_task(ticker())
-        await frag_modell(client, model="claude-sonnet-4-6", max_tokens=10)
+        await frag_modell(client, model="claude-sonnet-5", max_tokens=10)
         nebenher.cancel()
         return ticks
 
@@ -70,7 +70,7 @@ def test_der_aufruf_laeuft_in_einem_anderen_thread():
 
     async def lauf():
         eigener = threading.current_thread()
-        await frag_modell(client, model="claude-sonnet-4-6", max_tokens=10)
+        await frag_modell(client, model="claude-sonnet-5", max_tokens=10)
         return eigener
 
     schleifen_thread = asyncio.run(lauf())
@@ -85,7 +85,7 @@ def test_argumente_gehen_unveraendert_durch():
     asyncio.run(
         frag_modell(
             client,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             max_tokens=1000,
             messages=[{"role": "user", "content": "hallo"}],
             timeout=20.0,
@@ -93,7 +93,7 @@ def test_argumente_gehen_unveraendert_durch():
     )
 
     assert client.gesehene_argumente == {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-5",
         "max_tokens": 1000,
         "messages": [{"role": "user", "content": "hallo"}],
         "timeout": 20.0,

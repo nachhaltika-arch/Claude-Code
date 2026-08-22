@@ -434,7 +434,7 @@ async def _generate_one(section_id: int, db: Session) -> dict:
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
     message = await frag_modell(
         client,
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5", thinking={"type": "disabled"},
         max_tokens=600,
         system=(
             "Du bist ein Texter für Handwerkerbetriebe. Schreibe präzise, "

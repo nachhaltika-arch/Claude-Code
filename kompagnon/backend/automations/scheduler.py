@@ -1037,7 +1037,7 @@ def _generate_perf_comment(company, url, mobile, desktop, last_mobile, diff) -> 
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
                 "max_tokens": 150,
                 "messages": [{"role": "user", "content": prompt}],
             },

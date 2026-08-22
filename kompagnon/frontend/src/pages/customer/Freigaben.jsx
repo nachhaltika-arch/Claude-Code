@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
 import { saveJson } from '../../utils/apiRequest';
+import { istEntschieden } from '../../utils/freigabeStand';
 import SeitenTitel from '../../components/ui/SeitenTitel';
 
 export default function Freigaben() {
@@ -81,9 +82,15 @@ export default function Freigaben() {
     border: '1px solid var(--border-light)', padding: '20px 22px', marginBottom: 14,
   };
 
+  // Als entschieden gilt nur, was wirklich entschieden wurde. Der Filter
+  // stand auf „ausstehend"; das Backend schreibt beim Anfragen aber
+  // „angefragt" — eine offene Anfrage landete dadurch unter „erledigt" und
+  // verschwand aus genau der Liste, die der Kunde abarbeiten soll. Statt
+  // einer Datenmigration prüfen wir auf die beiden Endzustände, damit
+  // Altdatensätze beider Schreibweisen richtig bleiben.
   const items = Object.entries(freigaben);
-  const pending = items.filter(([, v]) => v.status === 'ausstehend' || !v.status);
-  const decided = items.filter(([, v]) => v.status && v.status !== 'ausstehend');
+  const pending = items.filter(([, v]) => !istEntschieden(v));
+  const decided = items.filter(([, v]) => istEntschieden(v));
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 0 40px' }}>

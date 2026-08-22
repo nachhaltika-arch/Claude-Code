@@ -105,7 +105,8 @@ Jede Phase hat Checklisten, Zeitbuchung, Echtzeit-Margen-Berechnung (Ziel 78 %) 
 
 ## KI-Agenten
 
-Alle Agenten nutzen **Anthropic Claude** (`claude-sonnet-4-6`).
+Alle Agenten nutzen **Anthropic Claude** (`claude-sonnet-5`; Bewertung und
+Block-Erzeugung auf `claude-opus-5`, Branchenerkennung auf `claude-haiku-4-5`).
 
 | Agent | Aufgabe |
 |---|---|

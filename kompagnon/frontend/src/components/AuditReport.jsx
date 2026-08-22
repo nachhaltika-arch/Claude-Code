@@ -317,6 +317,11 @@ export default function AuditReport({ auditData, onClose }) {
 
   const blockers = Array.isArray(r.blockers) ? r.blockers : [];
   const coverage = typeof r.coverage === 'number' ? r.coverage : null;
+  // Über wie viele Seiten geurteilt wurde. Ergebnisse von vor dem 21.08.2026
+  // kannten nur die Startseite; ohne diese Angabe liest jemand eine alte Note
+  // wie eine neue.
+  const seitenGeprueft = typeof r.seiten_geprueft === 'number' ? r.seiten_geprueft : 1;
+  const seitenGefunden = typeof r.seiten_gefunden === 'number' ? r.seiten_gefunden : null;
   const collectionNotes = r.collection_notes && typeof r.collection_notes === 'object'
     ? r.collection_notes
     : {};
@@ -527,6 +532,14 @@ export default function AuditReport({ auditData, onClose }) {
             marginBottom: '12px', fontSize: '11px', color: 'var(--text-tertiary)',
           }}>
             <span>{coverage}% der Kriterien konnten geprüft werden.</span>
+            {seitenGeprueft > 1 && (
+              <span>
+                Bewertet wurden {seitenGeprueft} Seiten dieser Website
+                {seitenGefunden && seitenGefunden > seitenGeprueft
+                  ? ` von ${seitenGefunden} gefundenen`
+                  : ''}.
+              </span>
+            )}
             {Object.entries(collectionNotes).map(([area, note]) => (
               <span
                 key={area}

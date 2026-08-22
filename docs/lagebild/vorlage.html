@@ -1,0 +1,662 @@
+<title>KOMPAGNON Lagebild</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,700;0,900;1,400&family=Noto+Sans+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --kc-dark:#004F59; --kc-mid:#008EAA; --kc-yellow:#FAE600;
+  --ground:#F2F6F7; --karte:#FFFFFF; --senke:#E7EFF1;
+  --ink:#0E2A30; --ink-2:#3D5A61; --ink-3:#6B858B;
+  --linie:#D2E0E3; --linie-stark:#B4C9CE;
+  --krit:#B3226B; --krit-bg:#FBE9F2;
+  --warn:#9C5A00; --warn-bg:#FBF0E0;
+  --gut:#1F6A46; --gut-bg:#E5F2EB;
+  --schatten:0 1px 2px rgba(0,79,89,.06), 0 6px 20px rgba(0,79,89,.05);
+  --kopf-ink:#EAF4F6; --kopf-ink-2:#9DC2C9;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#082024; --karte:#0D2B31; --senke:#123940;
+    --ink:#E2EFF1; --ink-2:#A8C4C9; --ink-3:#7C9CA3;
+    --linie:#1B454D; --linie-stark:#2A5B64;
+    --kc-mid:#3FB6D0;
+    --krit:#F58BBE; --krit-bg:#3A1428;
+    --warn:#E8A951; --warn-bg:#38270F;
+    --gut:#6FD3A2; --gut-bg:#0E3325;
+    --schatten:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    --kopf-ink:#E2EFF1; --kopf-ink-2:#8FB4BB;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#082024; --karte:#0D2B31; --senke:#123940;
+  --ink:#E2EFF1; --ink-2:#A8C4C9; --ink-3:#7C9CA3;
+  --linie:#1B454D; --linie-stark:#2A5B64;
+  --kc-mid:#3FB6D0;
+  --krit:#F58BBE; --krit-bg:#3A1428;
+  --warn:#E8A951; --warn-bg:#38270F;
+  --gut:#6FD3A2; --gut-bg:#0E3325;
+  --schatten:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  --kopf-ink:#E2EFF1; --kopf-ink-2:#8FB4BB;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Noto Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{text-wrap:balance; margin:0}
+a{color:var(--kc-mid)}
+.huelle{max-width:1180px; margin:0 auto; padding:0 24px}
+
+/* ── Kopf ──────────────────────────────────────────────── */
+.kopf{background:var(--kc-dark); color:var(--kopf-ink); padding:34px 0 0}
+.kopf .huelle{display:flex; flex-direction:column; gap:26px}
+.marke{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+.marke h1{font-weight:900; font-size:clamp(26px,3.4vw,38px); letter-spacing:-.022em; line-height:1.08}
+.marke .stand{
+  font-family:"Noto Sans Mono",ui-monospace,monospace; font-size:11.5px;
+  color:var(--kopf-ink-2); letter-spacing:.04em; padding-bottom:3px;
+}
+.unterzeile{color:var(--kopf-ink-2); font-size:14.5px; max-width:66ch; margin:-14px 0 0}
+
+.zahlen{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:1px;
+  background:rgba(255,255,255,.14); border-radius:var(--r) var(--r) 0 0; overflow:hidden}
+.zahl{background:var(--kc-dark); padding:16px 18px 18px}
+.zahl .n{font-weight:900; font-size:31px; line-height:1; letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums}
+.zahl .b{font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--kopf-ink-2); margin-top:7px; font-weight:600}
+.zahl.dringend .n{color:var(--kc-yellow)}
+
+/* ── Register ──────────────────────────────────────────── */
+.register{display:flex; gap:2px; padding-top:22px; flex-wrap:wrap}
+.register button{
+  font:600 13.5px/1 "Noto Sans",sans-serif; color:var(--kopf-ink-2);
+  background:transparent; border:0; border-bottom:2.5px solid transparent;
+  padding:11px 17px 13px; cursor:pointer; border-radius:6px 6px 0 0;
+}
+.register button:hover{color:var(--kopf-ink); background:rgba(255,255,255,.06)}
+.register button[aria-selected="true"]{color:var(--kopf-ink); border-bottom-color:var(--kc-mid); background:rgba(255,255,255,.09)}
+.register button:focus-visible{outline:2px solid var(--kc-yellow); outline-offset:-2px}
+
+main{padding:30px 0 72px}
+.blatt[hidden]{display:none}
+
+/* ── Filter ────────────────────────────────────────────── */
+.filter{display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-bottom:20px}
+.chip{
+  font:600 12.5px/1 "Noto Sans",sans-serif; color:var(--ink-2);
+  background:var(--karte); border:1px solid var(--linie); border-radius:99px;
+  padding:8px 14px; cursor:pointer;
+}
+.chip:hover{border-color:var(--linie-stark); color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--kc-dark); border-color:var(--kc-dark); color:#EAF4F6}
+.chip:focus-visible{outline:2px solid var(--kc-mid); outline-offset:2px}
+.suche{
+  flex:1; min-width:190px; font:400 13.5px "Noto Sans",sans-serif;
+  padding:8px 13px; border:1px solid var(--linie); border-radius:99px;
+  background:var(--karte); color:var(--ink);
+}
+.suche:focus{outline:2px solid var(--kc-mid); outline-offset:-1px; border-color:transparent}
+.trenner{width:1px; height:22px; background:var(--linie-stark); margin:0 3px}
+
+/* ── Lückenliste ───────────────────────────────────────── */
+.liste{display:flex; flex-direction:column; gap:8px}
+.gruppe-kopf{
+  display:flex; align-items:baseline; gap:11px; margin:24px 0 10px;
+  padding-bottom:8px; border-bottom:1px solid var(--linie);
+}
+.gruppe-kopf:first-child{margin-top:0}
+.gruppe-kopf h2{font-weight:900; font-size:15px; letter-spacing:.015em}
+.gruppe-kopf .zusatz{font-size:12.5px; color:var(--ink-3)}
+
+.luecke{
+  background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  box-shadow:var(--schatten); overflow:hidden; position:relative;
+}
+.luecke::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--linie-stark)}
+.luecke[data-status="geschlossen"]::before{background:var(--gut)}
+.luecke[data-status="teilweise"]::before{background:var(--warn)}
+.luecke[data-status="offen"]::before{background:var(--kc-mid)}
+.luecke[data-status="offen"][data-prio="P0"]::before{background:var(--krit); width:4px}
+
+.luecke summary{
+  display:flex; gap:13px; align-items:flex-start; padding:13px 16px 13px 19px;
+  cursor:pointer; list-style:none;
+}
+.luecke summary::-webkit-details-marker{display:none}
+.luecke summary:focus-visible{outline:2px solid var(--kc-mid); outline-offset:-2px}
+.luecke summary:hover{background:var(--senke)}
+.kennung{
+  font-family:"Noto Sans Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--ink-3); padding-top:2px; min-width:42px; letter-spacing:-.02em;
+}
+.mitte{flex:1; min-width:0}
+.mitte h3{font-size:14.5px; font-weight:700; line-height:1.4; letter-spacing:-.005em}
+.meta{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; align-items:center}
+.pille{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  padding:3px 8px; border-radius:5px; white-space:nowrap;
+}
+.p-offen{background:var(--krit-bg); color:var(--krit)}
+.p-teilweise{background:var(--warn-bg); color:var(--warn)}
+.p-geschlossen{background:var(--gut-bg); color:var(--gut)}
+.quelle{font-size:11.5px; color:var(--ink-3)}
+.quelle b{font-weight:600; color:var(--ink-2)}
+.aufwand{
+  font-family:"Noto Sans Mono",monospace; font-size:11px; font-weight:600;
+  color:var(--ink-2); border:1px solid var(--linie-stark); border-radius:4px;
+  padding:2px 6px; white-space:nowrap;
+}
+.pfeil{color:var(--ink-3); font-size:11px; padding-top:5px; transition:transform .15s}
+.luecke[open] .pfeil{transform:rotate(90deg)}
+.rumpf{padding:0 16px 15px 74px; font-size:13.5px; color:var(--ink-2); line-height:1.62}
+.rumpf .beleg{
+  margin-top:10px; font-size:11.5px; color:var(--ink-3);
+  font-family:"Noto Sans Mono",monospace;
+}
+.leer{padding:38px; text-align:center; color:var(--ink-3); font-size:14px}
+
+/* ── Module ────────────────────────────────────────────── */
+.kette{
+  display:flex; gap:7px; flex-wrap:wrap; align-items:center; padding:15px 17px;
+  background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  margin-bottom:22px; box-shadow:var(--schatten);
+}
+.kette .glied{
+  font-family:"Noto Sans Mono",monospace; font-weight:600; font-size:12.5px;
+  padding:5px 10px; border-radius:6px; background:var(--senke); color:var(--ink);
+}
+.kette .pf{color:var(--ink-3); font-size:12px}
+.kette .hinweis{font-size:12.5px; color:var(--ink-3); margin-left:auto}
+
+.module{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:11px}
+.modul{
+  background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  padding:15px 16px; box-shadow:var(--schatten); display:flex; flex-direction:column; gap:9px;
+}
+.modul .zeile1{display:flex; align-items:baseline; gap:9px}
+.modul .mnr{font-family:"Noto Sans Mono",monospace; font-weight:600; font-size:12px; color:var(--ink-3)}
+.modul h3{font-size:15px; font-weight:700; flex:1}
+.ampel{width:9px; height:9px; border-radius:50%; flex-shrink:0; align-self:center}
+.a-gruen{background:var(--gut)} .a-gelb{background:var(--warn)} .a-orange{background:var(--krit)}
+.modul p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.55}
+.modul .fuss{
+  display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-3);
+  padding-top:8px; border-top:1px solid var(--linie); margin-top:auto;
+}
+
+/* ── Produkte ──────────────────────────────────────────── */
+.pakete{display:grid; grid-template-columns:repeat(auto-fit,minmax(252px,1fr)); gap:12px; margin-bottom:14px}
+.paket{
+  background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  padding:19px 19px 17px; box-shadow:var(--schatten); display:flex; flex-direction:column; gap:11px;
+  position:relative;
+}
+.paket.empfohlen{border-color:var(--kc-mid); border-width:1.5px}
+.paket .fahne{
+  position:absolute; top:-9px; left:19px; background:var(--kc-mid); color:#fff;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+  padding:3px 9px; border-radius:4px;
+}
+.paket h3{font-size:16px; font-weight:900; letter-spacing:-.01em}
+.preis{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; font-variant-numeric:tabular-nums}
+.preis .gross{font-family:"Noto Sans Mono",monospace; font-size:26px; font-weight:600;
+  letter-spacing:-.03em; white-space:nowrap}
+.preis .klein{font-size:11.5px; color:var(--ink-3)}
+.paket ul{margin:0; padding-left:17px; font-size:12.5px; color:var(--ink-2); line-height:1.75}
+.paket .liefer{
+  font-size:11.5px; color:var(--ink-3); padding-top:9px;
+  border-top:1px solid var(--linie); margin-top:auto;
+}
+
+.tafel{
+  background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  box-shadow:var(--schatten); padding:19px 20px; margin-bottom:14px;
+}
+.tafel h3{font-size:14px; font-weight:900; margin-bottom:13px; letter-spacing:.01em}
+.weg{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px}
+.weg .st{
+  font-size:12.5px; padding:7px 12px; border-radius:7px; background:var(--senke);
+  border:1px solid var(--linie); font-weight:500;
+}
+.weg .st code{font-family:"Noto Sans Mono",monospace; font-size:11px; color:var(--ink-3); display:block; margin-top:2px}
+.tabelle{width:100%; border-collapse:collapse; font-size:13px}
+.tabelle th{
+  text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--ink-3); font-weight:700; padding:0 12px 8px 0; border-bottom:1px solid var(--linie);
+}
+.tabelle td{padding:9px 12px 9px 0; border-bottom:1px solid var(--linie); vertical-align:top; color:var(--ink-2)}
+.tabelle tr:last-child td{border-bottom:0}
+.tabelle td:first-child{color:var(--ink); font-weight:600}
+.roll{overflow-x:auto}
+
+.notiz{
+  display:flex; gap:11px; padding:14px 16px; border-radius:var(--r);
+  background:var(--warn-bg); border:1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+  font-size:13px; line-height:1.6; color:var(--ink);
+}
+.notiz .z{color:var(--warn); font-weight:900; font-size:13px; flex-shrink:0}
+.notiz b{font-weight:700}
+
+.vorwort{
+  font-size:14px; color:var(--ink-2); max-width:70ch; margin:0 0 22px; line-height:1.65;
+}
+.vorwort b{color:var(--ink); font-weight:700}
+
+footer{
+  border-top:1px solid var(--linie); padding:22px 0 40px; margin-top:44px;
+  font-size:12px; color:var(--ink-3); line-height:1.7;
+}
+footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important}}
+@media (max-width:640px){
+  .rumpf{padding-left:19px}
+  .kette .hinweis{margin-left:0; width:100%}
+}
+
+/* ── Plan ─────────────────────────────────────────────── */
+.phase{background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  box-shadow:var(--schatten); margin-bottom:12px; overflow:hidden}
+.ph-kopf{display:flex; align-items:center; gap:12px; padding:14px 17px;
+  background:var(--senke); border-bottom:1px solid var(--linie); flex-wrap:wrap}
+.ph-marke{font-family:"Noto Sans Mono",monospace; font-weight:700; font-size:13px;
+  width:26px; height:26px; border-radius:6px; display:grid; place-items:center; color:#fff; flex-shrink:0}
+.ph-A{background:#B3226B} .ph-B{background:#8A4FBF} .ph-C{background:#1A6FA8}
+.ph-D{background:#1F7A5A} .ph-E{background:#6B858B}
+.ph-kopf h3{font-size:15px; font-weight:700; flex:1; min-width:170px}
+.ph-kopf .takt{font-size:12px; color:var(--ink-3); font-family:"Noto Sans Mono",monospace}
+.ph-warum{padding:12px 17px; font-size:13.5px; color:var(--ink-2); line-height:1.6;
+  border-bottom:1px solid var(--linie)}
+.ph-warum b{color:var(--ink); font-weight:700}
+.paket{display:flex; gap:12px; padding:11px 17px; border-bottom:1px solid var(--linie); align-items:flex-start}
+.phase .paket:last-child{border-bottom:0}
+.paket .kn{font-family:"Noto Sans Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--ink-3); min-width:46px; padding-top:2px}
+.paket .mi{flex:1; min-width:0}
+.paket .mi .t{font-size:13.5px; font-weight:600; line-height:1.4; display:block}
+.paket .mi .w{font-size:12.5px; color:var(--ink-3); margin-top:4px; line-height:1.55; display:block}
+.paket .pr{font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--ink-3);
+  font-family:"Noto Sans Mono",monospace; flex-shrink:0; padding-top:3px}
+.stop{background:var(--warn-bg); border:1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+  border-radius:var(--r); padding:16px 18px}
+.stop h3{font-size:14px; font-weight:900; margin-bottom:4px}
+.stop > p{margin:0 0 13px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+.stop-z{display:flex; gap:12px; padding:9px 0; align-items:baseline; font-size:13px;
+  border-bottom:1px solid color-mix(in srgb, var(--warn) 20%, transparent)}
+.stop-z:last-child{border-bottom:0}
+.stop-z .kn{font-family:"Noto Sans Mono",monospace; font-size:11.5px; font-weight:600;
+  color:var(--warn); min-width:42px}
+.stop-z .t{flex:1; color:var(--ink)}
+.stop-z .g{color:var(--ink-2); font-size:12.5px; text-align:right; max-width:44%}
+.spaeter{display:grid; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); gap:10px}
+.sp{background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
+  padding:13px 15px; box-shadow:var(--schatten)}
+.sp .z1{display:flex; gap:9px; align-items:baseline; margin-bottom:5px}
+.sp .kn{font-family:"Noto Sans Mono",monospace; font-size:11.5px; font-weight:600; color:var(--ink-3)}
+.sp .t{font-size:13px; font-weight:600; flex:1}
+.sp p{margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.5}
+.merk{background:var(--karte); border:1px solid var(--linie); border-left:3px solid var(--kc-mid);
+  border-radius:var(--r); padding:15px 18px; box-shadow:var(--schatten); margin-top:10px;
+  font-size:13.5px; line-height:1.62; color:var(--ink-2)}
+.merk b{color:var(--ink); font-weight:700}
+.unter{display:flex; align-items:baseline; gap:11px; margin:26px 0 10px;
+  padding-bottom:8px; border-bottom:1px solid var(--linie)}
+.unter h3{font-weight:900; font-size:15px}
+.unter .z{font-size:12.5px; color:var(--ink-3)}
+@media (max-width:620px){ .stop-z{flex-wrap:wrap} .stop-z .g{text-align:left; max-width:100%} }
+</style>
+
+<header class="kopf">
+  <div class="huelle">
+    <div class="marke">
+      <h1>KOMPAGNON Lagebild</h1>
+      <span class="stand"><!--__STAND__--></span>
+    </div>
+    <p class="unterzeile">Offene Punkte, Modulstand und Produktkatalog — aus <code>soll-ist-analyse.md</code>, <code>module-karte.md</code> und dem Code selbst zusammengetragen.</p>
+
+    <!--__ZAHLEN__-->
+
+    <nav class="register" role="tablist">
+      <button role="tab" aria-selected="true" aria-controls="b-luecken" id="t-luecken">Offene Punkte</button>
+      <button role="tab" aria-selected="false" aria-controls="b-module" id="t-module">Module &amp; Features</button>
+      <button role="tab" aria-selected="false" aria-controls="b-produkte" id="t-produkte">Produkte &amp; Zahlung</button>
+      <button role="tab" aria-selected="false" aria-controls="b-plan" id="t-plan">Abarbeitungsplan</button>
+    </nav>
+  </div>
+</header>
+
+<main class="huelle">
+
+  <!-- ══ Offene Punkte ══════════════════════════════════ -->
+  <section class="blatt" id="b-luecken" role="tabpanel" aria-labelledby="t-luecken">
+    <p class="vorwort">Jede Zeile trägt ihre <b>Herkunft</b> — woher der Befund stammt und womit er belegt ist. Die Priorität sagt, was zuerst weh tut: <b>P0</b> produktiv defekt oder Sicherheitsrisiko, <b>P1</b> Betrieb, <b>P2</b> Produkt, <b>P3</b> Schulden. Aufklappen zeigt den vollen Befund.</p>
+
+    <div class="filter">
+      <button class="chip" data-f="prio" data-w="P0" aria-pressed="false">P0</button>
+      <button class="chip" data-f="prio" data-w="P1" aria-pressed="false">P1</button>
+      <button class="chip" data-f="prio" data-w="P2" aria-pressed="false">P2</button>
+      <button class="chip" data-f="prio" data-w="P3" aria-pressed="false">P3</button>
+      <span class="trenner"></span>
+      <button class="chip" data-f="status" data-w="offen" aria-pressed="true">offen</button>
+      <button class="chip" data-f="status" data-w="teilweise" aria-pressed="true">teilweise</button>
+      <button class="chip" data-f="status" data-w="geschlossen" aria-pressed="false">geschlossen</button>
+      <span class="trenner"></span>
+      <input class="suche" type="search" placeholder="Suchen — Text, Kennung, Herkunft …" aria-label="Offene Punkte durchsuchen">
+    </div>
+
+    <div id="liste"></div>
+  </section>
+
+  <!-- ══ Module ════════════════════════════════════════ -->
+  <section class="blatt" id="b-module" role="tabpanel" aria-labelledby="t-module" hidden>
+    <p class="vorwort">Ein Modul gilt erst als fertig, wenn <b>alle fünf</b> Bedingungen stimmen: Hauptweg läuft auf Staging durch · jede Lücke geschlossen oder mit Datum vertagt · ein Test hält den Hauptweg · der Schalter wirkt auf Menü, Router und Scheduler · keine offene Entscheidung blockiert.</p>
+
+    <div class="kette">
+      <span class="glied">M1 Akquise</span><span class="pf">→</span>
+      <span class="glied">M2 Audit</span><span class="pf">→</span>
+      <span class="glied">M4 Zahlung</span><span class="pf">→</span>
+      <span class="glied">M5 Abwicklung</span><span class="pf">→</span>
+      <span class="glied">M6 Website-Bau</span><span class="pf">→</span>
+      <span class="glied">M7 Portal</span>
+      <span class="hinweis">Die Kette, die Geld verdient. Bricht ein Glied, ist der Rest Vorleistung.</span>
+    </div>
+
+    <div class="module" id="module"></div>
+  </section>
+
+  <!-- ══ Produkte ══════════════════════════════════════ -->
+  <section class="blatt" id="b-produkte" role="tabpanel" aria-labelledby="t-produkte" hidden>
+    <p class="vorwort">Drei Pakete, einmalige Zahlung, plus ein monatliches GEO-Zusatzprodukt mit Preis je Analyse. Die Preise stehen <b>nicht im Code</b>, sondern in der Tabelle <code>products</code> — dieselbe Zeile, aus der die Stripe-Sitzung ihren Betrag zieht.</p>
+
+    <div class="pakete">
+      <div class="paket">
+        <h3>Starter-Paket</h3>
+        <div class="preis"><span class="gross">1.500 €</span><span class="klein">Endpreis · 1.260,50 netto</span></div>
+        <ul>
+          <li>5-seitige WordPress-Website</li>
+          <li>Mobile-First Design</li>
+          <li>SEO-Grundoptimierung</li>
+          <li>SSL &amp; DSGVO-konform</li>
+          <li>Kontaktformular</li>
+          <li>30 Tage Support</li>
+        </ul>
+        <div class="liefer">14 Tage Lieferzeit · einmalig · <b>live</b></div>
+      </div>
+
+      <div class="paket empfohlen">
+        <span class="fahne">Empfehlung</span>
+        <h3>KOMPAGNON-Paket</h3>
+        <div class="preis"><span class="gross">2.000 €</span><span class="klein">Endpreis · 1.680,67 netto</span></div>
+        <ul>
+          <li>8-seitige WordPress-Website</li>
+          <li>SEO + GEO-Optimierung</li>
+          <li>Strategy Workshop (60 Min.)</li>
+          <li>Schema Markup &amp; KI-Optimierung</li>
+          <li>Google-Business-Verknüpfung</li>
+          <li>30 Tage Support</li>
+        </ul>
+        <div class="liefer">14 Tage Lieferzeit · einmalig · <b>live</b></div>
+      </div>
+
+      <div class="paket">
+        <h3>Premium-Paket</h3>
+        <div class="preis"><span class="gross">2.800 €</span><span class="klein">Endpreis · 2.352,94 netto</span></div>
+        <ul>
+          <li>12-seitige WordPress-Website</li>
+          <li>Individual-Design nach CI</li>
+          <li>SEO + GEO + KI-Volloptimierung</li>
+          <li>Strategy Workshop (90 Min.)</li>
+          <li>Professioneller Fotoshooting-Tag</li>
+          <li>Google Ads Einrichtung</li>
+          <li>3 Monate Support</li>
+        </ul>
+        <div class="liefer">21 Tage Lieferzeit · einmalig · <b>live</b></div>
+      </div>
+
+      <div class="paket">
+        <h3>GEO-Zusatz</h3>
+        <div class="preis"><span class="gross">variabel</span><span class="klein">monatlich</span></div>
+        <ul>
+          <li>Preis je Analyse ermittelt (<code>upsell_price</code>)</li>
+          <li>Stripe-Preis wird bei Bedarf angelegt</li>
+          <li>Abonnement, nicht einmalig</li>
+          <li><b>Neu 22.08.:</b> fragt ChatGPT, Perplexity und Claude, ob sie den Betrieb nennen</li>
+        </ul>
+        <div class="liefer">eigener Weg über <code>/api/geo-payments</code> · Preis für die KI-Sichtbarkeit noch offen</div>
+      </div>
+    </div>
+
+    <div class="tafel">
+      <h3>Zahlungsweg — funktioniert, mit zwei Bedingungen</h3>
+      <div class="weg">
+        <span class="st">Paket wählen<code>GET /api/payments/packages</code></span>
+        <span class="pf">→</span>
+        <span class="st">Stripe-Kasse<code>POST /create-checkout</code></span>
+        <span class="pf">→</span>
+        <span class="st">Stripe bestätigt<code>POST /webhook</code></span>
+        <span class="pf">→</span>
+        <span class="st">Lead, Konto, Projekt<code>_handle_successful_payment</code></span>
+        <span class="pf">→</span>
+        <span class="st">Willkommensmail + PDF</span>
+      </div>
+      <div class="roll">
+        <table class="tabelle">
+          <thead><tr><th>Punkt</th><th>Stand</th></tr></thead>
+          <tbody>
+            <tr><td>Stripe-Kasse</td><td>Vorhanden. Braucht <code>STRIPE_SECRET_KEY</code> — fehlt er, schlagen alle Aufrufe fehl und der Start protokolliert es.</td></tr>
+            <tr><td>Webhook-Prüfung</td><td>Braucht <code>STRIPE_WEBHOOK_SECRET</code>. Fehlt er, werden <b>Zahlungen nicht verarbeitet</b> — kein Projekt, kein Konto, keine Mail.</td></tr>
+            <tr><td>Steuer</td><td><b>Endpreise.</b> Entscheidung vom 21.08.2026: <code>price_brutto</code> ist, was abgebucht wird. Kein <code>automatic_tax</code>, keine <code>tax_rates</code> — „netto“ und „zzgl. MwSt.“ sind aus Verkaufsseiten, Kasse und Angebotsmail entfernt (L-61).</td></tr>
+            <tr><td>Bestellweg</td><td>Läuft seit dem 21.08. durch (M4). Vorher endete er auf der Anmeldeseite — jeder von ihnen (L-64, L-71).</td></tr>
+            <tr><td>Projektumsatz</td><td>Kommt aus der gezahlten Summe, nicht mehr aus einer zweiten festen Liste. Darauf rechnet die Margenkalkulation (L-29).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="notiz">
+      <span class="z">!</span>
+      <div><b>Herkunft dieser Zahlen:</b> Sie stammen aus dem Seed in <code>main.py</code>, der die <code>products</code>-Tabelle beim ersten Start füllt. Die <b>Produktiv-Datenbank wurde nicht abgefragt</b> — der Render-Zugang meldet weiterhin <code>unauthorized</code>. Wurde ein Preis seither im Produktverwalter geändert, weicht der echte Wert ab. Maßgeblich ist immer die Zeile in <code>products</code> mit <code>status='live'</code>.</div>
+    </div>
+  </section>
+
+  <!-- ══ Plan ══════════════════════════════════════════ -->
+  <section class="blatt" id="b-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
+    <p class="vorwort">Die Reihenfolge folgt vier Fragen, in dieser Rangfolge: <b>Was blockiert anderes?</b> · <b>Was ist heute ein Produktivrisiko?</b> · <b>Was bringt den nächsten Kunden durch die Kette M1→M2→M4→M5→M6→M7?</b> · <b>Was ist so billig, dass es alles Folgende überprüfbar macht?</b> Nicht nach Priorität allein — P3 kann vor P1 stehen, wenn es etwas trägt. Nach jeder Phase steht ein auslieferbarer Zustand; der Takt folgt Ihrer Kadenz: Mo–Do auf <code>staging</code>, freitags der Sammel-PR.</p>
+
+    <div id="phasen"></div>
+
+    <div class="unter"><h3>Was bei Ihnen liegt</h3><span class="z">10 Punkte · kein Code, aber sie halten Phasen auf</span></div>
+    <div class="stop">
+      <h3>Blockiert — nicht durch Technik</h3>
+      <p>Vier davon hängen am <b>Render-Zugang, der den fünften Tag <code>unauthorized</code> meldet</b> — der größte einzelne Hemmschuh im Plan. Daran hängt auch die letzte Stelle, an der Produktivdaten im offenen Internet stehen.</p>
+      <div id="blockiert"></div>
+    </div>
+    <div class="merk"><b>Eine Kopplung, die leicht übersehen wird:</b> <code>L-54</code> ist heute harmlos, „weil kein einziger Kurs gesperrt ist — die Sperre steht überall auf <code>false</code>". Sobald der Lehrplan aus <code>L-60</code> den ersten Kurs sperrt, wird die zweideutige Kundenkennung akut. <b>L-54 gehört also erledigt, bevor Sie den Lehrplan bauen</b> — nicht danach.</div>
+
+    <div class="unter"><h3>Bewusst später</h3><span class="z">7 Punkte · eingeordnet, nicht vergessen</span></div>
+    <div class="spaeter" id="spaeter"></div>
+
+    <div class="unter"><h3>Was diesen Plan trägt</h3></div>
+    <div class="merk"><b>Phase A steht vor allem anderen, obwohl sie nichts Sichtbares bringt.</b> Drei der vier Punkte sind Sicherheitslücken, die mit jedem weiteren Kunden teurer werden — <code>L-67</code> ist formal P3 und faktisch die größte offene Angriffsfläche. Der vierte, <code>L-78</code>, kostet fünfzehn Minuten und lässt das Lint-Tor künftig die Fehlerklasse fangen, die <code>L-76</code> erzeugt hat.</div>
+    <div class="merk"><b>Phase B ist Ursachenbehandlung, nicht Kosmetik.</b> Zwei Freigabe-Verfahren wuchsen auf eine Adresse, weil in 4.847 Zeilen niemand sieht, dass sie vergeben ist. Solange <code>projects.py</code> so groß bleibt, entsteht der nächste Fehler dieser Art von selbst — und das Tracking-Feature gehört genau dorthin. <b>Erst zerlegen, dann einbauen.</b></div>
+    <div class="merk"><b>Was der Plan nicht enthält.</b> Die 16-MB-ZIP in der Historie bleibt: Sie zu entfernen änderte alle 1.451 Commit-Kennungen, bräche offene Pull Requests und machte jede lokale Kopie unbrauchbar. Ebenso wird <code>projects.py</code> in Etappen zerlegt statt in einem Zug — ein Fehlgriff soll 600 Zeilen betreffen, nicht 4.847.</div>
+  </section>
+</main>
+
+<footer class="huelle">
+  Quellen: <code>docs/soll-ist-analyse.md</code> (Lückenliste, fortlaufend geführt) · <code>docs/module-karte.md</code> (Modulschnitt, 21.08.2026) · <code>docs/befundpaket-2026-08-22.md</code> (L-75 bis L-81) · <code>docs/hubspot-vorbild-darstellung.md</code> (HubSpot-Audit 19.08., L-82 bis L-85) · <code>main.py</code> Produkt-Seed · <code>routers/payments.py</code>.<br>
+  Zählweise Dateigrößen: Backend ohne <code>venv/</code>, <code>tests/</code>, <code>__pycache__/</code> — Frontend <code>find src \( -name '*.js' -o -name '*.jsx' \) ! -name '*.test.js'</code>.
+</footer>
+
+<script>
+const LUECKEN = /*__LUECKEN__*/[];
+
+const MODULE = [
+  {nr:"M0", name:"Fundament", ampel:"a-gruen", stand:"trägt", ab:"nein", hangt:"—",
+   text:"Anmeldung, Rechte, Datenbank, Scheduler, Mailversand. Läuft immer — nicht abschaltbar."},
+  {nr:"M1", name:"Akquise", ampel:"a-gelb", stand:"in Arbeit", ab:"ja", hangt:"M2, M3",
+   text:"Widget produktiv, Double-Opt-in, Bericht und PDF tragen die Marke. Offen: Einbau in die Ziel-Landingpage, Brevo-Klick-Tracking."},
+  {nr:"M2", name:"Audit & Bewertung", ampel:"a-gruen", stand:"trägt", ab:"praktisch nein", hangt:"M0",
+   text:"Der Türöffner. Seit 21.08. wird die ganze Website bewertet, nicht nur die Startseite (L-73). Am 22.08. dazugekommen: Das Audit fragt ChatGPT, Perplexity und Claude, ob sie den Betrieb nennen (L-58b) — gebaut, aber noch kein Lauf gegen einen echten Dienst. Offen: der Verlauf (L-85)."},
+  {nr:"M3", name:"Vertrieb", ampel:"a-gruen", stand:"trägt", ab:"praktisch nein", hangt:"M0",
+   text:"Betriebsbestand, Kundenkartei, Lebenszyklus. Zugriffsschutz seit 17.–21.08. mehrfach nachgezogen."},
+  {nr:"M4", name:"Angebot & Zahlung", ampel:"a-gruen", stand:"fertig 21.08.", ab:"ja", hangt:"M3",
+   text:"Bis zum 21.08. brach hier die Kette — der Bestellweg endete auf der Anmeldeseite. Seitdem läuft er durch: Kasse, Webhook, Projektanlage, Mail."},
+  {nr:"M5", name:"Projektabwicklung", ampel:"a-gruen", stand:"trägt", ab:"ja", hangt:"M3",
+   text:"Sieben Phasen, Checkliste, Marge, Automationen. Das nächste Glied nach M4."},
+  {nr:"M6", name:"Website-Bau (KAS)", ampel:"a-gelb", stand:"in Arbeit", ab:"ja", hangt:"M5",
+   text:"Das Erzeugnis. Stufen A–C gebaut, Qualitätsschleife geschlossen, vier Ansichten als Design-Canvas (L-72). Offen: Vorschau-Site scharf schalten (L-40), Custom-Domain (L-19)."},
+  {nr:"M7", name:"Kundenportal", ampel:"a-gruen", stand:"trägt", ab:"ja", hangt:"M5",
+   text:"Phasen, Freigaben, Nachrichten, Dokumente. Die Freigabe-Kette ist seit dem 22.08. geschlossen (L-76, L-77) — es fehlt nur der Knopf, der eine Seitenfreigabe anfragt (L-79)."},
+  {nr:"M8", name:"Akademie", ampel:"a-gelb", stand:"gebaut und leer", ab:"ja", hangt:"M0",
+   text:"Die Technik ist seit dem 21.08. vollständig — Zuweisung, Modulsperre, Kurssystem. Was fehlt, ist der Lehrplan (L-60)."},
+  {nr:"M9", name:"Betreuung", ampel:"a-gelb", stand:"in Arbeit", ab:"ja", hangt:"M3, M5",
+   text:"Nach dem Go-live. Mailstrecken teilweise wirkungslos: fünf von acht Werten greifen ins Leere (L-62)."},
+  {nr:"M10", name:"Werbung", ampel:"a-orange", stand:"am wenigsten fertig", ab:"ja", hangt:"M3",
+   text:"Google Ads und Meta Ads: null Code (L-21). Analytics/Umami: Plan vorhanden, null Code (L-22). Blockiert Stufe 3 der Vision."},
+];
+
+/* ── Module rendern ──────────────────────────────────── */
+document.getElementById("module").innerHTML = MODULE.map(m => `
+  <article class="modul">
+    <div class="zeile1">
+      <span class="mnr">${m.nr}</span>
+      <h3>${m.name}</h3>
+      <span class="ampel ${m.ampel}" title="${m.stand}"></span>
+    </div>
+    <p>${m.text}</p>
+    <div class="fuss"><span>${m.stand}</span><span>abschaltbar: ${m.ab}</span><span>hängt an: ${m.hangt}</span></div>
+  </article>`).join("");
+
+/* ── Lücken rendern ──────────────────────────────────── */
+const BEREICHE = {P0:"Sofort — produktiv defekt oder Sicherheitsrisiko", P1:"Betrieb und Prozess",
+                  P2:"Produktentwicklung", P3:"Schulden und Konsistenz"};
+const zustand = {prio:new Set(), status:new Set(["offen","teilweise"]), suche:""};
+const schutz = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function zeichnen(){
+  const treffer = LUECKEN.filter(e => {
+    if (zustand.prio.size && !zustand.prio.has(e.prio)) return false;
+    if (zustand.status.size && !zustand.status.has(e.status)) return false;
+    if (zustand.suche) {
+      const heu = (e.id+" "+e.titel+" "+e.text+" "+e.herkunft+" "+e.beleg).toLowerCase();
+      if (!heu.includes(zustand.suche)) return false;
+    }
+    return true;
+  });
+
+  const ziel = document.getElementById("liste");
+  if (!treffer.length) { ziel.innerHTML = '<p class="leer">Kein Punkt passt zu dieser Auswahl.</p>'; return; }
+
+  const karte = e => `
+      <details class="luecke" data-status="${e.status}" data-prio="${e.prio}">
+        <summary>
+          <span class="kennung">${e.id}</span>
+          <span class="mitte">
+            <h3>${schutz(e.titel)}</h3>
+            <span class="meta">
+              <span class="pille p-${e.status}">${e.status}</span>
+              ${e.aufwand ? `<span class="aufwand">${schutz(e.aufwand)}</span>` : ""}
+              <span class="quelle">Herkunft: <b>${schutz(e.herkunft)}</b></span>
+            </span>
+          </span>
+          <span class="pfeil">▶</span>
+        </summary>
+        <div class="rumpf">
+          ${schutz(e.text)}
+          <div class="beleg">Nachweis: ${schutz(e.beleg) || "—"}${e.datum ? " · erfasst " + schutz(e.datum) : ""}</div>
+        </div>
+      </details>`;
+
+  const gruppen = {};
+  for (const e of treffer) (gruppen[e.prio] = gruppen[e.prio] || []).push(e);
+
+  ziel.innerHTML = ["P0","P1","P2","P3"].filter(p => gruppen[p]).map(p => {
+    const g = gruppen[p];
+    return `<div class="gruppe-kopf"><h2>${p} · ${BEREICHE[p]}</h2>`
+         + `<span class="zusatz">${g.length} ${g.length === 1 ? "Punkt" : "Punkte"}</span></div>`
+         + `<div class="liste">${g.map(karte).join("")}</div>`;
+  }).join("");
+}
+
+/* ── Filter ──────────────────────────────────────────── */
+document.querySelectorAll(".chip").forEach(k => {
+  k.addEventListener("click", () => {
+    const menge = zustand[k.dataset.f], wert = k.dataset.w;
+    if (menge.has(wert)) menge.delete(wert); else menge.add(wert);
+    k.setAttribute("aria-pressed", menge.has(wert));
+    zeichnen();
+  });
+});
+document.querySelector(".suche").addEventListener("input", ev => {
+  zustand.suche = ev.target.value.trim().toLowerCase();
+  zeichnen();
+});
+
+/* ── Register ────────────────────────────────────────── */
+const reiter = [...document.querySelectorAll('[role="tab"]')];
+reiter.forEach(r => r.addEventListener("click", () => {
+  reiter.forEach(x => {
+    const an = x === r;
+    x.setAttribute("aria-selected", an);
+    document.getElementById(x.getAttribute("aria-controls")).hidden = !an;
+  });
+}));
+
+zeichnen();
+
+/* ── Abarbeitungsplan ─────────────────────────────────── */
+const PLAN = /*__PLAN__*/{};
+
+const PHASEN = {
+  A: {name: "Sicherheit schließen", takt: "1 Woche",
+      warum: "Drei offene P0-Lücken und die größte Angriffsfläche des Systems. Jeder weitere Kunde erhöht den Einsatz — und <b>L-78</b> kostet fünfzehn Minuten und macht alles Folgende überprüfbar."},
+  B: {name: "Die Ursache behandeln — Dateien zerlegen", takt: "2 Wochen",
+      warum: "Hier entstehen die wiederkehrenden Routing-Fehler. In Etappen, jede einzeln zurückdrehbar. <b>Netlify zuerst</b>, weil das Tracking-Feature (GA4, Meta Pixel, Schema.org, llms.txt) genau dort eingebaut wird — danach in einer 600-Zeilen-Datei statt in einer mit 4.847."},
+  C: {name: "Die Kette schließen, die Geld verdient", takt: "1 Woche",
+      warum: "M1→M2→M4→M5→M6→M7. Vier Stellen, an denen ein Glied heute halb offen ist: der fehlende Freigabe-Knopf, die Kundendomain, der Verlauf der KI-Sichtbarkeit und eine Mailstrecke, die ins Leere greift."},
+  D: {name: "Der Innendienst-Arbeitsplatz", takt: "1 Woche",
+      warum: "Drei Befunde aus dem HubSpot-Audit vom 19.08. plus die ROADMAP-Reste. Kein Feature, sondern die Zeit, die täglich draufgeht, weil der Verlauf hinter einem Reiter liegt."},
+  E: {name: "Aufräumen und Wahrheit herstellen", takt: "laufend",
+      warum: "Einzeln klein, gemeinsam der Unterschied zwischen einer Dokumentation, der man glaubt, und einer, die man prüfen muss. Passt zwischen die anderen Phasen."},
+};
+
+const nachPhase = {};
+for (const p of PLAN.phasen) (nachPhase[p.phase] = nachPhase[p.phase] || []).push(p);
+
+document.getElementById("phasen").innerHTML = Object.entries(PHASEN).map(([k, ph]) => {
+  const pakete = nachPhase[k] || [];
+  return `<article class="phase">
+    <div class="ph-kopf">
+      <span class="ph-marke ph-${k}">${k}</span>
+      <h3>${ph.name}</h3>
+      <span class="takt">${pakete.length} Pakete · ${ph.takt}</span>
+    </div>
+    <div class="ph-warum">${ph.warum}</div>
+    ${pakete.map(p => `
+      <div class="paket">
+        <span class="kn">${schutz(p.id)}</span>
+        <span class="mi">
+          <span class="t">${schutz(p.titel)}</span>
+          <span class="w">${schutz(p.warum)}</span>
+        </span>
+        <span class="pr">${schutz(p.prio)}</span>
+        ${p.aufwand ? `<span class="aufwand">${schutz(p.aufwand)}</span>` : ""}
+      </div>`).join("")}
+  </article>`;
+}).join("");
+
+document.getElementById("blockiert").innerHTML = PLAN.blockiert.map(b => `
+  <div class="stop-z"><span class="kn">${schutz(b.id)}</span>
+    <span class="t">${schutz(b.titel)}</span><span class="g">${schutz(b.grund)}</span></div>`).join("");
+
+document.getElementById("spaeter").innerHTML = PLAN.spaeter.map(s => `
+  <div class="sp"><div class="z1"><span class="kn">${schutz(s.id)}</span>
+      <span class="t">${schutz(s.titel)}</span><span class="aufwand">${schutz(s.aufwand)}</span></div>
+    <p>${schutz(s.warum)}</p></div>`).join("");
+</script>

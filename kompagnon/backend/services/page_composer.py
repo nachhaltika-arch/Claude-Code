@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Komposition ist Auswahl und Reihenfolge, nicht Markup — dafür reicht das
 # schnellere Modell. Das Markup je Section schreibt Stufe B auf Opus.
-KOMPOSITIONS_MODELL = "claude-sonnet-4-6"
+KOMPOSITIONS_MODELL = "claude-sonnet-5"
 
 # Aus `docs/conversion-spec-shk.md`, Abschnitt 3. Für die Startseite gelten
 # alle; für Unterseiten ist die Liste eine Empfehlung, keine Pflicht.

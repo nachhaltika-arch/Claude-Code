@@ -436,7 +436,7 @@ PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
     try:
         resp = await frag_modell(
             client,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5", thinking={"type": "disabled"},
             max_tokens=8000,
             messages=[{"role": "user", "content": prompt}],
         )

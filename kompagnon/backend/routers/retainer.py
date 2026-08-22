@@ -1,9 +1,25 @@
+"""Wartungsvertraege und Rechnungen.
+
+**Zugriff (22.08.2026, L-05).** Bis dahin trugen alle sieben Routen nur
+`get_current_user` — also jeden Angemeldeten, auch die Rolle `kunde`.
+`GET /api/invoices` gab dabei `SELECT * FROM invoices` **ohne Filter** heraus:
+alle Rechnungen aller Kunden, mit Namen, E-Mail und Betrag. Zwei Routen
+schrieben sogar (`POST /api/invoices`, `PUT /api/retainer/{id}`).
+
+Die Absicht war eine andere — `GET /api/invoices/my` filtert nach der eigenen
+E-Mail und ist der Kundenweg. Die Innendienst-Routen waren nur nie zugesperrt.
+
+Jetzt haengen sie an `view_billing` und `manage_billing`. Bewusst am **Recht**
+und nicht an `require_innendienst`: Die Rechtematrix gibt beide an admin und
+superadmin, nicht an den Auditor. So stimmt der Haken im Bildschirm „Rollen"
+mit dem ueberein, was die Route tut.
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, verlangt_recht
 from services.invoice_pdf import generate_invoice_pdf
 from datetime import date, timedelta
 
@@ -19,7 +35,7 @@ def _next_invoice_number(db):
     return f"KAS-{year}-{num:04d}"
 
 
-@router.get("/api/retainer")
+@router.get("/api/retainer", dependencies=[Depends(verlangt_recht("view_billing"))])
 def list_retainer(db: Session = Depends(get_db), _=Depends(get_current_user)):
     rows = db.execute(text(
         "SELECT * FROM retainer_contracts ORDER BY created_at DESC"
@@ -27,7 +43,7 @@ def list_retainer(db: Session = Depends(get_db), _=Depends(get_current_user)):
     return [dict(r._mapping) for r in rows]
 
 
-@router.post("/api/retainer")
+@router.post("/api/retainer", dependencies=[Depends(verlangt_recht("manage_billing"))])
 def create_retainer(body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
     db.execute(text("""
         INSERT INTO retainer_contracts
@@ -50,7 +66,7 @@ def create_retainer(body: dict, db: Session = Depends(get_db), _=Depends(get_cur
     return {"success": True}
 
 
-@router.put("/api/retainer/{rid}")
+@router.put("/api/retainer/{rid}", dependencies=[Depends(verlangt_recht("manage_billing"))])
 def update_retainer(rid: int, body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
     blocked = {"id", "created_at"}
     data = {k: v for k, v in body.items() if k not in blocked and v is not None}
@@ -70,7 +86,7 @@ def my_invoices(db: Session = Depends(get_db), current_user=Depends(get_current_
     return [dict(r._mapping) for r in rows]
 
 
-@router.get("/api/invoices")
+@router.get("/api/invoices", dependencies=[Depends(verlangt_recht("view_billing"))])
 def list_invoices(db: Session = Depends(get_db), _=Depends(get_current_user)):
     rows = db.execute(text(
         "SELECT * FROM invoices ORDER BY created_at DESC"
@@ -78,7 +94,7 @@ def list_invoices(db: Session = Depends(get_db), _=Depends(get_current_user)):
     return [dict(r._mapping) for r in rows]
 
 
-@router.post("/api/invoices")
+@router.post("/api/invoices", dependencies=[Depends(verlangt_recht("manage_billing"))])
 def create_invoice(body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
     inv_num = _next_invoice_number(db)
     net = float(body.get("amount_net", 89))
@@ -105,7 +121,7 @@ def create_invoice(body: dict, db: Session = Depends(get_db), _=Depends(get_curr
     return {"success": True, "invoice_number": inv_num}
 
 
-@router.get("/api/invoices/{inv_id}/pdf")
+@router.get("/api/invoices/{inv_id}/pdf", dependencies=[Depends(verlangt_recht("view_billing"))])
 def download_invoice_pdf(inv_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     row = db.execute(text(
         "SELECT * FROM invoices WHERE id=:id"), {"id": inv_id}

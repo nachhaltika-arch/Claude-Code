@@ -26,8 +26,14 @@ const path = require('path');
 
 const WURZEL = path.join(__dirname, '..');
 
-/** Der Stand vom 21.08.2026. Nur nach unten anpassen. */
-const VERBLEIBEND = 54;
+/** Der Stand vom 21.08.2026. Nur nach unten anpassen.
+ *  54 → 53 beim Fertigstellen von M4: `ProductManager.jsx` ist entfernt.
+ *  Er war gegen eine Produkt-Schnittstelle geschrieben, die es nicht gibt.
+ *  53 → 50 beim Abbau des Legacy-Editors: `pages/ProjectDetail.jsx` und
+ *  `components/ProzessFlowV3.jsx` sind entfernt. Drei Stellen weniger, ohne
+ *  dass jemand eine Tastaturbedienung nachgerüstet hat — gelöschter Code hat
+ *  keine Barrieren. */
+const VERBLEIBEND = 50;
 
 function tagEnde(text, start) {
   let tiefe = 0;

@@ -2,9 +2,11 @@
  * OnlineFertigEditor — Container der die neue 4-View-Architektur (Step E) +
  * KASSidebar (Step F) zu einem nutzbaren Editor verheiratet (Step G).
  *
- * Side-by-Side mit dem bestehenden ProzessFlowV3 — der Legacy-Editor bleibt
- * unter /app/projects/:id, der neue Editor läuft unter
- * /app/projects/:id/online-fertig.
+ * Seit dem 21.08.2026 der einzige Projekt-Editor: `ProzessFlowV3` und der
+ * Bildschirm, der ihn hielt (`pages/ProjectDetail.jsx`, 1.740 Zeilen mit 200
+ * ungenutzten Bezeichnern), sind entfernt. Was nur dort lebte — der
+ * Seiteneditor, GEO-Optimierung und Leistungsseiten —, ist vorher hierher
+ * gezogen.
  *
  * Verantwortlich für:
  *   - Project-Daten laden
@@ -15,21 +17,25 @@
  *   - KI-Wireframe-Generator triggern + Polling
  *   - Onclick-Callbacks an die Views (Approval, GrapesJS, Netlify-Deploy)
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import { useAuth } from '../context/AuthContext';
 import KASSidebar, { SCHRITTE } from './KASSidebar';
+import { computeStepStatus } from '../utils/schrittkette';
 import SitemapView from './views/SitemapViewV2';
 import WireframeView from './views/WireframeView';
 import StyleGuideView from './views/StyleGuideView';
 import DesignView from './views/DesignView';
-// SchrittInhalt rendert die Legacy-Step-Inhalte (Briefing/Audit/etc.) aus
-// ProzessFlowV3 — wir reichen es im Step-Detail-Panel durch wenn der aktive
-// Step ein component-Mapping hat (KASSidebar SCHRITTE).
+// `SchrittInhalt` rendert die Schritt-Inhalte (Briefing, Audit, GEO,
+// Leistungsseiten, Content, Netlify, DNS, QA, Abnahme). Es ist der gemeinsame
+// Renderer beider Editor-Generationen gewesen und jetzt der einzige.
 import { SchrittInhalt } from './ProzessFlow';
+// Der Seiteneditor, nachgeladen statt mitgebuendelt: Er bringt das
+// Studio-SDK mit und wird nur geoeffnet, wenn jemand eine Seite bearbeitet.
+const GrapesEditor = lazy(() => import('./GrapesEditor'));
 
 const KC_DARK = 'var(--kc-dark)';
 const KC_MID = 'var(--kc-mid)';
@@ -59,6 +65,12 @@ export default function OnlineFertigEditor() {
   const [activeStep, setActiveStep] = useState('briefing-unternehmen');
   const [generateStatus, setGenerateStatus] = useState(null); // null | 'running' | { error } | 'done'
   const [confirmedSteps, setConfirmedSteps] = useState({});
+  // Die Seite, die gerade im Seiteneditor offen ist. Bis zum 21.08.2026
+  // sprang der Editor an dieser Stelle nach `/app/projects/:id/legacy` —
+  // der Seiteneditor stand nur im alten Bildschirm. Damit war der letzte
+  // funktionale Grund, den Legacy-Editor zu behalten, nicht der Editor
+  // selbst, sondern dieser Absprung.
+  const [editingPage, setEditingPage] = useState(null);
   const pollTimerRef = useRef(null);
 
   // ── Initial load: Project + Wireframe ──────────────────────────────────────
@@ -79,8 +91,8 @@ export default function OnlineFertigEditor() {
         if (cancelled) return;
         setProject(proj);
         setWireframeData(wf || { pages: [] });
-        // Daten fuer die Legacy-SchrittInhalt-Embeds direkt ziehen
-        if (proj?.lead_id) loadLegacyData(proj.lead_id);
+        // Daten, die die Schritt-Inhalte brauchen (Briefing, Audit, Marke)
+        if (proj?.lead_id) ladeSchrittDaten(proj.lead_id);
         // confirmed-steps separat (Endpoint ist optional)
         loadJson(
           `${API_BASE_URL}/api/projects/${projectId}/confirmed-steps`,
@@ -96,8 +108,8 @@ export default function OnlineFertigEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token, headers]);
 
-  // ── Legacy-Daten fuer SchrittInhalt (Briefing/Audit/Sitemap/Brand) ────────
-  const loadLegacyData = useCallback((leadId) => {
+  // ── Daten fuer SchrittInhalt (Briefing/Audit/Sitemap/Marke) ──────────────
+  const ladeSchrittDaten = useCallback((leadId) => {
     if (!leadId) return;
     // Ein noch nicht angelegter Datensatz (404) bleibt still — jeder andere
     // Fehler wird gemeldet. Vorher war beides gleich unsichtbar, und genau so
@@ -346,10 +358,16 @@ export default function OnlineFertigEditor() {
     }
   };
 
-  const handleOpenGrapesJS = () => {
-    // ProzessFlowV3 / DesignStudio enthält den GrapesEditor — wir nehmen den
-    // Legacy-Pfad bis das in den neuen Editor integriert ist.
-    navigate(`/app/projects/${projectId}/legacy`);
+  const handleOpenGrapesJS = (pageId) => {
+    // `DesignView` reicht die Kennung der aktiven Seite durch. Ohne sie
+    // wuesste der Editor nicht, was er oeffnen soll — vorher war das egal,
+    // weil hier nur weitergesprungen wurde.
+    const seite = sitemapPages.find((p) => p.id === pageId);
+    if (!seite) {
+      toast.error('Diese Seite steht nicht mehr in der Sitemap.');
+      return;
+    }
+    setEditingPage(seite);
   };
 
   const handleNetlifyDeploy = async () => {
@@ -440,7 +458,7 @@ export default function OnlineFertigEditor() {
       />
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Topbar mit Quick-Switch zum Legacy-Editor */}
+        {/* Topbar */}
         <header
           style={{
             height: 44,
@@ -580,23 +598,6 @@ export default function OnlineFertigEditor() {
                 ✓ Schritt abschließen
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => navigate(`/app/projects/${projectId}/legacy`)}
-              style={{
-                background: 'transparent',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
-                borderRadius: 6,
-                padding: '5px 12px',
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-              title="Zurück zum Legacy-Editor mit allen 12 Schritten"
-            >
-              → Legacy-Editor
-            </button>
           </div>
         </header>
 
@@ -604,8 +605,8 @@ export default function OnlineFertigEditor() {
         <div style={{ flex: 1, overflow: 'auto' }}>
           {showStepDetail ? (
             activeStepDef.component ? (
-              // Legacy-Inhalt aus ProzessFlow.SchrittInhalt — voll funktionsfaehig,
-              // braucht aber die geladenen Daten (lead/briefing/audit/sitemap/brand).
+              // Schritt-Inhalt aus ProzessFlow.SchrittInhalt — braucht die
+              // geladenen Daten (lead/briefing/audit/sitemap/marke).
               <div style={{ padding: 20 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                   Phase {activeStepDef.phase} · Schritt {activeStepDef.nr}{activeStepDef.optional ? ' · Optional' : ''}{activeStepDef.gate ? ' · Gate' : ''}
@@ -691,6 +692,38 @@ export default function OnlineFertigEditor() {
           ) : null}
         </div>
       </main>
+
+      {/* ── Seiteneditor ─────────────────────────────────────────────────────
+        * Vollbild ueber allem, wie im alten Bildschirm. `key` sorgt dafuer,
+        * dass beim Wechsel der Seite ein frischer Editor entsteht statt eines
+        * mit dem Inhalt der vorigen.
+        *
+        * `gjs_html` vor `mockup_html`: Wer die Seite schon einmal im Editor
+        * bearbeitet hat, soll seine Fassung wiederfinden und nicht den
+        * Entwurf, aus dem sie entstanden ist. */}
+      {editingPage && (
+        <Suspense fallback={null}>
+          <GrapesEditor
+            key={editingPage.id}
+            pageId={editingPage.id}
+            pageName={editingPage.page_name}
+            initialHtml={editingPage.gjs_html || editingPage.mockup_html || ''}
+            onClose={() => setEditingPage(null)}
+            onSave={({ html, css }) => {
+              setSitemapPages((vorher) => vorher.map((p) => (
+                p.id === editingPage.id
+                  ? { ...p, gjs_html: html, gjs_css: css || '', mockup_html: html }
+                  : p
+              )));
+              setEditingPage(null);
+              toast.success(`„${editingPage.page_name}" gespeichert`);
+            }}
+            projectId={project?.id}
+            netlitySiteId={project?.netlify_site_id || null}
+            leadId={project?.lead_id}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -715,78 +748,9 @@ function StepDetailPanel({ step, project, projectId, navigate }) {
           Dieser Post-Launch-Schritt ist konzeptionell Teil des Workflows, hat aber noch keine
           Backend-Anbindung — er kommt in einem späteren Sprint (Umami / Heatmap / Performance-Reports).
         </p>
-        <button
-          type="button"
-          onClick={() => navigate(`/app/projects/${projectId}/legacy`)}
-          style={{
-            background: 'transparent', color: KC_MID, border: `1.5px solid ${KC_MID}`,
-            borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700,
-            cursor: 'pointer', marginTop: 12,
-          }}
-        >
-          Zum Legacy-Editor (alle Schritte)
-        </button>
       </div>
     </div>
   );
 }
 
 // ── Step-Status berechnen ───────────────────────────────────────────────────
-
-function computeStepStatus(project, wireframeData, confirmedSteps) {
-  if (!project) return {};
-  const status = {};
-
-  // Phase 1 — Analyse
-  // Wir haben keine direkten boolean-Flags fürs Briefing/Audit hier — heuristisch
-  status['briefing-unternehmen'] = project.has_briefing ? 'completed' : 'pending';
-  status['audit'] = project.audit_score ? 'completed' : 'pending';
-  status['content-vollanalyse'] = project.scrape_full_at ? 'completed' : 'pending';
-  status['briefing-website'] = project.has_briefing ? 'completed' : 'pending';
-  status['zugangsdaten'] = 'pending'; // optional, kein eindeutiges Signal
-
-  // Phase 2 — Sitemap + Wireframe
-  // Sitemap-Pages werden separat geladen, hier prüfen wir nur den wireframe
-  const hasWireframe = Array.isArray(wireframeData?.pages) && wireframeData.pages.length > 0;
-  status['sitemap-ki'] = hasWireframe ? 'completed' : 'pending';
-  status['wireframe-ki'] = hasWireframe ? 'completed' : 'pending';
-
-  // Phase 3 — Style Guide + Design
-  status['style-guide'] = wireframeData?.style_guide_approved ? 'completed' : (wireframeData?.style_guide ? 'active' : 'pending');
-  status['finales-design'] = project.netlify_deploy_id ? 'completed' : 'pending';
-
-  // Phase 4 — Produktion
-  status['ki-content'] = 'pending'; // braucht Content-Generation-Tracking
-  status['netlify-deploy'] = project.netlify_site_id ? 'completed' : 'pending';
-
-  // Phase 5 — Go Live
-  status['dns'] = project.netlify_domain_status === 'active' ? 'completed' : 'pending';
-  status['qa'] = project.qa_score && project.qa_score >= 70 ? 'completed' : 'pending';
-  status['abnahme'] = project.customer_approved_at ? 'completed' : 'pending';
-
-  // Phase 6 — Post-Launch
-  status['umami'] = 'pending';
-  status['heatmap'] = 'pending';
-  status['monats-report'] = 'pending';
-
-  // User-Bestätigung überschreibt Heuristik (höchste Priorität).
-  // Schema: confirmedSteps = { stepId: { confirmed: true, confirmed_at: '…' } }
-  Object.entries(confirmedSteps || {}).forEach(([stepId, val]) => {
-    if (val && val.confirmed) status[stepId] = 'completed';
-  });
-
-  // Lock-Logik (Variante C): nur consecutive-completed + nächster Schritt sind
-  // freigegeben. Spätere Schritte sind 'locked' bis der User aufholt.
-  let consecutiveDoneIdx = -1;
-  for (let i = 0; i < SCHRITTE.length; i++) {
-    if (status[SCHRITTE[i].id] === 'completed') consecutiveDoneIdx = i;
-    else break;
-  }
-  SCHRITTE.forEach((s, idx) => {
-    if (status[s.id] === 'completed') return;
-    if (idx <= consecutiveDoneIdx + 1) status[s.id] = 'ready';
-    else status[s.id] = 'locked';
-  });
-
-  return status;
-}

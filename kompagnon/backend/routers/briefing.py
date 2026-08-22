@@ -185,7 +185,7 @@ Schreibe kompakt und praxisnah. Maximal 400 Wörter. Auf Deutsch."""
         client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'), max_retries=0, timeout=60.0)
         response = await frag_modell(
             client,
-            model='claude-sonnet-4-6', max_tokens=1000,
+            model='claude-sonnet-5', thinking={"type": "disabled"}, max_tokens=1000,
             messages=[{'role': 'user', 'content': prompt}],
         )
         analyse = response.content[0].text
@@ -243,7 +243,7 @@ Schreibe kompakt und praxisnah. Maximal 500 Wörter. Auf Deutsch."""
         client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'), max_retries=0, timeout=60.0)
         response = await frag_modell(
             client,
-            model='claude-sonnet-4-6', max_tokens=1200,
+            model='claude-sonnet-5', thinking={"type": "disabled"}, max_tokens=1200,
             messages=[{'role': 'user', 'content': prompt}],
         )
         analyse = response.content[0].text

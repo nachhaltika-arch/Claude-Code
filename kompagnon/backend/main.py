@@ -556,6 +556,13 @@ app.include_router(leads_router)                      # real leads router first
 # verlangt eine Anmeldung.
 from routers.leads import public_router as leads_public_router
 app.include_router(leads_public_router)
+
+# Der Import von Betrieben liegt seit dem 22.08.2026 in einer eigenen Datei
+# (L-25): neun Routen, die Daten von aussen entgegennehmen — CSV,
+# Domainlisten, Einzelanlage, Ausfuhr. Mit dem Rest von `leads.py` teilten
+# sie nichts ausser dem Router und dem Auftragszustand.
+from routers import leads_import
+app.include_router(leads_import.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)

@@ -35,6 +35,36 @@ def test_es_gibt_nur_noch_einen_briefing_router():
         "auf `/api/briefings`.")
 
 
+def test_die_ki_routen_liegen_in_ihrer_eigenen_datei():
+    """**Der Schnitt nach Zustaendigkeit (L-25, 22.08.2026).** Nach dem
+    Zusammenlegen war `briefings.py` 958 Zeilen lang, und die Haelfte davon
+    waren sechs Routen, die alle dasselbe tun: ein Modell fragen und die
+    Antwort in ein Briefing-Feld schreiben.
+
+    Der Test haelt den Schnitt — nicht die Zeilenzahl, sondern **wo was
+    liegt**. Eine Zeilengrenze allein sagt nichts darueber, ob eine Datei
+    eine Sache tut.
+    """
+    from routers import briefings, briefings_ki
+
+    ki_pfade = {r.path for r in briefings_ki.router.routes}
+    stamm_pfade = {r.path for r in briefings.router.routes}
+
+    assert any("ki-prefill" in p for p in ki_pfade), ki_pfade
+    assert not any("ki-prefill" in p for p in stamm_pfade), (
+        "KI-Routen sind zurueck in den Stammdaten")
+    assert "/api/briefings/{lead_id}" in stamm_pfade
+
+
+def test_keine_briefing_datei_ueberschreitet_die_grenze():
+    """800 Zeilen sind die Hausgrenze (L-25). Beide liegen darunter — der
+    Test sagt es, wenn eine wieder darueber waechst."""
+    for name in ("briefings.py", "briefings_ki.py"):
+        datei = WURZEL / "routers" / name
+        zeilen = len(datei.read_text(encoding="utf-8").split("\n"))
+        assert zeilen <= 800, f"{name}: {zeilen} Zeilen"
+
+
 def test_serialize_gibt_es_genau_einmal():
     """Zwei Fassungen desselben Helfers laufen auseinander. Sie taten es."""
     treffer = []
@@ -95,7 +125,7 @@ def test_die_verben_stimmen_noch(app):
         assert verb in pfad, f"{verb.upper()} /api/briefings/{{lead_id}} fehlt"
 
 
-def test_die_beiden_router_ueberschneiden_sich_nicht():
+def test_die_router_ueberschneiden_sich_nicht():
     """**Uebernommen aus `test_briefing_router.py`,** das seinen Gegenstand
     verloren hat: Es gibt keine zweite Datei mehr.
 
@@ -106,18 +136,27 @@ def test_die_beiden_router_ueberschneiden_sich_nicht():
     **Zustaendigkeit** getrennt sind. Unsichtbar wuerde eine Ueberschneidung
     trotzdem: Es gewinnt der zuerst eingebundene.
     """
-    from routers import briefings
+    from routers import briefings, briefings_ki
 
     def verb_pfad(r):
         return {(m, route.path) for route in r.routes
                 for m in (getattr(route, "methods", set()) or set())
                 if m not in ("HEAD", "OPTIONS")}
 
-    doppelt = verb_pfad(briefings.router) & verb_pfad(briefings.kunden_router)
-
-    assert doppelt == set(), (
-        f"In beiden Briefing-Routern: {sorted(doppelt)}. Der zuerst "
-        f"eingebundene gewinnt, der andere ist tot.")
+    # Drei Router auf `/api/briefings`: Innendienst-Stammdaten, der
+    # Kundenweg (nur die Freigabe) und die KI-Vorbefuellung (L-25).
+    alle = {
+        "briefings.router": verb_pfad(briefings.router),
+        "briefings.kunden_router": verb_pfad(briefings.kunden_router),
+        "briefings_ki.router": verb_pfad(briefings_ki.router),
+    }
+    namen = sorted(alle)
+    for i, a in enumerate(namen):
+        for b in namen[i + 1:]:
+            doppelt = alle[a] & alle[b]
+            assert doppelt == set(), (
+                f"In {a} und {b}: {sorted(doppelt)}. Der zuerst eingebundene "
+                f"gewinnt, der andere ist tot.")
 
 
 def test_der_kundenrouter_traegt_nur_die_freigabe():

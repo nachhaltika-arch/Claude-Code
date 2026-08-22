@@ -593,6 +593,13 @@ from routers import briefings
 app.include_router(briefings.router)      # Innendienst
 app.include_router(briefings.kunden_router)   # nur die Freigabe ueber Token (L-27)
 
+# Die KI-Vorbefuellung liegt seit dem 22.08.2026 in einer eigenen Datei
+# (L-25): sechs Routen, die alle ein Modell fragen und die Antwort in ein
+# Briefing-Feld schreiben — mit den Stammdaten haben sie nur den Gegenstand
+# gemeinsam. Geschnitten nach Zustaendigkeit, nicht nach Groesse.
+from routers import briefings_ki
+app.include_router(briefings_ki.router)
+
 # `routers/briefing.py` ist am 22.08.2026 in `briefings.py` aufgegangen
 # (L-27) — zwei Router auf demselben Praefix, getrennt nach HTTP-Verb.
 

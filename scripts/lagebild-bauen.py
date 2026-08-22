@@ -156,6 +156,24 @@ def luecken_lesen() -> list:
             "datum": next(iter(re.findall(r"20\d\d-\d\d-\d\d", inhalt)), ""),
         })
 
+    # **Widerspruch zwischen Text und Zaehlung melden.** L-84 war am 22.08.
+    # vollstaendig geschlossen, trug die Schliessmeldung im Text — und stand
+    # trotzdem als „offen" im Lagebild, weil beim Fortschreiben die
+    # Durchstreichung fehlte und die Aufwandsspalte stehenblieb. Solche
+    # Eintraege verfaelschen jede Zahl, die jemand aus dem Lagebild abliest.
+    #
+    # „teilweise" ist hier kein Widerspruch: Ein Eintrag darf sagen, dass ein
+    # Teil geschlossen ist. Gemeldet wird nur „offen" trotz Schliessmeldung.
+    widersprueche = [
+        e["id"] for e in heraus
+        if e["status"] == "offen"
+        and re.search(r"Geschlossen(\s+am)?\s+2\d{3}", e["text"], re.I)
+    ]
+    if widersprueche:
+        print("  Hinweis: Diese Eintraege nennen ein Schliessdatum, zaehlen aber "
+              "als offen — fehlt die Durchstreichung oder steht noch ein "
+              f"Aufwand darin? {', '.join(widersprueche)}")
+
     if fehlerhaft:
         # **Nicht still weitermachen.** Genau das war der Fehler: Ein
         # verschluckter Eintrag faellt niemandem auf, weil die Gesamtzahl

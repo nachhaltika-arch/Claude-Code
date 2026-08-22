@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from database import get_db, GeoAnalysis, Project
-from routers.auth_router import require_any_auth, require_admin
+from routers.auth_router import require_any_auth, require_admin, require_innendienst
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/geo", tags=["geo"])
@@ -324,3 +324,90 @@ async def run_monitoring_manually(
     from services.geo_monitor import run_monthly_geo_check
     results = await run_monthly_geo_check()
     return {"status": "abgeschlossen", "results": results}
+
+
+# ── Tatsaechliche KI-Sichtbarkeit (L-58 b, 22.08.2026) ───────────────────────
+#
+# Alles darueber misst die **Voraussetzungen**: llms.txt, offene Crawler,
+# strukturierte Daten. Ob ChatGPT, Perplexity oder Claude den Betrieb auf eine
+# Kundenfrage hin wirklich **nennen**, misst das nicht — und genau das verkauft
+# GEO. Die Anbindung steht in `services/ki_anbieter.py`.
+#
+# `require_innendienst` statt des `require_any_auth` der Nachbarn: Jeder Lauf
+# stellt echte Anfragen an fremde Modelle und kostet Geld. Das loest kein Kunde
+# aus, auch nicht am eigenen Projekt.
+
+@router.get("/ki-anbieter")
+def ki_anbieter_stand(_=Depends(require_innendienst)):
+    """Welche KI-Systeme angebunden sind — und welcher Schluessel fehlt.
+
+    Ohne diese Auskunft merkt niemand, dass ein Schluessel in Render fehlt
+    oder leer angelegt wurde: Der Lauf meldet dann brav „nicht erhoben", und
+    das liest sich wie ein Ergebnis.
+
+    Bewusst ohne Schluesselwerte — `/info` hat am 15.08.2026 schon einmal
+    Zugangsdaten preisgegeben.
+    """
+    from services.ki_anbieter import anbieter_stand
+
+    stand = anbieter_stand()
+    return {
+        "anbieter": stand,
+        "angebunden": sum(1 for a in stand if a["konfiguriert"]),
+        "von": len(stand),
+    }
+
+
+@router.post("/{project_id}/ki-sichtbarkeit")
+async def pruefe_ki_sichtbarkeit_endpunkt(
+    project_id: int,
+    max_fragen: int = 3,
+    db: Session = Depends(get_db),
+    _=Depends(require_innendienst),
+):
+    """Fragt jedes angebundene System, ob es diesen Betrieb nennt.
+
+    Laeuft **synchron** und dauert: je Frage eine echte Websuche. `max_fragen`
+    begrenzt das nach oben; drei reichen fuer eine belastbare Aussage.
+
+    Antwortet 503, wenn kein System angebunden ist — nicht 200 mit lauter
+    Nullen. Ein Ergebnis, das aussieht wie „nirgends gefunden", waere eine
+    Aussage ueber Systeme, die nie gefragt wurden.
+    """
+    from services.ki_anbieter import ANBIETER, konfigurierte_anbieter
+    from services.ki_sichtbarkeit import pruefe_ki_sichtbarkeit
+
+    daten = _get_project_data(project_id, db)
+
+    if not konfigurierte_anbieter():
+        fehlend = ", ".join(a.env_name for a in ANBIETER)
+        raise HTTPException(
+            503, f"Kein KI-System angebunden. Erwartet wird mindestens einer "
+                 f"dieser Schluessel: {fehlend}")
+
+    if not daten["city"]:
+        raise HTTPException(
+            400, "Am Betrieb fehlt der Ort. Ohne ihn misst die Frage einen "
+                 "Markt, in dem der Betrieb nicht arbeitet.")
+
+    projekt = db.query(Project).filter(Project.id == project_id).first()
+    name = getattr(projekt.lead, "company_name", "") or ""
+
+    befund = await pruefe_ki_sichtbarkeit(
+        name=name,
+        domain=daten["website_url"],
+        gewerk=daten["gewerk"],
+        ort=daten["city"],
+        max_fragen=max(1, min(max_fragen, 5)),
+    )
+
+    analyse = db.query(GeoAnalysis).filter(
+        GeoAnalysis.project_id == project_id).first()
+    if not analyse:
+        analyse = GeoAnalysis(project_id=project_id, status="pending")
+        db.add(analyse)
+    analyse.ki_sichtbarkeit = befund
+    analyse.ki_sichtbarkeit_am = datetime.utcnow()
+    db.commit()
+
+    return befund

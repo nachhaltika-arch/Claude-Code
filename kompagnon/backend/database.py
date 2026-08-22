@@ -1138,6 +1138,13 @@ class GeoAnalysis(Base):
     monitoring_enabled = Column(Boolean, default=True)
     last_score_change = Column(Integer, nullable=True)
 
+    # Ob eine KI den Betrieb auf eine Kundenfrage hin wirklich nennt (L-58 b).
+    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all` —
+    # siehe die Nachbarn oben. NULL heisst „nie gelaufen", nicht „nicht
+    # gefunden": Der Lauf kostet Geld und laeuft nur auf Anforderung.
+    ki_sichtbarkeit = Column(JSONB, nullable=True)
+    ki_sichtbarkeit_am = Column(DateTime, nullable=True)
+
     # Stripe Subscription
     stripe_subscription_id = Column(String(200), nullable=True)
     stripe_customer_id = Column(String(200), nullable=True)

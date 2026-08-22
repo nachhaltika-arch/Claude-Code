@@ -1273,6 +1273,14 @@ def _run_migrations():
         "ALTER TABLE component_library ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'",
         "UPDATE component_library SET status = 'approved' WHERE status IS NULL",
         "CREATE INDEX IF NOT EXISTS idx_component_library_status ON component_library(status)",
+        # ── Tatsaechliche KI-Sichtbarkeit 2026-08-22 (L-58 b) ───────────────
+        # Bis hierhin mass GEO nur die Voraussetzungen — llms.txt, offene
+        # Crawler, strukturierte Daten. Ob ChatGPT, Perplexity oder Claude den
+        # Betrieb auf eine Kundenfrage hin wirklich **nennen**, steht jetzt
+        # hier: je System die gestellten Fragen, die Belege und die Trefferzahl.
+        # NULL heisst „nie gelaufen" — ausdruecklich nicht „nicht gefunden".
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit JSONB",
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_am TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

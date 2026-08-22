@@ -210,9 +210,7 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
 
         # Google Business Profile check (non-blocking)
         def _gbp_check(lid, company, city):
-            import asyncio
             from services.google_business import check_google_business
-            from database import SessionLocal
             try:
                 gbp = asyncio.run(check_google_business(company, city))
                 s = SessionLocal()
@@ -442,10 +440,8 @@ def get_customers(db: Session = Depends(get_db)):
 async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Batch-enrich all leads with score=0. Runs in background."""
     from services.lead_enrichment import enrich_all_pending
-    import asyncio
 
     def _run():
-        from database import SessionLocal
         _db = SessionLocal()
         try:
             asyncio.run(enrich_all_pending(_db))
@@ -1188,93 +1184,8 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
     return results
 
 
-#: Wie viele Betriebe ein Aufruf hoechstens anfasst. Jeder kostet einen
-#: Seitenabruf samt KI-Auswertung — das soll man dosieren koennen.
-NAMEN_JE_LAUF = 25
 
 
-@router.post("/namen-nachtragen")
-async def namen_nachtragen(
-    anzahl: int = Query(NAMEN_JE_LAUF, ge=1, le=NAMEN_JE_LAUF,
-                        description="Wie viele Betriebe dieser Lauf anfasst"),
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Holt den echten Firmennamen für Betriebe, die wie ihre Domain heißen.
-
-    Der Domainimport legt Betriebe mit der Domain als Namen an. Bis zum
-    17.08.2026 verwarf der Impressum-Schritt den echten Namen wieder, weil das
-    Feld als „gefüllt" galt. Behoben ist das — aber nur für künftige Läufe.
-    Dieser Endpunkt holt nach, was in der Liste steht.
-
-    Angefasst wird ausschließlich, wessen Name ein Platzhalter ist. Ein von
-    Hand gepflegter Name bleibt, auch wenn das Impressum etwas anderes sagt.
-    """
-    from services.impressum_scraper import extract_contact_from_impressum
-
-    kandidaten = [
-        lead for lead in db.query(Lead).filter(Lead.website_url != "").all()
-        if betriebsname.ist_platzhalter(lead.company_name, lead.website_url)
-    ][:anzahl]
-
-    geaendert, ohne_ergebnis = [], []
-    for lead in kandidaten:
-        try:
-            ergebnis = await extract_contact_from_impressum(lead.website_url)
-        except Exception as fehler:  # noqa: BLE001 — ein Betrieb darf den Lauf nicht kippen
-            logger.warning(f"Impressum für {lead.website_url} nicht lesbar: {fehler}")
-            ohne_ergebnis.append({"betrieb": lead.company_name, "grund": str(fehler)[:120]})
-            continue
-
-        # Der Abruf hat Sekunden gedauert. In der Zeit kann jemand über die
-        # Oberfläche denselben Betrieb bearbeitet haben — genau das geschah am
-        # 17.08.2026 bei „Frowein Haustechnik". Ohne dieses Nachlesen
-        # entscheidet der Lauf auf dem Stand von vor dem Abruf.
-        db.refresh(lead)
-
-        # Drei Lagen, die vorher alle „kein brauchbarer Name im Impressum"
-        # hießen — und damit dasselbe behaupteten wie ein echter Fehlschlag.
-        # Deshalb stand ein Betrieb im Bericht als gescheitert, der längst
-        # einen richtigen Namen trug.
-        if not betriebsname.ist_platzhalter(lead.company_name, lead.website_url):
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": "hatte inzwischen schon einen richtigen Namen",
-            })
-            continue
-
-        if not ergebnis.get("success"):
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": f"Impressum nicht lesbar: {ergebnis.get('error') or 'unbekannt'}"[:120],
-            })
-            continue
-
-        gefunden = (ergebnis.get("data") or {}).get("company_name")
-        echter_name = betriebsname.uebernehmen(lead.company_name, gefunden, lead.website_url)
-        if not echter_name:
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": ("Impressum gelesen, aber kein Firmenname darin"
-                          if not (gefunden or "").strip()
-                          else f"gefundener Name taugt nicht: {gefunden[:60]!r}"),
-            })
-            continue
-
-        geaendert.append({"id": lead.id, "vorher": lead.company_name, "nachher": echter_name})
-        lead.company_name = echter_name
-        # Nach jedem Betrieb schreiben, nicht am Ende. Je Betrieb fallen ein
-        # Startseitenabruf, bis zu zwölf Kandidaten und ein KI-Aufruf an —
-        # zusammen Sekunden. Reißt die Verbindung nach dem zwanzigsten ab,
-        # sollen die ersten neunzehn Namen trotzdem stehen.
-        db.commit()
-
-    return {
-        "geprueft": len(kandidaten),
-        "geaendert": geaendert,
-        "ohne_ergebnis": ohne_ergebnis,
-        "grenze_erreicht": len(kandidaten) == anzahl,
-    }
 
 
 @router.post("/befunde-nachtragen")
@@ -1321,65 +1232,6 @@ def befunde_nachtragen(
     return {"betroffen": len(betroffen), "betriebe": bericht}
 
 
-@router.post("/{lead_id}/extract-impressum")
-async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
-    """Extract contact data from a lead's website impressum using AI."""
-    from services.impressum_scraper import extract_contact_from_impressum
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    if not lead.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    result = await extract_contact_from_impressum(lead.website_url)
-
-    if not result['success']:
-        raise HTTPException(status_code=422, detail=result['error'])
-
-    # Nur leere Felder befüllen — vorhandene Daten NICHT überschreiben
-    data = result['data']
-    updated = {}
-
-    # Der Firmenname nach eigener Regel — der Domainimport hat ihn mit der
-    # Domain vorbelegt, und `not existing` hielte das für einen Wert.
-    echter_name = betriebsname.uebernehmen(
-        lead.company_name, data.get('company_name'), lead.website_url,
-    )
-    if echter_name:
-        lead.company_name = echter_name
-        updated['company_name'] = echter_name
-
-    field_map = {
-        'legal_form': lead.legal_form,
-        'ceo_first_name': lead.ceo_first_name,
-        'ceo_last_name': lead.ceo_last_name,
-        'street': lead.street,
-        'house_number': lead.house_number,
-        'postal_code': lead.postal_code,
-        'city': lead.city,
-        'phone': lead.phone,
-        'email': lead.email,
-        'vat_id': lead.vat_id,
-        'register_number': lead.register_number,
-        'register_court': lead.register_court,
-        'trade': lead.trade,
-    }
-
-    for field, existing in field_map.items():
-        if field in data and not existing:
-            setattr(lead, field, data[field])
-            updated[field] = data[field]
-
-    if updated:
-        db.commit()
-
-    return {
-        'success': True,
-        'extracted': data,
-        'updated_fields': updated,
-        'skipped_fields': [f for f in data if f not in updated],
-    }
 
 
 @router.get("/{lead_id}/qr-code")
@@ -1433,131 +1285,10 @@ def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
     }
 
 
-def _pagespeed_payload_lead(lead: Lead) -> dict:
-    """Return stored PageSpeed values for a lead as a dict."""
-    return {
-        "mobile_score":  lead.pagespeed_mobile_score,
-        "desktop_score": lead.pagespeed_desktop_score,
-        "lcp_mobile":    lead.pagespeed_lcp_mobile,
-        "cls_mobile":    lead.pagespeed_cls_mobile,
-        "inp_mobile":    lead.pagespeed_inp_mobile,
-        "fcp_mobile":    lead.pagespeed_fcp_mobile,
-        "checked_at":    lead.pagespeed_checked_at.isoformat() if lead.pagespeed_checked_at else None,
-    }
 
 
-@router.get("/{lead_id}/pagespeed")
-def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
-    """Return the last stored PageSpeed values for this lead without a new API call."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    return _pagespeed_payload_lead(lead)
 
 
-@router.post("/{lead_id}/pagespeed")
-async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
-    """Call Google PageSpeed Insights (mobile + desktop), persist results on the lead."""
-    from sqlalchemy import text as sa_text
-
-    # Schnelle URL-Abfrage per Raw-SQL (vermeidet ORM-Spalten-Timeout)
-    row = db.execute(sa_text("SELECT website_url FROM leads WHERE id = :lid"), {"lid": lead_id}).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    website_url = row[0]
-    if not website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    # DB-Verbindung VOR dem externen PageSpeed-Call freigeben — der Call kann
-    # bis zu 60s dauern und wuerde sonst eine Pool-Connection blockieren.
-    # Persistiert wird unten ueber eine frische SessionLocal().
-    db.close()
-
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-    params_base = {"url": website_url}
-    if api_key:
-        params_base["key"] = api_key
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            mobile_resp, desktop_resp = await asyncio.gather(
-                client.get(base, params={**params_base, "strategy": "mobile"}),
-                client.get(base, params={**params_base, "strategy": "desktop"}),
-            )
-    except Exception as e:
-        logger.error(f"PageSpeed API request failed for {website_url}: {e}")
-        raise HTTPException(status_code=502, detail=f"PageSpeed API nicht erreichbar: {str(e)[:100]}")
-
-    # Log response status for debugging
-    if mobile_resp.status_code != 200:
-        logger.warning(f"PageSpeed mobile {mobile_resp.status_code} for {website_url}: {mobile_resp.text[:200]}")
-    if desktop_resp.status_code != 200:
-        logger.warning(f"PageSpeed desktop {desktop_resp.status_code} for {website_url}: {desktop_resp.text[:200]}")
-
-    def _score(resp) -> int | None:
-        try:
-            data = resp.json()
-            cat = data.get("lighthouseResult", {}).get("categories", {}).get("performance", {})
-            raw = cat.get("score")
-            return round(raw * 100) if raw is not None else None
-        except Exception:
-            return None
-
-    def _audit(resp, key) -> float | None:
-        try:
-            return resp.json()["lighthouseResult"]["audits"][key]["numericValue"]
-        except Exception:
-            return None
-
-    mobile_score = _score(mobile_resp)
-    desktop_score = _score(desktop_resp)
-    logger.info(f"PageSpeed for {website_url}: mobile={mobile_score}, desktop={desktop_score}")
-
-    if mobile_score is None and desktop_score is None:
-        raise HTTPException(status_code=502, detail="PageSpeed konnte keine Scores ermitteln — Google API hat keine Ergebnisse geliefert")
-
-    # Per Raw-SQL speichern (schnell, kein ORM-Overhead, kein Timeout) —
-    # frische Session, da die urspruengliche vor dem PageSpeed-Call geschlossen wurde.
-    db2 = SessionLocal()
-    try:
-        db2.execute(sa_text("""
-            UPDATE leads SET
-                pagespeed_mobile_score  = :mobile,
-                pagespeed_desktop_score = :desktop,
-                pagespeed_lcp_mobile    = :lcp,
-                pagespeed_cls_mobile    = :cls,
-                pagespeed_inp_mobile    = :inp,
-                pagespeed_fcp_mobile    = :fcp,
-                pagespeed_checked_at    = :checked
-            WHERE id = :lid
-        """), {
-            "mobile": mobile_score,
-            "desktop": desktop_score,
-            "lcp": _audit(mobile_resp, "largest-contentful-paint"),
-            "cls": _audit(mobile_resp, "cumulative-layout-shift"),
-            "inp": _audit(mobile_resp, "interaction-to-next-paint"),
-            "fcp": _audit(mobile_resp, "first-contentful-paint"),
-            "checked": datetime.utcnow(),
-            "lid": lead_id,
-        })
-        db2.commit()
-    except Exception as e:
-        db2.rollback()
-        logger.error(f"PageSpeed save failed for lead {lead_id}: {e}")
-        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
-    finally:
-        db2.close()
-
-    return {
-        "mobile_score": mobile_score,
-        "desktop_score": desktop_score,
-        "lcp_mobile": _audit(mobile_resp, "largest-contentful-paint"),
-        "cls_mobile": _audit(mobile_resp, "cumulative-layout-shift"),
-        "inp_mobile": _audit(mobile_resp, "interaction-to-next-paint"),
-        "fcp_mobile": _audit(mobile_resp, "first-contentful-paint"),
-        "checked_at": datetime.utcnow().isoformat(),
-    }
 
 
 # ── Lead Domains ─────────────────────────────────────────────────────────────
@@ -1596,40 +1327,6 @@ def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_d
     return {"ok": True}
 
 
-@router.post("/{lead_id}/domain-check")
-async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
-    """Manueller Domain-Check für einen Lead."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    if not lead.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-    website_url = lead.website_url
-
-    # DB-Verbindung vor externem Check freigeben
-    db.close()
-
-    from services.domain_checker import check_domain
-    result = await check_domain(website_url)
-
-    # Neue Session zum Speichern
-    db2 = SessionLocal()
-    try:
-        lead = db2.query(Lead).filter(Lead.id == lead_id).first()
-        if not lead:
-            raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-        lead.domain_reachable   = result["reachable"]
-        lead.domain_status_code = result.get("status_code")
-        lead.domain_checked_at  = datetime.utcnow()
-        db2.commit()
-        return {
-            "reachable":    lead.domain_reachable,
-            "status_code":  lead.domain_status_code,
-            "checked_at":   lead.domain_checked_at.isoformat(),
-            "website_url":  lead.website_url,
-        }
-    finally:
-        db2.close()
 
 
 # ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
@@ -1734,7 +1431,6 @@ async def trigger_performance_reports(
     _=Depends(require_any_auth),
 ):
     """Manueller Trigger für den monatlichen Performance-Report (Admin-Test)."""
-    import asyncio
     from automations.scheduler import job_monthly_performance_report
 
     loop = asyncio.get_event_loop()
@@ -1748,263 +1444,6 @@ async def trigger_performance_reports(
 
 # ── Kaltakquise ──────────────────────────────────────────────────────────────
 
-@router.post("/{lead_id}/kaltakquise")
-async def start_kaltakquise(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
-):
-    """
-    Vollautomatischer Kaltakquise-Workflow:
-    1. Neuesten abgeschlossenen Audit laden
-    2. KI-Anschreiben auf Basis der Audit-Schwächen generieren
-    3. Audit-PDF erstellen und als Anhang anhängen
-    4. E-Mail an Lead-Adresse senden
-    5. Lead-Status auf 'kontaktiert' setzen
-    """
-    import re as _re
-    import tempfile
-    import os as _os
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Lead nicht gefunden")
-    if not lead.email:
-        raise HTTPException(400, "Lead hat keine E-Mail-Adresse")
-    if not lead.website_url:
-        raise HTTPException(400, "Lead hat keine Website-URL — Audit nicht möglich")
-
-    # Neuesten abgeschlossenen Audit laden
-    audit = db.execute(
-        text("""
-            SELECT id, total_score, ai_summary, top_issues,
-                   company_name, website_url, city, trade, level,
-                   erkannte_branche, branchenklasse
-            FROM audit_results
-            WHERE lead_id = :lid AND status = 'completed'
-            ORDER BY created_at DESC
-            LIMIT 1
-        """),
-        {"lid": lead_id},
-    ).fetchone()
-
-    if not audit:
-        return {
-            "success": False,
-            "status":  "no_audit",
-            "message": (
-                "Kein abgeschlossener Audit vorhanden. "
-                "Bitte zuerst einen Audit starten und warten bis er fertig ist."
-            ),
-        }
-
-    audit_id    = audit[0]
-    total_score = audit[1] or 0
-    company     = audit[4] or lead.company_name or "Ihr Unternehmen"
-    city        = audit[6] or lead.city or ""
-    # Was in diesem Brief als Branche steht, liest der Empfänger als unsere
-    # Einschätzung seiner Firma. `trade` ist bei den meisten Leads geraten
-    # (Stichwortsuche über den Seitentext), und `or lead.trade` holte die
-    # Vermutung selbst dann noch, wenn der Audit sie bewusst leer gelassen
-    # hatte. Ein Ingenieurbüro wurde so als „Schreiner" angeschrieben — mit
-    # dem Auditprotokoll im Anhang, das korrekt „Ingenieurbüro" sagte.
-    # Hier gilt dieselbe Rangfolge wie im Protokoll: Befund vor Vermutung,
-    # und wo nichts erhoben ist, das neutrale Wort.
-    branche     = branche_fuer_protokoll({
-        "erkannte_branche": audit[9],
-        "branchenklasse":   audit[10],
-        "trade":            "",
-    })
-    trade       = "Handwerksbetrieb" if branche == "k.A." else branche
-
-    top_issues = []
-    try:
-        raw = audit[3]
-        if raw:
-            parsed = json.loads(raw) if isinstance(raw, str) else raw
-            top_issues = parsed[:3] if isinstance(parsed, list) else []
-    except Exception:
-        pass
-
-    # DB vor KI-Call freigeben
-    db.close()
-
-    # ── KI-Anschreiben generieren ─────────────────────────────────────────
-    api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
-
-    level_label = (
-        "kritisch" if total_score < 40
-        else "verbesserungswürdig" if total_score < 70
-        else "gut"
-    )
-    issues_text = (
-        "\n".join(f"- {issue}" for issue in top_issues)
-        if top_issues
-        else f"- Gesamt-Score nur {total_score}/100 Punkte"
-    )
-
-    prompt = f"""Du schreibst ein professionelles, kurzes Akquise-Anschreiben für einen Webdesign-Dienstleister.
-
-EMPFÄNGER:
-- Firma: {company}
-- Branche: {trade}
-- Stadt: {city}
-- Website-Score: {total_score}/100 (Bewertung: {level_label})
-
-TOP-PROBLEME DER WEBSITE:
-{issues_text}
-
-ABSENDER: KOMPAGNON Communications — Website-Agentur für Handwerksbetriebe
-
-REGELN FÜR DAS ANSCHREIBEN:
-- Ton: professionell, direkt, kein Werbe-Jargon
-- Länge: maximal 120 Wörter im Haupttext
-- Keine Floskeln wie "Sehr geehrte Damen und Herren" — direkt ansprechen
-- Konkret auf die gefundenen Probleme eingehen (nicht generisch)
-- Einen klaren nächsten Schritt nennen (kostenloses Erstgespräch)
-- Kein HTML — nur plain text für den Briefkopf
-
-Antworte NUR mit einem JSON-Objekt:
-{{
-  "betreff": "<E-Mail-Betreffzeile, max 70 Zeichen>",
-  "anrede": "<z.B. Guten Tag, Team {company},>",
-  "haupttext": "<Der eigentliche Anschreiben-Text, max 120 Wörter>",
-  "cta": "<Abschluss mit Handlungsaufforderung, 1-2 Sätze>"
-}}"""
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
-                    "max_tokens": 800,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-            )
-        resp.raise_for_status()
-        raw_text = resp.json()["content"][0]["text"].strip()
-        raw_text = _re.sub(r"^```json\s*", "", raw_text)
-        raw_text = _re.sub(r"\s*```$", "", raw_text)
-        letter = json.loads(raw_text)
-    except Exception as e:
-        raise HTTPException(500, f"KI-Anschreiben fehlgeschlagen: {str(e)[:200]}")
-
-    betreff   = letter.get("betreff", f"Ihre Website — wir haben sie analysiert")
-    anrede    = letter.get("anrede",  f"Guten Tag, Team {company},")
-    haupttext = letter.get("haupttext", "")
-    cta       = letter.get("cta", "Wir freuen uns auf Ihre Rückmeldung.")
-
-    # ── Audit-PDF erstellen ───────────────────────────────────────────────
-    pdf_path = None
-    db2 = SessionLocal()
-    try:
-        audit_obj = db2.execute(
-            text("SELECT * FROM audit_results WHERE id = :id"),
-            {"id": audit_id},
-        ).fetchone()
-        if audit_obj:
-            from services.pdf_generator import generate_audit_report
-            audit_dict = dict(audit_obj._mapping)
-            pdf_bytes = generate_audit_report(audit_dict)
-            tmp = tempfile.NamedTemporaryFile(
-                suffix=".pdf", delete=False, prefix=f"audit_{lead_id}_"
-            )
-            tmp.write(pdf_bytes)
-            tmp.close()
-            pdf_path = tmp.name
-    except Exception as pdf_err:
-        logger.warning(f"Kaltakquise: Audit-PDF konnte nicht erstellt werden: {pdf_err}")
-    finally:
-        db2.close()
-
-    # ── HTML-E-Mail aufbauen ──────────────────────────────────────────────
-    html_body = f"""
-<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a2332;">
-  <div style="background:#008EAA;padding:20px 24px;border-radius:8px 8px 0 0;">
-    <div style="color:#fff;font-size:18px;font-weight:700;">KOMPAGNON</div>
-    <div style="color:rgba(255,255,255,.7);font-size:12px;">Website-Optimierung für Handwerksbetriebe</div>
-  </div>
-  <div style="padding:28px 24px;background:#fff;border:1px solid #e2e8f0;border-top:none;">
-    <p style="margin:0 0 16px;font-size:15px;font-weight:500;">{anrede}</p>
-    <div style="font-size:14px;line-height:1.7;color:#374151;white-space:pre-line;">{haupttext}</div>
-    <div style="background:#FEF3C7;border-left:4px solid #D97706;
-                padding:14px 16px;margin:20px 0;border-radius:0 6px 6px 0;">
-      <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">
-        Ihre Website {lead.website_url} — Analyse-Ergebnis
-      </div>
-      <div style="font-size:22px;font-weight:800;color:#92400E;">{total_score}/100 Punkte</div>
-      <div style="font-size:12px;color:#92400E;margin-top:4px;">
-        Den vollständigen Bericht finden Sie im Anhang.
-      </div>
-    </div>
-    <p style="font-size:14px;line-height:1.7;color:#374151;">{cta}</p>
-    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;
-                font-size:12px;color:#6B7280;">
-      <strong>KOMPAGNON Communications</strong><br>
-      Website-Optimierung · Handwerksbetriebe
-    </div>
-  </div>
-</div>"""
-
-    # ── E-Mail senden ─────────────────────────────────────────────────────
-    from services.email import send_email as _send_kalt_email
-    ok = _send_kalt_email(
-        to_email=lead.email,
-        subject=betreff,
-        html_body=html_body,
-        attachment_path=pdf_path,
-        attachment_name=f"Website-Analyse-{company.replace(' ', '-')}.pdf",
-    )
-
-    if pdf_path and _os.path.exists(pdf_path):
-        try:
-            _os.unlink(pdf_path)
-        except Exception:
-            pass
-
-    if not ok:
-        raise HTTPException(500, "E-Mail-Versand fehlgeschlagen — SMTP-Konfiguration prüfen")
-
-    # ── Lead-Status aktualisieren ─────────────────────────────────────────
-    db3 = SessionLocal()
-    try:
-        db3.execute(
-            text("""
-                UPDATE leads SET
-                    status = 'kontaktiert',
-                    kaltakquise_gesendet_at = NOW(),
-                    kaltakquise_count = COALESCE(kaltakquise_count, 0) + 1
-                WHERE id = :lid
-            """),
-            {"lid": lead_id},
-        )
-        db3.commit()
-    except Exception as upd_err:
-        logger.warning(f"Kaltakquise Lead-Status Update fehlgeschlagen: {upd_err}")
-        try:
-            db3.rollback()
-        except Exception:
-            pass
-    finally:
-        db3.close()
-
-    logger.info(f"✓ Kaltakquise gesendet: Lead {lead_id} → {lead.email} (Score: {total_score})")
-
-    return {
-        "success":       True,
-        "email_sent_to": lead.email,
-        "audit_score":   total_score,
-        "betreff":       betreff,
-        "with_pdf":      pdf_path is not None,
-    }
 
 
 # ── Kein `/api/customers`-Alias mehr (21.08.2026) ────────────────────────────

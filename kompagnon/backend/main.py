@@ -563,6 +563,12 @@ app.include_router(leads_public_router)
 # sie nichts ausser dem Router und dem Auftragszustand.
 from routers import leads_import
 app.include_router(leads_import.router)
+
+# Ebenso getrennt (L-25): die Kaltakquise (eine Route, 257 Zeilen) und das
+# Nachtragen fehlender Felder an vorhandenen Betrieben.
+from routers import leads_anreicherung, leads_kaltakquise
+app.include_router(leads_kaltakquise.router)
+app.include_router(leads_anreicherung.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)

@@ -1,23 +1,30 @@
 # ORDERS — PROMPT 08
 ## Anrechnung G5 — die Verbindung zwischen Shop und Projekt
 
-> ## ⚠️ Zwei Angaben in diesem Prompt sind tot (geprüft 23.08.2026)
+
+> ## ⚠️ Vor dem Ausführen: zwei Angaben sind tot (geprüft 23.08.2026)
 >
-> Der Prompt lässt sich so **nicht** ausführen. Beides gilt für alle acht
-> Orders-Prompts, nicht nur für diesen:
+> Gilt für **alle** Orders-Prompts, nicht nur für diesen:
 >
-> 1. **Der genannte Branch `claude/kompagnon-automation-system-FapM9`
->    existiert nicht** — null Treffer, weder lokal noch auf `origin`. Die
->    `claude/*`-Branches wurden am 01.05.2026 verworfen. Gearbeitet wird auf
->    **`staging`**, gemerged wird per PR nach `main` (siehe `CLAUDE.md`).
-> 2. **Die genannte Backend-URL `claude-code-znq2.onrender.com` antwortet
->    nicht mehr** (503). Der Produktivdienst läuft seit dem 23.08. in
->    Frankfurt und ist unter **`api.kompagnon.group`** erreichbar.
+> 1. **Der Branch `claude/kompagnon-automation-system-FapM9` existiert nicht** —
+>    null Treffer, lokal wie auf `origin`. Die `claude/*`-Branches wurden am
+>    01.05.2026 verworfen. Gearbeitet wird auf **`staging`**, gemerged wird per
+>    Pull Request nach `main` (siehe `CLAUDE.md`). Der Pflicht-Check am Anfang
+>    jedes Prompts schlägt sonst fehl und die Session stoppt sofort — was
+>    korrekt ist, nur aus dem falschen Grund.
+> 2. **`claude-code-znq2.onrender.com` antwortet nicht mehr** (503). Der
+>    Produktivdienst läuft seit dem 23.08.2026 in Frankfurt unter
+>    **`api.kompagnon.group`**.
 >
-> **Fachlich vorausgesetzt, aber nicht vorhanden:** Dieser Prompt verbindet
-> Bestellungen mit Projekten. Eine Tabelle `orders` gibt es nicht — weder als
-> Modell noch in der Datenbank. Der Bestellweg selbst ist als **[L-100]** im
-> Lagebild geführt und muss vor diesem Schritt entstehen.
+> Der in der Übersicht notierte Widerspruch („Branch-Regel sagt `claude/…`,
+> Commit-Regel sagt `main`") löst sich damit von selbst: **Beides ist falsch.**
+> Richtig ist `staging`, und auf `main` wird nie direkt gepusht — die
+> Branch-Protection lässt es ohnehin nicht zu.
+>
+> **Stand des Vorhabens:** Das Subsystem ist im Lagebild als **[L-100]**
+> geführt. Eine Tabelle `orders` existiert nicht, weder als Modell noch in der
+> Datenbank — der Weg ist also frei, es ist ein Anbau, kein Umbau. Stripe ist
+> bereits angebunden (`stripe==15.4.0`, sieben Leser, zwei Webhooks).
 
 ---
 

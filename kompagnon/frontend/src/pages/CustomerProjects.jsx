@@ -136,17 +136,23 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
   );
 }
 
-const EMPTY_FORM = { paket: 'kompagnon', company_name: '', website_url: '', contact_name: '', email: '', phone: '' };
+const EMPTY_FORM = { paket: 'websprint_neubau', company_name: '', website_url: '', contact_name: '', email: '', phone: '' };
 
 // ── Online Fertig Modal ───────────────────────────────────────────────────────
+// Auswahl beim Anlegen eines Projekts. Hier standen bis zum 23.08.2026 die
+// Bestandspakete; sie sind seit dem Websprint-Wechsel archiviert (L-97). Ein
+// **neues** Projekt darf keines davon bekommen — deshalb die aktuellen
+// Produkte, und unten zusaetzlich der Filter auf `verkaeuflich`: Was der
+// Server nicht als `live` fuehrt, ist auch nicht anzulegen.
 const PAKET_DARSTELLUNG = [
-  { id: 'starter', name: 'Starter' },
-  { id: 'kompagnon', name: 'Kompagnon' },
-  { id: 'premium', name: 'Premium' },
+  { id: 'websprint_relaunch', name: 'Websprint Relaunch' },
+  { id: 'websprint_neubau', name: 'Websprint Neubau' },
+  { id: 'websprint_system', name: 'Websprint System' },
 ];
 
 function OnlineFertigModal({ token, onClose, onCreated }) {
-  const { pakete: PAKETE } = usePakete(PAKET_DARSTELLUNG);
+  const { pakete: alleP } = usePakete(PAKET_DARSTELLUNG);
+  const PAKETE = alleP.filter((p) => p.verkaeuflich);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const { isMobile } = useScreenSize();

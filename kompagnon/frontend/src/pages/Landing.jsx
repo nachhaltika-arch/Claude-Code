@@ -55,7 +55,7 @@ export default function Landing() {
 
   // Die Seite nannte Kompagnon an drei Stellen mit 3.500 €, waehrend die
   // Kasse 2.000 abbuchte (L-29). Jetzt aus derselben Zeile wie Stripe.
-  const { pakete } = usePakete([{ id: 'starter' }, { id: 'kompagnon' }]);
+  const { pakete } = usePakete([{ id: 'websprint_relaunch' }, { id: 'websprint_neubau' }]);
   const [starter, kompagnon] = pakete;
   const preisOder = (paket) => (paket && paket.preisBekannt ? `${paket.preisLabel} €` : PREIS_UNBEKANNT);
 
@@ -207,7 +207,7 @@ export default function Landing() {
 
             {/* CTAs */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button onClick={() => go('kompagnon')} style={{
+              <button onClick={() => go('websprint_neubau')} style={{
                 background: C.accent, color: '#fff', border: 'none',
                 borderRadius: 8, padding: '14px 28px', fontSize: 15,
                 fontWeight: 700, cursor: 'pointer', transition: 'filter .15s',

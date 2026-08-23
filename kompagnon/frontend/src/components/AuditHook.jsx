@@ -6,7 +6,9 @@ import usePakete from '../hooks/usePakete';
 import useAnalysenZahl, { analysenSatz } from '../hooks/useAnalysenZahl';
 import { herkunftDieserSeite } from '../utils/anzeigenherkunft';
 
-const PAKET_DARSTELLUNG = [{ id: 'kompagnon' }];
+// Der Teaser nennt den Preis des empfohlenen Pakets. Bis 23.08.2026 war
+// das `kompagnon`; seit dem Websprint-Wechsel ist es der Neubau (L-97).
+const PAKET_DARSTELLUNG = [{ id: 'websprint_neubau' }];
 
 const TEAL    = 'var(--kc-mid)';
 const DARK1   = '#04293a';

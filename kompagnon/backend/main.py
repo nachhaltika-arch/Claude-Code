@@ -573,6 +573,14 @@ app.include_router(leads_import.router)
 from routers import leads_anreicherung, leads_kaltakquise
 app.include_router(leads_kaltakquise.router)
 app.include_router(leads_anreicherung.router)
+
+# Weiter geteilt am 23.08.2026 (L-25), `leads.py` von 1.186 auf 790 Zeilen:
+# das Blatt eines Betriebs (Profil mit 139 Zeilen, Auditverlauf, QR-Code) und
+# was nach dem Erstkontakt kommt (Mailstrecke, Leistungsbericht). Beide tragen
+# dieselbe Innendienst-Sperre am Router.
+from routers import leads_nachfassen, leads_profil
+app.include_router(leads_profil.router)
+app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)

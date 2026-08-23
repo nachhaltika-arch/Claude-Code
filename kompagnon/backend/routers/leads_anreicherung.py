@@ -338,3 +338,124 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
         }
     finally:
         db2.close()
+
+
+# ── Dazugekommen am 23.08.2026 (L-25) ────────────────────────────────────
+#
+# Diese vier Routen standen in `leads.py` unter der Ueberschrift
+# „IMPORT ENDPOINTS" — und keine davon importiert etwas. Die Ueberschrift war
+# stehengeblieben, als die echten Import-Routen am 22.08. nach
+# `leads_import.py` gingen; darunter sammelte sich, was thematisch hierher
+# gehoert: Daten zu einem bekannten Betrieb nachtragen.
+#
+# Ein Wegweiser, der in die falsche Richtung zeigt, ist schlimmer als keiner.
+
+
+# ===== IMPORT ENDPOINTS =====
+
+
+
+
+
+
+
+@router.post("/{lead_id}/enrich")
+async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Manually trigger enrichment for a single lead."""
+    from services.lead_enrichment import enrich_lead
+    result = await enrich_lead(lead_id, db)
+    return result
+
+
+@router.get("/{lead_id}/latest-screenshot")
+def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Get the latest audit screenshot for a lead, saving it to the lead if found."""
+    latest = (
+        db.query(AuditResult)
+        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed", AuditResult.screenshot_base64 != "", AuditResult.screenshot_base64 != None)
+        .order_by(AuditResult.created_at.desc())
+        .first()
+    )
+    if not latest or not latest.screenshot_base64:
+        return {"screenshot_url": None}
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if lead and not lead.website_screenshot:
+        lead.website_screenshot = latest.screenshot_base64
+        db.commit()
+    return {
+        "screenshot_url": f"data:image/jpeg;base64,{latest.screenshot_base64}",
+        "audit_date": latest.created_at.strftime("%d.%m.%Y") if latest.created_at else "",
+        "audit_score": latest.total_score,
+    }
+
+
+@router.post("/{lead_id}/screenshot")
+async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Capture website screenshot and return it immediately."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
+
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    try:
+        from services.screenshot import capture_screenshot
+        screenshot_b64 = await capture_screenshot(url)
+        if screenshot_b64:
+            lead.website_screenshot = screenshot_b64
+            db.commit()
+            return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}"}
+        else:
+            raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Screenshot Fehler: {str(e)}")
+
+
+@router.post("/befunde-nachtragen")
+def befunde_nachtragen(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt SSL, Impressum und PageSpeed aus der alten Notizzeile in die Spalten.
+
+    Seit dem 17.08.2026 stehen diese Befunde in eigenen Spalten. Für den
+    Bestand hieß das: Spalten leer, Oberfläche sagt „nicht geprüft" — und
+    darunter behauptet die alte Notiz „SSL: OK". Beides stimmt für sich,
+    zusammen widersprechen sie sich auf einem Bildschirm.
+
+    Übernommen wird nur, was noch leer ist: Was die neue Anreicherung
+    geschrieben hat, ist jünger als die Notiz. Ein Zeitpunkt wird nicht
+    erfunden — die Zeile trug keinen.
+    """
+    from services import anreicherungsnotiz
+
+    betroffen = db.query(Lead).filter(
+        Lead.notes.ilike(f"%{anreicherungsnotiz.MARKE}%")).all()
+
+    bericht = []
+    for lead in betroffen:
+        befunde = anreicherungsnotiz.befunde_aus_notiz(lead.notes)
+        uebernommen = []
+        for feld, wert in befunde.items():
+            if getattr(lead, feld, None) is None:
+                setattr(lead, feld, wert)
+                uebernommen.append(feld)
+
+        lead.notes = anreicherungsnotiz.notiz_ohne_maschinenzeilen(lead.notes)
+        bericht.append({
+            "id": lead.id,
+            "betrieb": lead.company_name,
+            "uebernommen": uebernommen,
+            "notiz_bleibt": bool(lead.notes),
+        })
+
+    if bericht:
+        db.commit()
+
+    return {"betroffen": len(betroffen), "betriebe": bericht}

@@ -544,6 +544,43 @@ Sperre über Prozessgrenzen. Geschlossen über `SCHEDULER_ENABLED` — der liegt
 aber auf `staging`, und Frankfurt baut aus `main`. **Bis zum nächsten Merge
 bleibt der Zustand bestehen.**
 
+### Stand nach dem Merge von PR #45 (23.08., 10:45)
+
+Oregon ist auf `77c8fbb` live, Frankfurt ebenfalls. Zwei Dinge sind damit
+belegt, die vorher nur gegen einen Speicher-Jobstore geprüft waren:
+
+- **Der verwaiste Job ist weg.** `apscheduler_jobs` trug 15 Zeilen mit *zwei*
+  DNS-Prüfungen (10 und 15 Minuten). Nach dem Start mit dem Aufräumcode:
+  **14 Zeilen, eine** DNS-Prüfung. Der Abgleich wirkt am echten Jobstore.
+- **Der Schalter wirkt.** Frankfurt meldet `scheduler_enabled: false`,
+  `scheduler_running: false` — und dabei `startup_complete: true` mit leerem
+  `startup_missing`. Ein abgeschalteter Scheduler wird also **nicht** als
+  ausgefallene Startphase gewertet. Oregon fährt die Jobs weiter.
+
+| | Frankfurt | Oregon |
+|---|---|---|
+| `/health` | ok, 0,18 s | ok, ~2,9 s |
+| Routen | **391, deckungsgleich** | 391 |
+| Scheduler | aus (gewollt) | an |
+
+`scripts/umzug-bereitschaft.sh`: **Alle Prüfungen halten.**
+
+### Der Schritt, der beim Umhängen leicht vergessen wird
+
+Das Bereitschaftsskript wertete `scheduler_running: False` zunächst als
+Fehler und verweigerte die Freigabe — für einen Zustand, den wir absichtlich
+hergestellt haben. Das eigene Werkzeug hätte den Umzug blockiert.
+
+Dahinter steckt aber ein echter Ablaufpunkt, der im Plan fehlte:
+
+> **Beim Umhängen der Domain muss `SCHEDULER_ENABLED` bei Frankfurt entfernt
+> und bei Oregon auf `false` gesetzt werden.**
+
+Sonst fährt produktiv **kein** Scheduler. Das fällt nicht auf: `/health`
+antwortet makellos, alle Routen stimmen, und die Lücke zeigt sich erst, wenn
+wochenlang keine Nachfassmail mehr ankommt. Das Skript weist jetzt darauf hin,
+statt zu blockieren.
+
 ### Noch offen — nur noch drei Handgriffe
 
 1. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
@@ -553,8 +590,10 @@ bleibt der Zustand bestehen.**
    deployt die CI weiter nach Oregon und meldet trotzdem grün. **Eng vor
    Schritt 3 legen:** Dazwischen erreicht ein Merge nach `main` den
    produktiven Dienst nicht mehr
-3. **Domain umhängen** — der erste unumkehrbare Schritt, im Dashboard. Danach:
-   Oregon suspendieren (nicht löschen), dann L-44
+3. **Domain umhängen** — der erste unumkehrbare Schritt, im Dashboard. In
+   derselben Minute: `SCHEDULER_ENABLED` bei Frankfurt **entfernen** und bei
+   Oregon auf `false` setzen. Danach Oregon suspendieren (nicht löschen),
+   dann L-44
 
 ---
 

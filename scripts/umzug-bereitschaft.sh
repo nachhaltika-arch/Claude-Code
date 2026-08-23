@@ -105,7 +105,26 @@ except Exception: print('—')
 [ "$(lies status)" = "ok" ]              && melde_ok "status: ok"                   || melde_fehler "status: $(lies status), erwartet ok"
 [ "$(lies database)" = "connected" ]     && melde_ok "database: connected"           || melde_fehler "database: $(lies database), erwartet connected"
 [ "$(lies startup_complete)" = "True" ]  && melde_ok "startup_complete"              || melde_fehler "startup_complete: $(lies startup_complete)"
-[ "$(lies scheduler_running)" = "True" ] && melde_ok "scheduler_running"             || melde_fehler "scheduler_running: $(lies scheduler_running)"
+# **Abgeschaltet ist nicht ausgefallen — aber es ist auch nicht umzugsbereit.**
+# Waehrend beide Dienste nebeneinander laufen, faehrt der ohne Verkehr
+# `SCHEDULER_ENABLED=false`, damit nicht zwei Scheduler auf derselben
+# Jobtabelle arbeiten (L-91). Wuerde diese Pruefung das als Fehler werten,
+# blockierte das eigene Werkzeug den Umzug.
+#
+# **Der Punkt, der beim Umhaengen leicht vergessen wird und teuer ist:** Nimmt
+# Frankfurt die Domain, muss der Schalter dort **weg** und bei Oregon **auf
+# false**. Sonst laeuft produktiv **kein** Scheduler — und das faellt erst auf,
+# wenn wochenlang keine Nachfassmail mehr ankommt. `/health` sieht dabei
+# makellos aus.
+if [ "$(lies scheduler_running)" = "True" ]; then
+  melde_ok "scheduler_running"
+elif [ "$(lies scheduler_enabled)" = "False" ]; then
+  printf '  \033[33m!\033[0m scheduler_running: False — **absichtlich** (SCHEDULER_ENABLED=false).\n'
+  printf '      Vor dem Umhaengen der Domain hier entfernen und beim alten Dienst setzen,\n'
+  printf '      sonst faehrt produktiv niemand die Hintergrundjobs.\n'
+else
+  melde_fehler "scheduler_running: $(lies scheduler_running)"
+fi
 
 fehlend="$(lies startup_missing)"
 [ "$fehlend" = "[]" ] && melde_ok "startup_missing leer" \

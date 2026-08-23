@@ -16,6 +16,12 @@ from . import projects_sichtbarkeit  # noqa: F401
 # diesen Import fehlten drei Routen, und die Endpunktzaehlung fiel von
 # 391 auf 388. Genau dafuer wird nach jedem Schnitt gezaehlt.
 from . import projects_werkstatt  # noqa: F401
+# Weiter geteilt am 23.08.2026 (L-25), `projects_content.py` von 1.017 auf 456
+# Zeilen: die drei KI-Entwuerfe (312 Zeilen, der teuerste Teil der Kette) und
+# der QA-Scanner samt Checkliste. Beide haengen am selben Router — derselbe
+# Grund wie oben, dieselbe Falle: ohne diesen Import fehlen sie lautlos.
+from . import projects_versionen  # noqa: F401
+from . import projects_qa  # noqa: F401
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router

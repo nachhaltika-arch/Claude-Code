@@ -581,11 +581,58 @@ antwortet makellos, alle Routen stimmen, und die Lücke zeigt sich erst, wenn
 wochenlang keine Nachfassmail mehr ankommt. Das Skript weist jetzt darauf hin,
 statt zu blockieren.
 
+## Vollzogen am 23.08.2026, 10:56 UTC
+
+Die Domain `api.kompagnon.group` zeigt auf `kompagnon-backend-fra`.
+
+| Probe | Ergebnis |
+|---|---|
+| `/health` über die Domain | **0,155 s** (vorher 2,5–2,9 s) |
+| Routen | **391, deckungsgleich** mit der Referenz |
+| `/api/dashboard/kpis`, `/api/webhooks/log`, `/api/leads/` | je **401** |
+| `/api/widget/config` | 200 |
+| CORS-Preflight vom Frontend | 200 |
+| Frontend-Bundle | trägt `api.kompagnon.group`, **null** Treffer für `claude-code-znq2` |
+| `RENDER_SERVICE_BACKEND_PROD` | `srv-da30dg3bc2fs73fomi0g` |
+| Scheduler | genau **einer**, auf Frankfurt |
+| Jobs im Store | 14, eine DNS-Prüfung |
+
+### Der Schritt, der beinahe vergessen wurde
+
+Nach dem Umhängen stand der Scheduler **falsch herum**: Frankfurt trug die
+Domain mit `SCHEDULER_ENABLED=false`, während Oregon ohne Verkehr die Jobs
+fuhr. Akut folgenlos — beide arbeiten auf derselben Datenbank, die Jobs liefen
+also. Mit dem Suspendieren von Oregon wären sie **alle** stehen geblieben, und
+`/health` hätte weiter „ok" gemeldet.
+
+Umgedreht in dieser Reihenfolge: **erst Oregon aus, dann Frankfurt an.** Ein
+kurzes Fenster *ohne* Scheduler ist harmloser als eines mit *zweien* — das
+Doppelrisiko aus L-91 ist genau das, was hier nicht zurückkommen darf.
+
+### Was der Umzug gekostet hat: 40 Sekunden Ausfall (L-94)
+
+Während des Umschaltens antwortete die Produktivdomain sechsmal hintereinander
+im Achtsekundentakt: `200 502 502 502 502 502`, dann wieder 200.
+
+**Das ist keine Eigenheit dieses Umzugs, sondern die jedes Deploys.**
+`instance_count` steht über alle drei Deploys des Tages konstant auf **1** —
+bei einem rollierenden Deploy müsste kurz eine zweite Instanz danebenstehen.
+Der Grund ist der Datenträger: Render begrenzt Dienste mit `disk` auf eine
+Instanz. Alte beenden, neue starten.
+
+Seit dem 18.08. ist damit **jeder** Deploy ein Ausfall — auch der gewöhnliche
+nach einem Merge nach `main`. Aufgefallen ist es nie, weil produktiv rund sechs
+Anfragen pro Stunde ankommen. Siehe L-94.
+
 ### Noch offen — nur noch drei Handgriffe
 
-1. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
-   `https://api.kompagnon.group/...` — jederzeit möglich, die Domain zeigt
-   noch auf Oregon
+1. **Oregon suspendieren** (nicht löschen — der Rückweg). L-57 ist erledigt,
+   ein Neubau von Grund auf gelingt wieder
+2. **L-44**: Inbound-Regel der Produktiv-DB von `0.0.0.0/0` auf leer. Jetzt
+   möglich: Frankfurt erreicht die Datenbank über die **interne** Adresse
+3. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
+   `https://api.kompagnon.group/...` — eilt nicht, dort kommt nichts an
+   (`webhook_log`, `mail_events`, `email_logs` alle leer). Ausnahme Stripe
 2. **`RENDER_SERVICE_BACKEND_PROD`** auf `srv-da30dg3bc2fs73fomi0g` — sonst
    deployt die CI weiter nach Oregon und meldet trotzdem grün. **Eng vor
    Schritt 3 legen:** Dazwischen erreicht ein Merge nach `main` den

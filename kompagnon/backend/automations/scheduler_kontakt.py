@@ -147,13 +147,34 @@ def job_check_overdue_phases():
 
                 logger.warning(f"⚠️  Project {project.id} stuck in {project.status} for {days_in_phase} days")
 
-                # Nach 3 Tagen: internes Ticket erstellen (nur einmal pro Projekt+Phase+Tag)
+                # Nach 3 Tagen: **ein** internes Ticket je Projekt und Phase.
+                #
+                # **Bis zum 23.08.2026 stand im Schluessel das Datum**
+                # (`stuck-{id}-{phase}-{JJJJMMTT}`). Damit war jeder Tag ein
+                # neuer Schluessel und jeder Tag ein neues Ticket. Produktiv
+                # ergab das seit dem 10.04.2026 rund **19 Zeilen taeglich** —
+                # **2.335** von **2.343** Eintraegen in `support_tickets`, alle
+                # `open`. Die **acht** Rueckmeldungen von Menschen lagen darin
+                # begraben.
+                #
+                # Es ist derselbe Fehler wie in `job_check_missing_materials`
+                # zwanzig Zeilen weiter unten, dort am 17.08. behoben: Ein Job,
+                # der taeglich laeuft, braucht eine Sperre, die **nicht** am Tag
+                # haengt. Dort fiel es auf, weil Mails beim Empfaenger ankommen.
+                # Hier nicht, weil Tickets nur in einer Liste stehen.
                 if days_in_phase >= 3:
-                    ticket_key = f"stuck-{project.id}-{project.status}-{datetime.utcnow().strftime('%Y%m%d')}"
-                    existing = db.execute(text(
-                        "SELECT id FROM support_tickets WHERE ticket_number = :key LIMIT 1"
+                    ticket_key = f"stuck-{project.id}-{project.status}"
+                    beschreibung = (
+                        f"Projekt {project.id} ({project.company_name or '—'}) "
+                        f"ist seit {days_in_phase} Tagen in Phase "
+                        f"{project.status}. Bitte prüfen."
+                    )
+                    vorhanden = db.execute(text(
+                        "SELECT id, status FROM support_tickets "
+                        "WHERE ticket_number = :key LIMIT 1"
                     ), {"key": ticket_key}).fetchone()
-                    if not existing:
+
+                    if vorhanden is None:
                         db.execute(text("""
                             INSERT INTO support_tickets
                                 (ticket_number, type, priority, status, title, description, user_email, user_name)
@@ -162,10 +183,20 @@ def job_check_overdue_phases():
                         """), {
                             "nr":    ticket_key,
                             "title": f"Projekt {project.id} feststeckend in {project.status}",
-                            "desc":  f"Projekt {project.id} ({project.company_name or '—'}) ist seit {days_in_phase} Tagen in Phase {project.status}. Bitte prüfen.",
+                            "desc":  beschreibung,
                         })
                         db.commit()
                         logger.info(f"✓ Stuck-Phase Ticket erstellt für Projekt {project.id}")
+                    elif vorhanden[1] == "open":
+                        # Fortschreiben statt danebenlegen: Ein Ticket, das
+                        # „seit 3 Tagen" sagt, waehrend es 40 sind, ist wertlos.
+                        db.execute(text(
+                            "UPDATE support_tickets "
+                            "SET description = :desc, updated_at = now() "
+                            "WHERE id = :id"
+                        ), {"desc": beschreibung, "id": vorhanden[0]})
+                        db.commit()
+                    # Geschlossen heisst entschieden — dann kommt kein neues.
             except Exception as e:
                 logger.error(f"Stuck-Phase Check Fehler für Projekt {getattr(project, 'id', '?')}: {e}")
                 try:

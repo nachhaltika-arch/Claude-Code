@@ -626,8 +626,10 @@ Anfragen pro Stunde ankommen. Siehe L-94.
 
 ### Noch offen — nur noch drei Handgriffe
 
-1. **Oregon suspendieren** (nicht löschen — der Rückweg). L-57 ist erledigt,
-   ein Neubau von Grund auf gelingt wieder
+1. ~~**Oregon suspendieren**~~ — **erledigt am 23.08., 11:07 UTC.** `suspended`,
+   durch den Nutzer, nicht gelöscht. Danach geprüft: Produktivdomain 200 in
+   0,20 s, Scheduler läuft, Widget und Paketliste je 200, 391 Routen; die alte
+   Adresse antwortet **503**. Zwei Standard-Dienste parallel sind damit vorbei
 2. **L-44**: Inbound-Regel der Produktiv-DB von `0.0.0.0/0` auf leer. Jetzt
    möglich: Frankfurt erreicht die Datenbank über die **interne** Adresse
 3. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf

@@ -473,6 +473,91 @@ Suspendieren (Schritt 6).
 
 ---
 
+## Stand am 23.08. — Frankfurt ist bereit, und drei Annahmen sind belegt
+
+Der Render-Zugang antwortet wieder (Ursache stand in L-57: ein projektweiter
+Eintrag mit abgelaufenem Schlüssel stach den gültigen). Damit ließ sich zum
+ersten Mal messen statt erschließen.
+
+**Schritt 0 endgültig beantwortet.** Die API sagt, was am 21.08. nur aus dem
+ausgelieferten Bau geschlossen war: `kompagnon-backend-fra` hängt an
+`branch: main`. Die Messung von damals stimmte.
+
+**Der Dienst trägt jetzt den aktuellen `main`** (`a95a1d8`, PR #44 — er hing
+102 Commits zurück). Gebaut **mit leerem Cache**, und das ist zugleich die
+Gegenprobe zu L-57: `build_in_progress → live` in **73 Sekunden**. Ein
+Cache-Verlust ist hier kein Ausfallrisiko.
+
+| Prüfung | Frankfurt |
+|---|---|
+| `/health` | ok, `database: connected`, `startup_complete`, `startup_missing: []` |
+| `uploads` | **`dauerhaft: true`** — der Datenträger ist wirklich eingehängt |
+| `/health`-Dauer | **0,11 s** gegen Oregons **2,9 s** |
+| `/api/dashboard/kpis`, `/api/webhooks/log`, `/api/leads/` | je **401** — die Sicherheitsfixes sind an Bord |
+| Routen | **386, deckungsgleich** mit der Produktivadresse |
+
+`scripts/umzug-bereitschaft.sh` meldet: **Alle Prüfungen halten.**
+
+### Die Referenz des Bereitschaftsskripts war falsch gewählt
+
+Der erste Lauf an diesem Tag meldete **fünf fehlende Routen** und verweigerte
+die Freigabe. Die fünf fehlten nicht: `/api/audit/analysen/anzahl`,
+`/api/geo/{id}/ki-sichtbarkeit/verlauf`, `/api/kas/domain`,
+`/api/leads/quellen/wirkung` und `/api/leads/{id}/verlauf` liegen auf
+`staging` in einem **noch nicht gemergten** PR, während Frankfurt aus `main`
+baut.
+
+Das Skript verglich den neuen Dienst also mit einer Zukunft, die produktiv gar
+nicht gilt. Die Frage beim Umzug lautet nicht „trägt er den neuesten Stand?",
+sondern **„trägt er dasselbe wie der, den er ersetzt?"** — die Vorgabe-Referenz
+ist deshalb jetzt `https://api.kompagnon.group`, und das Skript bricht ab, wenn
+Dienst und Referenz dieselbe Adresse sind (nach dem Umhängen verglichen sie
+sich sonst mit sich selbst und meldeten immer „deckungsgleich").
+
+### Schritt 3 ist risikoärmer als gedacht — an der Datenbank nachgezählt
+
+Der Plan verlangt, elf Webhook-Adressen bei Dritten umzustellen, bevor der alte
+Dienst abgeschaltet wird. Am 23.08. nachgesehen, was dort **ankommt**:
+
+| Tabelle | Zeilen |
+|---|---|
+| `webhook_log` | **0** |
+| `mail_events` | **0** |
+| `email_logs` | **0** |
+
+Bei keinem der elf Endpunkte kommt derzeit etwas an. Der Verkehr auf die alte
+`onrender.com`-Adresse ist von **139** Anfragen am 16.08. auf **1** am 21.08.
+gefallen; was seither zählt, sind die eigenen Prüfungen. Das Umstellen bleibt
+zu tun — aber es blockiert den Umzug nicht, und es kann nichts brechen, was
+nicht schon stillsteht.
+
+**Die Ausnahme, die bleibt:** Wer `STRIPE_SECRET_KEY` setzt, *bevor* die beiden
+Stripe-Webhooks auf die Domain zeigen, verkauft an einen Dienst, den es nach
+dem Umzug nicht mehr gibt — und ein fehlgeschlagener Webhook bricht den Kauf
+nicht ab, das Geld ist weg und niemand merkt es.
+
+### Was dabei auffiel und den Umzug betrifft: zwei Scheduler (L-91)
+
+Seit dem 19.08. laufen beide Dienste gegen dieselbe Datenbank, und **beide
+fuhren einen Scheduler auf derselben Jobtabelle**. APScheduler kennt keine
+Sperre über Prozessgrenzen. Geschlossen über `SCHEDULER_ENABLED` — der liegt
+aber auf `staging`, und Frankfurt baut aus `main`. **Bis zum nächsten Merge
+bleibt der Zustand bestehen.**
+
+### Noch offen — nur noch drei Handgriffe
+
+1. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
+   `https://api.kompagnon.group/...` — jederzeit möglich, die Domain zeigt
+   noch auf Oregon
+2. **`RENDER_SERVICE_BACKEND_PROD`** auf `srv-da30dg3bc2fs73fomi0g` — sonst
+   deployt die CI weiter nach Oregon und meldet trotzdem grün. **Eng vor
+   Schritt 3 legen:** Dazwischen erreicht ein Merge nach `main` den
+   produktiven Dienst nicht mehr
+3. **Domain umhängen** — der erste unumkehrbare Schritt, im Dashboard. Danach:
+   Oregon suspendieren (nicht löschen), dann L-44
+
+---
+
 ## Der eigentliche Umzug (danach, eigene Sitzung)
 
 - [ ] Neuen Web Service in **Frankfurt** anlegen: gleiches Repo, Branch `main`,

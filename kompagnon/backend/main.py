@@ -384,7 +384,7 @@ async def lifespan(app: FastAPI):
         logger.info("🔄 Hintergrund-Init gestartet...")
 
         def _academy_seed():
-            from routers.academy import seed_academy_courses
+            from routers.academy_zuweisung import seed_academy_courses
             from database import SessionLocal
             _db = SessionLocal()
             try:
@@ -636,12 +636,22 @@ app.include_router(kampagne_router)
 # strukturlose Tabelle neben der Akademie — siehe
 # services/kurse_zusammenfuehren.py.
 
-try:
-    from routers.academy import router as _academy_router
-    app.include_router(_academy_router)
-    logger.info("✓ Academy Router geladen")
-except Exception as e:
-    logger.warning(f"⚠ Academy Router nicht geladen: {e}")
+# **Vier Router statt einem, seit dem 23.08.2026 (L-25).** `academy.py` hatte
+# 1.109 Zeilen; die Abschnitte sind nach Zustaendigkeit ausgezogen. Alle
+# tragen dasselbe Praefix `/api/academy` — fuer die Oberflaeche aendert sich
+# nichts, kein Pfad hat sich verschoben.
+#
+# **Einzeln geladen, mit einzelner Meldung.** Faellt einer aus, sagt das
+# Protokoll welcher; eine Sammelmeldung „Academy Router nicht geladen" haette
+# vier Moeglichkeiten offengelassen.
+for _name in ('academy', 'academy_fortschritt', 'academy_zertifikate',
+              'academy_zuweisung'):
+    try:
+        _modul = __import__(f'routers.{_name}', fromlist=['router'])
+        app.include_router(_modul.router)
+        logger.info(f"✓ Academy Router geladen: {_name}")
+    except Exception as e:
+        logger.warning(f"⚠ Academy Router nicht geladen ({_name}): {e}")
 
 try:
     from routers.crawler import router as _crawler_router

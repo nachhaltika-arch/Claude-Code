@@ -58,3 +58,23 @@ def config_status(_: User = Depends(require_admin)):
         "settings": settings,
         "missing": [s["env_var"] for s in settings if not s["configured"]],
     }
+
+
+@router.get("/wiederherstellbarkeit")
+def wiederherstellbarkeit(_: User = Depends(require_admin)):
+    """Waere eine Wiederherstellung vollstaendig? (L-11)
+
+    **Eine andere Frage als `/config`.** Dort geht es darum, ob eine
+    Integration heute arbeitet. Hier darum, ob der Betrieb nach einem
+    Datenverlust **zurueckzuholen** waere — und das haengt an Schluesseln, die
+    im laufenden Betrieb monatelang niemand vermisst.
+
+    Ohne `CREDENTIALS_KEY` bekommt man nach einer vollstaendigen
+    Wiederherstellung einen laufenden Dienst mit unlesbaren Kundenzugaengen:
+    kein Fehler, keine Meldung, nur leere Felder.
+
+    Gibt **keine** Schluesselwerte zurueck, auch nicht gekuerzt.
+    """
+    from services.wiederherstellbarkeit import schluessel_bericht
+
+    return schluessel_bericht()

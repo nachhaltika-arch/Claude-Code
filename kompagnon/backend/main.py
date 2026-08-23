@@ -383,6 +383,10 @@ async def lifespan(app: FastAPI):
         await asyncio.sleep(3)  # 3s warten bis Server stabil ist
         logger.info("🔄 Hintergrund-Init gestartet...")
 
+        def _wiederherstellbarkeit_melden():
+            from services.wiederherstellbarkeit import beim_start_melden
+            beim_start_melden()
+
         def _academy_seed():
             from routers.academy_zuweisung import seed_academy_courses
             from database import SessionLocal
@@ -472,6 +476,12 @@ async def lifespan(app: FastAPI):
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),
+            # **Keine Startphase im eigentlichen Sinn, aber der Ort, an dem
+            # es jemand sieht (L-11).** Fehlt ein Wiederherstellungs-
+            # Schluessel, laeuft der Dienst trotzdem — nur waere eine
+            # Wiederherstellung unvollstaendig, und das faellt sonst erst
+            # auf, wenn man sie braucht.
+            Phase("Wiederherstellbarkeit", _wiederherstellbarkeit_melden),
         ]
         ergebnis = await fuehre_phasen_aus(phasen)
 

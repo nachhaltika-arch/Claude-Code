@@ -4,6 +4,18 @@ from .fehler import router as fehler_router
 from .usercards import router as usercards_router
 from .usercards import kunden_router as usercards_kunden_router
 from .leads import router as leads_router
+# **Vor `projects` — und das ist keine Kosmetik.** Aus `projects.py` ist am
+# 23.08.2026 das Entfernen eines Projekts ausgezogen (L-25). Es traegt feste
+# Pfade wie `/loeschvorschau`; `projects.py` traegt den Platzhalter
+# `/{project_id}`. FastAPI nimmt die **zuerst registrierte** Route, also
+# verdeckt der Platzhalter jede feste, die nach ihm kommt.
+#
+# Beim ersten Anlauf stand dieser Import unten bei den uebrigen, und
+# `GET /api/projects/loeschvorschau` war nicht mehr erreichbar — gefunden von
+# `test_keine_route_wird_von_einem_platzhalter_verdeckt`, nicht beim Lesen.
+# Die Datenformate (`projects_modelle.py`) brauchen keinen Eintrag hier: Sie
+# haengen an keinem Router, `projects.py` holt sie sich selbst.
+from . import projects_loeschen  # noqa: F401
 from .projects import router as projects_router
 # Nur wegen der Nebenwirkung: Der Import haengt die Netlify-Routen an
 # denselben Router. Ohne ihn waeren sie nicht registriert (L-25).

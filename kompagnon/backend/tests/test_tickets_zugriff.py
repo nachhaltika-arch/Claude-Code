@@ -24,31 +24,17 @@ ankommt. `GET /my` deckt den Kundenfall ab und filtert auf die eigene
 Adresse.
 """
 import pytest
-from sqlalchemy import text
 
 
-@pytest.fixture(autouse=True)
-def _tabelle(app):
-    """`support_tickets` entsteht nur im Migrationsblock — wortgetreu von dort
-    uebernommen. Nachbauen heisst abweichen; genau daran ist der erste Anlauf
-    eines anderen Tests heute schon gescheitert."""
-    from database import SessionLocal
-
-    db = SessionLocal()
-    try:
-        db.execute(text("""CREATE TABLE IF NOT EXISTS support_tickets (
-            id SERIAL PRIMARY KEY, ticket_number VARCHAR UNIQUE NOT NULL,
-            user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',
-            type VARCHAR DEFAULT 'feedback', priority VARCHAR DEFAULT 'medium', status VARCHAR DEFAULT 'open',
-            title VARCHAR NOT NULL, description TEXT NOT NULL, page_url VARCHAR DEFAULT '',
-            browser_info VARCHAR DEFAULT '', page_name VARCHAR DEFAULT '', screenshot_base64 TEXT DEFAULT '', admin_notes TEXT DEFAULT '',
-            created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), resolved_at TIMESTAMP
-        )"""))
-        for anweisung in ["ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS page_name VARCHAR DEFAULT ''"]:
-            db.execute(text(anweisung))
-        db.commit()
-    finally:
-        db.close()
+# `support_tickets` entsteht nur im Migrationsblock, nicht aus einem
+# SQLAlchemy-Modell. Hier stand dafuer bis zum 23.08.2026 eine eigene
+# Fixture mit der **wortgetreu abgeschriebenen** CREATE-Anweisung.
+#
+# Sie ist entfallen: Die Testdatenbank faehrt seither in `conftest.py`
+# denselben Migrationsblock wie der Produktivstart. Die Kopie hier hat
+# nichts kaputtgemacht — sie hat etwas **verdeckt**. Der naechste Test,
+# der dieselbe Tabelle brauchte, fiel in der CI um, waehrend lokal alles
+# gruen war, und die Ursache sah aus wie sein Fehler.
 
 
 LESEN = [

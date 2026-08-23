@@ -78,9 +78,17 @@ export default function Landing() {
     ['Betreuung', 'Wir lassen Sie nicht allein.'],
   ];
 
+  // **Zwei Siegel sind am 2026-08-23 entfallen** (L-65 Teil B): „Trustpilot
+  // 4.9/5" und „Trusted Shops" standen fest im Quelltext, und ob dazu
+  // ueberhaupt Konten bestehen, weiss das System nicht. Besteht keines, ist es
+  // keine ungenaue Zahl mehr, sondern eine Irrefuehrung.
+  //
+  // Bestehen die Konten, gehoeren die Zeilen zurueck — dann aber mit der
+  // Quelle daneben, so wie es die Betriebszahl unten vormacht. Die sichere
+  // Richtung ist diese: Ein Siegel, das fehlt, faellt auf und ist in drei
+  // Minuten zurueck; eines, das unbelegt dasteht, faellt erst auf, wenn
+  // jemand nachfragt, den man nicht sprechen wollte.
   const TRUST = [
-    'Trustpilot 4.9/5',
-    'Trusted Shops',
     'DSGVO-konform',
     `Festpreis ${preisOder(kompagnon)}`,
     '14 Tage Lieferzeit',
@@ -235,7 +243,9 @@ export default function Landing() {
                 ...(analysenZahl >= 10
                   ? [[`${analysenZahl.toLocaleString('de-DE')}+`, 'Handwerksbetriebe']]
                   : []),
-                ['4.9 ★', 'Trustpilot'],
+                // Die Kachel „4.9 ★ Trustpilot" ist am 2026-08-23 entfallen —
+                // dieselbe Begruendung wie bei TRUST weiter oben. Anders als
+                // die Betriebszahl darueber hat sie keine Quelle im System.
               ].map(([num, label]) => (
                 <div key={label} style={{
                   background: 'rgba(255,255,255,.07)',

@@ -1241,8 +1241,8 @@ def run_migrations():
            VALUES
              ('websprint_relaunch', 'Websprint Relaunch',
               'Bestehende Website auf den Homepage-Standard heben',
-              4165.00, 3500.00, 19, 'once', 14, 'draft', false, 'Empfehlung',
-              '[]'::jsonb,
+              4165.00, 3500.00, 19, 'once', 14, 'live', false, 'Empfehlung',
+              '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
               1)
@@ -1287,6 +1287,22 @@ def run_migrations():
         # Ein Projekt ohne Paketangabe haette sonst ein Produkt bekommen, das
         # niemand mehr kaufen kann.
         "ALTER TABLE projects ALTER COLUMN package_type SET DEFAULT 'websprint_neubau'",
+        # Nachtrag vom selben Tag: Der Relaunch wurde zunaechst als Entwurf
+        # angelegt, weil sein Datenblatt WS-REL-01 nicht vorlag. Es liegt
+        # inzwischen vor — und nennt als Freigabebedingung genau die beiden
+        # Blocker L2 und L3, die am 23.08. widerlegt wurden. Das INSERT oben
+        # traegt den neuen Stand; fuer Datenbanken, in denen die Zeile schon
+        # als Entwurf steht, holt dies nach.
+        #
+        # `AND features = '[]'::jsonb` haelt es eng: Sobald jemand Merkmale
+        # gepflegt hat, fasst die Migration die Zeile nicht mehr an. Ein
+        # bewusst auf Entwurf zurueckgesetztes Paket bleibt so, wie es ist.
+        """UPDATE products
+              SET status = 'live',
+                  features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb
+            WHERE slug = 'websprint_relaunch'
+              AND status = 'draft'
+              AND features = '[]'::jsonb""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

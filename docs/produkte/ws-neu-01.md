@@ -1,26 +1,29 @@
 # PRODUKTDATENBLATT · WS-NEU-01
 ## WEBSPRINT NEUBAU
 
-> ## ✅ Nachgeprüft am 23.08.2026 — beide Techniksperren fallen
+
+> ## ✅ Nachgeprüft am 23.08.2026 — die beiden Techniksperren fallen
 >
-> Dieses Blatt nennt unter „Freigabestatus" und in der Blockerliste **L2**
-> (G1-Schwelle nicht belegbar, weil `PAGESPEED_API_KEY` fehle) und **L3**
-> (Score-Schwellen zwischen Backend und Frontend verschieden). Beides wurde
-> am laufenden System gemessen, beides trifft **nicht** zu:
+> Der Freigabestatus nennt **L2** (G1-Schwelle nicht belegbar, weil
+> `PAGESPEED_API_KEY` fehle) und **L3** (Score-Schwellen zwischen Backend und
+> Frontend verschieden). Beides am laufenden System gemessen, beides trifft
+> **nicht** zu:
 >
 > - **L2 hinfällig.** Der Schlüssel ist auf dem Produktivdienst gesetzt und
 >   arbeitet: Protokoll vom 22.08.2026, Aufruf gegen
 >   `pagespeedonline/v5/runPagespeed` mit `HTTP/1.1 200 OK`. Die 18 Punkte
->   fließen ein, der Score ist vollständig erhebbar. **Offen bleibt allein
->   die Zahl** — welche Schwelle G1 zusagt, ist noch nicht festgelegt.
->   *(Nebenbefund dabei: der Schlüssel steht im Klartext im Protokoll → L-98
->   im Lagebild.)*
+>   fließen ein, der Score ist vollständig erhebbar. Offen bleibt allein die
+>   **Zahl**, die G1 zusagt — sie ist noch nicht festgelegt.
+>   *(Nebenbefund: der Schlüssel steht im Klartext im Protokoll → L-98.)*
 > - **L3 hinfällig.** Backend und Frontend führen dieselben vier Stufen,
 >   **95 / 85 / 70 / 50**, Wert für Wert gleich. Die zuerst notierte
 >   Abweichung entstand durch eine Suche, die „Platin" nicht mitzählte.
 >
-> Die verbleibenden Punkte der Blockerliste (Prozessflow, Datenfeld für
-> Fristbeginn und Pausenzeiten) sind unberührt und weiterhin offen.
+> Die verbleibende Bedingung ist die **Prozessflow-Erweiterung** (Positionierung,
+> Bauplan-Freigabe, Textfreigabe als eigene Schritte samt Fristpause). Das ist
+> ein interner Ablauf, kein Verkaufshindernis — das Paket steht deshalb seit
+> dem 23.08.2026 als `websprint_neubau` auf `live`. Wer es verkauft, führt die
+> Freigabetermine bis dahin von Hand nach.
 
 | | |
 |---|---|

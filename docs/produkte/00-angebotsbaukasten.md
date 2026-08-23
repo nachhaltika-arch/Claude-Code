@@ -48,19 +48,13 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | **G4** | **Quartals-Garantie** | Score in einem Quartals-Re-Audit unter Schwelle | Nachbesserung im Rahmen der Pflege ohne Berechnung |
 | **G5** | **Anrechnungsgarantie** | Beauftragung eines Websprints innerhalb von 6 Monaten | 100 % Anrechnung des gezahlten Betrags |
 
-> ✅ **Korrektur vom 23.08.2026, am laufenden System gemessen.** Hier stand:
-> „🔴 [SCHWELLE] ist nicht belegbar, solange `PAGESPEED_API_KEY` auf Render
-> fehlt; der maximal erreichbare Score liegt bei 82. G1 darf nicht in
-> Angeboten stehen."
->
-> **Der Schlüssel ist gesetzt und arbeitet.** Das Protokoll des
-> Produktivdienstes zeigt am 22.08.2026 einen Aufruf gegen
-> `pagespeedonline/v5/runPagespeed` mit `HTTP/1.1 200 OK`. Die 18 Punkte
-> fließen ein, der Score ist vollständig erhebbar.
->
-> **G1 ist damit verwendbar, sobald die Schwelle festgelegt ist** (Bahn B,
-> Aufgabe B05: fünf Referenzmessungen). Die Sperre ist aufgehoben, die
-> Zahl fehlt noch.
+✅ **Korrektur vom 23.08.2026, am laufenden System gemessen.** Hier stand, [SCHWELLE] sei nicht belegbar, weil `PAGESPEED_API_KEY` auf Render fehle — 18 von 100 Punkten nicht erhebbar, Höchstwert 82, G1 gesperrt.
+
+**Der Schlüssel ist gesetzt und arbeitet.** Das Protokoll des Produktivdienstes zeigt am 22.08.2026 einen Aufruf gegen `pagespeedonline/v5/runPagespeed` mit `HTTP/1.1 200 OK`. Die 18 Punkte fließen ein, der Score ist vollständig erhebbar.
+
+**Die Sperre ist damit aufgehoben — die Zahl fehlt noch.** G1 ist verwendbar, sobald [SCHWELLE] festgelegt ist. Dafür braucht es fünf Referenzmessungen an fertigen Seiten; eine Garantie auf einen Wert zu geben, den man noch nie erreicht hat, ist die teurere Variante.
+
+*(Beim Nachprüfen fiel auf, dass der Schlüssel im Klartext im Render-Protokoll steht — `httpx` protokolliert die volle Anfrage-URL samt Parameter. Im Lagebild als L-98 geführt: rotieren und die URL vor dem Protokollieren kürzen.)*
 
 **Ausschlüsse zu G4 (verbindlich mitzuschreiben):** kundenseitige Änderungen an der Website, Änderungen des Homepage-Standards selbst, Ausfälle oder Änderungen bei Drittdiensten (Google, Netlify, Analysedienste), höhere Gewalt.
 
@@ -106,28 +100,27 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | ABO-PRO | Pflege Pro | 149 €/Mon. netto | 19 % | Z4 |
 | GEO-01 | GEO/GAIO Add-on | 1.200 € netto | 19 % | Z1 |
 
+> ✅ **Katalog und Angebot stimmen wieder überein — 23.08.2026.**
+>
+> Bis zu diesem Tag führte die Tabelle `products` — dieselbe Zeile, aus der die
+> Stripe-Sitzung ihren Betrag zieht — die Pakete Starter (1.500 €), KOMPAGNON
+> (2.000 €) und Premium (2.800 €), also andere Produkte als diese Liste. Ein
+> Angebot hätte einen Preis genannt, den die Kasse nicht kennt (Lagebild L-97).
+>
+> **Entschieden: die Websprints ersetzen die Bestandspakete.** Der Katalog
+> trägt jetzt `websprint_relaunch`, `websprint_neubau` und `websprint_system`
+> mit den Preisen dieser Tabelle. Die alten Pakete sind **stillgelegt, nicht
+> gelöscht** — ein Projekt aus dem Frühjahr trägt weiterhin
+> `package_type = 'kompagnon'`, und seine Rechnung darf nicht rückwirkend
+> 7.900 € lauten.
+>
+> **Verkäuflich sind Relaunch und Neubau.** Das Systempaket steht als Entwurf,
+> weil seine Kernleistung nicht lieferbar ist (L-99); beide Kassenwege filtern
+> auf `live`, die Sperre greift also technisch.
+
 ⚠️ **Steuersatz Workbook ungeklärt.** Elektronische Publikationen unterliegen 7 %, digitale Werkzeuge und Vorlagen 19 %. Ein Mischprodukt aus PDF, Excel-Bogen und Druckbeilage ist nicht eindeutig. **Vor Verkaufsstart mit dem Steuerberater klären** — eine falsche Zuordnung wird bei der nächsten Prüfung rückwirkend korrigiert.
 
 ⚠️ **Abo-Preise und GEO-Preis sind Annahmen.** Vor Angebotsversand mit den tatsächlich in Stripe hinterlegten Preisen abgleichen.
-
-> ✅ **Aufgelöst am 23.08.2026 — die Websprints sind jetzt der Katalog.**
->
-> Hier stand, dass die Websprint-Preise nicht die sind, die das System
-> verkauft: `products` führte Starter (1.500 €), KOMPAGNON (2.000 €) und
-> Premium (2.800 €) — dieselbe Zeile, aus der die Stripe-Sitzung ihren Betrag
-> zieht. David hat entschieden: **die Websprints ersetzen die Bestandspakete.**
->
-> Der Katalog trägt jetzt `websprint_relaunch`, `websprint_neubau` und
-> `websprint_system` mit den Preisen dieser Tabelle. Die Bestandspakete sind
-> **stillgelegt, nicht gelöscht** — ein Projekt aus dem Frühjahr trägt
-> weiterhin `package_type = 'kompagnon'`, und seine Rechnung darf nicht
-> rückwirkend 7.900 € lauten.
->
-> **Verkäuflich ist heute ein Paket: der Neubau.** Der Relaunch steht als
-> Entwurf, weil das Datenblatt WS-REL-01 nicht vorliegt; das Systempaket,
-> weil seine Kernleistung nicht lieferbar ist (L-99). Beide Kassenwege
-> filtern auf `live`, die Sperre greift also wirklich. Freischalten geht
-> jederzeit im Produkteditor — sobald es etwas zu liefern gibt.
 
 ---
 

@@ -1,19 +1,23 @@
 # PRODUKTDATENBLATT · WS-SYS-01
 ## WEBSPRINT SYSTEM
 
-> ## 🔴 Bestätigt am 23.08.2026 — die Sperre hält, und sie hat jetzt eine Nummer
+
+> ## 🔴 Bestätigt am 23.08.2026 — die Sperre hält, und sie hat eine Nummer
 >
-> **L1 dieses Blattes ist im Lagebild als [L-99] geführt.** Nachgesehen, was
+> **L1 dieses Blattes wird im Lagebild als [L-99] geführt.** Nachgesehen, was
 > das System heute kann: `services/qa_scanner.py` **prüft** seit dem 16.08.,
 > ob eine fremde Seite `llms.txt` hat und ob KI-Crawler gesperrt sind — es
-> **erzeugt** nichts davon. Kein Erzeuger, keine Vorlage, kein
-> Deploy-Schritt. Die Kernleistung dieses Pakets ist damit tatsächlich nicht
-> lieferbar; der Freigabestatus 🔴 bleibt richtig.
+> **erzeugt** nichts davon. Kein Erzeuger, keine Vorlage, kein Deploy-Schritt.
+> Die Kernleistung (Pos. 7.1–7.4) ist damit nicht lieferbar.
 >
-> Nicht zu verwechseln mit **L-58** im Lagebild: Dort ging es um die
-> **Messung** der KI-Sichtbarkeit im Audit (Teil a geschlossen, das Audit
-> bewertet es seit dem 21.08.). Hier geht es um die **Herstellung** an der
-> Kundenseite. Das eine prüft fremde Seiten, das andere müsste unsere bauen.
+> Nicht zu verwechseln mit **L-58**: Dort ging es um die **Messung** der
+> KI-Sichtbarkeit im Audit (geschlossen am 21.08.). Hier geht es um die
+> **Herstellung** an der Kundenseite. Das eine prüft fremde Seiten, das
+> andere müsste unsere bauen.
+>
+> Das Paket steht im Katalog (`websprint_system`, 12.900 € netto), aber als
+> **Entwurf**. Beide Kassenwege filtern auf `live` — die Sperre greift
+> technisch, nicht nur auf dem Papier.
 
 > ## ⛔ VERKAUFSSPERRE
 > Dieses Datenblatt ist **nicht angebotsfähig**. Die Kernleistung — Auslieferung von `llms.txt`, `schema.org`-Auszeichnung, Ground Page und Messgrundlage in die auf Netlify gehosteten Kundenseiten — ist in Produktion nicht implementiert (Blocker L1).

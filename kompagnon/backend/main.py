@@ -266,12 +266,26 @@ def _create_default_admin():
                     "sort_order": 1,
                     "short_desc": "Bestehende Website auf den Homepage-Standard heben",
                     "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "draft",
-                    # Leistungsverzeichnis noch offen: Das Datenblatt WS-REL-01
-                    # liegt nicht vor (siehe docs/produkte/README.md). Deshalb
-                    # `draft` — ein Paket ohne Leistungsbeschreibung darf nicht
-                    # auf der Angebotsseite stehen.
-                    "features": [],
+                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
+                    # docs/produkte/ws-rel-01.md. Das Blatt nannte als
+                    # Freigabebedingung „nach Behebung L2 und L3" — beides ist
+                    # am 23.08. am laufenden System widerlegt worden (der
+                    # PageSpeed-Schluessel arbeitet, die Score-Schwellen sind
+                    # beidseitig gleich). Damit ist das Paket verkaufbar.
+                    "features": [
+                        "Eingangsaudit nach Homepage-Standard, 100 Punkte",
+                        "Strukturabgleich und Seitenplan",
+                        "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
+                        "Redaktionelle Ueberarbeitung der vorhandenen Texte",
+                        "Bildaufbereitung, bis 30 Bilder",
+                        "Kontaktformular mit Spam-Schutz",
+                        "Grundlagen der Barrierefreiheit",
+                        "Technische Grundoptimierung",
+                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                        "Eine Korrekturschleife",
+                        "Abnahmeaudit mit schriftlichem Protokoll",
+                        "Einweisung, 30 Minuten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],

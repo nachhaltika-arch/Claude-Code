@@ -11,14 +11,15 @@ import { aufTaste } from '../utils/tastaturBedienung';
 // fuehrt seither die Websprint-Produkte (L-97); die Merkmale stammen aus den
 // Leistungsverzeichnissen der Datenblaetter WS-NEU-01 und WS-SYS-01.
 //
-// **Fuer den Relaunch fehlt das Datenblatt WS-REL-01** — deshalb steht dort
-// kein Leistungsverzeichnis und nichts Erfundenes. Das Paket ist im Katalog
-// als Entwurf gefuehrt und erscheint mit „auf Anfrage".
+// Alle drei Leistungsverzeichnisse stammen aus den Datenblaettern in
+// docs/produkte/. Das System-Paket steht als Entwurf im Katalog, weil seine
+// Kernleistung nicht lieferbar ist (L-99) — es erscheint deshalb ohne Preis
+// und ohne Kaufweg, aber mit seinem Leistungsumfang.
 const DARSTELLUNG = [
   {
-    id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: 'auf Anfrage',
+    id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: '14 Kalendertage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
-    features: ['Leistungsverzeichnis auf Anfrage'],
+    features: ['Eingangsaudit nach Homepage-Standard, 100 Punkte', 'Strukturabgleich und Seitenplan', 'Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten', 'Redaktionelle Überarbeitung der vorhandenen Texte', 'Bildaufbereitung, bis 30 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Technische Grundoptimierung', 'Hosting, SSL, Weiterleitungen, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisung, 30 Minuten'],
   },
   {
     id: 'websprint_neubau', name: 'Websprint Neubau', delivery: '28 Kalendertage',
@@ -33,14 +34,16 @@ const DARSTELLUNG = [
 ];
 
 const COMPARE = [
-  { label: 'Bauzeit', values: ['auf Anfrage', '28 Tage', '42 Tage'] },
+  { label: 'Bauzeit', values: ['14 Tage', '28 Tage', '42 Tage'] },
   { label: 'Positionierungsgespräch', values: ['–', '✓ 90 Min.', '✓ 90 Min.'] },
-  { label: 'Seitenumfang', values: ['–', 'bis 12', 'bis 20'] },
-  { label: 'Korrekturschleifen', values: ['–', '2', '2'] },
+  { label: 'Texte', values: ['überarbeitet', 'neu geschrieben', 'neu geschrieben'] },
+  { label: 'Seitenumfang', values: ['bis 6', 'bis 12', 'bis 20'] },
+  { label: 'Korrekturschleifen', values: ['1', '2', '2'] },
   { label: 'Karriereseite', values: ['–', '–', '✓'] },
   { label: 'GEO / GAIO', values: ['–', '–', '✓'] },
   { label: 'Messgrundlage + Consent', values: ['–', '–', '✓'] },
   { label: 'Pflege inklusive', values: ['–', 'Basic, 3 Mon.', 'Pro, 12 Mon.'] },
+  { label: 'Zahlung', values: ['50/50', '40/30/30', '40/30/30'] },
 ];
 
 export default function OfferTab({ lead, currentScore, currentLevel, isMobile }) {
@@ -58,8 +61,15 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
   // empfahl damit dem Betrieb mit der schlechtesten Seite das schwaechste
   // Angebot.
   //
-  // Fuer den Relaunch fehlt das Datenblatt; die Schwelle darueber ist
-  // deshalb vorlaeufig und mit David abzustimmen (L-97).
+  // Die Schwelle bei 40 steht jetzt auf beiden Datenblaettern: WS-NEU-01
+  // nennt 0–40, WS-REL-01 nennt 35–70. Die Bereiche ueberlappen zwischen 35
+  // und 40 — dort entscheidet nicht der Punktwert, sondern ob die Inhalte im
+  // Kern verwendbar sind. Das sieht ein Mensch, kein Schwellenwert; die
+  // Vorauswahl laesst sich in der Ansicht aendern.
+  //
+  // Das Systempaket steht bewusst nicht in dieser Regel: Es ist nicht
+  // score-getrieben, sondern folgt aus Betriebsgroesse, Recruiting-Bedarf
+  // oder GEO-Anspruch.
   const recommended = currentScore !== null && currentScore > 40
     ? 'websprint_relaunch'
     : 'websprint_neubau';

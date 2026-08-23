@@ -1214,6 +1214,79 @@ def run_migrations():
         # null Nennungen, heute drei" ist die Aussage, fuer die ein
         # Betrieb zahlt.
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_verlauf JSONB",
+        # ── Websprint-Katalog loest die Bestandspakete ab (L-97, 23.08.2026) ──
+        #
+        # Bis hierhin fuehrte `products` Starter/KOMPAGNON/Premium zu
+        # 1.500/2.000/2.800 EUR **brutto**, waehrend die Angebote Websprints zu
+        # 3.500/7.900/12.900 EUR **netto** nannten. Zwei Produktlinien fuer
+        # dasselbe Geschaeft — und aus dieser Tabelle zieht die Stripe-Sitzung
+        # ihren Betrag.
+        #
+        # **Warum die Bestandspakete bleiben.** Sie werden auf `archived`
+        # gesetzt, nicht geloescht. Ein Projekt aus dem Fruehjahr traegt
+        # `package_type='kompagnon'`, und `payments.paketbezeichnung` liest
+        # Name und Preis fuer die Kundenmail aus genau dieser Zeile. Wer sie
+        # entfernt, deutet eine bezahlte Rechnung nachtraeglich um; wer sie
+        # ueberschreibt, macht aus 2.000 EUR rueckwirkend 7.900 EUR. Dieselbe
+        # Entscheidung wie bei den Systemtickets am 23.08.: stilllegen,
+        # niemals loeschen.
+        #
+        # `archived` ist kein neuer Wert — der Produkteditor kennt seit jeher
+        # `draft`, `live` und `archived`. Nur `live` erscheint unter
+        # `/api/products/public`.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_relaunch', 'Websprint Relaunch',
+              'Bestehende Website auf den Homepage-Standard heben',
+              4165.00, 3500.00, 19, 'once', 14, 'draft', false, 'Empfehlung',
+              '[]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              1)
+           ON CONFLICT (slug) DO NOTHING""",
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_neubau', 'Websprint Neubau',
+              'Neuaufbau nach Homepage-Standard, bis 12 Seiten',
+              9401.00, 7900.00, 19, 'once', 28, 'live', true, 'Empfehlung',
+              '["Positionierungsgespraech, 90 Minuten","Bauplan als Freigabedokument, eine Ueberarbeitung","Texterstellung fuer bis zu 12 Seiten","Bildkonzept und Fotobriefing","Aufbau im KOMPAGNON-Komponentensystem, responsiv","Technische Optimierung und strukturierte Auszeichnung","Hosting, SSL, Weiterleitungen, Domainumstellung","Zwei Korrekturschleifen","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 60 Minuten","Pflege Basic fuer 3 Monate","Re-Audit nach 3 Monaten"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              2)
+           ON CONFLICT (slug) DO NOTHING""",
+        # `draft`, nicht `live`: Die Kernleistung dieses Pakets — Auslieferung
+        # von llms.txt, schema.org und Ground Page an die Kundenseite — ist
+        # nicht implementiert (L-99). Das Datenblatt WS-SYS-01 fuehrt es
+        # selbst als gesperrt. Freischalten heisst hier: erst bauen.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_system', 'Websprint System',
+              'Neubau mit GEO/GAIO, Karriereseite und Messgrundlage',
+              15351.00, 12900.00, 19, 'once', 42, 'draft', false, 'Empfehlung',
+              '["Alles aus dem Websprint Neubau","Erweiterter Seitenumfang, bis 20 Seiten","Karriereseite mit Bewerbungsformular","GEO/GAIO-Layer: llms.txt, schema.org, Ground Page","Messgrundlage mit Consent-Layer und EU-Datenhaltung","Auftragsverarbeitungsvertrag","Pflege Pro fuer 12 Monate","Quartalsweises Re-Audit mit Massnahmenliste","Jahresgespraech, 90 Minuten"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              3)
+           ON CONFLICT (slug) DO NOTHING""",
+        # Die Bestandspakete verschwinden aus dem Angebot, bleiben aber
+        # lesbar. `WHERE status <> 'archived'` haelt die Anweisung
+        # wiederholbar — sie laeuft bei jedem Start.
+        """UPDATE products SET status = 'archived'
+            WHERE slug IN ('starter', 'kompagnon', 'premium')
+              AND status <> 'archived'""",
+        # Der Spaltenstandard zeigte auf 'kompagnon' — ab jetzt archiviert.
+        # Ein Projekt ohne Paketangabe haette sonst ein Produkt bekommen, das
+        # niemand mehr kaufen kann.
+        "ALTER TABLE projects ALTER COLUMN package_type SET DEFAULT 'websprint_neubau'",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

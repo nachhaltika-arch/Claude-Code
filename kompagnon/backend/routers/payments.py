@@ -167,7 +167,16 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
     import json as _j
 
     body = await request.json()
-    package_id     = body.get("package", "kompagnon")
+    # Kein Rueckfall auf einen Paketnamen (L-97, 23.08.2026). Hier stand
+    # `body.get("package", "kompagnon")`. Solange KOMPAGNON verkaeuflich war,
+    # hiess das: Wer die Angabe vergisst, kauft stillschweigend das mittlere
+    # Paket. Seit die Bestandspakete archiviert sind, hiesse es: Die Abfrage
+    # unten findet nichts und meldet „ungueltiges Paket" — richtig im
+    # Ergebnis, irrefuehrend in der Begruendung. Fehlt die Angabe, ist das
+    # ein Fehler des Aufrufers und wird als solcher benannt.
+    package_id     = (body.get("package") or "").strip()
+    if not package_id:
+        raise HTTPException(400, "Kein Paket angegeben")
     customer_email = body.get("email", "")
     customer_name  = body.get("name", "")
     company_name   = body.get("company", "")
@@ -281,7 +290,13 @@ def _handle_successful_payment(session: dict, db: Session):
     email       = meta.get("customer_email") or session.get("customer_email", "")
     company     = meta.get("company_name", "")
     name        = meta.get("customer_name", "")
-    package_id  = meta.get("package", "kompagnon")
+    # Auch hier ohne Rueckfall (L-97). Die Metadaten stammen aus unserer
+    # eigenen Stripe-Sitzung, die Angabe ist also normalerweise da. Fehlt sie,
+    # ist ein leerer Wert die ehrlichere Antwort als ein erfundenes Paket:
+    # `projekt_festpreis` faellt dann auf den tatsaechlich gezahlten Betrag
+    # zurueck (L-29), und `paketbezeichnung` schreibt die Kennung statt eines
+    # falschen Preises in die Kundenmail.
+    package_id  = (meta.get("package") or "").strip()
     website_url = meta.get("website_url", "")
     phone_nr    = meta.get("phone", "") or \
                   (session.get("customer_details") or {}).get("phone", "")

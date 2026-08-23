@@ -244,43 +244,80 @@ def _create_default_admin():
         _db3 = SessionLocal()
         count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
         if count == 0:
+            # Der Katalog einer frischen Datenbank. Bis zum 23.08.2026
+            # standen hier Starter/KOMPAGNON/Premium zu 1.500/2.000/2.800 EUR
+            # brutto, waehrend die Angebote Websprints zu 3.500/7.900/12.900
+            # EUR **netto** fuehrten — zwei Produktlinien nebeneinander, und
+            # aus dieser Zeile zieht die Stripe-Sitzung ihren Betrag (L-97).
+            #
+            # Die Bestandsprodukte werden nicht geloescht, sondern in der
+            # Migration auf `archived` gesetzt: Ein Projekt aus dem Fruehjahr
+            # traegt `package_type='kompagnon'`, und die Kundenmail liest den
+            # Preis aus genau dieser Zeile. Wer sie entfernt, deutet eine
+            # bezahlte Rechnung nachtraeglich um.
+            #
+            # Preise sind **netto** angegeben (B2B, Handwerksbetriebe sind
+            # vorsteuerabzugsberechtigt); `price_brutto` ist der Betrag, den
+            # Stripe abbucht, und muss dazu passen — `test_produktkatalog`
+            # rechnet es nach.
             SEED = [
                 {
-                    "slug": "starter", "name": "Starter-Paket", "sort_order": 1,
-                    "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
-                    "price_brutto": 1500.00, "price_netto": 1260.50, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "live",
-                    "features": ["5-seitige WordPress-Website",
-                        "Mobile-First Design", "SEO-Grundoptimierung",
-                        "SSL-Zertifikat & DSGVO-konform", "Kontaktformular",
-                        "30 Tage Support"],
+                    "slug": "websprint_relaunch", "name": "Websprint Relaunch",
+                    "sort_order": 1,
+                    "short_desc": "Bestehende Website auf den Homepage-Standard heben",
+                    "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 14, "status": "draft",
+                    # Leistungsverzeichnis noch offen: Das Datenblatt WS-REL-01
+                    # liegt nicht vor (siehe docs/produkte/README.md). Deshalb
+                    # `draft` — ein Paket ohne Leistungsbeschreibung darf nicht
+                    # auf der Angebotsseite stehen.
+                    "features": [],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],
                 },
                 {
-                    "slug": "kompagnon", "name": "KOMPAGNON-Paket", "sort_order": 2,
-                    "short_desc": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
-                    "price_brutto": 2000.00, "price_netto": 1680.67, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "slug": "websprint_neubau", "name": "Websprint Neubau",
+                    "sort_order": 2,
+                    "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
+                    "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 28, "status": "live",
                     "highlighted": True, "highlight_label": "Empfehlung",
-                    "features": ["8-seitige WordPress-Website",
-                        "SEO + GEO-Optimierung", "Strategy Workshop (60 Min.)",
-                        "Schema Markup & KI-Optimierung",
-                        "Google Business Verknuepfung", "30 Tage Support"],
+                    "features": ["Positionierungsgespraech, 90 Minuten",
+                        "Bauplan als Freigabedokument, eine Ueberarbeitung",
+                        "Texterstellung fuer bis zu 12 Seiten",
+                        "Bildkonzept und Fotobriefing",
+                        "Aufbau im KOMPAGNON-Komponentensystem, responsiv",
+                        "Technische Optimierung und strukturierte Auszeichnung",
+                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                        "Zwei Korrekturschleifen",
+                        "Abnahmeaudit mit schriftlichem Protokoll",
+                        "Einweisung, 60 Minuten",
+                        "Pflege Basic fuer 3 Monate",
+                        "Re-Audit nach 3 Monaten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],
                 },
                 {
-                    "slug": "premium", "name": "Premium-Paket", "sort_order": 3,
-                    "short_desc": "12 Seiten, Shop-Ready, Fotoshooting",
-                    "price_brutto": 2800.00, "price_netto": 2352.94, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 21, "status": "live",
-                    "features": ["12-seitige WordPress-Website",
-                        "Individual-Design nach CI", "SEO + GEO + KI-Volloptimierung",
-                        "Strategy Workshop (90 Min.)", "Professioneller Fotoshooting-Tag",
-                        "Google Ads Einrichtung", "3 Monate Support"],
+                    "slug": "websprint_system", "name": "Websprint System",
+                    "sort_order": 3,
+                    "short_desc": "Neubau mit GEO/GAIO, Karriereseite und Messgrundlage",
+                    "price_brutto": 15351.00, "price_netto": 12900.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 42, "status": "draft",
+                    # `draft`, nicht `live`: Die Kernleistung dieses Pakets —
+                    # Auslieferung von llms.txt, schema.org und Ground Page an
+                    # die Kundenseite — ist nicht implementiert (L-99). Das
+                    # Datenblatt WS-SYS-01 fuehrt es selbst als 🔴 gesperrt.
+                    "features": ["Alles aus dem Websprint Neubau",
+                        "Erweiterter Seitenumfang, bis 20 Seiten",
+                        "Karriereseite mit Bewerbungsformular",
+                        "GEO/GAIO-Layer: llms.txt, schema.org, Ground Page",
+                        "Messgrundlage mit Consent-Layer und EU-Datenhaltung",
+                        "Auftragsverarbeitungsvertrag",
+                        "Pflege Pro fuer 12 Monate",
+                        "Quartalsweises Re-Audit mit Massnahmenliste",
+                        "Jahresgespraech, 90 Minuten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],

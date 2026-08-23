@@ -31,6 +31,7 @@ from routers.projects_router import router
 # Bildschirmfoto **danach** — dieselbe Route, die der Innendienst
 # auch von Hand ausloest.
 from routers.projects_erhebung import screenshot_after
+from services import produktkatalog
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +102,13 @@ def create_project_from_lead(
     )
     # Optional fields from body — whitelist + parse, fall back to DB defaults.
     body = body or {}
+    # Gegen den Katalog pruefen, nicht gegen eine Liste im Quelltext: Hier
+    # stand bis zum 23.08.2026 `("starter", "kompagnon", "premium")`. Beim
+    # Wechsel auf die Websprint-Produkte waere daraus eine stille Falle
+    # geworden — die neue Kennung faellt durch, die Angabe wird `None`, und
+    # das Projekt bekommt den Spaltenstandard (L-97).
     package_type = body.get("package_type")
-    if package_type not in ("starter", "kompagnon", "premium"):
+    if package_type not in produktkatalog.bekannte_slugs(db):
         package_type = None
     project_type = body.get("project_type")
     if project_type not in ("standard", "impuls"):

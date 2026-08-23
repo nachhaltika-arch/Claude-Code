@@ -53,7 +53,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
       const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/design-json/${selectedPage.id}`, { method: 'POST', headers });
       if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
       const { blocks, brand } = await res.json();
-      const { renderPage } = await import('../grapesjs/handwerk-blocks');
+      const { renderPage } = await import('../../grapesjs/handwerk-blocks');
       setGeneratedHtml(renderPage(blocks, brand));
     } catch (e) { setError(e.message); }
     finally { setGenerating(false); }

@@ -45,7 +45,12 @@ def test_die_vorlage_traegt_die_drei_pakete():
     listen = _seed_listen()
 
     slugs = {eintrag["slug"] for eintrag in listen[0]}
-    assert slugs == {"starter", "kompagnon", "premium"}, slugs
+    # Bis 23.08.2026 standen hier starter/kompagnon/premium. Der Katalog
+    # fuehrt seither die Websprint-Produkte; die Bestandspakete bleiben in
+    # bestehenden Datenbanken als `archived` erhalten, gehoeren aber nicht
+    # mehr in die Vorlage einer frischen (L-97).
+    assert slugs == {"websprint_relaunch", "websprint_neubau",
+                     "websprint_system"}, slugs
 
 
 def test_jeder_eintrag_hat_brutto_netto_und_steuersatz():

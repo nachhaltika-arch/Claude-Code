@@ -4,43 +4,65 @@ import usePakete from '../hooks/usePakete';
 import { preisZeile, PREIS_UNBEKANNT } from '../utils/paketpreise';
 import { aufTaste } from '../utils/tastaturBedienung';
 
+// Farben, Reihenfolge und Merkmale der Pakete. Preise und Namen kommen aus
+// `products` (L-29) — hier steht nur, wie sie aussehen.
+//
+// Bis zum 23.08.2026 standen hier Starter/KOMPAGNON/Premium. Der Katalog
+// fuehrt seither die Websprint-Produkte (L-97); die Merkmale stammen aus den
+// Leistungsverzeichnissen der Datenblaetter WS-NEU-01 und WS-SYS-01.
+//
+// **Fuer den Relaunch fehlt das Datenblatt WS-REL-01** — deshalb steht dort
+// kein Leistungsverzeichnis und nichts Erfundenes. Das Paket ist im Katalog
+// als Entwurf gefuehrt und erscheint mit „auf Anfrage".
 const DARSTELLUNG = [
   {
-    id: 'starter', name: 'Starter', delivery: '7–10 Werktage',
+    id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: 'auf Anfrage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
-    features: ['Kompakte WordPress-Webseite', 'Individuelle Texte (4 Seiten)', 'Mobiloptimierung', 'SEO-Basis', 'Impressum & Datenschutz', 'Go-live & Einweisung'],
+    features: ['Leistungsverzeichnis auf Anfrage'],
   },
   {
-    id: 'kompagnon', name: 'KOMPAGNON', delivery: '14 Werktage',
+    id: 'websprint_neubau', name: 'Websprint Neubau', delivery: '28 Kalendertage',
     accentColor: '#d4a017', badgeBg: 'rgba(212,160,23,0.12)', badgeColor: '#b8960a', recommended: true,
-    features: ['Individuelle WordPress-Webseite', 'Individuelle Texterstellung', 'SEO-Volloptimierung', 'GEO / KI-Optimierung', 'Wettbewerbs- & Sichtbarkeitsanalyse', 'Persönlicher Strategie-Workshop', 'Google Business Optimierung', 'Rechtssicherheit', 'Nachbetreuung nach Go-live'],
+    features: ['Positionierungsgespräch, 90 Minuten', 'Bauplan als Freigabedokument, eine Überarbeitung', 'Texterstellung für bis zu 12 Seiten', 'Bildkonzept und Fotobriefing', 'Aufbau im KOMPAGNON-Komponentensystem', 'Technische Optimierung und strukturierte Auszeichnung', 'Domainumstellung und Weiterleitungen', 'Zwei Korrekturschleifen', 'Abnahmeaudit mit Protokoll', 'Pflege Basic für 3 Monate', 'Re-Audit nach 3 Monaten'],
   },
   {
-    id: 'premium', name: 'Premium', delivery: '14–21 Werktage',
+    id: 'websprint_system', name: 'Websprint System', delivery: '42 Kalendertage',
     accentColor: '#7c3aed', badgeBg: 'rgba(124,58,237,0.1)', badgeColor: '#6d28d9',
-    features: ['Alles aus KOMPAGNON', 'Erweiterte Seitenstruktur', 'FAQ-, Partner- oder Karriere-Seite', 'Vertiefte GEO-Umsetzung', 'Stärkerer regionaler Bezug', 'Zweite Korrekturschleife', 'Erweiterte Nachbetreuung', 'Optionaler BFSG-Baustein'],
+    features: ['Alles aus dem Websprint Neubau', 'Erweiterter Seitenumfang, bis 20 Seiten', 'Karriereseite mit Bewerbungsformular', 'GEO/GAIO-Layer: llms.txt, schema.org, Ground Page', 'Messgrundlage mit Consent-Layer', 'Auftragsverarbeitungsvertrag', 'Pflege Pro für 12 Monate', 'Quartalsweises Re-Audit', 'Jahresgespräch, 90 Minuten'],
   },
 ];
 
 const COMPARE = [
-  { label: 'Lieferzeit', values: ['7–10 Tage', '14 Tage', '14–21 Tage'] },
-  { label: 'SEO-Optimierung', values: ['Basis', '✓ voll', '✓ voll'] },
-  { label: 'GEO / KI', values: ['–', '✓', '✓'] },
-  { label: 'Strategie-Workshop', values: ['–', '✓', '✓'] },
-  { label: 'Google Business', values: ['–', '✓', '✓'] },
-  { label: 'Zusatzseiten', values: ['–', '–', '✓'] },
-  { label: 'Nachbetreuung', values: ['–', '✓', '✓ ext.'] },
+  { label: 'Bauzeit', values: ['auf Anfrage', '28 Tage', '42 Tage'] },
+  { label: 'Positionierungsgespräch', values: ['–', '✓ 90 Min.', '✓ 90 Min.'] },
+  { label: 'Seitenumfang', values: ['–', 'bis 12', 'bis 20'] },
+  { label: 'Korrekturschleifen', values: ['–', '2', '2'] },
+  { label: 'Karriereseite', values: ['–', '–', '✓'] },
+  { label: 'GEO / GAIO', values: ['–', '–', '✓'] },
+  { label: 'Messgrundlage + Consent', values: ['–', '–', '✓'] },
+  { label: 'Pflege inklusive', values: ['–', 'Basic, 3 Mon.', 'Pro, 12 Mon.'] },
 ];
 
 export default function OfferTab({ lead, currentScore, currentLevel, isMobile }) {
   const [copied, setCopied] = useState(false);
-  const [selectedPkg, setSelectedPkg] = useState('kompagnon');
+  const [selectedPkg, setSelectedPkg] = useState('websprint_neubau');
 
   // Preise kommen aus derselben Zeile, aus der Stripe abbucht (L-29).
   const { pakete: PACKAGES } = usePakete(DARSTELLUNG);
   const COMPARE_MIT_PREIS = [{ label: 'Gesamtpreis', values: preisZeile(PACKAGES) }, ...COMPARE];
 
-  const recommended = currentScore === null ? 'kompagnon' : currentScore >= 70 ? 'premium' : currentScore >= 40 ? 'kompagnon' : 'starter';
+  // Die Empfehlung folgt jetzt dem Zustand der bestehenden Website, nicht dem
+  // Budget. WS-NEU-01 nennt als typischen Eingangs-Score **0–40 Punkte**: Wer
+  // schlecht dasteht, braucht einen Neubau, nicht das kleinere Paket. Die
+  // vorherige Regel war genau umgekehrt (hoher Score → teures Paket) und
+  // empfahl damit dem Betrieb mit der schlechtesten Seite das schwaechste
+  // Angebot.
+  //
+  // Fuer den Relaunch fehlt das Datenblatt; die Schwelle darueber ist
+  // deshalb vorlaeufig und mit David abzustimmen (L-97).
+  const recommended = currentScore !== null && currentScore > 40
+    ? 'websprint_relaunch'
+    : 'websprint_neubau';
   const scoreColor = (s) => s >= 70 ? 'var(--status-success-text)' : s >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
 
   const pkg = PACKAGES.find(p => p.id === selectedPkg) || PACKAGES[1];
@@ -54,7 +76,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
   const sendByEmail = () => {
     const company = lead.display_name || lead.company_name || 'Ihr Betrieb';
     const link = `${window.location.origin}/paket/${selectedPkg}`;
-    const subject = encodeURIComponent('Ihr persönliches Angebot — KOMPAGNON');
+    const subject = encodeURIComponent(`Ihr persönliches Angebot für ${company}`);
     const body = encodeURIComponent(
       `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n` : ''}✓ Fertigstellung in ${pkg.delivery}\n✓ Festpreis — keine versteckten Kosten\n\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
     );

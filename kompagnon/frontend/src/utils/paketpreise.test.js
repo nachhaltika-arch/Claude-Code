@@ -165,3 +165,49 @@ describe('keine zweite Preisquelle im Quelltext', () => {
     expect(fund).toEqual([]);
   });
 });
+
+describe('verkaeuflich — was die Kasse auch annimmt', () => {
+  /**
+   * Der Endpunkt `/api/payments/packages` liefert ausschliesslich Pakete mit
+   * Status `live`; `create-checkout` nimmt ebenfalls nur solche an. Fehlt ein
+   * Paket in der Antwort, ist es nicht kaeuflich — und eine Seite, die
+   * trotzdem einen Kauf anbietet, laeuft in einen 400er.
+   *
+   * Das war beim Wechsel auf die Websprint-Produkte am 23.08.2026 der Fall
+   * (L-97): Drei Verkaufsseiten trugen die Paketkennung fest im Aufruf,
+   * waehrend ihre Produkte archiviert wurden.
+   */
+  test('ein Paket, das der Server liefert, ist verkaeuflich', () => {
+    // Arrange
+    const darstellung = [{ id: 'websprint_neubau', name: 'Neubau' }];
+    const ausApi = { websprint_neubau: { name: 'Websprint Neubau', price_eur: 9401 } };
+
+    // Act
+    const pakete = paketeZusammenfuehren(darstellung, ausApi);
+
+    // Assert
+    expect(pakete[0].verkaeuflich).toBe(true);
+  });
+
+  test('ein Paket, das der Server nicht kennt, ist nicht verkaeuflich', () => {
+    // Arrange — archiviert oder Entwurf: der Server liefert es nicht
+    const darstellung = [{ id: 'websprint_system', name: 'System' }];
+
+    // Act
+    const pakete = paketeZusammenfuehren(darstellung, {});
+
+    // Assert
+    expect(pakete[0].verkaeuflich).toBe(false);
+  });
+
+  test('ohne Antwort vom Server ist nichts verkaeuflich', () => {
+    // Arrange
+    const darstellung = [{ id: 'websprint_neubau' }, { id: 'websprint_relaunch' }];
+
+    // Act
+    const pakete = paketeZusammenfuehren(darstellung, null);
+
+    // Assert — lieber kein Kauf als ein Kauf, der scheitert
+    expect(pakete.every((p) => p.verkaeuflich === false)).toBe(true);
+  });
+});

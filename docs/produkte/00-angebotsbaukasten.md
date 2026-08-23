@@ -110,15 +110,24 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 ⚠️ **Abo-Preise und GEO-Preis sind Annahmen.** Vor Angebotsversand mit den tatsächlich in Stripe hinterlegten Preisen abgleichen.
 
-> ⚠️ **Zwei Produktwelten, festgestellt am 23.08.2026.** Die hier geführten
-> Websprint-Preise (3.500 / 7.900 / 12.900 €) sind **nicht** die, die das
-> System heute verkauft. Die Tabelle `products` trägt die Pakete Starter
-> (1.500 €), KOMPAGNON (2.000 €) und Premium (2.800 €) — dieselbe Quelle, aus
-> der die Stripe-Sitzung ihren Betrag zieht (siehe Lagebild, L-29/L-61).
+> ✅ **Aufgelöst am 23.08.2026 — die Websprints sind jetzt der Katalog.**
 >
-> Solange beide nebeneinander bestehen, kann ein Angebot einen Preis nennen,
-> den die Kasse nicht kennt. Vor dem ersten Websprint-Angebot ist zu
-> entscheiden, ob die alten Pakete ersetzt oder ergänzt werden.
+> Hier stand, dass die Websprint-Preise nicht die sind, die das System
+> verkauft: `products` führte Starter (1.500 €), KOMPAGNON (2.000 €) und
+> Premium (2.800 €) — dieselbe Zeile, aus der die Stripe-Sitzung ihren Betrag
+> zieht. David hat entschieden: **die Websprints ersetzen die Bestandspakete.**
+>
+> Der Katalog trägt jetzt `websprint_relaunch`, `websprint_neubau` und
+> `websprint_system` mit den Preisen dieser Tabelle. Die Bestandspakete sind
+> **stillgelegt, nicht gelöscht** — ein Projekt aus dem Frühjahr trägt
+> weiterhin `package_type = 'kompagnon'`, und seine Rechnung darf nicht
+> rückwirkend 7.900 € lauten.
+>
+> **Verkäuflich ist heute ein Paket: der Neubau.** Der Relaunch steht als
+> Entwurf, weil das Datenblatt WS-REL-01 nicht vorliegt; das Systempaket,
+> weil seine Kernleistung nicht lieferbar ist (L-99). Beide Kassenwege
+> filtern auf `live`, die Sperre greift also wirklich. Freischalten geht
+> jederzeit im Produkteditor — sobald es etwas zu liefern gibt.
 
 ---
 

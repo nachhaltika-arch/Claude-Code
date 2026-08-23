@@ -235,7 +235,10 @@ class Project(Base):
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     go_live_date = Column(String(20))  # stored as ISO date string
-    package_type = Column(String(50), default="kompagnon")
+    # Standard war bis 23.08.2026 "kompagnon" — seither archiviert (L-97).
+    # Dieser Wert greift bei ORM-Inserts und schlaegt den Spaltenstandard
+    # der Datenbank; beide muessen auf dasselbe lebende Paket zeigen.
+    package_type = Column(String(50), default="websprint_neubau")
     payment_status = Column(String(50), default="offen")
     # Project-Type ('standard' oder 'impuls') — orthogonal zu package_type.
     # ISB-158-Förder-Felder werden nur bei project_type='impuls' gefüllt.

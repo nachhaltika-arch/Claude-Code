@@ -1,1 +1,385 @@
-{"phasen": [{"id": "L-78", "basis": "L-78", "phase": "A", "prio": "P1", "aufwand": "S", "titel": "Das Lint-Tor prüft vier Regelfamilien — die Regel, die den Doppelbefund sah, ist nicht dabei", "warum": "15 Minuten. Ab dann faengt das Tor die Fehlerklasse, die L-76 erzeugt hat — jede spaetere Phase wird dadurch ueberpruefbar."}, {"id": "L-56", "basis": "L-56", "phase": "A", "prio": "P0", "aufwand": "S", "titel": "Einen Betrieb mit Kundenzugang loeschen ging nicht — und sagte es nicht", "warum": "Ein Betrieb mit Kundenzugang liess sich nicht loeschen, und es sagte nichts. DSGVO-Loeschpflicht haengt daran."}, {"id": "L-05", "basis": "L-05", "phase": "A", "prio": "P0", "aufwand": "M", "titel": "RolePermission ohne jede Wirkung — vierter Schritt 2026-08-21: acht von 18 Rechten sperren wirk", "warum": "Zehn von 18 Rechten sperren nicht. Der Haken im Bildschirm „Rollen“ luegt, solange das so ist."}, {"id": "L-67", "basis": "L-67", "phase": "A", "prio": "P3", "aufwand": "M", "titel": "166 Routen antworten jedem Angemeldeten — ohne Rollen- oder Zeilenpruefung", "warum": "166 Routen antworten jedem Angemeldeten ohne Zeilenpruefung. Formal P3, faktisch die groesste offene Angriffsflaeche."}, {"id": "L-25a", "basis": "L-25", "phase": "B", "prio": "P3", "aufwand": "L", "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend", "warum": "main.py: 1.226 Zeilen als geschlossener Block herausloesen. Zwei Abhaengigkeiten, ein Aufrufer — uebt die Technik risikoarm."}, {"id": "L-25b", "basis": "L-25", "phase": "B", "prio": "P3", "aufwand": "L", "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend", "warum": "projects.py Etappe 0+1: Endpunktwerkzeug (mit openapi(), nicht app.routes) und Netlify herausloesen — dort kommt das Tracking-Feature hin."}, {"id": "L-25c", "basis": "L-25", "phase": "B", "prio": "P3", "aufwand": "L", "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend", "warum": "projects.py Etappen 2–4: Content, Go-Live, oeffentlich. Nach jeder Etappe lauffaehig und einzeln zurueckdrehbar."}, {"id": "L-27", "basis": "L-27", "phase": "B", "prio": "P3", "aufwand": "M", "titel": "Zwei Briefing-Router auf demselben Praefix — abgesichert 2026-08-21, Zusammenlegen bleibt offen", "warum": "Briefing-Router zusammenlegen — geht erst, wenn briefings.py geteilt ist."}, {"id": "L-79", "basis": "L-79", "phase": "C", "prio": "P2", "aufwand": "S", "titel": "Die seitenweise Freigabe ist erreichbar, aber niemand ruft sie auf", "warum": "Der Knopf, der eine Seitenfreigabe anfragt. Ohne ihn bleibt die Kette aus L-76 halb offen."}, {"id": "L-19", "basis": "L-19", "phase": "C", "prio": "P2", "aufwand": "S", "titel": "KAS-Verkaufsseiten ohne Custom-Domain-Endpunkt — hängen auf .netlify.app", "warum": "KAS-Verkaufsseiten haengen auf *.netlify.app. Ein Kunde will seine Domain."}, {"id": "L-85", "basis": "L-85", "phase": "C", "prio": "P2", "aufwand": "M", "titel": "Die KI-Sichtbarkeit misst einen Zeitpunkt, kein Produkt", "warum": "KI-Sichtbarkeit sammeln statt ueberschreiben. Ohne Verlauf ist die Messung kein Produkt."}, {"id": "L-62", "basis": "L-62", "phase": "C", "prio": "P2", "aufwand": "S", "titel": "Fuenf von acht Werten in der Mailstrecken-Liste greifen ins Leere — und der Rest greift aus ein", "warum": "Fuenf von acht Werten der Mailstrecke greifen ins Leere — die Nachbetreuung laeuft ins Nichts."}, {"id": "L-82", "basis": "L-82", "phase": "D", "prio": "P2", "aufwand": "M", "titel": "Der Verlauf eines Betriebs steht im Reiter, nicht auf der Seite", "warum": "Betriebsseite dreispaltig, Verlauf sichtbar. Der Befund mit dem groessten Uebertrag aus dem HubSpot-Audit."}, {"id": "L-83", "basis": "L-83", "phase": "D", "prio": "P2", "aufwand": "S", "titel": "Benannte Ansichten statt bloßer Filter in der Betriebsliste", "warum": "Benannte Ansichten statt Filter, die jeder neu einstellt."}, {"id": "L-84", "basis": "L-84", "phase": "D", "prio": "P2", "aufwand": "S", "titel": "Woher ein Betrieb kam, steht nirgends als Feld", "warum": "Datensatzquelle als Feld — ohne sie ist jede Aussage zur Kanalwirkung geschaetzt."}, {"id": "L-24", "basis": "L-24", "phase": "D", "prio": "P2", "aufwand": "M", "titel": "ROADMAP-P1-Restpunkte: LeadProfile-Tabs, weitere Kundenportal-Wünsche", "warum": "ROADMAP-Restpunkte: LeadProfile-Reiter, Kundenportal-Wuensche."}, {"id": "L-29", "basis": "L-29", "phase": "E", "prio": "P3", "aufwand": "S", "titel": "Preise an fuenf Stellen zusammengefuehrt — und beim Nachzaehlen kamen vierzehn weitere heraus", "warum": "Restliche Preisstellen."}, {"id": "L-65", "basis": "L-65", "phase": "E", "prio": "P3", "aufwand": "S", "titel": "Zahlen im Werbetext, die niemand belegt", "warum": "Unbelegte Zahlen im Widget, das auf fremden Seiten steht."}, {"id": "L-30", "basis": "L-30", "phase": "E", "prio": "P3", "aufwand": "S", "titel": "ROADMAP.md enthaelt zwei widersprüchliche Roadmaps — gekennzeichnet 2026-08-19: Nachgezaehlt, d", "warum": "ROADMAP.md traegt zwei widersprechende Roadmaps."}, {"id": "L-11", "basis": "L-11", "phase": "E", "prio": "P1", "aufwand": "S", "titel": "Keine dokumentierte Backup- und Wiederherstellungsstrategie — Doku geschrieben 2026-08-19: docs", "warum": "Wiederherstellung einmal wirklich proben, nicht nur beschreiben."}, {"id": "L-38", "basis": "L-38", "phase": "E", "prio": "P1", "aufwand": "S", "titel": "Der Mai-Audit fuehrt „Brevo-Stats ✅\" und „Brevo-Contact-Sync ✅\" als geprueft — korrigiert 2026-", "warum": "Den Mai-Audit an den heutigen Stand angleichen."}, {"id": "L-09", "basis": "L-09", "phase": "E", "prio": "P1", "aufwand": "M", "titel": "Testabdeckung — Stand 2026-08-21: 1.538 Backend- + 370 Frontend-Tests (15.08. waren es 927 + 98", "warum": "Testabdeckung weiter heben — laufend, kein Paket."}, {"id": "L-81", "basis": "L-81", "phase": "E", "prio": "P2", "aufwand": "S", "titel": "Perplexitys alte Schnittstelle wird am 27.09.2026 abgeschaltet", "warum": "Nach dem 27.09.2026: den toten Perplexity-Zweig entfernen. Ein Termin, keine Baustelle."}], "blockiert": [{"id": "L-34", "grund": "Render-Zugang meldet den 5. Tag unauthorized", "titel": "Produktiv-Backend läuft in Oregon (US West)"}, {"id": "L-57", "grund": "Render-Zugang", "titel": "Der Produktiv-Dienst laesst sich nicht mehr von Grund auf bauen"}, {"id": "L-44", "grund": "haengt an L-34", "titel": "Inbound-Regel der Produktiv-DB steht auf 0.0.0.0/0"}, {"id": "L-35", "grund": "Render-Zugang", "titel": "Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service"}, {"id": "L-40", "grund": "NETLIFY_VORSCHAU_SITE_ID fehlt", "titel": "Qualitätsschleife nicht scharf geschaltet: NETLIFY_VORSCHAU_SITE_ID fehlt, deshalb ist der Durc"}, {"id": "L-75", "grund": "Widerruf beim Anbieter + Render-Rebuild", "titel": "GrapesJS-Lizenzschlüssel als Rückfall fest im Quelltext"}, {"id": "L-60", "grund": "Lehrplan ist eine inhaltliche Entscheidung", "titel": "Die Akademie kann mehr als sie zeigt — und die Technik ist seit dem 21.08. vollstaendig; es feh"}, {"id": "L-14", "grund": "fachliche Beurteilung des Assistenten", "titel": "Projekt-Assistent — Ausbau 1 gebaut (routers/assistant.py). Offen: fachliche Beurteilung durch "}, {"id": "L-16", "grund": "wartet auf Pattern-Notes", "titel": "Envato-Wireframe-Pipeline steckt in Phase 1 (2 von 8–15), wartet auf Pattern-Notes"}, {"id": "L-58", "grund": "Produktentscheid: Zusatzprodukt oder im Audit", "titel": "KI-Sichtbarkeit im Audit — (a) geschlossen 2026-08-21, (b) offen"}], "spaeter": [{"id": "L-21", "aufwand": "XL", "warum": "Google/Meta Ads — null Code. Stufe 3 der Vision, nicht vor den fuenf Kunden.", "titel": "Google Ads / Meta Ads: null Code — Stage 3 der Vision blockiert"}, {"id": "L-22", "aufwand": "L", "warum": "Analytics/Umami — Plan da, null Code.", "titel": "Analytics/Umami: Plan vorhanden, null Code — ohne Tracking keine Funnel-Optimierung"}, {"id": "L-17", "aufwand": "L", "warum": "Barrierefreiheit: zwei Klassen zu, Rest offen.", "titel": "Barrierefreiheit im Werkzeug — zwei Klassen geschlossen, das Thema bleibt offen"}, {"id": "L-20", "aufwand": "M", "warum": "WebSprint-Landingpage ausserhalb des Systems.", "titel": "WebSprint-Landingpage außerhalb des Systems, ohne Quellversionierung (53 KB lokal vs. 914 KB li"}, {"id": "L-23", "aufwand": "M", "warum": "Component-Manager Phase 2.", "titel": "Component-Manager Phase 2 (React-Eingabe) zurückgestellt"}, {"id": "L-15", "aufwand": "M", "warum": "Hormozi-Offer-Stack im content_writer.", "titel": "Hormozi-Offer-Stack fehlt im content_writer — seit Mai unverändert"}, {"id": "L-18", "aufwand": "M", "warum": "In-App-Benachrichtigungen.", "titel": "In-App-Benachrichtigungen fehlen (nur E-Mail-Schalter vorhanden)"}]}
+{
+ "phasen": [
+  {
+   "id": "L-78",
+   "basis": "L-78",
+   "phase": "A",
+   "prio": "P1",
+   "aufwand": "S",
+   "titel": "Das Lint-Tor prüft vier Regelfamilien — die Regel, die den Doppelbefund sah, ist nicht dabei",
+   "warum": "15 Minuten. Ab dann faengt das Tor die Fehlerklasse, die L-76 erzeugt hat — jede spaetere Phase wird dadurch ueberpruefbar."
+  },
+  {
+   "id": "L-56",
+   "basis": "L-56",
+   "phase": "A",
+   "prio": "P0",
+   "aufwand": "S",
+   "titel": "Einen Betrieb mit Kundenzugang loeschen ging nicht — und sagte es nicht",
+   "warum": "Ein Betrieb mit Kundenzugang liess sich nicht loeschen, und es sagte nichts. DSGVO-Loeschpflicht haengt daran."
+  },
+  {
+   "id": "L-05",
+   "basis": "L-05",
+   "phase": "A",
+   "prio": "P0",
+   "aufwand": "M",
+   "titel": "RolePermission ohne jede Wirkung — vierter Schritt 2026-08-21: acht von 18 Rechten sperren wirk",
+   "warum": "Zehn von 18 Rechten sperren nicht. Der Haken im Bildschirm „Rollen“ luegt, solange das so ist."
+  },
+  {
+   "id": "L-67",
+   "basis": "L-67",
+   "phase": "A",
+   "prio": "P3",
+   "aufwand": "M",
+   "titel": "166 Routen antworten jedem Angemeldeten — ohne Rollen- oder Zeilenpruefung",
+   "warum": "166 Routen antworten jedem Angemeldeten ohne Zeilenpruefung. Formal P3, faktisch die groesste offene Angriffsflaeche."
+  },
+  {
+   "id": "L-25a",
+   "basis": "L-25",
+   "phase": "B",
+   "prio": "P3",
+   "aufwand": "L",
+   "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend",
+   "warum": "main.py: 1.226 Zeilen als geschlossener Block herausloesen. Zwei Abhaengigkeiten, ein Aufrufer — uebt die Technik risikoarm."
+  },
+  {
+   "id": "L-25b",
+   "basis": "L-25",
+   "phase": "B",
+   "prio": "P3",
+   "aufwand": "L",
+   "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend",
+   "warum": "projects.py Etappe 0+1: Endpunktwerkzeug (mit openapi(), nicht app.routes) und Netlify herausloesen — dort kommt das Tracking-Feature hin."
+  },
+  {
+   "id": "L-25c",
+   "basis": "L-25",
+   "phase": "B",
+   "prio": "P3",
+   "aufwand": "L",
+   "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-22 nachgezählt: 10 im Backend, 15 im Frontend",
+   "warum": "projects.py Etappen 2–4: Content, Go-Live, oeffentlich. Nach jeder Etappe lauffaehig und einzeln zurueckdrehbar."
+  },
+  {
+   "id": "L-27",
+   "basis": "L-27",
+   "phase": "B",
+   "prio": "P3",
+   "aufwand": "M",
+   "titel": "Zwei Briefing-Router auf demselben Praefix — abgesichert 2026-08-21, Zusammenlegen bleibt offen",
+   "warum": "Briefing-Router zusammenlegen — geht erst, wenn briefings.py geteilt ist."
+  },
+  {
+   "id": "L-79",
+   "basis": "L-79",
+   "phase": "C",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "Die seitenweise Freigabe ist erreichbar, aber niemand ruft sie auf",
+   "warum": "Der Knopf, der eine Seitenfreigabe anfragt. Ohne ihn bleibt die Kette aus L-76 halb offen."
+  },
+  {
+   "id": "L-19",
+   "basis": "L-19",
+   "phase": "C",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "KAS-Verkaufsseiten ohne Custom-Domain-Endpunkt — hängen auf .netlify.app",
+   "warum": "KAS-Verkaufsseiten haengen auf *.netlify.app. Ein Kunde will seine Domain."
+  },
+  {
+   "id": "L-85",
+   "basis": "L-85",
+   "phase": "C",
+   "prio": "P2",
+   "aufwand": "M",
+   "titel": "Die KI-Sichtbarkeit misst einen Zeitpunkt, kein Produkt",
+   "warum": "KI-Sichtbarkeit sammeln statt ueberschreiben. Ohne Verlauf ist die Messung kein Produkt."
+  },
+  {
+   "id": "L-62",
+   "basis": "L-62",
+   "phase": "C",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "Fuenf von acht Werten in der Mailstrecken-Liste greifen ins Leere — und der Rest greift aus ein",
+   "warum": "Fuenf von acht Werten der Mailstrecke greifen ins Leere — die Nachbetreuung laeuft ins Nichts."
+  },
+  {
+   "id": "L-82",
+   "basis": "L-82",
+   "phase": "D",
+   "prio": "P2",
+   "aufwand": "M",
+   "titel": "Der Verlauf eines Betriebs steht im Reiter, nicht auf der Seite",
+   "warum": "Betriebsseite dreispaltig, Verlauf sichtbar. Der Befund mit dem groessten Uebertrag aus dem HubSpot-Audit."
+  },
+  {
+   "id": "L-83",
+   "basis": "L-83",
+   "phase": "D",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "Benannte Ansichten statt bloßer Filter in der Betriebsliste",
+   "warum": "Benannte Ansichten statt Filter, die jeder neu einstellt."
+  },
+  {
+   "id": "L-84",
+   "basis": "L-84",
+   "phase": "D",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "Woher ein Betrieb kam, steht nirgends als Feld",
+   "warum": "Datensatzquelle als Feld — ohne sie ist jede Aussage zur Kanalwirkung geschaetzt."
+  },
+  {
+   "id": "L-24",
+   "basis": "L-24",
+   "phase": "D",
+   "prio": "P2",
+   "aufwand": "M",
+   "titel": "ROADMAP-P1-Restpunkte: LeadProfile-Tabs, weitere Kundenportal-Wünsche",
+   "warum": "ROADMAP-Restpunkte: LeadProfile-Reiter, Kundenportal-Wuensche."
+  },
+  {
+   "id": "L-29",
+   "basis": "L-29",
+   "phase": "E",
+   "prio": "P3",
+   "aufwand": "S",
+   "titel": "Preise an fuenf Stellen zusammengefuehrt — und beim Nachzaehlen kamen vierzehn weitere heraus",
+   "warum": "Restliche Preisstellen."
+  },
+  {
+   "id": "L-65",
+   "basis": "L-65",
+   "phase": "E",
+   "prio": "P3",
+   "aufwand": "S",
+   "titel": "Zahlen im Werbetext, die niemand belegt",
+   "warum": "Unbelegte Zahlen im Widget, das auf fremden Seiten steht."
+  },
+  {
+   "id": "L-30",
+   "basis": "L-30",
+   "phase": "E",
+   "prio": "P3",
+   "aufwand": "S",
+   "titel": "ROADMAP.md enthaelt zwei widersprüchliche Roadmaps — gekennzeichnet 2026-08-19: Nachgezaehlt, d",
+   "warum": "ROADMAP.md traegt zwei widersprechende Roadmaps."
+  },
+  {
+   "id": "L-11",
+   "basis": "L-11",
+   "phase": "E",
+   "prio": "P1",
+   "aufwand": "S",
+   "titel": "Keine dokumentierte Backup- und Wiederherstellungsstrategie — Doku geschrieben 2026-08-19: docs",
+   "warum": "Wiederherstellung einmal wirklich proben, nicht nur beschreiben."
+  },
+  {
+   "id": "L-38",
+   "basis": "L-38",
+   "phase": "E",
+   "prio": "P1",
+   "aufwand": "S",
+   "titel": "Der Mai-Audit fuehrt „Brevo-Stats ✅\" und „Brevo-Contact-Sync ✅\" als geprueft — korrigiert 2026-",
+   "warum": "Den Mai-Audit an den heutigen Stand angleichen."
+  },
+  {
+   "id": "L-09",
+   "basis": "L-09",
+   "phase": "E",
+   "prio": "P1",
+   "aufwand": "M",
+   "titel": "Testabdeckung — Stand 2026-08-21: 1.538 Backend- + 370 Frontend-Tests (15.08. waren es 927 + 98",
+   "warum": "Testabdeckung weiter heben — laufend, kein Paket."
+  },
+  {
+   "id": "L-81",
+   "basis": "L-81",
+   "phase": "E",
+   "prio": "P2",
+   "aufwand": "S",
+   "titel": "Perplexitys alte Schnittstelle wird am 27.09.2026 abgeschaltet",
+   "warum": "Nach dem 27.09.2026: den toten Perplexity-Zweig entfernen. Ein Termin, keine Baustelle."
+  }
+ ],
+ "blockiert": [
+  {
+   "id": "L-34",
+   "grund": "Render-Zugang meldet den 5. Tag unauthorized",
+   "titel": "Produktiv-Backend läuft in Oregon (US West)"
+  },
+  {
+   "id": "L-57",
+   "grund": "Render-Zugang",
+   "titel": "Der Produktiv-Dienst laesst sich nicht mehr von Grund auf bauen"
+  },
+  {
+   "id": "L-44",
+   "grund": "haengt an L-34",
+   "titel": "Inbound-Regel der Produktiv-DB steht auf 0.0.0.0/0"
+  },
+  {
+   "id": "L-35",
+   "grund": "Render-Zugang",
+   "titel": "Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service"
+  },
+  {
+   "id": "L-40",
+   "grund": "NETLIFY_VORSCHAU_SITE_ID fehlt",
+   "titel": "Qualitätsschleife nicht scharf geschaltet: NETLIFY_VORSCHAU_SITE_ID fehlt, deshalb ist der Durc"
+  },
+  {
+   "id": "L-75",
+   "grund": "Widerruf beim Anbieter + Render-Rebuild",
+   "titel": "GrapesJS-Lizenzschlüssel als Rückfall fest im Quelltext"
+  },
+  {
+   "id": "L-60",
+   "grund": "Lehrplan ist eine inhaltliche Entscheidung",
+   "titel": "Die Akademie kann mehr als sie zeigt — und die Technik ist seit dem 21.08. vollstaendig; es feh"
+  },
+  {
+   "id": "L-14",
+   "grund": "fachliche Beurteilung des Assistenten",
+   "titel": "Projekt-Assistent — Ausbau 1 gebaut (routers/assistant.py). Offen: fachliche Beurteilung durch "
+  },
+  {
+   "id": "L-16",
+   "grund": "wartet auf Pattern-Notes",
+   "titel": "Envato-Wireframe-Pipeline steckt in Phase 1 (2 von 8–15), wartet auf Pattern-Notes"
+  },
+  {
+   "id": "L-58",
+   "grund": "Produktentscheid: Zusatzprodukt oder im Audit",
+   "titel": "KI-Sichtbarkeit im Audit — (a) geschlossen 2026-08-21, (b) offen"
+  }
+ ],
+ "spaeter": [
+  {
+   "id": "L-21",
+   "aufwand": "XL",
+   "warum": "Google/Meta Ads — null Code. Stufe 3 der Vision, nicht vor den fuenf Kunden.",
+   "titel": "Google Ads / Meta Ads: null Code — Stage 3 der Vision blockiert"
+  },
+  {
+   "id": "L-22",
+   "aufwand": "L",
+   "warum": "Analytics/Umami — Plan da, null Code.",
+   "titel": "Analytics/Umami: Plan vorhanden, null Code — ohne Tracking keine Funnel-Optimierung"
+  },
+  {
+   "id": "L-17",
+   "aufwand": "L",
+   "warum": "Barrierefreiheit: zwei Klassen zu, Rest offen.",
+   "titel": "Barrierefreiheit im Werkzeug — zwei Klassen geschlossen, das Thema bleibt offen"
+  },
+  {
+   "id": "L-20",
+   "aufwand": "M",
+   "warum": "WebSprint-Landingpage ausserhalb des Systems.",
+   "titel": "WebSprint-Landingpage außerhalb des Systems, ohne Quellversionierung (53 KB lokal vs. 914 KB li"
+  },
+  {
+   "id": "L-23",
+   "aufwand": "M",
+   "warum": "Component-Manager Phase 2.",
+   "titel": "Component-Manager Phase 2 (React-Eingabe) zurückgestellt"
+  },
+  {
+   "id": "L-15",
+   "aufwand": "M",
+   "warum": "Hormozi-Offer-Stack im content_writer.",
+   "titel": "Hormozi-Offer-Stack fehlt im content_writer — seit Mai unverändert"
+  },
+  {
+   "id": "L-18",
+   "aufwand": "M",
+   "warum": "In-App-Benachrichtigungen.",
+   "titel": "In-App-Benachrichtigungen fehlen (nur E-Mail-Schalter vorhanden)"
+  }
+ ],
+ "meilensteine": [
+  {
+   "id": "M1",
+   "titel": "Websprint angebotsfähig",
+   "datum": "11.09.2026",
+   "erkennbar": "Erstes Angebot mit belastbarer Garantiezahl ist versendbar",
+   "luecken": [],
+   "extern": [
+    "B05 — fünf Referenzmessungen, dann Garantieschwelle festlegen"
+   ]
+  },
+  {
+   "id": "M2",
+   "titel": "Audit-Widget rechtssicher",
+   "datum": "25.09.2026",
+   "erkennbar": "Widget darf an Innungen und Kammern ausgeliefert werden",
+   "luecken": [],
+   "extern": [
+    "B02 — anwaltliche Prüfung, 5 Wochen Wartezeit"
+   ]
+  },
+  {
+   "id": "M3",
+   "titel": "Pflege-Abo aktiv",
+   "datum": "09.10.2026",
+   "erkennbar": "Erste wiederkehrende Zahlung eingegangen",
+   "luecken": [
+    "L-101"
+   ],
+   "extern": []
+  },
+  {
+   "id": "M4",
+   "titel": "Shop live",
+   "datum": "06.11.2026",
+   "erkennbar": "Check PLUS ist online kaufbar",
+   "luecken": [
+    "L-100"
+   ],
+   "extern": [
+    "B02 — Widerrufsbelehrung",
+    "B03 — Steuersatz und Rechnungsnummernkreis"
+   ]
+  },
+  {
+   "id": "M5",
+   "titel": "Buch veröffentlicht",
+   "datum": "20.11.2026",
+   "erkennbar": "ISBN gelistet, im Buchhandel bestellbar",
+   "luecken": [],
+   "extern": [
+    "B11 — ISBN und BoD-Konto",
+    "fünf Publikationsblocker"
+   ]
+  },
+  {
+   "id": "M6",
+   "titel": "SYSTEM verkaufsfähig",
+   "datum": "27.11.2026",
+   "erkennbar": "GEO-Artefakte an echter Kundendomain verifiziert",
+   "luecken": [
+    "L-99"
+   ],
+   "extern": [
+    "B10 — AV-Vertragsmuster"
+   ]
+  },
+  {
+   "id": "M7",
+   "titel": "Drei Produktvarianten im System",
+   "datum": "18.12.2026",
+   "erkennbar": "Relaunch, Neubau und System im Deal auswählbar",
+   "luecken": [
+    "L-97"
+   ],
+   "extern": []
+  }
+ ]
+}

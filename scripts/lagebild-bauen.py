@@ -22,6 +22,7 @@ und lässt danach dieses Skript laufen.
 Ergebnis: `docs/lagebild/kompagnon-lagebild.html` — diese Datei wird als
 Artifact veröffentlicht (derselbe Pfad hält dieselbe URL).
 """
+import ast
 import collections
 import json
 import pathlib
@@ -202,6 +203,31 @@ def module_gruen() -> int:
     return VORLAGE.read_text(encoding="utf-8").count('ampel:"a-gruen"')
 
 
+def pakete_live() -> int:
+    """Wie viele Produkte auf einer frischen Datenbank verkaeuflich waeren.
+
+    Hier stand bis zum 24.08.2026 eine feste **3** — richtig, solange der
+    Katalog Starter, KOMPAGNON und Premium fuehrte und alle drei live waren.
+    Mit dem Websprint-Wechsel (L-97) wurden es zwei, und die Zahl im Lagebild
+    blieb stehen. Genau der Fall, vor dem [[feedback_lagebild_nachfuehren]]
+    warnt: eine Zahl von Hand, die niemand nachfuehrt, weil niemand merkt,
+    dass sie veraltet ist.
+
+    Gezaehlt wird an der Vorlage in `main.py` — der versionierten Quelle fuer
+    eine frische Datenbank. **Das ist ausdruecklich nicht der Live-Zustand:**
+    Im Produkteditor laesst sich ein Paket jederzeit umschalten, ohne dass
+    diese Datei sich aendert. Was hier steht, ist der Auslieferungsstand.
+    """
+    quelle = (WURZEL / "kompagnon" / "backend" / "main.py").read_text(encoding="utf-8")
+    baum = ast.parse(quelle)
+    for knoten in ast.walk(baum):
+        if (isinstance(knoten, ast.Assign)
+                and any(getattr(z, "id", "") == "SEED" for z in knoten.targets)):
+            return sum(1 for e in ast.literal_eval(knoten.value)
+                       if e.get("status") == "live")
+    return 0
+
+
 def zahlen_block(luecken: list) -> str:
     z = collections.Counter(e["status"] for e in luecken)
     p0 = sum(1 for e in luecken if e["prio"] == "P0" and e["status"] != "geschlossen")
@@ -213,7 +239,7 @@ def zahlen_block(luecken: list) -> str:
         (z["teilweise"], "teilweise", False),
         (z["geschlossen"], "geschlossen", False),
         (f'{gruen}<span style="font-size:19px">/11</span>', "Module grün", False),
-        (3, "Pakete live", False),
+        (pakete_live(), "Pakete live", False),
     ]
     zeilen = "\n".join(
         f'      <div class="zahl{" dringend" if warn else ""}">'
@@ -221,6 +247,70 @@ def zahlen_block(luecken: list) -> str:
         for wert, name, warn in felder
     )
     return f'<div class="zahlen">\n{zeilen}\n    </div>'
+
+
+def meilensteine_bewerten(plan: dict, luecken: list) -> dict:
+    """Je Meilenstein: welche Luecke haelt ihn noch auf.
+
+    **Warum das Lagebild Termine ueberhaupt kennen sollte (24.08.2026).** Es
+    beantwortete bisher „was ist offen", nicht „was verschiebt sich dadurch".
+    Davids Projektplan KW35–52 nennt sieben Meilensteine mit Datum; die
+    Verbindung zwischen ihnen und der Lueckenliste stand nirgends.
+
+    **Die Bewertung ist bewusst zweigeteilt.** Was an einer Luecke haengt,
+    kann das Lagebild messen — es kennt ihren Status. Was an Anwalt,
+    Steuerberater oder einer Referenzmessung haengt, kann es **nicht** messen
+    und behauptet es auch nicht: Diese Punkte stehen als `extern` daneben und
+    bleiben stehen, bis jemand sie von Hand streicht. Ein Meilenstein ohne
+    offene Luecke ist deshalb „technisch frei", nicht „erreicht".
+    """
+    status = {e["id"]: e["status"] for e in luecken}
+    for m in plan.get("meilensteine", []):
+        offen = [i for i in m.get("luecken", [])
+                 if status.get(i) != "geschlossen"]
+        m["offen"] = offen
+        m["frei"] = not offen
+    return plan
+
+
+def plan_bereinigen(plan: dict, luecken: list) -> dict:
+    """Erledigtes aus dem Arbeitsplan nehmen — beim Bauen, nicht von Hand.
+
+    **Der Befund vom 24.08.2026.** `plan.json` stammt vom 22.08. und wurde
+    seither nicht nachgefuehrt: **18 von 40 Eintraegen** waren geschlossen und
+    standen trotzdem als offene Arbeit im Lagebild — darunter L-34 (der
+    Umzug nach Frankfurt) unter „blockiert", obwohl er einen Tag zuvor
+    vollzogen wurde. Ein Plan, der Erledigtes als Vorhaben zeigt, ist
+    schlimmer als keiner: Er sieht aus wie eine Arbeitsliste.
+
+    Statt die Datei jedes Mal von Hand zu putzen, faellt Geschlossenes hier
+    beim Bauen heraus. Damit kann sie nicht mehr veralten — sie darf
+    Eintraege enthalten, die laengst zu sind, sie erscheinen nur nicht mehr.
+
+    Unbekannte Kennungen (etwa `L-25a` als Teilschritt einer Luecke) bleiben
+    stehen: Sie haben keinen Status, ueber den sich entscheiden liesse, und
+    stillschweigend zu verschwinden waere die schlechtere Annahme.
+    """
+    status = {e["id"]: e["status"] for e in luecken}
+    entfernt = []
+    bereinigt = {}
+    for bereich, eintraege in plan.items():
+        if not isinstance(eintraege, list):
+            bereinigt[bereich] = eintraege
+            continue
+        behalten = []
+        for e in eintraege:
+            if bereich == "meilensteine":
+                behalten.append(e)
+            elif status.get(e.get("id")) == "geschlossen":
+                entfernt.append(e["id"])
+            else:
+                behalten.append(e)
+        bereinigt[bereich] = behalten
+    if entfernt:
+        print(f"  Plan: {len(entfernt)} geschlossene Eintraege ausgeblendet "
+              f"({', '.join(entfernt[:6])}{' …' if len(entfernt) > 6 else ''})")
+    return bereinigt
 
 
 def stand() -> str:
@@ -244,6 +334,8 @@ def main() -> int:
     seite = VORLAGE.read_text(encoding="utf-8")
     plan = json.loads(PLANDATEN.read_text(encoding="utf-8")) if PLANDATEN.exists() else {
         "phasen": [], "blockiert": [], "spaeter": []}
+    plan = plan_bereinigen(plan, luecken)
+    plan = meilensteine_bewerten(plan, luecken)
 
     ersetzungen = {
         "/*__LUECKEN__*/[]": json.dumps(luecken, ensure_ascii=False),

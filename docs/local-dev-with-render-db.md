@@ -1,5 +1,18 @@
 # Local Development mit Render-Postgres
 
+> **Überholt seit dem 2026-08-23.** Der hier beschriebene Weg funktioniert
+> nicht mehr: Die Inbound-Regel der Produktivdatenbank steht auf „kein externer
+> Verkehr" (L-44), die Staging-Datenbank tat das seit jeher. Externe Verbindungen
+> mit DBeaver oder `psql` scheitern jetzt mit `SSL/TLS required`.
+>
+> Der Widerspruch, den dieses Dokument trug, ist damit aufgelöst: Es beschrieb
+> einen Zugang und warnte im selben Atemzug „Nur Staging-DB nutzen" — während
+> die Staging-Datenbank genau diesen Zugang blockte. Der beschriebene Weg
+> funktionierte also allein gegen die Datenbank, vor der die Anleitung warnte.
+>
+> **Ersatz:** Render-Shell und `render psql <dienst>`. Beides läuft innerhalb
+> von Render und braucht keine offene Regel.
+
 > **Hinweis (2026-08-07):** Für die normale lokale Entwicklung gilt jetzt
 > [local-dev-and-deploy.md](./local-dev-and-deploy.md) — ein Befehl, lokale Postgres,
 > keine Verbindung zu Render. Dieses Dokument bleibt für Sonderfälle relevant:

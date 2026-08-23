@@ -203,8 +203,12 @@ class CompagnonScheduler:
         # Mails trotzdem hinausgegangen.
         setze_probemodus(use_mock_email)
 
-        # JobStore mit Fallback auf MemoryJobStore wenn DB nicht erreichbar
+        # JobStore mit Fallback auf MemoryJobStore wenn DB nicht erreichbar.
+        # `SCHEDULER_JOBSTORE=memory` erzwingt den fluechtigen Speicher — ein
+        # Test darf die geteilte Jobtabelle nicht anfassen.
         try:
+            if os.getenv("SCHEDULER_JOBSTORE", "").strip().lower() == "memory":
+                raise RuntimeError("ausdruecklich im Speicher gewuenscht")
             from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
             jobstores = {
                 "default": SQLAlchemyJobStore(
@@ -226,8 +230,53 @@ class CompagnonScheduler:
     def start(self):
         """Start the scheduler and register all daily jobs."""
         self.scheduler.start()
-        self._register_daily_jobs()
+        registrierte = self._registrieren_und_merken()
+        self._verwaiste_wegraeumen(registrierte)
         logger.info("✓ Scheduler started with all daily jobs")
+
+    def _registrieren_und_merken(self) -> set:
+        """`_register_daily_jobs` fahren und dabei mitschreiben, was sie anlegt.
+
+        **Warum mitschreiben statt eine Liste pflegen.** Eine Konstante mit den
+        festen Kennungen waere klarer zu lesen — und sie waere genau die
+        Fehlerquelle, die hier zu schliessen ist: Sie laeuft mit der
+        Registrierung auseinander, sobald jemand einen Job umbenennt, und dann
+        raeumt der Abgleich den falschen weg. Was tatsaechlich angelegt wurde,
+        weiss nur der Aufruf selbst.
+        """
+        angelegt = set()
+        echtes_add_job = self.scheduler.add_job
+
+        def mitschreibend(*args, **kwargs):
+            job = echtes_add_job(*args, **kwargs)
+            angelegt.add(job.id)
+            return job
+
+        self.scheduler.add_job = mitschreibend
+        try:
+            self._register_daily_jobs()
+        finally:
+            self.scheduler.add_job = echtes_add_job
+
+        return angelegt
+
+    def _verwaiste_wegraeumen(self, registrierte: set) -> None:
+        """Jobs entfernen, die der heutige Code nicht mehr anlegt.
+
+        Sie kommen aus dem **dauerhaften** Jobstore und laufen weiter, obwohl
+        sie niemand mehr registriert — produktiv am 23.08.2026 gefunden:
+        `netlify_dns_check_every_10min` neben `..._15min`, alle zehn Minuten,
+        seit einer Umbenennung. Jeder Fall wird **benannt**, nicht still
+        entfernt: Ein lautlos verschwundener Job ist so schwer zu finden wie
+        ein lautlos laufender.
+        """
+        vorhandene = [job.id for job in self.scheduler.get_jobs()]
+        for kennung in verwaiste_jobs(vorhandene, registrierte):
+            logger.warning(
+                "🧹 Job %s stand im Speicher, wird vom Code aber nicht mehr "
+                "angelegt — entfernt", kennung,
+            )
+            self.scheduler.remove_job(kennung)
 
     def stop(self):
         """Stop the scheduler."""
@@ -438,6 +487,53 @@ class CompagnonScheduler:
 
 _scheduler = None
 
+# Jobs, die **zur Laufzeit** entstehen — je Projekt einer, angelegt beim
+# Go-Live. Sie stehen in keiner Registrierungsliste und duerfen deshalb beim
+# Aufraeumen nicht mitgehen: Wer hier pauschal loescht, wirft Kundentermine weg.
+LAUFZEIT_PRAEFIXE = ("golive_",)
+
+# Werte, die als „aus" gelten. Alles andere laeuft — auch ein Tippfehler.
+# **Die sichere Richtung:** Ein Scheduler, der faelschlich laeuft, faellt auf.
+# Einer, der faelschlich stillsteht, faellt erst auf, wenn eine Nachfassmail
+# ausbleibt, und dann ist der Kunde schon weg.
+_AUS = {"false", "0", "no", "nein", "off", "aus"}
+
+
+def scheduler_ist_eingeschaltet() -> bool:
+    """Darf dieser Dienst einen Scheduler fahren?
+
+    **Warum es diesen Schalter gibt (2026-08-23, beim Umzug L-34).** Waehrend
+    des Umzugs laufen zwei Produktiv-Dienste gegen **dieselbe** Datenbank —
+    Oregon traegt den Verkehr, Frankfurt steht daneben. Beide starteten einen
+    Scheduler, und beide hingen ihn an denselben `SQLAlchemyJobStore`.
+    APScheduler kennt keine Sperre ueber Prozessgrenzen: Ein faelliger Job
+    kann damit zweimal laufen, und unter den vierzehn ist
+    `email_sequence_runner`.
+
+    Der Dienst ohne Verkehr setzt `SCHEDULER_ENABLED=false` und ist damit
+    still, ohne abgeschaltet zu sein — er bleibt pruefbar.
+    """
+    return os.getenv("SCHEDULER_ENABLED", "true").strip().lower() not in _AUS
+
+
+def verwaiste_jobs(vorhandene_ids, registrierte_ids) -> list:
+    """Job-Kennungen im Speicher, die der heutige Code nicht mehr anlegt.
+
+    **Der Fund vom 2026-08-23:** Der Jobstore ist dauerhaft, die Registrierung
+    nicht. Produktiv stand `netlify_dns_check_every_10min` in der Tabelle und
+    lief alle zehn Minuten, obwohl der Code seit einer Umbenennung **nur noch**
+    `netlify_dns_check_every_15min` anlegt. Niemand sah es: Im Dashboard steht
+    kein Jobstore, und `/api/scheduler/status` zeigt genau das, was in der
+    Tabelle steht — also auch den Vorgaenger.
+
+    Laufzeit-Jobs bleiben unberuehrt, siehe `LAUFZEIT_PRAEFIXE`.
+    """
+    return [
+        kennung for kennung in vorhandene_ids
+        if kennung not in registrierte_ids
+        and not kennung.startswith(LAUFZEIT_PRAEFIXE)
+    ]
+
 
 def get_scheduler(database_url: str = None, use_mock_email: bool = False):
     """Get or create scheduler instance."""
@@ -450,6 +546,13 @@ def get_scheduler(database_url: str = None, use_mock_email: bool = False):
 def start_scheduler():
     """Start the global scheduler. Fehler werden nur geloggt."""
     global _scheduler
+    if not scheduler_ist_eingeschaltet():
+        logger.info(
+            "⏸ Scheduler abgeschaltet (SCHEDULER_ENABLED) — dieser Dienst "
+            "faehrt keine Hintergrundjobs. Gewollt, solange ein zweiter "
+            "Dienst auf derselben Datenbank sie faehrt."
+        )
+        return
     try:
         scheduler = get_scheduler()
         if not scheduler.scheduler.running:

@@ -73,6 +73,7 @@ from routers import (
 
 # Import scheduler
 from automations import start_scheduler, stop_scheduler, get_scheduler
+from automations.scheduler import scheduler_ist_eingeschaltet
 
 # Configure logging
 logging.basicConfig(
@@ -850,6 +851,12 @@ def health_check():
             "service": "KOMPAGNON Backend",
             "database": db_status,
             "scheduler_running": scheduler.scheduler.running,
+            # **Abgeschaltet ist nicht abgestuerzt.** Waehrend des Umzugs
+            # (L-34) faehrt der Dienst ohne Verkehr `SCHEDULER_ENABLED=false`,
+            # damit nicht zwei Scheduler auf derselben Jobtabelle arbeiten.
+            # Ohne dieses Feld sieht das von aussen aus wie ein Ausfall — und
+            # der naechste, der hinsieht, „repariert" einen gewollten Zustand.
+            "scheduler_enabled": scheduler_ist_eingeschaltet(),
             # Ob der Start durchlief. Ohne diese Auskunft blieb produktiv
             # monatelang unbemerkt, dass sieben von acht Startphasen ausfielen.
             "startup_complete": _STARTZUSTAND["vollstaendig"],

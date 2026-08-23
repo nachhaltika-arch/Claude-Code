@@ -278,3 +278,80 @@ def pytest_sessionfinish(session, exitstatus):
         Base.metadata.drop_all(bind=engine)
     except Exception:
         pass
+
+
+# **Aus `test_widget.py` hierher am 23.08.2026 (L-25).** Die Datei hatte 901
+# Zeilen und ist in drei geteilt; alle drei brauchen diese Fixture. Sie hier zu
+# fuehren ist der pytest-uebliche Weg und besser als drei Kopien — genau die
+# Sorte Duplikat, die anderswo heute schon einen Fehler verdeckt hat.
+#
+# Sie ist **nicht** `autouse`: Wer sie nicht anfordert, merkt nichts von ihr.
+@pytest.fixture
+def aufraeumen():
+    """Entfernt die in einem Test angelegten Anfragen wieder."""
+    # **Erst hier importieren, nicht oben.** `conftest.py` setzt weiter
+    # oben `DATABASE_URL` auf die Testdatenbank; ein Modulimport von
+    # `database` liefe davor und traefe die falsche.
+    from database import SessionLocal, WidgetRequest
+    angelegte = []
+    yield angelegte
+    db = SessionLocal()
+    try:
+        db.query(WidgetRequest).filter(WidgetRequest.email.in_(angelegte)).delete(
+            synchronize_session=False)
+        db.commit()
+    finally:
+        db.close()
+
+
+# Ebenfalls geteilt von allen drei Widget-Dateien (L-25, 23.08.2026):
+# `fremde_analyse` legt eine Anfrage samt Audit an, `gesendete_mails` faengt
+# den Versand ab. Beide werden von je zwei Dateien gebraucht — in der einen zu
+# lassen und in der anderen zu wiederholen waere die schlechtere Haelfte.
+@pytest.fixture
+def fremde_analyse():
+    """Eine Analyse, wie sie im Tool über die Lead-Akquise entsteht.
+
+    Sie gehört zu keiner Widget-Anfrage — niemand von außen darf sie sehen.
+    """
+    from database import AuditResult, SessionLocal, WidgetRequest
+
+    db = SessionLocal()
+    try:
+        audit = AuditResult(
+            website_url="https://interner-interessent.example",
+            company_name="Interner Interessent",
+            status="completed",
+            total_score=41,
+            level="Homepage Standard Bronze",
+        )
+        db.add(audit)
+        db.commit()
+        db.refresh(audit)
+        audit_id = audit.id
+    finally:
+        db.close()
+
+    yield audit_id
+
+    db = SessionLocal()
+    try:
+        db.query(AuditResult).filter(AuditResult.id == audit_id).delete()
+        db.commit()
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def gesendete_mails(monkeypatch):
+    """Fängt den Versand ab, statt echte Post zu verschicken."""
+    from routers import widget
+    briefe = []
+
+    def _abfangen(to_email, subject, html_body, **kwargs):
+        briefe.append({"an": to_email, "betreff": subject, "html": html_body})
+        return True
+
+    import services.email
+    monkeypatch.setattr(services.email, "send_email", _abfangen)
+    return briefe

@@ -1,5 +1,13 @@
 # KAS — Render Blueprint (PRODUKTIV, Ist-Zustand — VERALTET)
 #
+# **Seit dem 2026-08-23 beschreibt diese Datei einen stillgelegten Dienst.**
+# `claude-code-znq2` (Oregon) ist suspendiert; produktiv laeuft
+# `kompagnon-backend-fra` in Frankfurt und traegt `api.kompagnon.group`.
+#
+# Wahrheits-Datei fuer Produktiv ist `render-produktiv.yaml`, fuer Staging
+# `render-staging.yaml`. Diese hier bleibt nur als Beleg des alten Zustands
+# stehen — sie anzuwenden hiesse, den Umzug rueckgaengig zu machen.
+#
 # ⚠️ Diese Datei beschreibt den Produktivbetrieb NICHT korrekt. Sie nennt sich
 # „Wahrheits-Datei", ist aber an keinen Dienst gebunden: Produktiv ist nichts
 # blueprint-verwaltet (L-35). Was hier steht, ist deshalb nie geprüft worden,

@@ -64,14 +64,18 @@
 
 services:
   # ── Backend (FastAPI) ──────────────────────────────────────────────────────
-  # ACHTUNG: `kompagnon-backend` ist der Name des **laufenden** Oregon-Dienstes
-  # (URL-Kennung `claude-code-znq2`). Zwei Dienste können ihn nicht tragen.
-  # Vor dem Anlegen also den alten umbenennen — etwa auf
-  # `kompagnon-backend-oregon`; die URL-Kennung bleibt davon unberührt, es
-  # bricht nichts. Danach ist der gute Name für den neuen Dienst frei, und
-  # nach dem Löschen des alten bleibt kein Namensrest zurück.
+  # **Name auf die Wirklichkeit gebracht am 2026-08-23.** Hier stand
+  # `kompagnon-backend` mit dem Hinweis, vor dem Anlegen den Oregon-Dienst
+  # umzubenennen. Beides ist überholt: Der Dienst wurde am 19.08. von Hand
+  # angelegt und heißt `kompagnon-backend-fra`; seit dem 23.08. trägt er die
+  # Domain und den gesamten Verkehr. `kompagnon-backend` ist heute der Name des
+  # **suspendierten** Oregon-Dienstes.
+  #
+  # Das ist der Grund, warum der Name hier zählt und nicht Kosmetik ist: Wer
+  # diesen Blueprint anwendet, während er den falschen Namen trägt, legt
+  # entweder einen dritten Dienst an oder greift nach dem stillgelegten.
   - type: web
-    name: kompagnon-backend
+    name: kompagnon-backend-fra
     runtime: python
     # Der Grund für den ganzen Umzug. Die DB steht in Frankfurt, das Backend
     # stand in Oregon: 2,1–2,6 s pro Health-Check statt 0,16 s, sieben von acht
@@ -146,6 +150,18 @@ services:
       # (kunde@, nutzer@, auditor@kompagnon.de). Nicht weglassen.
       - key: ENVIRONMENT
         value: production
+      # **Wer faehrt die Hintergrundjobs?** (L-91, dazugekommen am 23.08.2026)
+      # APScheduler kennt keine Sperre ueber Prozessgrenzen: Zwei Dienste
+      # gegen dieselbe `apscheduler_jobs`-Tabelle koennen denselben faelligen
+      # Job **zweimal** ausfuehren, und einer davon versendet Mails. Waehrend
+      # des Umzugs liefen genau so zwei Scheduler nebeneinander.
+      #
+      # `true` gehoert an **den** Dienst, der die Domain traegt — und nur an
+      # den. Ein zweiter Dienst auf derselben Datenbank bekommt `false`.
+      # Die Vorgabe im Code ist `true`; hier steht sie ausdruecklich, damit
+      # beim naechsten Parallelbetrieb niemand raten muss.
+      - key: SCHEDULER_ENABLED
+        value: "true"
       - key: LOG_LEVEL
         value: INFO
       - key: DEBUG
@@ -296,6 +312,18 @@ services:
     runtime: static
     branch: main
     rootDir: kompagnon/frontend
+    # **Abweichung zur Wirklichkeit, gemessen am 2026-08-23 — und diese eine
+    # ist keine Nachlaessigkeit im Blueprint, sondern eine im Dienst.** Der
+    # laufende Static Site baut mit `npm install && npm run build`, Staging und
+    # dieser Blueprint mit `npm ci`. Der Unterschied ist nicht kosmetisch:
+    # `npm install` darf neuere Versionen ziehen, als `package-lock.json`
+    # festhaelt (762 KB), `npm ci` installiert genau den Lockstand.
+    #
+    # Produktiv kann damit aus **anderen** Abhaengigkeiten gebaut werden als
+    # das, was auf Staging geprueft wurde — die Klasse Fehler, die als „lief
+    # auf Staging" beginnt. Hier steht bewusst der richtige Befehl; der Dienst
+    # gehoert nachgezogen (Dashboard, die Render-API kann Build-Befehle nicht
+    # setzen).
     buildCommand: npm ci --legacy-peer-deps && npm run build
     staticPublishPath: build
     autoDeploy: false

@@ -26,6 +26,10 @@ from routers.auth_router import optional_auth, require_innendienst
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
 from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
+# Die Aufbereitung der Antwort steht seit dem 23.08.2026 fuer sich (L-25):
+# hundert Zeilen ohne eine einzige Route.
+from routers.audit_darstellung import (_catalogue_payload, _format_audit,
+                                       _json_field, _klassenbezeichnung)
 
 logger = logging.getLogger(__name__)
 
@@ -738,104 +742,3 @@ def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
         .all()
     )
     return [_format_audit(a) for a in audits]
-
-
-def _json_field(raw, fallback):
-    try:
-        return json.loads(raw) if raw else fallback
-    except (json.JSONDecodeError, TypeError):
-        return fallback
-
-
-def _catalogue_payload(items: dict, sources: dict) -> list:
-    """Kategorien mit Kriterien, Punkten und Quellen-Kennzeichnung."""
-    payload = []
-    for category in CATALOGUE:
-        criteria = []
-        for crit in category.criteria:
-            source = sources.get(crit.key, Source.NOT_COLLECTED.value)
-            criteria.append({
-                "key": crit.key,
-                "label": crit.label,
-                "hint": crit.hint,
-                "max": crit.max_points,
-                "score": int(items.get(crit.key, 0) or 0),
-                "source": source,
-                "source_label": SOURCE_LABELS.get(Source(source), source),
-                "collected": source != Source.NOT_COLLECTED.value,
-            })
-        payload.append({
-            "key": category.key,
-            "label": category.label,
-            "nominal_max": category.max_points,
-            "criteria": criteria,
-        })
-    return payload
-
-
-def _klassenbezeichnung(klasse: str) -> str:
-    """„K2" allein sagt dem Leser nichts — die Bezeichnung gehört dazu."""
-    from services.audit_industry_map import KLASSEN
-
-    eintrag = KLASSEN.get(klasse or "")
-    return eintrag.bezeichnung if eintrag else ""
-
-
-def _format_audit(audit: AuditResult) -> dict:
-    """Format audit for JSON response."""
-    items = _json_field(getattr(audit, "item_scores", None), {})
-    sources = _json_field(getattr(audit, "item_sources", None), {})
-    categories = _json_field(getattr(audit, "category_scores", None), [])
-    blocker_keys = _json_field(getattr(audit, "blockers", None), [])
-
-    return {
-        "id": audit.id,
-        "status": audit.status,
-        "lead_id": audit.lead_id,
-        "website_url": audit.website_url,
-        "company_name": audit.company_name,
-        "contact_name": audit.contact_name,
-        "city": audit.city,
-        "trade": audit.trade,
-        # Auto-scraped vom Impressum-Scraper in start_audit() — fürs
-        # Lead-Anlegen-Modal als Prefill, sonst nirgends genutzt.
-        "phone":       getattr(audit, "scraped_phone", "") or "",
-        "email":       getattr(audit, "scraped_email", "") or "",
-        "description": getattr(audit, "scraped_description", "") or "",
-        "total_score": audit.total_score,
-        "level": audit.level,
-        "coverage": getattr(audit, "coverage", None),
-        # Über wie viele Seiten geurteilt wurde. Ergebnisse vor dem 21.08.2026
-        # kannten nur die Startseite; die Spaltenvorgabe 1 sagt das ehrlich.
-        "seiten_geprueft": getattr(audit, "seiten_geprueft", None) or 1,
-        "seiten_gefunden": getattr(audit, "seiten_gefunden", None),
-        "collection_notes": _json_field(getattr(audit, "collection_notes", None), {}),
-        # Der Maßstab, gegen den bewertet wurde — siehe Bewertungslogik 2026.2.
-        "erkannte_branche": getattr(audit, "erkannte_branche", "") or "",
-        "branchenklasse": getattr(audit, "branchenklasse", "") or "",
-        "branchenklasse_bezeichnung": _klassenbezeichnung(
-            getattr(audit, "branchenklasse", "")),
-        "standard_version": getattr(audit, "standard_version", "") or "",
-        "categories": categories,
-        "catalogue": _catalogue_payload(items, sources),
-        "items": items,
-        "sources": sources,
-        "blockers": [
-            {"key": k, "label": BLOCKER_LABELS.get(k, k)} for k in blocker_keys
-        ],
-        "checks": {
-            "ssl_ok": audit.ssl_ok,
-            "impressum_ok": audit.impressum_ok,
-            "datenschutz_ok": audit.datenschutz_ok,
-            "lcp_value": audit.lcp_value,
-            "cls_value": audit.cls_value,
-            "inp_value": audit.inp_value,
-            "mobile_score": audit.mobile_score,
-            "performance_score": audit.performance_score,
-        },
-        "ai_summary": audit.ai_summary,
-        "top_issues": _json_field(audit.top_issues, []),
-        "recommendations": _json_field(audit.recommendations, []),
-        "created_at": audit.created_at.isoformat() if audit.created_at else None,
-        "screenshot_url": f"data:image/jpeg;base64,{audit.screenshot_base64}" if getattr(audit, 'screenshot_base64', None) else None,
-    }

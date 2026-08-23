@@ -289,7 +289,9 @@ function App() {
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
             <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
             <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
-            <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />
+            {/* Ruft `/api/leads`, das am Router auf Innendienst steht — ein Kunde
+              * saehe hier nur leere Listen und Fehler (L-67). */}
+            <Route path="audit" element={<PrivateRoute roles={['admin', 'auditor']}><AuditTool /></PrivateRoute>} />
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
@@ -316,8 +318,13 @@ function App() {
               * Bildschirm wie `product-editor` — von nirgends verlinkt.
               * Entfernt am 17.08.2026 (UX-17). Wer die Adresse kannte, kommt
               * über Einstellungen → Produkteditor an dieselbe Seite. */}
-            <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
-            <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
+            {/* Innendienst (L-67, 22.08.2026). Diese Routen trugen `<PrivateRoute>`
+              * **ohne** `roles` — auch ein Kunde kam durch, und der Newsletter-
+              * Designer ruft `POST /api/messages/send-email`. Der Server sperrt
+              * das seit demselben Tag; hier steht es, damit niemand auf einer
+              * Seite landet, die ihm nur Fehler zeigt. */}
+            <Route path="newsletter" element={<PrivateRoute roles={['admin', 'auditor']}><Newsletter /></PrivateRoute>} />
+            <Route path="newsletter/editor/:id" element={<PrivateRoute roles={['admin', 'auditor']}><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />

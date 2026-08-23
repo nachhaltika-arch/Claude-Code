@@ -210,7 +210,7 @@ Der Teaser antwortete auf Staging mit `ProgrammingError`, weil die neuen
 Spalten nie angelegt wurden. Sie standen in `migrations.py` — die wird aber
 nur von Hand aufgerufen. `migrate.py` ebenso, obwohl im Kopf jahrelang
 „Run automatically on startup" stand. Beim Start läuft **allein die Liste in
-`main.py::_run_migrations`**.
+`migrations_runtime.py::run_migrations`**.
 
 Dazu kommt: `create_all()` legt fehlende *Tabellen* an, rüstet aber niemals
 *Spalten* an einer Tabelle nach, die es schon gibt. `widget_requests` behielt
@@ -392,7 +392,7 @@ sind zwei Entscheidungen; ein Klick darf nicht für beide stehen.
 **Preis:** ein Klick mehr bis zum Bericht. Das ist der Tausch — die Adresse
 ist damit bestätigt statt angenommen.
 
-Neue Spalten (in `main.py::_run_migrations`, der Liste die läuft — siehe
+Neue Spalten (in `migrations_runtime.py::run_migrations`, der Liste die läuft — siehe
 Abschnitt 4): `verify_token`, `verify_sent_at`, `verified_at`.
 Die Anfragenliste im Tool zeigt jetzt: *wartet auf Bestätigung → bestätigt →
 versendet → abgerufen*.

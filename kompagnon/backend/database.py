@@ -65,13 +65,22 @@ class Lead(Base):
     company_name = Column(String(255), default="")
 
     # ── Nachgezogene Spalten ─────────────────────────────────────────
-    # Diese Spalten legt `main.py::_run_migrations` beim Start an. Im Modell
+    # Diese Spalten legt `migrations_runtime.py::run_migrations` beim Start an. Im Modell
     # fehlten sie — und wer sie zuweist, verliert den Wert stillschweigend:
     # SQLAlchemy legt ihn auf dem Python-Objekt ab und schreibt ihn nie.
     # Gefunden am 18.08.2026 beim Vergleich Migration gegen Modell.
     onboarding_completed = Column(Boolean, default=False)
     onboarding_completed_at = Column(DateTime, nullable=True)
     unread_messages = Column(Integer, default=0)
+
+    # Woher der Betrieb kam, wenn er ueber eine Anzeige hereinkam (L-86).
+    # Dieselbe Falle, ein zweites Mal: Die Spalten stehen seit langem in
+    # `migrations_runtime.py`, im Modell fehlten sie — und weil
+    # `routers/kampagne.py` sie mit rohem SQL schreibt, fiel es nie auf.
+    # Erst als der oeffentliche Weg sie zuweisen wollte, kam der Fehler.
+    utm_source = Column(String(200), nullable=True)
+    utm_medium = Column(String(200), nullable=True)
+    utm_campaign = Column(String(200), nullable=True)
     pagespeed_mobile_score = Column(Integer, nullable=True)
     pagespeed_desktop_score = Column(Integer, nullable=True)
     pagespeed_lcp_mobile = Column(Float, nullable=True)
@@ -301,7 +310,7 @@ class Project(Base):
     # Vom Nutzer bestaetigte Editor-Schritte, als JSON-Text:
     # {"<step_id>": {"confirmed": true, "confirmed_at": "<iso>"}}
     #
-    # Die Spalte legt `main.py::_run_migrations` per rohem SQL an. Hier fehlte
+    # Die Spalte legt `migrations_runtime.py::run_migrations` per rohem SQL an. Hier fehlte
     # sie — und ohne den Eintrag im Modell schreibt SQLAlchemy sie nicht:
     # `project.steps_confirmed = …` setzte nur ein Attribut am Python-Objekt,
     # `commit()` tat nichts, und die Antwort las denselben Speicher zurueck.
@@ -550,14 +559,14 @@ class AuditResult(Base):
     # eine alte Note mit einer neuen, ohne zu merken, dass die eine über eine
     # Seite und die andere über zwanzig gefällt wurde. Die Vorgabe 1 ist für
     # Altzeilen deshalb keine Behelfszahl, sondern die Wahrheit.
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
     seiten_geprueft = Column(Integer, default=1)
     seiten_gefunden = Column(Integer, nullable=True)
 
     # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
     # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
     # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
     erkannte_branche = Column(String, default="")   # Freitext des Modells
     branchenklasse = Column(String, default="")     # K1…K6
     standard_version = Column(String, default="")   # Fassung des Standards
@@ -680,7 +689,7 @@ class RolePermission(Base):
     # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
     # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
     # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
-    # Der Bestand wird in `main.py::_run_migrations` zusammengefuehrt.
+    # Der Bestand wird in `migrations_runtime.py::run_migrations` zusammengefuehrt.
     __table_args__ = (
         UniqueConstraint("role", "permission", name="uq_role_permission"),
     )
@@ -728,142 +737,24 @@ class Briefing(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-class AcademyCourse(Base):
-    """Academy course."""
-    __tablename__ = "academy_courses"
-    id = Column(Integer, primary_key=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, default='')
-    thumbnail_url = Column(String(500), default='')
-    is_published = Column(Boolean, default=False)
-    target_audience = Column(String(20), default='both')   # 'customer'|'employee'|'both'
-    category = Column(String(100), default='')
-    category_color = Column(String(50), default='primary')
-    audience = Column(String(20), default='employee')
-    formats = Column(Text, default='["text"]')
-    linear_progress = Column(Boolean, default=False)
-    sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    # „Nur fuer Zugewiesene" — das Gegenstueck zu Memberspots „Manuell".
-    # Vorgabe False: Ein Kurs ohne Sperre bleibt sichtbar wie bisher. Waere
-    # die Zuweisung ab sofort zwingend, verschwaende der Bestand vor den Augen
-    # der heutigen Kunden. Erst dieses Feld gibt `AcademyCustomerAccess`
-    # ueberhaupt eine Wirkung — bis zum 19.08.2026 fragte es kein Lesepfad ab.
-    is_locked = Column(Boolean, default=False)
 
 
-class AcademyChecklistItem(Base):
-    """Checklist item for an academy course."""
-    __tablename__ = "academy_checklist_items"
-    id = Column(Integer, primary_key=True)
-    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
-    label = Column(String(500), nullable=False)
-    sort_order = Column(Integer, default=0)
 
 
-class AcademyModule(Base):
-    """Module within an academy course."""
-    __tablename__ = "academy_modules"
-    id = Column(Integer, primary_key=True)
-    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
-    title = Column(String(255), nullable=False)
-    position = Column(Integer, default=0)
-    is_locked = Column(Boolean, default=False)
-    sort_order = Column(Integer, default=0)
-    # Aus dem Memberspot-Vergleich vom 19.08.2026: Dort traegt jedes Modul
-    # eine Zeile, die sagt, worum es geht, und ein Bild. Ohne beides ist eine
-    # Modulliste eine Aufzaehlung von Ueberschriften.
-    # `default=''` statt NULL: Die Oberflaeche soll nicht zwei Faelle
-    # unterscheiden muessen, wo einer reicht.
-    description = Column(Text, default='')
-    thumbnail_url = Column(String(500), default='')
 
 
-class AcademyLesson(Base):
-    """Lesson within a module."""
-    __tablename__ = "academy_lessons"
-    id = Column(Integer, primary_key=True)
-    module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
-    title = Column(String(255), nullable=False)
-    position = Column(Integer, default=0)
-    type = Column(String(20), default='text')         # 'video'|'text'|'quiz'
-    content_text = Column(Text, default='')
-    content_url = Column(String(500), default='')
-    video_url = Column(String(500), default='')
-    file_url = Column(String(500), default='')
-    duration_minutes = Column(Integer, default=0)
-    sort_order = Column(Integer, default=0)
-    # Stand nur in der Datenbank (main.py::_run_migrations), nicht im Modell.
-    # Der Router uebergab das Feld beim Anlegen — und SQLAlchemy wies es ab:
-    # `POST /api/academy/modules/{id}/lessons` antwortete mit 500, seit es
-    # den Endpunkt gibt. Kurse und Module liessen sich anlegen, Lektionen nie.
-    checklist_items_json = Column(Text, default='[]')
 
 
-class AcademyLessonProgress(Base):
-    """User progress on a lesson (legacy)."""
-    __tablename__ = "academy_lesson_progress"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
-    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'), nullable=False)
-    completed = Column(Boolean, default=False)
-    completed_at = Column(DateTime, nullable=True)
 
 
-class AcademyProgress(Base):
-    """User progress per lesson (with quiz score)."""
-    __tablename__ = "academy_progress"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
-    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'))
-    completed_at = Column(DateTime, nullable=True)
-    score = Column(Float, nullable=True)
 
 
-class AcademyCertificate(Base):
-    """Course completion certificate."""
-    __tablename__ = "academy_certificates"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
-    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'))
-    issued_at = Column(DateTime, default=datetime.utcnow)
-    certificate_code = Column(String(64), unique=True, nullable=False)
 
 
-class AcademyQuizQuestion(Base):
-    """Quiz question belonging to a lesson."""
-    __tablename__ = "academy_quiz_questions"
-    id = Column(Integer, primary_key=True)
-    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'), nullable=False)
-    question = Column(Text, nullable=False)
-    answers_json = Column(Text, default='[]')   # [{text, is_correct}]
-    sort_order = Column(Integer, default=0)
 
 
-class AcademyModuleAccess(Base):
-    """Welche gesperrten Module ein Kunde freigeschaltet bekommen hat.
-
-    Das Gegenstueck zu `AcademyCustomerAccess`, eine Ebene tiefer. Damit wird
-    aus einem Kurs je Zielgruppe **ein** Kurs mit Zweigen: Der Pflichtteil
-    gilt fuer alle, die gewerkespezifischen Module nur fuer die passenden
-    Betriebe.
-    """
-    __tablename__ = "academy_module_access"
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, nullable=False)
-    module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
-    assigned_at = Column(DateTime, default=datetime.utcnow)
-    assigned_by = Column(Integer, nullable=True)
 
 
-class AcademyCustomerAccess(Base):
-    """Which courses a customer (lead) has been granted access to."""
-    __tablename__ = "academy_customer_access"
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, nullable=False)
-    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
-    assigned_at = Column(DateTime, default=datetime.utcnow)
-    assigned_by = Column(Integer, nullable=True)
 
 
 class UserCard(Base):
@@ -928,28 +819,8 @@ class UserCard(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-class CrawlJob(Base):
-    """Background crawl job."""
-    __tablename__ = "crawl_jobs"
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, nullable=True)
-    status = Column(String(20), default='pending')   # pending|running|completed|failed
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    total_urls = Column(Integer, default=0)
 
 
-class CrawlResult(Base):
-    """Single URL result from a crawl job."""
-    __tablename__ = "crawl_results"
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, nullable=True)
-    job_id = Column(Integer, ForeignKey('crawl_jobs.id', ondelete='CASCADE'), nullable=True)
-    url = Column(String(2000), nullable=False)
-    status_code = Column(Integer, nullable=True)
-    depth = Column(Integer, default=0)
-    load_time = Column(Float, nullable=True)
-    crawled_at = Column(DateTime, default=datetime.utcnow)
 
 
 # `Course` (Tabelle `courses`) ist am 19.08.2026 entfallen. Es war das zweite
@@ -964,94 +835,12 @@ class CrawlResult(Base):
 # nichts mehr darin ist.
 
 
-class ProjectScrapedPage(Base):
-    __tablename__ = "project_scraped_pages"
-    id                = Column(Integer, primary_key=True)
-    project_id        = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    url               = Column(String, nullable=False)
-    page_title        = Column(String)
-    meta_description  = Column(Text)
-    h1                = Column(String)
-    h2_list           = Column(Text)       # JSON-Array als String
-    paragraphs        = Column(Text)       # JSON-Array als String
-    images            = Column(Text)       # JSON-Array {src, alt} als String
-    contact_phone     = Column(String)
-    contact_email     = Column(String)
-    contact_address   = Column(Text)
-    scraped_at        = Column(DateTime, default=datetime.utcnow)
 
 
-class ProjectScrapeJob(Base):
-    __tablename__ = "project_scrape_jobs"
-    id           = Column(Integer, primary_key=True)
-    project_id   = Column(Integer, nullable=False)
-    status       = Column(String, default="pending")  # pending/running/done/failed
-    total_pages  = Column(Integer, default=0)
-    started_at   = Column(DateTime)
-    completed_at = Column(DateTime)
 
 
-class AssistantConversation(Base):
-    """Ein Gespräch mit dem Projekt-Assistenten.
-
-    Entscheidung 3.2 der Anforderungen: Assistentengespräche liegen in einer
-    eigenen Ablage, getrennt von `messages`. Der Posteingang füllt sich nicht
-    mit KI-Nachrichten, der Verlauf bleibt trotzdem nachvollziehbar — auch für
-    den Nachweis, was der Assistent geraten hat.
-
-    Projektbezogen von Anfang an, obwohl Ausbau 1 nur das Briefing begleitet:
-    So erzwingt Ausbau 2 (Projektbegleitung) keine Migration.
-
-    Neue Tabellen legt `Base.metadata.create_all` beim Start an. Neue *Spalten*
-    an bestehenden Tabellen tun das nicht — die gehören in
-    `main.py::_run_migrations`.
-    """
-
-    __tablename__ = "assistant_conversations"
-
-    id          = Column(Integer, primary_key=True)
-    lead_id     = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"),
-                         nullable=False, index=True)
-    project_id  = Column(Integer, nullable=True, index=True)
-    modus       = Column(String(20), nullable=False, default="kunde")
-    # Wer das Gespräch führt — für das Tageslimit je Nutzer.
-    user_id     = Column(Integer, nullable=True, index=True)
-    titel       = Column(String(200), default="")
-    created_at  = Column(DateTime, default=datetime.utcnow)
-    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Gesetzt, wenn daraus eine echte Nachricht ans Team wurde.
-    escalated_at = Column(DateTime, nullable=True)
-
-    messages = relationship("AssistantMessage", back_populates="conversation",
-                            cascade="all, delete-orphan",
-                            order_by="AssistantMessage.id")
 
 
-class AssistantMessage(Base):
-    """Eine einzelne Nachricht im Assistentengespräch.
-
-    Der Verbrauch steht an der Nachricht, nicht in einer eigenen Tabelle: Jede
-    Zeile weiß, was sie gekostet hat, und die Summe je Projekt ist eine Abfrage.
-    """
-
-    __tablename__ = "assistant_messages"
-
-    id              = Column(Integer, primary_key=True)
-    conversation_id = Column(Integer,
-                             ForeignKey("assistant_conversations.id",
-                                        ondelete="CASCADE"),
-                             nullable=False, index=True)
-    rolle           = Column(String(20), nullable=False)   # "nutzer" | "assistent"
-    inhalt          = Column(Text, nullable=False)
-    # Woran der Nutzer gerade arbeitet — Schritt und Feld des Wizards.
-    schritt         = Column(String(60), default="")
-    feld            = Column(String(60), default="")
-    eingabe_tokens  = Column(Integer, default=0)
-    ausgabe_tokens  = Column(Integer, default=0)
-    kosten_euro     = Column(Float, default=0.0)
-    created_at      = Column(DateTime, default=datetime.utcnow, index=True)
-
-    conversation = relationship("AssistantConversation", back_populates="messages")
 
 
 class Message(Base):
@@ -1070,41 +859,8 @@ class Message(Base):
 
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
 
-class KasPage(Base):
-    """KOMPAGNON-eigene Website-Seiten (KAS = KOMPAGNON Agentur Seiten)."""
-    __tablename__ = "kas_pages"
-
-    id               = Column(Integer, primary_key=True, index=True)
-    titel            = Column(String(255), nullable=False)
-    pfad             = Column(String(255), nullable=False)
-    meta_description = Column(Text, default="")
-    position         = Column(Integer, default=0)
-    status           = Column(String(50), default="draft")
-    ist_startseite   = Column(Boolean, default=False)
-    notizen          = Column(Text, default="")
-    created_at       = Column(DateTime, default=datetime.utcnow)
-    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    gjs_data = relationship(
-        "KasGjsData",
-        back_populates="page",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
 
 
-class KasGjsData(Base):
-    """GrapesJS-Inhalt pro KAS-Seite (separate Tabelle fuer Performance)."""
-    __tablename__ = "kas_gjs_data"
-
-    id       = Column(Integer, primary_key=True, index=True)
-    page_id  = Column(Integer, ForeignKey("kas_pages.id", ondelete="CASCADE"))
-    html     = Column(Text, default="")
-    css      = Column(Text, default="")
-    gjs_data = Column(JSON, default=dict)
-    saved_at = Column(DateTime, default=datetime.utcnow)
-
-    page = relationship("KasPage", back_populates="gjs_data")
 
 
 class GeoAnalysis(Base):
@@ -1139,11 +895,15 @@ class GeoAnalysis(Base):
     last_score_change = Column(Integer, nullable=True)
 
     # Ob eine KI den Betrieb auf eine Kundenfrage hin wirklich nennt (L-58 b).
-    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all` —
+    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all` —
     # siehe die Nachbarn oben. NULL heisst „nie gelaufen", nicht „nicht
     # gefunden": Der Lauf kostet Geld und laeuft nur auf Anforderung.
     ki_sichtbarkeit = Column(JSONB, nullable=True)
     ki_sichtbarkeit_am = Column(DateTime, nullable=True)
+    # Je Lauf die Trefferzahl je System — ohne die Antworttexte, die
+    # den Verlauf in einem Jahr unlesbar machten (L-85). Nach oben
+    # begrenzt: `services/ki_sichtbarkeit.VERLAUF_MAX`.
+    ki_sichtbarkeit_verlauf = Column(JSONB, nullable=True)
 
     # Stripe Subscription
     stripe_subscription_id = Column(String(200), nullable=True)
@@ -1208,109 +968,8 @@ def get_db():
         db.close()
 
 
-class WidgetRequest(Base):
-    """Anfrage aus dem Einbett-Widget auf einer fremden Landingpage.
-
-    Hält dreierlei zusammen: die Ratenbegrenzung (wie viele Anfragen kamen
-    zuletzt von dieser Adresse), den Nachweis der Einwilligung (Zeitpunkt, IP,
-    Bestätigung) und die Zustellung des Berichts.
-    """
-    __tablename__ = "widget_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), nullable=False, index=True)
-    website_url = Column(String(500), nullable=False)
-
-    # Nachweis der Einwilligung nach § 7 UWG — ohne Zeitpunkt und Herkunft
-    # ist eine Einwilligung im Streitfall wertlos.
-    consent_marketing = Column(Boolean, default=False)
-    consent_at = Column(DateTime, nullable=True)
-    ip_address = Column(String(64), default="")
-    user_agent = Column(String(400), default="")
-    referrer = Column(String(500), default="")
-
-    # Bestätigung der Adresse. Sie steht vor allem anderen: erst nach diesem
-    # Klick verlässt überhaupt ein Berichtslink das Haus. Getrennt vom
-    # Marketing-Opt-in darunter — zwei Einwilligungen an einen Klick zu
-    # koppeln wäre Bündelung.
-    verify_token = Column(String(64), index=True)
-    verify_sent_at = Column(DateTime, nullable=True)
-    verified_at = Column(DateTime, nullable=True)
-    # Wie oft der Versand versucht wurde. Begrenzt den zweiten Versuch aus dem
-    # Widget: Die Empfaengeradresse steht fest, wer den Knopf drueckt bestimmt
-    # sie nicht — ohne Grenze waere der Knopf eine Maschine, die eine fremde
-    # Adresse zuschuettet.
-    verify_attempts = Column(Integer, default=0)
-
-    # Wer bestätigt hat. Vier Testläufe bestätigten sich von selbst, Minuten
-    # nach dem Versand und ohne Zutun eines Menschen — ohne diese Angaben
-    # liess sich nicht sagen, welcher Dienst da drückt.
-    verified_user_agent = Column(String(400), default="")
-    verified_ip = Column(String(64), default="")
-
-    # Double-Opt-in: erst nach Klick im Bestätigungslink darf beworben werden
-    confirm_token = Column(String(64), index=True)
-    confirmed_at = Column(DateTime, nullable=True)
-
-    # Zugang zur Berichtsseite ohne Login
-    report_token = Column(String(64), index=True)
-
-    # Abfrage des Zwischenstands durch das Widget selbst. Bewusst getrennt
-    # von report_token: dieser Wert steht im JavaScript der Seite, der
-    # Berichts-Token gehört allein in die E-Mail.
-    poll_token = Column(String(64), index=True)
-
-    audit_id = Column(Integer, nullable=True, index=True)
-    lead_id = Column(Integer, nullable=True)
-    report_sent_at = Column(DateTime, nullable=True)
-
-    # Der Klick auf den Berichtslink aus der E-Mail. Er ist der Nachweis, dass
-    # die Adresse dem Empfänger gehört — die eingetragene Adresse muss dem
-    # Eintragenden nicht gehören.
-    report_confirmed_at = Column(DateTime, nullable=True)
-
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
-class MailEvent(Base):
-    """Was nach dem Versand mit einer Mail geschah — gemeldet von Brevo.
-
-    Der Anlass: Eine Zustellung wurde abgelehnt, weil die Versand-IP des
-    Anbieters auf einer Blockliste stand ("554 ... blocked using
-    bl.spamcop.net"). Für die Anwendung sah der Versand erfolgreich aus, denn
-    Brevo hatte die Mail angenommen — die Ablehnung kam erst danach beim
-    Empfänger. Ohne diese Tabelle bleibt so ein Ausfall unsichtbar, und bei
-    einem Akquisekanal heißt das: Anschreiben laufen ins Leere und niemand
-    merkt es.
-
-    Abgelegt werden nur Störungen, nicht der normale Verlauf. Zustellungen,
-    Öffnungen und Klicks würden die Tabelle fluten, ohne etwas zu beantworten.
-    """
-
-    __tablename__ = "mail_events"
-
-    id = Column(Integer, primary_key=True, index=True)
-
-    # Der Ereignisname von Brevo, unverändert: hard_bounce, blocked, spam,
-    # invalid_email, soft_bounce, error.
-    event = Column(String(40), nullable=False, index=True)
-    email = Column(String(255), nullable=False, index=True)
-    reason = Column(String(500), default="")
-    subject = Column(String(300), default="")
-    sending_ip = Column(String(64), default="")
-
-    # Zur Zuordnung und gegen Doppelzählung: Brevo wiederholt Zustellversuche
-    # des Webhooks, und dieselbe Meldung darf nicht mehrfach in der Liste
-    # stehen.
-    message_id = Column(String(255), default="", index=True)
-    event_key = Column(String(255), default="", index=True)
-
-    # Aufgelöst über die Adresse. Bleibt leer, wenn zu der Adresse kein Lead
-    # existiert — die Meldung ist trotzdem wertvoll.
-    lead_id = Column(Integer, nullable=True, index=True)
-
-    occurred_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 # ── Die Phase folgt dem Status ────────────────────────────────────────────────
@@ -1345,3 +1004,16 @@ def _phase_beim_anlegen(mapper, verbindung, ziel):
 
     if ziel.lifecycle_phase is None:
         ziel.lifecycle_phase = phase_zu(ziel.status or "new")
+
+
+# ── Die Modelle der Randbereiche (L-25, 22.08.2026) ──────────────────
+#
+# Sie stehen in eigenen Dateien, **muessen aber hier geladen werden**:
+# Die `relationship()`-Aufrufe nennen ihre Gegenseite als Zeichenkette,
+# und SQLAlchemy loest den Namen erst beim ersten Zugriff auf. Fehlt eine
+# Datei, faellt das nicht beim Start auf, sondern bei irgendeiner Abfrage.
+from modelle_akademie import *      # noqa: E402,F401,F403
+from modelle_assistent import *     # noqa: E402,F401,F403
+from modelle_crawler import *       # noqa: E402,F401,F403
+from modelle_kas import *           # noqa: E402,F401,F403
+from modelle_widget import *        # noqa: E402,F401,F403

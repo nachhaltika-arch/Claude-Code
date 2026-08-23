@@ -1,4 +1,4 @@
-import { istContentFreigegeben, istEntschieden } from './freigabeStand';
+import { istContentFreigegeben, istEntschieden, standJeSeite } from './freigabeStand';
 
 /**
  * Zwei Fehler derselben Bauart, gefunden am 22.08.2026 — beide entstanden,
@@ -89,5 +89,49 @@ describe('istEntschieden — offen/erledigt im Kundenportal', () => {
 
   test('ein blosser Wahrheitswert aus der Altzeit gilt als freigegeben', () => {
     expect(istEntschieden(true)).toBe(true);
+  });
+});
+
+describe('standJeSeite — der Freigaben-Reiter der Content-Werkstatt', () => {
+  test('ohne Eintrag und ohne Inhalt: der Inhalt fehlt noch', () => {
+    expect(standJeSeite(null, 'startseite', false)).toEqual(
+      { zustand: 'ohne-inhalt', text: 'Content fehlt', anfragbar: false });
+  });
+
+  test('mit Inhalt, aber nie angefragt: anfragbar', () => {
+    // Das war der Fehler bis zum 22.08.2026: Hier stand „Freigabe
+    // ausstehend", obwohl niemand je gefragt hatte. Der Reiter zeigte einen
+    // Zustand, den es nicht gab.
+    expect(standJeSeite(null, 'startseite', true)).toEqual(
+      { zustand: 'offen', text: 'Noch nicht angefragt', anfragbar: true });
+  });
+
+  test('angefragt: wartet auf den Kunden, nicht erneut anfragbar', () => {
+    const roh = JSON.stringify({ startseite: { status: 'angefragt', angefragt_am: '22.08.2026 09:00' } });
+
+    expect(standJeSeite(roh, 'startseite', true)).toEqual(
+      { zustand: 'angefragt', text: 'Angefragt am 22.08.2026 09:00', anfragbar: false });
+  });
+
+  test('freigegeben', () => {
+    const roh = JSON.stringify({ startseite: { status: 'freigegeben', freigegeben_am: '22.08.2026 11:30' } });
+
+    expect(standJeSeite(roh, 'startseite', true)).toEqual(
+      { zustand: 'freigegeben', text: 'Freigegeben am 22.08.2026 11:30', anfragbar: false });
+  });
+
+  test('abgelehnt: darf erneut angefragt werden', () => {
+    // Nach einer Ablehnung wird der Text überarbeitet und neu vorgelegt —
+    // sonst endet der Ablauf in einer Sackgasse.
+    const roh = JSON.stringify({ startseite: { status: 'abgelehnt' } });
+
+    expect(standJeSeite(roh, 'startseite', true)).toEqual(
+      { zustand: 'abgelehnt', text: 'Abgelehnt', anfragbar: true });
+  });
+
+  test('eine andere Seite bleibt unberührt', () => {
+    const roh = JSON.stringify({ kontakt: { status: 'freigegeben' } });
+
+    expect(standJeSeite(roh, 'startseite', true).zustand).toBe('offen');
   });
 });

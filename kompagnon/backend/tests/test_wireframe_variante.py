@@ -168,7 +168,10 @@ def test_der_auftrag_laeuft_und_liefert_eine_variante(client, auth_headers,
                                                       projekt_mit_block, monkeypatch):
     """Geprueft wird der Weg durch den Endpunkt, nicht das Modell: `_ki_runde`
     wird ersetzt, es fliesst kein Token."""
-    from routers import component_library as cl
+    # Der Wireframe-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_wireframe.py` (L-25) — mit den drei
+    # Job-Speichern, die dieser Test anfasst.
+    from routers import component_library_wireframe as cl
 
     p, slug = projekt_mit_block["projekt"], projekt_mit_block["slug"]
     eigenes = VARIANTE.format(slug=slug).replace("py-20", "py-28")
@@ -204,7 +207,10 @@ def test_der_auftrag_laeuft_und_liefert_eine_variante(client, auth_headers,
 
 def test_ohne_bibliotheksblock_gibt_es_keine_variante(client, auth_headers,
                                                       projekt_mit_block, monkeypatch):
-    from routers import component_library as cl
+    # Der Wireframe-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_wireframe.py` (L-25) — mit den drei
+    # Job-Speichern, die dieser Test anfasst.
+    from routers import component_library_wireframe as cl
 
     monkeypatch.setattr(cl, "Anthropic", lambda api_key: object())
     monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest-schluessel")
@@ -220,7 +226,10 @@ def test_ohne_bibliotheksblock_gibt_es_keine_variante(client, auth_headers,
 
 def test_die_komposition_schlaegt_eine_abfolge_vor(client, auth_headers,
                                                    projekt_mit_block, monkeypatch):
-    from routers import component_library as cl
+    # Der Wireframe-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_wireframe.py` (L-25) — mit den drei
+    # Job-Speichern, die dieser Test anfasst.
+    from routers import component_library_wireframe as cl
 
     p, slug = projekt_mit_block["projekt"], projekt_mit_block["slug"]
 
@@ -258,7 +267,10 @@ def test_ein_entwurf_taucht_in_der_komposition_nicht_auf(client, auth_headers,
                                                          projekt_mit_block, monkeypatch):
     """Was nicht freigegeben ist, darf auch nicht vorgeschlagen werden."""
     from database import ComponentLibrary, SessionLocal
-    from routers import component_library as cl
+    # Der Wireframe-Teil liegt seit dem 22.08.2026 in
+    # `routers/component_library_wireframe.py` (L-25) — mit den drei
+    # Job-Speichern, die dieser Test anfasst.
+    from routers import component_library_wireframe as cl
 
     p = projekt_mit_block["projekt"]
     entwurf = "pytest-komposition-entwurf"

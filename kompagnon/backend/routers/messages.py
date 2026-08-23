@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db, Message, Lead
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_innendienst
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +75,27 @@ class SendEmailBody(BaseModel):
     project_id: Optional[int] = None
 
 
-@router.post("/send-email")
+@router.post("/send-email", dependencies=[Depends(require_innendienst)])
 def send_email_endpoint(
     body: SendEmailBody,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    """Eine Mail an eine beliebige Adresse versenden.
+
+    **Bis zum 22.08.2026 stand das jedem Angemeldeten offen (L-67)** — auch
+    einem Kunden. `to`, `subject` und `html` kommen aus dem Rumpf, geprueft
+    wurde nur, dass irgendwer angemeldet ist. Damit liess sich eine beliebige
+    Mail an eine beliebige Adresse ueber unsere Absenderinfrastruktur
+    schicken, und der Eintrag im Nachrichtenprotokoll trug dabei
+    `sender_role="admin"`.
+
+    Das ist kein Datenleck, sondern ein offenes Versandtor: Der Schaden faellt
+    auf den Ruf der Absenderdomain zurueck, und der ist nicht zurueckzuholen.
+
+    Die Oberflaeche half nicht — die Newsletter-Routen trugen
+    `<PrivateRoute>` **ohne** `roles`; auch dort kam jeder Angemeldete durch.
+    """
     if not body.to or not body.subject:
         raise HTTPException(status_code=400, detail="to und subject sind Pflichtfelder")
     try:
@@ -107,12 +122,19 @@ def send_email_endpoint(
         return {"success": False, "error": str(e)}
 
 
-@router.get("/{lead_id}")
+@router.get("/{lead_id}", dependencies=[Depends(require_innendienst)])
 def get_messages(
     lead_id: int,
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
+    """Die Korrespondenz mit einem Betrieb — Innendienstsicht.
+
+    **Die Sperre haengt hier je Route und nicht am Router (L-67).** Dieser
+    Router fuehrt zwei Kundenwege — `GET|POST /{lead_id}/kunde` —, die
+    **ohne Anmeldung** arbeiten und den `customer_token` selbst pruefen. Eine
+    Router-Sperre haette das Kundenportal ausgesperrt.
+    """
     messages = (
         db.query(Message)
         .filter(Message.lead_id == lead_id)

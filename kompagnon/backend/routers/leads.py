@@ -32,6 +32,7 @@ import logging
 import os
 import uuid
 from services.ratenbegrenzung import lead_grenzen
+from services.lead_verlauf import verlauf_bauen
 
 
 logger = logging.getLogger(__name__)
@@ -51,22 +52,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/leads", tags=["leads"],
                    dependencies=[Depends(require_innendienst)])
 
-# Ausdrücklich ohne Anmeldung — jede dieser Routen trägt ihre eigene Prüfung:
-# das Anlegen aus dem Formular der Landingpage und der Kundenzugang über einen
-# Einmal-Token aus der E-Mail.
-public_router = APIRouter(prefix="/api/leads", tags=["leads-public"])
-
-# Was ein Kunde braucht: den eigenen Betrieb, den das Kundenportal anzeigt
-# (`KundenPortal.jsx`). Jede Route hier prüft selbst, ob die Zeile ihm gehört.
-kunden_router = APIRouter(prefix="/api/leads", tags=["leads-kunde"],
-                          dependencies=[Depends(require_any_auth)])
-
-# In-memory job tracking for domain imports
-import_jobs = {}
 
 
-class DomainsTextInput(BaseModel):
-    domains_text: str
+
+
 
 
 class LeadCreate(BaseModel):
@@ -112,6 +101,16 @@ class LeadUpdate(BaseModel):
     inspiration_url_3: Optional[str] = None
 
 
+
+
+class LeadConvertRequest(BaseModel):
+    fixed_price: float = 2000.0
+    hourly_rate: float = 45.0
+    ai_tool_costs: float = 50.0
+    assigned_person: str = "KOMPAGNON-Team"
+
+
+
 class LeadResponse(BaseModel):
     id: int
     company_name: Optional[str] = None
@@ -137,14 +136,6 @@ class LeadResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class LeadConvertRequest(BaseModel):
-    fixed_price: float = 2000.0
-    hourly_rate: float = 45.0
-    ai_tool_costs: float = 50.0
-    assigned_person: str = "KOMPAGNON-Team"
-
 
 @router.post("/", dependencies=[Depends(verlangt_recht("create_leads"))])
 def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -213,9 +204,7 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
 
         # Google Business Profile check (non-blocking)
         def _gbp_check(lid, company, city):
-            import asyncio
             from services.google_business import check_google_business
-            from database import SessionLocal
             try:
                 gbp = asyncio.run(check_google_business(company, city))
                 s = SessionLocal()
@@ -254,6 +243,83 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         import logging
         logging.getLogger('leads').error(f'Lead create error: {type(e).__name__}: {e}')
         raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
+
+
+@router.get("/{lead_id}/verlauf")
+def lead_verlauf(lead_id: int, limit: int = Query(20, ge=1, le=50),
+                 db: Session = Depends(get_db)):
+    """Was bei diesem Betrieb zuletzt geschah — aus allen Quellen (L-82).
+
+    Die Ereignisse liegen in fuenf Tabellen, und keine Stelle fuehrte sie
+    zusammen; auf der Betriebsseite hiess das drei Reiter fuer eine Frage, die
+    man beim Anruf in einer Sekunde beantwortet haben will.
+
+    Ein unbekannter Betrieb ist **404**, kein leerer Verlauf: Sonst sieht ein
+    Tippfehler in der Kennung aus wie ein Betrieb, bei dem noch nichts war.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    return verlauf_bauen(db, lead, limit=limit)
+
+
+@router.get("/quellen/wirkung")
+def kanalwirkung(db: Session = Depends(get_db)):
+    """Welcher Kanal bringt Kunden? (L-84)
+
+    Die Herkunft steht seit langem in `leads.lead_source`, und
+    `services/lead_quellen.py` fuehrt dazu einen gepflegten Wortschatz. Was
+    fehlte, ist die Frage, fuer die man das alles erhebt.
+
+    **Gerechnet wird auf `lifecycle_phase`, nicht auf `status`.** Der Status
+    beantwortete zwei Fragen gleichzeitig, und zwei Stellen uebersahen dabei
+    `customer` — ein Betrieb, den jemand von Hand auf „Kunde" gesetzt hatte,
+    zaehlte in **keiner** Kennzahl mit (L-26). Eine Zahl, die auf der falschen
+    Spalte rechnet, ist schlimmer als keine.
+
+    **Unbekannte Quellen werden ausgewiesen, nicht weggelassen.** Ein Wert,
+    den der Wortschatz nicht kennt, ist der interessanteste Fall: Entweder
+    schreibt ihn jemand ungepflegt — oder der Wortschatz hinkt hinterher.
+    Dasselbe gilt fuer Betriebe ohne Herkunft: Sie stillschweigend
+    auszulassen hiesse, die Summe der Kanaele als Gesamtbestand zu lesen.
+    """
+    from services import lead_quellen
+
+    zeilen = db.execute(text("""
+        SELECT lead_source,
+               COUNT(*) AS betriebe,
+               COUNT(*) FILTER (WHERE lifecycle_phase = 'kunde') AS kunden
+        FROM leads
+        GROUP BY lead_source
+    """)).fetchall()
+
+    kanaele, ohne_herkunft, gesamt = [], 0, 0
+    for quelle, betriebe, kunden in zeilen:
+        gesamt += betriebe
+        if not (quelle or "").strip():
+            ohne_herkunft += betriebe
+            continue
+
+        eintrag = lead_quellen.QUELLEN.get(lead_quellen.normalisiere(quelle) or quelle)
+        kanaele.append({
+            "quelle":   quelle,
+            "name":     (eintrag or {}).get("name") or quelle,
+            "herkunft": (eintrag or {}).get("herkunft"),
+            "bekannt":  eintrag is not None,
+            "betriebe": betriebe,
+            "kunden":   kunden,
+            "quote":    round(kunden / betriebe, 2) if betriebe else None,
+        })
+
+    # Der wirksamste Kanal zuerst; bei gleicher Quote der groessere Bestand.
+    kanaele.sort(key=lambda k: (-(k["quote"] or 0), -k["betriebe"]))
+
+    return {
+        "kanaele": kanaele,
+        "ohne_herkunft": ohne_herkunft,
+        "betriebe_gesamt": gesamt,
+    }
 
 
 @router.get("/")
@@ -350,402 +416,26 @@ def get_customers(db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/export/csv")
-def export_leads_csv(db: Session = Depends(get_db)):
-    """Export all leads as CSV file."""
-    import io as _io
-    from fastapi.responses import StreamingResponse
-
-    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
-    output = _io.StringIO()
-    writer = csv.writer(output, delimiter=";")
-    writer.writerow(["ID", "Firmenname", "Geschäftsführer", "Ansprechpartner", "Telefon", "E-Mail", "Website", "Stadt", "Gewerk", "Status", "Score", "Quelle", "Erstellt am"])
-    for lead in leads:
-        writer.writerow([
-            lead.id, lead.company_name or "", lead.geschaeftsfuehrer or "", lead.contact_name or "", lead.phone or "",
-            lead.email or "", lead.website_url or "", lead.city or "", lead.trade or "",
-            lead.status or "", lead.analysis_score or 0, lead.lead_source or "",
-            str(lead.created_at)[:10] if lead.created_at else "",
-        ])
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue().encode("utf-8-sig")]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=leads-export.csv"},
-    )
 
 
-@router.post("/import/domains/check")
-async def check_domains(data: dict, db: Session = Depends(get_db)):
-    """Check which domains already exist + reachability/redirect check."""
-    from sqlalchemy import or_
-    from services.domain_checker import check_domains_batch
-    import logging as _log
-    _logger = _log.getLogger('domain_import')
-
-    raw_domains = data.get("domains", [])
-
-    # Normalize
-    normalized = []
-    for url in raw_domains:
-        clean = url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].lower()
-        if clean:
-            normalized.append(f'https://{clean}')
-
-    # Domain reachability + redirect check
-    try:
-        domain_checks = await check_domains_batch(normalized)
-    except Exception as e:
-        _logger.error(f'Domain batch check Fehler: {e}')
-        domain_checks = [{'original_url': u, 'final_url': u, 'reachable': True, 'has_redirect': False,
-                          'skip_import': False, 'skip_reason': '', 'redirect_count': 0, 'final_is_https': True} for u in normalized]
-
-    # Combine with DB check
-    results = []
-    for check in domain_checks:
-        url = check['original_url']
-        clean = url.replace('https://', '').replace('www.', '').split('/')[0]
-
-        existing = db.query(Lead).filter(or_(
-            Lead.website_url.ilike(f'%{clean}%'),
-            Lead.website_url.ilike(f'%www.{clean}%'),
-        )).first()
-
-        results.append({
-            'url': url,
-            'final_url': check.get('final_url', url),
-            'domain': clean,
-            'exists': existing is not None,
-            'lead_id': existing.id if existing else None,
-            'company_name': (existing.display_name or existing.company_name) if existing else None,
-            'status': existing.status if existing else None,
-            'score': existing.analysis_score if existing else None,
-            'reachable': check.get('reachable', True),
-            'has_redirect': check.get('has_redirect', False),
-            'redirect_count': check.get('redirect_count', 0),
-            'final_is_https': check.get('final_is_https', True),
-            'skip_import': check.get('skip_import', False),
-            'skip_reason': check.get('skip_reason', ''),
-        })
-
-    new_count = sum(1 for r in results if not r['exists'] and not r['skip_import'])
-    existing_count = sum(1 for r in results if r['exists'])
-    skipped_count = sum(1 for r in results if r['skip_import'] and not r['exists'])
-    redirect_count = sum(1 for r in results if r['has_redirect'] and not r['skip_import'])
-
-    return {
-        'results': results,
-        'new_count': new_count,
-        'existing_count': existing_count,
-        'skipped_count': skipped_count,
-        'redirect_count': redirect_count,
-        'total': len(results),
-    }
 
 
-def _extract_domains(text: str) -> list:
-    """Extract valid domains from text (one per line, comma or semicolon separated)."""
-    import re
-    domains = []
-    seen = set()
-    for line in re.split(r'[\n,;]', text):
-        cell = line.strip().strip('"').strip("'")
-        clean = re.sub(r'^https?://', '', cell).replace('www.', '').split('/')[0].lower()
-        if re.match(r'^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$', clean) and clean not in seen:
-            domains.append(f'https://{clean}')
-            seen.add(clean)
-    return domains
 
 
-async def _process_single_domain(url: str, clean: str, _session_factory, job_id: str) -> dict:
-    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum.
-    Uses short-lived DB sessions to avoid stale connections during long async operations."""
-    import asyncio as _aio
-    import logging as _log
-    from datetime import datetime as _dt
-    _logger = _log.getLogger('domain_import')
-
-    result = {'url': url, 'status': 'created', 'lead_id': None, 'company_name': clean,
-              'audit_status': 'pending', 'impressum_status': 'pending', 'score': None}
-
-    # ── Step 1: Duplicate check + Lead creation (short-lived session) ──
-    db = _session_factory()
-    try:
-        existing = db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
-        if existing:
-            return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
-                    'company_name': existing.display_name or existing.company_name,
-                    'score': existing.analysis_score,
-                    'audit_status': 'skipped', 'impressum_status': 'skipped'}
-
-        lead = Lead(
-            company_name=clean, website_url=url, contact_name='', phone='',
-            email='', city='', trade='', notes='', website_screenshot='',
-            status='new', lead_source='domain_import', analysis_score=0, geo_score=0,
-            street='', house_number='', postal_code='', legal_form='',
-            vat_id='', register_number='', register_court='',
-            ceo_first_name='', ceo_last_name='', display_name='',
-            created_at=_dt.utcnow(), updated_at=_dt.utcnow(),
-        )
-        db.add(lead)
-        db.commit()
-        db.refresh(lead)
-        lead_id = lead.id
-        result['lead_id'] = lead_id
-        _logger.info(f'Lead angelegt: {clean} (ID: {lead_id})')
-    except Exception as e:
-        try: db.rollback()
-        except: pass
-        _logger.error(f'Lead anlegen Fehler {clean}: {e}')
-        return {'url': url, 'status': 'error', 'error': f'Lead: {str(e)}',
-                'audit_status': 'failed', 'impressum_status': 'failed'}
-    finally:
-        db.close()
-
-    await _aio.sleep(1)
-
-    # ── Step 2: Audit (max 90s, no DB session needed) ──
-    _logger.info(f'Starte Audit: {clean}')
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=90) as client:
-            # Aufruf an den eigenen Server — über die interne Adresse, nicht
-            # über das öffentliche Netz. Siehe services/base_urls.py.
-            audit_base = self_base_url()
-            r = await client.post(f'{audit_base}/api/audit/start',
-                json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
-            if r.status_code == 200:
-                aid = r.json().get('audit_id') or r.json().get('id')
-                if aid:
-                    for _ in range(20):
-                        await _aio.sleep(4)
-                        pr = await client.get(f'{audit_base}/api/audit/{aid}')
-                        if pr.status_code == 200:
-                            pd = pr.json()
-                            if pd.get('status') == 'completed':
-                                result['audit_status'] = 'completed'
-                                result['score'] = pd.get('total_score')
-                                result['company_name'] = pd.get('company_name') or clean
-                                _logger.info(f'Audit fertig: {clean} — Score {pd.get("total_score")}')
-                                break
-                            elif pd.get('status') == 'failed':
-                                result['audit_status'] = 'failed'
-                                _logger.warning(f'Audit fehlgeschlagen: {clean}')
-                                break
-    except _aio.TimeoutError:
-        result['audit_status'] = 'timeout'
-        _logger.warning(f'Audit Timeout: {clean}')
-    except Exception as e:
-        result['audit_status'] = 'failed'
-        _logger.warning(f'Audit Fehler {clean}: {type(e).__name__}: {e}')
-
-    _logger.info(f'Warte 5s vor Impressum: {clean}')
-    await _aio.sleep(5)
-
-    # ── Step 3: Impressum (max 30s, fresh session for DB update) ──
-    _logger.info(f'Starte Impressum: {clean}')
-    try:
-        from services.impressum_scraper import extract_contact_from_impressum
-        imp = await _aio.wait_for(extract_contact_from_impressum(url), timeout=30.0)
-        if imp.get('success'):
-            data_imp = imp.get('data', {})
-            db = _session_factory()
-            try:
-                lead = db.query(Lead).filter(Lead.id == lead_id).first()
-                if not lead:
-                    _logger.warning(f'Lead {lead_id} nicht mehr in DB gefunden')
-                    result['impressum_status'] = 'failed'
-                    return result
-                updated_fields = []
-                # Der Firmenname zuerst und nach eigener Regel: Der Import hat
-                # ihn mit der Domain vorbelegt. Die Bedingung unten hielte das
-                # Feld deshalb für gefüllt und würde den echten Namen aus dem
-                # Impressum verwerfen — genau deshalb hieß am 17.08.2026 jeder
-                # Betrieb in der Liste wie seine Domain.
-                echter_name = betriebsname.uebernehmen(
-                    lead.company_name, data_imp.get('company_name'), lead.website_url,
-                )
-                if echter_name:
-                    lead.company_name = echter_name
-                    updated_fields.append('company_name')
-
-                for field in ['legal_form', 'ceo_first_name', 'ceo_last_name',
-                              'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
-                              'vat_id', 'register_number', 'register_court', 'trade']:
-                    if data_imp.get(field) and not getattr(lead, field, None):
-                        setattr(lead, field, data_imp[field])
-                        updated_fields.append(field)
-                if not lead.contact_name and data_imp.get('ceo_first_name'):
-                    lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
-                db.commit()
-                result['impressum_status'] = 'completed'
-                result['company_name'] = lead.company_name
-                _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
-            except Exception as e:
-                db.rollback()
-                _logger.error(f'Impressum DB-Update Fehler {clean}: {type(e).__name__}: {e}')
-                result['impressum_status'] = 'failed'
-            finally:
-                db.close()
-        else:
-            result['impressum_status'] = 'failed'
-            _logger.warning(f'Impressum kein Ergebnis: {clean}')
-    except _aio.TimeoutError:
-        result['impressum_status'] = 'timeout'
-        _logger.warning(f'Impressum Timeout: {clean}')
-    except Exception as e:
-        result['impressum_status'] = 'failed'
-        _logger.warning(f'Impressum Fehler {clean}: {type(e).__name__}: {e}')
-
-    _logger.info(f'Domain fertig: {clean} — Audit: {result["audit_status"]}, Impressum: {result["impressum_status"]}')
-    return result
 
 
-@router.post("/import/domains/text")
-async def import_domains_text(
-    data: DomainsTextInput,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    """Import domains from text input — runs audit + impressum extraction in background."""
-    domains = _extract_domains(data.domains_text)
-    if not domains:
-        raise HTTPException(400, "Keine gültigen Domains gefunden")
-    domains = domains[:20]
-    job_id = str(uuid.uuid4())[:8]
-    import_jobs[job_id] = {
-        'status': 'running', 'total': len(domains),
-        'processed': 0, 'results': [],
-        'started_at': str(datetime.utcnow())[:19],
-    }
-
-    import logging as _log
-    _logger = _log.getLogger('domain_import')
-
-    async def run():
-        import asyncio as _aio
-        import traceback as _tb
-        from database import SessionLocal
-        try:
-            _logger.info(f'Import {job_id}: Starte {len(domains)} Domains')
-            for i, url in enumerate(domains):
-                clean = url.replace('https://', '').replace('http://', '')
-                _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                try:
-                    result = await _aio.wait_for(
-                        _process_single_domain(url, clean, SessionLocal, job_id),
-                        timeout=150.0
-                    )
-                except _aio.TimeoutError:
-                    _logger.warning(f'Domain komplett Timeout: {clean}')
-                    result = {'url': url, 'status': 'timeout', 'audit_status': 'timeout', 'impressum_status': 'timeout', 'score': None}
-                except Exception as domain_err:
-                    _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
-                    result = {'url': url, 'status': 'error', 'error': str(domain_err),
-                              'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                import_jobs[job_id]['results'].append(result)
-                import_jobs[job_id]['processed'] = i + 1
-                if i < len(domains) - 1:
-                    _logger.info(f'Warte 10s vor nächster Domain...')
-                    await _aio.sleep(10)
-            import_jobs[job_id]['status'] = 'done'
-            _logger.info(f'Import {job_id}: Fertig — {len(domains)} Domains verarbeitet')
-        except Exception as e:
-            _logger.error(f'Import {job_id} Fehler: {type(e).__name__}: {e}\n{_tb.format_exc()}')
-            import_jobs[job_id]['status'] = 'error'
-            import_jobs[job_id]['error'] = f'{type(e).__name__}: {str(e)}'
-
-    import asyncio
-    asyncio.ensure_future(run())
-
-    return {
-        'job_id': job_id, 'total_domains': len(domains),
-        'domains_preview': domains[:5],
-        'message': f'{len(domains)} Domains werden verarbeitet',
-    }
 
 
-@router.post("/import/domains/file")
-async def import_domains_file(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-):
-    """Import domains from CSV file upload."""
-    content = await file.read()
-    text = content.decode('utf-8', errors='ignore')
-    domains = _extract_domains(text)
-    if not domains:
-        raise HTTPException(400, "Keine gültigen Domains in der Datei gefunden")
-    domains = domains[:20]
-    job_id = str(uuid.uuid4())[:8]
-    import_jobs[job_id] = {
-        'status': 'running', 'total': len(domains),
-        'processed': 0, 'results': [],
-        'started_at': str(datetime.utcnow())[:19],
-    }
-    import logging as _log
-    _logger = _log.getLogger('domain_import')
-
-    async def run():
-        import asyncio as _aio
-        import traceback as _tb
-        from database import SessionLocal
-        try:
-            _logger.info(f'File Import {job_id}: Starte {len(domains)} Domains')
-            for i, url in enumerate(domains):
-                clean = url.replace('https://', '').replace('http://', '')
-                _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                try:
-                    result = await _aio.wait_for(
-                        _process_single_domain(url, clean, SessionLocal, job_id),
-                        timeout=150.0
-                    )
-                except _aio.TimeoutError:
-                    _logger.warning(f'Domain komplett Timeout: {clean}')
-                    result = {'url': url, 'status': 'timeout', 'audit_status': 'timeout', 'impressum_status': 'timeout', 'score': None}
-                except Exception as domain_err:
-                    _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
-                    result = {'url': url, 'status': 'error', 'error': str(domain_err),
-                              'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                import_jobs[job_id]['results'].append(result)
-                import_jobs[job_id]['processed'] = i + 1
-                if i < len(domains) - 1:
-                    _logger.info(f'Warte 10s vor nächster Domain...')
-                    await _aio.sleep(10)
-            import_jobs[job_id]['status'] = 'done'
-            _logger.info(f'File Import {job_id}: Fertig — {len(domains)} Domains verarbeitet')
-        except Exception as e:
-            _logger.error(f'File Import {job_id} Fehler: {type(e).__name__}: {e}\n{_tb.format_exc()}')
-            import_jobs[job_id]['status'] = 'error'
-            import_jobs[job_id]['error'] = f'{type(e).__name__}: {str(e)}'
-
-    import asyncio
-    asyncio.ensure_future(run())
-
-    return {
-        'job_id': job_id, 'total_domains': len(domains),
-        'domains_preview': domains[:5],
-        'message': f'{len(domains)} Domains werden verarbeitet',
-    }
 
 
-@router.get("/import/domains/{job_id}/status")
-def get_import_status(job_id: str):
-    """Get status of a domain import job."""
-    if job_id not in import_jobs:
-        raise HTTPException(404, "Job nicht gefunden")
-    return import_jobs[job_id]
 
 
 @router.post("/enrich/all")
 async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Batch-enrich all leads with score=0. Runs in background."""
     from services.lead_enrichment import enrich_all_pending
-    import asyncio
 
     def _run():
-        from database import SessionLocal
         _db = SessionLocal()
         try:
             asyncio.run(enrich_all_pending(_db))
@@ -756,261 +446,27 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+
+
+
+
 # ── Public lead creation (no auth — used by landing page audit) ──
 
-@public_router.post("/public")
-async def create_public_lead(
-    data: dict,
-    db: Session = Depends(get_db),
-    _grenzen=Depends(lead_grenzen),
-):
-    """Public endpoint for landing page audit — creates lead without login."""
-    website_url = data.get('website_url', '').strip()
-    email_addr = data.get('email', '').strip()
-    if not website_url:
-        raise HTTPException(400, "Website-URL fehlt")
-    if not website_url.startswith('http'):
-        website_url = 'https://' + website_url
-
-    domain = website_url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0]
-    from sqlalchemy import or_
-    existing = db.query(Lead).filter(or_(Lead.website_url.ilike(f'%{domain}%'))).first()
-    if existing:
-        if email_addr and not existing.email:
-            existing.email = email_addr
-            db.commit()
-        return {'id': existing.id}
-
-    lead = Lead(website_url=website_url, email=email_addr, company_name=domain,
-                status='new', lead_source=data.get('lead_source', 'landing_audit'))
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
-    return {'id': lead.id}
 
 
 # ── Portal routes (public, no auth) ──────────────────────
 
-@public_router.get("/portal/{token}")
-def get_portal_data(token: str, db: Session = Depends(get_db)):
-    """Public portal page — token is the access key."""
-    lead = db.query(Lead).filter(Lead.customer_token == token).first()
-    if not lead:
-        raise HTTPException(404, "Ungültiger Zugangslink")
-
-    email_domain = ''
-    if lead.email and '@' in lead.email:
-        email_domain = lead.email.split('@')[1]
-
-    latest_audit = db.query(AuditResult).filter(
-        AuditResult.lead_id == lead.id, AuditResult.status == 'completed',
-    ).order_by(AuditResult.created_at.desc()).first()
-
-    project = db.query(Project).filter(
-        Project.lead_id == lead.id
-    ).order_by(Project.created_at.desc()).first()
-
-    return {
-        'lead_id': lead.id,
-        'company_name': lead.display_name or lead.company_name or '',
-        'email_domain': email_domain,
-        'website_url': lead.website_url or '',
-        'city': lead.city or '',
-        'trade': lead.trade or '',
-        'contact_name': lead.contact_name or '',
-        'current_score': latest_audit.total_score if latest_audit else None,
-        'current_level': latest_audit.level if latest_audit else None,
-        'last_audit_date': str(latest_audit.created_at)[:10] if latest_audit else None,
-        'rc_score': latest_audit.rc_score if latest_audit else None,
-        'tp_score': latest_audit.tp_score if latest_audit else None,
-        'bf_score': latest_audit.bf_score if latest_audit else None,
-        'si_score': latest_audit.si_score if latest_audit else None,
-        'se_score': latest_audit.se_score if latest_audit else None,
-        'ux_score': latest_audit.ux_score if latest_audit else None,
-        'ai_summary': latest_audit.ai_summary if latest_audit else None,
-        'website_screenshot': f'data:image/jpeg;base64,{lead.website_screenshot}' if lead.website_screenshot else None,
-        'onboarding_completed': getattr(lead, 'onboarding_completed', False) or False,
-        'project_id':     project.id if project else None,
-        'current_phase':  project.current_phase if project else None,
-        'project_status': project.status if project else None,
-        'go_live_date':   str(project.go_live_date)[:10] if project and project.go_live_date else None,
-    }
 
 
-@public_router.post("/portal/{token}/verify")
-def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
-    """Verify access via email domain match."""
-    lead = db.query(Lead).filter(Lead.customer_token == token).first()
-    if not lead:
-        raise HTTPException(404, "Ungültiger Link")
-
-    input_email = data.get('email', '').lower().strip()
-    if not input_email or '@' not in input_email:
-        raise HTTPException(400, "Bitte gültige E-Mail eingeben")
-
-    input_domain = input_email.split('@')[1]
-    lead_domain = ''
-    if lead.email and '@' in lead.email:
-        lead_domain = lead.email.split('@')[1].lower()
-    elif lead.website_url:
-        lead_domain = lead.website_url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].lower()
-
-    if not lead_domain:
-        raise HTTPException(400, "Keine Domain hinterlegt")
-    if input_domain != lead_domain:
-        raise HTTPException(403, "E-Mail-Domain stimmt nicht überein")
-
-    return {
-        'verified': True,
-        'contact_name': lead.contact_name or '',
-        'email': lead.email or '',
-        'phone': lead.phone or '',
-        'street': lead.street or '',
-        'house_number': lead.house_number or '',
-        'postal_code': lead.postal_code or '',
-        'city': lead.city or '',
-        'legal_form': lead.legal_form or '',
-        'vat_id': lead.vat_id or '',
-        'register_number': lead.register_number or '',
-        'register_court': lead.register_court or '',
-        'ceo_first_name': lead.ceo_first_name or '',
-        'ceo_last_name': lead.ceo_last_name or '',
-        'geschaeftsfuehrer': lead.geschaeftsfuehrer or '',
-    }
 
 
-@public_router.post("/portal/{token}/complete-onboarding")
-def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
-    """Mark onboarding as completed and optionally save briefing fields."""
-    lead = db.query(Lead).filter(Lead.customer_token == token).first()
-    if not lead:
-        raise HTTPException(404, "Ungültiger Zugangslink")
-
-    if data.get('website_url'):
-        lead.website_url = data['website_url']
-
-    lead.onboarding_completed = True
-    lead.onboarding_completed_at = datetime.utcnow()
-
-    # Briefing-Felder speichern falls vorhanden
-    gewerk       = data.get('gewerk')
-    leistungen   = data.get('leistungen')
-    einzugsgebiet = data.get('einzugsgebiet')
-    has_logo     = data.get('has_logo')
-    has_photos   = data.get('has_photos')
-    anmerkungen  = data.get('anmerkungen')
-
-    briefing_fields = any(v is not None for v in [
-        gewerk, leistungen, einzugsgebiet, has_logo, has_photos, anmerkungen
-    ])
-
-    if briefing_fields:
-        try:
-            db.execute(text("""
-                INSERT INTO briefings
-                  (lead_id, gewerk, leistungen, einzugsgebiet,
-                   logo_vorhanden, fotos_vorhanden, sonstige_hinweise, status)
-                VALUES
-                  (:lead_id, :gewerk, :leistungen, :einzugsgebiet,
-                   :logo_vorhanden, :fotos_vorhanden, :sonstige_hinweise, 'entwurf')
-                ON CONFLICT (lead_id) DO UPDATE SET
-                  gewerk            = COALESCE(EXCLUDED.gewerk, briefings.gewerk),
-                  leistungen        = COALESCE(EXCLUDED.leistungen, briefings.leistungen),
-                  einzugsgebiet     = COALESCE(EXCLUDED.einzugsgebiet, briefings.einzugsgebiet),
-                  logo_vorhanden    = COALESCE(EXCLUDED.logo_vorhanden, briefings.logo_vorhanden),
-                  fotos_vorhanden   = COALESCE(EXCLUDED.fotos_vorhanden, briefings.fotos_vorhanden),
-                  sonstige_hinweise = COALESCE(EXCLUDED.sonstige_hinweise, briefings.sonstige_hinweise),
-                  updated_at        = NOW()
-            """), {
-                'lead_id':          lead.id,
-                'gewerk':           gewerk,
-                'leistungen':       leistungen,
-                'einzugsgebiet':    einzugsgebiet,
-                'logo_vorhanden':   has_logo,
-                'fotos_vorhanden':  has_photos,
-                'sonstige_hinweise': anmerkungen,
-            })
-        except Exception:
-            # Briefings-Tabelle existiert nicht — Felder als Notiz sichern
-            parts = []
-            if gewerk:        parts.append(f"Gewerk: {gewerk}")
-            if leistungen:    parts.append(f"Leistungen: {leistungen}")
-            if einzugsgebiet: parts.append(f"Einzugsgebiet: {einzugsgebiet}")
-            if anmerkungen:   parts.append(f"Anmerkungen: {anmerkungen}")
-            if parts:
-                lead.notes = ((lead.notes or '') + '\n' + '\n'.join(parts)).strip()
-
-    db.commit()
-    return {"success": True}
 
 
-@public_router.post("/portal-auth/complete-onboarding")
-def portal_auth_complete_onboarding(
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    """JWT-geschützter Onboarding-Abschluss für Kunden."""
-    from database import User as UserModel
-    if current_user.role != 'kunde':
-        raise HTTPException(403, "Nur für Kunden zugänglich")
-
-    lead_id = data.get('lead_id') or current_user.lead_id
-    if not lead_id:
-        raise HTTPException(400, "lead_id fehlt")
-
-    if current_user.lead_id and current_user.lead_id != lead_id:
-        raise HTTPException(403, "Zugriff verweigert")
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Lead nicht gefunden")
-
-    if data.get('website_url'):
-        lead.website_url = data['website_url']
-
-    lead.onboarding_completed = True
-    lead.onboarding_completed_at = datetime.utcnow()
-
-    parts = []
-    if data.get('gewerk'):        parts.append(f"Gewerk: {data['gewerk']}")
-    if data.get('leistungen'):    parts.append(f"Leistungen: {data['leistungen']}")
-    if data.get('einzugsgebiet'): parts.append(f"Einzugsgebiet: {data['einzugsgebiet']}")
-    if data.get('anmerkungen'):   parts.append(f"Anmerkungen: {data['anmerkungen']}")
-    if parts:
-        lead.notes = ((lead.notes or '') + '\n---\nOnboarding:\n' + '\n'.join(parts)).strip()
-
-    db.commit()
-    return {"success": True}
 
 
 # ── Routes with {lead_id} parameter below ──────────────────────
 
 
-@kunden_router.get("/{lead_id}", response_model=LeadResponse)
-def get_lead(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    """Get a specific lead by ID.
-
-    Die einzige Lead-Route, die auch ein Kunde aufrufen darf — für den
-    eigenen Betrieb. Die eigene Nummer hochzuzählen ist der naheliegendste
-    Angriff, deshalb steht die Prüfung hier und nicht in der Oberfläche.
-
-    **18.08.2026:** Die Prüfung fragte, ob jemand `kunde` ist — und liess
-    damit die Rolle `nutzer` durch, die laut Rechtematrix kein `view_leads`
-    hat. Jetzt umgekehrt: Wer nicht zum Innendienst gehört, sieht nur den
-    eigenen Betrieb. Dieselbe Umkehrung wie in `require_innendienst`.
-    """
-    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
-        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
-    return lead
 
 
 @router.patch("/{lead_id}", dependencies=[Depends(verlangt_recht("edit_leads"))])
@@ -1032,8 +488,26 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{lead_id}", dependencies=[Depends(verlangt_recht("delete_leads"))])
-def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated data in correct dependency order."""
+def delete_lead(lead_id: int, mit_zugang: bool = False, db: Session = Depends(get_db)):
+    """Einen Betrieb samt allem, was an ihm hängt, entfernen.
+
+    `mit_zugang=true` nimmt das Kundenkonto mit. **Ohne diesen Zusatz
+    geschieht das nicht** — die Entscheidung dazu fiel am 22.08.2026 (L-56),
+    und beide Hälften haben ihren Grund:
+
+    Wer einen Betrieb aus dem Bestand räumt — Dublette, kein Kunde mehr —,
+    soll nicht unbemerkt einen Zugang löschen, mit dem sich ein Mensch
+    anmeldet. Ein Konto darf keine Nebenwirkung einer Aufräumarbeit sein.
+
+    Ein Weg muss es aber geben: Bei einem Löschverlangen nach Art. 17 DSGVO
+    muss beides weg. Ohne ihn müsste der Innendienst das Konto in einem
+    anderen Bildschirm suchen — zwei Schritte, von denen man einen vergisst,
+    und ein übriggebliebenes Konto ist genau der Verstoß, den die Vorschrift
+    meint.
+
+    Die Antwort nennt jedes mitgelöschte Konto. Sonst wäre das Mitnehmen
+    wieder die stille Nebenwirkung, die es nicht sein soll.
+    """
     # 1. Prüfen ob Lead existiert
     lead = db.execute(
         text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
@@ -1055,11 +529,17 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     entfernen(db, [zeile[0] for zeile in projekte])
 
     # 3. Weitere Lead-abhängige Daten löschen
-    if tabelle_vorhanden(db, "project_files"):
-        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
-    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+    #
+    # Jede Tabelle wird vorher nachgeschlagen. `project_files` tat das schon;
+    # die drei anderen nicht — und das fiel am 22.08.2026 in der CI auf, wo
+    # die Datenbank frisch ist: `email_logs` gab es dort nicht, der Aufruf
+    # endete in einem unbehandelten `UndefinedTable`. Lokal lief derselbe
+    # Test grün, weil die Testdatenbank die Tabelle noch von einem früheren
+    # Lauf hatte. Eine Tabelle, die es nicht gibt, hat auch nichts, was zu
+    # löschen wäre.
+    for tabelle in ("project_files", "briefings", "audit_results", "email_logs"):
+        if tabelle_vorhanden(db, tabelle):
+            db.execute(text(f"DELETE FROM {tabelle} WHERE lead_id = :id"), {"id": lead_id})
 
     # 6. Lead selbst löschen
     #
@@ -1067,27 +547,42 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     # `users.lead_id` — unbehandelt, also **500** mit einer Meldung, aus der
     # niemand schließen kann, was zu tun ist (gefunden 19.08.2026).
     #
-    # Der Zugang wird hier **nicht** mitgelöscht: Ob das Löschen eines
-    # Betriebs das Konto seines Kunden mitnehmen soll, ist eine
-    # Datenschutz-Entscheidung und keine Zeile Code (L-56). Bis sie gefallen
-    # ist, sagt der Endpunkt wenigstens, was im Weg steht — das kann nichts
-    # brechen, denn heute scheitert der Aufruf ohnehin.
-    konto = db.execute(
-        text("SELECT email FROM users WHERE lead_id = :id LIMIT 1"),
-        {"id": lead_id},
-    ).fetchone()
-    if konto:
+    # Ein Betrieb mit Kundenzugang scheiterte hier am Fremdschlüssel
+    # `users.lead_id`. Seit dem 22.08.2026 entscheidet der Aufrufer, ob das
+    # Konto mitgeht — die Begründung steht im Docstring (L-56).
+    konten = db.execute(
+        text("SELECT email FROM users WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    adressen = [zeile[0] for zeile in konten]
+
+    if adressen and not mit_zugang:
         db.rollback()
         raise HTTPException(
             status_code=409,
-            detail=(f"Der Betrieb hat noch einen Kundenzugang ({konto[0]}). "
-                    "Erst den Zugang entfernen, dann den Betrieb löschen."),
+            detail=(
+                f"Der Betrieb hat noch {len(adressen)} Kundenzugang"
+                f"{'' if len(adressen) == 1 else '/-zugänge'} "
+                f"({', '.join(adressen)}). Entweder den Zugang zuerst "
+                f"entfernen — oder mit ?mit_zugang=true beides zusammen "
+                f"löschen, etwa bei einem Löschverlangen nach DSGVO."
+            ),
         )
+
+    if adressen:
+        # Erst die Sitzungen, dann die Konten: `user_sessions.user_id` hält
+        # sonst dagegen, und der Aufruf scheiterte an derselben Sorte
+        # Fremdschlüssel wie vorher, nur eine Tabelle weiter.
+        db.execute(text(
+            "DELETE FROM user_sessions WHERE user_id IN "
+            "(SELECT id FROM users WHERE lead_id = :id)"), {"id": lead_id})
+        db.execute(text("DELETE FROM users WHERE lead_id = :id"), {"id": lead_id})
+        logger.info("Betrieb %s gelöscht, Zugänge mitgenommen: %s",
+                    lead_id, ", ".join(adressen))
 
     db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
 
-    return {"deleted": True, "id": lead_id}
+    return {"deleted": True, "id": lead_id, "zugaenge_geloescht": adressen}
 
 
 @router.post("/{lead_id}/analyze")
@@ -1185,188 +680,10 @@ def convert_lead(
 
 # ===== IMPORT ENDPOINTS =====
 
-class ManualLeadImport(BaseModel):
-    company_name: str
-    contact_name: str = ""
-    phone: str = ""
-    email: str = ""
-    website_url: str = ""
-    city: str = ""
-    trade: str = ""
 
 
-@router.post("/import/csv")
-async def import_leads_csv(
-    file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = None,
-    db: Session = Depends(get_db),
-):
-    """Import leads from a CSV file."""
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Nur CSV-Dateien erlaubt.")
-
-    try:
-        content = await file.read()
-
-        # Encoding erkennen
-        try:
-            text = content.decode("utf-8-sig")  # BOM entfernen
-        except UnicodeDecodeError:
-            try:
-                text = content.decode("utf-8")
-            except UnicodeDecodeError:
-                text = content.decode("latin-1")
-
-        # Delimiter manuell erkennen — KEIN Sniffer
-        first_line = text.split("\n")[0] if text else ""
-
-        if ";" in first_line:
-            delimiter = ";"
-        elif "\t" in first_line:
-            delimiter = "\t"
-        else:
-            delimiter = ","
-
-        reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
-
-        imported = 0
-        errors = 0
-        skipped = 0
-
-        for row in reader:
-            try:
-                # Spaltennamen bereinigen
-                clean_row = {}
-                for k, v in row.items():
-                    if k:
-                        clean_key = k.strip().lower().lstrip('\ufeff')
-                        clean_row[clean_key] = v.strip() if v else ""
-
-                # Firmenname ist Pflicht
-                company = (
-                    clean_row.get("company_name")
-                    or clean_row.get("firmenname")
-                    or clean_row.get("firma")
-                    or clean_row.get("unternehmen")
-                    or clean_row.get("name")
-                    or ""
-                )
-
-                if not company:
-                    skipped += 1
-                    continue
-
-                lead = Lead(
-                    company_name=company,
-                    contact_name=(
-                        clean_row.get("contact_name")
-                        or clean_row.get("ansprechpartner")
-                        or clean_row.get("kontakt")
-                        or ""
-                    ),
-                    phone=(
-                        clean_row.get("phone")
-                        or clean_row.get("telefon")
-                        or clean_row.get("tel")
-                        or ""
-                    ),
-                    email=(
-                        clean_row.get("email")
-                        or clean_row.get("e-mail")
-                        or clean_row.get("mail")
-                        or ""
-                    ),
-                    website_url=(
-                        clean_row.get("website_url")
-                        or clean_row.get("website")
-                        or clean_row.get("url")
-                        or clean_row.get("homepage")
-                        or ""
-                    ),
-                    city=(
-                        clean_row.get("city")
-                        or clean_row.get("stadt")
-                        or clean_row.get("ort")
-                        or ""
-                    ),
-                    trade=(
-                        clean_row.get("trade")
-                        or clean_row.get("gewerk")
-                        or clean_row.get("branche")
-                        or "Sonstiges"
-                    ),
-                    lead_source="csv_import",
-                    status="new",
-                )
-                db.add(lead)
-                imported += 1
-
-            except Exception:
-                errors += 1
-                continue
-
-        db.commit()
-
-        # Background-enrich all imported leads with websites
-        if background_tasks and imported > 0:
-            from services.lead_enrichment import enrich_lead_sync
-            new_leads = db.query(Lead).filter(Lead.lead_source == "csv_import", Lead.analysis_score == 0, Lead.website_url != "").limit(imported).all()
-            for nl in new_leads:
-                background_tasks.add_task(enrich_lead_sync, nl.id)
-
-        return {
-            "success": True,
-            "imported": imported,
-            "errors": errors,
-            "skipped": skipped,
-            "message": (
-                f"{imported} Kontakte erfolgreich importiert"
-                + (f", {skipped} übersprungen" if skipped > 0 else "")
-                + (f", {errors} Fehler" if errors > 0 else "")
-            ),
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Import fehlgeschlagen: {str(e)}",
-        )
 
 
-@router.post("/import/manual", response_model=LeadResponse)
-def import_lead_manual(
-    lead_data: ManualLeadImport,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    """Import a single lead manually."""
-    if not lead_data.company_name.strip():
-        raise HTTPException(status_code=400, detail="Firmenname ist Pflichtfeld.")
-
-    lead = Lead(
-        company_name=lead_data.company_name.strip(),
-        contact_name=lead_data.contact_name.strip(),
-        phone=lead_data.phone.strip(),
-        email=lead_data.email.strip(),
-        website_url=lead_data.website_url.strip(),
-        city=lead_data.city.strip(),
-        trade=lead_data.trade.strip(),
-        # Eine Schreibweise je Quelle — `manual` schreiben auch die drei
-        # Frontend-Stellen, und der Quellenfilter vergleicht darauf (L-59).
-        lead_source="manual",
-        status="new",
-    )
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
-
-    if lead.website_url:
-        from services.lead_enrichment import enrich_lead_sync
-        background_tasks.add_task(enrich_lead_sync, lead.id)
-
-    return lead
 
 
 @router.post("/{lead_id}/enrich")
@@ -1596,93 +913,8 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
     return results
 
 
-#: Wie viele Betriebe ein Aufruf hoechstens anfasst. Jeder kostet einen
-#: Seitenabruf samt KI-Auswertung — das soll man dosieren koennen.
-NAMEN_JE_LAUF = 25
 
 
-@router.post("/namen-nachtragen")
-async def namen_nachtragen(
-    anzahl: int = Query(NAMEN_JE_LAUF, ge=1, le=NAMEN_JE_LAUF,
-                        description="Wie viele Betriebe dieser Lauf anfasst"),
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Holt den echten Firmennamen für Betriebe, die wie ihre Domain heißen.
-
-    Der Domainimport legt Betriebe mit der Domain als Namen an. Bis zum
-    17.08.2026 verwarf der Impressum-Schritt den echten Namen wieder, weil das
-    Feld als „gefüllt" galt. Behoben ist das — aber nur für künftige Läufe.
-    Dieser Endpunkt holt nach, was in der Liste steht.
-
-    Angefasst wird ausschließlich, wessen Name ein Platzhalter ist. Ein von
-    Hand gepflegter Name bleibt, auch wenn das Impressum etwas anderes sagt.
-    """
-    from services.impressum_scraper import extract_contact_from_impressum
-
-    kandidaten = [
-        lead for lead in db.query(Lead).filter(Lead.website_url != "").all()
-        if betriebsname.ist_platzhalter(lead.company_name, lead.website_url)
-    ][:anzahl]
-
-    geaendert, ohne_ergebnis = [], []
-    for lead in kandidaten:
-        try:
-            ergebnis = await extract_contact_from_impressum(lead.website_url)
-        except Exception as fehler:  # noqa: BLE001 — ein Betrieb darf den Lauf nicht kippen
-            logger.warning(f"Impressum für {lead.website_url} nicht lesbar: {fehler}")
-            ohne_ergebnis.append({"betrieb": lead.company_name, "grund": str(fehler)[:120]})
-            continue
-
-        # Der Abruf hat Sekunden gedauert. In der Zeit kann jemand über die
-        # Oberfläche denselben Betrieb bearbeitet haben — genau das geschah am
-        # 17.08.2026 bei „Frowein Haustechnik". Ohne dieses Nachlesen
-        # entscheidet der Lauf auf dem Stand von vor dem Abruf.
-        db.refresh(lead)
-
-        # Drei Lagen, die vorher alle „kein brauchbarer Name im Impressum"
-        # hießen — und damit dasselbe behaupteten wie ein echter Fehlschlag.
-        # Deshalb stand ein Betrieb im Bericht als gescheitert, der längst
-        # einen richtigen Namen trug.
-        if not betriebsname.ist_platzhalter(lead.company_name, lead.website_url):
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": "hatte inzwischen schon einen richtigen Namen",
-            })
-            continue
-
-        if not ergebnis.get("success"):
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": f"Impressum nicht lesbar: {ergebnis.get('error') or 'unbekannt'}"[:120],
-            })
-            continue
-
-        gefunden = (ergebnis.get("data") or {}).get("company_name")
-        echter_name = betriebsname.uebernehmen(lead.company_name, gefunden, lead.website_url)
-        if not echter_name:
-            ohne_ergebnis.append({
-                "betrieb": lead.company_name,
-                "grund": ("Impressum gelesen, aber kein Firmenname darin"
-                          if not (gefunden or "").strip()
-                          else f"gefundener Name taugt nicht: {gefunden[:60]!r}"),
-            })
-            continue
-
-        geaendert.append({"id": lead.id, "vorher": lead.company_name, "nachher": echter_name})
-        lead.company_name = echter_name
-        # Nach jedem Betrieb schreiben, nicht am Ende. Je Betrieb fallen ein
-        # Startseitenabruf, bis zu zwölf Kandidaten und ein KI-Aufruf an —
-        # zusammen Sekunden. Reißt die Verbindung nach dem zwanzigsten ab,
-        # sollen die ersten neunzehn Namen trotzdem stehen.
-        db.commit()
-
-    return {
-        "geprueft": len(kandidaten),
-        "geaendert": geaendert,
-        "ohne_ergebnis": ohne_ergebnis,
-        "grenze_erreicht": len(kandidaten) == anzahl,
-    }
 
 
 @router.post("/befunde-nachtragen")
@@ -1729,65 +961,6 @@ def befunde_nachtragen(
     return {"betroffen": len(betroffen), "betriebe": bericht}
 
 
-@router.post("/{lead_id}/extract-impressum")
-async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
-    """Extract contact data from a lead's website impressum using AI."""
-    from services.impressum_scraper import extract_contact_from_impressum
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    if not lead.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    result = await extract_contact_from_impressum(lead.website_url)
-
-    if not result['success']:
-        raise HTTPException(status_code=422, detail=result['error'])
-
-    # Nur leere Felder befüllen — vorhandene Daten NICHT überschreiben
-    data = result['data']
-    updated = {}
-
-    # Der Firmenname nach eigener Regel — der Domainimport hat ihn mit der
-    # Domain vorbelegt, und `not existing` hielte das für einen Wert.
-    echter_name = betriebsname.uebernehmen(
-        lead.company_name, data.get('company_name'), lead.website_url,
-    )
-    if echter_name:
-        lead.company_name = echter_name
-        updated['company_name'] = echter_name
-
-    field_map = {
-        'legal_form': lead.legal_form,
-        'ceo_first_name': lead.ceo_first_name,
-        'ceo_last_name': lead.ceo_last_name,
-        'street': lead.street,
-        'house_number': lead.house_number,
-        'postal_code': lead.postal_code,
-        'city': lead.city,
-        'phone': lead.phone,
-        'email': lead.email,
-        'vat_id': lead.vat_id,
-        'register_number': lead.register_number,
-        'register_court': lead.register_court,
-        'trade': lead.trade,
-    }
-
-    for field, existing in field_map.items():
-        if field in data and not existing:
-            setattr(lead, field, data[field])
-            updated[field] = data[field]
-
-    if updated:
-        db.commit()
-
-    return {
-        'success': True,
-        'extracted': data,
-        'updated_fields': updated,
-        'skipped_fields': [f for f in data if f not in updated],
-    }
 
 
 @router.get("/{lead_id}/qr-code")
@@ -1841,131 +1014,10 @@ def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
     }
 
 
-def _pagespeed_payload_lead(lead: Lead) -> dict:
-    """Return stored PageSpeed values for a lead as a dict."""
-    return {
-        "mobile_score":  lead.pagespeed_mobile_score,
-        "desktop_score": lead.pagespeed_desktop_score,
-        "lcp_mobile":    lead.pagespeed_lcp_mobile,
-        "cls_mobile":    lead.pagespeed_cls_mobile,
-        "inp_mobile":    lead.pagespeed_inp_mobile,
-        "fcp_mobile":    lead.pagespeed_fcp_mobile,
-        "checked_at":    lead.pagespeed_checked_at.isoformat() if lead.pagespeed_checked_at else None,
-    }
 
 
-@router.get("/{lead_id}/pagespeed")
-def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
-    """Return the last stored PageSpeed values for this lead without a new API call."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    return _pagespeed_payload_lead(lead)
 
 
-@router.post("/{lead_id}/pagespeed")
-async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
-    """Call Google PageSpeed Insights (mobile + desktop), persist results on the lead."""
-    from sqlalchemy import text as sa_text
-
-    # Schnelle URL-Abfrage per Raw-SQL (vermeidet ORM-Spalten-Timeout)
-    row = db.execute(sa_text("SELECT website_url FROM leads WHERE id = :lid"), {"lid": lead_id}).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    website_url = row[0]
-    if not website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    # DB-Verbindung VOR dem externen PageSpeed-Call freigeben — der Call kann
-    # bis zu 60s dauern und wuerde sonst eine Pool-Connection blockieren.
-    # Persistiert wird unten ueber eine frische SessionLocal().
-    db.close()
-
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-    params_base = {"url": website_url}
-    if api_key:
-        params_base["key"] = api_key
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            mobile_resp, desktop_resp = await asyncio.gather(
-                client.get(base, params={**params_base, "strategy": "mobile"}),
-                client.get(base, params={**params_base, "strategy": "desktop"}),
-            )
-    except Exception as e:
-        logger.error(f"PageSpeed API request failed for {website_url}: {e}")
-        raise HTTPException(status_code=502, detail=f"PageSpeed API nicht erreichbar: {str(e)[:100]}")
-
-    # Log response status for debugging
-    if mobile_resp.status_code != 200:
-        logger.warning(f"PageSpeed mobile {mobile_resp.status_code} for {website_url}: {mobile_resp.text[:200]}")
-    if desktop_resp.status_code != 200:
-        logger.warning(f"PageSpeed desktop {desktop_resp.status_code} for {website_url}: {desktop_resp.text[:200]}")
-
-    def _score(resp) -> int | None:
-        try:
-            data = resp.json()
-            cat = data.get("lighthouseResult", {}).get("categories", {}).get("performance", {})
-            raw = cat.get("score")
-            return round(raw * 100) if raw is not None else None
-        except Exception:
-            return None
-
-    def _audit(resp, key) -> float | None:
-        try:
-            return resp.json()["lighthouseResult"]["audits"][key]["numericValue"]
-        except Exception:
-            return None
-
-    mobile_score = _score(mobile_resp)
-    desktop_score = _score(desktop_resp)
-    logger.info(f"PageSpeed for {website_url}: mobile={mobile_score}, desktop={desktop_score}")
-
-    if mobile_score is None and desktop_score is None:
-        raise HTTPException(status_code=502, detail="PageSpeed konnte keine Scores ermitteln — Google API hat keine Ergebnisse geliefert")
-
-    # Per Raw-SQL speichern (schnell, kein ORM-Overhead, kein Timeout) —
-    # frische Session, da die urspruengliche vor dem PageSpeed-Call geschlossen wurde.
-    db2 = SessionLocal()
-    try:
-        db2.execute(sa_text("""
-            UPDATE leads SET
-                pagespeed_mobile_score  = :mobile,
-                pagespeed_desktop_score = :desktop,
-                pagespeed_lcp_mobile    = :lcp,
-                pagespeed_cls_mobile    = :cls,
-                pagespeed_inp_mobile    = :inp,
-                pagespeed_fcp_mobile    = :fcp,
-                pagespeed_checked_at    = :checked
-            WHERE id = :lid
-        """), {
-            "mobile": mobile_score,
-            "desktop": desktop_score,
-            "lcp": _audit(mobile_resp, "largest-contentful-paint"),
-            "cls": _audit(mobile_resp, "cumulative-layout-shift"),
-            "inp": _audit(mobile_resp, "interaction-to-next-paint"),
-            "fcp": _audit(mobile_resp, "first-contentful-paint"),
-            "checked": datetime.utcnow(),
-            "lid": lead_id,
-        })
-        db2.commit()
-    except Exception as e:
-        db2.rollback()
-        logger.error(f"PageSpeed save failed for lead {lead_id}: {e}")
-        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
-    finally:
-        db2.close()
-
-    return {
-        "mobile_score": mobile_score,
-        "desktop_score": desktop_score,
-        "lcp_mobile": _audit(mobile_resp, "largest-contentful-paint"),
-        "cls_mobile": _audit(mobile_resp, "cumulative-layout-shift"),
-        "inp_mobile": _audit(mobile_resp, "interaction-to-next-paint"),
-        "fcp_mobile": _audit(mobile_resp, "first-contentful-paint"),
-        "checked_at": datetime.utcnow().isoformat(),
-    }
 
 
 # ── Lead Domains ─────────────────────────────────────────────────────────────
@@ -2004,40 +1056,6 @@ def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_d
     return {"ok": True}
 
 
-@router.post("/{lead_id}/domain-check")
-async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
-    """Manueller Domain-Check für einen Lead."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    if not lead.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-    website_url = lead.website_url
-
-    # DB-Verbindung vor externem Check freigeben
-    db.close()
-
-    from services.domain_checker import check_domain
-    result = await check_domain(website_url)
-
-    # Neue Session zum Speichern
-    db2 = SessionLocal()
-    try:
-        lead = db2.query(Lead).filter(Lead.id == lead_id).first()
-        if not lead:
-            raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-        lead.domain_reachable   = result["reachable"]
-        lead.domain_status_code = result.get("status_code")
-        lead.domain_checked_at  = datetime.utcnow()
-        db2.commit()
-        return {
-            "reachable":    lead.domain_reachable,
-            "status_code":  lead.domain_status_code,
-            "checked_at":   lead.domain_checked_at.isoformat(),
-            "website_url":  lead.website_url,
-        }
-    finally:
-        db2.close()
 
 
 # ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
@@ -2142,7 +1160,6 @@ async def trigger_performance_reports(
     _=Depends(require_any_auth),
 ):
     """Manueller Trigger für den monatlichen Performance-Report (Admin-Test)."""
-    import asyncio
     from automations.scheduler import job_monthly_performance_report
 
     loop = asyncio.get_event_loop()
@@ -2156,263 +1173,6 @@ async def trigger_performance_reports(
 
 # ── Kaltakquise ──────────────────────────────────────────────────────────────
 
-@router.post("/{lead_id}/kaltakquise")
-async def start_kaltakquise(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
-):
-    """
-    Vollautomatischer Kaltakquise-Workflow:
-    1. Neuesten abgeschlossenen Audit laden
-    2. KI-Anschreiben auf Basis der Audit-Schwächen generieren
-    3. Audit-PDF erstellen und als Anhang anhängen
-    4. E-Mail an Lead-Adresse senden
-    5. Lead-Status auf 'kontaktiert' setzen
-    """
-    import re as _re
-    import tempfile
-    import os as _os
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Lead nicht gefunden")
-    if not lead.email:
-        raise HTTPException(400, "Lead hat keine E-Mail-Adresse")
-    if not lead.website_url:
-        raise HTTPException(400, "Lead hat keine Website-URL — Audit nicht möglich")
-
-    # Neuesten abgeschlossenen Audit laden
-    audit = db.execute(
-        text("""
-            SELECT id, total_score, ai_summary, top_issues,
-                   company_name, website_url, city, trade, level,
-                   erkannte_branche, branchenklasse
-            FROM audit_results
-            WHERE lead_id = :lid AND status = 'completed'
-            ORDER BY created_at DESC
-            LIMIT 1
-        """),
-        {"lid": lead_id},
-    ).fetchone()
-
-    if not audit:
-        return {
-            "success": False,
-            "status":  "no_audit",
-            "message": (
-                "Kein abgeschlossener Audit vorhanden. "
-                "Bitte zuerst einen Audit starten und warten bis er fertig ist."
-            ),
-        }
-
-    audit_id    = audit[0]
-    total_score = audit[1] or 0
-    company     = audit[4] or lead.company_name or "Ihr Unternehmen"
-    city        = audit[6] or lead.city or ""
-    # Was in diesem Brief als Branche steht, liest der Empfänger als unsere
-    # Einschätzung seiner Firma. `trade` ist bei den meisten Leads geraten
-    # (Stichwortsuche über den Seitentext), und `or lead.trade` holte die
-    # Vermutung selbst dann noch, wenn der Audit sie bewusst leer gelassen
-    # hatte. Ein Ingenieurbüro wurde so als „Schreiner" angeschrieben — mit
-    # dem Auditprotokoll im Anhang, das korrekt „Ingenieurbüro" sagte.
-    # Hier gilt dieselbe Rangfolge wie im Protokoll: Befund vor Vermutung,
-    # und wo nichts erhoben ist, das neutrale Wort.
-    branche     = branche_fuer_protokoll({
-        "erkannte_branche": audit[9],
-        "branchenklasse":   audit[10],
-        "trade":            "",
-    })
-    trade       = "Handwerksbetrieb" if branche == "k.A." else branche
-
-    top_issues = []
-    try:
-        raw = audit[3]
-        if raw:
-            parsed = json.loads(raw) if isinstance(raw, str) else raw
-            top_issues = parsed[:3] if isinstance(parsed, list) else []
-    except Exception:
-        pass
-
-    # DB vor KI-Call freigeben
-    db.close()
-
-    # ── KI-Anschreiben generieren ─────────────────────────────────────────
-    api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
-
-    level_label = (
-        "kritisch" if total_score < 40
-        else "verbesserungswürdig" if total_score < 70
-        else "gut"
-    )
-    issues_text = (
-        "\n".join(f"- {issue}" for issue in top_issues)
-        if top_issues
-        else f"- Gesamt-Score nur {total_score}/100 Punkte"
-    )
-
-    prompt = f"""Du schreibst ein professionelles, kurzes Akquise-Anschreiben für einen Webdesign-Dienstleister.
-
-EMPFÄNGER:
-- Firma: {company}
-- Branche: {trade}
-- Stadt: {city}
-- Website-Score: {total_score}/100 (Bewertung: {level_label})
-
-TOP-PROBLEME DER WEBSITE:
-{issues_text}
-
-ABSENDER: KOMPAGNON Communications — Website-Agentur für Handwerksbetriebe
-
-REGELN FÜR DAS ANSCHREIBEN:
-- Ton: professionell, direkt, kein Werbe-Jargon
-- Länge: maximal 120 Wörter im Haupttext
-- Keine Floskeln wie "Sehr geehrte Damen und Herren" — direkt ansprechen
-- Konkret auf die gefundenen Probleme eingehen (nicht generisch)
-- Einen klaren nächsten Schritt nennen (kostenloses Erstgespräch)
-- Kein HTML — nur plain text für den Briefkopf
-
-Antworte NUR mit einem JSON-Objekt:
-{{
-  "betreff": "<E-Mail-Betreffzeile, max 70 Zeichen>",
-  "anrede": "<z.B. Guten Tag, Team {company},>",
-  "haupttext": "<Der eigentliche Anschreiben-Text, max 120 Wörter>",
-  "cta": "<Abschluss mit Handlungsaufforderung, 1-2 Sätze>"
-}}"""
-
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": "claude-sonnet-5", "thinking": {"type": "disabled"},
-                    "max_tokens": 800,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-            )
-        resp.raise_for_status()
-        raw_text = resp.json()["content"][0]["text"].strip()
-        raw_text = _re.sub(r"^```json\s*", "", raw_text)
-        raw_text = _re.sub(r"\s*```$", "", raw_text)
-        letter = json.loads(raw_text)
-    except Exception as e:
-        raise HTTPException(500, f"KI-Anschreiben fehlgeschlagen: {str(e)[:200]}")
-
-    betreff   = letter.get("betreff", f"Ihre Website — wir haben sie analysiert")
-    anrede    = letter.get("anrede",  f"Guten Tag, Team {company},")
-    haupttext = letter.get("haupttext", "")
-    cta       = letter.get("cta", "Wir freuen uns auf Ihre Rückmeldung.")
-
-    # ── Audit-PDF erstellen ───────────────────────────────────────────────
-    pdf_path = None
-    db2 = SessionLocal()
-    try:
-        audit_obj = db2.execute(
-            text("SELECT * FROM audit_results WHERE id = :id"),
-            {"id": audit_id},
-        ).fetchone()
-        if audit_obj:
-            from services.pdf_generator import generate_audit_report
-            audit_dict = dict(audit_obj._mapping)
-            pdf_bytes = generate_audit_report(audit_dict)
-            tmp = tempfile.NamedTemporaryFile(
-                suffix=".pdf", delete=False, prefix=f"audit_{lead_id}_"
-            )
-            tmp.write(pdf_bytes)
-            tmp.close()
-            pdf_path = tmp.name
-    except Exception as pdf_err:
-        logger.warning(f"Kaltakquise: Audit-PDF konnte nicht erstellt werden: {pdf_err}")
-    finally:
-        db2.close()
-
-    # ── HTML-E-Mail aufbauen ──────────────────────────────────────────────
-    html_body = f"""
-<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a2332;">
-  <div style="background:#008EAA;padding:20px 24px;border-radius:8px 8px 0 0;">
-    <div style="color:#fff;font-size:18px;font-weight:700;">KOMPAGNON</div>
-    <div style="color:rgba(255,255,255,.7);font-size:12px;">Website-Optimierung für Handwerksbetriebe</div>
-  </div>
-  <div style="padding:28px 24px;background:#fff;border:1px solid #e2e8f0;border-top:none;">
-    <p style="margin:0 0 16px;font-size:15px;font-weight:500;">{anrede}</p>
-    <div style="font-size:14px;line-height:1.7;color:#374151;white-space:pre-line;">{haupttext}</div>
-    <div style="background:#FEF3C7;border-left:4px solid #D97706;
-                padding:14px 16px;margin:20px 0;border-radius:0 6px 6px 0;">
-      <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">
-        Ihre Website {lead.website_url} — Analyse-Ergebnis
-      </div>
-      <div style="font-size:22px;font-weight:800;color:#92400E;">{total_score}/100 Punkte</div>
-      <div style="font-size:12px;color:#92400E;margin-top:4px;">
-        Den vollständigen Bericht finden Sie im Anhang.
-      </div>
-    </div>
-    <p style="font-size:14px;line-height:1.7;color:#374151;">{cta}</p>
-    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;
-                font-size:12px;color:#6B7280;">
-      <strong>KOMPAGNON Communications</strong><br>
-      Website-Optimierung · Handwerksbetriebe
-    </div>
-  </div>
-</div>"""
-
-    # ── E-Mail senden ─────────────────────────────────────────────────────
-    from services.email import send_email as _send_kalt_email
-    ok = _send_kalt_email(
-        to_email=lead.email,
-        subject=betreff,
-        html_body=html_body,
-        attachment_path=pdf_path,
-        attachment_name=f"Website-Analyse-{company.replace(' ', '-')}.pdf",
-    )
-
-    if pdf_path and _os.path.exists(pdf_path):
-        try:
-            _os.unlink(pdf_path)
-        except Exception:
-            pass
-
-    if not ok:
-        raise HTTPException(500, "E-Mail-Versand fehlgeschlagen — SMTP-Konfiguration prüfen")
-
-    # ── Lead-Status aktualisieren ─────────────────────────────────────────
-    db3 = SessionLocal()
-    try:
-        db3.execute(
-            text("""
-                UPDATE leads SET
-                    status = 'kontaktiert',
-                    kaltakquise_gesendet_at = NOW(),
-                    kaltakquise_count = COALESCE(kaltakquise_count, 0) + 1
-                WHERE id = :lid
-            """),
-            {"lid": lead_id},
-        )
-        db3.commit()
-    except Exception as upd_err:
-        logger.warning(f"Kaltakquise Lead-Status Update fehlgeschlagen: {upd_err}")
-        try:
-            db3.rollback()
-        except Exception:
-            pass
-    finally:
-        db3.close()
-
-    logger.info(f"✓ Kaltakquise gesendet: Lead {lead_id} → {lead.email} (Score: {total_score})")
-
-    return {
-        "success":       True,
-        "email_sent_to": lead.email,
-        "audit_score":   total_score,
-        "betreff":       betreff,
-        "with_pdf":      pdf_path is not None,
-    }
 
 
 # ── Kein `/api/customers`-Alias mehr (21.08.2026) ────────────────────────────

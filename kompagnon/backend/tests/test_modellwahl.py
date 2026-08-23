@@ -28,7 +28,10 @@ ERLAUBT = {"claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"}
 
 #: Der eine Aufruf, der bewusst denkt: sichere Extraktion (`b.type == "text"`),
 #: grosszuegiges Budget, und die Bewertung eines Audits lohnt das Nachdenken.
-MIT_DENKEN = {"services/audit_ai.py", "routers/component_library.py"}
+# `component_library.py` stand hier, bis der KI-Teil am 22.08.2026 in
+# `component_library_ki.py` gewandert ist (L-25). Die Datei macht seither
+# keine Modellaufrufe mehr — die Zusicherung gilt dort, wo sie stattfinden.
+MIT_DENKEN = {"services/audit_ai.py", "routers/component_library_ki.py"}
 
 _MODELL = re.compile(r"claude-(?:opus|sonnet|haiku|fable|mythos)-[a-z0-9-]*")
 _AUFRUF = re.compile(r"messages\.(?:create|stream)\(")

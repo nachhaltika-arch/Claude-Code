@@ -5,6 +5,17 @@ from .usercards import router as usercards_router
 from .usercards import kunden_router as usercards_kunden_router
 from .leads import router as leads_router
 from .projects import router as projects_router
+# Nur wegen der Nebenwirkung: Der Import haengt die Netlify-Routen an
+# denselben Router. Ohne ihn waeren sie nicht registriert (L-25).
+from . import projects_netlify  # noqa: F401
+from . import projects_content  # noqa: F401
+from . import projects_public  # noqa: F401
+from . import projects_sichtbarkeit  # noqa: F401
+# Die Content-Werkstatt, herausgeloest am 22.08.2026 (L-25): drei
+# Funktionen mit zusammen 392 Zeilen. Sie haengt am selben Router — ohne
+# diesen Import fehlten drei Routen, und die Endpunktzaehlung fiel von
+# 391 auf 388. Genau dafuer wird nach jedem Schnitt gezaehlt.
+from . import projects_werkstatt  # noqa: F401
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router

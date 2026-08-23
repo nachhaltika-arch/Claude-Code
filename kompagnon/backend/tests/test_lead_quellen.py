@@ -221,7 +221,11 @@ class TestSchreibweisen:
         import re
         import pathlib
 
-        quelle = pathlib.Path(__file__).resolve().parent.parent / "main.py"
+        # Bis zum 22.08.2026 stand die Anweisung in `main.py`. Die
+        # Migrationen sind seitdem ein eigenes Modul (L-25); der Test misst
+        # dieselbe Sache, nur am richtigen Ort.
+        quelle = (pathlib.Path(__file__).resolve().parent.parent
+                  / "migrations_runtime.py")
         text = quelle.read_text(encoding="utf-8")
 
         assert re.search(r"UPDATE leads SET lead_source", text), (

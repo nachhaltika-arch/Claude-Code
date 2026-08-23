@@ -251,6 +251,7 @@ export default function WireframeView({
       i === targetIdx ? { slug: newSlug, order: b.order ?? i, slots: defaultSlots } : b,
     );
     const nextData = {
+      ...wireframeData,
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);
@@ -267,6 +268,7 @@ export default function WireframeView({
     const order = activeBlocks.length;
     const nextBlocks = [...activeBlocks, { slug: newSlug, order, slots: defaultSlots }];
     const nextData = {
+      ...wireframeData,
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);
@@ -298,6 +300,7 @@ export default function WireframeView({
       .filter((_, i) => i !== targetIdx)
       .map((b, i) => ({ ...b, order: i }));
     const nextData = {
+      ...wireframeData,
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);
@@ -348,6 +351,7 @@ export default function WireframeView({
       i === targetIdx ? { ...b, slots: nextSlots } : b,
     );
     const nextData = {
+      ...wireframeData,
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);
@@ -391,6 +395,7 @@ export default function WireframeView({
     next.splice(toIdx, 0, moved);
     const nextBlocks = next.map((b, i) => ({ ...b, order: i }));
     const nextData = {
+      ...wireframeData,
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);

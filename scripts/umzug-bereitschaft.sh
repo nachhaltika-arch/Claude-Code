@@ -32,7 +32,28 @@ DIENST="${1:-https://kompagnon-backend-fra.onrender.com}"
 # (Modulzuweisung, Fehlerprotokoll) und zwei entfallene (`/api/courses/*` aus
 # der Kurs-Zusammenfuehrung). Eine hart notierte 401 haette hier den Falschen
 # beschuldigt.
-REFERENZ="${2:-https://kompagnon-backend-staging.onrender.com}"
+#
+# **Die Referenz war bis zum 23.08. Staging — und das war die falsche.** Der
+# Lauf an diesem Tag meldete fuenf fehlende Routen und verweigerte die
+# Freigabe. Die fuenf fehlten nicht: Sie liegen auf `staging` in einem noch
+# **nicht gemergten** PR, waehrend Frankfurt aus `main` baut. Das Skript
+# verglich den neuen Dienst also mit einer Zukunft, die produktiv gar nicht
+# gilt, und beschuldigte ihn dafuer.
+#
+# Die Frage beim Umzug lautet nicht „traegt der neue Dienst den neuesten
+# Stand?", sondern **„traegt er dasselbe wie der, den er ersetzt?"**. Deshalb
+# ist die Referenz jetzt die Produktivadresse. Solange die Domain noch auf den
+# alten Dienst zeigt, misst das genau das Richtige.
+REFERENZ="${2:-https://api.kompagnon.group}"
+
+# Nach dem Umhaengen zeigt die Domain auf den Dienst selbst — dann vergliche
+# sich das Skript mit sich selbst und meldete stets „deckungsgleich".
+if [ "$DIENST" = "$REFERENZ" ]; then
+  printf '\033[33m!\033[0m Dienst und Referenz sind dieselbe Adresse — die \n'
+  printf '  Vollstaendigkeitspruefung vergliche sich mit sich selbst. Eine zweite\n'
+  printf '  Adresse als zweites Argument angeben.\n'
+  exit 2
+fi
 
 # Bewusst großzügig: Ein kalt gestarteter Render-Dienst braucht beim ersten
 # Aufruf länger als im Betrieb. Zu knapp gesetzt misst man den Kaltstart und

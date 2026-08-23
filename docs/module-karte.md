@@ -20,7 +20,7 @@ Drei Messungen, übereinandergelegt:
 2. **Die Router** (`backend/routers/`) — 51 Dateien, **458 Routen**, 27.136
    Zeilen. Das ist der tatsächliche Zusammenhang im Code.
 3. **Die Tabellen** — **66** insgesamt: 39 im ORM (`database.py`), **27 nur in
-   rohem SQL** (`main.py::_run_migrations`). Das ist der Zusammenhang in den
+   rohem SQL** (`migrations_runtime.py::run_migrations`). Das ist der Zusammenhang in den
    Daten.
 
 Ein Modul ist dort geschnitten, wo alle drei zusammenfallen. Wo sie es nicht

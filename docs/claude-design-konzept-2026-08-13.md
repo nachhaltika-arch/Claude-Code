@@ -198,7 +198,7 @@ Zwei Dinge kamen dabei heraus, beide vom stillen Typ:
   der Liste (gesperrt bleibt die Struktur), und die Oberfläche prüft die
   Antwort, statt dem Status zu glauben.
 * **Jede bestätigte Schritt-Bestätigung ging verloren.** `steps_confirmed` legt
-  `main.py::_run_migrations` per rohem SQL an; das ORM-Modell kannte die Spalte
+  `migrations_runtime.py::run_migrations` per rohem SQL an; das ORM-Modell kannte die Spalte
   nicht. `POST /confirm-step` antwortete `{"saved": true}` und schrieb nichts.
   Da der Editor nur den nächsten Schritt nach der letzten lückenlosen Kette
   freigibt, blieben Wireframe, Style-Guide und Design **dauerhaft gesperrt** —

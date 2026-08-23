@@ -27,12 +27,26 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from database import Base, SessionLocal, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, require_innendienst
 from services.ki_aufruf import frag_modell
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/content", tags=["content"])
+# **Die Sperre haengt am Router (L-67, 22.08.2026).** Die neun Routen hier
+# fuehren die Inhalte der Kundenprojekte — Texte ueberschreiben, Bilder
+# loeschen, Textentwuerfe erzeugen — und verliessen sich auf
+# `require_any_auth`, das nur „irgendwer ist angemeldet" bedeutet. Kunden
+# haben Konten.
+#
+# Vor der Sperre gemessen, wer die Adressen ruft: `ContentManager` aus
+# `CustomerDetail`, `LeadProfile` und `KasWebsite`, alle unter
+# `PrivateRoute roles={['admin']}` bzw. `['admin','auditor']`. Kein Aufruf
+# aus dem Kundenportal.
+#
+# Am Router und nicht je Route: Sonst ist die naechste hinzugefuegte Route
+# wieder offen — genau die Bauart hinter L-51.
+router = APIRouter(prefix="/api/content", tags=["content"],
+                   dependencies=[Depends(require_innendienst)])
 
 # ── ORM Models ────────────────────────────────────────────────────────────────
 

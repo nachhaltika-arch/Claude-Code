@@ -3,7 +3,7 @@ Migrationen fuer Newsletter- und Zusatztabellen.
 
 ACHTUNG — diese Datei laeuft NICHT beim Start des Servers. Aufgerufen wird
 sie nur von Hand (``python migrations.py``). Beim Start arbeitet allein die
-Liste in ``main.py::_run_migrations``. Eine Spalte, die nur hier eingetragen
+Liste in ``migrations_runtime.py::run_migrations``. Eine Spalte, die nur hier eingetragen
 wird, fehlt auf Render und laesst den betroffenen Endpunkt mit
 ``ProgrammingError`` abstuerzen — genau so ist der Widget-Teaser am
 2026-08-12 auf Staging gestrandet. Neue Spalten also immer nach ``main.py``,

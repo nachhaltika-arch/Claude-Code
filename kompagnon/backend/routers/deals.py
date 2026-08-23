@@ -18,10 +18,16 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from database import get_db
-from routers.auth_router import get_current_user
+from routers.auth_router import get_current_user, require_innendienst
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/deals", tags=["deals"])
+# Innendienst-Bestand (L-67, 22.08.2026). Die Sperre haengt am **Router**,
+# nicht je Route: Sonst ist die naechste Route, die jemand hinzufuegt, wieder
+# offen — genau die Bauart, die am 19.08. 55 offene Werkzeug-Routen erzeugt
+# hat (L-51). Vor dem Setzen gemessen, wer diese Adressen aufruft:
+# ausschliesslich Innendienst-Bildschirme, kein Pfad unter `pages/customer/`.
+router = APIRouter(prefix="/api/deals", tags=["deals"],
+                    dependencies=[Depends(require_innendienst)])
 
 
 # ── Schemas ──────────────────────────────────────────────────────

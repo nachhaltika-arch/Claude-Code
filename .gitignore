@@ -23,3 +23,18 @@ Thumbs.db
 # Local env files (rare at root but defensive)
 .env
 .env.local
+
+# macOS-Artefakte. `._*` sind AppleDouble-Dateien; eine davon
+# (`._NotoSans-Regular.ttf`) lag versioniert im Repo (L-80).
+._*
+
+# Sitzungserinnerungen von Claude Code. `.claude-config/memory/` ist per
+# Hardlink mit `~/.claude/projects/<projekt>/memory/` verbunden — es sind
+# dieselben Dateien, nicht Kopien. Sie aendern sich in jeder Sitzung und
+# gehoeren zum Arbeitsstand des Werkzeugs, nicht zum Projekt.
+#
+# Am 22.08.2026 waren sie versehentlich mit einem `git add -A` in die
+# Versionierung geraten (40 Dateien). Der Rest von `.claude-config/` —
+# `agents/`, `rules/`, die Vorlagen — bleibt versioniert; das ist die
+# Konfiguration und gehoert ins Repo.
+.claude-config/memory/

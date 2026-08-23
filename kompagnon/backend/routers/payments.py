@@ -419,6 +419,10 @@ def _handle_successful_payment(session: dict, db: Session):
             company_name   = company or "",
             package_id     = package_id,
             amount_eur     = amount,
+            # Ohne die Sitzung kaeme der Preis aus einer festen Liste — bis
+            # zum 22.08.2026 tat er das, und der gezahlte Betrag daneben
+            # wurde nicht angesehen (L-29).
+            db             = db,
         )
         if project_id:
             proj = db.query(Project).filter(Project.id == project_id).first()

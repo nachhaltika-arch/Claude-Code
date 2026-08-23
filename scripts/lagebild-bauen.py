@@ -96,10 +96,22 @@ def _fliesstext(text: str, grenze: int = 460) -> str:
     return (s[:grenze].rsplit(" ", 1)[0] + " …") if len(s) > grenze else s
 
 
+def _spalten(zeile: str) -> list:
+    """Eine Markdown-Tabellenzeile in ihre Spalten zerlegen.
+
+    Zerlegt an `|`, aber **nicht** an `\\|` — ein maskiertes Pipe gehoert zum
+    Zelleninhalt (etwa in `` `ls -1 \\| wc -l` ``). Daran scheiterte der
+    fruehere Ausdruck, und der Eintrag fiel stumm aus dem Lagebild.
+    """
+    roh = re.split(r"(?<!\\)\|", zeile.strip())
+    # Vor dem ersten und nach dem letzten `|` steht nichts.
+    return [feld.strip() for feld in roh[1:-1]]
+
+
 def luecken_lesen() -> list:
     """Abschnitt 3 der Soll-Ist-Analyse als Liste von Einträgen."""
     text = QUELLE.read_text(encoding="utf-8")
-    prio, heraus = None, []
+    prio, heraus, fehlerhaft = None, [], []
 
     for zeile in text.splitlines():
         kopf = re.match(r"^### (P[0-3]) — (.+)$", zeile)
@@ -107,11 +119,22 @@ def luecken_lesen() -> list:
             prio = (kopf.group(1), kopf.group(2))
             continue
 
-        reihe = re.match(r"^\| (L-\d+) \| (.*) \| ([^|]*) \| ([^|]*) \|\s*$", zeile)
-        if not (reihe and prio):
+        # **Maskierte Pipes.** Ein Beleg wie `` `ls -1 \| wc -l` `` traegt ein
+        # `\|` mitten in der Zeile. Der fruehere Ausdruck verlangte fuer die
+        # letzten beiden Spalten `[^|]*` und passte darauf nicht — L-80 fiel
+        # dadurch **stillschweigend aus dem Lagebild**, von Anfang an. Ein
+        # Werkzeug, das Eintraege verschluckt statt sich zu beschweren, ist
+        # schlimmer als eines, das gar nicht laeuft: Die Zahl sieht richtig aus.
+        # Deshalb wird jetzt an unmaskierten Pipes zerlegt.
+        if not (prio and zeile.startswith("| L-")):
             continue
+        felder = _spalten(zeile)
+        if len(felder) != 4:
+            fehlerhaft.append(zeile[:40])
+            continue
+        reihe = felder
 
-        id_, inhalt, aufwand, beleg = reihe.groups()
+        id_, inhalt, aufwand, beleg = reihe
         aufwand, beleg = aufwand.strip(), beleg.strip()
 
         # Bei einigen Einträgen steht der Beleg in der Aufwandsspalte
@@ -129,9 +152,46 @@ def luecken_lesen() -> list:
             "status": HANDGESETZT.get(id_, _status(inhalt, aufwand)),
             "titel": _titel(inhalt),
             "text": _fliesstext(inhalt),
+            # Der **ungekuerzte** Zelleninhalt, nur zum Pruefen. Siehe die
+            # Widerspruchsmeldung unten: `text` ist auf 460 Zeichen gekuerzt,
+            # und genau dahinter stand die Schliessmeldung von L-85.
+            "_roh": inhalt,
             "herkunft": _herkunft(id_, inhalt, beleg),
             "datum": next(iter(re.findall(r"20\d\d-\d\d-\d\d", inhalt)), ""),
         })
+
+    # **Widerspruch zwischen Text und Zaehlung melden.** L-84 war am 22.08.
+    # vollstaendig geschlossen, trug die Schliessmeldung im Text — und stand
+    # trotzdem als „offen" im Lagebild, weil beim Fortschreiben die
+    # Durchstreichung fehlte und die Aufwandsspalte stehenblieb. Solche
+    # Eintraege verfaelschen jede Zahl, die jemand aus dem Lagebild abliest.
+    #
+    # „teilweise" ist hier kein Widerspruch: Ein Eintrag darf sagen, dass ein
+    # Teil geschlossen ist. Gemeldet wird nur „offen" trotz Schliessmeldung.
+    #
+    # **Am ungekuerzten Inhalt pruefen, nicht am Anzeigetext.** Der erste
+    # Anlauf las `e["text"]` — und der ist auf 460 Zeichen gekuerzt. Bei L-85
+    # stand die Schliessmeldung an Zeichen 1.100: Der Waechter sah sie nie und
+    # meldete nichts, waehrend der Eintrag als „offen" mitzaehlte. Derselbe
+    # Fehler wie der, den er verhindern soll — das Werkzeug mass enger als der
+    # Befund reicht.
+    widersprueche = [
+        e["id"] for e in heraus
+        if e["status"] == "offen"
+        and re.search(r"Geschlossen(\s+am)?\s+2\d{3}", e["_roh"], re.I)
+    ]
+    if widersprueche:
+        print("  Hinweis: Diese Eintraege nennen ein Schliessdatum, zaehlen aber "
+              "als offen — fehlt die Durchstreichung oder steht noch ein "
+              f"Aufwand darin? {', '.join(widersprueche)}")
+
+    if fehlerhaft:
+        # **Nicht still weitermachen.** Genau das war der Fehler: Ein
+        # verschluckter Eintrag faellt niemandem auf, weil die Gesamtzahl
+        # weiter plausibel aussieht.
+        raise SystemExit(
+            "Diese Zeilen der Lueckenliste lassen sich nicht lesen — "
+            "sie fehlten sonst im Lagebild:\n  " + "\n  ".join(fehlerhaft))
 
     heraus.sort(key=lambda e: (e["prio"], e["id"]))
     return heraus

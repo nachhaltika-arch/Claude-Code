@@ -205,3 +205,58 @@ async def pruefe_ki_sichtbarkeit(
         "erhoben_bei": len(erhoben),
         "genannt_bei": sum(1 for b in erhoben if b.get("genannt_bei", 0) > 0),
     }
+
+
+#: Wie viele Laeufe der Verlauf haelt. Ein Verlauf, der unbegrenzt waechst,
+#: ist kein Verlauf, sondern ein Leck: Die Spalte wird bei jedem Lesen der
+#: GEO-Analyse mitgeladen. Fuenfzig reichen fuer Jahre — der Lauf kostet
+#: Geld und findet nicht taeglich statt.
+VERLAUF_MAX = 50
+
+
+def verlaufseintrag(befund: dict, am: str) -> dict:
+    """Ein Lauf, auf das eingedampft, was ihn vergleichbar macht.
+
+    **Was hineingeht:** je System die Trefferzahl. **Was nicht:** die
+    Antworttexte und die Belege. Die stehen im aktuellen Befund; im Verlauf
+    machten sie die Spalte in einem Jahr unlesbar und beantworten die Frage
+    nicht, die der Verlauf stellt — „mehr oder weniger als beim letzten Mal?"
+
+    **Nicht erhobene Systeme stehen nicht mit Null darin.** Sonst zeigte die
+    Kurve spaeter einen Einbruch, den es nie gab, nur weil ein Schluessel
+    fehlte. Sie stehen unter `nicht_erhoben`, damit die Luecke sichtbar
+    bleibt, statt als Ergebnis gelesen zu werden.
+    """
+    gemessen, offen = {}, []
+    for schluessel, block in (befund.get("anbieter") or {}).items():
+        if not block.get("collected"):
+            offen.append(schluessel)
+            continue
+        gemessen[schluessel] = {
+            "genannt_bei": block.get("genannt_bei", 0),
+            "von": block.get("von", 0),
+            "quote": block.get("quote"),
+        }
+
+    return {"am": am, "anbieter": gemessen, "nicht_erhoben": sorted(offen)}
+
+
+def verlauf_fortschreiben(bestand, befund: dict, am: str) -> list:
+    """Haengt einen Lauf an — und ersetzt ihn nicht.
+
+    Das ist der ganze Befund von L-85: `ki_sichtbarkeit` hielt genau einen
+    Stand, und der Wert der Messung entsteht erst aus dem Vergleich.
+
+    Ein Lauf ohne jeden Zugang wird **nicht** vermerkt: Er hat nichts
+    gemessen, und ein leerer Punkt in der Kurve laese sich nicht von einem
+    schlechten Ergebnis unterscheiden.
+    """
+    # Die Spalte ist JSONB und kann alles enthalten, was einmal
+    # hineingeschrieben wurde — auch etwas, das keine Liste ist.
+    verlauf = list(bestand) if isinstance(bestand, list) else []
+
+    if not befund.get("collected"):
+        return verlauf
+
+    verlauf.append(verlaufseintrag(befund, am))
+    return verlauf[-VERLAUF_MAX:]

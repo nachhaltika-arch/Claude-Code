@@ -17,7 +17,7 @@ def lead_mit_seiten(client, auth_headers):
 
     # `sitemap_pages` steht in routers/sitemap.py, nicht in database.py — beim
     # Anlegen des Testschemas ist die Klasse deshalb noch nicht importiert und
-    # die Tabelle fehlt. Im Betrieb legt sie `main.py::_run_migrations` an.
+    # die Tabelle fehlt. Im Betrieb legt sie `migrations_runtime.py::run_migrations` an.
     SitemapPage.__table__.create(bind=engine, checkfirst=True)
 
     db = SessionLocal()

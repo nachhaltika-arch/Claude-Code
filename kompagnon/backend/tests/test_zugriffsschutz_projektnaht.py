@@ -77,11 +77,15 @@ def test_der_innendienst_kommt_weiterhin_durch(client, auth_headers):
 def test_alle_vier_router_der_naht_tragen_eine_vorgabe():
     """Am Router, nicht an der Route — genau diese Bauart hat am 19.08.
     55 offene Routen erzeugt (L-51)."""
-    from routers import component_library, content_scraper_router, export, projects
+    from routers import (component_library_wireframe, content_scraper_router,
+                         export, projects)
 
     fuer_pruefung = (
         ("projects.router", projects.router),
-        ("component_library.wireframe_router", component_library.wireframe_router),
+        # Seit dem 22.08.2026 in einer eigenen Datei (L-25) — die Sperre
+        # ist mitgewandert, dieser Test haelt sie fest.
+        ("component_library_wireframe.wireframe_router",
+         component_library_wireframe.wireframe_router),
         ("content_scraper_router.router", content_scraper_router.router),
         ("export.router", export.router),
     )

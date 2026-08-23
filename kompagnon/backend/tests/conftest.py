@@ -79,9 +79,38 @@ def app():
     """Die FastAPI-App mit frisch angelegtem Schema."""
     _ensure_database_exists()
 
+    from sqlalchemy import text
     from database import Base, engine, init_db
-    Base.metadata.drop_all(bind=engine)
+
+    # **Das ganze Schema verwerfen, nicht nur die Modelltabellen.**
+    # `Base.metadata.drop_all` kennt nur, wofuer es ein Modell gibt — und
+    # scheitert, sobald eine migrationserzeugte Tabelle einen Fremdschluessel
+    # darauf haelt (`website_versions` → `projects`). Beim ersten Lauf faellt
+    # das nicht auf, weil es die Tabelle noch nicht gibt; beim zweiten bricht
+    # der Aufbau ab. Der Schutz oben stellt sicher, dass „test" im Namen steht.
+    with engine.begin() as verbindung:
+        verbindung.execute(text("DROP SCHEMA public CASCADE"))
+        verbindung.execute(text("CREATE SCHEMA public"))
+
     init_db()
+
+    # **Auch den Migrationsblock fahren.** `init_db` legt nur an, wofuer es ein
+    # SQLAlchemy-Modell gibt. Tabellen, die ausschliesslich in
+    # `migrations_runtime.py` als CREATE TABLE stehen — `support_tickets` etwa —
+    # entstehen dadurch **nie**, und jeder Test, der sie anfasst, scheitert an
+    # „relation does not exist".
+    #
+    # Bis zum 23.08.2026 half sich jeder solche Test selbst: Ein Test legte die
+    # Tabelle **wortgetreu abgeschrieben** in einer eigenen Fixture an. Das ging
+    # so lange gut, bis ein zweiter Test dieselbe Tabelle brauchte — dann fiel
+    # er in der CI um, waehrend er lokal gruen war, weil die Entwicklungs-
+    # datenbank sie noch aus einem frueheren echten Start trug.
+    #
+    # Produktiv laeuft dieser Block bei jedem Start. Die Testdatenbank soll
+    # dasselbe Schema haben wie die Produktivdatenbank — sonst prueft sie etwas
+    # anderes, als draussen laeuft.
+    from migrations_runtime import run_migrations
+    run_migrations()
 
     import main
     return main.app

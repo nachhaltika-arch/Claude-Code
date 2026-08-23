@@ -21,7 +21,7 @@ def betrieb_mit_seite(app):
     # `sitemap_pages` und `mockup_versions` stehen in den Routern, nicht in
     # `database.py` — beim Anlegen des Testschemas sind die Klassen deshalb
     # noch nicht importiert und die Tabellen fehlen. Im Betrieb legt sie
-    # `main.py::_run_migrations` an.
+    # `migrations_runtime.py::run_migrations` an.
     SitemapPage.__table__.create(bind=engine, checkfirst=True)
     DesignVersion.__table__.create(bind=engine, checkfirst=True)
 

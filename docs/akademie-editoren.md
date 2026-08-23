@@ -100,7 +100,7 @@ TypeError: 'checklist_items_json' is an invalid keyword argument for AcademyLess
 ```
 
 Der Router übergibt das Feld beim Anlegen; die Spalte existiert in der
-Datenbank (aus `main.py::_run_migrations`), im **Modell** stand sie nicht.
+Datenbank (aus `migrations_runtime.py::run_migrations`), im **Modell** stand sie nicht.
 Beide Editoren rufen denselben Endpunkt — der Kern der Akademie war kaputt:
 Kurse und Module ließen sich anlegen, **Inhalte nicht**.
 

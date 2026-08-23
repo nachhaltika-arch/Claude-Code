@@ -152,6 +152,10 @@ def luecken_lesen() -> list:
             "status": HANDGESETZT.get(id_, _status(inhalt, aufwand)),
             "titel": _titel(inhalt),
             "text": _fliesstext(inhalt),
+            # Der **ungekuerzte** Zelleninhalt, nur zum Pruefen. Siehe die
+            # Widerspruchsmeldung unten: `text` ist auf 460 Zeichen gekuerzt,
+            # und genau dahinter stand die Schliessmeldung von L-85.
+            "_roh": inhalt,
             "herkunft": _herkunft(id_, inhalt, beleg),
             "datum": next(iter(re.findall(r"20\d\d-\d\d-\d\d", inhalt)), ""),
         })
@@ -164,10 +168,17 @@ def luecken_lesen() -> list:
     #
     # „teilweise" ist hier kein Widerspruch: Ein Eintrag darf sagen, dass ein
     # Teil geschlossen ist. Gemeldet wird nur „offen" trotz Schliessmeldung.
+    #
+    # **Am ungekuerzten Inhalt pruefen, nicht am Anzeigetext.** Der erste
+    # Anlauf las `e["text"]` — und der ist auf 460 Zeichen gekuerzt. Bei L-85
+    # stand die Schliessmeldung an Zeichen 1.100: Der Waechter sah sie nie und
+    # meldete nichts, waehrend der Eintrag als „offen" mitzaehlte. Derselbe
+    # Fehler wie der, den er verhindern soll — das Werkzeug mass enger als der
+    # Befund reicht.
     widersprueche = [
         e["id"] for e in heraus
         if e["status"] == "offen"
-        and re.search(r"Geschlossen(\s+am)?\s+2\d{3}", e["text"], re.I)
+        and re.search(r"Geschlossen(\s+am)?\s+2\d{3}", e["_roh"], re.I)
     ]
     if widersprueche:
         print("  Hinweis: Diese Eintraege nennen ein Schliessdatum, zaehlen aber "

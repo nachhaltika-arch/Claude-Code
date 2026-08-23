@@ -175,3 +175,84 @@ def test_auch_die_modulzuweisung_wird_nachgezogen(db, kurs, kunde_mit_betrieb):
             AcademyModuleAccess.module_id == modul.id).delete(synchronize_session=False)
         db.delete(modul)
         db.commit()
+
+
+# ── Verwaiste Zeilen ─────────────────────────────────────────────────────
+#
+# **Am 2026-08-23 produktiv nachgemessen, und der Befund war ein anderer als
+# notiert.** Der Eintrag L-54 sagte, offen bleibe „genau der zweideutige
+# Rest". Produktiv gibt es davon **keine einzige** Zeile — dafür tragen
+# **beide** vorhandenen Zuweisungen (29.04.2026, Kurs 2 und 8) die Nummer 78:
+# Betrieb „Textilpflege Noll", der **kein Kundenkonto** hat.
+#
+# Der Nachtrag ging daran stumm vorbei. `nach_betrieb.get(78)` ist `None`,
+# und `None` fiel in dasselbe `continue` wie „ist schon eine Benutzernummer" —
+# der harmlose Fall. Im Startprotokoll stand deshalb nichts, obwohl 2 von 2
+# produktiven Zeilen in dieser Klasse liegen.
+#
+# Sie sind ungefährlich: Ohne Konto sieht sie niemand. Aber sie sind auch
+# nicht aufräumbar, solange sie niemand nennt.
+
+
+@pytest.fixture
+def betrieb_ohne_konto(db):
+    """Ein Betrieb mit hoher Nummer und ohne Kundenkonto — wie Betrieb 78."""
+    hoechste = db.query(User.id).order_by(User.id.desc()).first()
+    hoch = (hoechste[0] if hoechste else 0) + 7000
+
+    db.execute(text("INSERT INTO leads (id, company_name) VALUES (:i, :n)"),
+               {"i": hoch, "n": "Verwaistprobe Betrieb"})
+    db.commit()
+
+    yield hoch
+
+    db.execute(text("DELETE FROM leads WHERE id = :i"), {"i": hoch})
+    db.commit()
+
+
+def test_eine_zeile_ohne_kundenkonto_wird_als_verwaist_gemeldet(
+        db, kurs, betrieb_ohne_konto):
+    """Der produktive Fall: Zuweisung an einen Betrieb, der keinen Zugang hat."""
+    # Arrange
+    db.add(AcademyCustomerAccess(customer_id=betrieb_ohne_konto,
+                                 course_id=kurs.id))
+    db.commit()
+
+    # Act
+    bericht = kennungen_nachziehen(db)
+
+    # Assert
+    assert bericht["verwaist"] >= 1
+    zeile = db.query(AcademyCustomerAccess).filter(
+        AcademyCustomerAccess.course_id == kurs.id).first()
+    assert zeile.customer_id == betrieb_ohne_konto, "nicht umschreiben"
+
+
+def test_eine_kennung_ohne_jede_entsprechung_gilt_auch_als_verwaist(db, kurs):
+    """Weder Benutzer- noch Betriebsnummer — erst recht sieht sie niemand."""
+    # Arrange
+    hoechste = db.query(User.id).order_by(User.id.desc()).first()
+    nirgends = (hoechste[0] if hoechste else 0) + 9000
+    db.add(AcademyCustomerAccess(customer_id=nirgends, course_id=kurs.id))
+    db.commit()
+
+    # Act
+    bericht = kennungen_nachziehen(db)
+
+    # Assert
+    assert bericht["verwaist"] >= 1
+
+
+def test_eine_gueltige_benutzernummer_gilt_nicht_als_verwaist(
+        db, kurs, kunde_mit_betrieb):
+    """Die Abgrenzung: der harmlose Fall darf nicht mitgezählt werden."""
+    # Arrange
+    nutzer, _ = kunde_mit_betrieb
+    db.add(AcademyCustomerAccess(customer_id=nutzer.id, course_id=kurs.id))
+    db.commit()
+
+    # Act
+    bericht = kennungen_nachziehen(db)
+
+    # Assert
+    assert bericht["verwaist"] == 0

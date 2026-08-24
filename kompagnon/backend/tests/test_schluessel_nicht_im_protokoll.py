@@ -9,6 +9,13 @@ Zwei Riegel, weil ein einzelner nicht reicht:
    24.08.2026 am echten Endpunkt geprüft: Antwort ``REQUEST_DENIED — You
    must use an API key to authenticate``). Dort muss der Schlüssel in der
    URL bleiben, also wird er im Protokoll geschwärzt.
+
+**Warum der erfundene Schlüssel hier nicht wie ein echter aussehen darf.**
+Der erste Anlauf nahm ``AIzaSy…`` — die Form eines echten Google-Schlüssels.
+Der Gitleaks-Lauf der CI schlug an (drei Funde, Lauf 32716902764), und das
+war richtig: Ein Wächter, der zwischen „sieht aus wie ein Schlüssel“ und „ist
+einer“ unterscheiden könnte, würde beim nächsten Mal den echten durchlassen.
+Der Testwert trägt jetzt seine Rolle im Namen.
 """
 import logging
 
@@ -21,13 +28,13 @@ from services.protokoll_schwaerzung import Schwaerzung, schwaerzen
 class TestPagespeedSchluesselAlsKopfzeile:
     def test_setzt_kopfzeile_wenn_schluessel_vorhanden(self, monkeypatch):
         # Arrange
-        monkeypatch.setenv("PAGESPEED_API_KEY", "AIzaSyGEHEIM123")
+        monkeypatch.setenv("PAGESPEED_API_KEY", "geheim-nur-im-test")
 
         # Act
         kopf = auth_headers()
 
         # Assert
-        assert kopf == {"X-Goog-Api-Key": "AIzaSyGEHEIM123"}
+        assert kopf == {"X-Goog-Api-Key": "geheim-nur-im-test"}
 
     def test_laesst_kopfzeile_weg_wenn_kein_schluessel(self, monkeypatch):
         # Arrange — ein *leerer* Schlüssel ist bei Google 400, kein Schlüssel
@@ -45,11 +52,11 @@ class TestPagespeedSchluesselAlsKopfzeile:
 class TestSchwaerzung:
     @pytest.mark.parametrize("roh, erwartet", [
         (
-            "HTTP Request: GET https://x/runPagespeed?url=a&key=AIzaSyGEHEIM123 200",
+            "HTTP Request: GET https://x/runPagespeed?url=a&key=geheim-nur-im-test 200",
             "HTTP Request: GET https://x/runPagespeed?url=a&key=***geschwaerzt*** 200",
         ),
         (
-            "GET https://maps.googleapis.com/x/json?input=a&key=AIzaSyGEHEIM123",
+            "GET https://maps.googleapis.com/x/json?input=a&key=geheim-nur-im-test",
             "GET https://maps.googleapis.com/x/json?input=a&key=***geschwaerzt***",
         ),
         (
@@ -74,7 +81,7 @@ class TestSchwaerzung:
         satz = logging.LogRecord(
             name="httpx", level=logging.INFO, pathname=__file__, lineno=1,
             msg='HTTP Request: GET https://x?key=%s "200 OK"',
-            args=("AIzaSyGEHEIM123",), exc_info=None,
+            args=("geheim-nur-im-test",), exc_info=None,
         )
 
         # Act
@@ -82,7 +89,7 @@ class TestSchwaerzung:
 
         # Assert — der Satz wird durchgelassen, nur eben ohne Schlüssel.
         assert behalten is True
-        assert "AIzaSyGEHEIM123" not in satz.getMessage()
+        assert "geheim-nur-im-test" not in satz.getMessage()
         assert "***geschwaerzt***" in satz.getMessage()
 
     def test_ruehrt_saetze_ohne_geheimnis_nicht_an(self):

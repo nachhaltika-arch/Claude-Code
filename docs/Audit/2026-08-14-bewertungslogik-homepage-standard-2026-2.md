@@ -79,6 +79,17 @@ guter Ausgang, auch ohne Website-Auftrag.
 | Tracking oder Schriften ohne Einwilligung | Bronze |
 | Cookies gesetzt ohne Consent | Bronze |
 
+> **Von den fünf Regeln greifen vier (Stand 24.08.2026, S6.1).** „Cookies gesetzt ohne
+> Consent" kann kein Audit auslösen. Die Regel verlangt einen Vergleich der gesetzten
+> Cookies vor und nach der Einwilligung; erhoben wird stattdessen nur, ob im HTML ein
+> bekanntes Consent-Werkzeug steckt. Dafür braucht es einen echten Browserlauf, den die
+> Erhebung nicht hat.
+>
+> Die Regel bleibt trotzdem im Standard. Sie zu streichen, weil die Messung fehlt, hieße
+> den Maßstab nach der Erhebungslage zu richten — und damit genau die Richtung, vor der
+> § 0 warnt. Sichtbar gehalten wird sie durch `NICHT_ERHOBENE_BLOCKER` im Katalog und
+> `tests/test_deckelregeln_erhoben.py`.
+
 Der Bericht weist die Deckelung mit Grund aus, nie nur die Stufe:
 
 > „Nicht konform (rechnerisch 78 Punkte). Begrenzt, weil keine Datenschutzerklärung

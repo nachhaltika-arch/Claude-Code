@@ -564,6 +564,21 @@ BLOCKING_CRITICAL = frozenset({
 })
 BLOCKING_MAJOR = frozenset({"tracking_ohne_consent", "cookies_ohne_consent"})
 
+#: Deckelregeln, die der Katalog **nennt**, aber niemand **erhebt**.
+#:
+#: `cookies_ohne_consent` verlangt laut Spezifikation einen „Cookie-Vergleich
+#: vor/nach" der Einwilligung. `audit_collectors.detect_consent` liest
+#: ausschliesslich HTML und erkennt Consent-Werkzeuge an ihrer Signatur — ob
+#: **tatsaechlich** Cookies vor der Einwilligung gesetzt werden, sieht dabei
+#: niemand. Dafuer braucht es einen echten Browserlauf.
+#:
+#: Die Regel bleibt trotzdem stehen. Sie aus `BLOCKING_MAJOR` zu entfernen
+#: hiesse, den Massstab zu aendern, weil die Messung fehlt — und der Deckel
+#: gehoert in den Standard, nicht in die Erhebungslage. Sichtbar bleibt sie
+#: durch `tests/test_deckelregeln_erhoben.py`, der jede stille Erweiterung
+#: dieser Menge meldet.
+NICHT_ERHOBENE_BLOCKER = frozenset({"cookies_ohne_consent"})
+
 BLOCKER_LABELS = {
     "kein_impressum": "Kein erreichbares Impressum (§ 5 DDG)",
     "keine_datenschutzerklaerung": "Keine erreichbare Datenschutzerklärung (Art. 13 DSGVO)",

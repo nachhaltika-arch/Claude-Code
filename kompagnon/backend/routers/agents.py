@@ -293,19 +293,56 @@ def get_job(job_id: str):
 @router.post("/{project_id}/seo")
 def run_seo_agent(
     project_id: int,
-    company_data: CompanyData,
+    company_data: CompanyData | None = None,
     db: Session = Depends(get_db),
 ):
-    """Run SEO/GEO agent for a project."""
+    """Run SEO/GEO agent for a project.
+
+    **`company_data` ist seit dem 24.08.2026 freiwillig (L-15, L-99).** Bis
+    dahin musste der Aufrufer die ganze Firmenanschrift mitschicken — und
+    genau daran ist dieser Endpunkt nie angeschlossen worden: Das Frontend
+    haette Strasse, PLZ und Oeffnungszeiten liefern muessen, und die
+    Oeffnungszeiten gab es im Datenmodell gar nicht.
+
+    Ohne Angabe holt der Endpunkt sie jetzt selbst vom Betrieb. Ist die
+    Anschrift unvollstaendig, antwortet er **400 mit den fehlenden Feldern**
+    — statt eine leere Adresse an das Modell zu geben und eine erfundene
+    `schema.org`-Auszeichnung zu bekommen.
+    """
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    if company_data is None:
+        from services.betriebsadresse import (
+            PFLICHTFELDER,
+            adresse_vollstaendig,
+            als_company_data,
+        )
+
+        lead = project.lead
+        if not lead:
+            raise HTTPException(
+                status_code=400,
+                detail="Zum Projekt gehoert kein Betrieb — ohne ihn gibt es "
+                       "keine Anschrift.")
+        if not adresse_vollstaendig(lead):
+            fehlend = [f for f in PFLICHTFELDER
+                       if not str(getattr(lead, f, "") or "").strip()]
+            raise HTTPException(
+                status_code=400,
+                detail=("Die Anschrift des Betriebs ist unvollstaendig. "
+                        f"Es fehlt: {', '.join(fehlend)}. Ohne sie laesst "
+                        "sich keine schema.org-Auszeichnung erzeugen, und "
+                        "geraten wird hier nichts."))
+        leistungen = [s for s in (getattr(lead, "trade", "") or "").split(",") if s]
+        company_dict = als_company_data(lead, leistungen=leistungen)
+    else:
+        company_dict = company_data.dict()
+
     try:
         use_mock = not os.getenv("ANTHROPIC_API_KEY")
         agent = SeoGeoAgent() if not use_mock else None
-
-        company_dict = company_data.dict()
 
         if agent:
             result = agent.generate_seo(company_dict)

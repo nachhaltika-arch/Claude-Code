@@ -598,6 +598,10 @@ def run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT true",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
+        # Oeffnungszeiten (L-15, L-99, 24.08.2026). `street` und `postal_code`
+        # gibt es laengst — nur diese eine Spalte fehlte, und ohne sie ist
+        # `schema.org/LocalBusiness` nicht zu erzeugen.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS opening_hours TEXT",
         "ALTER TABLE usercards ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
         # Flat briefing fields on existing briefings table
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS project_id INTEGER",

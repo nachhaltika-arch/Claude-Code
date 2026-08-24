@@ -65,6 +65,11 @@ class LeadCreate(BaseModel):
     website_url: str = None
     city: str = ""
     trade: str = ""
+    # Anschrift und Oeffnungszeiten (L-15, L-99). Ohne sie ist der SEO-Agent
+    # nicht anzuschliessen und `schema.org/LocalBusiness` nicht zu erzeugen.
+    street: str = ""
+    postal_code: str = ""
+    opening_hours: str = ""
     lead_source: str = None
     notes: str = None
 
@@ -78,6 +83,11 @@ class LeadUpdate(BaseModel):
     website_url: Optional[str] = None
     city: Optional[str] = None
     trade: Optional[str] = None
+    # Nur die Oeffnungszeiten sind neu (L-15/L-99) — `street`, `house_number`
+    # und `postal_code` stehen weiter unten in diesem Modell und standen dort
+    # schon vorher. Der erste Anlauf am 24.08.2026 haette sie ein zweites Mal
+    # eingetragen; bei Pydantic gewinnt dann stillschweigend die spaetere.
+    opening_hours: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     lead_source: Optional[str] = None
@@ -119,6 +129,11 @@ class LeadResponse(BaseModel):
     website_url: Optional[str] = None
     city: Optional[str] = None
     trade: Optional[str] = None
+    # Nur die Oeffnungszeiten sind neu (L-15/L-99) — `street`, `house_number`
+    # und `postal_code` stehen weiter unten in diesem Modell und standen dort
+    # schon vorher. Der erste Anlauf am 24.08.2026 haette sie ein zweites Mal
+    # eingetragen; bei Pydantic gewinnt dann stillschweigend die spaetere.
+    opening_hours: Optional[str] = None
     industry: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
@@ -143,11 +158,13 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             INSERT INTO leads (
                 company_name, contact_name, phone, email,
                 website_url, city, trade, lead_source, notes,
+                street, postal_code, opening_hours,
                 status, analysis_score, geo_score,
                 created_at, updated_at
             ) VALUES (
                 :company_name, :contact_name, :phone, :email,
                 :website_url, :city, :trade, :lead_source, :notes,
+                :street, :postal_code, :opening_hours,
                 'new', 0, 0,
                 NOW(), NOW()
             ) RETURNING id, company_name, contact_name, phone, email,
@@ -163,6 +180,13 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             'trade': lead.trade or '',
             'lead_source': lead.lead_source or '',
             'notes': lead.notes or '',
+            # **Angenommen und verworfen waere schlimmer als gar nicht
+            # angenommen.** `LeadCreate` nimmt diese drei seit dem 24.08.2026
+            # entgegen (L-15/L-99); ohne diese Zeilen landeten sie nirgends,
+            # und die Oberflaeche haette gemeldet, alles sei gespeichert.
+            'street': lead.street or '',
+            'postal_code': lead.postal_code or '',
+            'opening_hours': lead.opening_hours or '',
         })
         db.commit()
         row = result.fetchone()

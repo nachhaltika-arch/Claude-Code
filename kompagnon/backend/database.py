@@ -95,6 +95,24 @@ class Lead(Base):
     website_url = Column(String(500), default="")
     city = Column(String(100), nullable=True, default=None)
     trade = Column(String(100), nullable=True, default=None)
+    # ── Oeffnungszeiten (L-15, L-99, 24.08.2026) ────────────────────────
+    #
+    # **Nur dieses eine Feld fehlte wirklich.** Der SEO/GEO-Agent verlangt
+    # `street`, `postal_code` **und** `opening_hours` (`CompanyData` in
+    # `routers/agents.py`). Beim Nachsehen standen die ersten beiden laengst
+    # weiter unten in diesem Modell (Zeile 77/79, zusammen mit
+    # `house_number`) — der erste Suchlauf hatte ein zu kurzes Fenster und
+    # haette hier beinahe zwei **doppelte** Spalten angelegt. Bei SQLAlchemy
+    # gewinnt dann stillschweigend die spaetere Definition.
+    #
+    # Ohne die Oeffnungszeiten ist `schema.org/LocalBusiness` trotzdem nicht
+    # zu erzeugen: `openingHours` ist dort Pflicht, und der Agent verlangt es.
+    #
+    # `opening_hours` ist **JSON-Text und keine sieben Spalten**. Sie sind
+    # eine Struktur, keine Skalare, und `schema.org/openingHours` will sie
+    # ohnehin zusammengesetzt. Sieben Spalten waeren sieben Migrationen beim
+    # ersten Sonderfall („Mo-Do 8-17, Fr 8-13, Sa nach Vereinbarung").
+    opening_hours = Column(Text, nullable=True, default=None)
     lead_source = Column(String(100), default="")
     status = Column(String(50), default="new")
     # Wo im Trichter — getrennt davon, wie weit die Bearbeitung ist.

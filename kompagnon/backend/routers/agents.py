@@ -43,6 +43,12 @@ def _json_to_html(data: dict, context: dict | None = None) -> str:
     services = data.get('service_texts', {})
     faqs     = data.get('faq_items', [])
     cta      = data.get('local_cta', '')
+    # Die vier Felder aus der Conversion-Spec (L-15, § 6). Ohne sie kaeme der
+    # Texter mit Wertebox und Garantien zurueck, und die Vorschau liesse
+    # beides unter den Tisch fallen — gebaut, nicht angeschlossen.
+    wertebox = data.get('wertebox') or {}
+    garantien = data.get('garantien') or []
+    einwaende = data.get('einwand_faq') or []
 
     service_cards = ''
     if isinstance(services, dict):
@@ -64,6 +70,64 @@ def _json_to_html(data: dict, context: dict | None = None) -> str:
                 f'<h3 style="margin-bottom:8px;font-size:1rem;color:{primary_color}">{q}</h3>'
                 f'<p style="color:#555;line-height:1.6">{a}</p></div>'
             )
+
+    def _kasten(inhalt: str, ueberschrift: str, grund: str = "white") -> str:
+        return (
+            f'<div style="background:{grund};padding:60px 40px">'
+            f'<h2 style="text-align:center;margin-bottom:32px;font-size:1.8rem;'
+            f'color:{primary_color}">{ueberschrift}</h2>'
+            f'<div style="max-width:800px;margin:0 auto">{inhalt}</div></div>'
+        )
+
+    # ── Wertebox: Bullet-Liste mit EUR-Wert, Anker, Aktionspreis (Spec § 2) ──
+    wertebox_block = ''
+    positionen = wertebox.get('positionen') or []
+    if positionen:
+        zeilen = ''.join(
+            f'<li style="padding:10px 0;border-bottom:1px solid #eee;'
+            f'display:flex;justify-content:space-between;gap:16px">'
+            f'<span>{p.get("leistung", "")}</span>'
+            f'<strong style="white-space:nowrap">{p.get("wert_eur", 0)} EUR</strong></li>'
+            for p in positionen if isinstance(p, dict)
+        )
+        anker_zeile = ''
+        if wertebox.get('ankerwert_eur'):
+            anker_zeile = (
+                f'<p style="margin-top:20px;color:#777">Gesamtwert: '
+                f'<s>{wertebox["ankerwert_eur"]} EUR</s></p>'
+            )
+        preis_zeile = ''
+        if wertebox.get('aktionspreis_eur'):
+            preis_zeile = (
+                f'<p style="font-size:1.6rem;font-weight:700;'
+                f'color:{primary_color}">{wertebox["aktionspreis_eur"]} EUR</p>'
+            )
+        wertebox_block = _kasten(
+            f'<ul style="list-style:none">{zeilen}</ul>{anker_zeile}{preis_zeile}',
+            wertebox.get('titel') or 'Das Komplettpaket', '#f8f9fa')
+
+    # ── Garantie-Block: Risk Reversal (Spec § 2 und § 3) ────────────────────
+    garantie_block = ''
+    if isinstance(garantien, list) and garantien:
+        karten = ''.join(
+            f'<div style="padding:16px 0;border-bottom:1px solid #eee">'
+            f'<strong style="color:{primary_color}">{g.get("versprechen", "")}</strong>'
+            f'<p style="color:#555;margin-top:4px">{g.get("bezug", "")}</p></div>'
+            for g in garantien if isinstance(g, dict)
+        )
+        garantie_block = _kasten(karten, 'Unsere Garantien')
+
+    # ── Einwand-FAQ: Counter Objections (Spec § 3) ──────────────────────────
+    einwand_block = ''
+    if isinstance(einwaende, list) and einwaende:
+        zeilen = ''.join(
+            f'<div style="border-bottom:1px solid #eee;padding:20px 0">'
+            f'<h3 style="margin-bottom:8px;font-size:1rem;color:{primary_color}">'
+            f'{e.get("einwand", "")}</h3>'
+            f'<p style="color:#555;line-height:1.6">{e.get("antwort", "")}</p></div>'
+            for e in einwaende if isinstance(e, dict)
+        )
+        einwand_block = _kasten(zeilen, 'Was Kunden uns vorher fragen', '#f8f9fa')
 
     hero_block = (
         f'<div style="background:{primary_color};color:white;padding:80px 40px;text-align:center">'
@@ -103,7 +167,11 @@ def _json_to_html(data: dict, context: dict | None = None) -> str:
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<style>*{{box-sizing:border-box;margin:0;padding:0}}'
         f'body{{font-family:{font_primary}}}</style>'
-        f'</head><body>{hero_block}{about_block}{services_block}{faq_block}{cta_block}</body></html>'
+        # Reihenfolge nach Spec § 3 (Offer-Stack-Sequencing): Versprechen,
+        # Angebot, Leistungen, Risk Reversal, Einwaende, Fragen, Betrieb, CTA.
+        f'</head><body>{hero_block}{wertebox_block}{services_block}'
+        f'{garantie_block}{einwand_block}{faq_block}{about_block}'
+        f'{cta_block}</body></html>'
     )
 
 

@@ -19,84 +19,18 @@ selten, faellt er nie auf. Der Test fragt die geladene Anwendung nach ihren
 Routen und vergleicht sie mit dem, was im Frontend steht — beides
 normalisiert, damit `${lead.id}` und `{lead_id}` als dasselbe gelten.
 """
-import importlib
-import pathlib
-import re
-
 import pytest
 
 
-def _normalisieren(pfad: str) -> str:
-    """`${projekt.id}` und `{project_id}` sind dieselbe Stelle."""
-    pfad = re.sub(r"\$\{[^{}]*\}", "{}", pfad)
-    pfad = re.sub(r"\{[^{}]*\}", "{}", pfad)
-    return pfad.rstrip("/") or "/"
-
-
-def _bekannte_adressen() -> set:
-    import main
-
-    bekannt = set()
-    for route in main.app.routes:
-        pfad = getattr(route, "path", None)
-        if pfad:
-            bekannt.add(_normalisieren(pfad))
-
-    # Eingebundene Router legt diese FastAPI-Fassung als `_IncludedRouter` ab
-    # und flacht ihre Routen nicht auf (19.08.2026) — deshalb zusaetzlich am
-    # Router selbst nachsehen. Siehe [[feedback-am-gegenstand-pruefen]].
-    wurzel = pathlib.Path(__file__).resolve().parent.parent / "routers"
-    for datei in sorted(wurzel.glob("*.py")):
-        if datei.stem == "__init__":
-            continue
-        modul = importlib.import_module(f"routers.{datei.stem}")
-        for name in dir(modul):
-            obj = getattr(modul, name)
-            if type(obj).__name__ != "APIRouter":
-                continue
-            for route in getattr(obj, "routes", []):
-                bekannt.add(_normalisieren(route.path))
-    return bekannt
-
-
-def _gerufene_adressen() -> dict:
-    """Was das Frontend aufruft — Datei und Zeile je Adresse.
-
-    Gelesen wird bis zum schliessenden Backtick, **nicht** ueber eine
-    Zeichenklasse: Ein erster Entwurf schnitt bei `[`, `?` und Leerzeichen ab
-    und meldete `/api/leads/${leadMatch` als fehlende Route. Vier von acht
-    Befunden waren so entstanden — ein Waechter mit Fehlalarmen wird
-    abgeschaltet.
-    """
-    fe = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "src"
-    gerufen = {}
-    marke = "API_BASE_URL}"
-    for datei in sorted(fe.rglob("*.js*")):
-        if ".test." in datei.name:
-            continue
-        text = datei.read_text(encoding="utf-8", errors="ignore")
-        start = text.find(marke)
-        while start != -1:
-            ab = start + len(marke)
-            ende = text.find("`", ab)
-            roh = text[ab:ende] if ende != -1 else ""
-            if roh.startswith("/api/"):
-                # Drei Schritte, und die Reihenfolge ist jedes Mal
-                # aufgefallen, als sie falsch war:
-                #   1. Einsetzungen ersetzen — `${lead?.id}` enthaelt ein
-                #      Fragezeichen, das sonst als Abfrage gelesen wird
-                #   2. die Abfrage abschneiden
-                #   3. **dann** normalisieren, sonst bleibt der Schraegstrich
-                #      aus `/api/leads/?limit=500` stehen
-                adresse = _normalisieren(
-                    re.sub(r"\$\{[^{}]*\}", "{}", roh).split("?", 1)[0]
-                )
-                # `${auditId}${abfrage}` wird zu `{}{}` — eine Stelle, nicht zwei.
-                adresse = re.sub(r"(\{\})+", "{}", adresse)
-                zeile = text[:start].count("\n") + 1
-                gerufen.setdefault(adresse, set()).add(f"{datei.name}:{zeile}")
-            start = text.find(marke, ab)
-    return gerufen
+# **Seit dem 24.08.2026 liegen die drei Helfer in `tools/adressen.py`** —
+# gemeinsam mit `tools/unaufgerufene-routen.py`, das dieselbe Frage in die
+# **andere** Richtung stellt: Welche Route ruft niemand auf? Zwei Leser
+# derselben Daten, die auseinanderdriften, waeren zwei Wahrheiten.
+from tools.adressen import (  # noqa: E402
+    bekannte_adressen as _bekannte_adressen,
+    gerufene_adressen as _gerufene_adressen,
+    normalisieren as _normalisieren,
+)
 
 
 #: Aufrufe, die heute ins Leere gehen und **nicht** zu M4 gehoeren.

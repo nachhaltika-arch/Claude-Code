@@ -45,7 +45,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 **Abweichung → sofort stoppen und melden.**
 
 ---
@@ -131,7 +131,7 @@ Bricht die Kette an einer Stelle: **Ursache melden, Prompt 03 nicht starten.**
 ```bash
 git add -A
 git commit -m "Add public shop API and product listing page"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

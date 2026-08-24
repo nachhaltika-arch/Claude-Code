@@ -39,7 +39,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 WICHTIG
@@ -112,7 +112,7 @@ grep -n "book-orders" frontend/src/App.jsx frontend/src/components/Layout/AppLay
 SCHRITT 5
 git add -A
 git commit -m "Add print fulfillment queue with BoD CSV export"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

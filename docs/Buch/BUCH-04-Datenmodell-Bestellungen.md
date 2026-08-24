@@ -29,7 +29,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 SCHRITT 0 — Bestand pruefen
@@ -118,7 +118,7 @@ python -c "from backend.models import BookOrder; print([c.name for c in BookOrde
 SCHRITT 6
 git add -A
 git commit -m "Add BookOrder model and schemas for book sales"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

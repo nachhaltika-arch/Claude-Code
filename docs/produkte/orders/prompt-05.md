@@ -49,7 +49,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 **Abweichung → sofort stoppen.**
 
 ---
@@ -140,7 +140,7 @@ Im Browser prüfen: Umschalten zwischen privat und geschäftlich blendet das Ver
 ```bash
 git add -A
 git commit -m "Add mandatory legal consent handling for digital orders"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

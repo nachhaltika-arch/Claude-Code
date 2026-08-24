@@ -45,7 +45,7 @@ git branch --show-current
 
 Erwartet:
 - origin → `https://github.com/nachhaltika-arch/Claude-Code`
-- Branch → `claude/kompagnon-automation-system-FapM9`
+- Branch → `staging`
 
 **Stimmt eines nicht: STOPPE sofort.** Melde „Falsches Repo oder falscher Branch. Bitte prüfen." und führe nichts aus.
 
@@ -149,7 +149,7 @@ SELECT column_name, data_type FROM information_schema.columns WHERE table_name =
 ```bash
 git add -A
 git commit -m "Add orders table and digital product catalog"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

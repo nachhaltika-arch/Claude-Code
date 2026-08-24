@@ -64,15 +64,17 @@ Deshalb: **eine eigene Tabelle `orders`, ein eigener Ablauf.** Berührungspunkt 
 git remote -v
 git branch --show-current
 ```
-Erwartet: `nachhaltika-arch/Claude-Code` und `claude/kompagnon-automation-system-FapM9`.
+Erwartet: `nachhaltika-arch/Claude-Code` und `staging`.
 Stimmt eines nicht → sofort stoppen und melden.
 
-- Genau **ein Commit pro Prompt**, danach sofort `git push origin claude/kompagnon-automation-system-FapM9`
+- Genau **ein Commit pro Prompt**, danach sofort `git push origin staging`
 - Commit-Message auf Englisch
 - Nach dem Push: Render-Deploy-Log prüfen, **bevor** der nächste Prompt startet
 - Niemals auf `main` pushen, keine neuen Branches
 
 ⚠️ **Widerspruch in deinen Regeln.** Unter „Branch-Regel" steht `claude/kompagnon-automation-system-FapM9`, unter „Commit-Regel" steht „Branch immer main". Ich folge der Branch-Regel und pushe **nie** auf main. Bitte die Commit-Regel entsprechend korrigieren, sonst führt sie irgendwann jemanden in die Irre.
+>
+> **Erledigt am 24.08.2026.** `CLAUDE.md` nennt heute `staging` als Arbeitsbranch und `main` als Ziel eines Pull Requests. Der Widerspruch besteht nicht mehr; der Absatz bleibt als Beleg stehen, dass er bestand.
 
 ---
 

@@ -95,7 +95,7 @@ Nicht bündeln.
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 
 In frontend/src/pages/ProductEditor.jsx: Ersetze das freie Zahlenfeld fuer
 tax_rate durch ein Auswahlfeld mit den Werten 19, 7 und 0.
@@ -109,7 +109,7 @@ den gesendeten Typ exakt an. Zeige mir die Backend-Feldnamen zur Kontrolle.
 
 git add -A
 git commit -m "Replace free tax rate input with valid German VAT rate selection"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ### Prompt FIX-2
@@ -128,7 +128,7 @@ Zeige mir alle Fundstellen vor der Aenderung.
 
 git add -A
 git commit -m "Replace hardcoded standard year with version from shared definition"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ### Prompt FIX-3
@@ -152,7 +152,7 @@ vorhandenen Endpunkt ergeben hat. Lasse die uebrigen unveraendert.
 
 git add -A
 git commit -m "Enable available export functions in MassExport view"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ### Prompt FIX-4
@@ -174,7 +174,7 @@ Setze die Spalten nullable mit Default False, damit Bestandsdaten nicht brechen.
 
 git add -A
 git commit -m "Add mandatory withdrawal waiver consent to package checkout"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ### Prompt FIX-5
@@ -205,7 +205,7 @@ Melde mir beide Ergebnisse.
 
 git add -A
 git commit -m "Centralize Homepage Standard level thresholds in shared module"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

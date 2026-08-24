@@ -43,7 +43,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 **Abweichung → sofort stoppen.**
 
 ---
@@ -153,7 +153,7 @@ Im Browser: Stripe-Testmodus, Testkarte `4242 4242 4242 4242`, beliebiges künft
 ```bash
 git add -A
 git commit -m "Add Stripe checkout session creation for digital products"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

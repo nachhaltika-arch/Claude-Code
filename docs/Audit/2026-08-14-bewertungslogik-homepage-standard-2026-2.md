@@ -489,7 +489,7 @@ messbar macht.
 | # | Prüfpunkt | Warum | Befehl / Ort |
 |---|---|---|---|
 | 1 | **Stufenschwellen Frontend vs. Backend** | Backend 95/85/70/50, Frontend laut Projektwissen 85/70/50/30 → derselbe Score zeigt zwei Stufen | `grep -rn "85\|70\|50\|30" frontend/src/components/AuditHook.jsx frontend/public/embed/audit-widget.html` |
-| 2 | **Ist der Umbau auf dem Arbeitsbranch?** | Doc sagt `main`, Arbeitsregel sagt Feature-Branch. Projektwissen zeigt alten Katalog im Frontend | `git diff main claude/kompagnon-automation-system-FapM9 --stat` |
+| 2 | **Ist der Umbau auf dem Arbeitsbranch?** | Doc sagt `main`, Arbeitsregel sagt Feature-Branch. Projektwissen zeigt alten Katalog im Frontend | `git diff main staging --stat` |
 | 3 | **Zeigt das Frontend die 8 Kategorien?** | `AuditReport.jsx`, `CustomerDashboard.jsx`, `HomepageChecklist.jsx` tragen im Projektwissen den alten 6er-Katalog | `grep -n "rc_score\|bf_score\|max: 30" frontend/src/` |
 | 4 | **PageSpeed-Key auf Render gesetzt?** | Offener Punkt 1 aus § 6 des Anforderungskatalogs. Ohne Key sind 15 Punkte dauerhaft ⚪ | Render → Environment |
 | 5 | **Lauf gegen 3 echte fremde Websites** | Offener Punkt 4 — der Katalog ist nie gegen reale Seiten gelaufen | manuell |

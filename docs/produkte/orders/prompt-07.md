@@ -51,7 +51,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 **Abweichung → sofort stoppen.**
 
 ---
@@ -153,7 +153,7 @@ Erwartet: **403** ohne Token.
 ```bash
 git add -A
 git commit -m "Add sequential invoice numbering and invoice PDF generation"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

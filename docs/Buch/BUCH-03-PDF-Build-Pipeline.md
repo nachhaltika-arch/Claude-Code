@@ -33,7 +33,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 ZIEL
@@ -112,7 +112,7 @@ ls -lh buch/build/
 SCHRITT 7
 git add -A
 git commit -m "Add book PDF build pipeline for screen and print output"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

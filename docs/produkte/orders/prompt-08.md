@@ -45,7 +45,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 **Abweichung → sofort stoppen.**
 
 ---
@@ -156,7 +156,7 @@ Im Browser: Deal mit der Test-E-Mail anlegen. Erwartet: Der Hinweis erscheint si
 ```bash
 git add -A
 git commit -m "Add credit redemption linking digital orders to project deals"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

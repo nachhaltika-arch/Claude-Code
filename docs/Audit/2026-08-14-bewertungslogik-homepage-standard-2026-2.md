@@ -408,6 +408,12 @@ soll — und für ein gedrucktes Buch: Erwähnungen in Modellen und Sichtbarkeit
 Overviews. Beides ist nicht reproduzierbar messbar und wäre in einem Buch ein Jahr später
 falsch.
 
+> **Die Trennlinie in einem Satz (Nachtrag 24.08.2026).** In der Wertung steht, ob eine
+> Maschine den Betrieb **lesen kann**; außerhalb bleibt, ob sie ihn **nennt**. Das Erste
+> ist binär, stabil messbar und veraltet nicht — eine `robots.txt` sperrt heute und in
+> zwei Jahren nach denselben Regeln. Das Zweite hängt an Modellen, die sich in Monaten
+> ändern. Nur deshalb ist E7 im Katalog und der Rest nicht.
+
 ---
 
 ## 7. Ausgabeformat (Ergänzungen)
@@ -522,7 +528,7 @@ in einer Stunde mehr als jede weitere Spezifikation.
 | # | Frage | Tragweite |
 |---|---|---|
 | 1 | Wird `trade` aus den Stammdaten mit der erkannten `branche` abgeglichen und zurückgeschrieben? | Heute laufen beide auseinander (§ 7 Schlussabsatz) |
-| 2 | Bleibt der Verkauf in der SHK-Nische, während die Bewertung alle Klassen abdeckt? | Empfehlung: ja — sonst verwässert Phase 1 |
-| 3 | Buchtitel: branchenoffen oder Handwerk im Titel? | Bei branchenoffener Bewertung ist ein Handwerk-Titel nicht mehr haltbar |
-| 4 | Werden Bestandsaudits nach 2026.1 neu berechnet? | Empfehlung: nein, Versionsstempel und Trennlinie im Verlauf |
+| 2 | ~~Bleibt der Verkauf in der SHK-Nische, während die Bewertung alle Klassen abdeckt?~~ | **Entschieden — und zwar in § 0 dieses Dokuments.** Dort steht die Abgrenzung wörtlich: Bewertung branchenoffen, Verkauf in der Nische der Phase 1, keine Erweiterung vor fünf produktiven Kunden. Die Frage stand hier nur, weil § 11 nie mit § 0 abgeglichen wurde. |
+| 3 | ~~Buchtitel: branchenoffen oder Handwerk im Titel?~~ | **Entschieden 14.08.2026: branchenoffen.** Untertitel „Der Selbsttest für Unternehmenswebsites" (`00-titelei.md`). Das Datenblatt `KAS_DB_05_Buch.md` § 6 trägt noch „Handwerks- und Baubetriebe" und ist zu korrigieren. |
+| 4 | Werden Bestandsaudits nach 2026.1 neu berechnet? | Nein — die Hälfte ist gebaut. `audit_results.standard_version` wird gesetzt (`audit_scoring.STANDARD_VERSION`) und vom Endpunkt geliefert. **Die Trennlinie im Verlauf fehlt:** Am 24.08.2026 las kein Frontend-Bauteil das Feld, also sah der Leser nicht, welche Ergebnisse gegen welchen Maßstab entstanden sind. |
 | 5 | Wird K2 anwaltlich zur Preisangabe geprüft? | Betrifft die Aussage in C5 und im Buch |

@@ -426,6 +426,15 @@ TOTAL_POINTS: int = sum(cat.max_points for cat in CATALOGUE)
 #:   anderswo Gewicht wegzunehmen: Welches Kriterium dafuer leichter wird, ist
 #:   eine Produktentscheidung und gehoert David. Bis dahin wiegt jedes
 #:   bestehende Kriterium rechnerisch 100/103 seines bisherigen Anteils.
+#: 2026-08-24: entschieden — es wird **kein** Gewicht weggenommen. 103
+#:   bleibt. Der angezeigte Score bleibt 0–100, weil normiert wird; 103
+#:   ist die Rohpunktsumme des Katalogs. Der Buchuntertitel wird auf
+#:   „39 Kriterien, 8 Kategorien, 103 Punkte" geaendert, und die
+#:   Praxisfall-Kette in Kap. 2/5/6 auf 88 Rohpunkte nachgezogen — sonst
+#:   faellt Fall A von Gold auf Silber (BUCH-M3).
+#:
+#:   Die Zeile darueber blieb bewusst stehen. Ein Verlauf, aus dem man
+#:   Eintraege entfernt, ist keiner — und der offene Punkt war echt.
 ERWARTETE_GESAMTPUNKTE: int = 103
 
 

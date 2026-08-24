@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAudit } from '../hooks/useAudit';
 import { parseApiError } from '../utils/apiError';
+import { oeffnungszeitenAlsJson, oeffnungszeitenAlsText } from '../utils/oeffnungszeiten';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
@@ -1862,6 +1863,28 @@ export default function LeadProfile() {
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
+                </div>
+
+                {/* Oeffnungszeiten (L-15, L-99). `schema.org/LocalBusiness`
+                    verlangt sie, und ohne sie antwortet der SEO-Agent mit 400.
+                    Gespeichert wird JSON, eingegeben werden Zeilen — sieben
+                    Spalten waeren sieben Migrationen beim ersten Sonderfall
+                    wie „Sa nach Vereinbarung". */}
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Öffnungszeiten</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: -4, marginBottom: 8 }}>
+                    Je Zeile ein Eintrag: <code>Mo-Fr 08:00-17:00</code>. Wird für
+                    die schema.org-Auszeichnung und den SEO-Agenten gebraucht.
+                  </div>
+                  <textarea
+                    aria-label="Öffnungszeiten, je Zeile ein Eintrag"
+                    value={oeffnungszeitenAlsText(editData.opening_hours)}
+                    onChange={e => setEditData(p => ({ ...p, opening_hours: oeffnungszeitenAlsJson(e.target.value) }))}
+                    placeholder={'Mo-Do 08:00-17:00\nFr 08:00-13:00'}
+                    rows={4}
+                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-mono, monospace)', lineHeight: 1.6 }}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>

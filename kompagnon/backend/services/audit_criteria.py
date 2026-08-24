@@ -50,6 +50,21 @@ class Criterion:
     max_points: int
     source: Source          # geplante Erhebungsart im Bestfall
     hint: str = ""          # was konkret geprüft wird — erscheint im Report
+    # **Die zweite Erhebungsart, falls es eine gibt (S2.2, 24.08.2026).**
+    #
+    # `rc_cookie` wird auf zwei Wegen erhoben: **gemessen**, wenn ein
+    # Consent-Werkzeug erkannt wird — **abgeleitet**, wenn aus „keine
+    # einwilligungspflichtigen Dienste" auf „kein Banner nötig" geschlossen
+    # wird. Der Katalog nannte nur den ersten.
+    #
+    # Das ist kein Schönheitsfehler: Kapitel 3 verspricht dem Leser, dass jede
+    # Erhebungsart gekennzeichnet ist und er einer **Einschätzung**
+    # widersprechen kann. Wer im Bericht „abgeleitet" liest und im Katalog
+    # „gemessen", kann sich auf keines von beidem verlassen.
+    #
+    # Die tatsächliche Erhebungsart je Lauf steht weiterhin im Bericht
+    # (`sheet.sources`); dieses Feld sagt nur, was vorkommen **darf**.
+    alt_source: Optional["Source"] = None
     # Zwei Voraussetzungen, an denen die Anwendbarkeit je Branchenklasse hängt
     # (Bewertungslogik 2026.2, § 2.4). Sie stehen am Kriterium und nicht in
     # einer Klassentabelle, weil es Eigenschaften des Kriteriums sind: Eine
@@ -102,8 +117,14 @@ CATALOGUE: Tuple[Category, ...] = (
                       "Unterseite erreichbar und Pflichtangaben vollständig"),
             Criterion("rc_datenschutz", "Datenschutzerklärung (DSGVO)", 6, Source.MEASURED,
                       "Unterseite erreichbar und Pflichtinhalte vorhanden"),
+            # **Zwei Erhebungsarten (S2.2).** Gemessen, wenn ein
+            # Consent-Werkzeug erkannt wird; abgeleitet, wenn aus „keine
+            # einwilligungspflichtigen Dienste" auf „kein Banner noetig"
+            # geschlossen wird. Beides kommt vor, beides gehoert deklariert.
             Criterion("rc_cookie", "Cookie-Consent (TDDDG)", 4, Source.MEASURED,
-                      "Consent-Tool erkannt, nicht bloß das Wort 'Cookie'"),
+                      "Consent-Tool erkannt, nicht bloß das Wort 'Cookie' — "
+                      "oder kein einwilligungspflichtiger Dienst vorhanden",
+                      alt_source=Source.DERIVED),
             Criterion("rc_bfsg", "Barrierefreiheitserklärung (BFSG)", 2, Source.MEASURED,
                       "Erklärung zur Barrierefreiheit verlinkt"),
             Criterion("rc_formular_dsgvo", "Formular DSGVO-konform", 2, Source.MEASURED,
@@ -150,8 +171,12 @@ CATALOGUE: Tuple[Category, ...] = (
                       "Lighthouse-Audit 'color-contrast'"),
             Criterion("bf_alt", "Alt-Texte der Inhaltsbilder", 2, Source.MEASURED,
                       "Anteil der Bilder mit sinnvollem Alt-Text"),
-            Criterion("bf_semantik", "Semantik & Struktur", 2, Source.DERIVED,
-                      "genau eine H1, saubere Hierarchie, lang-Attribut, Labels"),
+            # **Gemessen, nicht abgeleitet (S2.1).** Der Katalog fuehrte
+            # `DERIVED`, waehrend die Bewertung `MEASURED` schrieb. Seit dem
+            # Anschluss der Lighthouse-Gruppe (S1.1) ist es zweifelsfrei
+            # gemessen: DOM-Hierarchie plus `html-has-lang` und `label`.
+            Criterion("bf_semantik", "Semantik & Struktur", 2, Source.MEASURED,
+                      "saubere Überschriftenhierarchie, lang-Attribut, Labels"),
             Criterion("bf_tastatur", "Tastaturbedienung", 1, Source.DERIVED,
                       "Skip-Link, Fokus-Reihenfolge, keine Tastaturfallen"),
         ),

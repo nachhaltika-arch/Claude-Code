@@ -54,6 +54,14 @@ ERKLAERT = (
     ("/api/widget/", "Widget — lebt eingebettet auf fremden Seiten"),
     ("/api/portal/", "Kundenportal — haengt am Einmal-Token aus der Mail"),
     ("/api/public/", "Oeffentlich — Landingpage und Freigabelinks"),
+    # **Nicht ohne Zugang, nur mit einem anderen Aufrufer (24.08.2026).**
+    # Am 24.08. stand `design-canvas` als „ganzes Merkmal ohne Oberflaeche" in
+    # der Liste. Der Kopf des Routers sagt es anders: Ein Canvas entsteht in
+    # **Claude Code** und wird als Artifact abgelegt; dieser Router liefert
+    # die Dateien und nimmt sie bearbeitet zurueck. Der Aufrufer ist das
+    # Werkzeug `DesignSync`, nicht der Browser — deshalb findet ihn kein
+    # Suchlauf im Frontend, und deshalb ist er hier erklaert und kein Befund.
+    ("/api/design-canvas/", "Design-Canvas — wird aus Claude Code gerufen (DesignSync), nicht aus dem Browser"),
     ("/api/health", "Betriebspruefung"),
     ("/health", "Betriebspruefung"),
     ("/docs", "FastAPIs eigene Oberflaeche"),

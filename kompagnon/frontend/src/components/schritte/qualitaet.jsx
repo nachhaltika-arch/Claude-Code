@@ -21,6 +21,13 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
   const [result, setResult]   = useState(initialResult || null);
   const [running, setRunning] = useState(false);
   const [error, setError]     = useState('');
+  // Die KI-Beurteilung des QA-Ergebnisses (L-105). Der Agent war gebaut und
+  // hatte keinen Zugang — `POST /api/agents/{id}/qa` rief im ganzen Frontend
+  // niemand auf. Seine Eingabe liegt genau hier: die Pruefergebnisse, die der
+  // Scan darueber erzeugt hat.
+  const [urteil, setUrteil]       = useState(null);
+  const [urteilLaeuft, setLaeuft] = useState(false);
+  const [urteilFehler, setFehler] = useState('');
 
   const CHECKS = [
     { key:'ssl', label:'SSL / HTTPS aktiv' },
@@ -41,6 +48,23 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
       setResult(d);
     } catch (e) { setError(e.message); }
     finally { setRunning(false); }
+  };
+
+  const beurteilen = async () => {
+    setLaeuft(true); setFehler(''); setUrteil(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${project.id}/qa`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          checklist_data: Object.fromEntries(CHECKS.map(c => [c.key, c.label])),
+          test_results: result || {},
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'Fehler');
+      setUrteil(d.result || d);
+    } catch (e) { setFehler(e.message); }
+    finally { setLaeuft(false); }
   };
 
   return (
@@ -68,6 +92,22 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
               {result.ai_summary}
             </div>
           )}
+
+          <div style={{ marginTop:12, paddingTop:16, borderTop:'1px solid var(--border-light)' }}>
+            <button onClick={beurteilen} disabled={urteilLaeuft}
+              style={{ padding:'8px 18px', borderRadius:8, border:'1px solid var(--border-medium)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:12, fontWeight:600, cursor: urteilLaeuft ? 'wait' : 'pointer', fontFamily:'var(--font-sans)' }}>
+              {urteilLaeuft ? 'Beurteilung laeuft...' : urteil ? 'Erneut beurteilen' : 'KI-Beurteilung anfordern'}
+            </button>
+            <div style={{ fontSize:11, color:'var(--text-tertiary)', marginTop:6 }}>
+              Liest die Ergebnisse oben und sagt, was davon vor der Abnahme wirklich zaehlt.
+            </div>
+            {urteilFehler && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6, marginTop:10 }}>{urteilFehler}</div>}
+            {urteil && (
+              <div style={{ marginTop:12, padding:'12px 14px', background:'var(--bg-app)', borderRadius:8, borderLeft:'3px solid var(--brand-primary-mid)', fontSize:12, color:'var(--text-secondary)', lineHeight:1.7, whiteSpace:'pre-wrap' }}>
+                {typeof urteil === 'string' ? urteil : (urteil.summary || urteil.assessment || JSON.stringify(urteil, null, 2))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-tertiary)', fontSize:13 }}>
@@ -82,8 +122,38 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
 export function AbnahmeEmbed({ project, lead, headers, netlify }) {
   const [confirmed, setConfirmed] = useState(project?.status === 'fertig');
   const [saving, setSaving]       = useState(false);
+  // Die Bewertungsanfrage (L-105). `POST /api/agents/{id}/review` war gebaut
+  // und hatte keinen Zugang; „Trustpilot-Bewertung anfragen" stand hier als
+  // blosser Text in einer Liste. Alles, was der Agent braucht, liegt vor:
+  // Ansprechpartner, Betrieb und was gemacht wurde.
+  const [anfrage, setAnfrage]       = useState('');
+  const [anfrageLaeuft, setLaeuft]  = useState(false);
+  const [anfrageFehler, setFehler]  = useState('');
+  const [kopiert, setKopiert]       = useState(false);
 
   const liveUrl = netlify?.url || project?.website_url;
+
+  const bewertungAnfragen = async () => {
+    setLaeuft(true); setFehler(''); setAnfrage(''); setKopiert(false);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${project.id}/review`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          customer_name: lead?.contact_name || lead?.company_name || '',
+          company_name: lead?.company_name || '',
+          project_summary: `Neue Website fuer ${lead?.company_name || 'den Betrieb'}`
+            + (lead?.trade ? ` (${lead.trade})` : '')
+            + (liveUrl ? `, jetzt online unter ${liveUrl}` : ''),
+          platform: 'google',
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'Fehler');
+      const r = d.result || d;
+      setAnfrage(typeof r === 'string' ? r : (r.message || r.text || JSON.stringify(r, null, 2)));
+    } catch (e) { setFehler(e.message); }
+    finally { setLaeuft(false); }
+  };
 
   const goLive = async () => {
     setSaving(true);
@@ -110,9 +180,32 @@ export function AbnahmeEmbed({ project, lead, headers, netlify }) {
           {liveUrl && <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary-mid)', fontWeight:600 }}>{liveUrl}</a>}
           <div style={{ marginTop:24, display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
             <div style={{ fontSize:13, color:'var(--text-secondary)', fontWeight:600 }}>Naechste Schritte:</div>
-            {['Trustpilot-Bewertung anfragen', 'Google Business Profil aktualisieren', 'Google Analytics einrichten', 'Vorher/Nachher-Screenshot fuer Portfolio'].map(s => (
+            {['Google Business Profil aktualisieren', 'Google Analytics einrichten', 'Vorher/Nachher-Screenshot fuer Portfolio'].map(s => (
               <div key={s} style={{ fontSize:13, color:'var(--text-secondary)' }}>{s}</div>
             ))}
+          </div>
+
+          <div style={{ marginTop:24, textAlign:'left', maxWidth:560, marginLeft:'auto', marginRight:'auto', paddingTop:20, borderTop:'1px solid var(--border-light)' }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>Bewertung anfragen</div>
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginBottom:12 }}>
+              Formuliert die Anfrage aus Betrieb, Ansprechpartner und dem, was gemacht wurde.
+            </div>
+            <button onClick={bewertungAnfragen} disabled={anfrageLaeuft}
+              style={{ padding:'8px 18px', borderRadius:8, border:'1px solid var(--border-medium)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:12, fontWeight:600, cursor: anfrageLaeuft ? 'wait' : 'pointer', fontFamily:'var(--font-sans)' }}>
+              {anfrageLaeuft ? 'Wird formuliert...' : anfrage ? 'Neu formulieren' : 'Text erzeugen'}
+            </button>
+            {anfrageFehler && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6, marginTop:10 }}>{anfrageFehler}</div>}
+            {anfrage && (
+              <div style={{ marginTop:12 }}>
+                <div style={{ padding:'12px 14px', background:'var(--bg-app)', borderRadius:8, borderLeft:'3px solid var(--brand-primary-mid)', fontSize:12, color:'var(--text-secondary)', lineHeight:1.7, whiteSpace:'pre-wrap' }}>
+                  {anfrage}
+                </div>
+                <button onClick={() => { navigator.clipboard?.writeText(anfrage); setKopiert(true); }}
+                  style={{ marginTop:8, padding:'6px 14px', borderRadius:6, border:'1px solid var(--border-light)', background:'transparent', color:'var(--text-secondary)', fontSize:11, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                  {kopiert ? 'Kopiert' : 'In die Zwischenablage'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (<>

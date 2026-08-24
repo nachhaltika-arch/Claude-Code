@@ -14,7 +14,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from services import betriebsname, lead_quellen
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 import asyncio
 import httpx
 import json
@@ -217,17 +220,17 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     # Persistiert wird unten ueber eine frische SessionLocal().
     db.close()
 
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+    # vollstaendige Anfrage-URL (L-98). Eine Stelle, vier Aufrufer.
+    base = PSI_ENDPOINT
     params_base = {"url": website_url}
-    if api_key:
-        params_base["key"] = api_key
+    kopf = pagespeed_auth_headers()
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             mobile_resp, desktop_resp = await asyncio.gather(
-                client.get(base, params={**params_base, "strategy": "mobile"}),
-                client.get(base, params={**params_base, "strategy": "desktop"}),
+                client.get(base, params={**params_base, "strategy": "mobile"}, headers=kopf),
+                client.get(base, params={**params_base, "strategy": "desktop"}, headers=kopf),
             )
     except Exception as e:
         logger.error(f"PageSpeed API request failed for {website_url}: {e}")

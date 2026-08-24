@@ -42,7 +42,6 @@ from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
-from services.audit_pagespeed import api_key as pagespeed_api_key
 from routers.content_scraper_router import _run_content_scrape
 from routers.auth_router import (
     require_admin,

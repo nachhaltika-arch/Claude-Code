@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
 from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
-from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.email import send_email as _send_email_canonical
 from services import versandsperre
 from automations.email_templates import render_template

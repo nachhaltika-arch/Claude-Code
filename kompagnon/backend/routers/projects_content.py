@@ -29,7 +29,10 @@ from routers.auth_router import get_current_user, require_admin, require_any_aut
 from routers.projects_helfer import (_get_fernet, eigenes_projekt_pruefen,
                                      safe_json_parse)
 from routers.projects_router import kunden_router, router
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 from services.base_urls import public_base_url
 from services.ki_aufruf import frag_modell
 
@@ -395,18 +398,18 @@ async def go_live_pagespeed(
     # DB-Verbindung vor externen PageSpeed + Screenshot Calls freigeben
     db.close()
 
-    api_key = pagespeed_api_key()
-    base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+    # vollstaendige Anfrage-URL (L-98). Eine Stelle, vier Aufrufer.
+    base    = PSI_ENDPOINT
     params  = {"url": url}
-    if api_key:
-        params["key"] = api_key
+    kopf    = pagespeed_auth_headers()
 
     mob_score = desk_score = None
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             mob, desk = await asyncio.gather(
-                client.get(base, params={**params, "strategy": "mobile"}),
-                client.get(base, params={**params, "strategy": "desktop"}),
+                client.get(base, params={**params, "strategy": "mobile"}, headers=kopf),
+                client.get(base, params={**params, "strategy": "desktop"}, headers=kopf),
             )
 
         def sc(r):

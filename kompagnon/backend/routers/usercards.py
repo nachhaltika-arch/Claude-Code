@@ -27,7 +27,10 @@ from sqlalchemy.orm import Session
 
 from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
 from routers.auth_router import optional_auth, require_any_auth, require_innendienst
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 
 # Vorgabe: geschlossen — siehe routers/leads.py. Diese Routen tragen
 # dieselben Kundendaten wie der Lead-Router und waren ebenso offen.
@@ -369,16 +372,16 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
     # DB-Verbindung vor externem PageSpeed-Call freigeben
     db.close()
 
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+    # vollstaendige Anfrage-URL (L-98). Eine Stelle, vier Aufrufer.
+    base = PSI_ENDPOINT
     params_base = {"url": website_url}
-    if api_key:
-        params_base["key"] = api_key
+    kopf = pagespeed_auth_headers()
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         mobile_resp, desktop_resp = await asyncio.gather(
-            client.get(base, params={**params_base, "strategy": "mobile"}),
-            client.get(base, params={**params_base, "strategy": "desktop"}),
+            client.get(base, params={**params_base, "strategy": "mobile"}, headers=kopf),
+            client.get(base, params={**params_base, "strategy": "desktop"}, headers=kopf),
         )
 
     def _score(resp) -> int | None:

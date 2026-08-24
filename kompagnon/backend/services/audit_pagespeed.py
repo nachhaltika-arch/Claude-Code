@@ -56,6 +56,34 @@ def api_key() -> str:
     return ""
 
 
+def auth_headers() -> Dict[str, str]:
+    """Der Schlüssel als Kopfzeile — nicht als Abfrageparameter (L-98).
+
+    Bis zum 24.08.2026 hing der Schlüssel als ``key=`` in der Anfrage-URL.
+    ``httpx`` protokolliert jede Anfrage mit **vollständiger URL** auf INFO,
+    also stand er im Klartext im Render-Protokoll des Produktivdienstes:
+    ``HTTP Request: GET …/runPagespeed?url=…&strategy=mobile&key=AIzaSy…``.
+    Wer Leserechte auf die Protokolle hat, hat den Schlüssel — und Protokolle
+    werden weitergegeben.
+
+    Den Logger stummzuschalten wäre die kleinere Reparatur und die
+    schlechtere: Sie nimmt die Sicht auf alle Anfragen und lässt den Schlüssel
+    trotzdem in jeder Fehlermeldung, jedem Traceback und jedem Proxy-Protokoll
+    stehen. Steht er nicht in der URL, kann ihn keine Stelle mehr ausplaudern.
+
+    ``X-Goog-Api-Key`` ist der von Google dafür vorgesehene Weg. Am
+    24.08.2026 am echten Endpunkt gegengeprüft, nicht angenommen: Ein
+    absichtlich ungültiger Schlüssel wird über die Kopfzeile mit **derselben**
+    Antwort abgelehnt wie über den Parameter (400, „API key not valid“) — die
+    Kopfzeile wird also gelesen und nicht stillschweigend ignoriert.
+
+    Ohne Schlüssel bleibt die Kopfzeile **weg**, nicht leer: PageSpeed v5
+    beantwortet Anfragen auch anonym, nur mit kleinerem Kontingent.
+    """
+    key = api_key()
+    return {"X-Goog-Api-Key": key} if key else {}
+
+
 async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:
     """Ruft PageSpeed Insights ab und extrahiert Kennzahlen plus A11y-Audits.
 
@@ -69,12 +97,10 @@ async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:
         "strategy": strategy,
         "category": ["performance", "accessibility"],
     }
-    if key:
-        params["key"] = key
 
     try:
         async with httpx.AsyncClient(timeout=PSI_TIMEOUT) as client:
-            r = await client.get(PSI_ENDPOINT, params=params)
+            r = await client.get(PSI_ENDPOINT, params=params, headers=auth_headers())
 
         if r.status_code == 429:
             return {

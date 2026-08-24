@@ -81,6 +81,19 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+# Geheimnisse aus dem Protokoll halten (L-98). `httpx` protokolliert jede
+# Anfrage mit vollstaendiger URL — ein Schluessel als Abfrageparameter stand
+# damit im Klartext im Render-Protokoll.
+#
+# Der Filter haengt an den **Handlern der Wurzel**, nicht am httpx-Logger:
+# Eine Bibliothek, die morgen dazukommt, soll nicht erst wieder auffallen
+# muessen. Wo der Schluessel gar nicht in die URL muss, steht der bessere
+# Riegel eine Ebene tiefer (services.audit_pagespeed.auth_headers).
+from services.protokoll_schwaerzung import Schwaerzung  # noqa: E402
+
+for _wurzel_handler in logging.getLogger().handlers:
+    _wurzel_handler.addFilter(Schwaerzung())
+
 
 def _kurse_zusammenfuehren():
     """Startphase: die alte Kurstabelle in die Akademie überführen."""

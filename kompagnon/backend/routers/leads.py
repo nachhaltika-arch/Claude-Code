@@ -22,7 +22,6 @@ from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
 from services.pdf_generator import branche_fuer_protokoll
-from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
 import httpx

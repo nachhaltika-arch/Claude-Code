@@ -20,7 +20,10 @@ from database import ProjectScrapeJob
 from database import get_db
 from datetime import datetime
 from routers.content_scraper_router import _run_content_scrape
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 from services.base_urls import public_base_url
 from sqlalchemy.orm import Session
 import logging
@@ -258,17 +261,16 @@ async def _golive_automation(project_id: int):
             # ── 3. NACHHER-PAGESPEED ─────────────────────────
             try:
                 import httpx
-                api_key = pagespeed_api_key()
 
                 async def _ps(strategy):
-                    url = (
-                        "https://www.googleapis.com/pagespeedonline"
-                        f"/v5/runPagespeed?url={website_url}"
-                        f"&strategy={strategy}"
-                        + (f"&key={api_key}" if api_key else "")
-                    )
+                    # Schluessel als Kopfzeile, nicht in der URL — httpx
+                    # protokolliert die vollstaendige Anfrage-URL (L-98).
                     async with httpx.AsyncClient(timeout=20.0) as c:
-                        r = await c.get(url)
+                        r = await c.get(
+                            PSI_ENDPOINT,
+                            params={"url": website_url, "strategy": strategy},
+                            headers=pagespeed_auth_headers(),
+                        )
                         score = r.json().get("lighthouseResult", {}) \
                                        .get("categories", {}) \
                                        .get("performance", {}) \

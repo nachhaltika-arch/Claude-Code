@@ -24,7 +24,6 @@ from routers.auth_router import (
 from services import betriebsname, lead_quellen
 from services.base_urls import self_base_url
 from services.pdf_generator import branche_fuer_protokoll
-from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.ratenbegrenzung import lead_grenzen
 from services.lead_verlauf import verlauf_bauen
 import asyncio

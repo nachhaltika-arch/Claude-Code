@@ -345,6 +345,11 @@ async def collect_facts(
         **audit_aggregat.fasse_zusammen(befunde),
         # Nur die Startseite: die Navigation ist auf allen Seiten dieselbe.
         "navigation": collectors.analyse_navigation(soup),
+        # Entsteht der Inhalt erst im Browser? Dann hat die Erhebung die Seite
+        # nie gesehen, und die inhaltsabhaengigen Kriterien duerfen nicht als
+        # gemessen gelten (24.08.2026, `clientseitig_aufgebaut`).
+        "clientseitig": collectors.clientseitig_aufgebaut(
+            soup, len(soup.get_text(" ").split())),
         "cdn": collectors.detect_cdn(homepage.get("headers", {})),
         "security_headers": _security_headers(homepage.get("headers", {})),
         "page_text": _gesamttext(befunde),

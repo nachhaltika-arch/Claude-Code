@@ -284,6 +284,12 @@ def _titel_traegt_den_massstab(title: str, city: str, klasse: str) -> bool:
 
 def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     qa = facts.get("qa") or {}
+    # Eine Seite, die erst im Browser entsteht, hat die Erhebung nie gesehen.
+    # `se_struktur` und `se_lokal` haengen vollstaendig am ausgelieferten DOM;
+    # sie mit 0 zu bewerten hiesse, dem Betrieb etwas zu bescheinigen, das
+    # niemand geprueft hat. `se_meta` bleibt: Titel und Kurzbeschreibung
+    # stehen in der Huelle und sind echt.
+    nur_geruest = bool(facts.get("clientseitig"))
     if not qa:
         for key in ("se_meta", "se_struktur", "se_index", "se_schema", "se_lokal"):
             sheet.skip(key)
@@ -299,10 +305,13 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         ]), Source.MEASURED)
 
         words = facts.get("word_count") or 0
-        sheet.set("se_struktur", sum([
-            1 if qa.get("h1_genau_eins") and qa.get("h2_vorhanden") else 0,
-            1 if words >= MIN_CONTENT_WORDS else 0,
-        ]), Source.MEASURED)
+        if nur_geruest:
+            sheet.skip("se_struktur")
+        else:
+            sheet.set("se_struktur", sum([
+                1 if qa.get("h1_genau_eins") and qa.get("h2_vorhanden") else 0,
+                1 if words >= MIN_CONTENT_WORDS else 0,
+            ]), Source.MEASURED)
 
         sheet.set("se_index", sum([
             1 if qa.get("robots_txt") and qa.get("robots_txt_indexiert") else 0,
@@ -328,11 +337,14 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         ]), Source.MEASURED)
 
         contact = facts.get("contact") or {}
-        sheet.set("se_lokal", sum([
-            1 if city and (city in title or city in h1) else 0,
-            1 if contact.get("tel_link") else 0,
-            1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
-        ]), Source.MEASURED)
+        if nur_geruest:
+            sheet.skip("se_lokal")
+        else:
+            sheet.set("se_lokal", sum([
+                1 if city and (city in title or city in h1) else 0,
+                1 if contact.get("tel_link") else 0,
+                1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
+            ]), Source.MEASURED)
 
     # KI-Lesbarkeit (L-58 a). Die Werte stehen in `qa`, nicht eine Ebene
     # hoeher: `summarise_facts` hebt sie zwar hoch, aber `routers/audit.py:180`

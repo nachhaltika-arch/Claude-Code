@@ -38,3 +38,4 @@ Thumbs.db
 # `agents/`, `rules/`, die Vorlagen — bleibt versioniert; das ist die
 # Konfiguration und gehoert ins Repo.
 .claude-config/memory/
+__pycache__/

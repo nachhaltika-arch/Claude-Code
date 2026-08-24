@@ -152,6 +152,4 @@ Diese Befunde begrenzen die Stufe unabhängig von der Punktzahl.
 
 **Die Punktabstufungen je Kriterium.** Sie stehen derzeit nicht als Daten im Katalog, sondern als Bedingungen im Bewertungscode und lassen sich deshalb nicht erzeugen. Sobald `BUCH-F1` sie überführt hat, erscheinen sie hier automatisch.
 
-**Die deutschen Kriterienbezeichnungen** stehen derzeit im Skript statt im Katalog. Sie gehören als Feld `buch_label` an das Kriterium — sonst gibt es zwei Wahrheiten über denselben Namen.
-
 **Bis dahin stehen die Abstufungen in den Kapiteln 5 bis 12** — dort von Hand aus dem Bewertungscode übertragen und damit ungeschützt gegen die nächste Änderung.

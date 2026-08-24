@@ -33,7 +33,9 @@ guter Ausgang, auch ohne Website-Auftrag.
 
 ---
 
-## 1. Der Katalog — 8 Kategorien, 100 Punkte
+## 1. Der Katalog
+
+<!-- ERZEUGT: gewichtung — nicht von Hand ändern, siehe scripts/standard-export.py -->
 
 | # | Kategorie | P | Kriterien |
 |---|---|---|---|
@@ -41,12 +43,14 @@ guter Ausgang, auch ohne Website-Auftrag.
 | 2 | Sicherheit & Datenschutz | 10 | S1–S4 |
 | 3 | Performance & Core Web Vitals | 15 | P1–P5 |
 | 4 | Barrierefreiheit (WCAG/BFSG) | 10 | B1–B5 |
-| 5 | SEO & Auffindbarkeit | 15 | E1–E6 |
+| 5 | SEO & Auffindbarkeit | 18 | E1–E7 |
 | 6 | Design & Gestaltung | 10 | D1–D5 |
 | 7 | Conversion & Nutzerführung | 15 | C1–C5 |
 | 8 | Inhalt & Substanz | 5 | I1–I3 |
 | — | Infrastruktur-Befund | 0 | rein informativ |
-| | **Summe** | **100** | 38 Kriterien |
+| | **Summe** | **103** | 39 Kriterien |
+
+<!-- /ERZEUGT: gewichtung -->
 
 ### Stufen
 
@@ -188,12 +192,18 @@ werden geloggt, damit die Lücken sichtbar werden.
 
 **Anwendbares Maximum je Klasse** (ohne bedingte Kriterien):
 
+<!-- ERZEUGT: klassenmaxima — nicht von Hand ändern, siehe scripts/standard-export.py -->
+
 | Klasse | Maximum | Nicht anwendbar |
 |---|---|---|
-| K1, K2, K3 | 100 | — |
-| K4 | 97 | E5 (3 P) |
-| K5 | 97–100 | E5 je nach lokalem Bezug |
-| K6 | 79 | E5, C1–C5, I1, I3 (21 P) |
+| K1 | 103 | — |
+| K2 | 103 | — |
+| K3 | 103 | — |
+| K4 | 100 | E5 (3 P) |
+| K5 | 103 | — |
+| K6 | 81 | E5, C1, C2, C3, C4, C5, I1, I3 (22 P) |
+
+<!-- /ERZEUGT: klassenmaxima -->
 
 ---
 
@@ -289,6 +299,20 @@ Das Kriterium mit dem größten Klassenunterschied.
 | K5 | `Organization` + `Product` + `Offer` | `AggregateRating` |
 | K6 | `Organization` oder `Person` | — |
 
+### E7 — Lesbarkeit für KI-Systeme (3 P)
+
+**Klassenunabhängig.** Ob ein Sprachmodell die Seite lesen darf, hängt nicht am Gewerk.
+Gemessen wird zweierlei, und die Gewichtung sagt, was schwerer wiegt:
+
+| Teil | Punkte | Gemessen an |
+|---|---|---|
+| Kein KI-Crawler ausgesperrt | 2 | `robots.txt` |
+| `llms.txt` vorhanden | 1 | Abruf unter `/llms.txt` |
+
+Wer GPTBot aussperrt, ist für ChatGPT nicht vorhanden — das wiegt schwerer als eine
+fehlende `llms.txt`, die kaum eine Seite hat. Fehlen **beide** Erhebungen, wird das
+Kriterium übersprungen und zählt in keinem der beiden Brüche mit.
+
 ### I1 — Eigene Leistungsseiten (2 P)
 
 | Klasse | Erwartung |
@@ -357,15 +381,32 @@ Besucher.
 
 ---
 
-## 6. GEO-Wert (0–10, außerhalb der Wertung)
+## 6. GEO — fünf Prüfpunkte, kein Punktwert
 
-`llms.txt` · strukturierte Daten über das Pflichtmaß hinaus · `FAQPage` ·
-Leistungsbeschreibungen als Text statt Bild · Einzugsgebiet maschinenlesbar ·
-Öffnungszeiten strukturiert · Preisangaben oder -spannen · Autoren- oder
-Verantwortlichkeitsangabe · Aktualitätsdatum · zitierfähige Faktenabschnitte.
+Frühere Fassungen nannten hier einen „GEO-Wert (0–10)". **Den gibt es nicht** — weder im
+Katalog noch im Bericht. Gerechnet wurde er nie; die Zahl stand nur in diesem Dokument.
+Was es gibt, ist eine eigene Seite im Bericht mit fünf Prüfpunkten
+(`services/pdf_kataloge.py::geo_pruefpunkte`):
 
-Bleibt außerhalb der 100 Punkte: Das Feld verändert sich zu schnell für einen Standard,
-der über Jahre vergleichbar sein soll — und für ein gedrucktes Buch.
+| Prüfpunkt | Erhoben | Fließt in die Wertung |
+|---|---|---|
+| `llms.txt` vorhanden | ja | E7 (1 P) |
+| `robots.txt` KI-freundlich | ja | E7 (2 P) |
+| Strukturierte Daten | ja | E4 (3 P) |
+| KI-Erwähnungen | **nein** | — |
+| Google AI Overview | **nein** | — |
+
+Die letzten beiden bleiben im Bericht, damit der Leser weiß, dass es sie gibt — aber ohne
+Behauptung: Sie bekommen den Status „unbekannt" und **keine** Empfehlung. Ein früherer
+Stand druckte für jeden der fünf Punkte eine Aufforderung, auch „GPTBot nicht blockieren"
+an einen Betrieb, dessen `robots.txt` niemanden sperrt.
+
+Die Trennung „GEO steht außerhalb der Wertung" gilt damit **nicht mehr vollständig**: Seit
+E7 im Katalog steht, sind zwei der drei erhobenen Prüfpunkte Teil der 103 Punkte. Außerhalb
+bleibt, was sich zu schnell ändert für einen Standard, der über Jahre vergleichbar sein
+soll — und für ein gedrucktes Buch: Erwähnungen in Modellen und Sichtbarkeit in AI
+Overviews. Beides ist nicht reproduzierbar messbar und wäre in einem Buch ein Jahr später
+falsch.
 
 ---
 

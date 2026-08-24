@@ -166,10 +166,6 @@ def main() -> None:
             "lassen sich deshalb nicht erzeugen. Sobald `BUCH-F1` sie überführt "
             "hat, erscheinen sie hier automatisch.")
     schreib("")
-    schreib("**Die deutschen Kriterienbezeichnungen** stehen derzeit im Skript "
-            "statt im Katalog. Sie gehören als Feld `buch_label` an das Kriterium — "
-            "sonst gibt es zwei Wahrheiten über denselben Namen.")
-    schreib("")
     schreib("**Bis dahin stehen die Abstufungen in den Kapiteln 5 bis 12** — "
             "dort von Hand aus dem Bewertungscode übertragen und damit "
             "ungeschützt gegen die nächste Änderung.")
@@ -177,6 +173,86 @@ def main() -> None:
 
     ZIEL.write_text("\n".join(zeilen), encoding="utf-8")
     print(f"{ZIEL} geschrieben — {len(zeilen)} Zeilen")
+
+    spezifikation_fuellen(ac)
+
+
+# ── Die Spezifikation (S4.1, S4.4) ────────────────────────────────────
+
+SPEZIFIKATION = (WURZEL / "docs" / "Audit"
+                 / "2026-08-14-bewertungslogik-homepage-standard-2026-2.md")
+
+
+def _block(name: str, zeilen: list) -> str:
+    anfang = (f"<!-- ERZEUGT: {name} — nicht von Hand ändern, "
+              f"siehe scripts/standard-export.py -->")
+    return "\n".join([anfang, *zeilen, f"<!-- /ERZEUGT: {name} -->"])
+
+
+def _gewichtung(ac) -> list:
+    """§ 1 — die Kategorien mit Punkten und Kennungsbereich."""
+    zeilen = ["", "| # | Kategorie | P | Kriterien |", "|---|---|---|---|"]
+    for nr, kat in enumerate(ac.CATALOGUE, start=1):
+        codes = [k.buch_code for k in kat.criteria]
+        zeilen.append(f"| {nr} | {kat.label} | {kat.max_points} | "
+                      f"{codes[0]}–{codes[-1]} |")
+    zeilen.append("| — | Infrastruktur-Befund | 0 | rein informativ |")
+    gesamt = sum(k.max_points for k in ac.all_criteria())
+    anzahl = sum(1 for _ in ac.all_criteria())
+    zeilen.append(f"| | **Summe** | **{gesamt}** | {anzahl} Kriterien |")
+    zeilen.append("")
+    return zeilen
+
+
+def _klassenmaxima(ac) -> list:
+    """§ 2.4 — das anwendbare Maximum, gerechnet statt eingetragen."""
+    zeilen = ["", "| Klasse | Maximum | Nicht anwendbar |", "|---|---|---|"]
+    voll = ac.anwendbares_maximum("K1")
+    for klasse in ("K1", "K2", "K3", "K4", "K5", "K6"):
+        maximum = ac.anwendbares_maximum(klasse)
+        # `ist_anwendbar` nimmt den **Schluessel**, nicht das Kriterium. Ein
+        # erster Entwurf uebergab das Objekt und bekam ueberall „—" — die
+        # Spalte haette dann verschwiegen, dass K6 acht Kriterien nicht
+        # anwendet. Eine leere Spalte sieht aus wie eine Auskunft.
+        fehlend = [k.buch_code for k in ac.all_criteria()
+                   if not ac.ist_anwendbar(k.key, klasse)]
+        weg = voll - maximum
+        bemerkung = (", ".join(fehlend) + f" ({weg} P)") if fehlend else "—"
+        zeilen.append(f"| {klasse} | {maximum} | {bemerkung} |")
+    zeilen.append("")
+    return zeilen
+
+
+def spezifikation_fuellen(ac) -> None:
+    """Trägt die abgeleiteten Blöcke in die Spezifikation ein (S4.8, Weg B).
+
+    **Warum erzeugt.** Das 2026.2-Dokument setzt die Regel „Änderungen am
+    Maßstab erfolgen hier zuerst" — sie wurde in **null von sechs** Fällen
+    befolgt. Ein Verfahren, das an Aufmerksamkeit hängt, hat sich in diesem
+    Projekt zweimal als unzuverlässig erwiesen.
+
+    Ersetzt wird nur, was zwischen den Marken steht. Der Fließtext bleibt von
+    Hand geschrieben — er erklärt, was die Zahlen bedeuten, und das kann kein
+    Skript.
+    """
+    import re
+
+    if not SPEZIFIKATION.exists():
+        print(f"  ⚠ {SPEZIFIKATION} fehlt — Spezifikation nicht gefüllt")
+        return
+
+    text = SPEZIFIKATION.read_text(encoding="utf-8")
+    for name, zeilen in (("gewichtung", _gewichtung(ac)),
+                         ("klassenmaxima", _klassenmaxima(ac))):
+        muster = re.compile(
+            rf"<!-- ERZEUGT: {name} .*?<!-- /ERZEUGT: {name} -->", re.S)
+        if not muster.search(text):
+            print(f"  ⚠ Marke {name!r} fehlt in der Spezifikation")
+            continue
+        text = muster.sub(lambda _: _block(name, zeilen), text)
+
+    SPEZIFIKATION.write_text(text, encoding="utf-8")
+    print(f"{SPEZIFIKATION.name} — Blöcke gefüllt")
 
 
 if __name__ == "__main__":

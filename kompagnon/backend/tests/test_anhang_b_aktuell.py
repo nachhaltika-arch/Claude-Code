@@ -64,3 +64,69 @@ def test_der_abgelegte_anhang_entspricht_dem_katalog():
             f"`python3 scripts/standard-export.py`. Erste Abweichung — "
             f"{abweichung}"
         )
+
+
+# ── Die Spezifikation (S4.1, S4.4, S4.8 Weg B) ────────────────────────
+
+SPEZIFIKATION = (WURZEL / "docs" / "Audit"
+                 / "2026-08-14-bewertungslogik-homepage-standard-2026-2.md")
+
+
+def _skript_laden():
+    """Das Exportskript als Modul — es fuehrt `main()` nur unter `__main__`."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("standard_export", SKRIPT)
+    modul = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modul)
+    return modul
+
+
+def _block_aus_der_spezifikation(name: str) -> str:
+    import re
+
+    text = SPEZIFIKATION.read_text(encoding="utf-8")
+    treffer = re.search(
+        rf"<!-- ERZEUGT: {name} .*?-->\n(.*?)<!-- /ERZEUGT: {name} -->",
+        text, re.S)
+    assert treffer, (
+        f"Die Marke {name!r} fehlt in der Spezifikation. Ohne sie wird der "
+        "Block wieder von Hand gepflegt — und genau das war der Befund: Die "
+        "Regel 'Aenderungen am Massstab erfolgen hier zuerst' wurde in null "
+        "von sechs Faellen befolgt."
+    )
+    return treffer.group(1)
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("name, funktion", [
+    ("gewichtung", "_gewichtung"),
+    ("klassenmaxima", "_klassenmaxima"),
+])
+def test_der_block_in_der_spezifikation_stammt_aus_dem_katalog(name, funktion):
+    # Arrange
+    skript = _skript_laden()
+    katalog = skript.laden(KATALOG)
+
+    # Act
+    erzeugt = "\n".join(getattr(skript, funktion)(katalog)) + "\n"
+    abgelegt = _block_aus_der_spezifikation(name)
+
+    # Assert
+    assert abgelegt == erzeugt, (
+        f"Der Block {name!r} in der Spezifikation passt nicht zum Katalog. "
+        "Neu erzeugen mit `python3 scripts/standard-export.py`."
+    )
+
+
+def test_die_alten_festen_zahlen_stehen_nicht_mehr_darin():
+    """Die Spezifikation nannte 100 Punkte und 79 als Maximum fuer K6.
+
+    Gerechnet sind es 103 und 81 — und die Bemerkung sagte „21 P", waehrend
+    es 22 sind. Drei von Hand getippte Zahlen, drei Abweichungen.
+    """
+    text = SPEZIFIKATION.read_text(encoding="utf-8")
+    assert "| K6 | 79 |" not in text
+    assert "| | **Summe** | **100** |" not in text

@@ -179,3 +179,73 @@ class TestDieDateiKommtInsPaket:
 
         # Assert
         assert set(dateien) == {"index.html", "_redirects", "_headers"}
+
+
+class TestLocalBusiness:
+    """`schema.org/LocalBusiness` als JSON-LD (L-99).
+
+    Das zweite der drei Artefakte, die das Systempaket verspricht. Es gehoert
+    in den `<head>` und **nicht** in eine eigene Datei — anders als
+    `llms.txt`, die ein Modell direkt liest, wird JSON-LD beim Abruf der Seite
+    mitgelesen.
+
+    **Dieselbe Regel wie ueberall hier: nichts erfinden.** Eine
+    `PostalAddress` ohne Strasse ist fuer eine Suchmaschine schlechter als gar
+    keine — sie sieht aus wie eine Angabe und ist keine.
+    """
+
+    def test_es_ist_gueltiges_json(self):
+        from services.geo_artefakte import local_business_jsonld
+
+        roh = local_business_jsonld(_Betrieb())
+        daten = json.loads(roh)
+        assert daten["@context"] == "https://schema.org"
+        assert daten["@type"] == "LocalBusiness"
+
+    def test_name_adresse_und_zeiten_stehen_drin(self):
+        from services.geo_artefakte import local_business_jsonld
+
+        daten = json.loads(local_business_jsonld(_Betrieb()))
+        assert daten["name"] == "Muster Heizung GmbH"
+        assert daten["address"]["streetAddress"] == "Hauptstraße 12"
+        assert daten["address"]["postalCode"] == "56070"
+        assert daten["address"]["addressLocality"] == "Koblenz"
+        assert daten["address"]["addressCountry"] == "DE"
+        assert "Mo-Do 08:00-17:00" in daten["openingHours"]
+
+    def test_ohne_anschrift_fehlt_der_adressblock_ganz(self):
+        from services.geo_artefakte import local_business_jsonld
+
+        daten = json.loads(local_business_jsonld(
+            _Betrieb(street="", house_number="", postal_code="")))
+        assert "address" not in daten
+
+    def test_ohne_namen_entsteht_nichts(self):
+        from services.geo_artefakte import local_business_jsonld
+
+        assert local_business_jsonld(_Betrieb(company_name="")) == ""
+        assert local_business_jsonld(None) == ""
+
+    def test_die_auszeichnung_steht_im_kopf_der_seite(self):
+        """Erzeugt und nicht eingebaut waere wieder „nicht angeschlossen"."""
+        from services.netlify_service import _build_full_html
+
+        html = _build_full_html(
+            page_name="Start", html="<h1>Hallo</h1>", company_name="Muster GmbH",
+            jsonld=local_business_probe(),
+        )
+        assert 'type="application/ld+json"' in html
+        assert '"@type": "LocalBusiness"' in html
+        assert html.index("ld+json") < html.index("</head>")
+
+    def test_ohne_auszeichnung_bleibt_der_kopf_unveraendert(self):
+        from services.netlify_service import _build_full_html
+
+        html = _build_full_html(page_name="Start", html="<h1>Hallo</h1>")
+        assert "ld+json" not in html
+
+
+def local_business_probe() -> str:
+    from services.geo_artefakte import local_business_jsonld
+
+    return local_business_jsonld(_Betrieb())

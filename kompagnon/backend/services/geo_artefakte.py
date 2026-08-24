@@ -114,3 +114,57 @@ def llms_txt(betrieb, seiten: Optional[list] = None) -> str:
         zeilen += ["## Seiten", ""] + eintraege + [""]
 
     return "\n".join(zeilen).rstrip() + "\n"
+
+
+def local_business_jsonld(betrieb) -> str:
+    """`schema.org/LocalBusiness` als JSON-LD — leer, wenn die Grundlage fehlt.
+
+    Das zweite der drei Artefakte, die das Systempaket verspricht. Es gehört
+    in den `<head>` und **nicht** in eine eigene Datei: Anders als `llms.txt`,
+    die ein Modell direkt abruft, wird JSON-LD beim Laden der Seite mitgelesen.
+
+    **Dieselbe Regel wie überall hier: nichts erfinden.** Eine `PostalAddress`
+    ohne Straße ist für eine Suchmaschine schlechter als gar keine — sie sieht
+    aus wie eine Angabe und ist keine. Deshalb fällt der ganze Adressblock
+    weg, sobald ein Teil fehlt, statt ihn halb zu füllen.
+
+    `openingHours` folgt der schema.org-Schreibweise „Mo-Do 08:00-17:00" —
+    genau die Form, in der die Öffnungszeiten ohnehin eingegeben werden
+    (`utils/oeffnungszeiten.js`). Ein Eintrag ohne Zeit („Sa nach
+    Vereinbarung") bleibt als Text stehen; er ist für einen Menschen richtig
+    und für die Maschine unschädlich.
+    """
+    import json
+
+    if betrieb is None:
+        return ""
+    name = _wert(betrieb, "company_name")
+    if not name:
+        return ""
+
+    daten = {"@context": "https://schema.org", "@type": "LocalBusiness",
+             "name": name}
+
+    for feld, schluessel in (("website_url", "url"), ("phone", "telephone"),
+                             ("email", "email")):
+        if _wert(betrieb, feld):
+            daten[schluessel] = _wert(betrieb, feld)
+
+    anschrift = _anschrift(betrieb)
+    if anschrift:
+        strasse, _, _ort = anschrift.partition(", ")
+        daten["address"] = {
+            "@type": "PostalAddress",
+            "streetAddress": strasse,
+            "postalCode": _wert(betrieb, "postal_code"),
+            "addressLocality": _wert(betrieb, "city"),
+            "addressCountry": "DE",
+        }
+
+    zeiten = oeffnungszeiten_lesen(getattr(betrieb, "opening_hours", None))
+    if zeiten:
+        daten["openingHours"] = [
+            f"{tage} {zeit}".strip() for tage, zeit in zeiten.items()
+        ]
+
+    return json.dumps(daten, ensure_ascii=False, indent=2)

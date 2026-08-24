@@ -136,6 +136,24 @@ def _llms_txt_fuer(db, project_id: int) -> str:
     return llms_txt(betrieb, seiten)
 
 
+def _geo_artefakte_fuer(db, project_id: int) -> tuple:
+    """(`llms.txt`, JSON-LD) fuer die Site dieses Projekts (L-99).
+
+    Beide aus **einer** Abfrage: Sie lesen dieselben Betriebsdaten, und zwei
+    getrennte Wege waeren zwei Staende derselben Sache.
+    """
+    from services.geo_artefakte import local_business_jsonld
+
+    betrieb = db.execute(
+        text("SELECT l.* FROM leads l JOIN projects p ON p.lead_id = l.id "
+             "WHERE p.id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not betrieb:
+        return "", ""
+    return _llms_txt_fuer(db, project_id), local_business_jsonld(betrieb)
+
+
 @router.post("/{project_id}/netlify/deploy")
 async def netlify_deploy(
     project_id: int,
@@ -159,7 +177,7 @@ async def netlify_deploy(
     company_name  = body.company_name or row[1] or ""
     page_title    = body.page_title or company_name or "Website"
 
-    geo_datei = _llms_txt_fuer(db, project_id)
+    geo_datei, geo_jsonld = _geo_artefakte_fuer(db, project_id)
 
     # DB-Verbindung vor externem Netlify-Deploy freigeben
     db.close()
@@ -174,6 +192,7 @@ async def netlify_deploy(
         meta_description=body.meta_description,
         company_name=company_name,
         zusatzdateien={"llms.txt": geo_datei},
+        jsonld=geo_jsonld,
     )
 
     # Neue Session zum Speichern
@@ -280,7 +299,7 @@ async def netlify_deploy_all(
     # Deduplicate CSS (gemeinsame Styles)
     shared_css = "\n".join(dict.fromkeys(css_parts))
 
-    geo_datei = _llms_txt_fuer(db, project_id)
+    geo_datei, geo_jsonld = _geo_artefakte_fuer(db, project_id)
 
     # DB-Verbindung vor externem API-Call freigeben
     db.close()
@@ -289,7 +308,8 @@ async def netlify_deploy_all(
     try:
         result = await deploy_all_pages(site_id, page_files, shared_css,
                                         company_name,
-                                        zusatzdateien={"llms.txt": geo_datei})
+                                        zusatzdateien={"llms.txt": geo_datei},
+                                        jsonld=geo_jsonld)
     except Exception as e:
         raise HTTPException(500, f"Netlify Deploy Fehler: {str(e)[:200]}")
 

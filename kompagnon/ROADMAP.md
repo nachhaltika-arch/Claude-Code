@@ -1,21 +1,34 @@
 # KOMPAGNON — Feature Roadmap & Produktentwicklung
 
-> **Achtung: In dieser Datei stehen zwei Fahrpläne übereinander.**
-> Der erste ordnet nach Priorität (`Priorität 1–3`, ab „Bereits
-> implementiert"), der zweite nach Zustand (`Umgesetzt (Deployed & Live)` /
-> `In Entwicklung / Geplant`, weiter unten). Sie überschneiden sich und
-> widersprechen sich stellenweise — wer nur einen davon liest, bekommt ein
-> falsches Bild.
+> **Diese Datei ist ein Archiv. Sie ist kein Fahrplan mehr.**
 >
-> **Für „was ist offen" ist `docs/soll-ist-analyse.md` maßgeblich**, nicht
-> diese Datei. Hier steht, was einmal geplant *war*.
+> **Entschieden am 2026-08-24 (L-30).** Hier standen zwei Fahrpläne
+> übereinander — einer nach Priorität (ab „Bereits implementiert"), einer nach
+> Zustand (ab „Produkt-Roadmap", weiter unten). Sie überschnitten sich und
+> widersprachen sich. Zusammenzuführen wäre eine dritte Wahrheit geworden.
 >
-> Vermerkt am 2026-08-19 (L-30). Die beiden zusammenzuführen ist eine
-> Produktentscheidung und keine Aufräumarbeit — deshalb steht hier ein
-> Hinweis und keine dritte Fassung.
+> **Der eine Fahrplan ist jetzt das Lagebild** — `docs/lagebild/plan.json`,
+> gezeigt im Lagebild-Artifact. Er ist aus dem tatsächlichen Stand abgeleitet,
+> deckt alle offenen Lücken ab und sortiert nach dem, was feststellbar ist:
+> Phase A geht ohne Wartezeit, Phase B hängt an einer Auskunft, Phase C ist
+> Produktarbeit mit eigenem Termin.
+>
+> **Was hier steht, ist trotzdem nicht wertlos:** 47 unerledigte Punkte, und
+> das sind **Wünsche**, keine Lücken. Ein Wunsch wird zur Arbeit, indem er als
+> eigener Eintrag in `docs/soll-ist-analyse.md` aufgenommen wird — mit Beleg,
+> Aufwand und Prioritätsstufe. Vorher ist er eine Idee.
+>
+> **Und die Haken lügen nach unten.** Am 24.08.2026 stichprobenweise
+> nachgesehen: „Monatlicher Performance-Report" läuft seit Wochen
+> (`automations/scheduler_bericht.py`), „Automatische QA vor Go-Live" gibt es
+> (`routers/projects_qa.py`), „Zugangsdaten-Safe" ist gebaut — die Oberfläche
+> dazu (`CredentialsSafe.jsx`) erreicht allerdings kein Nutzerweg (L-95). Nur
+> „In-App Notifications" ist wirklich offen (L-18). Drei von vier Stichproben
+> waren gebaut und nie abgehakt; wer diese Liste als Stand liest, liegt
+> falsch.
 >
 > Branch: `staging`
-> Zuletzt aktualisiert: April 2026
+> Zuletzt als Fahrplan gepflegt: April 2026 · als Archiv vermerkt: 2026-08-24
 
 ---
 

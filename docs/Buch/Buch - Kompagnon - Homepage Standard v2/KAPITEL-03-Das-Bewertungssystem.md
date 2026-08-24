@@ -285,14 +285,16 @@ Eine vollständige Prüfung liefert zwei weitere Ergebnisse, die bewusst nicht i
 
 **Der Infrastruktur-Befund** stellt fest, womit Ihre Website gebaut ist und wo sie liegt: verwendetes System, Anbieter, Auslieferungsnetzwerk, Übertragungsprotokoll, Alter der Domain, Erreichbarkeit und eingesetzte Besuchermessung. Vier Angaben, null Punkte. Sie fließen nicht in die Bewertung ein, weil Sie sie meist nicht ohne Anbieterwechsel beeinflussen können. Sie sind trotzdem wertvoll: Wer wissen will, was eine Überarbeitung kostet, muss wissen, worauf er aufsetzt.
 
-**Der GEO-Wert** (0 bis 10) beschreibt, wie gut Ihre Website für KI-gestützte Suchsysteme aufbereitet ist — für Systeme also, die keine Linkliste ausgeben, sondern eine Antwort formulieren. Er steht außerhalb der Wertung, weil sich dieses Feld derzeit zu schnell verändert. Ein Kriterium, dessen Anforderungen sich innerhalb eines Jahres wandeln können, gehört nicht in einen Standard, der über Jahre vergleichbar bleiben soll — und erst recht nicht in ein gedrucktes Buch.
+**Der GEO-Befund** beschreibt, wie gut Ihre Website für KI-gestützte Suchsysteme aufbereitet ist — für Systeme also, die keine Linkliste ausgeben, sondern eine Antwort formulieren. Er ist **keine Zahl, sondern eine Liste von Prüfpunkten** mit den Status *erfüllt*, *offen* oder *unbekannt*. Er steht außerhalb der Wertung, weil sich dieses Feld derzeit zu schnell verändert. Ein Kriterium, dessen Anforderungen sich innerhalb eines Jahres wandeln können, gehört nicht in einen Standard, der über Jahre vergleichbar bleiben soll — und erst recht nicht in ein gedrucktes Buch.
 
-**Eine Ausnahme, und warum sie eine ist.** Ein Aspekt der maschinellen Erfassbarkeit steht sehr wohl in der Wertung: Kriterium E7 in Kapitel 9 prüft, ob Ihre Website für Maschinen überhaupt **lesbar** ist — ob Sie KI-Systeme in der Steuerungsdatei aussperren und ob eine Beschreibungsdatei für sie vorliegt. Das ist etwas anderes als der GEO-Wert. Ob eine Maschine Ihre Seite lesen darf, ist eine Ja-oder-Nein-Frage, die sich in zehn Jahren genauso stellt wie heute. Ob ein bestimmtes System Sie auf eine bestimmte Frage hin nennt, ändert sich mit jeder neuen Modellversion. Das Erste ist ein Standard, das Zweite eine Momentaufnahme.
+**Warum es hier ausdrücklich keine Punktzahl gibt.** Eine Zahl lädt zum Vergleichen ein, und für dieses Feld gibt es keinen stabilen Maßstab, an dem sich vergleichen ließe. Zwei der fünf Prüfpunkte — ob KI-Systeme Ihren Betrieb erwähnen und ob er in zusammengefassten Suchantworten erscheint — werden derzeit **gar nicht erhoben**. Sie stehen im Bericht als *unbekannt*, ohne Empfehlung. Das ist ehrlicher als ein Wert, der so tut, als wäre er gemessen.
+
+**Eine Ausnahme, und warum sie eine ist.** Ein Aspekt der maschinellen Erfassbarkeit steht sehr wohl in der Wertung: Kriterium E7 in Kapitel 9 prüft, ob Ihre Website für Maschinen überhaupt **lesbar** ist — ob Sie KI-Systeme in der Steuerungsdatei aussperren und ob eine Beschreibungsdatei für sie vorliegt. Das ist etwas anderes als der GEO-Befund. Ob eine Maschine Ihre Seite lesen darf, ist eine Ja-oder-Nein-Frage, die sich in zehn Jahren genauso stellt wie heute. Ob ein bestimmtes System Sie auf eine bestimmte Frage hin nennt, ändert sich mit jeder neuen Modellversion. Das Erste ist ein Standard, das Zweite eine Momentaufnahme.
 
 ::: MRG
 **Lesbar ≠ sichtbar**
 Lesbarkeit für Maschinen wird bewertet (E7, Kapitel 9).
-Sichtbarkeit in Antworten nicht (GEO-Wert, Kapitel 16).
+Sichtbarkeit in Antworten nicht (GEO-Befund, Kapitel 16).
 :::
 
 ---

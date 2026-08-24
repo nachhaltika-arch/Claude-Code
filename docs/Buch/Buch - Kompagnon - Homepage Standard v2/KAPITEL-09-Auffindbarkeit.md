@@ -430,7 +430,7 @@ Abschnitt 3.9 hat es bereits angesprochen, und es ist wichtig genug für eine Wi
 |---|---|---|
 | **Was** | Darf eine Maschine Ihre Seite lesen? | Nennt sie Ihren Betrieb in Antworten? |
 | **Warum** | Ja-oder-Nein-Frage, stabil über Jahre | ändert sich mit jeder Modellversion |
-| **Wo** | E7, hier | GEO-Wert, außerhalb der Wertung — Kapitel 16 |
+| **Wo** | E7, hier | GEO-Befund, außerhalb der Wertung — Kapitel 16 |
 
 Ein Standard, der über Jahre vergleichbar bleiben soll, kann das Zweite nicht enthalten. Das Erste kann er, und deshalb tut er es.
 

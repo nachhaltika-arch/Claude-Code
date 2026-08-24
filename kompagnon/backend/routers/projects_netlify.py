@@ -95,6 +95,47 @@ async def netlify_create_site(
     return {"site_id": result["site_id"], "site_url": result["site_url"]}
 
 
+def _llms_txt_fuer(db, project_id: int) -> str:
+    """Die `llms.txt` fuer die Site dieses Projekts (L-99).
+
+    **Warum sie mit dem Deploy hochgeht und nicht danach.** Netlify ersetzt
+    bei jeder Auslieferung den **ganzen** Inhalt der Site. Ein zweiter Aufruf
+    nur fuer die Datei naehme die Seiten wieder weg; umgekehrt zeigte eine
+    Datei aus einem frueheren Deploy auf Seiten, die es nicht mehr gibt.
+
+    **Der Slug wird abgeleitet, nicht aus der Spalte gelesen.** Die Tabelle
+    fuehrt zwar `sitemap_pages.slug`, aber der Multi-Page-Deploy benutzt sie
+    **nicht**: Dort entsteht der Dateiname immer aus
+    `_slugify_page_name(page_name)`. Wer hier die Spalte naehme, schriebe
+    Adressen in die Datei, die es auf der Site nicht gibt — und ein Modell
+    liest sie als Quelle.
+
+    Fehlt die Anschrift, entsteht keine Datei: `geo_artefakte` erfindet
+    nichts, und eine halbe `llms.txt` sieht fuer ein Modell aus wie eine
+    Auskunft.
+    """
+    from services.geo_artefakte import llms_txt
+
+    betrieb = db.execute(
+        text("SELECT l.* FROM leads l JOIN projects p ON p.lead_id = l.id "
+             "WHERE p.id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not betrieb:
+        return ""
+    seiten = [
+        {"page_name": z[0], "slug": _slugify_page_name(z[0] or ""),
+         "zweck": z[1] or ""}
+        for z in db.execute(
+            text("SELECT s.page_name, s.zweck FROM sitemap_pages s "
+                 "JOIN projects p ON p.lead_id = s.lead_id "
+                 "WHERE p.id = :id ORDER BY s.position"),
+            {"id": project_id},
+        ).fetchall()
+    ]
+    return llms_txt(betrieb, seiten)
+
+
 @router.post("/{project_id}/netlify/deploy")
 async def netlify_deploy(
     project_id: int,
@@ -118,6 +159,8 @@ async def netlify_deploy(
     company_name  = body.company_name or row[1] or ""
     page_title    = body.page_title or company_name or "Website"
 
+    geo_datei = _llms_txt_fuer(db, project_id)
+
     # DB-Verbindung vor externem Netlify-Deploy freigeben
     db.close()
 
@@ -130,6 +173,7 @@ async def netlify_deploy(
         page_title=page_title,
         meta_description=body.meta_description,
         company_name=company_name,
+        zusatzdateien={"llms.txt": geo_datei},
     )
 
     # Neue Session zum Speichern
@@ -236,12 +280,16 @@ async def netlify_deploy_all(
     # Deduplicate CSS (gemeinsame Styles)
     shared_css = "\n".join(dict.fromkeys(css_parts))
 
+    geo_datei = _llms_txt_fuer(db, project_id)
+
     # DB-Verbindung vor externem API-Call freigeben
     db.close()
 
     from services.netlify_service import deploy_all_pages
     try:
-        result = await deploy_all_pages(site_id, page_files, shared_css, company_name)
+        result = await deploy_all_pages(site_id, page_files, shared_css,
+                                        company_name,
+                                        zusatzdateien={"llms.txt": geo_datei})
     except Exception as e:
         raise HTTPException(500, f"Netlify Deploy Fehler: {str(e)[:200]}")
 

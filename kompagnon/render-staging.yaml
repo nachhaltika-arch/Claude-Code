@@ -133,6 +133,18 @@ services:
       # Netlify (Customer Site Hosting) — eigener Test-Token oder gleicher Token mit anderem Site-Prefix
       - key: NETLIFY_API_TOKEN
         sync: false
+      # Die Qualitätsschleife deployt die eigene Seite als Vorschau und misst
+      # sie. Ohne diese eine Adresse passiert nichts (503) — genau so gebaut,
+      # damit keine Vorschau je eine Kundensite überschreibt. L-40.
+      #
+      # **Am 24.08.2026 nachgetragen.** Am Dienst war die Variable seit dem
+      # 23.08. gesetzt (`kompagnon-vorschau-staging`), in dieser Datei fehlte
+      # sie. Wer Staging aus dem Blueprint neu aufbaut, verliert die
+      # Qualitätsschleife stillschweigend: Sie antwortet dann sauber mit 503,
+      # und niemand sucht nach einer Variablen, die im Blueprint nie stand.
+      # Dieselbe Klasse wie L-35 — die Dateien beschreiben, sie steuern nicht.
+      - key: NETLIFY_VORSCHAU_SITE_ID
+        sync: false
 
       # Google PageSpeed Insights — gleicher Key wie Produktiv ist OK (read-only Quota)
       - key: GOOGLE_PAGESPEED_API_KEY

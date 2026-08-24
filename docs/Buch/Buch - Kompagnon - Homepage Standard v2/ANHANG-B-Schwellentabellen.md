@@ -1,5 +1,5 @@
 <!-- ERZEUGT aus audit_criteria.py — nicht von Hand ändern. -->
-<!-- Erzeugt mit scripts/standard-export.py (Prototyp) -->
+<!-- Erzeugt mit scripts/standard-export.py -->
 
 # Anhang B — Der Katalog auf einen Blick
 
@@ -84,7 +84,7 @@ Der Wert wird auf 0 bis 100 normiert: `erreichte Punkte ÷ anwendbare Punkte × 
 | **B1** | Gesamtwert der Barrierefreiheitsprüfung | 3 | gemessen | alle Klassen |
 | **B2** | Farbkontraste | 2 | gemessen | alle Klassen |
 | **B3** | Alternativtexte für Bilder | 2 | gemessen | alle Klassen |
-| **B4** | Semantik und Struktur | 2 | abgeleitet | alle Klassen |
+| **B4** | Semantik und Struktur | 2 | gemessen | alle Klassen |
 | **B5** | Tastaturbedienung | 1 | abgeleitet | alle Klassen |
 
 ### Auffindbarkeit — 18 Punkte · Kapitel 9
@@ -104,7 +104,7 @@ Der Wert wird auf 0 bis 100 normiert: `erreichte Punkte ÷ anwendbare Punkte × 
 | Code | Kriterium | P | Erhebung | Gilt für |
 |---|---|---|---|---|
 | **D1** | Visuelle Aktualität | 3 | Einschätzung | alle Klassen |
-| **D2** | Typografie und Lesbarkeit | 2 | Einschätzung | alle Klassen |
+| **D2** | Typografie und Lesbarkeit | 2 | gemessen | alle Klassen |
 | **D3** | Farbsystem und Konsistenz | 2 | Einschätzung | alle Klassen |
 | **D4** | Bildqualität und Echtheit | 2 | Einschätzung | alle Klassen |
 | **D5** | Mobile Darstellung | 1 | gemessen | alle Klassen |
@@ -143,9 +143,9 @@ Diese Befunde begrenzen die Stufe unabhängig von der Punktzahl.
 
 | Erhebungsart | Kriterien | Punkte |
 |---|---|---|
-| gemessen | 28 | 77 |
-| abgeleitet | 4 | 9 |
-| Einschätzung | 7 | 17 |
+| gemessen | 30 | 81 |
+| abgeleitet | 3 | 7 |
+| Einschätzung | 6 | 15 |
 | **Summe** | **39** | **103** |
 
 ## B.7 🔴 Was in diesem Anhang noch fehlt

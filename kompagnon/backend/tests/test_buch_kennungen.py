@@ -69,14 +69,41 @@ class TestDieKennungPasstZurPosition:
 
 
 class TestBuchbezeichnung:
-    def test_ohne_eigene_bezeichnung_gilt_die_aus_dem_katalog(self):
-        kriterium = find_criterion("rc_impressum")
-        assert kriterium.buch_name == kriterium.label
+    """Die Bezeichnungen stammen aus `standard-export-prototyp.py`.
 
-    def test_wo_der_katalog_jargon_fuehrt_steht_eine_deutsche_bezeichnung(self):
-        """`LCP (Ladezeit Hauptinhalt)` ist keine Bezeichnung fuer ein Buch."""
-        for schluessel in ("tp_lcp", "tp_cls", "tp_inp"):
-            kriterium = find_criterion(schluessel)
-            assert kriterium.buch_name != kriterium.label, schluessel
-            # Keine Abkuerzung ohne Aufloesung im Buchnamen
-            assert kriterium.buch_name[:3].upper() not in ("LCP", "CLS", "INP")
+    **Sie sind nicht erfunden, sondern uebernommen.** Der Prototyp aus
+    BUCH-F2 fuehrte sie als Tabelle und vermerkte selbst: „Diese Tabelle
+    gehoert NICHT hierher, sondern als Feld `buch_label` an das Criterion —
+    solange sie hier steht, ist sie eine zweite Wahrheit." Genau dort stehen
+    sie jetzt.
+
+    Beim Uebertragen war ein eigener Versuch bereits vorhanden — und wich in
+    sieben von elf Faellen ab („Schutzangaben im Seitenkopf" statt
+    „Sicherheitsheader", „Aufforderung zum naechsten Schritt" statt „Die
+    erwartete Hauptreaktion"). Gilt die aus dem Prototyp: Sie ist die
+    Entscheidung, die andere war eine Vermutung.
+    """
+
+    def test_jedes_kriterium_hat_eine(self):
+        from services.audit_criteria import all_criteria
+
+        ohne = [c.key for c in all_criteria() if not c.buch_label]
+        assert not ohne, f"Ohne Buchbezeichnung: {ohne}"
+
+    @pytest.mark.parametrize("schluessel, erwartet", [
+        ("tp_lcp", "Ladezeit des Hauptinhalts"),
+        ("tp_cls", "Layoutstabilität"),
+        ("si_header", "Sicherheitsheader"),
+        ("cv_cta", "Die erwartete Hauptreaktion"),
+        ("se_schema", "Strukturierte Daten"),
+    ])
+    def test_die_bezeichnung_stammt_aus_dem_prototyp(self, schluessel, erwartet):
+        assert find_criterion(schluessel).buch_name == erwartet
+
+    def test_keine_abkuerzung_ohne_aufloesung(self):
+        """`LCP` und `CLS` sind Feldnamen, keine Ueberschriften."""
+        from services.audit_criteria import all_criteria
+
+        for kriterium in all_criteria():
+            assert kriterium.buch_name[:3].upper() not in ("LCP", "CLS", "INP"), \
+                kriterium.key

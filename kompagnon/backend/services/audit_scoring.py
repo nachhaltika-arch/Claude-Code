@@ -516,10 +516,22 @@ def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 # ═══════════════════════════════════════════════════════════════════
 
 def _apply_ai(sheet: _Sheet, ai: dict) -> None:
-    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind."""
+    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind.
+
+    **Was das Modell nicht beurteilen konnte, kostet nichts (S8.1).** Bis zum
+    25.08.2026 verlangte der Prompt in diesem Fall 0 Punkte — gegen § 3.5 der
+    Bewertungslogik, und im Bericht las es sich als Urteil über den Betrieb
+    statt als Lücke der Prüfung. Bis zu neun Punkte für etwas, das er nicht
+    getan hat.
+
+    Unbekannte Kennungen in der Liste werden übergangen: Das Modell könnte
+    etwas benennen, das kein Kriterium ist, und daran soll keine Bewertung
+    scheitern.
+    """
+    offen = set(ai.get("nicht_beurteilbar") or []) if ai else set()
     for criterion in ai_criteria():
         value = ai.get(criterion.key) if ai else None
-        if value is None:
+        if value is None or criterion.key in offen:
             sheet.skip(criterion.key)
         else:
             sheet.set(criterion.key, value, Source.AI)

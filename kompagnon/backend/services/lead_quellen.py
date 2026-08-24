@@ -54,6 +54,7 @@ Kennungs-Nachfuehrung (L-54): **Raten waere schlimmer als nichts tun.** Ein
 geratener Eintrag hier waere eine Rechtsbehauptung ueber fremde Daten, und er
 saehe genauso aus wie eine gepruefte.
 """
+from datetime import datetime
 from typing import Optional
 
 # ── Herkunft: belegbar am schreibenden Pfad ──────────────────────────
@@ -246,3 +247,69 @@ def label_rechtsgrundlage(wert: Optional[str]) -> str:
     if not wert:
         return OFFEN_LABEL
     return RECHTSGRUNDLAGE_LABEL.get(wert, wert)
+
+
+# ── Wer bekommt eine automatische Mailstrecke (L-62) ─────────────────
+
+#: Ab wann die automatische Strecke greift.
+#:
+#: **Warum es einen Stichtag gibt.** Bis zum 24.08.2026 loeste kein einziger
+#: Lead-Weg eine Strecke aus: `AUTO_SEQUENCE_SOURCES` in `routers/leads.py`
+#: nannte fuenf Werte, die nirgends geschrieben werden, und die Webhooks
+#: liefen ueber rohes SQL an der Stelle vorbei, die sie las.
+#:
+#: Die Liste einfach anzugleichen haette ab dem naechsten Deploy Post an den
+#: **Bestand** geschickt — darunter Kaltakquise-Adressen, und das beruehrt
+#: die Rechtsgrundlage aus L-59. Entschieden am 24.08.2026: scharf schalten,
+#: aber nur fuer Betriebe, die **danach** entstehen.
+#:
+#: Der Wert ist bewusst fest und nicht aus der Umgebung: Ein Stichtag, den
+#: man verstellen kann, ist keiner. Wer ihn aendert, aendert ihn hier — und
+#: sieht dabei diesen Absatz.
+STRECKE_AB = datetime(2026, 8, 25, 0, 0, 0)
+
+
+def strecke_erlaubt(quelle: Optional[str]) -> bool:
+    """Darf diese Quelle ueberhaupt eine automatische Strecke ausloesen?
+
+    **Abgeleitet aus `QUELLEN`, nicht aus einer zweiten Liste.** Genau die
+    Doppelfuehrung war der Fehler: Eine handgepflegte Liste in
+    `routers/leads.py` driftete von dem ab, was tatsaechlich geschrieben
+    wird, und fiel niemandem auf — das Ausbleiben einer Mail protokolliert
+    nichts.
+
+    Erlaubt ist nur `EINGEHEND`: Die Person hat sich selbst gemeldet.
+    **Kaltakquise nie** — das ist die Rechtsfrage aus L-59 und keine
+    Einstellung.
+
+    Eine ungefuehrte Quelle (`HWK-Koblenz`, ein Kampagnenname) bekommt
+    nichts. Wer nicht im Wortschatz steht, ueber den wissen wir die Herkunft
+    nicht, und Raten waere hier eine Rechtsbehauptung ueber fremde Daten.
+
+    `manual` ist ausgenommen, obwohl es als `EINGEHEND` gefuehrt ist: Wer von
+    Hand anlegt, weiss woher die Daten kommen — das Feld sagt es nicht (siehe
+    den Beleg dort). Eine automatische Mail auf diese Vermutung hin waere
+    genau der Fall, den der Rest dieses Moduls vermeidet.
+    """
+    if not quelle:
+        return False
+    eintrag = QUELLEN.get(SCHREIBWEISEN.get(quelle, quelle))
+    if not eintrag or eintrag["name"] == QUELLEN["manual"]["name"]:
+        return False
+    return eintrag["herkunft"] == EINGEHEND
+
+
+def soll_strecke_starten(lead) -> bool:
+    """Beide Bedingungen zusammen — Herkunft **und** Stichtag.
+
+    Ohne `created_at` wird nicht geraten: Ein Lead ohne Anlegedatum ist ein
+    Altbestand, und im Zweifel geht nichts hinaus.
+    """
+    if not getattr(lead, "email", ""):
+        return False
+    if not strecke_erlaubt(getattr(lead, "lead_source", None)):
+        return False
+    angelegt = getattr(lead, "created_at", None)
+    if not angelegt:
+        return False
+    return angelegt >= STRECKE_AB

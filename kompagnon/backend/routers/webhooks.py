@@ -86,7 +86,24 @@ def _upsert_lead(source: str, company: str, email: str,
                 VALUES (:s, :e, :c, NOW())
             """), {"s": source, "e": email, "c": company or ""})
             db.commit()
-            return {"action": "created", "lead_id": row.id if row else None}
+
+            # **Der Weg, der bis zum 24.08.2026 fehlte (L-62).** Diese
+            # Funktion schreibt mit rohem SQL und laeuft damit an
+            # `create_lead` vorbei — dort stand die Entscheidung ueber die
+            # Mailstrecke. Facebook, LinkedIn, Google, Postkarte und Telefon
+            # bekamen deshalb **nie** eine Strecke, obwohl `postkarte` in der
+            # damaligen Liste stand. Die Entscheidung faellt jetzt an einer
+            # Stelle, und dieser Weg ruft sie ebenfalls.
+            neue_id = row.id if row else None
+            if neue_id:
+                try:
+                    from services.sequence_runner import (
+                        strecke_anstossen_wenn_erlaubt,
+                    )
+                    strecke_anstossen_wenn_erlaubt(neue_id)
+                except Exception as ex:
+                    logger.warning(f"Auto-Strecke nach Webhook: {ex}")
+            return {"action": "created", "lead_id": neue_id}
     except Exception as ex:
         logger.error(f"Webhook upsert Fehler: {ex}")
         return {"action": "error"}

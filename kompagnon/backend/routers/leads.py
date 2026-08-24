@@ -168,34 +168,17 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         row = result.fetchone()
         lead_id = row[0]
 
-        AUTO_SEQUENCE_SOURCES = {
-            "stripe_checkout",
-            "landing_audit",
-            "landing_page",
-            "llm_landing",
-            "postkarte",
-            "webhook_facebook",
-            "webhook_linkedin",
-            "webhook_google",
-        }
-
-        if lead.email and (lead.lead_source or '') in AUTO_SEQUENCE_SOURCES:
-            try:
-                from services.sequence_runner import start_sequence_for_lead
-                import threading
-                threading.Thread(
-                    target=start_sequence_for_lead,
-                    args=(lead_id,),
-                    daemon=True,
-                ).start()
-                import logging as _log
-                _log.getLogger('leads').info(
-                    f"Auto-Sequenz gestartet für Lead {lead_id} "
-                    f"(Quelle: {lead.lead_source})"
-                )
-            except Exception as e:
-                import logging as _log
-                _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
+        # Wer eine automatische Mailstrecke bekommt, entscheidet **eine**
+        # Stelle (L-62). Hier stand bis zum 24.08.2026 eine eigene Liste mit
+        # acht Werten, von denen fuenf nirgends geschrieben wurden — und die
+        # Webhooks liefen mit rohem SQL ohnehin daran vorbei. Zwei Listen
+        # driften auseinander, und das Ausbleiben einer Mail meldet niemand.
+        try:
+            from services.sequence_runner import strecke_anstossen_wenn_erlaubt
+            strecke_anstossen_wenn_erlaubt(lead_id)
+        except Exception as e:
+            import logging as _log
+            _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
 
         if lead.website_url:
             from services.lead_enrichment import enrich_lead_sync

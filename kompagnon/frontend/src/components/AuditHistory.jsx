@@ -5,6 +5,7 @@ import API_BASE_URL from '../config';
 import AuditReport from './AuditReport';
 import { useScreenSize } from '../utils/responsive';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { fassungText, fassungenIm, vergleichbar } from '../utils/fassung';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { color: '#283593', icon: '\uD83C\uDFC6' },
@@ -83,10 +84,23 @@ export default function AuditHistory({ leadId }) {
     );
   }
 
-  // Score improvement between first and last audit
-  const improvement = audits.length >= 2
-    ? audits[0].total_score - audits[audits.length - 1].total_score
+  // Score improvement between first and last audit.
+  //
+  // **Nur innerhalb einer Fassung** (§ 11 Punkt 4). Bis zum 24.08.2026 wurde
+  // hier das aelteste gegen das neueste Ergebnis gerechnet, ohne zu pruefen,
+  // ob beide gegen denselben Katalog entstanden sind. Ein Wechsel des
+  // Massstabs sah dann aus wie eine Verbesserung des Betriebs.
+  const aeltestes = audits[audits.length - 1];
+  const neuestes = audits[0];
+  const gleicheFassung = audits.length >= 2
+    && vergleichbar(neuestes?.standard_version, aeltestes?.standard_version);
+  const improvement = audits.length >= 2 && gleicheFassung
+    ? neuestes.total_score - aeltestes.total_score
     : null;
+  // Verschiedene Fassungen werden benannt, nicht verschwiegen: Eine Zeile,
+  // die kommentarlos fehlt, liest sich wie „keine Veraenderung".
+  const fassungswechsel = audits.length >= 2 && !gleicheFassung;
+  const mehrereFassungen = fassungenIm(audits).length > 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -100,6 +114,15 @@ export default function AuditHistory({ leadId }) {
             {audits[audits.length - 1].total_score} → {audits[0].total_score} Punkte
             ({improvement > 0 ? '+' : ''}{improvement})
             {improvement > 0 ? ' ↑ Verbesserung!' : ' ↓'}
+          </span>
+        )}
+        {fassungswechsel && (
+          <span style={{
+            fontSize: '11px', color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            Nicht vergleichbar — {fassungText(aeltestes?.standard_version)}
+            {' → '}{fassungText(neuestes?.standard_version)}
           </span>
         )}
       </div>
@@ -138,6 +161,17 @@ export default function AuditHistory({ leadId }) {
               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13px' }}>
                 {audit.total_score}/100
               </span>
+              {/* Die Fassung — nur, wenn im Verlauf mehr als eine vorkommt.
+                  Steht ueberall dieselbe, ist die Angabe an jeder Zeile
+                  Rauschen; die Trennlinie ist dann keine. */}
+              {mehrereFassungen && (
+                <span style={{
+                  fontSize: '10px', color: 'var(--text-tertiary)',
+                  fontFamily: 'var(--font-mono)',
+                }}>
+                  {fassungText(audit.standard_version)}
+                </span>
+              )}
               {/* First issue preview */}
               {firstIssue && (
                 <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

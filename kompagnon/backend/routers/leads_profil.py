@@ -207,6 +207,9 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
             "website_url": a.website_url,
             "top_issues": top_issues,
             "ai_summary": a.ai_summary,
+            # Ohne die Fassung vergleicht der Verlauf zwei Maßstäbe und nennt
+            # das Ergebnis „Verbesserung" (§ 11 Punkt 4, „Trennlinie im Verlauf").
+            "standard_version": a.standard_version or "",
         })
     return results
 

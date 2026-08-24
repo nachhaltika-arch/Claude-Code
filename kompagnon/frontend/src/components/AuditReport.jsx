@@ -12,6 +12,7 @@ import { useScreenSize } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
+import { fassungText } from '../utils/fassung';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -388,6 +389,17 @@ export default function AuditReport({ auditData, onClose }) {
           )}
         </div>
       )}
+
+      {/* Die Fassung, gegen die bewertet wurde (S6.2). Das Backend setzt sie
+          seit 2026.2 und liefert sie aus; gelesen hat sie bis zum 24.08.2026
+          niemand. Ein Ergebnis ohne Massstab ist keine Aussage — und zwei
+          Ergebnisse aus zwei Fassungen sind nicht dasselbe Ergebnis. */}
+      <div style={{
+        fontSize: 11, color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-mono)', textAlign: 'right',
+      }}>
+        Homepage Standard · {fassungText(r.standard_version)}
+      </div>
 
       {/* Score Hero */}
       <div

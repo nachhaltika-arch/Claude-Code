@@ -112,7 +112,7 @@ def _spalten(zeile: str) -> list:
 def luecken_lesen() -> list:
     """Abschnitt 3 der Soll-Ist-Analyse als Liste von Einträgen."""
     text = QUELLE.read_text(encoding="utf-8")
-    prio, heraus, fehlerhaft = None, [], []
+    prio, heraus, fehlerhaft, uebersprungen = None, [], [], []
 
     for zeile in text.splitlines():
         kopf = re.match(r"^### (P[0-3]) — (.+)$", zeile)
@@ -127,7 +127,23 @@ def luecken_lesen() -> list:
         # Werkzeug, das Eintraege verschluckt statt sich zu beschweren, ist
         # schlimmer als eines, das gar nicht laeuft: Die Zahl sieht richtig aus.
         # Deshalb wird jetzt an unmaskierten Pipes zerlegt.
-        if not (prio and zeile.startswith("| L-")):
+        # **Zwei Schreibweisen fuer dieselbe Sache.** 84 Eintraege beginnen
+        # mit `| L-NN |`, achtzehn mit `| ~~L-NN~~ |` — dort ist die Kennung
+        # selbst durchgestrichen, nicht nur der Titel. Bis zum 24.08.2026
+        # fragte diese Stelle nur nach `| L-`, und die achtzehn fielen
+        # **stillschweigend** heraus: Das Lagebild zeigte 84 Luecken, es sind
+        # 102. Achtzehn abgeschlossene Arbeiten waren damit unsichtbar,
+        # darunter L-36 mit acht Commits.
+        #
+        # Dasselbe Muster wie bei L-80 (siehe oben) und L-84: nicht die Daten
+        # waren falsch, sondern die Form, in der das Werkzeug sie erwartete.
+        # **Ein Leser, der Zeilen ueberspringt, die er nicht erkennt, muss das
+        # sagen** — deshalb zaehlt `uebersprungen` unten mit und meldet sich.
+        if not prio:
+            continue
+        if not (zeile.startswith("| L-") or zeile.startswith("| ~~L-")):
+            if zeile.startswith("|") and "L-" in zeile[:14]:
+                uebersprungen.append(zeile[:44])
             continue
         felder = _spalten(zeile)
         if len(felder) != 4:
@@ -137,6 +153,12 @@ def luecken_lesen() -> list:
 
         id_, inhalt, aufwand, beleg = reihe
         aufwand, beleg = aufwand.strip(), beleg.strip()
+
+        # `~~L-36~~` und `L-36` sind dieselbe Luecke. Die Kennung wird auf die
+        # nackte Form gebracht, damit Verweise, Plandaten und Meilensteine sie
+        # wiederfinden — die Durchstreichung ist eine Aussage ueber den
+        # Zustand, kein Teil des Namens.
+        id_ = id_.strip("~").strip()
 
         # Bei einigen Einträgen steht der Beleg in der Aufwandsspalte
         # („34 Tests"). Das sind erledigte; die Spalten wurden dort anders
@@ -160,6 +182,11 @@ def luecken_lesen() -> list:
             "herkunft": _herkunft(id_, inhalt, beleg),
             "datum": next(iter(re.findall(r"20\d\d-\d\d-\d\d", inhalt)), ""),
         })
+
+    if uebersprungen:
+        print(f"  ⚠ {len(uebersprungen)} Zeilen sehen nach einer Luecke aus, "
+              f"passen aber in keine bekannte Form: {uebersprungen[:3]}",
+              file=sys.stderr)
 
     # **Widerspruch zwischen Text und Zaehlung melden.** L-84 war am 22.08.
     # vollstaendig geschlossen, trug die Schliessmeldung im Text — und stand

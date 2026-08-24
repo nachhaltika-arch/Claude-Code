@@ -245,54 +245,21 @@ export function AbnahmeEmbed({ project, lead, headers, netlify }) {
 
 
 // ── QM-Checkliste ─────────────────────────────────────────────────────────────
-export function QmChecklisteEmbed({ project, headers }) {
-  const ITEMS = [
-    { id: 'speed',     label: 'PageSpeed > 80 (Mobile + Desktop)' },
-    { id: 'links',     label: 'Alle Links funktionieren (kein 404)' },
-    { id: 'mobile',    label: 'Mobile Ansicht korrekt auf iOS & Android' },
-    { id: 'impressum', label: 'Impressum + Datenschutz vorhanden' },
-    { id: 'ssl',       label: 'SSL-Zertifikat aktiv (https://)' },
-    { id: 'forms',     label: 'Kontaktformular sendet korrekt' },
-    { id: 'analytics', label: 'Google Analytics / GA4 eingebunden' },
-    { id: 'favicon',   label: 'Favicon + Meta-Titel korrekt' },
-    { id: 'maps',      label: 'Google Maps / Adresse stimmt' },
-    { id: 'social',    label: 'Social Media Links korrekt' },
-  ];
-  const [checked, setChecked] = useState(() => {
-    try { return JSON.parse(project?.gbp_checklist_json || '{}'); } catch { return {}; }
-  });
-
-  const toggle = (id) => {
-    const previous = checked;
-    const next = { ...checked, [id]: !checked[id] };
-    setChecked(next);
-    saveJson(
-      `${API_BASE_URL}/api/projects/${project.id}/gbp-checklist`,
-      { method: 'PATCH', headers, body: JSON.stringify({ checked: next }) },
-      { context: 'Checkliste speichern', onError: () => setChecked(previous) }
-    );
-  };
-
-  const done = ITEMS.filter(i => checked[i.id]).length;
-  return (
-    <div style={{ padding: '20px 24px' }}>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
-        {done}/{ITEMS.length} Punkte abgehakt
-        <div style={{ marginTop: 6, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${Math.round(done / ITEMS.length * 100)}%`, background: '#059669', borderRadius: 2, transition: 'width .3s' }} />
-        </div>
-      </div>
-      {ITEMS.map(item => (
-        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={!!checked[item.id]} onChange={() => toggle(item.id)} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#059669' }} />
-          <span style={{ fontSize: 13, color: checked[item.id] ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: checked[item.id] ? 'line-through' : 'none' }}>
-            {item.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  );
-}
+// ── Kurze QM-Checkliste: getauscht am 24.08.2026 (L-95) ──────────────────────
+//
+// Hier stand `QmChecklisteEmbed` — 53 Zeilen, zehn Punkte, gespeichert unter
+// `gbp_checklist_json`. An ihre Stelle ist `components/QAChecklist.jsx`
+// getreten (303 Zeilen): dieselben Dinge plus Rechtliches, Browser-Tests,
+// Bildgroessen und Search Console.
+//
+// **Die sieben Punkte, die nur die kurze Liste hatte, sind mitgewandert** —
+// SSL, Links, Formular, Mobilansicht, Favicon, Maps, Social —, und zwar mit
+// ihren alten Kennungen. Bereits gesetzte Haken werden dadurch uebernommen
+// statt zurueckgesetzt; `gbp_checklist_json` wird weiterhin gelesen, nur
+// nicht mehr geschrieben.
+//
+// Der Endpunkt `PATCH /api/projects/{id}/gbp-checklist` bleibt bestehen: Er
+// haelt die Altdaten, aus denen die Uebernahme liest.
 
 // ── GBP + QR-Code ─────────────────────────────────────────────────────────────
 

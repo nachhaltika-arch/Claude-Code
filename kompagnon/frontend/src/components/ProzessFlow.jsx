@@ -30,7 +30,8 @@ import { aufTaste } from '../utils/tastaturBedienung';
 import { SitemapEditorEmbed, SitemapKiVorschlag } from './schritte/sitemap';
 import { AuditEmbed, BriefingUnternehmenEmbed } from './schritte/briefingAudit';
 import { DNSEmbed, LiveDatenEmbed, NetlifyEmbed, ZugangsdatenEmbed } from './schritte/technik';
-import { AbnahmeEmbed, QAEmbed, QmChecklisteEmbed, WebsiteVergleichEmbed } from './schritte/qualitaet';
+import { AbnahmeEmbed, QAEmbed, WebsiteVergleichEmbed } from './schritte/qualitaet';
+import QAChecklist from './QAChecklist';
 import { DesignStudioEmbed, GbpQrEmbed, TrustpilotEmbed, UpsellEmbed } from './schritte/marketing';
 import Spinner from './schritte/Spinner';
 
@@ -337,7 +338,24 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       );
 
     case 'QmCheckliste':
-      return <QmChecklisteEmbed project={project} headers={headers} />;
+      // **Getauscht am 24.08.2026 (L-95).** Hier stand `QmChecklisteEmbed`
+      // mit 53 Zeilen und zehn Punkten. `QAChecklist` (303) prueft
+      // dieselben Dinge und zusaetzlich Rechtliches, Browser-Tests,
+      // Bildgroessen und Search Console — und die sieben Punkte der kurzen
+      // Liste, die sie nicht hatte, sind mitsamt ihren Kennungen
+      // uebernommen. Bereits gesetzte Haken wandern ueber
+      // `gbpChecklistJson` mit; wer die kurze Liste schon ausgefuellt hatte,
+      // faengt nicht von vorn an.
+      return (
+        <QAChecklist
+          projectId={project.id}
+          token={token}
+          qaChecklistJson={project?.qa_checklist_json}
+          gbpChecklistJson={project?.gbp_checklist_json}
+          pagespeedMobile={project?.pagespeed_after_mobile}
+          pagespeedDesktop={project?.pagespeed_after_desktop}
+        />
+      );
 
     case 'KiQaScan':
       return <QAEmbed project={project} headers={headers} qaResult={qaResult} />;

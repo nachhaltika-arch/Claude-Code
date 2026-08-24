@@ -9,7 +9,14 @@
 // Feld steht in einem Formular; ein halb getippter Eintrag darf die Seite
 // nicht zerlegen. Dieselbe Regel wie in `services/betriebsadresse.py`.
 
-/** `{"Mo-Fr": "08:00-17:00"}` → `Mo-Fr 08:00-17:00` je Zeile. */
+/**
+ * `{"Mo-Fr": "08:00-17:00"}` → `Mo-Fr 08:00-17:00` je Zeile.
+ *
+ * @param {string|Record<string,string>|null|undefined} roh Gespeichertes JSON
+ *   oder bereits ein Verzeichnis. Halb getippter Text kommt unveraendert
+ *   zurueck, damit die Eingabe waehrend des Tippens nicht verschwindet.
+ * @returns {string} Eine Zeile je Eintrag, leer wenn nichts erhoben ist.
+ */
 export function oeffnungszeitenAlsText(roh) {
   if (!roh) return '';
   let gelesen;
@@ -24,7 +31,13 @@ export function oeffnungszeitenAlsText(roh) {
   return Object.entries(gelesen).map(([tage, zeit]) => `${tage} ${zeit}`).join('\n');
 }
 
-/** `Mo-Fr 08:00-17:00` je Zeile → `{"Mo-Fr": "08:00-17:00"}`. */
+/**
+ * `Mo-Fr 08:00-17:00` je Zeile → `{"Mo-Fr": "08:00-17:00"}`.
+ *
+ * @param {string} text Eine Zeile je Eintrag; das erste Leerzeichen trennt
+ *   Tage von Zeit. Fehlt die Zeit, bleibt der Wert leer statt geraten.
+ * @returns {string} JSON-Text, oder leer wenn kein Eintrag uebrig bleibt.
+ */
 export function oeffnungszeitenAlsJson(text) {
   const eintraege = {};
   for (const zeile of (text || '').split('\n')) {

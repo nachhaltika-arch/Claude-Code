@@ -43,6 +43,7 @@ import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
+import KampagneLandingPage from './pages/KampagneLandingPage';
 import PaketSeite from './pages/PaketSeite';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
@@ -209,6 +210,13 @@ function App() {
             * Oeffentlich und ohne Anmeldung: Wer kaufen will, hat noch kein
             * Konto. Das Konto entsteht erst beim Zahlungseingang
             * (`_handle_successful_payment`). */}
+          {/* Kampagnen-Landingpage (L-95). Die Seite lag seit Monaten im
+              Baum, ohne dass eine Route hinfuehrte — waehrend ihr
+              Gegenstueck `POST /api/kampagne/audit-anfrage` produktiv und
+              ohne Anmeldung erreichbar war. Der Slug wird als
+              `utm_source`/`utm_campaign` mitgeschickt, wenn die Adresse
+              keine eigenen UTM-Parameter traegt. */}
+          <Route path="/kampagne/:slug"    element={<KampagneLandingPage />} />
           <Route path="/paket/:slug"       element={<PaketSeite />} />
           <Route path="/checkout"          element={<Checkout />} />
           <Route path="/checkout/success"  element={<CheckoutSuccess />} />

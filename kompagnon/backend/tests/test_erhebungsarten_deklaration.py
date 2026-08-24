@@ -94,3 +94,61 @@ class TestKeinKriteriumWidersprichtSichSelbst:
             f"widersprechen kann — das setzt voraus, dass die Kennzeichnung "
             f"stimmt: {abweichungen}"
         )
+
+
+class TestDieHinweiseVersprechenNichtMehrAlsGeprueftWird:
+    """S3 — der Hinweis erscheint im Kundenbericht.
+
+    Wer dort „Tap-Targets groß genug" liest und dafür einen Punkt verliert,
+    sucht an der falschen Stelle. Diese Tests halten die zwölf Kürzungen vom
+    24.08.2026 fest, damit sie nicht beim nächsten Umbau zurückkehren.
+    """
+
+    @pytest.mark.parametrize("schluessel, verboten", [
+        ("rc_formular_dsgvo", "Datenschutzerklärung"),
+        ("si_ssl", "Domain-Übereinstimmung"),
+        ("si_drittanbieter", "Karten"),
+        ("bf_alt", "sinnvoll"),
+        ("se_lokal", "NAP"),
+        ("dg_mobil", "Tap-Targets"),
+        ("cv_cta", "ergebnisorientiert"),
+    ])
+    def test_der_hinweis_verspricht_die_ungeprueste_sache_nicht_mehr(
+            self, schluessel, verboten):
+        assert verboten not in find_criterion(schluessel).hint
+
+    def test_ih_aktualitaet_ist_als_oder_beschrieben(self):
+        """Gewertet wird `copyright_current OR has_dated_content`."""
+        hinweis = find_criterion("ih_aktualitaet").hint
+        assert " oder " in hinweis
+
+    def test_kein_hinweis_benutzt_ein_wort_das_der_prompt_verbietet(self):
+        """`audit_ai.py` untersagt dem Modell bestimmte Woerter in der Ausgabe.
+
+        Ein Kriterienhinweis, der genau diese Woerter fuehrt, verlangt etwas,
+        das der Prompt an anderer Stelle untersagt — und das Modell kann es
+        nicht liefern, ohne sich selbst zu widersprechen. Gefunden bei
+        `ih_textqualitaet` und „Worthuelsen" (S3.12).
+        """
+        import pathlib
+        import re
+
+        from services.audit_criteria import all_criteria
+
+        prompt = (pathlib.Path(__file__).resolve().parent.parent
+                  / "services" / "audit_ai.py").read_text(encoding="utf-8")
+        # Die Tabu-Zeile fuehrt die Woerter in deutschen Anfuehrungszeichen.
+        anfang = prompt.find("sind tabu")
+        assert anfang != -1, "Die Tabu-Liste im Prompt ist verschwunden"
+        tabu = set(re.findall(r"„([^“\"]+)[“\"]", prompt[anfang:anfang + 400]))
+        assert tabu, "Keine Tabu-Woerter gefunden — hat sich die Schreibweise geaendert?"
+
+        verstoesse = [
+            f"{c.key}: {wort}"
+            for c in all_criteria() for wort in tabu
+            if wort.lower() in c.hint.lower()
+        ]
+        assert not verstoesse, (
+            "Ein Kriterienhinweis fuehrt ein Wort, das der Bewertungsprompt "
+            f"dem Modell untersagt: {verstoesse}"
+        )

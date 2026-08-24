@@ -107,6 +107,31 @@ class Category:
 # ═══════════════════════════════════════════════════════════════════
 # Katalog
 # ═══════════════════════════════════════════════════════════════════
+#
+# **Jeder `hint` sagt, was tatsächlich geprüft wird — nicht mehr (S3).**
+#
+# Am 24.08.2026 versprachen zwölf Hinweise Prüfungen, die die Bewertung nicht
+# durchführt. Der Hinweis erscheint im Kundenbericht; wer dort „Tap-Targets
+# groß genug" liest und dafür einen Punkt verliert, sucht an der falschen
+# Stelle. Gekürzt wurde, was nicht eingelöst wird:
+#
+#   rc_formular_dsgvo  der Link zur Datenschutzerklärung wird nicht geprüft
+#   si_ssl             Domain-Übereinstimmung fließt in `valid` ein
+#   si_drittanbieter   Karten werden nicht geprüft
+#   tp_bilder          Dateigröße und Größenangaben sind **eine** Prüfung
+#   bf_alt             geprüft wird das Vorhandensein, nicht die Güte
+#   se_index           noindex hängt an der robots.txt, keine eigene Prüfung
+#   se_schema          es genügt **ein** passender Zusatztyp
+#   se_lokal           von den NAP-Angaben nur die Telefonnummer
+#   dg_mobil           Tap-Targets werden nicht geprüft
+#   ih_aktualitaet     `und` → `oder`; das Kriterium ist milder als beschrieben
+#   cv_cta             gezählt wird die Anzahl, nicht die Formulierung
+#   ih_textqualitaet   „Worthülsen" gestrichen — `audit_ai.py:72` untersagt dem
+#                      Modell genau dieses Wort in der Ausgabe. Ein Hinweis,
+#                      der es führt, verlangt, was der Prompt verbietet.
+#
+# **Keine Punktänderung.** Gekürzt wurde die Beschreibung, nicht der Maßstab;
+# die Katalogsumme bleibt 103 (Entscheidung aus C4, Szenario B).
 
 CATALOGUE: Tuple[Category, ...] = (
     Category(
@@ -128,7 +153,7 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("rc_bfsg", "Barrierefreiheitserklärung (BFSG)", 2, Source.MEASURED,
                       "Erklärung zur Barrierefreiheit verlinkt"),
             Criterion("rc_formular_dsgvo", "Formular DSGVO-konform", 2, Source.MEASURED,
-                      "Einwilligungs-Checkbox und Link zur Datenschutzerklärung"),
+                      "Einwilligungs-Checkbox am Formular"),
         ),
     ),
     Category(
@@ -136,13 +161,13 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Sicherheit & Datenschutz",
         criteria=(
             Criterion("si_ssl", "TLS-Zertifikat gültig", 3, Source.MEASURED,
-                      "echter Handshake, Gültigkeit und Domain-Übereinstimmung"),
+                      "echter Handshake und gültiges Zertifikat, Abzug bei baldigem Ablauf"),
             Criterion("si_redirect", "HTTP→HTTPS erzwungen", 2, Source.MEASURED,
                       "Redirect-Test auf der http-Variante"),
             Criterion("si_header", "Security-Header", 3, Source.MEASURED,
                       "HSTS, CSP, X-Frame-Options, X-Content-Type-Options"),
             Criterion("si_drittanbieter", "Drittanbieter ohne Einwilligung", 2, Source.MEASURED,
-                      "externe Fonts, Karten und Tracking vor dem Consent"),
+                      "externe Fonts, Tracking vor dem Consent"),
         ),
     ),
     Category(
@@ -158,7 +183,7 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("tp_mobile", "Mobile-Performance", 3, Source.MEASURED,
                       "eigener PageSpeed-Lauf mit Strategie 'mobile'"),
             Criterion("tp_bilder", "Bildoptimierung", 3, Source.MEASURED,
-                      "Format, Dateigröße, lazy loading, feste Dimensionen"),
+                      "modernes Format, lazy loading, Größenangaben ohne überdimensionierte Bilder"),
         ),
     ),
     Category(
@@ -170,7 +195,7 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("bf_kontrast", "Farbkontraste (WCAG AA)", 2, Source.MEASURED,
                       "Lighthouse-Audit 'color-contrast'"),
             Criterion("bf_alt", "Alt-Texte der Inhaltsbilder", 2, Source.MEASURED,
-                      "Anteil der Bilder mit sinnvollem Alt-Text"),
+                      "Anteil der Bilder mit einem Alt-Text"),
             # **Gemessen, nicht abgeleitet (S2.1).** Der Katalog fuehrte
             # `DERIVED`, waehrend die Bewertung `MEASURED` schrieb. Seit dem
             # Anschluss der Lighthouse-Gruppe (S1.1) ist es zweifelsfrei
@@ -190,11 +215,11 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("se_struktur", "Überschriften & Content-Tiefe", 2, Source.MEASURED,
                       "H2-Gliederung und ausreichender Textumfang"),
             Criterion("se_index", "Indexierbarkeit", 3, Source.MEASURED,
-                      "robots.txt, sitemap.xml, Canonical, kein versehentliches noindex"),
+                      "robots.txt ohne Aussperrung, sitemap.xml, Canonical"),
             Criterion("se_schema", "Strukturierte Daten", 3, Source.MEASURED,
-                      "JSON-LD, LocalBusiness, FAQ, Bewertungen"),
+                      "JSON-LD vorhanden, passender Haupttyp, ein passender Zusatztyp"),
             Criterion("se_lokal", "Lokale Signale", 3, Source.MEASURED,
-                      "Ort in Title/H1, NAP-Angaben, Kartenverknüpfung",
+                      "Ort in Title oder H1, Telefonnummer als Link, Karte oder LocalBusiness",
                       assumes_local=True),
             Criterion("se_links", "Keine defekten Links", 1, Source.MEASURED,
                       "Linkprüfung über die Startseite"),
@@ -230,7 +255,7 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("dg_bildqualitaet", "Bildqualität & Authentizität", 2, Source.AI,
                       "echte Betriebsfotos statt generischem Stockmaterial"),
             Criterion("dg_mobil", "Mobile Darstellung", 1, Source.MEASURED,
-                      "Viewport gesetzt, Tap-Targets groß genug"),
+                      "Viewport-Angabe im Kopf der Seite"),
         ),
     ),
     Category(
@@ -241,7 +266,7 @@ CATALOGUE: Tuple[Category, ...] = (
                       "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
                       assumes_business=True),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
-                      "vorhanden, ergebnisorientiert, im Verlauf wiederholt",
+                      "mindestens ein Handlungsaufruf, ab drei die volle Punktzahl",
                       assumes_business=True),
             Criterion("cv_kontakt", "Kontaktwege", 3, Source.MEASURED,
                       "Telefon klickbar, Formular schlank, Reaktionszeit benannt",
@@ -263,9 +288,9 @@ CATALOGUE: Tuple[Category, ...] = (
                       "je Hauptleistung eine Seite statt einer Sammelseite",
                       assumes_business=True),
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
-                      "datierte Inhalte, kein veraltetes Copyright"),
+                      "datierte Inhalte oder aktuelles Copyright"),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
-                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen",
+                      "Kundennutzen statt Selbstbeschreibung",
                       assumes_business=True),
         ),
     ),

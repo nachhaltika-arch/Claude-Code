@@ -46,6 +46,49 @@ def _describe(env_var: str, aliases: tuple = ()) -> dict:
     return {"status": "gesetzt", "configured": True, "length": len(raw.strip())}
 
 
+def _betriebsschalter() -> list:
+    """Der **wirksame** Zustand der Schalter, die das Verhalten bestimmen.
+
+    **Warum das nicht dieselbe Frage ist wie oben (L-104, 24.08.2026).**
+    `_describe` meldet „gesetzt" oder „fehlt". Für einen Schalter ist das die
+    falsche Auskunft: ``USE_MOCK_EMAIL=false`` ist **gesetzt** und bedeutet
+    „versendet echt an Kunden".
+
+    **Und genau darin lag der Fehler:** Die Umgebung sagte ``true``, der
+    Scheduler setzte den Schalter beim Start auf ``False`` zurück. Wer nur die
+    Umgebungsvariable liest, sieht das nie. Gelesen wird deshalb über
+    ``probemodus()`` und ``scheduler_ist_eingeschaltet()`` — die Funktionen,
+    an denen das Verhalten wirklich hängt.
+    """
+    from automations.scheduler import scheduler_ist_eingeschaltet
+    from automations.versandmodus import probemodus
+
+    probe = probemodus()
+    zeit = scheduler_ist_eingeschaltet()
+    return [
+        {
+            "name": "Mailversand",
+            "env_var": "USE_MOCK_EMAIL",
+            "wirksam": "Probemodus" if probe else "versendet echt",
+            "bedeutung": (
+                "Mails werden nur protokolliert, nicht zugestellt."
+                if probe else
+                "Mails gehen tatsaechlich an die hinterlegten Adressen."
+            ),
+        },
+        {
+            "name": "Zeitauftraege",
+            "env_var": "SCHEDULER_ENABLED",
+            "wirksam": "laeuft" if zeit else "abgeschaltet",
+            "bedeutung": (
+                "Der Scheduler fuehrt seine Jobs aus, darunter versendende."
+                if zeit else
+                "Dieser Dienst faehrt keine Hintergrundjobs."
+            ),
+        },
+    ]
+
+
 @router.get("/config")
 def config_status(_: User = Depends(require_admin)):
     """Zeigt je Integration, ob der laufende Prozess sie sieht — ohne Werte."""
@@ -57,6 +100,7 @@ def config_status(_: User = Depends(require_admin)):
     return {
         "settings": settings,
         "missing": [s["env_var"] for s in settings if not s["configured"]],
+        "schalter": _betriebsschalter(),
     }
 
 

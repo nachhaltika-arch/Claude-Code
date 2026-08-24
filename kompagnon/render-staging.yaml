@@ -122,6 +122,27 @@ services:
       - key: BREVO_API_KEY
         sync: false
 
+      # ── Der Scheduler auf Staging (L-104, 24.08.2026) ───────────────────
+      #
+      # **Warum Staging den Scheduler fährt und nicht abschaltet:** Staging
+      # ist die Probe der Produktion. Ein Dienst, der die vierzehn
+      # Zeitaufträge gar nicht startet, probt sie auch nicht — dann fällt ein
+      # kaputter Job erst produktiv auf.
+      #
+      # **Warum er trotzdem nichts versenden darf:** Unter den vierzehn sind
+      # versendende (`email_sequence_runner`, der Monatsbericht). Welche
+      # Adressen in der Staging-Datenbank stehen, weiß niemand sicher — genau
+      # die Frage, die am 17.08. den Mail-Vorfall ausgelöst hat.
+      #
+      # Beide Werte stehen **ausdrücklich** hier, nicht als Vorgabe im Code:
+      # `SCHEDULER_ENABLED` hat den Standard `true` und `USE_MOCK_EMAIL` den
+      # Standard `false` — ein aus dieser Datei neu gebautes Staging hätte
+      # also versendet, ohne dass irgendeine Datei das sagt.
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: USE_MOCK_EMAIL
+        value: "true"
+
       # Stripe — PFLICHT: Test-Keys (sk_test_…) auf Staging
       - key: STRIPE_SECRET_KEY
         sync: false

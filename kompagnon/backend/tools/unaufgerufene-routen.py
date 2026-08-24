@@ -42,6 +42,7 @@ from tools.adressen import (  # noqa: E402
     gerufene_adressen,
     normalisieren,
     routen_mit_methode,
+    weitere_aufrufer,
 )
 
 #: Adressen, die planmäßig nicht aus dem Frontend gerufen werden.
@@ -59,6 +60,16 @@ ERKLAERT = (
 )
 
 
+#: Ein Aufrufer, den kein Suchlauf hier findet: Die WebSprint-Landingpage
+#: liegt auf fremdem Apache und **nicht in diesem Repo** (L-20). Sie holt ihr
+#: Gratis-Audit über `/api/audit/{id}` und `/api/audit/status/{id}` (L-52).
+#: Solange das so ist, sieht jede Messung von hier aus diese Routen als
+#: ungerufen — sie sind es nicht. Das ist kein Fehler des Werkzeugs, sondern
+#: der Preis dafür, dass eine Verkaufsseite außerhalb der Quellversionierung
+#: lebt.
+AUSSERHALB_DES_REPOS = ("/api/audit/status/", "/api/audit/{audit_id}")
+
+
 def _erklaerung(pfad: str):
     for anfang, grund in ERKLAERT:
         if pfad.startswith(anfang):
@@ -70,26 +81,41 @@ def main(argv: list) -> int:
     alle = "--alle" in argv
 
     gerufen = gerufene_adressen()
+    weitere = weitere_aufrufer()
     routen = routen_mit_methode()
 
-    offen, erklaert = [], []
+    offen, nur_rand, erklaert = [], [], []
     for methode, pfad in routen:
-        if normalisieren(pfad) in gerufen:
+        adresse = normalisieren(pfad)
+        if adresse in gerufen:
             continue
         grund = _erklaerung(pfad)
-        (erklaert if grund else offen).append((methode, pfad, grund))
+        if grund:
+            erklaert.append((methode, pfad, grund))
+        elif adresse in weitere:
+            nur_rand.append((methode, pfad, ", ".join(sorted(weitere[adresse]))))
+        else:
+            offen.append((methode, pfad, None))
 
-    offen.sort(key=lambda e: (e[1], e[0]))
-    erklaert.sort(key=lambda e: (e[1], e[0]))
+    for liste in (offen, nur_rand, erklaert):
+        liste.sort(key=lambda e: (e[1], e[0]))
 
     print(f"Backend: {len(routen)} Endpunkte · Frontend ruft "
-          f"{len(gerufen)} verschiedene Adressen")
+          f"{len(gerufen)} verschiedene Adressen, "
+          f"Widget und E2E weitere {len(weitere)}")
 
-    print(f"\nOhne Aufrufer im Frontend und ohne Erklaerung — {len(offen)}:")
+    print(f"\nRuft niemand — {len(offen)}:")
     if not offen:
         print("  keine")
     for methode, pfad, _ in offen:
         print(f"  {methode:<7} {pfad}")
+
+    print(f"\nNur von E2E oder Widget gerufen, nicht aus der "
+          f"Oberflaeche — {len(nur_rand)}:")
+    if not nur_rand:
+        print("  keine")
+    for methode, pfad, woher in nur_rand:
+        print(f"  {methode:<7} {pfad}\n            {woher}")
 
     print(f"\nErklaert — {len(erklaert)} (mit --alle einzeln):")
     if alle:

@@ -84,6 +84,56 @@ def routen_mit_methode() -> list:
     ]
 
 
+#: Weitere Bäume, die das Backend rufen — ohne `${API_BASE_URL}`.
+WEITERE_QUELLEN = (
+    ("Widget", WURZEL.parent / "frontend" / "public", ("*.html",)),
+    ("E2E", WURZEL.parent / "e2e" / "tests", ("*.js", "*.ts")),
+)
+
+#: Ein Pfad in Anführungszeichen, irgendwo eine `/api/`-Stelle enthaltend.
+_PFAD_IM_TEXT = re.compile(r"""['"`]([^'"`\s]*/api/[^'"`\s]*)['"`]""")
+
+
+def weitere_aufrufer() -> dict:
+    """Adressen aus Widget und E2E-Tests — Adresse → Herkunft.
+
+    **Warum getrennt vom Frontend (24.08.2026).** Die Marke `${API_BASE_URL}`
+    findet nur, was die React-Anwendung ruft. Zwei Bäume rufen anders:
+
+    * `public/embed/audit-widget.html` setzt `API_BASE + '/api/widget/config'`
+      zusammen — es lebt eingebettet auf fremden Seiten und kennt die
+      React-Konstante nicht.
+    * die Playwright-Tests schreiben nackte Pfade (`/api/projects/${id}/…`).
+
+    Beide zählen, aber nicht gleich: Was **nur** ein E2E-Test ruft, ist die
+    Entsprechung zu „nur von Tests importiert" im Werkzeug für tote Dateien —
+    grüne Prüfung für einen Weg, den kein Mensch geht.
+
+    Der Ausdruck ist absichtlich weit und findet deshalb auch einen Pfad, der
+    bloß in einer Fehlermeldung steht. Für die Frage „ruft das überhaupt
+    jemand?" ist Übermelden das kleinere Übel: Es macht die Liste kürzer, nie
+    einen Fund unsichtbar.
+    """
+    gefunden = {}
+    for herkunft, wurzel, muster in WEITERE_QUELLEN:
+        if not wurzel.is_dir():
+            continue
+        for endung in muster:
+            for datei in sorted(wurzel.rglob(endung)):
+                if "node_modules" in datei.parts:
+                    continue
+                text = datei.read_text(encoding="utf-8", errors="ignore")
+                for roh in _PFAD_IM_TEXT.findall(text):
+                    ab = roh.index("/api/")
+                    adresse = normalisieren(
+                        re.sub(r"\$\{[^{}]*\}", "{}", roh[ab:]).split("?", 1)[0]
+                    )
+                    adresse = re.sub(r"(\{\})+", "{}", adresse)
+                    gefunden.setdefault(adresse, set()).add(
+                        f"{herkunft}:{datei.name}")
+    return gefunden
+
+
 def gerufene_adressen() -> dict:
     """Was das Frontend aufruft — Datei und Zeile je Adresse.
 
@@ -98,6 +148,35 @@ def gerufene_adressen() -> dict:
         if ".test." in datei.name:
             continue
         text = datei.read_text(encoding="utf-8", errors="ignore")
+
+        # **Nackte Pfade zaehlen mit (24.08.2026).** Die Marke oben findet nur
+        # `fetch(`${API_BASE_URL}/api/…`)`. Vier Helfer nehmen aber den Pfad
+        # **ohne** Basis entgegen — `apiCall` (20 Aufrufe), `loadJson` (71),
+        # `saveJson` (17), `apiRequest` (5) —, und die haengen die Basis
+        # selbst an. Ohne diese Zeilen galten 29 Adressen als nie gerufen,
+        # darunter die ganze Benutzer- und Rollenverwaltung
+        # (`/api/admin/users`, `/api/admin/roles`, `/api/admin/settings`).
+        #
+        # Dieselbe Verwechslung wie beim Werkzeug fuer tote Dateien: dort der
+        # Dateiname statt des Modulpfads, hier eine von vier Schreibweisen
+        # statt aller. Wer nach **einer** Form sucht, misst die Form, nicht
+        # die Sache.
+        # **Nur echter Code, nicht `.json`.** `rglob("*.js*")` trifft auch
+        # Datendateien, und `data/index.json` fuehrt Beispiel-Pfade wie
+        # `/api/leads/booking` als Inhalt. Der bestehende Test der
+        # Gegenrichtung hat das sofort gemeldet — vier Adressen, die niemand
+        # ruft, weil sie gar kein Aufruf sind. Die Marke oben war davon nie
+        # betroffen; sie kommt in JSON nicht vor.
+        if datei.suffix in (".js", ".jsx"):
+            for roh in _PFAD_IM_TEXT.findall(text):
+                ab = roh.index("/api/")
+                adresse = normalisieren(
+                    re.sub(r"\$\{[^{}]*\}", "{}", roh[ab:]).split("?", 1)[0]
+                )
+                adresse = re.sub(r"(\{\})+", "{}", adresse)
+                zeile = text[:text.index(roh)].count("\n") + 1
+                gerufen.setdefault(adresse, set()).add(f"{datei.name}:{zeile}")
+
         start = text.find(MARKE)
         while start != -1:
             ab = start + len(MARKE)

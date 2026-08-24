@@ -451,6 +451,26 @@ async def lifespan(app: FastAPI):
             from services.wiederherstellbarkeit import beim_start_melden
             beim_start_melden()
 
+        def _betriebsschalter_melden():
+            """Was dieser Dienst tut, sobald der Scheduler laeuft (L-104).
+
+            **Nach dem Scheduler, nicht davor** — und das ist der ganze
+            Punkt: `CompagnonScheduler.__init__` legt den Probemodus fest.
+            Wer vorher meldet, meldet den Wert aus der Umgebung und nicht
+            den, der gilt. Genau diese Verwechslung war L-104.
+            """
+            from automations.scheduler import scheduler_ist_eingeschaltet
+            from automations.versandmodus import probemodus
+
+            if probemodus():
+                logger.info("✉ Probemodus: Mails werden protokolliert, "
+                            "nicht zugestellt")
+            else:
+                logger.warning("✉ Echter Mailversand: Mails gehen an die "
+                               "hinterlegten Adressen")
+            if not scheduler_ist_eingeschaltet():
+                logger.info("⏸ Zeitauftraege abgeschaltet (SCHEDULER_ENABLED)")
+
         def _academy_seed():
             from routers.academy_zuweisung import seed_academy_courses
             from database import SessionLocal
@@ -546,6 +566,10 @@ async def lifespan(app: FastAPI):
             # Wiederherstellung unvollstaendig, und das faellt sonst erst
             # auf, wenn man sie braucht.
             Phase("Wiederherstellbarkeit", _wiederherstellbarkeit_melden),
+            # Ebenfalls keine Startphase, sondern die Stelle, an der sichtbar
+            # wird, **was dieser Dienst tut** (L-104). Muss nach "Scheduler"
+            # stehen: Der legt den Probemodus fest.
+            Phase("Betriebsschalter", _betriebsschalter_melden),
         ]
         ergebnis = await fuehre_phasen_aus(phasen)
 

@@ -134,6 +134,80 @@ def weitere_aufrufer() -> dict:
     return gefunden
 
 
+def routen_mit_funktion() -> dict:
+    """(Methode, Pfad) → Name der Handler-Funktion.
+
+    Gebraucht für die dritte Sorte Aufrufer: **Backend-Code, der die Funktion
+    direkt aufruft, statt über HTTP zu gehen.** `projects_anlegen.py` holt
+    sich `screenshot_after` aus `projects_erhebung` und ruft es in der
+    Go-live-Kette auf. Die Route sieht von außen ungerufen aus und ist es
+    nicht — sie hat nur keinen Knopf, sondern einen Aufrufer.
+    """
+    import main
+
+    raus = {}
+
+    def sammeln(routen, praefix=""):
+        for route in routen:
+            eingebunden = getattr(route, "original_router", None)
+            if eingebunden is not None:
+                kontext = getattr(route, "include_context", None)
+                sammeln(eingebunden.routes,
+                        praefix + (getattr(kontext, "prefix", "") or ""))
+                continue
+            pfad = getattr(route, "path", None)
+            methoden = getattr(route, "methods", None)
+            ziel = getattr(route, "endpoint", None)
+            if not (pfad and methoden and ziel is not None):
+                continue
+            for methode in methoden:
+                raus[(methode, praefix + pfad)] = getattr(ziel, "__name__", "")
+
+    sammeln(main.app.routes)
+    return raus
+
+
+#: `from <modul> import <name>` — der einzige Weg, der eindeutig ist.
+_IMPORT_AUS = re.compile(r"^\s*from ([\w.]+) import ([^\n#]+)", re.MULTILINE)
+
+
+def importe_je_modul() -> dict:
+    """(Herkunftsmodul, Name) → Module, die genau das importieren.
+
+    **Warum nur Importe und keine Aufrufe (24.08.2026).** Der erste Anlauf
+    suchte den Funktionsnamen als Aufruf im ganzen Baum. Das ergab dreimal
+    Unsinn, und jedes Mal aus einem anderen Grund:
+
+    * `get_active_jobs()` stand in einem **Kommentar** in `scheduler.py`.
+    * `widget_report.verify_email(...)` ist eine **Namensvetterin** des
+      Handlers `verify_email` aus `auth_router`.
+    * `MarginCalculator.log_time(...)` heisst wie der Handler `log_time`,
+      ist aber eine Methode einer ganz anderen Klasse.
+
+    Namen quer durch einen Baum zu vergleichen ist grundsaetzlich mehrdeutig.
+    Eindeutig ist nur: **Wer einen Handler wirklich benutzt, importiert ihn
+    aus seinem Modul** — so wie `projects_anlegen` es mit `screenshot_after`
+    aus `projects_erhebung` tut. Danach wird gesucht, und nur danach.
+
+    Der Preis: Ein `import routers.x` mit spaeterem `routers.x.handler()`
+    faellt durch. Diese Form kommt hier nicht vor; lieber eine Frage zu viel
+    in der Liste als eine falsche Entwarnung.
+    """
+    raus = {}
+    for pfad in WURZEL.rglob("*.py"):
+        teile = pfad.relative_to(WURZEL).parts
+        if any(t in ("venv", "tests", "__pycache__", "tools") for t in teile):
+            continue
+        modul = ".".join(pfad.relative_to(WURZEL).with_suffix("").parts)
+        text = pfad.read_text(encoding="utf-8", errors="ignore")
+        for herkunft, zeile in _IMPORT_AUS.findall(text):
+            for teil in zeile.replace("(", "").replace(")", "").split(","):
+                name = teil.strip().split(" as ")[0].strip()
+                if name:
+                    raus.setdefault((herkunft, name), set()).add(modul)
+    return raus
+
+
 def gerufene_adressen() -> dict:
     """Was das Frontend aufruft — Datei und Zeile je Adresse.
 

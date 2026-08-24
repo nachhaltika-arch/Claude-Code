@@ -39,8 +39,10 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from tools.adressen import (  # noqa: E402
+    importe_je_modul,
     gerufene_adressen,
     normalisieren,
+    routen_mit_funktion,
     routen_mit_methode,
     weitere_aufrufer,
 )
@@ -70,6 +72,28 @@ ERKLAERT = (
 AUSSERHALB_DES_REPOS = ("/api/audit/status/", "/api/audit/{audit_id}")
 
 
+def _modul_des_handlers(main, methode: str, pfad: str) -> str:
+    """In welchem Modul steht der Handler? — fuer den Selbstaufruf-Ausschluss."""
+    def suchen(routen, praefix=""):
+        for route in routen:
+            eingebunden = getattr(route, "original_router", None)
+            if eingebunden is not None:
+                kontext = getattr(route, "include_context", None)
+                gefunden = suchen(eingebunden.routes,
+                                  praefix + (getattr(kontext, "prefix", "") or ""))
+                if gefunden:
+                    return gefunden
+                continue
+            if praefix + (getattr(route, "path", "") or "") != pfad:
+                continue
+            if methode not in (getattr(route, "methods", None) or ()):
+                continue
+            return getattr(getattr(route, "endpoint", None), "__module__", "")
+        return ""
+
+    return suchen(main.app.routes)
+
+
 def _erklaerung(pfad: str):
     for anfang, grund in ERKLAERT:
         if pfad.startswith(anfang):
@@ -83,8 +107,21 @@ def main(argv: list) -> int:
     gerufen = gerufene_adressen()
     weitere = weitere_aufrufer()
     routen = routen_mit_methode()
+    funktionen = routen_mit_funktion()
+    importe = importe_je_modul()
 
-    offen, nur_rand, erklaert = [], [], []
+    import main  # fuer endpoint.__module__
+
+    def _intern(methode: str, pfad: str):
+        """Ruft Backend-Code diesen Handler direkt auf, statt ueber HTTP?"""
+        name = funktionen.get((methode, pfad))
+        if not name:
+            return None
+        eigene = _modul_des_handlers(main, methode, pfad)
+        fremde = {m for m in importe.get((eigene, name), set()) if m != eigene}
+        return f"{name}() aus {', '.join(sorted(fremde))}" if fremde else None
+
+    offen, intern, nur_rand, erklaert = [], [], [], []
     for methode, pfad in routen:
         adresse = normalisieren(pfad)
         if adresse in gerufen:
@@ -92,6 +129,10 @@ def main(argv: list) -> int:
         grund = _erklaerung(pfad)
         if grund:
             erklaert.append((methode, pfad, grund))
+            continue
+        woher = _intern(methode, pfad)
+        if woher:
+            intern.append((methode, pfad, woher))
         elif adresse in weitere:
             nur_rand.append((methode, pfad, ", ".join(sorted(weitere[adresse]))))
         else:
@@ -109,6 +150,12 @@ def main(argv: list) -> int:
         print("  keine")
     for methode, pfad, _ in offen:
         print(f"  {methode:<7} {pfad}")
+
+    print(f"\nNicht ueber HTTP, aber aus Backend-Code gerufen — {len(intern)}:")
+    if not intern:
+        print("  keine")
+    for methode, pfad, woher in intern:
+        print(f"  {methode:<7} {pfad}\n            {woher}")
 
     print(f"\nNur von E2E oder Widget gerufen, nicht aus der "
           f"Oberflaeche — {len(nur_rand)}:")

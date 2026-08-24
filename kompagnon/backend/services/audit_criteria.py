@@ -65,6 +65,28 @@ class Criterion:
     # Die tatsächliche Erhebungsart je Lauf steht weiterhin im Bericht
     # (`sheet.sources`); dieses Feld sagt nur, was vorkommen **darf**.
     alt_source: Optional["Source"] = None
+    # ── Was das Buch braucht (S5.5, S5.6, 24.08.2026) ───────────────────
+    #
+    # **Die Kennung.** Das Buch führt Kriterien als `L1`, `S3`, `E7` — und
+    # nichts im Repo verband sie bisher mit einem Kriterium. Wer im Buch „E5"
+    # liest und im Katalog nachsehen will, hatte keinen Weg dorthin.
+    #
+    # **Gespeichert und nicht abgeleitet.** Aus der Position ließe sie sich
+    # errechnen (drittes Kriterium der Rechtskategorie = `L3`). Das wäre
+    # bequem und gefährlich: Wer zwei Kriterien vertauscht, verschiebt
+    # stillschweigend jede Buchreferenz. `tests/test_buch_kennungen.py` hält
+    # fest, dass Kennung und Position zusammenpassen — wird umsortiert, wird
+    # der Test rot und jemand entscheidet bewusst.
+    buch_code: str = ""
+    # **Die Bezeichnung fürs Buch**, wo der Katalog Fachjargon führt. „LCP
+    # (Ladezeit Hauptinhalt)" ist ein Feldname, keine Überschrift. Leer heißt:
+    # `label` genügt auch im Buch.
+    buch_label: str = ""
+
+    @property
+    def buch_name(self) -> str:
+        """Was im Buch steht — die eigene Bezeichnung oder ersatzweise `label`."""
+        return self.buch_label or self.label
     # Zwei Voraussetzungen, an denen die Anwendbarkeit je Branchenklasse hängt
     # (Bewertungslogik 2026.2, § 2.4). Sie stehen am Kriterium und nicht in
     # einer Klassentabelle, weil es Eigenschaften des Kriteriums sind: Eine
@@ -139,9 +161,9 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Recht & Compliance",
         criteria=(
             Criterion("rc_impressum", "Impressum (§ 5 DDG)", 6, Source.MEASURED,
-                      "Unterseite erreichbar und Pflichtangaben vollständig"),
+                      "Unterseite erreichbar und Pflichtangaben vollständig", buch_code="L1"),
             Criterion("rc_datenschutz", "Datenschutzerklärung (DSGVO)", 6, Source.MEASURED,
-                      "Unterseite erreichbar und Pflichtinhalte vorhanden"),
+                      "Unterseite erreichbar und Pflichtinhalte vorhanden", buch_code="L2"),
             # **Zwei Erhebungsarten (S2.2).** Gemessen, wenn ein
             # Consent-Werkzeug erkannt wird; abgeleitet, wenn aus „keine
             # einwilligungspflichtigen Dienste" auf „kein Banner noetig"
@@ -149,11 +171,11 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("rc_cookie", "Cookie-Consent (TDDDG)", 4, Source.MEASURED,
                       "Consent-Tool erkannt, nicht bloß das Wort 'Cookie' — "
                       "oder kein einwilligungspflichtiger Dienst vorhanden",
-                      alt_source=Source.DERIVED),
+                      alt_source=Source.DERIVED, buch_code="L3", buch_label="Einwilligung für Cookies"),
             Criterion("rc_bfsg", "Barrierefreiheitserklärung (BFSG)", 2, Source.MEASURED,
-                      "Erklärung zur Barrierefreiheit verlinkt"),
+                      "Erklärung zur Barrierefreiheit verlinkt", buch_code="L4", buch_label="Erklärung zur Barrierefreiheit"),
             Criterion("rc_formular_dsgvo", "Formular DSGVO-konform", 2, Source.MEASURED,
-                      "Einwilligungs-Checkbox am Formular"),
+                      "Einwilligungs-Checkbox am Formular", buch_code="L5"),
         ),
     ),
     Category(
@@ -161,13 +183,13 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Sicherheit & Datenschutz",
         criteria=(
             Criterion("si_ssl", "TLS-Zertifikat gültig", 3, Source.MEASURED,
-                      "echter Handshake und gültiges Zertifikat, Abzug bei baldigem Ablauf"),
+                      "echter Handshake und gültiges Zertifikat, Abzug bei baldigem Ablauf", buch_code="S1"),
             Criterion("si_redirect", "HTTP→HTTPS erzwungen", 2, Source.MEASURED,
-                      "Redirect-Test auf der http-Variante"),
+                      "Redirect-Test auf der http-Variante", buch_code="S2"),
             Criterion("si_header", "Security-Header", 3, Source.MEASURED,
-                      "HSTS, CSP, X-Frame-Options, X-Content-Type-Options"),
+                      "HSTS, CSP, X-Frame-Options, X-Content-Type-Options", buch_code="S3", buch_label="Schutzangaben im Seitenkopf"),
             Criterion("si_drittanbieter", "Drittanbieter ohne Einwilligung", 2, Source.MEASURED,
-                      "externe Fonts, Tracking vor dem Consent"),
+                      "externe Fonts, Tracking vor dem Consent", buch_code="S4"),
         ),
     ),
     Category(
@@ -175,15 +197,15 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Performance & Core Web Vitals",
         criteria=(
             Criterion("tp_lcp", "LCP (Ladezeit Hauptinhalt)", 4, Source.MEASURED,
-                      "PageSpeed Insights"),
+                      "PageSpeed Insights", buch_code="P1", buch_label="Ladezeit des Hauptinhalts"),
             Criterion("tp_cls", "CLS (Layout-Stabilität)", 3, Source.MEASURED,
-                      "PageSpeed Insights"),
+                      "PageSpeed Insights", buch_code="P2", buch_label="Ruhe des Layouts beim Laden"),
             Criterion("tp_inp", "INP (Interaktionszeit)", 2, Source.MEASURED,
-                      "CrUX-Felddaten — im Labor nicht messbar"),
+                      "CrUX-Felddaten — im Labor nicht messbar", buch_code="P3", buch_label="Reaktionszeit auf Eingaben"),
             Criterion("tp_mobile", "Mobile-Performance", 3, Source.MEASURED,
-                      "eigener PageSpeed-Lauf mit Strategie 'mobile'"),
+                      "eigener PageSpeed-Lauf mit Strategie 'mobile'", buch_code="P4"),
             Criterion("tp_bilder", "Bildoptimierung", 3, Source.MEASURED,
-                      "modernes Format, lazy loading, Größenangaben ohne überdimensionierte Bilder"),
+                      "modernes Format, lazy loading, Größenangaben ohne überdimensionierte Bilder", buch_code="P5"),
         ),
     ),
     Category(
@@ -191,19 +213,19 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Barrierefreiheit (WCAG/BFSG)",
         criteria=(
             Criterion("bf_lighthouse", "Lighthouse-Accessibility-Score", 3, Source.MEASURED,
-                      "Gesamtwert der Lighthouse-Barrierefreiheitsprüfung"),
+                      "Gesamtwert der Lighthouse-Barrierefreiheitsprüfung", buch_code="B1", buch_label="Gesamtwert der Barrierefreiheitsprüfung"),
             Criterion("bf_kontrast", "Farbkontraste (WCAG AA)", 2, Source.MEASURED,
-                      "Lighthouse-Audit 'color-contrast'"),
+                      "Lighthouse-Audit 'color-contrast'", buch_code="B2"),
             Criterion("bf_alt", "Alt-Texte der Inhaltsbilder", 2, Source.MEASURED,
-                      "Anteil der Bilder mit einem Alt-Text"),
+                      "Anteil der Bilder mit einem Alt-Text", buch_code="B3"),
             # **Gemessen, nicht abgeleitet (S2.1).** Der Katalog fuehrte
             # `DERIVED`, waehrend die Bewertung `MEASURED` schrieb. Seit dem
             # Anschluss der Lighthouse-Gruppe (S1.1) ist es zweifelsfrei
             # gemessen: DOM-Hierarchie plus `html-has-lang` und `label`.
             Criterion("bf_semantik", "Semantik & Struktur", 2, Source.MEASURED,
-                      "saubere Überschriftenhierarchie, lang-Attribut, Labels"),
+                      "saubere Überschriftenhierarchie, lang-Attribut, Labels", buch_code="B4"),
             Criterion("bf_tastatur", "Tastaturbedienung", 1, Source.DERIVED,
-                      "Skip-Link, Fokus-Reihenfolge, keine Tastaturfallen"),
+                      "Skip-Link, Fokus-Reihenfolge, keine Tastaturfallen", buch_code="B5"),
         ),
     ),
     Category(
@@ -211,18 +233,18 @@ CATALOGUE: Tuple[Category, ...] = (
         label="SEO & Auffindbarkeit",
         criteria=(
             Criterion("se_meta", "Title & Meta-Description", 3, Source.MEASURED,
-                      "vorhanden, sinnvolle Länge, Ort und Leistung enthalten"),
+                      "vorhanden, sinnvolle Länge, Ort und Leistung enthalten", buch_code="E1", buch_label="Seitentitel und Kurzbeschreibung"),
             Criterion("se_struktur", "Überschriften & Content-Tiefe", 2, Source.MEASURED,
-                      "H2-Gliederung und ausreichender Textumfang"),
+                      "H2-Gliederung und ausreichender Textumfang", buch_code="E2"),
             Criterion("se_index", "Indexierbarkeit", 3, Source.MEASURED,
-                      "robots.txt ohne Aussperrung, sitemap.xml, Canonical"),
+                      "robots.txt ohne Aussperrung, sitemap.xml, Canonical", buch_code="E3"),
             Criterion("se_schema", "Strukturierte Daten", 3, Source.MEASURED,
-                      "JSON-LD vorhanden, passender Haupttyp, ein passender Zusatztyp"),
+                      "JSON-LD vorhanden, passender Haupttyp, ein passender Zusatztyp", buch_code="E4", buch_label="Maschinenlesbare Angaben zum Betrieb"),
             Criterion("se_lokal", "Lokale Signale", 3, Source.MEASURED,
                       "Ort in Title oder H1, Telefonnummer als Link, Karte oder LocalBusiness",
-                      assumes_local=True),
+                      assumes_local=True, buch_code="E5"),
             Criterion("se_links", "Keine defekten Links", 1, Source.MEASURED,
-                      "Linkprüfung über die Startseite"),
+                      "Linkprüfung über die Startseite", buch_code="E6"),
             # L-58 (a), 2026-08-21. Der Katalog hatte kein einziges Kriterium
             # für KI — kein Treffer auf ChatGPT, Perplexity oder AEO —,
             # während `audit_runner.audit_facts` die Werte seit dem 16.08.
@@ -233,7 +255,7 @@ CATALOGUE: Tuple[Category, ...] = (
             # Frage hin *nennt*, misst hier nichts — das ist L-58 (b), kostet
             # je Lauf Geld und ist ein eigenes Produkt.
             Criterion("se_ki_lesbar", "Lesbarkeit für KI-Systeme", 3, Source.MEASURED,
-                      "KI-Crawler in robots.txt nicht ausgesperrt, llms.txt vorhanden"),
+                      "KI-Crawler in robots.txt nicht ausgesperrt, llms.txt vorhanden", buch_code="E7", buch_label="Lesbarkeit für KI-Systeme"),
         ),
     ),
     Category(
@@ -241,7 +263,7 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Design & Gestaltung",
         criteria=(
             Criterion("dg_aktualitaet", "Visuelle Aktualität", 3, Source.AI,
-                      "Wirkt das Layout zeitgemäß oder veraltet?"),
+                      "Wirkt das Layout zeitgemäß oder veraltet?", buch_code="D1"),
             # **Gemessen statt geschätzt seit dem 24.08.2026 (S1.2).**
             # Lighthouse liefert `font-size` — die Schriftgröße wurde also
             # gemessen, während dieses Kriterium sie von einem Sprachmodell
@@ -249,13 +271,13 @@ CATALOGUE: Tuple[Category, ...] = (
             # geprüft wird; „Zeilenlänge" und „klare Hierarchie" versprachen
             # mehr, als eingelöst wurde (dieselbe Regel wie in S3).
             Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.MEASURED,
-                      "Lighthouse-Audit 'font-size': lesbare Schriftgröße auf Mobilgeräten"),
+                      "Lighthouse-Audit 'font-size': lesbare Schriftgröße auf Mobilgeräten", buch_code="D2"),
             Criterion("dg_farbsystem", "Farbsystem & Konsistenz", 2, Source.AI,
-                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast"),
+                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast", buch_code="D3"),
             Criterion("dg_bildqualitaet", "Bildqualität & Authentizität", 2, Source.AI,
-                      "echte Betriebsfotos statt generischem Stockmaterial"),
+                      "echte Betriebsfotos statt generischem Stockmaterial", buch_code="D4"),
             Criterion("dg_mobil", "Mobile Darstellung", 1, Source.MEASURED,
-                      "Viewport-Angabe im Kopf der Seite"),
+                      "Viewport-Angabe im Kopf der Seite", buch_code="D5"),
         ),
     ),
     Category(
@@ -264,20 +286,20 @@ CATALOGUE: Tuple[Category, ...] = (
         criteria=(
             Criterion("cv_klarheit", "Klarheit above the fold", 3, Source.AI,
                       "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C1"),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
                       "mindestens ein Handlungsaufruf, ab drei die volle Punktzahl",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C2", buch_label="Aufforderung zum nächsten Schritt"),
             Criterion("cv_kontakt", "Kontaktwege", 3, Source.MEASURED,
                       "Telefon klickbar, Formular schlank, Reaktionszeit benannt",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C3"),
             Criterion("cv_vertrauen", "Vertrauenssignale", 3, Source.DERIVED,
                       "Bewertungen, Referenzen, Qualifikations- und "
                       "Zugehörigkeitsnachweise",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C4"),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
                       "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C5"),
         ),
     ),
     Category(
@@ -286,12 +308,12 @@ CATALOGUE: Tuple[Category, ...] = (
         criteria=(
             Criterion("ih_leistungsseiten", "Eigene Leistungsseiten", 2, Source.MEASURED,
                       "je Hauptleistung eine Seite statt einer Sammelseite",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="I1"),
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
-                      "datierte Inhalte oder aktuelles Copyright"),
+                      "datierte Inhalte oder aktuelles Copyright", buch_code="I2"),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
                       "Kundennutzen statt Selbstbeschreibung",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="I3"),
         ),
     ),
 )

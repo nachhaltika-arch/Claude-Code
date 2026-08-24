@@ -355,3 +355,16 @@ def gesendete_mails(monkeypatch):
     import services.email
     monkeypatch.setattr(services.email, "send_email", _abfangen)
     return briefe
+
+
+def pytest_addoption(parser):
+    """`--grundlage-neu` schreibt abgelegte Vergleichsgrundlagen neu (L-25).
+
+    Bewusst ein ausdruecklicher Schalter und keine Selbstheilung: Eine
+    Grundlage, die sich beim ersten roten Lauf selbst ueberschreibt, haelt
+    gar nichts fest.
+    """
+    parser.addoption(
+        "--grundlage-neu", action="store_true", default=False,
+        help="Abgelegte Vergleichsgrundlagen neu schreiben (siehe L-25).",
+    )

@@ -292,7 +292,11 @@ def main(argv: list) -> int:
                "Kein Import ausserhalb der Datei selbst — auch nicht aus Tests.",
                wurzel)
         _zeige("Nur von Tests importiert", nur_tests,
-               "Gruene Tests fuer Code, den die Anwendung nie ausfuehrt.",
+               "Gruene Tests fuer Code, den die Anwendung nie ausfuehrt — "
+               "ODER ein Pruefhelfer, der genau dorthin gehoert.\n    "
+               "Am 24.08.2026 war beides in dieser Liste: `tokenwerte.js` und "
+               "`kontrast.js` messen\n    die Design-Tokens fuer fuenf "
+               "Testdateien. Sie sind kein toter Code, sondern Werkzeug.",
                wurzel)
         gesamt += sum(z for z, _ in unerreichbar + nur_tests)
 

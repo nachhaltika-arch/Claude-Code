@@ -116,7 +116,13 @@ def _rubric(klasse: str = "") -> str:
     for crit in ai_criteria():
         if klasse and not ist_anwendbar(crit.key, klasse):
             continue
-        lines.append(f"- {crit.key} (0-{crit.max_points}): {crit.label} — {crit.hint}")
+        lines.append(f"\n{crit.key} (0-{crit.max_points}) — {crit.label}")
+        # **Das ausformulierte Rubric statt einer Zeile (A8, S8.2).** Bis zum
+        # 25.08.2026 bekam das Modell „Wirkt das Layout zeitgemaess oder
+        # veraltet?" fuer drei Punkte. Was zwei Punkte von einem unterscheidet,
+        # stand nirgends — und ohne das ist Wiederholbarkeit (A9) nicht
+        # herstellbar, sondern Glueckssache.
+        lines.append(crit.rubric or crit.hint)
     return "\n".join(lines)
 
 

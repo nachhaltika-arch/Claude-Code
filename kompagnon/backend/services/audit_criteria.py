@@ -82,6 +82,26 @@ class Criterion:
     # (Ladezeit Hauptinhalt)" ist ein Feldname, keine Überschrift. Leer heißt:
     # `label` genügt auch im Buch.
     buch_label: str = ""
+    # **Das ausformulierte Punkterubric (A8, S8.2, 25.08.2026).**
+    #
+    # Nur die eingeschaetzten Kriterien haben eines. Bis heute bekam das
+    # Modell je Kriterium **eine Zeile** aus Bezeichnung und Kurzhinweis —
+    # „Wirkt das Layout zeitgemaess oder veraltet?" fuer drei Punkte. Was zwei
+    # Punkte von einem unterscheidet, stand nirgends; das Modell entschied es
+    # jedes Mal neu. Genau daran haengt A9: Ohne Rubric ist Wiederholbarkeit
+    # nicht herstellbar, nur hoffbar.
+    #
+    # **Warum im Katalog und nicht im Prompt.** Kapitel 10 druckt die
+    # Merkmale mit dem ausdruecklichen Vorbehalt, sie seien „meine
+    # Zusammenstellung, nicht aus dem Code extrahiert". Steht das Rubric hier,
+    # faellt der Vorbehalt weg: Das Buch druckt dann, was tatsaechlich
+    # bewertet wird.
+    #
+    # **Die Zeile „Nicht Teil dieses Kriteriums" ist kein Beiwerk.**
+    # BEFUND-C3 fuehrt vier Verdachtsfaelle auf Doppelwertung, die
+    # unpruefbar blieben, weil die eingeschaetzten Kriterien keine Feldliste
+    # hatten. Mit der Abgrenzung sind sie pruefbar.
+    rubric: str = ""
 
     @property
     def buch_name(self) -> str:
@@ -287,7 +307,17 @@ CATALOGUE: Tuple[Category, ...] = (
         buch_kapitel=10,
         criteria=(
             Criterion("dg_aktualitaet", "Visuelle Aktualität", 3, Source.AI,
-                      "Wirkt das Layout zeitgemäß oder veraltet?", buch_code="D1", buch_label="Visuelle Aktualität"),
+                      "Wirkt das Layout zeitgemäß oder veraltet?", buch_code="D1", buch_label="Visuelle Aktualität",
+                      rubric="""3 = kein Alterungsmerkmal erkennbar; die Seite koennte diesen Monat entstanden sein.
+2 = ein oder zwei Merkmale, sonst zeitgemaess.
+1 = drei bis vier Merkmale; der Eindruck kippt.
+0 = fuenf oder mehr, oder ein einzelnes so deutlich, dass es alles ueberlagert.
+Die sechs Merkmale: feste Breite mit breiten leeren Raendern · kleine Schrift im
+Fliesstext · Verlaeufe, Schlagschatten, Spiegelungen · Bildergalerien mit Rahmen
+und Blaetterpfeilen · sichtbar veraltete Jahreszahl · gedraengte Anordnung ohne
+Weissraum.
+Nicht Teil dieses Kriteriums: die Aktualitaet der *Inhalte* (das ist I2) und die
+Schriftgroesse als Messwert (das ist D2, gemessen)."""),
             # **Gemessen statt geschätzt seit dem 24.08.2026 (S1.2).**
             # Lighthouse liefert `font-size` — die Schriftgröße wurde also
             # gemessen, während dieses Kriterium sie von einem Sprachmodell
@@ -297,9 +327,26 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.MEASURED,
                       "Lighthouse-Audit 'font-size': lesbare Schriftgröße auf Mobilgeräten", buch_code="D2", buch_label="Typografie und Lesbarkeit"),
             Criterion("dg_farbsystem", "Farbsystem & Konsistenz", 2, Source.AI,
-                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast", buch_code="D3", buch_label="Farbsystem und Konsistenz"),
+                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast", buch_code="D3", buch_label="Farbsystem und Konsistenz",
+                      rubric="""2 = hoechstens drei tragende Farben, ueber alle Seiten gleich eingesetzt,
+    erkennbare Betriebsfarbe.
+1 = ein System ist erkennbar, wird aber nicht durchgehalten — abweichende
+    Schaltflaechenfarben, wechselnde Flaechen.
+0 = kein erkennbares System; Farben wirken einzeln gewaehlt.
+Nicht Teil dieses Kriteriums: der Kontrastwert. Den misst B2 mit Lighthouse.
+Bewerte hier die Konsistenz, nicht die Lesbarkeit — auch dann nicht, wenn dir
+ein Paar zu blass erscheint."""),
             Criterion("dg_bildqualitaet", "Bildqualität & Authentizität", 2, Source.AI,
-                      "echte Betriebsfotos statt generischem Stockmaterial", buch_code="D4", buch_label="Bildqualität und Echtheit"),
+                      "echte Betriebsfotos statt generischem Stockmaterial", buch_code="D4", buch_label="Bildqualität und Echtheit",
+                      rubric="""2 = erkennbar eigene Aufnahmen: eigene Leute, eigene Fahrzeuge, eigene
+    Baustellen, eigene Raeume.
+1 = gemischt — eigene Bilder neben deutlich gekauften.
+0 = durchgehend generisches Material, oder gar keine Bilder.
+Anzeichen fuer gekauftes Material: freigestellte laechelnde Personen vor
+weissem Grund, Werkzeug ohne Gebrauchsspuren, Innenraeume ohne jeden Bezug zum
+Gewerk, dieselbe Person in mehreren Rollen.
+Nicht Teil dieses Kriteriums: Dateigroesse, Format und Ladeverhalten. Das ist
+P5 und wird gemessen."""),
             Criterion("dg_mobil", "Mobile Darstellung", 1, Source.MEASURED,
                       "Viewport-Angabe im Kopf der Seite", buch_code="D5", buch_label="Mobile Darstellung"),
         ),
@@ -312,7 +359,16 @@ CATALOGUE: Tuple[Category, ...] = (
         criteria=(
             Criterion("cv_klarheit", "Klarheit above the fold", 3, Source.AI,
                       "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
-                      assumes_business=True, buch_code="C1", buch_label="Klarheit im ersten Bildschirmausschnitt"),
+                      assumes_business=True, buch_code="C1", buch_label="Klarheit im ersten Bildschirmausschnitt",
+                      rubric="""3 = Leistung, Zielgruppe und — wo die Klasse es erwartet — das Gebiet stehen
+    im ersten Bildschirmausschnitt und sind in fuenf Sekunden erfasst.
+2 = zwei der drei Angaben stehen da, die dritte muss man suchen.
+1 = nur eine Angabe, oder alle drei erst nach Scrollen.
+0 = der erste Ausschnitt sagt nicht, worum es geht.
+Massstab ist die Klasse: Ein ueberregionaler Anbieter (K4) braucht kein Gebiet,
+ein Publikumsbetrieb (K3) dafuer Oeffnungszeiten oder Standort.
+Nicht Teil dieses Kriteriums: ob ein Handlungsaufruf vorhanden ist (C2) und ob
+das Angebot inhaltlich klar ist (C5)."""),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
                       "mindestens ein Handlungsaufruf, ab drei die volle Punktzahl",
                       assumes_business=True, buch_code="C2", buch_label="Die erwartete Hauptreaktion"),
@@ -325,7 +381,17 @@ CATALOGUE: Tuple[Category, ...] = (
                       assumes_business=True, buch_code="C4", buch_label="Vertrauenssignale"),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
                       "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
-                      assumes_business=True, buch_code="C5", buch_label="Klarheit des Angebots"),
+                      assumes_business=True, buch_code="C5", buch_label="Klarheit des Angebots",
+                      rubric="""3 = die Leistungen sind einzeln benannt, der Ablauf oder ein Preisrahmen steht
+    da, und es gibt eine Zusage, die das Risiko des Kunden senkt
+    (Festpreis, Garantie, kostenlose Erstbewertung).
+2 = zwei der drei Teile.
+1 = nur die Leistungen, ohne Ablauf, Preis oder Zusage.
+0 = die Leistungen bleiben allgemein („alles rund ums Bad").
+Bei Beratungs- und Gesundheitsberufen (K2) ist die fehlende Preisangabe **kein**
+Mangel — dort zaehlen Ablauf und Zusage. Ziehe dafuer keinen Punkt ab.
+Nicht Teil dieses Kriteriums: eigene Leistungsseiten (I1) und die
+Textqualitaet (I3)."""),
         ),
     ),
     Category(
@@ -341,7 +407,16 @@ CATALOGUE: Tuple[Category, ...] = (
                       "datierte Inhalte oder aktuelles Copyright", buch_code="I2", buch_label="Aktualität"),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
                       "Kundennutzen statt Selbstbeschreibung",
-                      assumes_business=True, buch_code="I3", buch_label="Textqualität"),
+                      assumes_business=True, buch_code="I3", buch_label="Textqualität",
+                      rubric="""2 = die Texte gehen vom Anliegen des Kunden aus, nennen Konkretes (Orte,
+    Fristen, Ablaeufe, Zahlen) und sind ohne Fachjargon verstaendlich.
+1 = teils kundenorientiert, teils Selbstbeschreibung; wenig Konkretes.
+0 = durchgehend ueber den Betrieb statt ueber das Anliegen, austauschbar
+    formuliert.
+Nicht Teil dieses Kriteriums: Textlaenge und Ueberschriftenstruktur (E2,
+gemessen) und die Aktualitaet der Inhalte (I2).
+Zum Ton: Beschreibe, was fehlt. Abwertende Urteile ueber Texte sind untersagt —
+siehe den Abschnitt TON DER TEXTE."""),
         ),
     ),
 )

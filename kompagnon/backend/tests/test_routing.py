@@ -11,24 +11,75 @@ Dieser Test findet solche Faelle generisch, nicht nur den einen bekannten.
 import pytest
 
 
+METHODEN = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+
+
 def _routen(app) -> list:
     """
-    (Methode, Pfad) aller Endpunkte in Registrierungsreihenfolge.
+    (Methode, Pfad) aller Endpunkte in **echter** Registrierungsreihenfolge.
 
-    Quelle ist bewusst das OpenAPI-Schema und nicht `app.routes`: Wie Starlette
-    Routen intern ablegt, aendert sich zwischen Versionen. Mit Starlette 1.0
-    lieferte `app.routes` 470 Eintraege, mit 1.4 nur noch 63 — die per
-    include_router eingebundenen Routen fehlten dort komplett, und der Test
-    haette in der CI genau die Faelle uebersehen, die er finden soll.
-    Das Schema liefert in beiden Faellen alle 369 Pfade, in stabiler Reihenfolge.
+    **Warum nicht mehr das OpenAPI-Schema (L-96, 24.08.2026).** Das Schema
+    gruppiert nach *Pfad*: Alle Methoden eines Pfads erben dessen eine
+    Position. Wandert eine einzelne Methode eines Platzhalter-Pfads nach vorn
+    — etwa `DELETE /{project_id}` in ein frueher geladenes Modul —, ruecken
+    **alle** Methoden dieses Pfads mit, auch die, die in Wirklichkeit spaeter
+    registriert sind. Der Test meldete daraufhin `GET /api/projects/debug` als
+    verdeckt, obwohl es erreichbar war. Ein Waechter, der falsch alarmiert,
+    wird abgeschaltet — und faengt dann auch die echten Faelle nicht mehr.
+    Umgekehrt kann dieselbe Blindheit einen echten Fall verbergen.
+
+    **Warum `app.routes` frueher untauglich schien — und es nicht ist.** Der
+    alte Docstring notierte: Starlette 1.0 lieferte 470 Eintraege, 1.4 nur
+    noch 63. Die Beobachtung stimmt, die Schlussfolgerung war falsch. Ab 1.4
+    legt Starlette eingebundene Router **verschachtelt** ab, als
+    `_IncludedRouter` mit `.original_router`; die Routen sind nicht weg,
+    sondern eine Ebene tiefer. Am 24.08.2026 nachgemessen: 82 Eintraege oben,
+    daraus rekursiv **476** Paare — die 472 des Schemas **vollstaendig**, plus
+    FastAPIs eigene vier (`/docs`, `/redoc`, `/openapi.json`,
+    `/docs/oauth2-redirect`), die auch wirklich registriert sind.
+
+    Das Praefix muss dabei mitlaufen: Eine Route (`generate-mockup`) traegt es
+    nicht im eigenen Pfad, sondern nur im Einbindungs-Kontext. Ohne die
+    Sammlung fehlte genau sie in der Deckung.
     """
-    schema = app.openapi()
-    return [
-        (methode.upper(), pfad)
-        for pfad, operationen in schema["paths"].items()
-        for methode in operationen
-        if methode.lower() in {"get", "post", "put", "patch", "delete"}
-    ]
+    return list(_flach(app.routes))
+
+
+def _flach(routen, praefix: str = ""):
+    """Steigt in eingebundene Router ab und sammelt dabei das Präfix ein."""
+    for route in routen:
+        eingebunden = getattr(route, "original_router", None)
+        if eingebunden is not None:
+            kontext = getattr(route, "include_context", None)
+            yield from _flach(
+                eingebunden.routes,
+                praefix + (getattr(kontext, "prefix", "") or ""),
+            )
+            continue
+
+        pfad = getattr(route, "path", None)
+        methoden = getattr(route, "methods", None)
+        if not pfad or not methoden:
+            continue
+        for methode in sorted(methoden & METHODEN):
+            yield (methode, praefix + pfad)
+
+
+def verdeckte_routen(routen: list) -> list:
+    """Welche Route wird von einer frueher registrierten abgefangen?
+
+    Eigene Funktion, damit sie an einer erfundenen Liste prüfbar ist — der
+    alte Wächter war nur gegen die echte Anwendung zu prüfen, und deshalb ist
+    nie aufgefallen, dass er den Methodenfall nicht sieht.
+    """
+    verdeckt = []
+    for index_a, (method_a, path_a) in enumerate(routen):
+        for method_b, path_b in routen[index_a + 1:]:
+            if method_a != method_b:
+                continue
+            if _shadows(path_a, path_b):
+                verdeckt.append(f"{method_a} {path_b} wird von {path_a} verdeckt")
+    return verdeckt
 
 
 def _segments(path: str) -> list:
@@ -57,16 +108,98 @@ def _shadows(earlier: str, later: str) -> bool:
     return has_placeholder_over_literal
 
 
-def test_keine_route_wird_von_einem_platzhalter_verdeckt(app):
-    routen = _routen(app)
+def test_die_reihenfolge_ist_ueberhaupt_vollstaendig(app):
+    """Ein Wächter, der die halbe Anwendung nicht sieht, ist grün und blind.
 
-    verdeckt = []
-    for index_a, (method_a, path_a) in enumerate(routen):
-        for method_b, path_b in routen[index_a + 1:]:
-            if method_a != method_b:
-                continue
-            if _shadows(path_a, path_b):
-                verdeckt.append(f"{method_a} {path_b} wird von {path_a} verdeckt")
+    Genau das war der Zustand bis zum 24.08.2026 — nur andersherum: Die
+    Reihenfolge war vollständig, aber pro *Pfad* statt pro (Methode, Pfad).
+    Diese Prüfung hält fest, dass der neue Weg wirklich alles findet, was das
+    Schema kennt. Bricht Starlette die Struktur erneut, wird das hier rot und
+    nicht stillschweigend übersehen.
+    """
+    # Arrange
+    aus_schema = {
+        (methode.upper(), pfad)
+        for pfad, operationen in app.openapi()["paths"].items()
+        for methode in operationen
+        if methode.upper() in METHODEN
+    }
+
+    # Act
+    gefunden = set(_routen(app))
+
+    # Assert
+    assert aus_schema - gefunden == set(), (
+        "Diese Endpunkte kennt das Schema, die Reihenfolge aber nicht — "
+        f"der Wächter wäre für sie blind: {sorted(aus_schema - gefunden)[:10]}"
+    )
+
+
+def test_der_methodenfall_wird_erkannt():
+    """Der Fall, den die Schema-Reihenfolge nicht sehen konnte (L-96).
+
+    Erfundene Liste statt echter Anwendung: `DELETE /x/{id}` wird **vor**
+    `GET /x/fest` registriert, `GET /x/{id}` **danach**. Nach Pfad gruppiert
+    sähe `/x/{id}` früh aus und `GET /x/fest` fälschlich verdeckt; nach
+    (Methode, Pfad) gemessen ist nichts verdeckt.
+    """
+    # Arrange
+    routen = [
+        ("DELETE", "/x/{id}"),
+        ("GET", "/x/fest"),
+        ("GET", "/x/{id}"),
+    ]
+
+    # Act & Assert — kein Fehlalarm
+    assert verdeckte_routen(routen) == []
+
+    # Und andersherum: steht der Platzhalter derselben Methode davor,
+    # ist es ein echter Fund.
+    assert verdeckte_routen([("GET", "/x/{id}"), ("GET", "/x/fest")]) == [
+        "GET /x/fest wird von /x/{id} verdeckt"
+    ]
+
+
+def test_der_durchlauf_bildet_die_echte_reihenfolge_ab():
+    """An einer gebauten App geprüft, nicht am Schema abgelesen.
+
+    Die Bauart ist die der Anwendung: zwei `APIRouter` mit demselben Präfix,
+    per `include_router` eingebunden — also genau die Verschachtelung, die
+    Starlette 1.4 als `_IncludedRouter` ablegt und die der alte Wächter nicht
+    durchdringen konnte.
+    """
+    from fastapi import APIRouter, FastAPI
+
+    # Arrange
+    mit_platzhalter = APIRouter(prefix="/api/dinge")
+
+    @mit_platzhalter.get("/{ding_id}")
+    def _platzhalter(ding_id: str):
+        return {}
+
+    mit_fester_route = APIRouter(prefix="/api/dinge")
+
+    @mit_fester_route.get("/uebersicht")
+    def _feste_route():
+        return {}
+
+    falsch_herum = FastAPI()
+    falsch_herum.include_router(mit_platzhalter)   # Platzhalter zuerst
+    falsch_herum.include_router(mit_fester_route)
+
+    richtig_herum = FastAPI()
+    richtig_herum.include_router(mit_fester_route)  # feste Route zuerst
+    richtig_herum.include_router(mit_platzhalter)
+
+    # Act & Assert
+    assert verdeckte_routen(_routen(falsch_herum)) == [
+        "GET /api/dinge/uebersicht wird von /api/dinge/{ding_id} verdeckt"
+    ]
+    assert verdeckte_routen(_routen(richtig_herum)) == []
+
+
+def test_keine_route_wird_von_einem_platzhalter_verdeckt(app):
+    verdeckt = verdeckte_routen(_routen(app))
 
     assert not verdeckt, (
         "Diese Routen sind nicht erreichbar — die Platzhalter-Route muss NACH "

@@ -35,6 +35,14 @@ zielumfang: 16 Seiten
 
 Keine Fachkenntnisse. Keine Zugangsdaten. Keine Programme, die Sie installieren müssen. Kein Geld.
 
+### Was dieser Selbsttest ist — und was nicht
+
+**Er ist ein Näherungswert, keine Messung.** Bei den technisch erhobenen Kriterien beschreibt die Prüfliste, was ein Mensch statt der Maschine tun soll. Die Punktschwellen sind dieselben, die Prüfhandlung ist es nicht — wo die Software alle Bilder einer Seite zählt, zählen Sie zehn.
+
+**Das macht das Ergebnis nicht wertlos.** Es macht es zu einer verlässlichen Größenordnung mit einer belastbaren Aufgabenliste. Für alles, was Sie damit vorhaben — eine Reihenfolge festlegen, eine Überarbeitung ausschreiben, in einem Jahr nachprüfen — genügt das.
+
+**Wo Sie im Vorteil sind:** bei Gestaltung, Nutzerführung und Inhalt. Dort wird ohnehin eingeschätzt, und Sie kennen Ihre Kundschaft.
+
 ### Vier Regeln, die das Ergebnis brauchbar machen
 
 **Erstens: Prüfen Sie die veröffentlichte Seite.** Nicht die Vorschau. Nicht den Bearbeitungsmodus. Tippen Sie Ihre Adresse in die Adresszeile, so wie es ein Fremder täte.
@@ -182,9 +190,11 @@ Mehr technische Adressen kommen in diesem Buch nicht vor.
 
 ### Gestaltung — 10 Punkte
 
+> **Vier der fünf Kriterien dieser Kategorie werden eingeschätzt, nicht gemessen** — auch von der Software. **Sie schätzen hier also nicht schlechter, sondern anders.** Gehen Sie die Fragen durch, entscheiden Sie sich bewusst streng, und tragen Sie **U** ein, wenn Sie es an Ihrer eigenen Website nicht beurteilen können. Abschnitt 10.2 erklärt, warum Ihr Urteil hier so viel wert ist wie das der Prüfung.
+
 | Code | Prüfen Sie | Max | Ihr Wert |
 |---|---|---|---|
-| **D1** | Ganz nach unten scrollen: Welches Jahr steht dort? Ist der Fließtext mindestens so groß wie in einer Nachrichten-App? Nutzt die Seite auf einem großen Bildschirm die Breite? — **3** = alles unauffällig · **2** = ein Merkmal · **1** = zwei · **0** = drei oder mehr | 3 | ____ |
+| **D1** | Drei Merkmale ankreuzen, die Ihnen auffallen: ☐ Jahreszahl im Fußbereich veraltet ☐ Fließtext kleiner als in einer Nachrichten-App ☐ Seite nutzt große Bildschirme nicht. **Dann schätzen Sie 0 bis 3** — je weniger Kreuze, desto höher. Abschnitt 10.5 nennt drei weitere Merkmale | 3 | ____ |
 | **D2** | **Telefon auf Armeslänge halten und den ersten Absatz lesen.** Müssen Sie es näher ziehen? — **2** = mühelos lesbar · **1** = grenzwertig · **0** = zu klein | 2 | ____ |
 | **D3** | Alle vorkommenden Farben notieren. Haben Schaltflächen überall dieselbe Farbe? Entspricht die Hauptfarbe Ihrem Fahrzeug und Briefbogen? — **2** = ja · **1** = teilweise · **0** = nein | 2 | ____ |
 | **D4** | Jedes Bild durchgehen: Können Sie sagen, wo und wann es aufgenommen wurde? — **2** = alle Motive eigen · **1** = überwiegend eigen · **0** = überwiegend gekauft | 2 | ____ |
@@ -387,13 +397,13 @@ Bis zu 18 Punkte lassen sich von Hand nicht feststellen: die vier Sicherheitshea
 
 | # | Punkt | Wer | Status |
 |---|---|---|---|
-| 1 | 🔴 **18 von 103 Punkten sind im Selbsttest nicht prüfbar** — S3 (3), E4 (3), P1 (4), P3 (2), P4 (3), B1 (3). Das sind 17,5 % des Katalogs. Der Selbsttest ist damit ehrlich, aber deutlich lückenhafter, als das Buchkonzept angenommen hatte. **Zu prüfen:** ob sich für S3 und E4 ein handhabbarer Weg ohne Werkzeug findet — beide sind im Seitenquelltext sichtbar, aber die Anleitung dazu wäre technischer als alles andere in diesem Buch. **Entscheidung der Geschäftsführung** | GF / Autor | **offen** |
-| 2 | 🔴 **Die Selbsttest-Kriterien sind Übersetzungen, keine Extraktionen.** Für die gemessenen Kriterien beschreibt die Prüfliste, was ein Mensch statt der Maschine tun soll — die Schwellen stimmen überein, die Prüfhandlung nicht. Beispiel B3: Die Software zählt alle Bilder, der Selbsttest zehn. **Das ist unvermeidlich und muss ausgewiesen werden.** Ein Satz in 13.1 fehlt derzeit: dass der Selbsttest ein Näherungswert ist. **Ergänzen** | Autor | **🔴 offen** |
-| 3 | 🔴 **D1 im Selbsttest weicht vom Kapitel ab.** Abschnitt 10.5 nennt sechs Alterungsmerkmale, die Prüfliste fragt drei ab und staffelt danach. Die Staffelung „3 = alles unauffällig, 2 = ein Merkmal…" ist **von mir konstruiert** — es gibt keine entsprechende Regel im Code, weil D1 eingeschätzt wird. Steht unter demselben Vorbehalt wie Punkt 2 der Anmerkungen zu Kapitel 10. **Vor Drucklegung entscheiden, ob eine konstruierte Staffelung im Selbsttest zulässig ist** | Autor / GF | **offen** |
+| 1 | ✅ **ENTSCHIEDEN 24.08.2026 (B1.4)** — bei **U** belassen. S3 und E4 zu erschließen würde eine Anleitung erfordern, die technischer wäre als alles andere im Buch, und den Grundsatz brechen, dass der Selbsttest ohne Fachkenntnisse auskommt. Sechs Punkte gegen die Zugänglichkeit des Kernkapitels. Ursprünglicher Befund: **18 von 103 Punkten sind im Selbsttest nicht prüfbar** — S3 (3), E4 (3), P1 (4), P3 (2), P4 (3), B1 (3). Das sind 17,5 % des Katalogs. Der Selbsttest ist damit ehrlich, aber deutlich lückenhafter, als das Buchkonzept angenommen hatte. **Zu prüfen:** ob sich für S3 und E4 ein handhabbarer Weg ohne Werkzeug findet — beide sind im Seitenquelltext sichtbar, aber die Anleitung dazu wäre technischer als alles andere in diesem Buch. **Entscheidung der Geschäftsführung** | GF / Autor | **offen** |
+| 2 | ✅ **ERLEDIGT 24.08.2026** — Abschnitt „Was dieser Selbsttest ist — und was nicht" in 13.1 ergänzt. Ursprünglich: **die Selbsttest-Kriterien sind Übersetzungen, keine Extraktionen.** Für die gemessenen Kriterien beschreibt die Prüfliste, was ein Mensch statt der Maschine tun soll — die Schwellen stimmen überein, die Prüfhandlung nicht. Beispiel B3: Die Software zählt alle Bilder, der Selbsttest zehn. **Das ist unvermeidlich und muss ausgewiesen werden.** Ein Satz in 13.1 fehlt derzeit: dass der Selbsttest ein Näherungswert ist. **Ergänzen** | Autor | **🔴 offen** |
+| 3 | ✅ **ERLEDIGT 24.08.2026 (B1.5)** — konstruierte Staffelung gestrichen. D1 lässt jetzt drei Merkmale ankreuzen und ausdrücklich schätzen; ein Vorspann rahmt alle vier eingeschätzten Kriterien der Kategorie. Ursprünglich: **D1 im Selbsttest wich vom Kapitel ab.** Abschnitt 10.5 nennt sechs Alterungsmerkmale, die Prüfliste fragt drei ab und staffelt danach. Die Staffelung „3 = alles unauffällig, 2 = ein Merkmal…" ist **von mir konstruiert** — es gibt keine entsprechende Regel im Code, weil D1 eingeschätzt wird. Steht unter demselben Vorbehalt wie Punkt 2 der Anmerkungen zu Kapitel 10. **Vor Drucklegung entscheiden, ob eine konstruierte Staffelung im Selbsttest zulässig ist** | Autor / GF | **offen** |
 | 4 | **Abschnitt 13.7, Beispiel:** 64 ÷ 85 × 100 = 75,29 → 75 → Silber. Nachgerechnet, stimmt. **Bei jeder Änderung an den U-Punkten aus Punkt 1 mitziehen** | Autor | Drift-Kandidat |
 | 5 | **Die Ausfüllfelder** in 13.2, 13.6, 13.7, 13.8, 13.9 und 13.10 sind der Grund, warum das Buch aufgeschlagen liegen bleiben muss. Bei 200 Seiten Klebebindung tut es das nicht. **Die Vorlagen aus Anhang C und die Prüfliste müssen zusätzlich als PDF über den QR-Code verfügbar sein** — siehe Buchkonzept 1.5. Ohne das hat das Buch eine Funktion, die es physisch nicht erfüllt | Produktion | **🔴 verbindlich** |
 | 6 | **Abschnitt 13.11 nennt den Online-Check und rät ausdrücklich, die eigenen Einschätzungen nicht zu ersetzen.** Wie 2.8 — Linie aus dem Buchkonzept. **Gegen Ergänzungen verteidigen** | Lektorat | **Regel** |
-| 7 | **Der Verweis auf die Titelei** für die Adresse des Online-Checks kommt in 13.11 und in 1.8 vor. Beide brauchen dieselbe, druckfeste Adresse — eigene Domain mit serverseitiger Weiterleitung | GF | **🔴 blockiert** |
+| 7 | ✅ **ENTSCHIEDEN 24.08.2026 (B1.3)** — `/check` unter derselben Domain. Domainname noch festzulegen | GF | **erledigt** |
 | 8 | **Keine Abbildung.** Für ein Arbeitskapitel vertretbar, aber ein Kandidat ist stark: die Umrechnung aus 13.7 als ausfüllbares Formularfeld, ganzseitig — es ist die Seite, die am häufigsten aufgeschlagen wird. **Bei PDF-Formularfeldern (Punkt D5 des Restarbeiten-Reports) hier beginnen** | Gestaltung | **empfohlen** |
 | 9 | **Dauerangabe „120 Minuten" ist nicht gemessen.** Sie stammt aus dem Buchkonzept. Vor Drucklegung von zwei Personen tatsächlich durchführen lassen und die Zeit nehmen. Eine zu niedrige Angabe im Titel eines Kapitels ist der erste Vertrauensverlust | Autor | **offen** |
 

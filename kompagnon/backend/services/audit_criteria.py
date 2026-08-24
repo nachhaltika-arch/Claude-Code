@@ -192,8 +192,14 @@ CATALOGUE: Tuple[Category, ...] = (
         criteria=(
             Criterion("dg_aktualitaet", "Visuelle Aktualität", 3, Source.AI,
                       "Wirkt das Layout zeitgemäß oder veraltet?"),
-            Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.AI,
-                      "Schriftgrößen, Zeilenlänge, klare Hierarchie"),
+            # **Gemessen statt geschätzt seit dem 24.08.2026 (S1.2).**
+            # Lighthouse liefert `font-size` — die Schriftgröße wurde also
+            # gemessen, während dieses Kriterium sie von einem Sprachmodell
+            # schätzen ließ. Der Hinweis ist auf das gekürzt, was tatsächlich
+            # geprüft wird; „Zeilenlänge" und „klare Hierarchie" versprachen
+            # mehr, als eingelöst wurde (dieselbe Regel wie in S3).
+            Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.MEASURED,
+                      "Lighthouse-Audit 'font-size': lesbare Schriftgröße auf Mobilgeräten"),
             Criterion("dg_farbsystem", "Farbsystem & Konsistenz", 2, Source.AI,
                       "begrenzte Palette, erkennbare CI, ausreichender Kontrast"),
             Criterion("dg_bildqualitaet", "Bildqualität & Authentizität", 2, Source.AI,

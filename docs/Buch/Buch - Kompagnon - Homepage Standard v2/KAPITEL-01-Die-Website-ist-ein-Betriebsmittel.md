@@ -49,7 +49,7 @@ Ein defektes Fahrzeug steht. Eine defekte Website läuft weiter — sie bringt n
 
 Eine Website fällt nicht aus. Das ist genau das Problem.
 
-Sie ist erreichbar. Sie sieht aus wie immer. Sie lädt, sie zeigt Bilder, das Kontaktformular funktioniert. **Aus Ihrer Sicht ist alles in Ordnung** — und aus Ihrer Sicht bleibt es das, auch wenn drei Viertel der Besucher sie nach zwei Sekunden wieder verlassen.
+Sie ist erreichbar. Sie sieht aus wie immer. Sie lädt, sie zeigt Bilder, das Kontaktformular funktioniert. **Aus Ihrer Sicht ist alles in Ordnung** — und aus Ihrer Sicht bleibt es das, auch wenn ein erheblicher Teil der Besucher sie nach wenigen Sekunden wieder verlässt.
 
 Denn Sie sehen nur Ihre eigene Sicht. Und die ist die günstigste, die es gibt:
 
@@ -249,12 +249,12 @@ Es gibt drei sinnvolle Wege, und keiner davon ist „von vorn bis hinten".
 
 | # | Punkt | Wer | Status |
 |---|---|---|---|
-| 1 | 🔴 **Abschnitt 1.2 behauptet, „drei Viertel der Besucher verlassen die Seite nach zwei Sekunden".** Das ist eine Beispielzahl im Konjunktiv formuliert, wird aber als Größenordnung gelesen. Der Restarbeiten-Report führt den Zusammenhang Ladezeit/Absprung als unbelegt (C5). **Entweder belegen oder die Zahl streichen** — im aktuellen Entwurf steht sie im Nebensatz „auch wenn drei Viertel der Besucher…". Ich empfehle Streichen: Das Argument trägt ohne sie | Autor | **offen** |
+| 1 | ✅ **ERLEDIGT 24.08.2026** — Zahl gestrichen, ersetzt durch „ein erheblicher Teil“. Ursprünglich: **Abschnitt 1.2 behauptete, „drei Viertel der Besucher verlassen die Seite nach zwei Sekunden".** Das ist eine Beispielzahl im Konjunktiv formuliert, wird aber als Größenordnung gelesen. Der Restarbeiten-Report führt den Zusammenhang Ladezeit/Absprung als unbelegt (C5). **Entweder belegen oder die Zahl streichen** — im aktuellen Entwurf steht sie im Nebensatz „auch wenn drei Viertel der Besucher…". Ich empfehle Streichen: Das Argument trägt ohne sie | Autor | **offen** |
 | 2 | **Abschnitt 1.5, Zeile „Abmahnverein"** ist eine Tatsachenbehauptung über die Praxis. Sie ist verbreitet und trotzdem eine Aussage über Dritte. **Auf den Anwaltstermin nehmen** — gemeinsam mit den Garantietexten und den neun Rechtsaussagen | Recht | **offen** |
 | 3 | **Abschnitt 1.7 verweist auf Abschnitt 2.7 wegen des Interessenkonflikts.** Dieser Verweis ist tragend für die Glaubwürdigkeit des ganzen Buchs. **Beim Lektorat sichern, dass beide Stellen erhalten bleiben** — die Offenlegung gehört nach vorn, nicht ins Impressum | Lektorat | **schützen** |
 | 4 | **Der Fachkräfte-Absatz in 1.5** enthält eine Anspielung auf das gekaufte Foto aus Kapitel 10. Bewusst — er greift vor. Prüfen, ob er ohne Kenntnis von Kapitel 10 verständlich ist | Lektorat | offen |
 | 5 | **Abschnitt 1.8 nennt drei Lesewege.** Der zweite verweist auf Kapitel 17, das noch nicht geschrieben ist. **Verweis erst nach Fertigstellung von Kapitel 17 bestätigen** | Autor | **Folgekapitel** |
-| 6 | **Die Bitte am Ende von 1.8** verweist auf einen Korrekturweg in der Titelei. Der braucht eine Adresse, die den Druck überlebt. Dieselbe Entscheidung wie beim QR-Ziel — **eigene Domain, serverseitig weiterleitbar**, nicht eine persönliche Mailadresse | GF | **🔴 blockiert** |
+| 6 | ✅ **ENTSCHIEDEN 24.08.2026 (B1.3)** — eine Domain mit drei Pfaden, `/fehler` für diesen Verweis. Domainname noch festzulegen | GF | **erledigt** |
 | 7 | Eine Abbildung auf 12 Seiten. Zweiter Kandidat: die sieben Fragen aus 1.4 als senkrechter Ablauf mit den Kapitelverweisen — sie ist zugleich eine Landkarte für das ganze Buch und könnte auf der Innenseite des Umschlags stehen | Gestaltung | **empfohlen** |
 | 8 | **Ton geprüft:** Das Kapitel enthält keinen Satz, der eine Leistung von KOMPAGNON bewirbt. Das ist die Grundregel aus dem Buchkonzept (Teil 3.4). **Beim Lektorat gegen jede spätere Ergänzung verteidigen** | Lektorat | **Regel** |
 

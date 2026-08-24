@@ -154,6 +154,8 @@ zielumfang: 8 Seiten
 
 **Zum Ausfüllen und Versenden.**
 
+> **Vorlage 4 und 5 sind Formulierungshilfen, keine geprüften Vertragsklauseln.** Sie helfen, ein Vorhaben so zu beschreiben, dass es abnehmbar wird. Ob und in welcher Form daraus eine vertragliche Bindung entsteht, klären Sie mit Ihrer Rechtsberatung.
+
 ### ① Ist-Zustand
 
 | | |
@@ -268,11 +270,11 @@ zielumfang: 8 Seiten
 |---|---|---|---|
 | 1 | 🔴 **D11 aus dem Restarbeiten-Report ist eingelöst und gesichert.** Vorlage 3 darf keine Passwortfelder und keine Felder für Zugangsdaten bekommen. Die Anweisung steht als Kommentar **in der Datei**, nicht nur im Report — sonst geht sie beim Satz verloren. **Beim Lektorat und beim Satz prüfen** | Lektorat / Satz | **gesichert** |
 | 2 | 🔴 **D10 aus dem Restarbeiten-Report:** Vorlage 1 und 2 müssen **je auf eine Seite** passen, damit sie heraustrennbar sind. Der Entwurf ist darauf ausgelegt; im Satz zu verifizieren. **Vorlage 4 und 5 brauchen je eine Seite, Vorlage 3 ebenfalls** — der Anhang wächst damit auf fünf volle Seiten statt der geplanten sechs inklusive Vorspann | Satz | **prüfen** |
-| 3 | 🔴 **D9 aus dem Restarbeiten-Report:** Anhang B und Vorlage 5 konkurrieren um die Umschlaginnenseite. **Meine Empfehlung: Vorlage 1 (Ergebnisblatt) auf die Innenseite**, nicht Anhang B und nicht Vorlage 5 — es ist die Seite, die am häufigsten aufgeschlagen wird, und sie funktioniert auch ohne den Rest des Buchs | Gestaltung | **Entscheidung offen** |
-| 4 | 🔴 **Klebebindung.** Alle fünf Vorlagen setzen voraus, dass das Buch aufgeschlagen liegen bleibt — bei 250 Seiten Klebebindung tut es das nicht. **Die PDF-Fassung ist damit keine Zugabe, sondern Voraussetzung.** Verweis in der Titelei erforderlich, druckfeste Adresse siehe QR-Entscheidung | Produktion / GF | **🔴 verbindlich** |
+| 3 | ✅ **ENTSCHIEDEN 24.08.2026 (B1.8)** — **Vorlage 1 (Ergebnisblatt) auf die Umschlaginnenseite.** Nicht Anhang B, nicht Vorlage 5 | Gestaltung | **erledigt** |
+| 4 | ✅ **ENTSCHIEDEN 24.08.2026 (B1.11)** — **die PDF-Fassung ist verbindlich, nicht optional.** Bei 284 Seiten Klebebindung bleibt das Buch nicht aufgeschlagen liegen. Verweis in der Titelei auf `/pdf` gesetzt | Produktion | **erledigt** |
 | 5 | **D5 aus dem Restarbeiten-Report — PDF-Formularfelder.** Wenn machbar, beginnt die Umsetzung hier und nicht in Kapitel 13: Diese fünf Vorlagen sind die Seiten, die tatsächlich ausgefüllt werden | Technik | **empfohlen** |
 | 6 | **Vorlage 3 ist eine Musterkorrespondenz an Dritte.** Sie enthält keine rechtlichen Forderungen, sondern Auskunftsbitten. **Beim Anwaltstermin dennoch mitprüfen** — insbesondere Frage 9 und 10, die auf Pflichtverletzungen zielen könnten | Recht | **offen** |
-| 7 | **Vorlage 4 und 5 sind Vertragsbestandteile, wenn sie verwendet werden.** Das Buch darf keine Rechtsberatung leisten. **Ein Satz in der Vorspannzeile von Vorlage 4 fehlt derzeit:** dass es sich um Formulierungshilfen handelt und keine geprüften Vertragsklauseln. **Ergänzen** | Recht / Autor | **🔴 offen** |
+| 7 | ✅ **ERLEDIGT 24.08.2026** — Vorbehalt vor Vorlage 4 gesetzt, er gilt für Vorlage 4 und 5. Ursprünglich: **Vorlage 4 und 5 sind Vertragsbestandteile, wenn sie verwendet werden.** Das Buch darf keine Rechtsberatung leisten. **Ein Satz in der Vorspannzeile von Vorlage 4 fehlt derzeit:** dass es sich um Formulierungshilfen handelt und keine geprüften Vertragsklauseln. **Ergänzen** | Recht / Autor | **🔴 offen** |
 | 8 | **Vorlage 1 ist die dritte Stelle im Buch mit dem Feld „Nächster Prüftermin"** (nach 15.10 und 17.8). Hier ist sie richtig; die beiden anderen sind zu prüfen | Lektorat | offen |
 
 **Geschätzter Satzumfang:** 5 Seiten plus Vorspann

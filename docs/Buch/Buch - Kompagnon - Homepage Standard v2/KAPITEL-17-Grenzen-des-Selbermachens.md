@@ -155,7 +155,7 @@ Dieses Buch hat mehrfach davon abgeraten, mit einem Neuaufbau zu beginnen. Es gi
 
 **① Das System bekommt keine Sicherheitsaktualisierungen mehr.** Dann ist es keine Frage der Gestaltung, sondern des Betriebs. Kapitel 16 nennt es unter A.
 
-**② Die Seite ist nicht für mobile Geräte gebaut, und die Vorlage kann es nicht.** Wenn D5 auf null steht und keine Einstellung das ändert, ist der Unterbau zu alt. Das betrifft praktisch nur Seiten von vor 2015.
+**② Die Seite ist nicht für mobile Geräte gebaut, und die Vorlage kann es nicht.** Wenn D5 auf null steht und keine Einstellung das ändert, ist der Unterbau zu alt. Das betrifft praktisch nur Auftritte, die vor 2015 gebaut und seither nicht überarbeitet wurden.
 
 **③ Ihr Geschäftsmodell hat sich geändert.** Wenn Sie beim Selbsttest in Kapitel 13 zu einer anderen Branchenklasse gekommen sind als beim letzten Mal, misst der Standard Ihre Website gegen einen anderen Maßstab — und wahrscheinlich passt die Struktur nicht mehr.
 
@@ -203,7 +203,7 @@ Das ist weniger, als ein Buch über Websites gewöhnlich verspricht. Es ist aber
 | 2 | 🔴 **Abschnitt 17.6, erste Zeile** („Wir garantieren Platz 1") ist eine Aussage über die Angebotspraxis Dritter. Sie ist zutreffend und trotzdem eine Behauptung über einen Berufsstand. **Auf den Anwaltstermin** — zusammen mit der Abmahnverein-Zeile aus 1.5 und der Barrierefreiheits-Assistenten-Aussage aus 8.10. **Drei Aussagen über Dritte im Buch, alle drei zu prüfen** | Recht | **offen** |
 | 3 | 🔴 **Abschnitt 17.4 und 17.5 sind der praktische Kern des Kapitels** und der natürliche Kandidat für Anhang C — zusammen mit den zwölf Fragen aus 16.4. **Anhang C sollte enthalten:** Ausschreibungsvorlage (17.4), Abnahmeprotokoll (17.5), zwölf Fragen (16.4), Selbsttest-Kurzform (13.3–13.5), Ergebnisblatt (13.7). **Das sind fünf Vorlagen — genau die Zahl, die der Restarbeiten-Report für Anhang C nennt** | Autor / Gestaltung | **erledigt planbar** |
 | 4 | **Zwei Verweise eingelöst:** 1.8 („was in eine Ausschreibung gehört und woran Sie ein Ergebnis abnehmen") und 15.4 („was sonst noch in eine Beauftragung gehört"). Beide abgedeckt in 17.4 und 17.5 | Lektorat | **prüfen** |
-| 5 | **Abschnitt 17.7, Fall ②** nennt „praktisch nur Seiten von vor 2015". Das ist eine Jahreszahl in einem Buch, das gedruckt wird und Jahre gilt. **Entweder relativieren („Seiten, deren Unterbau älter als etwa zehn Jahre ist") oder bewusst stehen lassen** — eine absolute Jahreszahl altert langsamer als eine relative Angabe, weil sie nicht falsch wird, sondern nur historisch | Lektorat | **entscheiden** |
+| 5 | ✅ **ERLEDIGT 24.08.2026** — Jahreszahl behalten, aber an das Baujahr gebunden statt an das Alter der Seite. Eine absolute Jahreszahl wird nicht falsch, sondern historisch. Ursprünglich: „praktisch nur Seiten von vor 2015". Das ist eine Jahreszahl in einem Buch, das gedruckt wird und Jahre gilt. **Entweder relativieren („Seiten, deren Unterbau älter als etwa zehn Jahre ist") oder bewusst stehen lassen** — eine absolute Jahreszahl altert langsamer als eine relative Angabe, weil sie nicht falsch wird, sondern nur historisch | Lektorat | **entscheiden** |
 | 6 | **Der Schluss in 17.8 verzichtet auf jeden Ausblick und jede Aufforderung außer einer:** den nächsten Prüftermin einzutragen. Er schließt den Bogen zu 1.1 und 15.10. **Kein Nachwort, keine Danksagung an dieser Stelle** — beides gehört in die Titelei, sonst verwässert es den letzten Satz | Lektorat | **Regel** |
 | 7 | **Das Ausfüllfeld am Ende von 17.8 ist das zweite im Buch für denselben Zweck** (das erste steht in 15.10). Bewusst — es ist die letzte Seite und wird beim Zuklappen gesehen. **Beim Lektorat prüfen, ob es als Dopplung wirkt** | Lektorat | offen |
 | 8 | **Keine Abbildung.** Ein Kandidat: die drei Zonen aus 17.1 als Zuordnung aller 39 Kriterien — es wäre die einzige Abbildung, die den ganzen Katalog nach Handlungsfähigkeit sortiert, und ein natürliches Gegenstück zur Übersicht am Ende von Teil II | Gestaltung | **empfohlen** |
@@ -228,7 +228,9 @@ Das ist weniger, als ein Buch über Websites gewöhnlich verspricht. Es ist aber
 | IV — Grenzen | 16, 17 | 16 |
 | | **Summe Kapitel** | **228** |
 
-**Zielumfang laut Buchkonzept: 192–208 Seiten. Der Entwurf liegt bei etwa 228 plus Titelei und vier Anhänge — geschätzt 250 bis 260.**
+**Nachgerechnet am 24.08.2026: 284 Seiten** — einschließlich Titelei (6), Anhänge (23), vier Teil-Trennseiten mit Rückseiten (8) und den Rückseiten der siebzehn Kapitelöffner (17). **Zielumfang laut Buchkonzept waren 192–208.**
+
+**Entschieden am 24.08.2026 (B1.1): 284 Seiten werden akzeptiert.** Kürzen löst es nicht — selbst bei voller Straffung aller Kandidaten blieben 255 Seiten. Die Alternative wäre gewesen, Teil II als zweiten Band abzutrennen; das hätte den Selbsttest in Kapitel 13 unbenutzbar gemacht, ohne den zweiten Band zu kaufen.
 
 **Das ist eine Abweichung von rund 25 Prozent und muss vor dem Satz behandelt werden.** Drei Wege:
 

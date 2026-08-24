@@ -335,7 +335,7 @@ Sie haben alle acht Kategorien gelesen. Hier steht der Standard vollständig auf
 | 5 | **Fall Elektro Hansen:** I1 2, I2 1, I3 1 ergibt 4. Der Gesamtabschluss von Teil II summiert alle acht Kategorien auf 76 von 103 → 74 → Silber. **Diese Tabelle ist die Kontrollrechnung des ganzen Buchs.** Bei jeder Änderung an einem Kategoriekapitel muss sie mitgezogen werden — und sie muss mit Abschnitt 3.10 übereinstimmen | Autor | **🔴 zentraler Drift-Kandidat** |
 | 6 | **Der Abschluss von Teil II** ist eine Ergänzung gegenüber der Kapitelanatomie aus dem Buchkonzept. Er kostet zwei Seiten und liefert die einzige Stelle im Buch, an der der Standard vollständig auf einer Doppelseite steht. **Beim Kürzen schützen** | Lektorat | **schützen** |
 | 7 | **Keine Abbildung.** Für acht Seiten vertretbar. Der Abschluss von Teil II wäre allerdings der beste Ort für eine ganzseitige Übersicht — acht Kategorien, ihre Punktanteile und ihre Erhebungsarten in einem Bild. **Das wäre die Abbildung, die am häufigsten aufgeschlagen wird** | Gestaltung | **empfohlen** |
-| 8 | Teil II umfasst damit acht Kapitel und geschätzt 120 Seiten von 192–208. Das Verhältnis stimmt. **Abbildungsstand über Teil II: 4 Abbildungen auf 120 Seiten** — deutlich zu wenig gegenüber den 46 geplanten. Vor dem Satz eine Gesamtdurchsicht der Abbildungsdichte | Gestaltung | **🔴 offen** |
+| 8 | ✅ **Umfang entschieden 24.08.2026 (B1.1):** 284 Seiten insgesamt, Teil II davon 122. Das Verhältnis stimmt. **Abbildungsstand über Teil II: 4 Abbildungen auf 120 Seiten** — deutlich zu wenig gegenüber den 46 geplanten. Vor dem Satz eine Gesamtdurchsicht der Abbildungsdichte | Gestaltung | **🔴 offen** |
 
 **Abbildungen in diesem Kapitel:** 0
 **Marginalien:** 5

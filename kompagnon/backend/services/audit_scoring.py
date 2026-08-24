@@ -231,15 +231,35 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
     else:
         sheet.set("bf_alt", 2 if quote >= 95 else (1 if quote >= 80 else 0), Source.MEASURED)
 
-    # Bewusst rein DOM-basiert: gemischt aus DOM und Lighthouse wäre das
-    # Kriterium bei fehlendem PageSpeed nur halb prüfbar, würde aber voll
-    # gewertet — genau der stille Abzug, den die Überarbeitung beseitigt.
-    if not qa:
+    # ── bf_semantik: zwei Haelften zu je einem Punkt (S1.1, 24.08.2026) ──
+    #
+    # Der Kriterienhinweis verspricht vier Dinge: „genau eine H1, saubere
+    # Hierarchie, lang-Attribut, Labels". Geprueft wurden bis zum 24.08.2026
+    # nur die ersten beiden. `html-has-lang` und `label` lagen die ganze Zeit
+    # in `A11Y_AUDIT_GROUPS` — berechnet und weggeworfen.
+    #
+    # **Warum die DOM-Haelfte jetzt einen Punkt statt zwei traegt.** Die
+    # beiden alten Stufen ueberlappten sich: `heading_struktur_ok` verlangt
+    # selbst schon `len(h1) == 1`. „Hierarchie ohne H1" gibt es nicht; die
+    # zweite Stufe war nie unabhaengig. Ein Punkt fuer die Struktur, einer
+    # fuer die Screenreader-Grundlagen — das ist dieselbe Hoechstpunktzahl bei
+    # zwei tatsaechlich verschiedenen Fragen.
+    #
+    # **Warum ohne PageSpeed nicht gewertet wird.** Hier stand vorher „bewusst
+    # rein DOM-basiert: gemischt waere das Kriterium bei fehlendem PageSpeed
+    # nur halb pruefbar, wuerde aber voll gewertet — genau der stille Abzug,
+    # den die Ueberarbeitung beseitigt." Der Einwand bleibt richtig; die
+    # Antwort darauf ist nicht, die Haelfte wegzulassen, sondern das Kriterium
+    # als **nicht erhoben** zu fuehren. Dann faellt es aus der Normierung,
+    # statt einen Abzug zu erzeugen — so wie `bf_kontrast` und `bf_tastatur`
+    # sich in derselben Lage verhalten.
+    semantik = audits.get("semantik")
+    if not qa or semantik is None:
         sheet.skip("bf_semantik")
     else:
         sheet.set("bf_semantik", sum([
-            1 if qa.get("h1_genau_eins") else 0,
             1 if qa.get("heading_struktur_ok") else 0,
+            1 if semantik >= 1.0 else 0,
         ]), Source.MEASURED)
 
 
@@ -349,11 +369,24 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 
 def _score_design(sheet: _Sheet, facts: dict) -> None:
     qa = facts.get("qa") or {}
+    psi = facts.get("psi_mobile") or {}
+    audits = (psi.get("a11y_audits") or {}) if _ok(psi) else {}
+
     if qa:
         sheet.set("dg_mobil", 1 if qa.get("mobile_viewport") else 0, Source.MEASURED)
     else:
         sheet.skip("dg_mobil")
-    # dg_aktualitaet, dg_typografie, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
+
+    # **dg_typografie: gemessen statt geschaetzt (S1.2, 24.08.2026).**
+    # Lighthouse liefert `font-size`; das Kriterium liess die Schriftgroesse
+    # bis dahin von einem Sprachmodell schaetzen. Ohne PageSpeed gilt es als
+    # nicht erhoben — `scale` macht das selbst, wenn der Wert `None` ist.
+    #
+    # Die Pruefung ist binaer, also sind es 0 oder 2 Punkte. Dieselbe Bauart
+    # wie `bf_kontrast`, das `color-contrast` genauso abbildet.
+    sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED)
+
+    # dg_aktualitaet, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
 
 
 # ═══════════════════════════════════════════════════════════════════

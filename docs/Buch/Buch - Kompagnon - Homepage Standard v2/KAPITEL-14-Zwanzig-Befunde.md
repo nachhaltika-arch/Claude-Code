@@ -20,6 +20,11 @@ zielumfang: 12 Seiten
 
 <!-- SEITENUMBRUCH -->
 
+<!-- ⚠️ TITEL VORLÄUFIG. Entschieden am 24.08.2026: Sobald C7 erhoben ist,
+     heißt dieses Kapitel wieder „Die zwanzig häufigsten Fehler". Dann wird
+     Abschnitt 14.1 umgeschrieben — aus der Auswahl wird eine Erhebung mit
+     Grundgesamtheit und Erhebungszeitraum. -->
+
 ## 14.1 Was diese Liste ist — und was sie nicht ist
 
 **Sie ist keine Statistik.** Sie behauptet nicht, dass Befund Nummer 5 häufiger vorkommt als Nummer 12. Eine solche Rangfolge müsste über eine ausreichende Zahl geprüfter Websites erhoben werden, und wo sie behauptet wird, ist sie meist geschätzt.
@@ -141,7 +146,7 @@ Ein Satz fehlt: „Wir melden uns innerhalb von 24 Stunden."
 
 ::: MRG
 **Zusammen unter einer Stunde**
-Befunde 5 bis 10 kosten zusammen etwa 45 Minuten und bringen bis zu 8 Punkte.
+Befunde 5 bis 10 kosten zusammen etwa eine Stunde und bringen bis zu 8 Punkte.
 :::
 
 ---
@@ -305,10 +310,10 @@ Das ist weniger, als eine Liste dieser Art gern verspricht. Es ist trotzdem viel
 
 | # | Punkt | Wer | Status |
 |---|---|---|---|
-| 1 | 🔴 **Kapiteltitel geändert.** Das Buchkonzept sah „Die zwanzig häufigsten Fehler" vor. **Die Häufigkeit ist nicht erhoben** — der Restarbeiten-Report führt sie als C7 mit dem Vermerk, sie aus den vorliegenden Prüfungen zu gewinnen. Solange das nicht geschehen ist, wäre der ursprüngliche Titel eine Behauptung ohne Grundlage, und zwar auf einer Kapitelüberschrift. Der Entwurf heißt deshalb **„Zwanzig Befunde, die wiederkehren"**, und Abschnitt 14.1 sagt ausdrücklich, dass es keine Statistik ist. **Entscheidung der Geschäftsführung:** Titel so lassen, oder C7 vor Drucklegung erheben und den Originaltitel zurückholen | GF | **🔴 offen** |
+| 1 | ⚠️ **ENTSCHIEDEN 24.08.2026 (B1.2): C7 wird erhoben, danach kehrt der Originaltitel „Die zwanzig häufigsten Fehler" zurück.** Damit wird C7 zum **Publikationsblocker** — solange die Häufigkeit nicht erhoben ist, kann das Kapitel den Titel nicht tragen. Bis dahin gilt der Arbeitstitel. Ursprünglicher Befund: **Kapiteltitel geändert.** Das Buchkonzept sah „Die zwanzig häufigsten Fehler" vor. **Die Häufigkeit ist nicht erhoben** — der Restarbeiten-Report führt sie als C7 mit dem Vermerk, sie aus den vorliegenden Prüfungen zu gewinnen. Solange das nicht geschehen ist, wäre der ursprüngliche Titel eine Behauptung ohne Grundlage, und zwar auf einer Kapitelüberschrift. Der Entwurf heißt deshalb **„Zwanzig Befunde, die wiederkehren"**, und Abschnitt 14.1 sagt ausdrücklich, dass es keine Statistik ist. **Entscheidung der Geschäftsführung:** Titel so lassen, oder C7 vor Drucklegung erheben und den Originaltitel zurückholen | GF | **🔴 offen** |
 | 2 | 🔴 **Folgeänderung in Kapitel 12.** Der Abschluss von Teil II verweist auf „Kapitel 14 fasst zusammen, welche Befunde in der Praxis am häufigsten sind". Dieser Satz muss mitgeändert werden. **Ebenso das Inhaltsverzeichnis und Abschnitt 1.8, falls dort verwiesen wird** | Autor | **einzupflegen** |
-| 3 | 🔴 **C7 wäre der wertvollste Teil des ganzen Buchs.** Sobald eine Auswertung der geprüften Websites vorliegt — mit Grundgesamtheit und Erhebungszeitraum —, wird aus dieser Auswahl eine Erhebung, die außer dem Herausgeber niemand hat. Für die Presse- und Kammerarbeit ist das mehr wert als das übrige Buch. **Nach BUCH-F2 ist die Auswertung eine Abfrage, keine Auswertungsarbeit** | Technik / GF | **empfohlen** |
-| 4 | **Die Aufwandsangaben** („unter einer Minute", „eine Stunde bei fünfzig Bildern", „ein halber Tag") sind Erfahrungswerte, keine Messungen. Sie sind das zweite Ordnungsmerkmal des Kapitels und tragen die ganze Struktur. **Beim Lektorat prüfen, ob sie durchgängig konservativ genug sind** — zu niedrige Angaben erzeugen Frust, zu hohe schrecken ab | Lektorat | **offen** |
+| 3 | 🔴 **C7 ist jetzt Publikationsblocker (B1.2)** und zugleich der wertvollste Teil des ganzen Buchs. Sobald eine Auswertung der geprüften Websites vorliegt — mit Grundgesamtheit und Erhebungszeitraum —, wird aus dieser Auswahl eine Erhebung, die außer dem Herausgeber niemand hat. Für die Presse- und Kammerarbeit ist das mehr wert als das übrige Buch. **Nach BUCH-F2 ist die Auswertung eine Abfrage, keine Auswertungsarbeit** | Technik / GF | **empfohlen** |
+| 4 | ✅ **TEILWEISE ERLEDIGT 24.08.2026** — Konsistenzprüfung gegen Kapitel 15 durchgeführt. **Ein Widerspruch gefunden und behoben:** Kapitel 14 nannte „etwa 45 Minuten" für die Befunde 5 bis 10, die Einzelposten in Abschnitt 15.3 summieren sich auf 60 Minuten. Auf „etwa eine Stunde" vereinheitlicht. **Offen bleibt:** ob die Angaben insgesamt konservativ genug sind — das entscheidet sich erst, wenn jemand sie tatsächlich abarbeitet | Lektorat | **offen** |
 | 5 | **Befund 7 (KI-Sperre)** wiederholt die Zurückhaltung aus Abschnitt 9.10: Es gibt gute Gründe für die Sperre, das Buch empfiehlt nicht, sie aufzuheben. **Diese Zurückhaltung muss an beiden Stellen erhalten bleiben** | Lektorat | **schützen** |
 | 6 | **Abschnitt 14.6 ist ausdrücklich als Beobachtung gekennzeichnet, nicht als gemessener Zusammenhang.** Wie Punkt 1: Sobald C7 vorliegt, können daraus belegte Korrelationen werden. Bis dahin bleibt die Kennzeichnung | Autor / Lektorat | **schützen** |
 | 7 | **Abschnitt 14.7 nimmt dem Kapitel bewusst die Spitze.** Ein Kapitel „zwanzig Fehler" endet normalerweise mit einem Versprechen. Dieses endet mit einer Einschränkung. **Das ist Absicht und beim Lektorat zu verteidigen** — es ist derselbe Grundsatz wie in 2.3 und 2.7 | Lektorat | **schützen** |

@@ -23,9 +23,34 @@ PSI_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 PSI_TIMEOUT = 30.0
 
 # Lighthouse-Audits je Barrierefreiheits-Kriterium.
+#
+# **Geschnitten nach dem, was gelesen wird (S1, 24.08.2026).** Vorher gab es
+# vier Gruppen, von denen zwei niemand las: `screenreader` und `lesbarkeit`
+# wurden berechnet und weggeworfen, waehrend `bf_semantik` das lang-Attribut
+# und die Labels aus dem DOM **nicht** pruefte und `dg_typografie` die
+# Schriftgroesse von einem Sprachmodell **schaetzen** liess, obwohl
+# Lighthouse sie misst.
+#
+# **Warum eigene Gruppen und nicht die vorhandenen.** Eine Gruppe liefert
+# einen **Mittelwert**. Wer `screenreader` als Ganzes an `bf_semantik`
+# haengt, zieht `image-alt` mit — und das zaehlt `bf_alt` bereits. Das waere
+# eine Doppelwertung derselben Sorte, die C4 an anderer Stelle auflistet.
+# Deshalb tragen die gelesenen Pruefungen eigene Gruppen.
+#
+# `screenreader` und `lesbarkeit` bleiben **vollstaendig** bestehen: Sie
+# speisen die Fehlerliste im Bericht (`_a11y_failures`), und dort ist jede
+# durchgefallene Pruefung nuetzlich, auch wenn kein Kriterium daran haengt.
+# Doppelt gemeldet wird nichts — `_a11y_failures` entdoppelt.
 A11Y_AUDIT_GROUPS = {
     "kontrast": ("color-contrast",),
     "tastatur": ("bypass", "tabindex", "accesskeys", "meta-refresh"),
+    # → `bf_semantik`: genau die zwei Pruefungen, die sein Kriterienhinweis
+    #   verspricht („lang-Attribut, Labels").
+    "semantik": ("html-has-lang", "label"),
+    # → `dg_typografie`: die Schriftgroesse, die bisher geschaetzt wurde.
+    #   `meta-viewport` und `heading-order` bleiben bewusst draussen — wohin
+    #   sie gehoeren, ist eine offene Frage (S1.3, S1.4).
+    "typografie": ("font-size",),
     "screenreader": (
         "image-alt", "label", "link-name", "button-name",
         "html-has-lang", "document-title", "aria-required-attr",
@@ -207,11 +232,19 @@ def _a11y_scores(audits: dict) -> Dict[str, Optional[float]]:
 
 def _a11y_failures(audits: dict) -> list:
     """Konkret durchgefallene Barrierefreiheits-Prüfungen für den Report."""
+    # **Entdoppelt.** Seit S1 stehen `html-has-lang`, `label` und `font-size`
+    # in zwei Gruppen — einmal fuer das Kriterium, das sie liest, und einmal
+    # in der urspruenglichen Sammelgruppe fuer den Bericht. Ohne diese Zeile
+    # erschiene jede davon zweimal in der Fehlerliste.
     failures = []
+    gesehen = set()
     for group_audits in A11Y_AUDIT_GROUPS.values():
         for audit_id in group_audits:
+            if audit_id in gesehen:
+                continue
             audit = audits.get(audit_id)
             if audit and audit.get("score") == 0:
+                gesehen.add(audit_id)
                 failures.append({
                     "id": audit_id,
                     "title": audit.get("title", audit_id),

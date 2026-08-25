@@ -206,7 +206,7 @@ export default function GeoAddonCard({ projectId }) {
                   zugesagter Bericht, der nie ankommt, ist schlimmer als
                   keiner. */}
               Ihre Website wird <strong>wöchentlich</strong> danach gefragt, ob KI-Systeme
-              sie nennen. Das Ergebnis steht hier.
+              sie nennen. Das Ergebnis steht hier — und kommt montags per E-Mail.
             </>
           )}
         </div>

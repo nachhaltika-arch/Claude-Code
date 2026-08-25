@@ -19,6 +19,7 @@ import asyncio
 import logging
 from datetime import datetime
 
+from automations.bericht_ki_nennung import sende_bericht
 from database import SessionLocal
 from modelle_audit import GeoAnalysis
 
@@ -34,14 +35,16 @@ FRAGEN_JE_LAUF = 3
 
 
 def _projektdaten(db, projekt_id: int) -> dict:
-    """Gewerk, Ort, Domain und Name — oder leer, wenn etwas fehlt."""
+    """Gewerk, Ort, Domain, Name und Empfängeradresse — oder leer."""
     from routers.geo import _get_project_data
     from database import Project
 
     daten = _get_project_data(projekt_id, db)
     projekt = db.query(Project).filter(Project.id == projekt_id).first()
+    lead = getattr(projekt, "lead", None)
     return {
-        "name": getattr(getattr(projekt, "lead", None), "company_name", "") or "",
+        "name": getattr(lead, "company_name", "") or "",
+        "email": getattr(lead, "email", "") or "",
         "domain": daten.get("website_url") or "",
         "gewerk": daten.get("gewerk") or "",
         "ort": daten.get("city") or "",
@@ -57,7 +60,8 @@ def job_ki_sichtbarkeit_woechentlich() -> dict:
     from services.ki_anbieter import konfigurierte_anbieter
     from services.ki_sichtbarkeit import pruefe_ki_sichtbarkeit, verlauf_fortschreiben
 
-    bilanz = {"abonnenten": 0, "gemessen": 0, "uebersprungen": 0, "fehler": 0}
+    bilanz = {"abonnenten": 0, "gemessen": 0, "uebersprungen": 0, "fehler": 0,
+              "berichtet": 0}
 
     if not konfigurierte_anbieter():
         # **Kein Schlüssel heißt: nicht laufen, nicht messen, nicht schreiben.**
@@ -68,6 +72,7 @@ def job_ki_sichtbarkeit_woechentlich() -> dict:
 
     db = SessionLocal()
     try:
+        berichtet = []
         abos = (db.query(GeoAnalysis)
                 .filter(GeoAnalysis.subscription_status.in_(LAUFENDE_ABOS))
                 .all())
@@ -114,11 +119,27 @@ def job_ki_sichtbarkeit_woechentlich() -> dict:
                 jetzt.isoformat(timespec="seconds"))
             bilanz["gemessen"] += 1
 
+            # **Erst schreiben, dann berichten — und der Bericht darf den Lauf
+            # nicht umwerfen.** Eine Messung, die in der Datenbank steht, ist
+            # das Ergebnis; ein Mailfehler ist ein Zustellproblem und kein
+            # Grund, sie zu verlieren.
+            berichtet.append((analyse.project_id, daten["email"], daten["name"],
+                              befund, list(analyse.ki_sichtbarkeit_verlauf or [])))
+
         db.commit()
     finally:
         db.close()
 
+    for projekt_id, empfaenger, name, befund, verlauf in berichtet:
+        try:
+            if sende_bericht(empfaenger, name, befund, verlauf):
+                bilanz["berichtet"] += 1
+        except Exception as fehler:  # noqa: BLE001
+            logger.warning("Nennungsbericht für Projekt %s nicht versendet: %s",
+                           projekt_id, fehler)
+
     logger.info("KI-Sichtbarkeit Wochenlauf: %s Abonnenten, %s gemessen, "
-                "%s übersprungen, %s Fehler", bilanz["abonnenten"],
-                bilanz["gemessen"], bilanz["uebersprungen"], bilanz["fehler"])
+                "%s übersprungen, %s Fehler, %s berichtet", bilanz["abonnenten"],
+                bilanz["gemessen"], bilanz["uebersprungen"], bilanz["fehler"],
+                bilanz["berichtet"])
     return bilanz

@@ -23,7 +23,10 @@ def test_ohne_angebundenes_system_laeuft_nichts():
         with patch("services.ki_anbieter.konfigurierte_anbieter", return_value=[]):
             bilanz = job.job_ki_sichtbarkeit_woechentlich()
 
-    assert bilanz == {"abonnenten": 0, "gemessen": 0, "uebersprungen": 0, "fehler": 0}
+    # `berichtet` kam am 25.08.2026 dazu: Der Lauf verschickt seither den
+    # Wochenbericht, den die Kundenkarte vorher nur versprochen hatte.
+    assert bilanz == {"abonnenten": 0, "gemessen": 0, "uebersprungen": 0,
+                      "fehler": 0, "berichtet": 0}
 
 
 def test_nur_laufende_abos_werden_gemessen():

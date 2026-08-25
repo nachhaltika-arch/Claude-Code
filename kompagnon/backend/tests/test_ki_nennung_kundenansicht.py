@@ -83,9 +83,15 @@ def test_die_karte_verspricht_keinen_bericht_der_nicht_kommt():
     """
     quelle = KARTE.read_text(encoding="utf-8")
 
-    assert "erhalten Sie automatisch per E-Mail" not in quelle
-    assert "wöchentlich" in quelle, "der Lauf ist wöchentlich, nicht monatlich"
     assert "monatlich auf KI-Sichtbarkeit" not in quelle
+    assert "wöchentlich" in quelle, "der Lauf ist wöchentlich, nicht monatlich"
+    # **Seit dem 25.08.2026 darf die Karte den Bericht wieder zusagen** — es
+    # gibt ihn jetzt (`automations/bericht_ki_nennung.py`), und er haengt am
+    # Wochenlauf. Die Regel bleibt dieselbe, nur andersherum: Was zugesagt
+    # wird, muss gebaut sein.
+    assert "montags per E-Mail" in quelle
+    from automations import bericht_ki_nennung
+    assert hasattr(bericht_ki_nennung, "sende_bericht")
 
 
 def test_die_karte_garantiert_keine_nennung():

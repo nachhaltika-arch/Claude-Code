@@ -331,7 +331,7 @@ PFLICHTSEITEN_IMMER = [
         "page_name": "Impressum",
         "page_type": "rechtlich",
         "position": 90,
-        "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß §5 TMG",
+        "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß § 5 DDG",
         "ziel_keyword": "Impressum",
         "bedingung": None,
         # Substring (lowercase) zur Existenz-Prüfung — fängt 'Impressum',
@@ -617,7 +617,7 @@ _FALLBACK_PAGES = [
 
 
 _PFLICHT_DESC = {
-    "Impressum":                  "Gesetzliche Anbieterkennzeichnung nach § 5 TMG",
+    "Impressum":                  "Gesetzliche Anbieterkennzeichnung nach § 5 DDG",
     "Datenschutzerklärung":       "Informationspflicht gemäß Art. 13/14 DSGVO",
     "Barrierefreiheitserklärung": "Konformitätserklärung gemäß BFSG / BITV 2.0",
     "AGB":                        "Allgemeine Geschäftsbedingungen / Vertragsgrundlage",

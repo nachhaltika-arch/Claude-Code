@@ -93,6 +93,7 @@
 | **B2.18** | Bußgeld- und Abmahnkostenhöhen bleiben draußen — gegen Ergänzung schützen |
 | **B2.19** | Die Liste in 16.3 fachlich gegenlesen lassen — **das einzige größere Buchelement ohne Codegrundlage** |
 | **B2.20** | Bibliografische Information der DNB — Formulierung bei der Titelanmeldung |
+| **B2.22** | **Unser eigenes Impressum zitierte bis zum 25.08.2026 das aufgehobene TMG** (§ 7 Abs. 1, §§ 8 bis 10). Auf DDG umgestellt, weil ein Impressum mit einem Gesetz, das es nicht mehr gibt, genau der Befund ist, den unser Standard bei Kundenseiten benennt (Kapitel 5.4). **Die Umstellung ist eine Rechtsangabe und gehört bestätigt** — die Haftungsregeln der §§ 7–10 TMG stehen seit dem 14.05.2024 in den §§ 7–10 DDG |
 | **B2.21** | **Die fremden Dienste der Prüfung selbst** (C5-6). Abschnitt 16 nennt seit dem 25.08.2026, welche drei Dienste die Prüfung benutzt und was ihnen übermittelt wird: die Adresse der geprüften Seite, der Bildschirmabzug, der Seitentext. Übermittelt wird ausschließlich Öffentliches und nichts von Besuchern — **anwaltlich bestätigen lassen**, dass diese Darstellung genügt, und ob es dafür einer eigenen Angabe in der Datenschutzerklärung von KOMPAGNON bedarf |
 
 ---

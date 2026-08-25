@@ -201,12 +201,12 @@
 
 | ID | Regel |
 |---|---|
-| **B5.2.1** | Englische Fachbegriffe nur im Glossar als Verweis, nie in Kapitelüberschriften |
-| **B5.2.2** | Nur drei Dateinamen im Fließtext ✓ **geprüft** |
+| **B5.2.1** | Englische Fachbegriffe nur im Glossar als Verweis, nie in Kapitelüberschriften. **Geprüft 25.08.2026:** keine Verstöße. Einziger Grenzfall ist „Online-Check" in der Überschrift 2.8 — ein eingedeutschtes Wort und der Name der kostenlosen Prüfung; **Entscheidung des Lektorats**, nicht maschinell zu klären |
+| **B5.2.2** | ✅ **abgesichert 25.08.2026.** Es sind weiterhin genau drei — `llms.txt`, `robots.txt`, `sitemap.xml`. Ein Test schlägt an, sobald ein vierter dazukommt |
 | **B5.2.3** | Kein Satz, der eine Leistung des Herausgebers bewirbt — besonders Kapitel 17 |
-| **B5.2.4** | Keine Prüfwerkzeuge namentlich |
-| **B5.2.5** | Keine erfundenen Prozentzahlen zu Ladezeit und Absprung |
-| **B5.2.6** | Die Interessenkonflikt-Offenlegung steht dreifach — das ist Absicht |
+| **B5.2.4** | ✅ **erledigt 25.08.2026 — und der Verstoß kam nicht aus dem Manuskript.** Anhang B nannte „Lighthouse", eingeschleust über ein **Rubric im Katalog** (`dg_farbsystem`): Der Export druckt die Rubrics, seit BUCH-F1 die Abstufungen erzeugt werden. An der Quelle behoben, Anhang neu erzeugt. **Die Regel gilt jetzt auch dort, wo Text entsteht** — ein Test prüft alle Kapitel und Anhänge, mit einer Ausnahme für das Glossar, das die Begriffe als Verweise führen soll |
+| **B5.2.5** | ✅ **abgesichert 25.08.2026.** Keine gefunden. Ein Test sucht künftig nach dem Muster „NN % … Absprung/Abbruch/verlassen" — die verbreitetste unbelegte Zahl der Branche |
+| **B5.2.6** | Die Offenlegung steht mehrfach — das ist Absicht. **Gezählt am 25.08.2026: vier Stellen** (Kapitel 1, 2, 17 und die Titelei), die Regel nennt drei. **Zu klären, welche gemeint sind**; der Test hält bis dahin die Untergrenze von drei fest, damit beim Kürzen keine verschwindet |
 
 ## B5.3 Zu entscheiden
 

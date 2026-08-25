@@ -535,7 +535,8 @@ Schriftgroesse als Messwert (das ist D2, gemessen).""",
 1 = ein System ist erkennbar, wird aber nicht durchgehalten — abweichende
     Schaltflaechenfarben, wechselnde Flaechen.
 0 = kein erkennbares System; Farben wirken einzeln gewaehlt.
-Nicht Teil dieses Kriteriums: der Kontrastwert. Den misst B2 mit Lighthouse.
+Nicht Teil dieses Kriteriums: der Kontrastwert. Den misst B2 mit dem
+Pruefwerkzeug.
 Bewerte hier die Konsistenz, nicht die Lesbarkeit — auch dann nicht, wenn dir
 ein Paar zu blass erscheint.""",
                       abstufung=Abstufung("KI")),

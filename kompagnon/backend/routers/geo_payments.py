@@ -318,10 +318,73 @@ def _run_geo_automation_after_purchase(project_id: int):
         finally:
             db.close()
 
+        _erste_nennungsmessung(project_id, company_name, website_url, gewerk, city)
+
         logger.info("GEO Auto-Setup nach Kauf abgeschlossen: Projekt %d", project_id)
 
     except Exception as e:
         logger.error("GEO Auto-Setup fehlgeschlagen fuer Projekt %d: %s", project_id, e)
+
+
+def _erste_nennungsmessung(project_id: int, name: str, domain: str,
+                           gewerk: str, ort: str) -> None:
+    """Der erste Nennungslauf direkt nach dem Kauf (L-58 b).
+
+    **Warum sofort und nicht erst am Montag.** Das Abo verkauft eine Kurve, und
+    eine Kurve braucht einen ersten Punkt. Wer heute kauft und bis zum
+    Wochenlauf eine leere Ansicht sieht, hat den Eindruck, nichts bekommen zu
+    haben — sechs Tage lang.
+
+    **Und warum er nichts umwirft, wenn er scheitert.** Ohne Schluessel, ohne
+    Gewerk oder ohne Ort passiert hier nichts ausser einem Protokolleintrag.
+    Der Kauf ist abgeschlossen, die GEO-Analyse steht; eine fehlende Messung
+    ist ein Nachtrag, kein Grund, den Kaufvorgang scheitern zu lassen.
+    """
+    import asyncio
+
+    from database import SessionLocal
+    from services.ki_anbieter import konfigurierte_anbieter
+    from services.ki_sichtbarkeit import (pruefe_ki_sichtbarkeit,
+                                          verlauf_fortschreiben)
+
+    if not konfigurierte_anbieter():
+        logger.info("Erste Nennungsmessung fuer Projekt %d entfaellt — "
+                    "kein KI-System angebunden", project_id)
+        return
+    if not gewerk or not ort:
+        logger.info("Erste Nennungsmessung fuer Projekt %d entfaellt — "
+                    "Gewerk oder Ort fehlt", project_id)
+        return
+
+    try:
+        befund = asyncio.run(pruefe_ki_sichtbarkeit(
+            name=name, domain=domain, gewerk=gewerk, ort=ort, max_fragen=3))
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Erste Nennungsmessung fuer Projekt %d gescheitert: %s",
+                       project_id, fehler)
+        return
+
+    if not befund.get("collected"):
+        return
+
+    db = SessionLocal()
+    try:
+        analyse = db.query(GeoAnalysis).filter(
+            GeoAnalysis.project_id == project_id).first()
+        if not analyse:
+            return
+        jetzt = datetime.utcnow()
+        analyse.ki_sichtbarkeit = befund
+        analyse.ki_sichtbarkeit_am = jetzt
+        analyse.ki_sichtbarkeit_verlauf = verlauf_fortschreiben(
+            analyse.ki_sichtbarkeit_verlauf, befund,
+            jetzt.isoformat(timespec="seconds"))
+        db.commit()
+        logger.info("Erste Nennungsmessung fuer Projekt %d: bei %d von %d "
+                    "Systemen genannt", project_id,
+                    befund.get("genannt_bei", 0), befund.get("erhoben_bei", 0))
+    finally:
+        db.close()
 
 
 def _handle_subscription_change(subscription: dict):

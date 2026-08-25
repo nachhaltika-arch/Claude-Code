@@ -26,10 +26,20 @@ from services.ki_anbieter import (
 
 
 class TestRegister:
-    def test_die_drei_systeme_stehen_drin(self):
+    def test_die_angebundenen_systeme_stehen_drin(self):
+        """Die Menge ist eine Aussage, keine Zahl.
+
+        22.08.2026: drei — Claude, ChatGPT, Perplexity.
+        25.08.2026: vier — Google AI kam dazu. Der Wettbewerb misst vier
+        Systeme; drei zu messen und „KI-Sichtbarkeit" darueber zu schreiben,
+        waere eine Aussage ueber ein System, das wir nie gefragt haben.
+
+        Wer hier etwas hinzufuegt, aendert das Produkt — deshalb steht die
+        Menge ausgeschrieben da und nicht nur ihre Laenge.
+        """
         namen = {a.schluessel for a in ANBIETER}
 
-        assert namen == {"claude", "chatgpt", "perplexity"}
+        assert namen == {"claude", "chatgpt", "perplexity", "gemini"}
 
     def test_jeder_nennt_seine_umgebungsvariable(self):
         for a in ANBIETER:
@@ -164,3 +174,66 @@ class TestAnbieterVertrag:
 
         with pytest.raises(RuntimeError):
             asyncio.run(a.frage_stellen("egal"))
+
+
+# ── Google AI, angebunden am 25.08.2026 ──────────────────────────────
+
+def test_google_ai_steht_im_register():
+    """Vier Systeme, weil der Markt vier nennt.
+
+    Drei zu messen und „KI-Sichtbarkeit" darüber zu schreiben, wäre eine
+    Aussage über ein System, das wir nie gefragt haben — dieselbe Regel wie
+    bei den anderen drei.
+    """
+    from services.ki_anbieter import ANBIETER, finde_anbieter
+
+    assert len(ANBIETER) == 4
+    gemini = finde_anbieter("gemini")
+    assert gemini is not None
+    assert gemini.env_name == "GEMINI_API_KEY"
+    assert gemini.anzeige == "Google AI"
+
+
+def test_gemini_liest_die_neue_form():
+    """`steps` → `model_output` → `content` → `annotations` (25.08.2026)."""
+    from services.ki_anbieter import lies_gemini_antwort
+
+    roh = {"steps": [
+        {"type": "google_search_call", "queries": ["Heizung Kassel"]},
+        {"type": "model_output", "content": [{
+            "text": "Mustermann Heizung GmbH ist ein Betrieb in Kassel.",
+            "annotations": [
+                {"type": "url_citation", "url": "https://mustermann-heizung.de"},
+                {"type": "url_citation", "url": "https://beispiel.de/liste"},
+            ],
+        }]},
+    ]}
+
+    text, belege = lies_gemini_antwort(roh)
+    assert "Mustermann" in text
+    assert belege == ["https://mustermann-heizung.de", "https://beispiel.de/liste"]
+
+
+def test_gemini_liest_auch_die_aeltere_form():
+    """Ein Formwechsel darf nicht als „kennt den Betrieb nicht" durchgehen."""
+    from services.ki_anbieter import lies_gemini_antwort
+
+    roh = {"candidates": [{
+        "content": {"parts": [{"text": "In Kassel gibt es Mustermann Heizung."}]},
+        "groundingMetadata": {"groundingChunks": [
+            {"web": {"uri": "https://mustermann-heizung.de", "title": "Mustermann"}},
+        ]},
+    }]}
+
+    text, belege = lies_gemini_antwort(roh)
+    assert "Mustermann" in text
+    assert belege == ["https://mustermann-heizung.de"]
+
+
+def test_gemini_liefert_lieber_nichts_als_unsinn():
+    """Unbekannte Form → leeres Ergebnis, kein Absturz und keine Erfindung."""
+    from services.ki_anbieter import lies_gemini_antwort
+
+    assert lies_gemini_antwort({}) == ("", [])
+    assert lies_gemini_antwort({"steps": [{"type": "unbekannt"}]}) == ("", [])
+    assert lies_gemini_antwort("keine Antwort") == ("", [])

@@ -56,3 +56,34 @@ def test_ohne_gewerk_oder_ort_wird_uebersprungen_statt_geraten():
     assert baue_fragen("", "Kassel") == []
     assert baue_fragen("Heizung", "") == []
     assert len(baue_fragen("Heizung", "Kassel", max_fragen=3)) == 3
+
+
+# ── Der erste Lauf nach dem Kauf ─────────────────────────────────────
+
+def test_die_erstmessung_haengt_am_kauf():
+    """Das Abo verkauft eine Kurve — die braucht einen ersten Punkt.
+
+    Wer heute kauft und bis zum Montagslauf eine leere Ansicht sieht, hat
+    sechs Tage lang den Eindruck, nichts bekommen zu haben.
+    """
+    import inspect
+
+    from routers import geo_payments
+
+    quelle = inspect.getsource(geo_payments._run_geo_automation_after_purchase)
+    assert "_erste_nennungsmessung" in quelle
+
+
+def test_die_erstmessung_scheitert_leise():
+    """Eine fehlende Messung darf den Kaufvorgang nicht umwerfen."""
+    from unittest.mock import patch
+
+    from routers import geo_payments
+
+    with patch("services.ki_anbieter.konfigurierte_anbieter", return_value=[]):
+        # Kein Schluessel: Der Aufruf kehrt zurueck, ohne zu werfen.
+        geo_payments._erste_nennungsmessung(1, "Muster", "muster.de", "Heizung", "Kassel")
+
+    with patch("services.ki_anbieter.konfigurierte_anbieter", return_value=["x"]):
+        # Ohne Ort wird nicht geraten — auch hier kein Wurf.
+        geo_payments._erste_nennungsmessung(1, "Muster", "muster.de", "Heizung", "")

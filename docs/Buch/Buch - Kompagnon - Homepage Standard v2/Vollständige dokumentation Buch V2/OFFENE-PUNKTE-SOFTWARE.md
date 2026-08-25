@@ -1,10 +1,59 @@
 # OFFENE PUNKTE · SOFTWARE
 
-**Stand:** 24.08.2026, nach Block C
-**Umfang:** 35 Punkte mit technischer Zuständigkeit, davon 23 rot
+**Stand:** 25.08.2026, abends — nach BUCH-F1
+**Umfang:** 35 Punkte mit technischer Zuständigkeit. **31 sind zu**, 4 sind offen.
 **Ort der Umsetzung:** Claude Code im Repo `nachhaltika-arch/Claude-Code`, Branch `staging`
 
 > **Alle Befunde sind gemessen, nicht vermutet.** Die vier Berichte aus Block C liegen vor. Was hier steht, ist die Umsetzung — nicht die Erhebung.
+
+---
+
+## Was am 24. und 25.08. geschlossen wurde
+
+Abgearbeitet in der vorgegebenen Reihenfolge S1 → S2 → S3 → S4 → S5 → S6 →
+S8.5 → S8.4 → S8.1–S8.3 → S7. **Die Katalogsumme ist bei 103 geblieben; kein
+`max_points`-Wert wurde angefasst.**
+
+| Block | Zustand | Was daraus geworden ist |
+|---|---|---|
+| **S1** Anschlüsse | ✅ zu | `screenreader` speist `bf_semantik`, `lesbarkeit` speist `dg_typografie`. Ein eingeschätztes Kriterium ist jetzt gemessen — 17 Einschätzungspunkte wurden 15 |
+| **S2** Deklarationen | ✅ zu | `bf_semantik` steht als gemessen im Katalog, `rc_cookie` führt beide Erhebungsarten (`alt_source`) |
+| **S3** Kriterienhinweise | ✅ zu | zwölf Hinweise auf das gekürzt, was tatsächlich geprüft wird |
+| **S4** Spezifikation | ✅ zu | Weg B aus S4.8: Die Spezifikation wird aus dem Katalog **erzeugt** (`scripts/standard-export.py`), nicht mehr gepflegt |
+| **S5.1/5.2/5.5–5.7** Fundament | ✅ zu | Pflicht-Check in 13 Prompts, Entscheidungsprotokoll 103, `buch_code` und `buch_label` am Kriterium, Drift-Wächter auf sechs Ebenen |
+| **S5.3** Abstufungen als Daten | ✅ zu (25.08. abends) | siehe unten — `Stufe`/`Abstufung` im Katalog, neun Kriterien rechnen daraus, 2.000 Vorher-Nachher-Läufe byteweise identisch |
+| **S5.4** Exportskript | ✅ zu | Anhang B wird erzeugt; seit BUCH-F1 **einschließlich der Punktabstufungen** (Abschnitt B.7) |
+| **S6** Verifikationen | ✅ zu | alle fünf Behauptungen des Buchs geprüft |
+| **S8.1** Prompt gegen Standard | ✅ zu | „nicht beurteilbar" kostet keine Punkte mehr — bis zu neun Punkte, die ein Betrieb für nichts verlor |
+| **S8.2** Rubrics (A8) | ✅ zu | die sechs eingeschätzten Kriterien haben ein ausformuliertes Punkterubric statt einer Zeile |
+| **S8.4** C7 erheben | ✅ zu | Häufigkeit der zwanzig Befunde ist eine Abfrage |
+
+### S5.3 / BUCH-F1 im Einzelnen — 25.08.2026
+
+**Was sich geändert hat:** wo die Zahlen stehen. **Was sich nicht geändert
+hat:** welche.
+
+* `Stufe` und `Abstufung` stehen in `audit_criteria.py`, dort, wo die
+  Punktwerte schon stehen — **keine vierte Datei**.
+* Alle **39** bewerteten Kriterien tragen eine Abstufung:
+  12 `SUMME`, 11 `SCHWELLE`, 6 `JA_NEIN`, 6 `KI`, 4 `ANTEIL`.
+* **Neun** davon sind aus einem Zahlenwert berechenbar; genau sie rechnet die
+  Bewertung jetzt über `_nach_abstufung` aus den Daten. `_tier` und
+  `_set_or_skip` sind entfallen.
+* Zwei Staffeln bleiben absichtlich im Programm: `si_ssl` und
+  `rc_formular_dsgvo` hängen an Bedingungen ohne Zahl. Sie stehen als Daten da,
+  damit das Buch sie drucken kann; `Abstufung.berechenbar` sagt Nein, und
+  `punkte_fuer` verweigert die Rechnung statt eine Zahl zu erfinden.
+* Der Wächter `_pruefe_abstufung` bricht beim Import ab, wenn die beste Stufe
+  nicht die Punktzahl des Kriteriums ist — die Tabelle im Buch kann dem Katalog
+  nicht mehr widersprechen.
+* **Beweis:** `tests/test_abstufungen_identisch.py` (24 Fälle, jede Grenze
+  exakt) plus 2.000 erzeugte Faktenlagen vor und nach dem Umbau — dieselbe
+  Prüfsumme. 2.237 Backend-Tests grün, keiner angepasst.
+* Ein Netzlauf gegen eine fremde Website (Schritt 5c im Wortlaut) ist **nicht**
+  gelaufen: kein `PAGESPEED_API_KEY` lokal, und eine fremde Seite ändert sich
+  zwischen den beiden Läufen. Die erzeugten Faktenlagen sind der strengere
+  Ersatz — sie überstreichen jede Grenze mehrfach, eine echte Seite trifft eine.
 
 ---
 
@@ -100,7 +149,7 @@ Das 2026.2-Dokument setzt die Regel *„Änderungen am Maßstab erfolgen hier zu
 |---|---|---|
 | **S5.1** | `BUCH-F0` | Pflicht-Check in 13 Buch-Prompts auf `staging` |
 | **S5.2** | `BUCH-F0b` | Entscheidungsprotokoll: 103 bleibt, mit Begründung aus C4 |
-| **S5.3** | `BUCH-F1` | Punktabstufungen aus `audit_scoring.py` in Daten überführen |
+| ~~**S5.3**~~ | `BUCH-F1` | ✅ **zu am 25.08.2026** — Punktabstufungen stehen als Daten am Kriterium |
 | **S5.4** | `BUCH-F2` | Exportskript — **Prototyp existiert und läuft** |
 | **S5.5** | 🔴 **Neu:** Feld `buch_label` am Kriterium — der Katalog führt Jargon, das Buch deutsche Bezeichnungen | |
 | **S5.6** | 🔴 **Neu:** Feld `buch_code` am Kriterium — L1, S3, E7. Nichts im Repo verbindet sie heute | |
@@ -157,19 +206,63 @@ Das 2026.2-Dokument setzt die Regel *„Änderungen am Maßstab erfolgen hier zu
 
 ---
 
-# Reihenfolge
+# Was noch offen ist — und woran es hängt
+
+**Keiner dieser vier Punkte ist Arbeit, die liegen geblieben ist.** Jeder
+hängt an etwas, das Claude Code nicht selbst herstellen kann.
+
+| ID | Offen | Hängt an | Aufwand danach |
+|---|---|---|---|
+| **S8.3** | A9 messen: dieselbe Website dreimal bewerten, Streuung je Kriterium | `ANTHROPIC_API_KEY` — lokal leer | eine Stunde |
+| **S8.5** | Zwei Klassenläufe gegen fremde Websites | Schlüssel **und** Davids Zielwahl: ein Lauf macht rund hundert Anfragen an eine fremde Domain | eine Stunde |
+| **S8.6** | PDF-Formularfelder für Anhang C und Kapitel 13 | `BUCH-03` — es gibt noch keine Buch-Baustrecke, also kein PDF | mittel |
+| **S7** | elf Maßstabsfragen (S7.1–S7.11) | Produktentscheidungen, gesammelt in `docs/Audit/fassung-2027-1-offene-massstabsfragen.md` | Entscheidung, dann klein |
+
+**Sinnvoll ist S8.3 zuerst.** Die Rubrics aus S8.2 existieren seit dem 25.08.;
+vorher war Wiederholbarkeit nicht herstellbar, nur hoffbar. Jetzt lässt sie
+sich messen — und Kapitel 3 verspricht sie gedruckt.
+
+---
+
+# Gemeldet, nicht geändert
+
+Fünf Beobachtungen aus der Inventur zu BUCH-F1. Alle fünf sind
+Produktentscheidungen und gehören in die Fassung 2027.1 — **keine** davon wurde
+angefasst.
+
+1. **P5 stimmt nicht wie behauptet.** Der Restarbeiten-Report sagt, vier
+   Teilprüfungen bei drei Punkten, eine könne nicht zählen. Gelesen sind es
+   vier **Bedingungen** bei drei Punkten: `dimension_share >= 80` und
+   `oversized == 0` teilen sich den dritten Punkt. Keine fällt heraus.
+2. **L5 misst strenger als der Standard.** Gewertet wird nur eine
+   Ankreuzbox, deren Umfeld „datenschutz/privacy/einverstanden/akzeptier"
+   enthält. Ein Formular mit bloßem Datenschutzhinweis bekommt 0 — Kapitel 3
+   argumentiert, der Hinweis genüge.
+3. **S3 hat eine tote Stufe** *(neu am 25.08., beim Eintragen aufgefallen)*.
+   Der Anteil wird auf drei Punkte skaliert und kaufmännisch gerundet: **zwei
+   und drei gesetzte Sicherheitsheader ergeben beide 2 Punkte.** Der dritte
+   Header ist wertlos. Dieselbe Klasse wie S7.1 und S7.2.
+4. **P2 überspringt einen Punktwert** *(neu am 25.08.)*. Die Staffel lautet
+   3 / 1 / 0 — den Wert 2 kann kein Betrieb erreichen. Anders als bei S3 ist
+   das kein Rundungsfehler, sondern so hinterlegt.
+5. **C2 bestätigt** *(S7.3)*: Die Staffel lautet 3 / 2 / 0. Der Punktwert 1
+   ist unerreichbar. Beim Eintragen der Daten sichtbar geworden, nicht
+   erschlossen.
+
+---
+
+# Reihenfolge — abgearbeitet
 
 ```
-S1  Anschlüsse            ← halber Tag, größte Wirkung, keine Summenänderung
-S2  Deklarationen         ← eine Stunde
-S3  Hinweise kürzen       ← halber Tag
-S4  Spezifikation         ← halber Tag, plus Entscheidung S4.8
-S5  Fundament F0–F3       ← Prompts liegen vor
-S6  Verifikationen        ← eine Stunde, bevor gedruckt wird
-S8.5 Zwei Klassenläufe    ← eine Stunde, hoher Ertrag
-S8.4 C7 erheben           ← nach F2
-S8.1–S8.3                 ← eigene Vorhaben
-S7  Fassung 2027.1        ← nicht jetzt
+S1  Anschlüsse            ✅ 24.08.
+S2  Deklarationen         ✅ 24.08.
+S3  Hinweise kürzen       ✅ 24.08.
+S4  Spezifikation         ✅ 24.08. — Weg B: erzeugt statt gepflegt
+S5  Fundament F0–F3       ✅ 24./25.08. — F1 als letztes, 25.08. abends
+S6  Verifikationen        ✅ 25.08.
+S8.4 C7 erheben           ✅ 25.08.
+S8.1, S8.2                ✅ 25.08.
+S8.3, S8.5                ⏸ Schlüssel / Zielwahl
+S8.6                      ⏸ hinter BUCH-03
+S7  Fassung 2027.1        ⏸ Entscheidung David
 ```
-
-**S1 zuerst.** Es behebt drei als „fehlt" geführte Befunde, kostet keine Katalogänderung — und macht ein eingeschätztes Kriterium zu einem gemessenen.

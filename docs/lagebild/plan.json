@@ -197,6 +197,15 @@
    "aufwand": "M",
    "titel": "In-App-Benachrichtigungen fehlen (nur E-Mail-Schalter vorhanden)",
    "warum": "In-App-Benachrichtigungen — es gibt kein Notification-Modell, nur E-Mail-Schalter. Nachgesehen am 24.08."
+  },
+  {
+   "id": "L-115",
+   "basis": "L-115",
+   "phase": "C",
+   "prio": "P2",
+   "aufwand": "L",
+   "titel": "Fuer das Buch gibt es keine Baustrecke.",
+   "warum": "BUCH-03 bis BUCH-11 beschreiben PDF-Erzeugung, Bestelldatenmodell, Kasse, Auslieferung und Landingpage — im Repo existiert davon nichts. Das Manuskript ist weiter als der Weg, auf dem es zum Kunden kommt. Solange kein PDF entsteht, sind auch die Formularfelder fuer Anhang C nicht baubar (S8.6)."
   }
  ],
  "blockiert": [
@@ -224,6 +233,16 @@
    "id": "L-16",
    "grund": "Wartet auf Pattern-Notes",
    "titel": "Envato-Wireframe-Pipeline steckt in Phase 1 (2 von 8–15), wartet auf Pattern-Notes"
+  },
+  {
+   "id": "L-112",
+   "grund": "ANTHROPIC_API_KEY fehlt lokal — ohne Schluessel kein Lauf",
+   "titel": "Wiederholbarkeit ist versprochen, aber nie gemessen — drei Laeufe gegen dieselbe Seite (S8.3)"
+  },
+  {
+   "id": "L-113",
+   "grund": "Schluessel und Davids Zielwahl — ein Lauf macht rund hundert Anfragen an eine fremde Domain",
+   "titel": "Der Massstab ist erst gegen eine einzige fremde Website gelaufen (S8.5)"
   }
  ],
  "spaeter": [
@@ -244,6 +263,12 @@
    "aufwand": "M",
    "warum": "Component-Manager Phase 2 (React-Eingabe), bewusst zurueckgestellt.",
    "titel": "Component-Manager Phase 2 (React-Eingabe) zurückgestellt"
+  },
+  {
+   "id": "L-114",
+   "aufwand": "M",
+   "warum": "Elf Befunde am Massstab, alle gemessen. Sie verschieben die Katalogsumme und gehoeren deshalb in die Fassung 2027.1 — eine Produktentscheidung, kein Aufraeumen.",
+   "titel": "Elf Befunde am Massstab warten auf eine Produktentscheidung (S7)"
   }
  ],
  "meilensteine": [

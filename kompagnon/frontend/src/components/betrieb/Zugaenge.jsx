@@ -26,6 +26,13 @@ export default function Zugaenge({ leadId, token }) {
   const [hinweis, setHinweis] = useState('');
   const [formular, setFormular] = useState(LEER);
   const [laeuft, setLaeuft] = useState(false);
+  /**
+   * Der Ausweg aus dem 409. Gibt es die Adresse schon, ist das keine
+   * Sackgasse, sondern eine Frage: verbinden statt einladen. `frage` traegt
+   * den Klartext des Servers — er nennt den alten Betrieb beim Namen —,
+   * `bestaetigen` sagt, ob der zweite Klick noetig ist.
+   */
+  const [verbinden, setVerbinden] = useState(null);
 
   const kopf = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -52,6 +59,14 @@ export default function Zugaenge({ leadId, token }) {
         method: 'POST', headers: kopf, body: JSON.stringify(formular),
       });
       const daten = await antwort.json().catch(() => ({}));
+      if (antwort.status === 409) {
+        // Die Adresse hat schon ein Konto. Statt der Absage die Frage, die
+        // der Innendienst an dieser Stelle wirklich hat.
+        setVerbinden({ email: formular.email.trim().toLowerCase(),
+                       frage: daten.detail || 'Diese Adresse hat schon ein Konto.',
+                       bestaetigen: false });
+        return;
+      }
       if (!antwort.ok) throw new Error(daten.detail || `Status ${antwort.status}`);
       setFormular(LEER);
       setHinweis(daten.mail_versandt
@@ -61,6 +76,42 @@ export default function Zugaenge({ leadId, token }) {
       await laden();
     } catch (e2) {
       setFehler(e2.message);
+    } finally {
+      setLaeuft(false);
+    }
+  }
+
+  /**
+   * Ein bestehendes Konto an diesen Betrieb haengen.
+   *
+   * Zwei Runden, weil es zwei Faelle gibt: Ein Konto ohne Betrieb ist mit
+   * einem Klick verbunden. Eines, das einem anderen Betrieb gehoert,
+   * antwortet mit 409 und nennt ihn — dann erscheint der zweite Knopf. So
+   * wird nichts still umgehaengt, und trotzdem gibt es einen Weg.
+   */
+  async function verbindenAusfuehren(bestaetigt) {
+    setLaeuft(true); setFehler(''); setHinweis('');
+    try {
+      const antwort = await fetch(`/api/leads/${leadId}/zugaenge/verbinden`, {
+        method: 'POST', headers: kopf,
+        body: JSON.stringify({ email: verbinden.email, umhaengen_bestaetigt: bestaetigt }),
+      });
+      const daten = await antwort.json().catch(() => ({}));
+      if (antwort.status === 409 && !bestaetigt && daten.detail?.includes('gehört derzeit zu')) {
+        setVerbinden(v => ({ ...v, frage: daten.detail, bestaetigen: true }));
+        return;
+      }
+      if (!antwort.ok) throw new Error(daten.detail || `Status ${antwort.status}`);
+      setVerbinden(null);
+      setFormular(LEER);
+      setHinweis(daten.umgehaengt_von
+        ? `${daten.email} ist jetzt mit diesem Betrieb verbunden — der `
+          + `vorherige Betrieb hat den Zugang verloren.`
+        : `${daten.email} ist jetzt mit diesem Betrieb verbunden.`);
+      await laden();
+    } catch (e) {
+      setFehler(e.message);
+      setVerbinden(null);
     } finally {
       setLaeuft(false);
     }
@@ -189,6 +240,28 @@ export default function Zugaenge({ leadId, token }) {
           gilt. Ein Passwort wird nie verschickt und nirgends angezeigt.
         </div>
       </form>
+
+      {/* Der Ausweg aus dem 409 — nicht als Fehler eingefaerbt, denn es ist
+        * keiner: Die Adresse hat ein Konto, und die Frage ist, was damit
+        * geschehen soll. Beim Umhaengen steht der alte Betrieb im Text; ohne
+        * seinen Namen waere die Bestaetigung ein Blankoscheck. */}
+      {verbinden && (
+        <div style={{ ...meldung, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
+          <div style={{ marginBottom: 8 }}>{verbinden.frage}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" disabled={laeuft}
+              onClick={() => verbindenAusfuehren(verbinden.bestaetigen)}
+              style={{ ...knopfLeise, borderColor: 'currentColor' }}>
+              {verbinden.bestaetigen
+                ? 'Trotzdem umhängen'
+                : 'Stattdessen mit diesem Betrieb verbinden'}
+            </button>
+            <button type="button" onClick={() => setVerbinden(null)} style={knopfLeise}>
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
 
       {fehler && <div style={{ ...meldung, background: 'var(--status-error-bg)', color: 'var(--status-error-text)' }}>{fehler}</div>}
       {hinweis && <div style={{ ...meldung, background: 'var(--status-success-bg)', color: 'var(--status-success-text)' }}>{hinweis}</div>}

@@ -27,6 +27,33 @@ logger = logging.getLogger(__name__)
 BERECHTIGUNGEN = ("AcademyCustomerAccess", "course_id"), ("AcademyModuleAccess", "module_id")
 
 
+def bestand_abgeben(db, user_id: int) -> dict:
+    """Alle Berechtigungen dieses Kontos loeschen — beim Wechsel des Betriebs.
+
+    **Warum ueberhaupt:** Eine Freischaltung gehoert dem Betrieb, nicht dem
+    Menschen; dass sie an einer Benutzernummer haengt, ist nur die Bauart der
+    Tabelle. Wer den Betrieb wechselt, nimmt sie deshalb nicht mit — sonst
+    behielte er einen Kurs, den sein frueherer Betrieb bezahlt hat.
+
+    **Was hier ausdruecklich nicht angefasst wird:** Fortschritt, bestandene
+    Tests, Zertifikate. Die gehoeren dem Menschen und bleiben, wo sie sind.
+    Wird er spaeter wieder freigeschaltet, steht er nicht wieder am Anfang.
+    """
+    import modelle_akademie
+
+    entzogen = {}
+    for name, _feld in BERECHTIGUNGEN:
+        modell = getattr(modelle_akademie, name, None)
+        if modell is None:
+            logger.warning("Berechtigungstabelle %s gibt es nicht mehr", name)
+            continue
+        entzogen[name] = db.query(modell).filter(
+            modell.customer_id == user_id).delete(synchronize_session=False)
+
+    db.commit()
+    return entzogen
+
+
 def bestand_uebernehmen(db, lead_id: int, neuer_user_id: int) -> dict:
     """Dem neuen Zugang geben, was die uebrigen Zugaenge des Betriebs haben.
 

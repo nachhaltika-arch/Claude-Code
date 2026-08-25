@@ -158,6 +158,92 @@ def zugang_einladen(lead_id: int, daten: ZugangAnlegen,
     return {**_auskunft(konto), "mail_versandt": bool(versandt)}
 
 
+class ZugangVerbinden(BaseModel):
+    email: str = Field(pattern=EMAIL_MUSTER, max_length=255)
+    #: Der zweite Klick. Ohne ihn wird ein Konto, das schon einem Betrieb
+    #: gehoert, nicht angefasst — die Absage nennt den Betrieb beim Namen.
+    umhaengen_bestaetigt: bool = False
+
+
+@router.post("/{lead_id}/zugaenge/verbinden",
+             dependencies=[Depends(verlangt_recht("manage_users"))])
+def zugang_verbinden(lead_id: int, daten: ZugangVerbinden,
+                     db: Session = Depends(get_db)):
+    """Ein Konto, das es schon gibt, an diesen Betrieb haengen.
+
+    **Warum es das gibt (25.08.2026).** Die Einladung weist eine bekannte
+    Adresse mit 409 ab, damit niemand **still** den Zugang eines Menschen zu
+    seinem Betrieb wegnimmt. Damit blieb aber kein Weg, es **absichtlich** zu
+    tun — und den braucht es: ein Kauf lief auf eine Dublette, ein Betrieb
+    wurde zusammengelegt, ein Konto entstand ohne Zuordnung.
+
+    Die Regel hiess nie „nie umhaengen", sondern „nicht still umhaengen".
+    Deshalb zwei Faelle:
+
+    - Konto **ohne** Betrieb: verbinden, ohne Rueckfrage. Da ist nichts zu
+      verlieren.
+    - Konto **eines anderen** Betriebs: erst nach `umhaengen_bestaetigt`. Die
+      Absage davor nennt den alten Betrieb beim Namen — ein Hinweis, der das
+      Hindernis verschweigt, ist eine Sackgasse (L-56).
+
+    **Beim Wechsel gibt das Konto die Freischaltungen ab und erbt die neuen.**
+    Eine Freischaltung gehoert dem Betrieb; wer wechselt, nimmt sie nicht mit.
+    Fortschritt und Zertifikate bleiben — die gehoeren dem Menschen.
+    """
+    lead = _betrieb(db, lead_id)
+    email = daten.email.lower().strip()
+
+    konto = db.query(User).filter(User.email == email).first()
+    if not konto:
+        raise HTTPException(404, f"Für {email} gibt es kein Konto. Diese "
+                                 f"Adresse müssen Sie einladen — dabei "
+                                 f"entsteht eines.")
+
+    # Ein Mitarbeiterkonto gehoert keinem Betrieb. Ein `lead_id` daran waere
+    # im besten Fall verwirrend und im schlechten der Anfang einer
+    # Rechtevermischung: Die Kundenansichten fragen nach `lead_id`, nicht
+    # nach der Rolle.
+    if konto.role != "kunde":
+        raise HTTPException(409, f"{email} ist ein Mitarbeiterkonto (Rolle "
+                                 f"„{konto.role}“) und wird nicht an einen "
+                                 f"Betrieb gehängt.")
+
+    if konto.lead_id == lead.id:
+        raise HTTPException(409, f"{email} gehört bereits zu diesem Betrieb.")
+
+    alter_betrieb = konto.lead_id
+    if alter_betrieb and not daten.umhaengen_bestaetigt:
+        vorher = db.query(Lead).filter(Lead.id == alter_betrieb).first()
+        name = vorher.company_name if vorher else f"Betrieb {alter_betrieb}"
+        raise HTTPException(409, f"{email} gehört derzeit zu „{name}“. "
+                                 f"Umhängen nimmt den Zugang dort weg — "
+                                 f"bitte ausdrücklich bestätigen.")
+
+    konto.lead_id = lead.id
+    db.commit()
+    db.refresh(konto)
+
+    # Erst abgeben, dann erben — in dieser Reihenfolge, sonst loescht das
+    # Abgeben gleich wieder, was gerade geerbt wurde.
+    try:
+        from services.zugang_bestand import bestand_abgeben, bestand_uebernehmen
+        if alter_betrieb:
+            abgegeben = bestand_abgeben(db, konto.id)
+            logger.info("Zugang %s gibt an Betrieb %s ab: %s",
+                        konto.id, alter_betrieb, abgegeben)
+        geerbt = bestand_uebernehmen(db, lead.id, konto.id)
+        if geerbt:
+            logger.info("Zugang %s erbt vom Betrieb %s: %s",
+                        konto.id, lead.id, geerbt)
+    except Exception as fehler:      # noqa: BLE001 — die Zuordnung steht schon
+        db.rollback()
+        logger.warning("Bestand für %s nicht umgestellt: %s", konto.id, fehler)
+
+    logger.info("Zugang %s (%s) mit Betrieb %s verbunden, vorher %s",
+                konto.id, konto.email, lead.id, alter_betrieb or "ohne Betrieb")
+    return {**_auskunft(konto), "umgehaengt_von": alter_betrieb}
+
+
 @router.post("/{lead_id}/zugaenge/{user_id}/einladung",
              dependencies=[Depends(verlangt_recht("manage_users"))])
 def einladung_erneuern(lead_id: int, user_id: int, db: Session = Depends(get_db)):

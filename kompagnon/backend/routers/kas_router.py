@@ -267,9 +267,21 @@ async def deploy_kas_pages(
     # DB-Verbindung vor externem API-Call freigeben
     db.close()
 
+    # **Was wir verkaufen, liefern wir auch an uns selbst aus (L-121).**
+    # Am 25.08.2026 gemessen: Die eigene Seite hatte weder `llms.txt` noch
+    # strukturierte Daten — genau die zwei Artefakte, die GEO-01 fuer 1.200 €
+    # an Kundenseiten ausliefert. Nicht die Technik fehlte, sondern ein
+    # Datensatz ueber uns selbst; er steht jetzt in `kompagnon_profil`.
+    from services.kompagnon_profil import eigenes_profil
+    eigene_llms, eigenes_jsonld = eigenes_profil()
+
     from services.netlify_service import deploy_all_pages
     try:
-        result = await deploy_all_pages(site_id, page_files, shared_css, "KOMPAGNON")
+        result = await deploy_all_pages(
+            site_id, page_files, shared_css, "KOMPAGNON",
+            zusatzdateien={"llms.txt": eigene_llms},
+            jsonld=eigenes_jsonld,
+        )
     except ValueError as e:
         logger.error(f"KAS Netlify Token fehlt: {e}")
         raise HTTPException(400, str(e))
@@ -287,11 +299,22 @@ async def deploy_kas_pages(
 
     logger.info(f"KAS deployed: {len(page_files)} pages, deploy_id={result['deploy_id']}")
 
+    # Dieselbe Nachschau wie bei Kundenseiten: Der Deploy meldet Erfolg, ob
+    # die Datei danach unter ihrer Adresse steht, ist eine andere Frage.
+    from services.geo_auslieferung import klartext, pruefe_auslieferung
+    try:
+        auslieferung = await pruefe_auslieferung(result.get("deploy_url") or "")
+        logger.info("KAS-Auslieferung: %s", klartext(auslieferung))
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("KAS-Auslieferungspruefung gescheitert: %s", fehler)
+        auslieferung = {"collected": False, "grund": "Pruefung selbst gescheitert"}
+
     return {
         "deploy_id":      result["deploy_id"],
         "deploy_url":     result["deploy_url"],
         "state":          result["state"],
         "pages_deployed": list(page_files.keys()),
+        "auslieferung":   auslieferung,
     }
 
 

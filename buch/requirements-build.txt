@@ -1,0 +1,24 @@
+# Abhängigkeiten der Buch-Baustrecke.
+#
+# **Bewusst getrennt von kompagnon/backend/requirements.txt.** Der Build läuft
+# nicht im laufenden Dienst: Ein zweihundertseitiges PDF zu rendern hielte einen
+# Worker fest — bei drei gleichzeitigen Bestellungen stünde das Backend. Gebaut
+# wird lokal oder in GitHub Actions, ausgeliefert wird eine fertige Datei
+# (BUCH-03).
+#
+# **Warum ReportLab und nicht WeasyPrint, wie BUCH-03 es vorsah.** WeasyPrint
+# rendert über Pango und braucht dafür Systembibliotheken (glib, pango,
+# gdk-pixbuf). Die liegen auf diesem Rechner nicht, müssten über Homebrew
+# nachinstalliert werden und in der CI über apt — eine Systemabhängigkeit für
+# jeden, der das Buch je baut.
+#
+# ReportLab steht ohnehin schon in `kompagnon/backend/requirements.txt` (der
+# Audit-Bericht wird damit gesetzt), braucht keine Systembibliothek — und
+# `satzmuster.py` setzt den Satzspiegel des Buchs bereits damit um: 170 x 240,
+# Bund 20 mm, Hauptspalte 95 mm, Marginalspalte 35 mm, 13er-Raster. Dieses
+# Layout hat Manuel schon gesehen. Es zweimal zu bauen, einmal in CSS und
+# einmal in Python, wäre die zweite Wahrheit, die dieses Projekt gerade
+# dreimal ausgeräumt hat.
+markdown==3.6
+reportlab==4.2.2
+pypdf==4.2.0

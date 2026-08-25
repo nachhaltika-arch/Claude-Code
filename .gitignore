@@ -39,3 +39,9 @@ Thumbs.db
 # Konfiguration und gehoert ins Repo.
 .claude-config/memory/
 __pycache__/
+
+# Buch-Baustrecke: Erzeugnisse und eigene Umgebung gehören nicht ins Repo.
+# Die PDFs entstehen aus dem Manuskript und werden vor dem Verkauf einmal
+# gebaut (BUCH-03); im Repo lägen sie nur als veraltete Kopien.
+buch/build/*.pdf
+buch/venv/

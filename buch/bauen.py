@@ -165,6 +165,9 @@ def bauen(ziel: str, entwurf: bool) -> dict:
     # verschiebt sich, sobald man eine einfügt. Der erste Durchgang misst, der
     # zweite setzt; danach wird geprüft, ob sich noch etwas bewegt hat.
     umsetzer = Umsetzer(formate, masse, ziel)
+    # Anhang C sind Formulare; sie werden kompakt gesetzt, damit die
+    # Vorlagen 1 und 2 ihre Zusage „eine Seite" halten (B6.2).
+    formularsatz = Umsetzer(formate, masse, ziel, kompakt=True)
     oeffner = []
 
     def geschichte(vakat: set):
@@ -187,7 +190,8 @@ def bauen(ziel: str, entwurf: bool) -> dict:
             elemente.append(marke)
             if teil["teil"]:
                 elemente.append(umsetzer._absatz(teil["teil"], "teil"))
-            elemente.extend(umsetzer.teil(teil))
+            setzer = formularsatz if teil["datei"].startswith("ANHANG-C") else umsetzer
+            elemente.extend(setzer.teil(teil))
         return marken, elemente
 
     def leerseiten_bestimmen(marken: list) -> set:

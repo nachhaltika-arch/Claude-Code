@@ -59,6 +59,19 @@ def formate(ziel: str) -> dict:
         "tabellenkopf": stil("tabellenkopf", fontName="Buch-F",
                              fontSize=gr * .82, leading=gr * 1.05),
         "tabelle": stil("tabelle", fontSize=gr * .82, leading=gr * 1.05),
+        # ── Formularsatz (B6.2) ──────────────────────────────────────
+        # **Warum ein zweiter Satz.** Anhang C sind Formulare, keine Kapitel.
+        # Vorlage 1 nennt sich selbst „Eine Seite" — im Fließtextsatz (10 pt
+        # auf 13, 5 pt Polsterung) braucht sie 2,3 Seiten. Gerechnet stehen ihr
+        # 16,1 pt je Zeile zu; Formularsatz kommt mit 12 aus und hält die
+        # Zusage. Ein Formular ist zum Ausfüllen da, nicht zum Lesen.
+        "formularkopf": stil("formularkopf", fontName="Buch-F",
+                             fontSize=gr * .78, leading=gr * .95),
+        "formular": stil("formular", fontSize=gr * .78, leading=gr * .95),
+        "formularabschnitt": stil("formularabschnitt", fontName="Buch-F",
+                                  fontSize=gr * .92, leading=raster * .85,
+                                  spaceBefore=raster * .28,
+                                  spaceAfter=raster * .12, keepWithNext=1),
         # ── Marginalien und Abbildungen ──────────────────────────────
         "marginalkopf": stil("marginalkopf", fontName="Buch-F", fontSize=7.5,
                              leading=9.5),

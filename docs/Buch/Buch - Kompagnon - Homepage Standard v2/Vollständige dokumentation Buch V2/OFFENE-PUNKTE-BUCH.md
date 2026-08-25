@@ -228,7 +228,7 @@
 | ID | Aufgabe |
 |---|---|
 | **B6.1** | 🔴 **Vorlage 3 bekommt keine Passwortfelder** — Anweisung steht im Dateikommentar |
-| **B6.2** | 🔴 **Vorlage 1 und 2 je auf eine Seite** — im Satz verifizieren |
+| **B6.2** | ✅ **verifiziert und hergestellt 25.08.2026.** Gemessen statt geschätzt: Im Fließtextsatz brauchte Vorlage 1 **2,3 Seiten**. Nicht der Inhalt war schuld — er belegt 484 von 539 Punkt —, sondern der Luftraum zwischen den Blöcken. Mit einem eigenen **Formularsatz** (kleinere Grundschrift, halbierte Abstände, Ausfülllinien zählen nicht mit ihrer vollen Länge für die Spaltenbreite) passen **Vorlage 1, 2 und 3 auf je eine Seite**. **Dabei ein zweiter Befund, schwerwiegender als der erste:** Die 89 Ankreuzkästchen des Buchs waren **unsichtbar**. Noto Sans enthält weder `☐` noch ein anderes Kästchenzeichen, und ReportLab verschluckt fehlende Zeichen stillschweigend. Sie werden jetzt gezeichnet — so wie das Satzmuster seine Stufenmarken zeichnet |
 | **B6.3** | BoD-Format 17 × 24 cm prüfen, sonst 17 × 22 |
 | **B6.4** | Schriftlizenz ✓ **Noto ist SIL Open Font License** — Print und EPUB erlaubt |
 | **B6.5** | Seitenzahl auf ein Vielfaches von 4, danach Rückenbreite |

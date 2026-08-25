@@ -20,6 +20,7 @@ from reportlab.platypus import (KeepTogether, ListFlowable, ListItem, PageBreak,
                                 Paragraph, Spacer, Table, TableStyle)
 
 import satzspiegel as sp
+from ankreuzen import Ankreuzzeile, enthaelt_kaestchen
 from marginalie import Marginalie
 
 BLOCK_AUF = re.compile(r"^:::\s*(MRG|ABB)\s*(.*)$")
@@ -48,15 +49,22 @@ def auszeichnen(text: str) -> str:
 class Umsetzer:
     """Liest die Zeilen eines Buchteils und liefert Satzelemente."""
 
-    def __init__(self, formate: dict, masse: dict, ziel: str):
+    def __init__(self, formate: dict, masse: dict, ziel: str,
+                 kompakt: bool = False):
         self.f = formate
         self.m = masse
         self.ziel = ziel
+        #: Formularsatz statt Fließtextsatz — für Anhang C (B6.2).
+        self.kompakt = kompakt
         self.abbildungen = 0
         self.marginalien = 0
 
     # ── Einzelne Formen ──────────────────────────────────────────────
     def _absatz(self, text, stil="fliess"):
+        # **Kästchen werden gezeichnet, nicht gesetzt.** Noto Sans kennt das
+        # Zeichen nicht, und ReportLab verschluckt es stillschweigend (B6.2).
+        if enthaelt_kaestchen(text):
+            return Ankreuzzeile(re.sub(r"[*`]", "", text), self.f[stil])
         return Paragraph(auszeichnen(text), self.f[stil])
 
     def _spaltenbreiten(self, zeilen: list) -> list:
@@ -74,6 +82,12 @@ class Umsetzer:
             felder = [f.strip() for f in zeile.strip().strip("|").split("|")]
             for i, feld in enumerate(felder):
                 text = re.sub(r"[*`\[\]]", "", feld)
+                # **Ausfülllinien zählen nicht mit ihrer vollen Länge.** Eine
+                # Zeile aus vierzig Unterstrichen ist Platz zum Schreiben, kein
+                # Text, der passen muss — sonst zieht sie die Spaltenbreite an
+                # sich, und die Beschriftung daneben bricht um („Branchenklass
+                # / e"). Am Satz gesehen, nicht überlegt (B6.2).
+                text = re.sub(r"_{3,}", "_" * 12, text)
                 if i >= len(laengen):
                     laengen.append(0)
                 laengen[i] = max(laengen[i], min(len(text), 60))
@@ -93,12 +107,18 @@ class Umsetzer:
         Spalte auf zwei Zeichen zusammenzieht.
         """
         reihen = []
+        kopfstil = "formularkopf" if self.kompakt else "tabellenkopf"
+        zellstil = "formular" if self.kompakt else "tabelle"
         for i, zeile in enumerate(zeilen):
             if TRENNZEILE.match(zeile):
                 continue
             felder = [f.strip() for f in zeile.strip().strip("|").split("|")]
-            stil = "tabellenkopf" if not reihen else "tabelle"
-            reihen.append([Paragraph(auszeichnen(f), self.f[stil]) for f in felder])
+            stil = kopfstil if not reihen else zellstil
+            reihen.append([
+                Ankreuzzeile(re.sub(r"[*`]", "", feld), self.f[stil])
+                if enthaelt_kaestchen(feld)
+                else Paragraph(auszeichnen(feld), self.f[stil])
+                for feld in felder])
         if not reihen:
             return None
         # `repeatRows=1`: Läuft eine Tabelle über den Seitenfuß, steht ihre
@@ -115,8 +135,8 @@ class Umsetzer:
             # sieht dann eine nicht eingebettete Schrift und schickt zurück.
             ("FONTNAME", (0, 0), (-1, -1), "Buch"),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 1 if self.kompakt else 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1 if self.kompakt else 3),
             ("LEFTPADDING", (0, 0), (-1, -1), 0),
             ("RIGHTPADDING", (0, 0), (-1, -1), 4),
             ("LINEBELOW", (0, 0), (-1, 0), .8, colors.black),
@@ -201,7 +221,8 @@ class Umsetzer:
             if tabelle:
                 gesetzt = self._tabelle(tabelle)
                 if gesetzt is not None:
-                    aus.extend([Spacer(1, 4), gesetzt, Spacer(1, 6)])
+                    vor, nach = (2, 3) if self.kompakt else (4, 6)
+                    aus.extend([Spacer(1, vor), gesetzt, Spacer(1, nach)])
                 tabelle.clear()
 
         while i < len(zeilen):
@@ -243,6 +264,10 @@ class Umsetzer:
                     stil = "kapitelziffer" if re.fullmatch(r"\d+", text) \
                         else "kapiteltitel"
                     aus.append(self._absatz(text, stil))
+                elif self.kompakt:
+                    # Im Formular sind Zwischenüberschriften Beschriftungen,
+                    # keine Kapitelmarken — sie bekommen weniger Luft.
+                    aus.append(self._absatz(text, "formularabschnitt"))
                 else:
                     aus.append(self._absatz(
                         text, "abschnitt" if tiefe == 2 else "unterabschnitt"))

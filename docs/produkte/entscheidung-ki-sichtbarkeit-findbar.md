@@ -102,17 +102,26 @@ gefragt haben, wäre eine Behauptung, die den Betrieb Geld kostet.
 
 ### Was fehlt
 
-| # | Lücke | Aufwand |
+| # | Lücke | Stand am 25.08.2026 |
 |---|---|---|
-| 1 | **Schlüssel.** Nie gegen einen echten Dienst gelaufen | Beschaffung — David |
-| 2 | **Kein Aufrufer im Frontend.** Der Endpunkt ist über die Oberfläche nicht erreichbar — dieselbe Klasse, die im Lagebild fünfmal steht | halber Tag |
-| 3 | **Kein Wochenjob.** Der Planer läuft, dieser Job fehlt | halber Tag |
-| 4 | **Google AI fehlt** als vierter Anbieter | halber Tag |
-| 5 | **Kundenansicht und Bericht** — Score, Trend, Maßnahmen | 1 Tag |
-| 6 | Wiederkehrende Abrechnung (L-101) | eigenes Vorhaben |
+| 1 | **Schlüssel.** Nie gegen einen echten Dienst gelaufen | 🔴 offen — Beschaffung durch David |
+| 2 | **Kein Aufrufer im Frontend** — dieselbe Klasse, die im Lagebild fünfmal steht | ✅ **geschlossen**: Reiter „Nennung" im GEO-Schritt, mit Verlaufstabelle |
+| 3 | **Kein Wochenjob** | ✅ **geschlossen**: montags 6 Uhr, nur für laufende Abos, `automations/job_ki_sichtbarkeit.py` |
+| 4 | **Google AI fehlt** als vierter Anbieter | 🔴 offen — halber Tag |
+| 5 | **Kundenbericht** mit Trend für den Abonnenten | 🔴 offen — 1 Tag |
+| 6 | Wiederkehrende Abrechnung | ✅ **existiert bereits** — siehe Korrektur unten |
 
-**Ohne Punkt 6: rund drei Tage.** Das ist die ehrliche Zahl für „anschließen",
-nicht für „bauen".
+**Es bleiben anderthalb Tage plus die Schlüssel.**
+
+> **Korrektur zu Punkt 6.** Die erste Fassung dieses Papiers zählte die
+> wiederkehrende Abrechnung als fehlend und verwies auf L-101. **Das trifft
+> die Pflege-Abos (ABO-BAS, ABO-PRO), nicht das GEO-Abo.** Für GEO steht sie:
+> `routers/geo_payments.py` (477 Zeilen) legt ein Stripe-Abonnement an,
+> verarbeitet den Webhook, führt den Status und verschickt eine
+> Begrüßungsmail; `GeoAnalysis` trägt `stripe_subscription_id`,
+> `subscription_status` und die Periodendaten. Was der Kauf heute auslöst, ist
+> die GEO-Analyse samt Dateierzeugung — **nicht** der Nennungslauf. Genau
+> diese Verbindung ist der Rest von Punkt 5.
 
 ---
 
@@ -162,14 +171,18 @@ SEC GmbH lägen, und ohne die 1,2-Prozent-Behauptung zu übernehmen.
 ### Reihenfolge, wenn entschieden wird
 
 ```
-1. Probelauf mit einem Schlüssel          ← beendet die Kostenfrage
-2. Frontend anschließen                    ← der Endpunkt existiert
-3. Wochenjob im vorhandenen Planer
-4. Google AI als vierter Anbieter
-5. Kundenansicht mit Trend
+1. Probelauf mit einem Schlüssel          ← beendet die Kostenfrage   🔴 offen
+2. Frontend anschließen                                                ✅ 25.08.
+3. Wochenjob im vorhandenen Planer                                     ✅ 25.08.
+4. Google AI als vierter Anbieter                                      🔴 offen
+5. Kundenbericht mit Trend, an den Abo-Kauf gehängt                    🔴 offen
    ▼
-   danach erst: Preis und Abrechnung (L-101)
+   danach erst: der Preis
 ```
+
+**Der Probelauf steht weiter zuerst.** Ohne ihn ist der Preis eine Behauptung:
+Bei drei Anbietern und drei Fragen sind es neun Aufrufe je Kunde und Woche,
+und was einer kostet, weiß erst der erste echte Lauf.
 
 **Was nicht passieren darf:** das Modul an den Score des Homepage Standards zu
 hängen. Jeder Lauf kostet Geld; ein kostenloses Audit mit einer Kostenstelle je

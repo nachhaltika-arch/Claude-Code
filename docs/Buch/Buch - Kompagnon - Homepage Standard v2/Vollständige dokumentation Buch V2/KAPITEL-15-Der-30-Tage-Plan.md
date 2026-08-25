@@ -180,17 +180,21 @@ Der Betrieb aus den Kapiteln 3 bis 12, mit 76 von 103 Rohpunkten und einem Wert 
 | **Woche 1** | toter Verweis (+1), KI-Sperre entfernt und `llms.txt` angelegt (+3), Reaktionszeit benannt (+1) | 81 | **79** | Silber |
 | **Woche 2** | Bilder komprimiert (+3), Alternativtexte (+2), Schriften örtlich (+1), strukturierte Daten (+3) | 90 | **87** | **Gold** |
 | **Woche 3** | gekaufte Bilder entfernt (+1), Meisterbrief und Innung sichtbar (+1), fünf Telefonfragen beantwortet (+1) | 93 | **90** | Gold |
-| **Woche 4** | Nachmessung: die Bildkomprimierung hat auch die Ladezeit verbessert (+3) | 96 | **93** | Gold |
+| **Woche 4** | Nachmessung — **erwartet:** die Bildkomprimierung wirkt auch auf die Ladezeit (+3) | 96 | **93** | Gold |
 
 **Von Silber auf Gold in dreißig Tagen, ohne Neuaufbau und ohne nennenswerte Ausgaben.** Der Sprung fiel in Woche 2 — bei den Handgriffen, die einen Tag kosteten.
 
+> **Eine Zeile dieser Tabelle ist eine Erwartung, keine Messung.** Die drei Punkte in Woche 4 unterstellen, dass kleinere Bilder auch die Ladezeit verbessern. Das ist der Regelfall und keine Zusage: Ladezeit hängt außerdem am Hoster, am System und an dem, was sonst noch nachgeladen wird. **Die Stufe Gold steht schon nach Woche 2** — Woche 4 entscheidet nur, wie weit darüber hinaus es geht.
+
 ### Und hier hört der Plan auf
 
-Bis Platin fehlen sieben Punkte. Elektro Hansen holt sie nicht, und das ist die richtige Entscheidung.
+Zum Höchstwert fehlen sieben Rohpunkte — **bis Platin nur zwei.** Elektro Hansen holt auch die nicht, und das ist die richtige Entscheidung.
 
 **Was noch offen ist:** die Barrierefreiheitserklärung, deren Erforderlichkeit erst zu klären wäre (L4, 2 Punkte); die Tastaturbedienung, die eine Änderung an der Gestaltungsvorlage verlangt (B5, 1 Punkt); und Reste in vier Kategorien, die jeweils einen halben Tag kosten würden.
 
-**Der Aufwand für diese sieben Punkte übersteigt den für die vorherigen zwanzig.** Abschnitt 3.7 hat es gesagt: Gold ist das Ziel, nicht Platin. Wer von Bronze auf Silber kommt, verändert seine Außenwirkung. Wer von Gold auf Platin geht, verändert vor allem seine Rechnung.
+**Zwei Punkte klingen nach wenig, und genau darin liegt die Falle.** Rechnerisch genügte die Barrierefreiheitserklärung allein — 98 von 103 Rohpunkten ergeben 95 und damit Platin. Sie zu veröffentlichen, ohne geklärt zu haben, ob sie für diesen Betrieb überhaupt gilt, wäre aber eine Zusage über die eigene Website, die er nicht halten kann. **Eine Stufe, die man durch eine ungeprüfte Erklärung erreicht, hat man nicht erreicht.**
+
+Der Rest ist Rechnen: Der Aufwand für die verbleibenden sieben Punkte übersteigt den für die vorherigen zwanzig. Abschnitt 3.7 hat es gesagt: Gold ist das Ziel, nicht Platin. Wer von Bronze auf Silber kommt, verändert seine Außenwirkung. Wer von Gold auf Platin geht, verändert vor allem seine Rechnung.
 
 ---
 
@@ -200,7 +204,7 @@ Ein Plan, der alles verspricht, wird nach zwei Wochen weggelegt. Deshalb hier di
 
 **Ein Neuaufbau geht nicht.** Er dauert Wochen bis Monate und gehört nicht in einen Dreißig-Tage-Plan. **Er gehört auch nicht an den Anfang** — Kapitel 1 hat es begründet: Zehn von 103 Punkten hängen an der Gestaltung.
 
-**Die eingeschätzten Kriterien bewegen sich langsam.** Siebzehn Punkte des Standards werden beurteilt, nicht gemessen — Gestaltung, Angebotsklarheit, Textqualität. Eine geänderte Überschrift verändert eine Einschätzung nicht zuverlässig innerhalb von vier Wochen. Erwarten Sie hier keine schnellen Sprünge.
+**Die eingeschätzten Kriterien bewegen sich langsam.** Fünfzehn Punkte des Standards werden beurteilt, nicht gemessen — Gestaltung, Angebotsklarheit, Textqualität. Eine geänderte Überschrift verändert eine Einschätzung nicht zuverlässig innerhalb von vier Wochen. Erwarten Sie hier keine schnellen Sprünge.
 
 **Die Wirkung auf Ihre Auftragslage sehen Sie nicht.** Dreißig Tage sind zu kurz. Was Sie sehen, ist der Zustand — und dass er sich verbessert hat. Ob mehr Anfragen kommen, entscheidet sich über Monate und hängt an mehr als Ihrer Website.
 

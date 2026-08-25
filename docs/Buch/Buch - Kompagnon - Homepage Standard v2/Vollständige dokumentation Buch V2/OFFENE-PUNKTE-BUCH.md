@@ -116,11 +116,11 @@
 
 | ID | Aufgabe |
 |---|---|
-| **B3.2.1** | 🔴 **Elektro Hansen** über neun Kapitel — zentraler Drift-Kandidat, bleibt bei 76/103 = 74 |
-| **B3.2.2** | 🔴 **Punktkette 15.7** — zweite Kontrollrechnung, bleibt 74 → 93 |
-| **B3.2.3** | 🔴 **Der Gewinn von +3 in Woche 4** ist eine Annahme, die sich als Ergebnis liest |
+| **B3.2.1** | ✅ **nachgerechnet 25.08.2026 — stimmt.** Die Einzelwerte der sechs Kategoriekapitel ergeben 49 (B 6, P 7, D 8, E 11, I 4, C 13), plus Recht 18 und Sicherheit 9 sind es **76 von 103 → 74 → Silber**. Auch die Korrekturtabelle geht auf: 3+2+3+3+1 = 12 Punkte, 76+12 = 88 → 85 → Gold. **Kapitel 5 und 6 tragen als einzige keine eigene Fallzeile** — ihre Werte stehen nur in der Tabelle in 3.10. Wer dort ändert, merkt es nirgends |
+| **B3.2.2** | ✅ **nachgerechnet 25.08.2026 — stimmt, aber ein Satz daneben nicht.** Die Kette 76 → 81 → 90 → 93 → 96 ergibt 74 → 79 → 87 → 90 → 93; die Wochengewinne (+5, +9, +3, +3) gehen auf. **Falsch war der Abschluss:** „Bis Platin fehlen sieben Punkte" — sieben ist der Abstand zum **Höchstwert** 103, bis Platin sind es **zwei** (98 Rohpunkte ergeben 95). Auf dieser Zahl stand das ganze Argument, Platin nicht mehr anzustreben. Neu gefasst: Rechnerisch genügte die Barrierefreiheitserklärung allein — sie ohne Prüfung der Erforderlichkeit zu veröffentlichen wäre aber eine Zusage über die eigene Website, die der Betrieb nicht halten kann. `tests/test_buch_bloecke_aktuell.py` rechnet die Kette jetzt bei jedem Lauf nach |
+| **B3.2.3** | ✅ **erledigt 25.08.2026.** Die Zeile heißt jetzt „Nachmessung — **erwartet**", und ein Kasten darunter sagt, warum: Ladezeit hängt außerdem am Hoster, am System und an dem, was sonst nachgeladen wird. **Gold steht ohnehin schon nach Woche 2** — Woche 4 entscheidet nur, wie weit darüber hinaus |
 | **B3.2.4** | „33 von 39" in 3.11 — bei jeder Änderung der Erhebungsart mitziehen. **Bleibt Handarbeit:** Die Tabelle in 3.4 wird erzeugt, der Satz in 3.11 nicht |
-| **B3.2.5** | Klassenmaxima in 4.5, 13.2, Anhang A und B — nur gemeinsam ändern |
+| **B3.2.5** | ✅ **geprüft und abgesichert 25.08.2026.** Alle vier Stellen nennen dieselben Werte (103 / 100 für K4 / 81 für K6), und die Rechnung in 4.5 stimmt: 77 von 81 ergeben 95, also Platin. Die Tabellen in 13.2 und Anhang B werden erzeugt; **der Glossareintrag trägt keine Marke und wird jetzt trotzdem geprüft** — ein Test hält seine Zahlen gegen `anwendbares_maximum()` |
 
 ## B3.3 Inhaltliches
 

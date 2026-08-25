@@ -126,7 +126,7 @@
 
 | ID | Aufgabe |
 |---|---|
-| **B3.3.1** | 🔴 **§ 5 DDG statt § 5 TMG** durch das ganze Buch |
+| **B3.3.1** | ✅ **erledigt 25.08.2026 — und der Befund lag woanders.** Nachgesehen statt angenommen: **Das Buch war bereits richtig.** Jede TMG-Nennung im Manuskript ist die bewusste Erklärung, dass das Gesetz seit Mai 2024 abgelöst ist — in 5.4, im Glossar und in Anhang D. Falsch war die **Software**: erzeugte Sitemaps, die Homepage-Checkliste, die Kriterienbezeichnung im Auditbericht und unser eigenes Impressum. Alles umgestellt (L-122); die Impressumsänderung steht als B2.22 auf der Anwaltsliste |
 | **B3.3.2** | 🔴 **Verweis in Kapitel 12** auf Kapitel 14 — abhängig von B1.2 |
 | **B3.3.3** | 🔴 **Fall Elektro Hansen durch einen anonymisierten realen ersetzen** |
 | **B3.3.4** | „120 Minuten" im Kapiteltitel 13 — nicht gemessen, zwei Personen durchführen lassen |

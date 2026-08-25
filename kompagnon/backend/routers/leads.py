@@ -400,7 +400,13 @@ def get_customers(db: Session = Depends(get_db)):
             AuditResult.lead_id == lead.id, AuditResult.status == "completed"
         ).order_by(AuditResult.created_at.desc()).first()
         project = db.query(Project).filter(Project.lead_id == lead.id).order_by(Project.created_at.desc()).first()
-        user = db.query(User).filter(User.lead_id == lead.id).first()
+        # Seit dem 25.08.2026 kann ein Betrieb mehrere Zugaenge haben.
+        # `has_account` allein verschwiege den zweiten; die Kartei zeigt
+        # deshalb die Zahl, und `user_id` bleibt der aelteste — daran
+        # haengen die vorhandenen Bildschirme.
+        konten = (db.query(User).filter(User.lead_id == lead.id)
+                  .order_by(User.id).all())
+        user = konten[0] if konten else None
         result.append({
             "id": lead.id, "company_name": lead.company_name, "contact_name": lead.contact_name,
             "email": lead.email, "phone": lead.phone, "website_url": lead.website_url,
@@ -414,6 +420,7 @@ def get_customers(db: Session = Depends(get_db)):
             "project_status": project.status if project else None,
             "project_id": project.id if project else None,
             "has_account": user is not None, "user_id": user.id if user else None,
+            "zugaenge": len(konten),
             'gbp_claimed':       getattr(lead, 'gbp_claimed', False) or False,
             'gbp_rating':        getattr(lead, 'gbp_rating', None),
             'gbp_ratings_total': getattr(lead, 'gbp_ratings_total', None),

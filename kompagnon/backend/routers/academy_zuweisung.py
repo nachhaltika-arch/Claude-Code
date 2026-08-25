@@ -30,7 +30,8 @@ import string
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/academy', tags=['academy'])
 
-from routers.academy_gemeinsam import _kunde_user_id, _progress_summary
+from routers.academy_gemeinsam import (_kunde_user_id, _kunde_user_ids,
+                                       _progress_summary)
 
 
 # ── Seed (internal) ───────────────────────────────────────
@@ -59,6 +60,69 @@ def seed_academy_courses(db: Session):
 
 
 # ── Customer Course Access (Admin only) ──────────────────
+
+# ── Freischalten gilt dem Betrieb, nicht einem Menschen darin ─────────
+#
+# Bis zum 25.08.2026 hatte ein Betrieb genau ein Konto; `_kunde_user_id`
+# uebersetzte die Betriebsnummer aus dem Pfad in dieses eine. Seit es
+# Zweitzugaenge gibt, waere das still falsch: Die Zuweisung erreichte
+# **einen** der Menschen — welchen, entschiede die Reihenfolge in der
+# Datenbank —, und der andere saehe eine leere Akademie.
+#
+# Die beiden Helfer stehen hier einmal statt viermal: Modul und Kurs
+# unterscheiden sich nur im Modell und im Namen der Fremdschluesselspalte.
+
+
+def _konten(db, kennung: int) -> list:
+    """Die Zugaenge des Betriebs — oder die Kennung selbst.
+
+    Der Rueckfall ist kein Schoenheitsfehler, sondern der Altbestand: Wo
+    kein Kundenkonto am Betrieb haengt, war die Kennung schon immer eine
+    **Benutzer**nummer (L-54/L-55). `_kunde_user_id` tat dasselbe.
+    """
+    return _kunde_user_ids(db, kennung) or [kennung]
+
+
+def _allen_zuweisen(db, modell, feld: str, kennung: int, gegenstand: int,
+                    durch: int, bereits: str):
+    """Jedem Zugang des Betriebs freischalten, was er noch nicht hat.
+
+    **409 erst, wenn es wirklich alle haben.** Sonst blockierte ein einziger
+    Nachzuegler den ganzen Betrieb: Der Erste hat den Kurs, der Zweite nicht,
+    und die Zuweisung meldete „bereits zugewiesen".
+    """
+    konten = _konten(db, kennung)
+    vorhanden = {z[0] for z in db.query(modell.customer_id).filter(
+        modell.customer_id.in_(konten),
+        getattr(modell, feld) == gegenstand).all()}
+    fehlend = [k for k in konten if k not in vorhanden]
+    if not fehlend:
+        raise HTTPException(409, bereits)
+
+    neu = [modell(customer_id=k, assigned_at=datetime.utcnow(),
+                  assigned_by=durch, **{feld: gegenstand})
+           for k in fehlend]
+    db.add_all(neu)
+    db.commit()
+    for zeile in neu:
+        db.refresh(zeile)
+    return konten, neu
+
+
+def _allen_entziehen(db, modell, feld: str, kennung: int, gegenstand: int,
+                     fehlt: str) -> int:
+    """Wieder wegnehmen — bei jedem Zugang, sonst bliebe einer freigeschaltet."""
+    konten = _konten(db, kennung)
+    zeilen = db.query(modell).filter(
+        modell.customer_id.in_(konten),
+        getattr(modell, feld) == gegenstand).all()
+    if not zeilen:
+        raise HTTPException(404, fehlt)
+    for zeile in zeilen:
+        db.delete(zeile)
+    db.commit()
+    return len(zeilen)
+
 
 @router.get('/customer/{customer_id}/modules')
 def get_customer_modules(
@@ -100,28 +164,16 @@ def assign_module_to_customer(
     modul = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
     if not modul:
         raise HTTPException(404, 'Modul nicht gefunden')
-    customer_id = _kunde_user_id(db, customer_id)
-    vorhanden = db.query(AcademyModuleAccess).filter(
-        AcademyModuleAccess.customer_id == customer_id,
-        AcademyModuleAccess.module_id == module_id,
-    ).first()
-    if vorhanden:
-        raise HTTPException(409, 'Modul bereits zugewiesen')
-    zuweisung = AcademyModuleAccess(
-        customer_id=customer_id,
-        module_id=module_id,
-        assigned_at=datetime.utcnow(),
-        assigned_by=current_user.id,
-    )
-    db.add(zuweisung)
-    db.commit()
-    db.refresh(zuweisung)
+    konten, angelegt = _allen_zuweisen(
+        db, AcademyModuleAccess, 'module_id', customer_id, module_id,
+        current_user.id, 'Modul bereits zugewiesen')
     return {
-        'id': zuweisung.id,
-        'customer_id': customer_id,
+        'id': angelegt[0].id,
+        'customer_id': konten[0],
         'module_id': module_id,
         'module_title': modul.title,
-        'assigned_at': str(zuweisung.assigned_at)[:10],
+        'assigned_at': str(angelegt[0].assigned_at)[:10],
+        'zugaenge': len(konten),
     }
 
 
@@ -133,16 +185,10 @@ def remove_module_from_customer(
     current_user=Depends(require_admin),
 ):
     """Modul-Zugang fuer Kunden entfernen."""
-    customer_id = _kunde_user_id(db, customer_id)
-    zuweisung = db.query(AcademyModuleAccess).filter(
-        AcademyModuleAccess.customer_id == customer_id,
-        AcademyModuleAccess.module_id == module_id,
-    ).first()
-    if not zuweisung:
-        raise HTTPException(404, 'Modulzugang nicht gefunden')
-    db.delete(zuweisung)
-    db.commit()
-    return {'success': True}
+    entzogen = _allen_entziehen(
+        db, AcademyModuleAccess, 'module_id', customer_id, module_id,
+        'Modulzugang nicht gefunden')
+    return {'success': True, 'zugaenge': entzogen}
 
 
 @router.get('/customer/{customer_id}/courses')
@@ -191,28 +237,16 @@ def assign_course_to_customer(
     course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
     if not course:
         raise HTTPException(404, 'Kurs nicht gefunden')
-    customer_id = _kunde_user_id(db, customer_id)
-    existing = db.query(AcademyCustomerAccess).filter(
-        AcademyCustomerAccess.customer_id == customer_id,
-        AcademyCustomerAccess.course_id == course_id,
-    ).first()
-    if existing:
-        raise HTTPException(409, 'Kurs bereits zugewiesen')
-    access = AcademyCustomerAccess(
-        customer_id=customer_id,
-        course_id=course_id,
-        assigned_at=datetime.utcnow(),
-        assigned_by=current_user.id,
-    )
-    db.add(access)
-    db.commit()
-    db.refresh(access)
+    konten, angelegt = _allen_zuweisen(
+        db, AcademyCustomerAccess, 'course_id', customer_id, course_id,
+        current_user.id, 'Kurs bereits zugewiesen')
     return {
-        'id': access.id,
-        'customer_id': customer_id,
+        'id': angelegt[0].id,
+        'customer_id': konten[0],
         'course_id': course_id,
         'course_title': course.title,
-        'assigned_at': str(access.assigned_at)[:10],
+        'assigned_at': str(angelegt[0].assigned_at)[:10],
+        'zugaenge': len(konten),
     }
 
 
@@ -224,13 +258,7 @@ def remove_course_from_customer(
     current_user=Depends(require_admin),
 ):
     """Kurs-Zugang für Kunden entfernen."""
-    customer_id = _kunde_user_id(db, customer_id)
-    access = db.query(AcademyCustomerAccess).filter(
-        AcademyCustomerAccess.customer_id == customer_id,
-        AcademyCustomerAccess.course_id == course_id,
-    ).first()
-    if not access:
-        raise HTTPException(404, 'Kurszugang nicht gefunden')
-    db.delete(access)
-    db.commit()
-    return {'success': True}
+    entzogen = _allen_entziehen(
+        db, AcademyCustomerAccess, 'course_id', customer_id, course_id,
+        'Kurszugang nicht gefunden')
+    return {'success': True, 'zugaenge': entzogen}

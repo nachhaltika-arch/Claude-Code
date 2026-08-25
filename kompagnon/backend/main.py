@@ -683,6 +683,13 @@ app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)
+# Mehrere Menschen an einem Betrieb (25.08.2026). Der Innendienst laedt ein;
+# `manage_users` sperrt die drei Routen. Steht **nach** `leads_router`, weil
+# der dort registrierte `DELETE /{lead_id}` sonst `/{lead_id}/zugaenge/{id}`
+# nicht ueberdeckt — die Pfade sind verschieden lang, FastAPI trennt sie
+# sauber; die Reihenfolge ist hier nur der Lesbarkeit wegen.
+from routers import betriebszugaenge
+app.include_router(betriebszugaenge.router)
 # Die drei Alias-Router sind am 21.08.2026 entfernt (Modulkarte, Nahtstelle
 # `/api/customers`). Der Kommentar hier sagte „real customers router first" —
 # er war es nicht: `usercards_customers_alias_router` stand eine Zeile davor

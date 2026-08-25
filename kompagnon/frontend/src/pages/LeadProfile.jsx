@@ -36,6 +36,7 @@ import { naechsterSchritt } from '../utils/naechsterSchritt';
 import { aufteilung } from '../utils/betriebReiter';
 import { aufTaste } from '../utils/tastaturBedienung';
 import CrawlerReiter from '../components/betrieb/CrawlerReiter';
+import Zugaenge from '../components/betrieb/Zugaenge';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -2328,6 +2329,10 @@ export default function LeadProfile() {
                   </a>
                 )}
               </Card>
+              {/* Die Konten dieses Betriebs — seit dem 25.08.2026 koennen es
+                * mehrere sein. Der Reiter hiess schon „Zugang"; er zeigte
+                * bis dahin nur den QR-Einmallink, nicht die Menschen. */}
+              <Zugaenge leadId={leadId} token={token} />
             </div>
           </div>
         );

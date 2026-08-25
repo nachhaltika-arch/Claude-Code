@@ -67,9 +67,28 @@ def _kunde_user_id(db, kennung: int) -> int:
 
     Gespeichert wird deshalb immer die Benutzer-ID.
     """
-    kunde = db.query(User).filter(User.lead_id == kennung,
-                                  User.role == 'kunde').first()
-    return kunde.id if kunde else kennung
+    kunden = _kunde_user_ids(db, kennung)
+    return kunden[0] if kunden else kennung
+
+
+def _kunde_user_ids(db, kennung: int) -> list:
+    """**Alle** Konten dieses Betriebs — die Antwort auf dieselbe Frage,
+    seit ein Betrieb mehrere haben kann (25.08.2026).
+
+    `_kunde_user_id` gab bis dahin `.first()` zurueck. Das war richtig,
+    solange ein Betrieb genau ein Konto hatte, und wurde am Tag der
+    Zweitzugaenge still falsch: Eine Zuweisung auf dem Betriebsblatt haette
+    **einen** der Menschen erreicht — welchen, entschied die Reihenfolge in
+    der Datenbank. Der andere haette eine leere Akademie gesehen, ohne dass
+    irgendwo ein Fehler steht.
+
+    Lesen darf weiter mit einem auskommen: Geschrieben wird fuer alle, also
+    haben alle dasselbe. Geschrieben wird ab hier fuer **jeden**.
+    """
+    zeilen = (db.query(User.id).filter(User.lead_id == kennung,
+                                       User.role == 'kunde')
+              .order_by(User.id).all())
+    return [z[0] for z in zeilen]
 
 
 #: Seit diesem Tag loest der **Schreib**pfad die Kennung beim Zuweisen auf

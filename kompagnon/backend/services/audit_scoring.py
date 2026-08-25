@@ -72,14 +72,26 @@ def _ok(fact: Optional[dict]) -> bool:
     return bool(fact) and fact.get("collected") is True
 
 
-def _tier(value: Optional[float], thresholds) -> Optional[int]:
-    """Erste passende Schwelle (Grenzwert, Punkte) — absteigend geprüft."""
-    if value is None:
-        return None
-    for limit, points in thresholds:
-        if value < limit:
-            return points
-    return 0
+def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASURED) -> None:
+    """Punkte nach der am Kriterium hinterlegten Abstufung vergeben.
+
+    Bis zum 25.08.2026 standen die Schwellen hier — teils als Liste (`_tier`),
+    teils als Bedingung mitten im Satz (`3 if perf >= 90 else ...`). Die zweite
+    Form kann kein Ausleseprogramm lesen; das Buch musste seine Punktetabellen
+    deshalb raten. Jetzt stehen die Zahlen in `audit_criteria.py`, wo auch die
+    Punktwerte stehen, und diese Funktion holt sie sich von dort.
+
+    Der Fall `wert is None` heißt: nicht erhoben. Er wird übersprungen, nicht
+    mit null Punkten bewertet — sonst verkauft die Auswertung eine fehlende
+    Messung als Mangel.
+    """
+    if wert is None:
+        sheet.skip(key)
+        return
+    criterion = find_criterion(key)
+    if criterion is None or criterion.abstufung is None:
+        raise ValueError(f"Kriterium ohne hinterlegte Abstufung: {key}")
+    sheet.set(key, criterion.abstufung.punkte_fuer(wert), quelle)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -173,17 +185,11 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
     images = facts.get("images") or {}
 
     if _ok(psi):
-        _set_or_skip(sheet, "tp_lcp", _tier(psi.get("lcp_seconds"), ((2.5, 4), (4.0, 2))))
-        _set_or_skip(sheet, "tp_cls", _tier(psi.get("cls_value"), ((0.1, 3), (0.25, 1))))
+        _nach_abstufung(sheet, "tp_lcp", psi.get("lcp_seconds"))
+        _nach_abstufung(sheet, "tp_cls", psi.get("cls_value"))
         # INP stammt nur aus CrUX-Felddaten; für kleine Betriebsseiten meist leer.
-        _set_or_skip(sheet, "tp_inp", _tier(psi.get("inp_ms"), ((200, 2), (500, 1))))
-
-        perf = psi.get("performance_score")
-        if perf is None:
-            sheet.skip("tp_mobile")
-        else:
-            sheet.set("tp_mobile", 3 if perf >= 90 else (2 if perf >= 70 else
-                      (1 if perf >= 50 else 0)), Source.MEASURED)
+        _nach_abstufung(sheet, "tp_inp", psi.get("inp_ms"))
+        _nach_abstufung(sheet, "tp_mobile", psi.get("performance_score"))
     else:
         for key in ("tp_lcp", "tp_cls", "tp_inp", "tp_mobile"):
             sheet.skip(key)
@@ -199,13 +205,6 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
         sheet.skip("tp_bilder")
 
 
-def _set_or_skip(sheet: _Sheet, key: str, points: Optional[int]) -> None:
-    if points is None:
-        sheet.skip(key)
-    else:
-        sheet.set(key, points, Source.MEASURED)
-
-
 # ═══════════════════════════════════════════════════════════════════
 # Barrierefreiheit
 # ═══════════════════════════════════════════════════════════════════
@@ -215,21 +214,13 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
     qa = facts.get("qa") or {}
     audits = (psi.get("a11y_audits") or {}) if _ok(psi) else {}
 
-    score = psi.get("accessibility_score") if _ok(psi) else None
-    if score is None:
-        sheet.skip("bf_lighthouse")
-    else:
-        sheet.set("bf_lighthouse", 3 if score >= 90 else (2 if score >= 75 else
-                  (1 if score >= 50 else 0)), Source.MEASURED)
+    _nach_abstufung(sheet, "bf_lighthouse",
+                    psi.get("accessibility_score") if _ok(psi) else None)
 
     sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED)
     sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED)
 
-    quote = qa.get("alt_texte_quote")
-    if quote is None:
-        sheet.skip("bf_alt")
-    else:
-        sheet.set("bf_alt", 2 if quote >= 95 else (1 if quote >= 80 else 0), Source.MEASURED)
+    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"))
 
     # ── bf_semantik: zwei Haelften zu je einem Punkt (S1.1, 24.08.2026) ──
     #
@@ -445,7 +436,7 @@ def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     if _ok(cta):
         count = _treffer_in_klasse(cta.get("elemente"), "cta", klasse,
                                    cta.get("cta_count", 0))
-        sheet.set("cv_cta", 3 if count >= 3 else (2 if count >= 1 else 0), Source.DERIVED)
+        _nach_abstufung(sheet, "cv_cta", count, Source.DERIVED)
     else:
         sheet.skip("cv_cta")
 
@@ -463,8 +454,7 @@ def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 
     if _ok(trust):
         signale = _vertrauenssignale(trust, klasse)
-        sheet.set("cv_vertrauen", 3 if signale >= 4 else (2 if signale >= 2 else
-                  (1 if signale >= 1 else 0)), Source.DERIVED)
+        _nach_abstufung(sheet, "cv_vertrauen", signale, Source.DERIVED)
     else:
         sheet.skip("cv_vertrauen")
     # cv_klarheit, cv_angebot: KI (siehe _apply_ai)
@@ -498,8 +488,7 @@ def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     if _ok(services):
         count = _treffer_in_klasse(services.get("seiten"), "leistungsseiten", klasse,
                                    services.get("service_page_count", 0))
-        sheet.set("ih_leistungsseiten", 2 if count >= 3 else (1 if count >= 1 else 0),
-                  Source.MEASURED)
+        _nach_abstufung(sheet, "ih_leistungsseiten", count)
     else:
         sheet.skip("ih_leistungsseiten")
 

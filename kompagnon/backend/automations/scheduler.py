@@ -24,6 +24,7 @@ from automations.erinnerungen import (
 )
 from automations.scheduler_kontakt import _send_phase_email, job_check_missing_materials, job_check_overdue_phases, job_phase_postgolive_transitions, job_send_briefing_reminders, job_tag_14_funktionscheck, job_tag_21_bewertungsanfrage, job_tag_30_geo_check, job_tag_30_upsell, job_tag_5_followup
 from automations.scheduler_ueberwachung import job_check_all_domains, job_check_netlify_dns, job_check_netlify_ssl
+from automations.job_ki_sichtbarkeit import job_ki_sichtbarkeit_woechentlich
 from automations.scheduler_bericht import job_monthly_performance_report
 from automations.versandmodus import setze_probemodus
 import logging
@@ -304,6 +305,17 @@ class CompagnonScheduler:
             "cron",
             hour=4, minute=30,
             id="fehlerprotokoll_aufraeumen",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # **Wöchentlich, montags früh.** Jede Frage kostet Geld; der Takt
+        # ergibt eine Kurve statt Rauschen. Läuft nur für zahlende Abonnenten
+        # und nur, wenn ein Schlüssel hinterlegt ist (L-58 b).
+        self.scheduler.add_job(
+            job_ki_sichtbarkeit_woechentlich,
+            "cron",
+            day_of_week="mon", hour=6, minute=0,
+            id="ki_sichtbarkeit_woechentlich",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

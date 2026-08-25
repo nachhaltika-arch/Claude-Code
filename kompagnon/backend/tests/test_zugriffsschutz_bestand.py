@@ -47,8 +47,12 @@ ERLAUBTE_BEREICHE = {
     "audit", "geo-payments", "usercards", "tickets", "invoices", "versand",
 }
 
-#: Routen ganz **ohne** Anmeldepruefung, Stand 22.08.2026 (L-51).
-OFFEN_ERWARTET = 49
+#: Routen ganz **ohne** Anmeldepruefung, Stand 25.08.2026 (L-51).
+#:
+#: 22.08.2026: 49
+#: 25.08.2026: 53 — vier Routen des Buchverkaufs (BUCH-05). Ein Kaeufer ist
+#:   nicht angemeldet und wird es auch nicht: Er kauft ein Buch, kein Konto.
+OFFEN_ERWARTET = 53
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
@@ -67,11 +71,19 @@ OFFEN_ERWARTET = 49
 #: `audit`                   Analyse starten und die Anzahl abfragen; beides
 #:                           gehoert dem Widget.
 #: `academy`                 Zertifikatspruefung ueber den Code.
+#: `book`                    Der Buchverkauf. Vier Routen: die Kasse und die
+#:                           Preisliste (ein Kaeufer ist nicht angemeldet),
+#:                           der Stripe-Rueckruf (weist sich per Signatur aus,
+#:                           siehe `test_buch_bestellung`) und die Auskunft
+#:                           fuer die Danke-Seite. Letztere gibt bewusst nur
+#:                           Nummer, Ausgabe, Zahlungsstand und eine
+#:                           **verkuerzte** Adresse heraus — keine Anschrift,
+#:                           kein Abruftoken.
 #: `health`, `ping`          Betriebsanzeigen ohne Inhalt.
 OFFENE_BEREICHE = {
     "widget", "webhooks", "auth", "leads", "payments", "tickets",
     "products", "projects", "audit", "messages", "briefings", "kampagne",
-    "academy", "geo-payments", "mail-events", "health", "ping",
+    "academy", "geo-payments", "mail-events", "health", "ping", "book",
 }
 
 

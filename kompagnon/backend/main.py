@@ -56,6 +56,7 @@ from routers import (
     customers_router,
     automations_router,
     audit_router,
+    buch_router,
     diagnostics_router,
     widget_router,
     acquisition_router,
@@ -709,6 +710,7 @@ app.include_router(automations_router)
 app.include_router(cms_connect_router)
 app.include_router(portal_router)
 app.include_router(audit_router)
+app.include_router(buch_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
 app.include_router(acquisition_router)

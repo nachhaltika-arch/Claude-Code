@@ -64,6 +64,10 @@ SCHREIBER = {
     "widget.py": "das Analyse-Widget auf fremden Seiten",
     "kampagne.py": "Kampagnen-Landingpages",
     "payments.py": "der Kauf legt den Betrieb an (Art. 6 Abs. 1 lit. b)",
+    "buch.py": "der Buchkauf legt den Käufer als Lead an — derselbe Weg und "
+               "dieselbe Rechtsgrundlage wie beim Paketkauf (Art. 6 Abs. 1 "
+               "lit. b). Ohne diesen Schritt verkauft das System Bücher und "
+               "verliert die Käufer: Sie stünden in keiner Pipeline",
     # Innendienst
     "leads_import.py": "CSV- und Domain-Import",
     "leads_portal.py": "das öffentliche Formular",

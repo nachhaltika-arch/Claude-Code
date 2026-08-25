@@ -38,6 +38,7 @@ from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router
 from .audit import router as audit_router
+from .buch import router as buch_router
 from .diagnostics import router as diagnostics_router
 from .widget import router as widget_router
 from .acquisition import router as acquisition_router

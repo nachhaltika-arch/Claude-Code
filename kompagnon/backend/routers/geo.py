@@ -426,6 +426,29 @@ async def pruefe_ki_sichtbarkeit_endpunkt(
     return {**befund, "verlauf_laenge": len(analyse.ki_sichtbarkeit_verlauf or [])}
 
 
+@router.get("/{project_id}/wirkungsbericht")
+def wirkungsbericht(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_innendienst),
+):
+    """Der Vergleich 60 Tage nach der Auslieferung (GEO-01, Position 7).
+
+    Rechnet nur auf vorhandenen Daten — er kostet nichts und darf deshalb
+    jederzeit abgerufen werden. Ist es zu frueh, sagt er das, statt eine
+    Wirkung aus zwei Messpunkten zu behaupten.
+    """
+    from services.geo_wirkungsbericht import baue_wirkungsbericht, klartext
+
+    analyse = db.query(GeoAnalysis).filter(
+        GeoAnalysis.project_id == project_id).first()
+    if not analyse:
+        raise HTTPException(404, "Fuer dieses Projekt gibt es keine GEO-Analyse")
+
+    bericht = baue_wirkungsbericht(analyse)
+    return {**bericht, "klartext": klartext(bericht)}
+
+
 @router.get("/{project_id}/ki-sichtbarkeit/verlauf")
 def ki_sichtbarkeit_verlauf(
     project_id: int,

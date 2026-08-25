@@ -368,11 +368,17 @@ async def netlify_deploy_all(
     finally:
         db2.close()
 
+    # Dieselbe Nachschau wie beim Einzelseiten-Deploy: Wer GEO-01 gekauft hat,
+    # hat Anspruch darauf — unabhaengig davon, ueber welchen Weg seine Seite
+    # veroeffentlicht wurde (25.08.2026).
+    auslieferung = await _pruefe_und_merke(project_id, result.get("deploy_url"))
+
     return {
         "deploy_id":      result["deploy_id"],
         "deploy_url":     result["deploy_url"],
         "state":          result["state"],
         "pages_deployed": list(page_files.keys()),
+        "auslieferung":   auslieferung,
     }
 
 

@@ -1107,10 +1107,22 @@ export default function LeadProfile() {
         );
 
         return (
-          <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {haupt.map(tab => reiterKnopf(tab))}
+          /* **Zwei Kaesten, nicht einer — und das hat einen Grund (25.08.2026).**
+           * Vorher trug diese eine Leiste `kc-tab-nav` **und** das Klappmenue.
+           * `overflow-x: auto` macht `overflow-y` zur `auto` — die Leiste ist
+           * 47 px hoch, das Menue haengt darunter, und der Scroll-Container
+           * schnitt es vollstaendig ab. Der Knopf reagierte, `mehrOffen` kippte,
+           * das Menue stand im DOM — und niemand sah es. Damit waren **vier**
+           * Reiter unerreichbar: Deals, Akademie, Zugang, E-Mails.
+           * Seit dem Wischen auf dem Handy (6d7bdb7, 22.08.) war das so.
+           * Jetzt scrollt nur die Reiterreihe; das Menue haengt an einem Kasten
+           * ohne `overflow` und kann heraushaengen. */
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4 }}>
+            <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, flex: 1, minWidth: 0 }}>
+              {haupt.map(tab => reiterKnopf(tab))}
+            </div>
 
-            <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : 1, flexShrink: 0 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setMehrOffen(o => !o)}
                 aria-expanded={mehrOffen}

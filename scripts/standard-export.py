@@ -15,9 +15,10 @@ unzuverlässig erwiesen — deshalb Weg B aus S4.8: erzeugen.
 zweite Wahrheit." Sie stehen jetzt als `buch_code`, `buch_label` und
 `buch_kapitel` am Katalog; dieses Skript hat keine eigene Zuordnung mehr.
 
-**Was sich weiterhin nicht erzeugen lässt:** die Punktabstufungen selbst. Sie
-stecken als Bedingung in `audit_scoring.py` — das ist BUCH-F1, und der Grund,
-warum F1 vor F2 kommt.
+**Seit BUCH-F1 (25.08.2026) erscheinen auch die Punktabstufungen hier.** Sie
+steckten bis dahin als Bedingung in `audit_scoring.py` und liessen sich nicht
+auslesen; das Buch hat seine Tabellen deshalb plausibel konstruiert. Jetzt
+stehen sie als Daten am Kriterium — Abschnitt B.7 druckt sie.
 """
 import importlib.util
 import sys
@@ -53,6 +54,48 @@ def gilt_fuer(krit) -> str:
     if krit.assumes_local:
         return "K1, K2, K3, K5"
     return "alle Klassen"
+
+
+def abstufungsblock(schreib, krit) -> None:
+    """Die Punktabstufung eines Kriteriums, so wie sie im Buch steht.
+
+    Vier der fünf Arten bekommen eine Tabelle. Die eingeschätzten Kriterien
+    bekommen ihr Rubric — dort gibt es keine Schwelle, sondern den Maßstab, den
+    das Modell anlegt. Ihn hier zu drucken ist der Punkt: Kapitel 10 druckte
+    die Merkmale bisher mit dem Vorbehalt, sie seien „meine Zusammenstellung,
+    nicht aus dem Code extrahiert".
+    """
+    a = krit.abstufung
+    schreib(f"**{krit.buch_code} · {krit.buch_name} — {krit.max_points} "
+            f"{'Punkt' if krit.max_points == 1 else 'Punkte'}**")
+    schreib("")
+
+    if a.art == "KI":
+        schreib("Eingeschätzt nach diesem Maßstab:")
+        schreib("")
+        for zeile in (krit.rubric or "").strip().splitlines():
+            schreib("> " + zeile if zeile.strip() else ">")
+        schreib("")
+        return
+
+    if a.art == "ANTEIL":
+        schreib(f"Anteilig: Der gemessene Anteil wird auf {krit.max_points} "
+                f"{'Punkt' if krit.max_points == 1 else 'Punkte'} umgerechnet "
+                "und kaufmännisch gerundet.")
+        schreib("")
+        return
+
+    ueberschrift = ("| Punkte | Teilprüfung |" if a.art == "SUMME"
+                    else "| Punkte | Bedingung |")
+    if a.art == "SUMME":
+        schreib("Die Teilprüfungen addieren sich:")
+        schreib("")
+    schreib(ueberschrift)
+    schreib("|---|---|")
+    for stufe in a.stufen:
+        vorzeichen = "+" if a.art == "SUMME" else ""
+        schreib(f"| {vorzeichen}{stufe.punkte} | {stufe.bedingung} |")
+    schreib("")
 
 
 def main() -> None:
@@ -158,17 +201,18 @@ def main() -> None:
     schreib(f"| **Summe** | **{sum(zaehler.values())}** | **{sum(punkte.values())}** |")
     schreib("")
 
-    # --- B.7 Fehlt noch ---------------------------------------------------
-    schreib("## B.7 🔴 Was in diesem Anhang noch fehlt")
+    # --- B.7 Punktabstufungen (BUCH-F1) -----------------------------------
+    schreib("## B.7 Wie die Punkte je Kriterium vergeben werden")
     schreib("")
-    schreib("**Die Punktabstufungen je Kriterium.** Sie stehen derzeit nicht als "
-            "Daten im Katalog, sondern als Bedingungen im Bewertungscode und "
-            "lassen sich deshalb nicht erzeugen. Sobald `BUCH-F1` sie überführt "
-            "hat, erscheinen sie hier automatisch.")
+    schreib("Diese Tabellen stammen aus derselben Quelle wie die Bewertung. "
+            "Was hier steht, entscheidet über die Punkte — nicht eine "
+            "Beschreibung davon.")
     schreib("")
-    schreib("**Bis dahin stehen die Abstufungen in den Kapiteln 5 bis 12** — "
-            "dort von Hand aus dem Bewertungscode übertragen und damit "
-            "ungeschützt gegen die nächste Änderung.")
+    for kat in ac.CATALOGUE:
+        schreib(f"### {kat.buch_name}")
+        schreib("")
+        for krit in kat.criteria:
+            abstufungsblock(schreib, krit)
     schreib("")
 
     ZIEL.write_text("\n".join(zeilen), encoding="utf-8")

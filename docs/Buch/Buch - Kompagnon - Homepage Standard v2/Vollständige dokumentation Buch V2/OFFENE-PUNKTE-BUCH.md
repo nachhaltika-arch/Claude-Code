@@ -27,6 +27,17 @@
 > Abstufungstabellen gegen den Katalog nach**. `tests/test_buch_bloecke_aktuell.py`
 > hält das fest.
 
+> **Stand 25.08.2026 — das Verfahren ist gegen den Code geprüft.**
+> `BEFUND-C5-pruefung-gegen-buchbeschreibung.md` stellt Schritt für Schritt
+> gegenüber, wie eine Prüfung tatsächlich läuft und wie das Buch sie
+> beschreibt. Ergebnis: **neun Aussagen trafen zu, sechs nicht.** Fünf der
+> sechs sind im Manuskript nachgezogen (B3.1.7). Der sechste — **E2 misst
+> Überschriften auf der Startseite und Wörter über alle Seiten** — ist keine
+> Schreibarbeit, sondern eine Maßstabsfrage und steht als Abschnitt 7 in
+> `docs/Audit/fassung-2027-1-offene-massstabsfragen.md`. **Sie muss vor dem
+> Druck entschieden werden**, weil Kapitel 13 dem Leser sonst eine Zählung
+> beibringt, die von der Messung abweicht.
+
 ---
 
 # B1 · Geschäftsführung — 13 Punkte, null Arbeitszeit
@@ -82,6 +93,7 @@
 | **B2.18** | Bußgeld- und Abmahnkostenhöhen bleiben draußen — gegen Ergänzung schützen |
 | **B2.19** | Die Liste in 16.3 fachlich gegenlesen lassen — **das einzige größere Buchelement ohne Codegrundlage** |
 | **B2.20** | Bibliografische Information der DNB — Formulierung bei der Titelanmeldung |
+| **B2.21** | **Die fremden Dienste der Prüfung selbst** (C5-6). Abschnitt 16 nennt seit dem 25.08.2026, welche drei Dienste die Prüfung benutzt und was ihnen übermittelt wird: die Adresse der geprüften Seite, der Bildschirmabzug, der Seitentext. Übermittelt wird ausschließlich Öffentliches und nichts von Besuchern — **anwaltlich bestätigen lassen**, dass diese Darstellung genügt, und ob es dafür einer eigenen Angabe in der Datenschutzerklärung von KOMPAGNON bedarf |
 
 ---
 
@@ -96,6 +108,7 @@
 | **B3.1.3** | ✅ **erledigt 25.08.2026.** 10.6 ist ein gemessenes Kriterium: Gemessen wird die Schriftgröße, zwei Punkte oder keine. Zeilenlänge, Zeilenabstand und Schriftanzahl stehen weiter da — jetzt ausdrücklich als das, was sie sind: **nicht bewertet**. Merkkasten, Kategorietabelle und Selbsttestzeile mitgezogen | C1 |
 | **B3.1.4** | ✅ **erledigt 25.08.2026.** 3.4 zählt 30 gemessen / 3 abgeleitet / 6 eingeschätzt (81 / 7 / 15 Punkte) — und **die Tabelle wird jetzt erzeugt** statt gepflegt (`scripts/buch-bloecke.py`). Mitgezogen: 3.11, die Merkkästen in 3 und 10, Kapitel 10.2 und das Glossar | C1 |
 | **B3.1.5** | 🔴 **Kapitel 9.8 und 11.7** — die als „Vorteil" beschriebenen Doppelwertungen einordnen | C3 |
+| **B3.1.7** | ✅ **erledigt 25.08.2026** — **Das Verfahren im Buch trifft jetzt das Verfahren im Code** (`BEFUND-C5`). Fünf von sechs Abweichungen sind geschlossen: **ein** Bildschirmabzug statt zwei (10.2), der ausformulierte Maßstab statt „einer Beschreibung" (10.2), der **Umfang von bis zu 25 Seiten** neu in 3.1 mit der Trennung „über alle Seiten / nur Startseite" (dazu 2.8 und 13.1), die Wiederholbarkeit auf das bezogen, was sie trägt (3.1), und die fremden Dienste der Prüfung selbst benannt (16). Offen bleibt **C5-3** — dazu unten | C5 |
 | **B3.1.6** | ✅ **Kapitel 8.5 (B2)** — Kontrasttabelle korrigiert | C2, **erledigt** |
 
 ## B3.2 Zahlen und Ketten

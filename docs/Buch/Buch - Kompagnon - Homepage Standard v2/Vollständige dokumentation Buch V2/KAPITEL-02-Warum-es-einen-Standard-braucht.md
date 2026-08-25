@@ -134,7 +134,7 @@ Eine Prüfung könnte auch mit Zugängen arbeiten: ins Redaktionssystem schauen,
 | Grund | Erläuterung |
 |---|---|
 | **Vergleichbarkeit** | Ein Verfahren, das Zugänge braucht, misst bei jedem Betrieb etwas anderes — je nachdem, welches System er einsetzt |
-| **Wiederholbarkeit** | Was von außen sichtbar ist, ist morgen genauso sichtbar. Was in einem System steht, ändert sich mit jeder Aktualisierung |
+| **Wiederholbarkeit** | Was von außen sichtbar ist, ist morgen genauso sichtbar. Was in einem System steht, ändert sich mit jeder Aktualisierung. Wie weit das trägt, steht in Abschnitt 3.1 |
 | **Zugänglichkeit** | Sie können den Standard auf die Website eines Wettbewerbers anwenden. Auf dessen System nicht |
 | **Ehrlichkeit** | Ein Besucher sieht auch nur die Außenseite. Der Standard misst genau das, was über Ihren Auftrag entscheidet |
 
@@ -222,7 +222,10 @@ Es gibt trotzdem drei Dinge, die eine automatisierte Prüfung besser kann, und S
 | Ladezeit und Kernmesswerte | **nicht möglich** — braucht eine Messung | vollständig |
 | Barrierefreiheitsprüfung | teilweise | vollständig |
 | Gestaltung, Nutzerführung, Inhalt | **besser** — Sie kennen Ihre Kundschaft | eingeschätzt |
+| **Umfang** | die Seiten, die Sie sich ansehen | **bis zu 25 Seiten** |
 | Dauer | etwa 120 Minuten | wenige Minuten |
+
+**Die fünfte Zeile erklärt die meisten Abweichungen zwischen beiden Wegen.** Wo die Prüfliste Sie auf die Startseite schickt, zählt die Software über alle gefundenen Seiten zusammen — bei der Wortzahl, den Bildern, den Kontaktwegen und den Leistungsseiten. Ihr Selbsttestwert fällt dadurch bei einer mehrseitigen Website eher niedriger aus. Abschnitt 3.1 sagt, was worüber gemessen wird.
 
 **Die vierte Zeile ist keine Höflichkeit.** Bei den eingeschätzten Kriterien sind Sie im Vorteil: Sie wissen, welche Fragen Ihnen am Telefon gestellt werden. Eine Einschätzung von außen weiß das nicht.
 

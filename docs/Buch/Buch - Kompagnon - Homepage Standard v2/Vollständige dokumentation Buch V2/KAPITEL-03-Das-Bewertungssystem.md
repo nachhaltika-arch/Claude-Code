@@ -44,7 +44,9 @@ Bevor Sie erfahren, wie gerechnet wird, sollten Sie wissen, worüber überhaupt 
 
 Der Homepage Standard bewertet Ihre Website **von außen**. Genau so, wie ein Kunde, ein Bewerber oder ein Wettbewerber sie sieht. Es wird kein Zugang zu Ihrem System benötigt, kein Passwort, keine Erlaubnis. Das hat einen Vorteil und einen Preis.
 
-**Der Vorteil:** Die Bewertung ist wiederholbar und vergleichbar. Zwei Websites werden nach demselben Maßstab gemessen, unabhängig davon, wer sie gebaut hat und womit. Sie können Ihre Seite mit der eines Wettbewerbers vergleichen, ohne dessen Zugangsdaten zu haben. Und Sie können in sechs Monaten erneut messen und wissen, ob sich etwas verändert hat.
+**Der Vorteil:** Die Bewertung ist vergleichbar. Zwei Websites werden nach demselben Maßstab gemessen, unabhängig davon, wer sie gebaut hat und womit. Sie können Ihre Seite mit der eines Wettbewerbers vergleichen, ohne dessen Zugangsdaten zu haben. Und Sie können in sechs Monaten erneut messen und wissen, ob sich etwas verändert hat.
+
+**Wie weit die Wiederholbarkeit trägt, gehört dazugesagt.** Bei den 33 gemessenen und berechneten Kriterien ergibt eine zweite Prüfung derselben Seite dasselbe Ergebnis — sie stellen fest, was dasteht, und das ändert sich nicht dadurch, dass jemand nachsieht. Bei den sechs eingeschätzten Kriterien liegt ein **schriftlich festgelegter Maßstab** zugrunde, der in Anhang B abgedruckt ist; wie stark ihre Werte zwischen zwei Läufen dennoch schwanken, ist bisher **nicht gemessen worden**. Wo diese Zahl fehlt, steht in diesem Buch keine.
 
 **Der Preis:** Was von außen nicht sichtbar ist, wird nicht bewertet. Ob Ihre Website regelmäßig gesichert wird, ob Ihre Zugangsdaten sicher verwahrt sind, ob der Vertrag mit Ihrer Agentur Ihnen die Herausgabe der Daten sichert — all das ist wichtig, und nichts davon steht in diesem Standard. Kapitel 16 sagt Ihnen, was hier fehlt und warum.
 
@@ -53,6 +55,27 @@ Der Homepage Standard bewertet Ihre Website **von außen**. Genau so, wie ein Ku
 Sicherungen · Zugangsverwaltung · Vertragslage · interne Abläufe
 → Kapitel 16
 :::
+
+### Über wie viele Seiten gemessen wird
+
+„Ihre Website" ist keine Seite, sondern viele. Der Standard prüft deshalb nicht nur die Startseite, sondern **bis zu 25 Seiten** — gefunden über die Verweise Ihrer Startseite und Ihre Sitemap.
+
+Das ist keine Nebensache, weil es die Grundlage einzelner Kriterien verändert:
+
+| Was über **alle** geprüften Seiten zusammengefasst wird | Was **nur** auf der Startseite geprüft wird |
+|---|---|
+| Formulare und ihre Einwilligungsfelder, Kontaktwege, Vertrauenssignale, Leistungsseiten, Aktualität, Bilder, Wortzahl, fremde Dienste | Seitentitel und Kurzbeschreibung, Überschriftenstruktur, Sicherheitsheader, alle Messwerte zu Ladezeit und Barrierefreiheit, der Bildschirmabzug für die Einschätzung |
+
+Vier Regeln bestimmen, wie aus vielen Befunden einer wird. **Irgendwo genügt:** Eine Telefonnummer auf der Kontaktseite ist eine Telefonnummer. **Aufsummieren:** Zwei Formulare auf zwei Seiten sind zwei Formulare. **Überall oder gar nicht:** Das Einwilligungsfeld muss an *jedem* Formular stehen — hier kann eine zusätzliche Seite Ihr Ergebnis verschlechtern, und das ist richtig so. **Vereinigen:** Dieselbe Leistung auf drei Seiten verlinkt ist eine Leistung.
+
+**Ihr Bericht nennt die Zahl der geprüften Seiten.** Vergleichen Sie zwei Ergebnisse derselben Website, sehen Sie dort zuerst nach: Ein Lauf über 25 Seiten sagt etwas anderes als einer über eine.
+
+::: MRG
+**Bis zu 25 Seiten**
+Nicht nur die Startseite. Die Zahl steht in Ihrem Bericht.
+:::
+
+---
 
 Ein Standard, der behauptet, alles zu messen, misst am Ende nichts Bestimmtes. Dieser hier zieht die Grenze bewusst und sagt sie Ihnen.
 

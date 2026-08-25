@@ -37,7 +37,9 @@ Keine Fachkenntnisse. Keine Zugangsdaten. Keine Programme, die Sie installieren 
 
 ### Was dieser Selbsttest ist — und was nicht
 
-**Er ist ein Näherungswert, keine Messung.** Bei den technisch erhobenen Kriterien beschreibt die Prüfliste, was ein Mensch statt der Maschine tun soll. Die Punktschwellen sind dieselben, die Prüfhandlung ist es nicht — wo die Software alle Bilder einer Seite zählt, zählen Sie zehn.
+**Er ist ein Näherungswert, keine Messung.** Bei den technisch erhobenen Kriterien beschreibt die Prüfliste, was ein Mensch statt der Maschine tun soll. Die Punktschwellen sind dieselben, die Prüfhandlung ist es nicht — wo die Software alle Bilder zählt, zählen Sie zehn.
+
+**Der zweite Unterschied ist der Umfang.** Die Prüfliste schickt Sie überwiegend auf die Startseite; die automatische Prüfung sieht sich **bis zu 25 Seiten** an und fasst zusammen (Abschnitt 3.1). Das betrifft vier Stellen dieser Liste: die Wortzahl bei **E2**, die Bilder bei **P5** und **B3**, die Kontaktwege bei **C3** und die Leistungsseiten bei **I1**. Bei einer Website mit vielen Unterseiten fällt Ihr Selbsttestwert dort eher niedriger aus als eine Messung. **Das ist kein Fehler Ihrer Zählung** — es ist eine andere Grundlage, und Sie sollten sie kennen, bevor Sie beide Zahlen nebeneinanderlegen.
 
 **Das macht das Ergebnis nicht wertlos.** Es macht es zu einer verlässlichen Größenordnung mit einer belastbaren Aufgabenliste. Für alles, was Sie damit vorhaben — eine Reihenfolge festlegen, eine Überarbeitung ausschreiben, in einem Jahr nachprüfen — genügt das.
 

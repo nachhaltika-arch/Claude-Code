@@ -60,6 +60,18 @@ Zwei Teile Ihres Berichts tragen keine Punkte. Sie sind trotzdem da, und sie sin
 
 **Wofür der Befund trotzdem gut ist:** Wenn Sie eine Überarbeitung beauftragen, ist das die erste Frage jedes Dienstleisters. Was auf Ihrer Seite steht, entscheidet über den Aufwand — und damit über den Preis. **Sie haben die Antwort, bevor Sie gefragt werden.**
 
+### Womit die Prüfung selbst arbeitet
+
+Kapitel 6 erklärt Ihnen, dass jeder fremde Dienst auf Ihrer Website etwas erfährt. Dann gehört auch gesagt, welche fremden Dienste **diese Prüfung** benutzt:
+
+| Wofür | Was übermittelt wird |
+|---|---|
+| Messwerte zu Ladezeit und Barrierefreiheit | die Adresse der geprüften Seite |
+| Bildschirmabzug der Startseite | die Adresse der geprüften Seite |
+| Einordnung und Einschätzung durch ein Sprachmodell | Bildschirmabzug, Seitentext und die gemessenen Signale |
+
+Übermittelt wird jeweils die **öffentlich erreichbare** Seite — nichts, was ein Besucher nicht auch sehen könnte, und keine Daten Ihrer Besucher. Fällt einer dieser Dienste aus, laufen die betroffenen Kriterien als *nicht erhoben* mit und fallen aus der Rechnung (Abschnitt 3.5).
+
 ::: MRG
 **Für die Angebotseinholung**
 Der Infrastruktur-Befund beantwortet die erste Frage jedes Dienstleisters, bevor sie gestellt wird.

@@ -188,6 +188,40 @@ am 24.08. auf den Stand des Codes gebracht worden; die Messung fehlt weiter.
 
 ---
 
+## 7. E2 misst zwei Dinge auf zwei Grundlagen (C5-3, 25.08.2026)
+
+`se_struktur` vergibt zwei Punkte für zwei Teilprüfungen — und die beiden
+stehen auf verschiedenen Grundlagen:
+
+| Teilprüfung | Grundlage |
+|---|---|
+| genau eine Hauptüberschrift, mindestens eine Zwischenüberschrift | **nur die Startseite** (`qa` läuft gegen `base_url`) |
+| mindestens 300 Wörter | **Summe über alle geprüften Seiten** (`audit_aggregat` summiert `word_count`) |
+
+**Warum das eine Maßstabsfrage ist und keine Reparatur.** Bei einer Website
+mit fünf Unterseiten ist die 300-Wörter-Schwelle praktisch immer erfüllt; der
+Punkt ist dann geschenkt. Beim Leser des Selbsttests ist er es nicht — er
+zählt die Startseite, wie Kapitel 13 es ihn heißt. **Dieselbe Website bekommt
+im Selbsttest und in der automatischen Prüfung systematisch verschiedene
+Werte**, und zwar nicht wegen der Sorgfalt des Lesers, sondern wegen der
+Grundlage.
+
+**Drei Wege, alle mit Folgen:**
+
+| | Weg | Folge |
+|---|---|---|
+| **A** | Die Wortzahl auf die Startseite beziehen | strenger; viele Bestandsaudits verlieren einen Punkt |
+| **B** | Die Schwelle bei der Summe anheben (etwa 300 je geprüfter Seite) | bleibt großzügig, wird aber vergleichbar |
+| **C** | Belassen und im Buch benennen | seit dem 25.08. so umgesetzt — 3.1 und 13.1 sagen die Grundlage |
+
+Weg C ist die **Zwischenlösung**, nicht die Antwort: Das Buch verschweigt die
+Abweichung nicht mehr, aber der Maßstab bleibt uneinheitlich. Die Entscheidung
+gehört in die Fassung 2027.1, weil A und B die Punkte realer Seiten verändern.
+
+Quelle: `BEFUND-C5-pruefung-gegen-buchbeschreibung.md`.
+
+---
+
 ## Was hier **nicht** hingehört
 
 Ein Befund, der sich ohne Änderung an `max_points` und ohne Änderung der

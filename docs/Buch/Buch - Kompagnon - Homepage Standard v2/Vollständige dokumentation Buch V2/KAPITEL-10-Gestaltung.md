@@ -71,17 +71,28 @@ Die Alternative ist, die Einschätzung zu benennen. Das tut dieser Standard.
 
 ### Was tatsächlich geschieht
 
-Ein Sprachmodell bekommt einen Bildschirmabzug Ihrer Startseite — mobil und am Rechner — sowie den Seitentext. Dazu bekommt es:
+Ein Sprachmodell bekommt **einen** Bildschirmabzug Ihrer Startseite sowie den Seitentext. Dazu bekommt es:
 
 | Was das Modell erhält | Beispiel |
 |---|---|
 | Die Branchenklasse und ihren Maßstab | „K1 — lokaler Leistungsbetrieb" |
-| Jedes Kriterium mit seiner Spanne und einer Beschreibung | „D1 (0–3): Visuelle Aktualität — wirkt das Layout zeitgemäß oder veraltet?" |
+| Zu jedem Kriterium einen **ausformulierten Maßstab** | was drei Punkte von zwei unterscheidet, welche Merkmale zählen — und was ausdrücklich *nicht* zu diesem Kriterium gehört |
+| Die gemessenen Signale | gefundene Handlungsangebote, Vertrauenssignale, Leistungsseiten, Wortzahl, Bilderzahl |
 | Die Anweisung, streng zu sein | volle Punktzahl nur bei sichtbaren Belegen |
 | Die Anweisung, sachlich zu formulieren | Abwertende Urteile über Gestaltung sind ausdrücklich untersagt |
 | Die Sicht, aus der beurteilt wird | die Kundschaft, die Sie gewinnen wollen — **nicht die eines Gestalters** |
 
+**Der ausformulierte Maßstab ist neu und er ist der Grund, warum Sie widersprechen können.** Bis zum August 2026 bekam das Modell je Kriterium eine Zeile: die Bezeichnung und eine Frage. Was zwei Punkte von einem unterschied, stand nirgends — das Modell entschied es jedes Mal neu. Seitdem steht es geschrieben, und zwar an derselben Stelle wie die Punktwerte selbst. **Anhang B druckt diese Maßstäbe ab**; Sie können also nachlesen, wogegen gemessen wurde.
+
+**Ein Abzug, nicht zwei.** Beurteilt wird die Ansicht, die der Abzug zeigt. Wenn Ihre Seite am Rechner und auf dem Telefon unterschiedlich wirkt, sieht das Modell nur eine der beiden Ansichten. Für die mobile Darstellung gibt es getrennt davon eine Messung (D5) und die Schriftgröße (D2).
+
 Der letzte Punkt ist der wichtigste. **Bewertet wird nicht, ob Ihre Website einem Designer gefällt.** Bewertet wird, ob ein Hausbesitzer mit einem konkreten Vorhaben den Eindruck bekommt, hier einem laufenden Betrieb gegenüberzustehen.
+
+### Wenn die Einordnung nicht gelingt
+
+Der Maßstab hängt an Ihrer Branchenklasse, und die Klasse wird vor der Bewertung erkannt (Abschnitt 4.7). **Gelingt diese Erkennung nicht, findet die Einschätzung gar nicht statt** — alle sechs eingeschätzten Kriterien erscheinen dann als *nicht erhoben* und fallen aus der Rechnung, wie Abschnitt 3.5 es beschreibt.
+
+Das sieht nach einem Ausfall aus und ist eine Entscheidung: Ohne Klasse bliebe nur ein fester Maßstab für alle — genau der Zustand, den dieser Standard abgeschafft hat. Lieber keine Einschätzung als eine nach dem falschen Maßstab.
 
 ### Was das für Ihr Ergebnis bedeutet
 

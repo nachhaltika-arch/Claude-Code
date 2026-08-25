@@ -73,8 +73,8 @@
 | **B1.14b** | 🔴 Impressum mit der Offenlegung aus 2.7 auf allen drei Seiten | GF / Recht |
 | **B1.14c** | 🔴 **Die drei Seiten anlegen** — keine davon existiert | Technik |
 | **B1.14d** | Weiterleitungen: `homepagestandard.de` pfaderhaltend 301, die drei Pfade als 302 | Technik |
-| **B1.14e** | Zertifikate beider Domains in die Ablaufüberwachung — S1 gilt für uns selbst | Technik |
-| **B1.14f** | Je Kapitel ein eigener Parameter im QR-Code (`?q=k13`) | Technik |
+| **B1.14e** | ✅ **erledigt 25.08.2026** (`automations/job_eigene_zertifikate.py`, täglich 7:30). Die bestehende Überwachung liest `projects` — unsere eigenen Adressen stehen dort nicht. **Der erste Lauf fand sofort etwas:** `homepage-standard.de` und `homepagestandard.de` liefern **kein gültiges Zertifikat**; sie sind gesichert, aber es liegt nichts darauf (siehe B1.14c). `kas.kompagnon.group` ist gültig, 80 Tage Restlaufzeit | Technik |
+| **B1.14f** | 🟡 **teilweise — die Aufgabe war so nicht umsetzbar.** Das Buch druckt Adressen **ausschließlich in der Titelei**; Kapitel 2.8 und 13.11 verweisen dorthin, und Kapitel 13 sagt ausdrücklich, mehr technische Adressen kämen im Buch nicht vor. Je Kapitel einen QR-Code zu setzen hieße, diese Regel für eine Kennzahl zu brechen. **Umgesetzt ist, was ohne Regelbruch geht:** Das QR-Ziel trägt `?q=buch` — der Parameter steht im Ziel, nicht in der gedruckten Adresse, die zum Abtippen taugen muss. Damit lässt sich Buchherkunft von anderer unterscheiden, und die drei Pfade sind ohnehin getrennt messbar. **Ob mehr nötig ist, entscheidet die Geschäftsführung** | Technik / GF |
 
 ---
 

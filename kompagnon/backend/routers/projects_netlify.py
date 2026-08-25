@@ -195,6 +195,11 @@ async def netlify_deploy(
         jsonld=geo_jsonld,
     )
 
+    # **Nachsehen, ob angekommen ist, was hochgegangen ist** (GEO-01, Pos. 6).
+    # Der Deploy meldet „erfolgreich"; ob `llms.txt` danach unter ihrer Adresse
+    # steht, ist eine andere Frage. Sie zu stellen kostet zwei Abrufe.
+    auslieferung = await _pruefe_und_merke(project_id, result.get("deploy_url"))
+
     # Neue Session zum Speichern
     db2 = SessionLocal()
     try:
@@ -212,7 +217,43 @@ async def netlify_deploy(
         "deploy_id":  result["deploy_id"],
         "deploy_url": result["deploy_url"],
         "state":      result["state"],
+        "auslieferung": auslieferung,
     }
+
+
+async def _pruefe_und_merke(project_id: int, deploy_url: str) -> dict:
+    """Die Auslieferung pruefen und das Ergebnis am Projekt festhalten.
+
+    **Wirft nie.** Eine misslungene Nachschau darf keinen gelungenen Deploy zu
+    einem Fehler machen — sie ist eine Auskunft, kein Tor.
+    """
+    from datetime import datetime as _dt
+
+    from services.geo_auslieferung import pruefe_auslieferung
+
+    try:
+        befund = await pruefe_auslieferung(deploy_url or "")
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Auslieferungspruefung fuer Projekt %s gescheitert: %s",
+                       project_id, fehler)
+        return {"collected": False, "grund": "Pruefung selbst gescheitert"}
+
+    db = SessionLocal()
+    try:
+        from modelle_audit import GeoAnalysis
+
+        analyse = db.query(GeoAnalysis).filter(
+            GeoAnalysis.project_id == project_id).first()
+        if analyse:
+            analyse.auslieferung = befund
+            analyse.auslieferung_am = _dt.utcnow()
+            db.commit()
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Auslieferungsbefund nicht gespeichert (Projekt %s): %s",
+                       project_id, fehler)
+    finally:
+        db.close()
+    return befund
 
 
 def _slugify_page_name(name: str) -> str:

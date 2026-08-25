@@ -202,6 +202,15 @@ class GeoAnalysis(Base):
     # begrenzt: `services/ki_sichtbarkeit.VERLAUF_MAX`.
     ki_sichtbarkeit_verlauf = Column(JSONB, nullable=True)
 
+    # Ist die Auslieferung angekommen? (GEO-01, Position 6)
+    #
+    # Der Deploy meldet „erfolgreich" — ob die Datei danach unter ihrer
+    # Adresse steht, hat das eine mit dem anderen nicht zu tun. Hier steht das
+    # Ergebnis der Nachschau am lebenden Dienst. NULL heisst „nie geprueft",
+    # nicht „nicht angekommen".
+    auslieferung = Column(JSONB, nullable=True)
+    auslieferung_am = Column(DateTime, nullable=True)
+
     # Stripe Subscription
     stripe_subscription_id = Column(String(200), nullable=True)
     stripe_customer_id = Column(String(200), nullable=True)

@@ -1211,6 +1211,9 @@ def run_migrations():
         # Betrieb auf eine Kundenfrage hin wirklich **nennen**, steht jetzt
         # hier: je System die gestellten Fragen, die Belege und die Trefferzahl.
         # NULL heisst „nie gelaufen" — ausdruecklich nicht „nicht gefunden".
+        # Die Nachschau nach dem Deploy (GEO-01 Position 6, 25.08.2026).
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS auslieferung JSONB",
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS auslieferung_am TIMESTAMP",
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit JSONB",
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_am TIMESTAMP",
         # Der Verlauf, nicht nur der letzte Stand (L-85, 22.08.2026). Der

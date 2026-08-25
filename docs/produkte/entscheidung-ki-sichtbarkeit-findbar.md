@@ -107,11 +107,16 @@ gefragt haben, wäre eine Behauptung, die den Betrieb Geld kostet.
 | 1 | **Schlüssel.** Nie gegen einen echten Dienst gelaufen | 🔴 offen — Beschaffung durch David |
 | 2 | **Kein Aufrufer im Frontend** — dieselbe Klasse, die im Lagebild fünfmal steht | ✅ **geschlossen**: Reiter „Nennung" im GEO-Schritt, mit Verlaufstabelle |
 | 3 | **Kein Wochenjob** | ✅ **geschlossen**: montags 6 Uhr, nur für laufende Abos, `automations/job_ki_sichtbarkeit.py` |
-| 4 | **Google AI fehlt** als vierter Anbieter | 🔴 offen — halber Tag |
-| 5 | **Kundenbericht** mit Trend für den Abonnenten | 🔴 offen — 1 Tag |
+| 4 | **Google AI fehlt** als vierter Anbieter | ✅ **geschlossen**: `GEMINI_API_KEY`, Interactions API mit Suchwerkzeug, Modell `gemini-3.7-flash` |
+| 5 | **Kundenbericht** mit Trend für den Abonnenten | 🟡 **halb**: Der Kauf löst jetzt eine Erstmessung aus, der Verlauf steht im Reiter „Nennung". Was fehlt, ist die Ansicht **für den Kunden** — bisher sieht sie nur der Innendienst |
 | 6 | Wiederkehrende Abrechnung | ✅ **existiert bereits** — siehe Korrektur unten |
 
-**Es bleiben anderthalb Tage plus die Schlüssel.**
+**Es bleibt ein halber Tag plus die Schlüssel** — die Kundenansicht.
+
+> **Stand 25.08.2026, abends.** Vier der sechs Lücken sind zu. Wir messen
+> dieselben vier Systeme wie der Wettbewerb; gefragt wird mit den großen
+> Modellen samt Websuche, nicht mit den kleinen. Ein System ohne Schlüssel
+> erscheint überall als *nicht erhoben* — nie als Null.
 
 > **Korrektur zu Punkt 6.** Die erste Fassung dieses Papiers zählte die
 > wiederkehrende Abrechnung als fehlend und verwies auf L-101. **Das trifft
@@ -174,8 +179,9 @@ SEC GmbH lägen, und ohne die 1,2-Prozent-Behauptung zu übernehmen.
 1. Probelauf mit einem Schlüssel          ← beendet die Kostenfrage   🔴 offen
 2. Frontend anschließen                                                ✅ 25.08.
 3. Wochenjob im vorhandenen Planer                                     ✅ 25.08.
-4. Google AI als vierter Anbieter                                      🔴 offen
-5. Kundenbericht mit Trend, an den Abo-Kauf gehängt                    🔴 offen
+4. Google AI als vierter Anbieter                                      ✅ 25.08.
+5. Erstmessung beim Kauf                                               ✅ 25.08.
+6. Ansicht für den Kunden                                              🔴 offen
    ▼
    danach erst: der Preis
 ```

@@ -155,18 +155,23 @@ export default function Zugaenge({ leadId, token }) {
         </div>
       )}
 
+      {/* Die drei Felder tragen `aria-label`, nicht nur einen Platzhalter:
+        * Ein Platzhalter verschwindet beim Tippen und wird von einem
+        * Screenreader je nach Browser gar nicht als Name angesagt — das Feld
+        * hiesse dann „Eingabefeld". `feldName.test.js` wacht darueber. */}
       <form onSubmit={einladen} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
           Weiteren Zugang einladen
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input required type="email" placeholder="E-Mail-Adresse" value={formular.email}
+          <input required type="email" placeholder="E-Mail-Adresse" aria-label="E-Mail-Adresse des neuen Zugangs"
+            value={formular.email}
             onChange={e => setFormular({ ...formular, email: e.target.value })}
             style={{ ...feld, flex: '2 1 200px' }} />
-          <input placeholder="Vorname" value={formular.first_name}
+          <input placeholder="Vorname" aria-label="Vorname" value={formular.first_name}
             onChange={e => setFormular({ ...formular, first_name: e.target.value })}
             style={{ ...feld, flex: '1 1 110px' }} />
-          <input placeholder="Nachname" value={formular.last_name}
+          <input placeholder="Nachname" aria-label="Nachname" value={formular.last_name}
             onChange={e => setFormular({ ...formular, last_name: e.target.value })}
             style={{ ...feld, flex: '1 1 110px' }} />
         </div>

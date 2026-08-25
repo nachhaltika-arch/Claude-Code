@@ -94,7 +94,7 @@ Elektro Hansen, vierzehn Mitarbeiter, Branchenklasse K1. Sie kennen den Betrieb 
 | L2 Datenschutzerklärung | erreichbar, Verantwortlicher, Rechtsgrundlagen und Betroffenenrechte vorhanden | 6 / 6 |
 | L3 Einwilligung | Einwilligungswerkzeug erkannt, lädt Dienste erst nach Zustimmung | 4 / 4 |
 | L4 Barrierefreiheitserklärung | **nicht vorhanden** | 0 / 2 |
-| L5 Kontaktformular | Einwilligungsfeld und Verweis auf die Datenschutzerklärung vorhanden | 2 / 2 |
+| L5 Kontaktformular | Einwilligungsfeld an jedem Formular vorhanden | 2 / 2 |
 | | | **18 / 20** |
 
 **Kein Ausschlusskriterium.** Das ist die eigentliche Nachricht dieses Befunds. Elektro Hansen ist in der Kategorie, in der es teuer wird, in Ordnung.
@@ -135,7 +135,7 @@ Die Prüfung geschieht in zwei Schritten, und sie ist strenger als der übliche 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-rc_impressum.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-rc_impressum. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -225,7 +225,7 @@ Ob die drei geprüften Inhalte als Mindestmaß tragfähig sind. Gehört zur Rech
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-rc_datenschutz.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-rc_datenschutz. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -272,7 +272,7 @@ Drei Dinge, die zusammengehören:
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-rc_cookie.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-rc_cookie. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -329,7 +329,7 @@ Ob eine Erklärung zur Barrierefreiheit verlinkt ist. Mehr nicht — der Inhalt 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-rc_bfsg.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-rc_bfsg. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -360,11 +360,15 @@ Ein Kontaktformular überträgt personenbezogene Daten. Der Absender soll erkenn
 
 ### Was geprüft wird
 
-Ob die Formulare auf der Seite ein Einwilligungsfeld und einen Verweis auf die Datenschutzerklärung enthalten. Gibt es kein Formular, entfällt das Kriterium — es wird als **nicht erhoben** ausgewiesen und fällt aus Zähler und Nenner.
+Ob die Formulare auf der Seite ein Einwilligungsfeld enthalten. **Der Verweis auf die Datenschutzerklärung wird nicht geprüft** — der Kriterienhinweis nannte ihn bis zum 24.08.2026, eingelöst hat ihn die Bewertung nie. Wer dafür einen Punkt verlor, suchte an der falschen Stelle.
+
+Erkannt wird ein Ankreuzfeld, in dessen Umfeld von Datenschutz, Einverständnis oder Zustimmung die Rede ist. Ein Formular, das nur einen Hinweistext ohne Ankreuzfeld trägt, bekommt heute null Punkte — siehe den offenen Punkt am Ende dieses Abschnitts.
+
+Gibt es kein Formular, entfällt das Kriterium — es wird als **nicht erhoben** ausgewiesen und fällt aus Zähler und Nenner.
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-rc_formular_dsgvo.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-rc_formular_dsgvo. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|

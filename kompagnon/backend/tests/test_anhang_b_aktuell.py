@@ -23,6 +23,7 @@ WURZEL = pathlib.Path(__file__).resolve().parents[3]
 SKRIPT = WURZEL / "scripts" / "standard-export.py"
 ANHANG = (WURZEL / "docs" / "Buch"
           / "Buch - Kompagnon - Homepage Standard v2"
+          / "Vollständige dokumentation Buch V2"
           / "ANHANG-B-Schwellentabellen.md")
 KATALOG = WURZEL / "kompagnon" / "backend" / "services" / "audit_criteria.py"
 

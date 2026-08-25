@@ -238,16 +238,23 @@ angefasst.
    Ankreuzbox, deren Umfeld „datenschutz/privacy/einverstanden/akzeptier"
    enthält. Ein Formular mit bloßem Datenschutzhinweis bekommt 0 — Kapitel 3
    argumentiert, der Hinweis genüge.
-3. **S3 hat eine tote Stufe** *(neu am 25.08., beim Eintragen aufgefallen)*.
-   Der Anteil wird auf drei Punkte skaliert und kaufmännisch gerundet: **zwei
-   und drei gesetzte Sicherheitsheader ergeben beide 2 Punkte.** Der dritte
-   Header ist wertlos. Dieselbe Klasse wie S7.1 und S7.2.
-4. **P2 überspringt einen Punktwert** *(neu am 25.08.)*. Die Staffel lautet
-   3 / 1 / 0 — den Wert 2 kann kein Betrieb erreichen. Anders als bei S3 ist
-   das kein Rundungsfehler, sondern so hinterlegt.
-5. **C2 bestätigt** *(S7.3)*: Die Staffel lautet 3 / 2 / 0. Der Punktwert 1
-   ist unerreichbar. Beim Eintragen der Daten sichtbar geworden, nicht
-   erschlossen.
+3. **S3, P2 und C2 am laufenden Code nachgemessen** — **nicht neu.** Alle drei
+   stehen bereits in `BEFUND-C2-tote-stufen.md`; hier ist nur bestätigt, was
+   dort steht:
+   * **S3** — zwei und drei gesetzte Sicherheitsheader ergeben beide 2 Punkte
+     (`0 · 1 · 2 · 2 · 3`), der dritte Header ist wertlos. Am 25.08. gegen
+     `_Sheet.scale` durchgerechnet, nicht überschlagen.
+   * **P2** — die Staffel lautet 3 / 1 / 0, den Wert 2 gibt es nicht. BEFUND-C2
+     führt das als **begründet**: Die Schwellen 0,1 und 0,25 sind die
+     etablierten Grenzwerte, ein Zwischenwert wäre erfundene Genauigkeit.
+     Kapitel 7 erklärt es dem Leser genau so.
+   * **C2** — der Punktwert 1 ist unerreichbar (S7.3), das Buch beschreibt es
+     korrekt.
+
+   **Eine frühere Fassung dieser Liste führte S3 und P2 als neue Funde vom
+   25.08.** Das war falsch: Der zweite Durchgang hatte sie am 24.08. schon
+   gefunden. Wer nicht nachsieht, meldet Bekanntes als Fund — dieselbe Sorte
+   Fehler, die `messfehler_eigene_zahlen` sammelt.
 
 ---
 

@@ -62,8 +62,7 @@ Ein Standard, der behauptet, alles zu messen, misst am Ende nichts Bestimmtes. D
 
 Der Standard prüft **39 Kriterien in acht Kategorien**. Zusammen ergeben sie 103 Punkte.
 
-<!-- ERZEUGT aus generiert/kategorien-uebersicht.md — nicht von Hand ändern.
-     Änderungen gehen in audit_criteria.py, dann standard-export.py laufen lassen. -->
+<!-- VON HAND gepflegt: kategorien-uebersicht. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | # | Kategorie | Punkte | Kriterien | Was geprüft wird |
 |---|---|---|---|---|
@@ -135,18 +134,22 @@ Nicht jeder Punkt in diesem Standard entsteht auf dieselbe Weise. Manche werden 
 
 Der Standard kennzeichnet deshalb jedes Kriterium:
 
-| Kennzeichnung | Bedeutung | Anzahl |
+<!-- ERZEUGT aus generiert/erhebungsarten.md — nicht von Hand ändern. -->
+
+| Kennzeichnung | Kriterien | Punkte |
 |---|---|---|
-| **gemessen** | Wird technisch erhoben. Zwei Prüfungen derselben Seite ergeben dasselbe Ergebnis | 28 |
-| **abgeleitet** | Wird aus gemessenen Werten nach einer festen Regel berechnet | 4 |
-| **Einschätzung** | Wird nach einem festen Bewertungsmaßstab beurteilt, nicht gemessen | 7 |
+| **gemessen** | 30 | 81 |
+| **abgeleitet** | 3 | 7 |
+| **Einschätzung** | 6 | 15 |
+
+**gemessen** heißt technisch erhoben — zwei Prüfungen derselben Seite ergeben dasselbe Ergebnis. **abgeleitet** heißt aus gemessenen Werten nach einer festen Regel berechnet. **Einschätzung** heißt nach einem schriftlich festgelegten Maßstab beurteilt.
 
 ::: MRG
-28 von 39 Kriterien werden **gemessen**.
-Nur 7 sind Einschätzungen — und jede ist im Bericht als solche gekennzeichnet.
+33 von 39 Kriterien werden **gemessen oder berechnet**.
+Nur 6 sind Einschätzungen — und jede ist im Bericht als solche gekennzeichnet.
 :::
 
-**Die sieben Einschätzungen betreffen ausschließlich Gestaltung, Angebotsklarheit und Textqualität.** Also genau die Dinge, über die Menschen streiten. Sie werden nicht nach Geschmack beurteilt, sondern nach einem schriftlich festgelegten Maßstab, der für jede Branchenklasse verschieden ist — was für einen Elektrobetrieb eine klare Angebotsdarstellung ist, ist für eine Steuerkanzlei etwas anderes. Kapitel 4 erklärt das.
+**Die sechs Einschätzungen betreffen ausschließlich Gestaltung, Angebotsklarheit und Textqualität.** Also genau die Dinge, über die Menschen streiten. Sie werden nicht nach Geschmack beurteilt, sondern nach einem schriftlich festgelegten Maßstab, der für jede Branchenklasse verschieden ist — was für einen Elektrobetrieb eine klare Angebotsdarstellung ist, ist für eine Steuerkanzlei etwas anderes. Kapitel 4 erklärt das.
 
 **Was Sie daraus mitnehmen sollten:** Wenn Ihnen jemand ein Ergebnis vorlegt, in dem nicht steht, welche Punkte gemessen und welche eingeschätzt wurden, dann können Sie mit diesem Ergebnis nicht argumentieren. Sie wissen nicht, wo Sie widersprechen können.
 
@@ -223,7 +226,7 @@ sw-fest:  ja
 
 Aus Ihrem Wert ergibt sich eine von fünf Stufen.
 
-<!-- ERZEUGT aus generiert/stufen.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: stufen. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | Stufe | Wert | Was sie bedeutet |
 |---|---|---|
@@ -379,7 +382,7 @@ Richtig ist: Platin ab 95 Punkten ist selten, und es ist auch nicht das Ziel. F�
 Neu heißt: zeitgemäß gestaltet. Über Recht, Ladezeit und Einwilligungen sagt es nichts. Im Gegenteil — moderne Baukastensysteme binden häufig Schriftarten, Karten und Statistikwerkzeuge von fremden Servern ein, und zwar ohne zu fragen. Ein zehn Jahre alter, handgebauter Auftritt ohne jedes Fremdelement ist an dieser Stelle im Vorteil.
 
 **„Das ist doch alles Geschmackssache."**
-Bei 32 von 39 Kriterien nicht. Sie werden gemessen oder aus Messungen berechnet, und zwei Prüfungen derselben Seite ergeben dasselbe Ergebnis. Die sieben Kriterien, bei denen eingeschätzt wird, sind im Bericht als solche gekennzeichnet — und Sie können ihnen widersprechen, weil der angelegte Maßstab dabeisteht.
+Bei 33 von 39 Kriterien nicht. Sie werden gemessen oder aus Messungen berechnet, und zwei Prüfungen derselben Seite ergeben dasselbe Ergebnis. Die sechs Kriterien, bei denen eingeschätzt wird, sind im Bericht als solche gekennzeichnet — und Sie können ihnen widersprechen, weil der angelegte Maßstab dabeisteht.
 
 **„Wenn ich alle Punkte hole, bekomme ich mehr Aufträge."**
 Nein. Der Standard misst den Zustand Ihrer Website, nicht Ihren Vertrieb. Eine Website mit 95 Punkten, die niemand kennt, bringt weniger als eine mit 70 Punkten, auf die eine gute Empfehlung verweist. Was der Standard Ihnen gibt, ist etwas anderes: die Gewissheit, dass Ihre Website nicht der Grund ist, warum eine Anfrage ausbleibt.
@@ -389,7 +392,7 @@ Nein. Der Standard misst den Zustand Ihrer Website, nicht Ihren Vertrieb. Eine W
 ## Das Wichtigste aus diesem Kapitel
 
 > - **39 Kriterien in acht Kategorien**, zusammen 103 Rohpunkte. Ihr Ergebnis wird auf einen Wert zwischen 0 und 100 umgerechnet.
-> - **28 Kriterien werden gemessen**, 4 berechnet, 7 eingeschätzt. Jedes ist im Bericht gekennzeichnet.
+> - **30 Kriterien werden gemessen**, 3 berechnet, 6 eingeschätzt. Jedes ist im Bericht gekennzeichnet.
 > - **Nicht erhobene Kriterien fallen aus der Rechnung**, nicht auf null. Ihr anwendbares Maximum kann kleiner als 103 sein.
 > - **Fünf Stufen**, Gold ab 85 ist das empfohlene Ziel — nicht Platin.
 > - **Fünf Ausschlusskriterien** begrenzen die Stufe unabhängig von der Punktzahl. Drei davon führen zu „Nicht konform".
@@ -407,7 +410,7 @@ Nein. Der Standard misst den Zustand Ihrer Website, nicht Ihren Vertrieb. Eine W
 | 2 | § 5 DDG statt § 5 TMG — im ganzen Buch durchziehen. Das TMG ist seit Mai 2024 abgelöst; beide Spezifikationsdokumente und das alte Manuskript nennen noch TMG | Recht | **prüfen** |
 | 3 | Der Fall Elektro Hansen ist konstruiert, wenn auch realistisch gerechnet. Vor Drucklegung durch einen anonymisierten realen Fall ersetzen — sonst muss der Haftungsausschluss die Konstruktion ausweisen | Autor | offen |
 | 4 | Abschnitt 3.7: Die Aussage „Gold ab 85 ist das empfohlene Ziel" ist eine Empfehlung, keine Messung. Beim Lektorat prüfen, ob sie als solche erkennbar bleibt | Lektorat | offen |
-| 5 | Abschnitt 3.11, dritter Punkt: „32 von 39" = 28 gemessen + 4 abgeleitet. Wenn sich die Erhebungsart eines Kriteriums ändert, ändert sich diese Zahl mit | Technik | Drift-Kandidat |
+| 5 | ✅ **ERLEDIGT 25.08.2026** — Abschnitt 3.11: „33 von 39" = 30 gemessen + 3 abgeleitet. Die Tabelle in 3.4 wird seither aus dem Katalog **erzeugt** (`scripts/buch-bloecke.py`), der Satz in 3.11 nicht — er bleibt Drift-Kandidat. Ursprünglich stand hier „32 von 39" = 28 + 4, aus der Zeit vor S1 | Technik | Drift-Kandidat |
 | 6 | Der Satz in 3.10 („schreiben Sie uns") braucht eine Adresse. Erst festlegen, wenn der QR-/Kontaktweg entschieden ist — nach dem Druck nicht änderbar | GF | **blockiert** |
 | 7 | Abbildung 3.4 (Stufenmarken) wird im ganzen Buch wiederverwendet. Sie muss vor allen anderen Abbildungen fertig sein, sonst zeichnet Manuel achtmal Varianten | Gestaltung | **zuerst** |
 | 8 | Kapitel 4 muss die sechs anwendbaren Maxima nennen (K1/K2/K3/K5 = 103, K4 = 100, K6 = 81). Abschnitt 3.5 verweist darauf | Autor | Folgekapitel |

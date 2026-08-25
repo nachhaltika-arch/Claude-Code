@@ -39,7 +39,7 @@ Der Fehler lag nicht in der Rechnung. Er lag darin, dass ein einziger Maßstab a
 
 ## 4.2 Die sechs Klassen
 
-<!-- ERZEUGT aus generiert/branchenklassen.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: branchenklassen. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | Klasse | Bezeichnung | Merkmal |
 |---|---|---|
@@ -165,7 +165,7 @@ Konkret fallen zwei Gruppen weg.
 | Kriterium | Punkte |
 |---|---|
 | Klarheit im ersten Bildschirmausschnitt | 3 |
-| Erwartete Hauptreaktion des Besuchers | 3 |
+| Die erwartete Hauptreaktion | 3 |
 | Kontaktwege | 3 |
 | Vertrauenssignale | 3 |
 | Klarheit des Angebots | 3 |
@@ -327,7 +327,7 @@ Fast jeder Betrieb ließe sich in zwei einsortieren, wenn man lange genug sucht.
 
 | # | Punkt | Wer | Status |
 |---|---|---|---|
-| 1 | 🔴 **Die Spezifikation widerspricht sich selbst.** `audit_criteria.py` vermerkt im Quelltext: die Bewertungslogik nenne in § 2.4 feste Maxima je Klasse, die mit ihren eigenen Einzelwerten nicht übereinstimmen — 79 gegen 78 bei K6. Der Code rechnet die Maxima deshalb aus, statt sie zu notieren, und kommt heute auf 81. **Vor Drucklegung klären, welcher Wert gilt**, und § 2.4 der Spezifikation nachziehen | Technik | **offen** |
+| 1 | ✅ **ERLEDIGT 24.08.2026 (S4.4).** Es gilt der gerechnete Wert: **81 für K6**, und § 2.4 der Spezifikation wird seither aus dem Katalog erzeugt statt gepflegt — eine Zahl, die aus dem Katalog folgt, kann nicht veralten. Die Tabelle der Klassenmaxima in Kapitel 13 wird ebenfalls erzeugt. Ursprünglich: **Die Spezifikation widerspricht sich selbst.** `audit_criteria.py` vermerkt im Quelltext: die Bewertungslogik nenne in § 2.4 feste Maxima je Klasse, die mit ihren eigenen Einzelwerten nicht übereinstimmen — 79 gegen 78 bei K6. Der Code rechnet die Maxima deshalb aus, statt sie zu notieren, und kommt heute auf 81. **Vor Drucklegung klären, welcher Wert gilt**, und § 2.4 der Spezifikation nachziehen | Technik | **offen** |
 | 2 | Die Zuordnungstabelle in 4.2 ist eine Auswahl der hinterlegten Stichworte, keine vollständige Liste. Beim Lektorat sichern, dass sie nicht als abschließend gelesen wird | Lektorat | offen |
 | 3 | Der Fall in 4.1 ist real und muss anonymisiert bleiben. Kein Rückschluss auf Person, Partei oder Wahlkreis. Im Haftungsausschluss als anonymisierter realer Fall ausweisen | Autor / Recht | **prüfen** |
 | 4 | ✅ **ERLEDIGT 24.08.2026** — Absatz „Zwei Wege führen zu diesem Ergebnis" ergänzt. Er unterscheidet die beiden Mechanismen, ohne den Leser mit Implementierungsdetails zu belasten. Ursprünglich: 4.6 nannte acht klassenabhängige Kriterien, ohne zu trennen | Technik / Autor | offen |

@@ -295,7 +295,7 @@ H  Satz und Produktion
 | **Klassenmaxima 103/103/103/100/103/81** | 4.5, 13.2, Anhang A, Anhang B |
 | **39 Kriterien, 8 Kategorien, 103 Punkte** | Umschlag, Titelei, Impressum, 3.2, 9.1, Anhang B |
 | **Erhebungsarten 28 / 4 / 7 und 86 / 17** | 3.4, 10.2, 12 Abschluss, 2.7, Anhang B |
-| **„32 von 39"** in 3.11 = 28 gemessen + 4 abgeleitet | 3.11 |
+| **„33 von 39"** in 3.11 = 30 gemessen + 3 abgeleitet — am 25.08.2026 nachgezogen (vorher 32 = 28 + 4) | 3.11 |
 | **18 nicht erhebbare Punkte** | 7.3, 8.1, 13.1, 13.7, 13.11 |
 | **Beispielrechnung 64 ÷ 85 × 100 = 75** | 13.7, Satzmuster |
 

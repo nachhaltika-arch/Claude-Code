@@ -176,8 +176,8 @@ Die Teilprüfungen addieren sich:
 
 | Punkte | Bedingung |
 |---|---|
-| 4 | Ein Consent-Werkzeug ist erkannt — oder es ist kein einwilligungspflichtiger Dienst eingebunden |
-| 0 | Einwilligungspflichtige Dienste ohne erkanntes Consent-Werkzeug |
+| 4 | Ein Einwilligungswerkzeug ist erkannt — oder es ist kein einwilligungspflichtiger Dienst eingebunden |
+| 0 | Einwilligungspflichtige Dienste laden, ohne dass ein Einwilligungswerkzeug erkannt wurde |
 
 **L4 · Barrierefreiheitserklärung — 2 Punkte**
 
@@ -200,8 +200,8 @@ Die Teilprüfungen addieren sich:
 
 | Punkte | Bedingung |
 |---|---|
-| 3 | Das Zertifikat ist gültig und läuft nicht in Kürze ab |
-| 2 | Das Zertifikat ist gültig, läuft aber in Kürze ab |
+| 3 | Das Zertifikat ist gültig und hat eine Restlaufzeit von 30 Tagen oder mehr |
+| 2 | Das Zertifikat ist gültig, die Restlaufzeit liegt aber unter 30 Tagen |
 | 0 | Es gibt kein gültiges Zertifikat |
 
 **S2 · Erzwungene Weiterleitung auf HTTPS — 2 Punkte**
@@ -424,8 +424,8 @@ Eingeschätzt nach diesem Maßstab:
 
 | Punkte | Bedingung |
 |---|---|
-| 1 | Eine Viewport-Angabe steht im Kopf der Seite |
-| 0 | Es steht keine Viewport-Angabe im Kopf der Seite |
+| 1 | Die Darstellungsanweisung für mobile Geräte steht im Kopf der Seite |
+| 0 | Es steht keine Darstellungsanweisung für mobile Geräte im Kopf der Seite |
 
 ### Nutzerführung und Anfragen
 
@@ -447,9 +447,9 @@ Eingeschätzt nach diesem Maßstab:
 
 | Punkte | Bedingung |
 |---|---|
-| 3 | Drei oder mehr Handlungsaufrufe, die in dieser Branchenklasse zählen |
-| 2 | Ein oder zwei solche Handlungsaufrufe |
-| 0 | Kein Handlungsaufruf |
+| 3 | Drei oder mehr Handlungsangebote, die in dieser Branchenklasse zählen |
+| 2 | Ein oder zwei solche Handlungsangebote |
+| 0 | Kein Handlungsangebot |
 
 **C3 · Kontaktwege — 3 Punkte**
 

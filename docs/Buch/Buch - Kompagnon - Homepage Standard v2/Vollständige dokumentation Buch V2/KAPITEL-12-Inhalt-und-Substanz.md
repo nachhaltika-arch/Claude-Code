@@ -114,7 +114,7 @@ Die letzte Zeile ist der wichtigste Fall: Eine Kategorieseite, die ausschließli
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-ih_leistungsseiten.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-ih_leistungsseiten. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -164,7 +164,7 @@ Eines von zwei Merkmalen genügt:
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-ih_aktualitaet.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-ih_aktualitaet. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -286,7 +286,7 @@ Möglich, und die Frage ist eine andere: Kannte er Ihre häufigsten Kundenfragen
 
 Sie haben alle acht Kategorien gelesen. Hier steht der Standard vollständig auf einer Seite.
 
-<!-- ERZEUGT aus generiert/kategorien-uebersicht.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: kategorien-uebersicht. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | # | Kategorie | Kap. | Codes | Punkte | Gemessen | Eingeschätzt |
 |---|---|---|---|---|---|---|

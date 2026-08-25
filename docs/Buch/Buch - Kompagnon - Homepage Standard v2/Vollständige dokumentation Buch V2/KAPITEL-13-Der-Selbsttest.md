@@ -103,7 +103,7 @@ Gehen Sie den Entscheidungsweg aus Abschnitt 4.3 durch. Die erste Frage, auf die
 
 ### Recht und Compliance — 20 Punkte
 
-<!-- ERZEUGT aus generiert/selbsttest-recht.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: selbsttest-recht. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | Code | Prüfen Sie | Max | Ihr Wert |
 |---|---|---|---|
@@ -111,7 +111,7 @@ Gehen Sie den Entscheidungsweg aus Abschnitt 4.3 durch. Die erste Frage, auf die
 | **L2** | Datenschutzerklärung aufrufen. Erreichbar? Verantwortlicher benannt, Rechtsgrundlagen genannt, Betroffenenrechte aufgeführt? — **6** = alle drei · **3** = erreichbar, mindestens einer fehlt · **0** = nicht erreichbar | 6 | ____ |
 | **L3** | Seite im privaten Fenster öffnen. Erscheint eine echte Einwilligungsabfrage mit Wahlmöglichkeit? Oder gibt es gar keine fremden Dienste? — **4** = ja, eines von beidem · **0** = fremde Dienste laden ohne Abfrage | 4 | ____ |
 | **L4** | Ist eine Erklärung zur Barrierefreiheit verlinkt? — **2** = ja · **0** = nein | 2 | ____ |
-| **L5** | Alle Formulare durchgehen. Einwilligungsfeld und Verweis auf die Datenschutzerklärung? — **2** = alle · **1** = einige · **0** = keines · **U** = kein Formular vorhanden | 2 | ____ |
+| **L5** | Alle Formulare durchgehen. Trägt jedes ein Einwilligungsfeld? — **2** = alle · **1** = einige · **0** = keines · **U** = kein Formular vorhanden | 2 | ____ |
 | | **Zwischensumme** | **20** | ____ |
 
 > **🔴 Ausschlusskriterien — bitte gesondert ankreuzen:**
@@ -282,7 +282,7 @@ Ein Betrieb der Klasse K1, der den Selbsttest ohne Messung durchgeführt hat:
 
 ## 13.8 Ihre Stufe
 
-<!-- ERZEUGT aus generiert/stufen.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: stufen. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | Ihr Wert | Stufe |
 |---|---|

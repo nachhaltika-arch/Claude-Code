@@ -14,6 +14,19 @@
 
 > **Was seit Block C feststeht:** Die Katalogsumme bleibt **103**. Der Untertitel ist bestätigt. **Die Sperre auf Manuskriptzahlen ist damit aufgehoben** — alles außer den zehn Punkten in Abschnitt B1 kann anlaufen.
 
+> **Stand 25.08.2026 — B3.1 ist abgearbeitet.** Alle fünf Nachzieh-Punkte aus
+> Block C sind erledigt, seit die Software sie eingelöst hat. Dabei kam ein
+> eigener Befund heraus: **Rund fünfzig Tabellen im Manuskript trugen den
+> Vermerk „ERZEUGT aus `generiert/…` — nicht von Hand ändern".** Diese Dateien
+> gab es nie, und kein Skript hat sie geschrieben; die Tabellen waren
+> Handarbeit mit einem Schild, das Handarbeit verbot. Zwei Angaben waren
+> dadurch nachweislich falsch (B4 „abgeleitet", D2 „Einschätzung"), eine
+> dritte veraltet (die Zählung in 3.4). Seit dem 25.08. erzeugt
+> `scripts/buch-bloecke.py` die Tabellen, die aus dem Katalog folgen,
+> berichtigt den Vermerk bei allen übrigen und **rechnet 32 handgepflegte
+> Abstufungstabellen gegen den Katalog nach**. `tests/test_buch_bloecke_aktuell.py`
+> hält das fest.
+
 ---
 
 # B1 · Geschäftsführung — 13 Punkte, null Arbeitszeit
@@ -78,10 +91,10 @@
 
 | ID | Aufgabe | Aus |
 |---|---|---|
-| **B3.1.1** | 🔴 **Neun Kriterienhinweise im Buch anpassen**, sobald die Software sie gekürzt hat (S3) | C1 |
-| **B3.1.2** | 🔴 **Kapitel 8.7 (B4)** — Sprachauszeichnung und Formularbeschriftungen aufnehmen, sobald S1.1 angeschlossen ist | C1 |
-| **B3.1.3** | 🔴 **Kapitel 10.6 (D2)** — von Einschätzung auf Messung umstellen, sobald S1.2 angeschlossen ist | C1 |
-| **B3.1.4** | 🔴 **Kapitel 3.4 und 12** — Erhebungsarten neu zählen: 17 Einschätzungspunkte werden 15 | C1 |
+| **B3.1.1** | ✅ **erledigt 25.08.2026.** Nachgesehen statt angenommen: Sieben der neun Hinweise beschrieb das Manuskript ohnehin richtig — es war der **Katalog**, der zu viel versprach, nicht das Buch. Angepasst wurden die zwei echten Fälle: **L5** (5.8 und die Kategorietabelle nannten den Verweis auf die Datenschutzerklärung, der nicht geprüft wird) und der Selbsttest in 13.2, der ihn abfragte | C1 |
+| **B3.1.2** | ✅ **erledigt 25.08.2026.** 8.7 beschreibt jetzt zwei Prüfungen zu je einem Punkt: Gliederung und die Grundlagen für Vorleseprogramme (Sprachauszeichnung, Feldbeschriftungen). Dazu, was „nicht erhoben" hier bedeutet, und die Abgrenzung zu E2 nachgezogen | C1 |
+| **B3.1.3** | ✅ **erledigt 25.08.2026.** 10.6 ist ein gemessenes Kriterium: Gemessen wird die Schriftgröße, zwei Punkte oder keine. Zeilenlänge, Zeilenabstand und Schriftanzahl stehen weiter da — jetzt ausdrücklich als das, was sie sind: **nicht bewertet**. Merkkasten, Kategorietabelle und Selbsttestzeile mitgezogen | C1 |
+| **B3.1.4** | ✅ **erledigt 25.08.2026.** 3.4 zählt 30 gemessen / 3 abgeleitet / 6 eingeschätzt (81 / 7 / 15 Punkte) — und **die Tabelle wird jetzt erzeugt** statt gepflegt (`scripts/buch-bloecke.py`). Mitgezogen: 3.11, die Merkkästen in 3 und 10, Kapitel 10.2 und das Glossar | C1 |
 | **B3.1.5** | 🔴 **Kapitel 9.8 und 11.7** — die als „Vorteil" beschriebenen Doppelwertungen einordnen | C3 |
 | **B3.1.6** | ✅ **Kapitel 8.5 (B2)** — Kontrasttabelle korrigiert | C2, **erledigt** |
 
@@ -92,7 +105,7 @@
 | **B3.2.1** | 🔴 **Elektro Hansen** über neun Kapitel — zentraler Drift-Kandidat, bleibt bei 76/103 = 74 |
 | **B3.2.2** | 🔴 **Punktkette 15.7** — zweite Kontrollrechnung, bleibt 74 → 93 |
 | **B3.2.3** | 🔴 **Der Gewinn von +3 in Woche 4** ist eine Annahme, die sich als Ergebnis liest |
-| **B3.2.4** | „32 von 39" in 3.11 — bei jeder Änderung der Erhebungsart mitziehen |
+| **B3.2.4** | „33 von 39" in 3.11 — bei jeder Änderung der Erhebungsart mitziehen. **Bleibt Handarbeit:** Die Tabelle in 3.4 wird erzeugt, der Satz in 3.11 nicht |
 | **B3.2.5** | Klassenmaxima in 4.5, 13.2, Anhang A und B — nur gemeinsam ändern |
 
 ## B3.3 Inhaltliches

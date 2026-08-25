@@ -47,7 +47,7 @@ Zwei Teile Ihres Berichts tragen keine Punkte. Sie sind trotzdem da, und sie sin
 
 ### Der Infrastruktur-Befund — vier Angaben, null Punkte
 
-<!-- ERZEUGT aus generiert/infrastruktur.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: infrastruktur. Wird von keinem Skript erzeugt — der Vermerk „ERZEUGT" war falsch. Gegen Anhang B pruefen. -->
 
 | Angabe | Was festgestellt wird |
 |---|---|

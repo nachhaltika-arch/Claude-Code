@@ -38,7 +38,7 @@ Fünf Kriterien, zusammen 10 Punkte.
 | Code | Kriterium | Punkte | Erhebung | Gilt für |
 |---|---|---|---|---|
 | D1 | Visuelle Aktualität | 3 | Einschätzung | alle Klassen |
-| D2 | Typografie und Lesbarkeit | 2 | Einschätzung | alle Klassen |
+| D2 | Typografie und Lesbarkeit | 2 | gemessen | alle Klassen |
 | D3 | Farbsystem und Konsistenz | 2 | Einschätzung | alle Klassen |
 | D4 | Bildqualität und Echtheit | 2 | Einschätzung | alle Klassen |
 | D5 | Mobile Darstellung | 1 | gemessen | alle Klassen |
@@ -48,16 +48,18 @@ Keine Klassenunterschiede. **Typografie, Farbe, Bildqualität und Aktualität ge
 ::: MRG
 **D1–D5**
 5 Kriterien · 10 Punkte
-**9 Punkte eingeschätzt**, 1 gemessen
+**7 Punkte eingeschätzt**, 3 gemessen
 :::
 
 ---
 
 ## 10.2 Die Kategorie, in der eingeschätzt wird
 
-Abschnitt 3.4 hat es angekündigt: Sieben Kriterien im ganzen Standard werden nicht gemessen, sondern beurteilt. **Vier davon stehen in diesem Kapitel** — und sie machen neun der zehn Punkte aus.
+Abschnitt 3.4 hat es angekündigt: Sechs Kriterien im ganzen Standard werden nicht gemessen, sondern beurteilt. **Drei davon stehen in diesem Kapitel** — und sie machen sieben der zehn Punkte aus.
 
-Über den ganzen Standard verteilt sind es **17 von 103 Punkten**. Hier liegt die höchste Konzentration.
+Über den ganzen Standard verteilt sind es **15 von 103 Punkten**. Hier liegt die höchste Konzentration.
+
+> **Seit dem 24.08.2026 ist D2 keine Einschätzung mehr.** Die Schriftgröße wird gemessen — sie wurde es die ganze Zeit, nur hat niemand das Ergebnis benutzt. Aus vier eingeschätzten Kriterien in diesem Kapitel sind drei geworden, aus 17 Einschätzungspunkten im ganzen Standard 15.
 
 ### Warum überhaupt eingeschätzt wird
 
@@ -188,12 +190,21 @@ Die Reihenfolge nach Wirkung je Aufwand:
 
 ::: MRG
 **D2 · 2 Punkte**
-**Einschätzung**
+**gemessen**
 :::
 
 ### Worum es geht
 
 Ob Ihr Text tatsächlich gelesen werden kann — Schriftgröße, Zeilenlänge, erkennbare Gliederung.
+
+**Gemessen wird davon eines: die Schriftgröße auf dem Telefon.** Das Prüfwerkzeug stellt fest, ob ein nennenswerter Teil Ihres Textes so klein gesetzt ist, dass ein Telefon ihn zum Lesen vergrößern müsste. Es gibt zwei Punkte oder keine — eine Zwischenstufe wäre eine Genauigkeit, die die Messung nicht hat.
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | keine Beanstandung der Schriftgröße |
+| 0 | Beanstandung der Schriftgröße |
+
+Alles Weitere in diesem Abschnitt — Zeilenlänge, Zeilenabstand, Hierarchie, Anzahl der Schriften — **wird nicht bewertet.** Es steht hier, weil es über die Lesbarkeit entscheidet, nicht weil es Punkte kostet.
 
 Das klingt nach einer Fachfrage und ist eine Zugangsfrage. **Ein erheblicher Teil Ihrer Besucher ist über fünfzig.** Was auf einem Gestalterbildschirm elegant wirkt, ist auf einem Telefon in der Sonne für diese Gruppe nicht lesbar.
 
@@ -326,7 +337,7 @@ Ob Ihre Website dem Telefon überhaupt sagt, dass sie für kleine Bildschirme ge
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-dg_mobil.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-dg_mobil. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -348,7 +359,7 @@ Eine einzige Zeile im Seitenkopf. Bei jedem Redaktionssystem der letzten zehn Ja
 | Code | Kriterium | Möglich | Erreicht | Erhebung |
 |---|---|---|---|---|
 | D1 | Visuelle Aktualität | 3 | ____ | Einschätzung |
-| D2 | Typografie und Lesbarkeit | 2 | ____ | Einschätzung |
+| D2 | Typografie und Lesbarkeit | 2 | ____ | gemessen |
 | D3 | Farbsystem und Konsistenz | 2 | ____ | Einschätzung |
 | D4 | Bildqualität und Echtheit | 2 | ____ | Einschätzung |
 | D5 | Mobile Darstellung | 1 | ____ | gemessen |
@@ -377,7 +388,7 @@ Sie sehen austauschbar aus, und sie werden erkannt. Dasselbe Motiv steht auf zwa
 ## Das Wichtigste aus diesem Kapitel
 
 > - **Fünf Kriterien, 10 Punkte** — neun davon eingeschätzt, einer gemessen.
-> - **17 von 103 Punkten des ganzen Standards sind Einschätzungen.** Hier liegt die höchste Konzentration.
+> - **15 von 103 Punkten des ganzen Standards sind Einschätzungen.** Hier liegt die höchste Konzentration.
 > - **Beurteilt wird aus Sicht Ihrer Kundschaft**, nicht aus der eines Gestalters.
 > - **Jede Einschätzung ist gekennzeichnet und begründet** — und Sie können ihr widersprechen. Bei einer Messung können Sie das nicht.
 > - **Die Jahreszahl im Fußbereich** ist das wirksamste Einzelmerkmal für visuelle Aktualität. Zehn Minuten Aufwand.

@@ -40,7 +40,7 @@ Fünf Kriterien, zusammen 10 Punkte.
 | B1 | Gesamtwert der Barrierefreiheitsprüfung | 3 | gemessen | alle Klassen |
 | B2 | Farbkontraste | 2 | gemessen | alle Klassen |
 | B3 | Alternativtexte für Bilder | 2 | gemessen | alle Klassen |
-| B4 | Semantik und Struktur | 2 | abgeleitet | alle Klassen |
+| B4 | Semantik und Struktur | 2 | gemessen | alle Klassen |
 | B5 | Tastaturbedienung | 1 | abgeleitet | alle Klassen |
 
 ::: MRG
@@ -119,7 +119,7 @@ Ein zusammenfassender Wert von 0 bis 100, den der Messdienst aus einer Reihe aut
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-bf_lighthouse.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-bf_lighthouse. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -157,7 +157,7 @@ Ob Text sich ausreichend vom Hintergrund abhebt. Der Maßstab ist das Kontrastve
 
 Der Anteil der bestandenen Kontrastprüfungen wird auf zwei Punkte umgelegt:
 
-<!-- ERZEUGT aus generiert/abstufung-bf_kontrast.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-bf_kontrast. Die Abstufung ist eine ANTEIL; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -192,7 +192,7 @@ Jedes inhaltlich bedeutsame Bild braucht eine Textalternative. Sie wird vorgeles
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-bf_alt.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-bf_alt. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -251,22 +251,27 @@ Eine Seite hat eine Gliederung — Hauptüberschrift, Abschnitte, Unterabschnitt
 
 ### Was geprüft wird
 
-Zwei Dinge:
+Zwei Dinge — je einen Punkt wert:
 
 | Prüfung | Bestanden, wenn |
 |---|---|
-| **Genau eine Hauptüberschrift** | Die Seite hat eine H1 — nicht keine, nicht drei |
-| **Saubere Hierarchie** | Die Ebenen folgen aufeinander, ohne zu springen |
+| **Gliederung** | Die Seite hat genau eine Hauptüberschrift, und die Ebenen folgen aufeinander, ohne zu springen |
+| **Grundlagen für Vorleseprogramme** | Die Seite ist als deutschsprachig ausgezeichnet, und jedes Eingabefeld trägt eine Beschriftung, die ein Vorleseprogramm findet |
+
+> **Die zweite Prüfung ist am 24.08.2026 dazugekommen** — sie stand die ganze Zeit im Kriterienhinweis („`lang`-Attribut, Labels"), und das Prüfwerkzeug erhob sie auch. Nur gelesen hat das Ergebnis niemand. Dafür sind die beiden alten Stufen zusammengerückt: „Hierarchie ohne Hauptüberschrift" gibt es nicht, die zweite Stufe war nie unabhängig von der ersten. **Die Punktzahl bleibt bei zwei.**
+
+**Was fehlt, wenn eine Seite nicht ausgezeichnet ist:** Ein Vorleseprogramm entscheidet an dieser Auszeichnung, in welcher Sprache es vorliest. Fehlt sie, liest ein deutsches Programm deutschen Text unter Umständen mit englischer Aussprache vor — verständlich ist das nicht mehr. Und ein Eingabefeld ohne auffindbare Beschriftung wird als „Eingabefeld" angesagt, ohne zu sagen, was hineingehört.
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-bf_semantik.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-bf_semantik. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
 | 2 | beide Prüfungen bestanden |
-| 1 | eine bestanden |
+| 1 | eine von beiden bestanden |
 | 0 | keine bestanden |
+| — | **nicht erhoben**, wenn die Barrierefreiheitsprüfung nicht lief. Dann fällt das Kriterium aus der Wertung, statt einen Abzug zu erzeugen |
 
 ### Die Abgrenzung zu E2
 
@@ -275,7 +280,7 @@ Kapitel 9 bewertet unter E2 ebenfalls die Überschriftenstruktur — dort unter 
 | | B4 (hier) | E2 (Kapitel 9) |
 |---|---|---|
 | **Frage** | Können Hilfsmittel die Gliederung erfassen? | Erkennen Suchmaschinen, worum es geht? |
-| **Zusätzlich** | genau eine Hauptüberschrift | Textmenge und inhaltliche Tiefe |
+| **Zusätzlich** | Sprachauszeichnung und Feldbeschriftungen | Textmenge und inhaltliche Tiefe |
 
 ::: MRG
 🔴 **Zu prüfen**
@@ -306,7 +311,7 @@ Nicht jeder bedient eine Website mit der Maus. Manche können es nicht, manche w
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-bf_tastatur.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-bf_tastatur. Die Abstufung ist eine ANTEIL; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -397,8 +402,8 @@ Nein — und das ist der Satz, mit dem dieses Kapitel begonnen hat. Zehn Punkte 
 
 | # | Punkt | Wer | Status |
 |---|---|---|---|
-| 1 | 🔴 **B4: Kriterienhinweis nennt vier Prüfungen, gemessen werden zwei.** Der Hinweis lautet „genau eine H1, saubere Hierarchie, `lang`-Attribut, Labels". Die Bewertung prüft nur die ersten beiden. Dasselbe Muster wie bei P5 in Kapitel 7. **Entscheidung nötig:** entweder Sprachauszeichnung und Formularbeschriftungen ergänzen, oder den Kriterienhinweis auf das kürzen, was tatsächlich geprüft wird. Abschnitt 8.7 beschreibt nur die zwei tatsächlichen Prüfungen | Technik / GF | **offen** |
-| 2 | 🔴 **B4 steht in der erzeugten Tabelle als „abgeleitet" — und das ist der bekannte Widerspruch.** Die Bewertung schreibt „gemessen". Die Tabelle in 8.1 wird beim nächsten Export von selbst auf „gemessen" wechseln, **sobald S2.1 im Repo erledigt ist.** Bis dahin druckt das Buch den Katalogwert — nicht den Berichtswert. Ursprünglicher Befund: **B4: Erhebungsart widersprüchlich deklariert.** Das Kriterium ist im Katalog als „abgeleitet" geführt, die Bewertung schreibt „gemessen". Der Bericht weist damit möglicherweise eine andere Erhebungsart aus als der Katalog. Kapitel 3 verspricht, dass jede Erhebungsart gekennzeichnet ist — dieser Widerspruch untergräbt das Versprechen | Technik | **offen** |
+| 1 | ✅ **ERLEDIGT 24.08.2026 (S1.1).** Sprachauszeichnung und Formularbeschriftungen werden jetzt gewertet — das Prüfwerkzeug lieferte sie längst, gelesen hat sie niemand. Abschnitt 8.7 beschreibt die beiden Prüfungen in ihrer heutigen Form. Ursprünglich: **B4: Kriterienhinweis nennt vier Prüfungen, gemessen werden zwei.** Der Hinweis lautet „genau eine H1, saubere Hierarchie, `lang`-Attribut, Labels". Die Bewertung prüft nur die ersten beiden. Dasselbe Muster wie bei P5 in Kapitel 7. **Entscheidung nötig:** entweder Sprachauszeichnung und Formularbeschriftungen ergänzen, oder den Kriterienhinweis auf das kürzen, was tatsächlich geprüft wird. Abschnitt 8.7 beschreibt nur die zwei tatsächlichen Prüfungen | Technik / GF | **offen** |
+| 2 | ✅ **ERLEDIGT 25.08.2026 (S2.1).** Die Tabelle in 8.1 steht auf „gemessen" — und sie wird seit dem 25.08. tatsächlich erzeugt (`scripts/buch-bloecke.py`); vorher behauptete sie das nur. Ursprünglich: **B4 steht in der erzeugten Tabelle als „abgeleitet".** Die Bewertung schreibt „gemessen". Die Tabelle in 8.1 wird beim nächsten Export von selbst auf „gemessen" wechseln, **sobald S2.1 im Repo erledigt ist.** Bis dahin druckt das Buch den Katalogwert — nicht den Berichtswert. Ursprünglicher Befund: **B4: Erhebungsart widersprüchlich deklariert.** Das Kriterium ist im Katalog als „abgeleitet" geführt, die Bewertung schreibt „gemessen". Der Bericht weist damit möglicherweise eine andere Erhebungsart aus als der Katalog. Kapitel 3 verspricht, dass jede Erhebungsart gekennzeichnet ist — dieser Widerspruch untergräbt das Versprechen | Technik | **offen** |
 | 3 | 🔴 **Korrektur an Kapitel 7 erforderlich.** Abschnitt 7.3 spricht von „zwei Kriterien in Kapitel 8". Es sind **drei** (B1, B2, B5), zusammen 6 Punkte. Die Punktsumme in Kapitel 7 stimmt, die Anzahl nicht. **In Kapitel 7 korrigieren** | Autor | **korrigiert einzupflegen** |
 | 4 | **C6 aus dem Restarbeiten-Report:** Die Aussage, ein bestimmter Anteil der Anforderungen sei automatisiert prüfbar, war dort mit „Quelle oder abschwächen" markiert. Abschnitt 8.2 nennt bewusst **keine Quote**, sondern beschreibt qualitativ, was nicht prüfbar ist. Beim Lektorat sichern, dass keine Zahl nachträglich eingesetzt wird | Autor / Lektorat | **erledigt, sichern** |
 | 5 | **Doppelwertung B4 / E2.** Der Restarbeiten-Report führt sie als A7. Abschnitt 8.7 stellt sie transparent dar. Kapitel 9 muss mit demselben Wortlaut darauf Bezug nehmen | Autor | **Folgekapitel** |

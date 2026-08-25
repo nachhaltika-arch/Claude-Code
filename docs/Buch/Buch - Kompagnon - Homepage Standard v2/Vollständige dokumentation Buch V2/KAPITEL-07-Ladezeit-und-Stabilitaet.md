@@ -122,7 +122,7 @@ Das ist die ehrlichere Messung: Ein Besucher wartet nicht darauf, dass im Hinter
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-tp_lcp.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-tp_lcp. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -166,7 +166,7 @@ Es ist das einzige Kriterium dieser Kategorie, das **nichts mit Geschwindigkeit 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-tp_cls.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-tp_cls. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -210,7 +210,7 @@ Das ist kein Nachteil für Sie. Es ist die korrekte Behandlung einer Messung, di
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-tp_inp.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-tp_inp. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -243,7 +243,7 @@ Dass ausschließlich mobil gemessen wird, ist eine bewusste Entscheidung. Der ü
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-tp_mobile.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-tp_mobile. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -288,7 +288,7 @@ Drei Prüfungen, jede einen Punkt wert:
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-tp_bilder.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-tp_bilder. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|

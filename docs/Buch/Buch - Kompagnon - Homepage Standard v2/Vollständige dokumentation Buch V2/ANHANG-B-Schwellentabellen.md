@@ -1,5 +1,5 @@
 <!-- ERZEUGT aus audit_criteria.py — nicht von Hand ändern. -->
-<!-- Erzeugt mit scripts/standard-export.py (Prototyp) -->
+<!-- Erzeugt mit scripts/standard-export.py -->
 
 # Anhang B — Der Katalog auf einen Blick
 
@@ -84,7 +84,7 @@ Der Wert wird auf 0 bis 100 normiert: `erreichte Punkte ÷ anwendbare Punkte × 
 | **B1** | Gesamtwert der Barrierefreiheitsprüfung | 3 | gemessen | alle Klassen |
 | **B2** | Farbkontraste | 2 | gemessen | alle Klassen |
 | **B3** | Alternativtexte für Bilder | 2 | gemessen | alle Klassen |
-| **B4** | Semantik und Struktur | 2 | abgeleitet | alle Klassen |
+| **B4** | Semantik und Struktur | 2 | gemessen | alle Klassen |
 | **B5** | Tastaturbedienung | 1 | abgeleitet | alle Klassen |
 
 ### Auffindbarkeit — 18 Punkte · Kapitel 9
@@ -104,7 +104,7 @@ Der Wert wird auf 0 bis 100 normiert: `erreichte Punkte ÷ anwendbare Punkte × 
 | Code | Kriterium | P | Erhebung | Gilt für |
 |---|---|---|---|---|
 | **D1** | Visuelle Aktualität | 3 | Einschätzung | alle Klassen |
-| **D2** | Typografie und Lesbarkeit | 2 | Einschätzung | alle Klassen |
+| **D2** | Typografie und Lesbarkeit | 2 | gemessen | alle Klassen |
 | **D3** | Farbsystem und Konsistenz | 2 | Einschätzung | alle Klassen |
 | **D4** | Bildqualität und Echtheit | 2 | Einschätzung | alle Klassen |
 | **D5** | Mobile Darstellung | 1 | gemessen | alle Klassen |
@@ -143,15 +143,376 @@ Diese Befunde begrenzen die Stufe unabhängig von der Punktzahl.
 
 | Erhebungsart | Kriterien | Punkte |
 |---|---|---|
-| gemessen | 28 | 77 |
-| abgeleitet | 4 | 9 |
-| Einschätzung | 7 | 17 |
+| gemessen | 30 | 81 |
+| abgeleitet | 3 | 7 |
+| Einschätzung | 6 | 15 |
 | **Summe** | **39** | **103** |
 
-## B.7 🔴 Was in diesem Anhang noch fehlt
+## B.7 Wie die Punkte je Kriterium vergeben werden
 
-**Die Punktabstufungen je Kriterium.** Sie stehen derzeit nicht als Daten im Katalog, sondern als Bedingungen im Bewertungscode und lassen sich deshalb nicht erzeugen. Sobald `BUCH-F1` sie überführt hat, erscheinen sie hier automatisch.
+Diese Tabellen stammen aus derselben Quelle wie die Bewertung. Was hier steht, entscheidet über die Punkte — nicht eine Beschreibung davon.
 
-**Die deutschen Kriterienbezeichnungen** stehen derzeit im Skript statt im Katalog. Sie gehören als Feld `buch_label` an das Kriterium — sonst gibt es zwei Wahrheiten über denselben Namen.
+### Recht und Compliance
 
-**Bis dahin stehen die Abstufungen in den Kapiteln 5 bis 12** — dort von Hand aus dem Bewertungscode übertragen und damit ungeschützt gegen die nächste Änderung.
+**L1 · Impressum — 6 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +3 | Die Impressumsseite ist erreichbar |
+| +3 | Die geprüften Pflichtangaben sind vollständig — zählt nur, wenn die Seite erreichbar ist |
+
+**L2 · Datenschutzerklärung — 6 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +3 | Die Datenschutzerklärung ist erreichbar |
+| +3 | Die geprüften Pflichtinhalte sind vorhanden — zählt nur, wenn die Seite erreichbar ist |
+
+**L3 · Einwilligung für Cookies und Tracking — 4 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 4 | Ein Einwilligungswerkzeug ist erkannt — oder es ist kein einwilligungspflichtiger Dienst eingebunden |
+| 0 | Einwilligungspflichtige Dienste laden, ohne dass ein Einwilligungswerkzeug erkannt wurde |
+
+**L4 · Barrierefreiheitserklärung — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Eine Erklärung zur Barrierefreiheit ist verlinkt |
+| 0 | Es ist keine Erklärung zur Barrierefreiheit verlinkt |
+
+**L5 · Kontaktformular — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Jedes gefundene Formular hat ein Einwilligungsfeld |
+| 1 | Mindestens ein Formular hat ein Einwilligungsfeld, aber nicht jedes |
+| 0 | Kein Formular hat ein Einwilligungsfeld |
+
+### Sicherheit und Datenschutz
+
+**S1 · Verschlüsselungszertifikat — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Das Zertifikat ist gültig und hat eine Restlaufzeit von 30 Tagen oder mehr |
+| 2 | Das Zertifikat ist gültig, die Restlaufzeit liegt aber unter 30 Tagen |
+| 0 | Es gibt kein gültiges Zertifikat |
+
+**S2 · Erzwungene Weiterleitung auf HTTPS — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Der Aufruf über http wird auf https weitergeleitet |
+| 0 | Der Aufruf über http wird nicht weitergeleitet |
+
+**S3 · Sicherheitsheader — 3 Punkte**
+
+Anteilig: Der gemessene Anteil wird auf 3 Punkte umgerechnet und kaufmännisch gerundet.
+
+**S4 · Fremde Dienste ohne Einwilligung — 2 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Es sind keine Schriften von fremden Servern eingebunden |
+| +1 | Es läuft kein Trackingdienst ohne erkanntes Consent-Werkzeug |
+
+### Ladezeit und Stabilität
+
+**P1 · Ladezeit des Hauptinhalts — 4 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 4 | Der Hauptinhalt steht in weniger als 2,5 Sekunden |
+| 2 | Der Hauptinhalt steht in 2,5 bis unter 4,0 Sekunden |
+| 0 | Der Hauptinhalt braucht 4,0 Sekunden oder länger |
+
+**P2 · Layoutstabilität — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Der Layoutverschiebungswert liegt unter 0,1 |
+| 1 | Der Layoutverschiebungswert liegt bei 0,1 bis unter 0,25 |
+| 0 | Der Layoutverschiebungswert liegt bei 0,25 oder darüber |
+
+**P3 · Reaktionszeit auf Eingaben — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Die Reaktionszeit liegt unter 200 Millisekunden |
+| 1 | Die Reaktionszeit liegt bei 200 bis unter 500 Millisekunden |
+| 0 | Die Reaktionszeit liegt bei 500 Millisekunden oder darüber |
+
+**P4 · Mobiler Gesamtwert — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Mobiler Gesamtwert 90 oder höher |
+| 2 | Mobiler Gesamtwert 70 bis 89 |
+| 1 | Mobiler Gesamtwert 50 bis 69 |
+| 0 | Mobiler Gesamtwert unter 50 |
+
+**P5 · Bildoptimierung — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Mindestens die Hälfte der Bilder liegt in einem modernen Format vor |
+| +1 | Mindestens die Hälfte der Bilder wird verzögert geladen |
+| +1 | Mindestens vier Fünftel der Bilder tragen Größenangaben, und kein Bild ist überdimensioniert |
+
+### Barrierefreiheit
+
+**B1 · Gesamtwert der Barrierefreiheitsprüfung — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Der Barrierefreiheitswert liegt bei 90 oder höher |
+| 2 | Der Barrierefreiheitswert liegt bei 75 bis 89 |
+| 1 | Der Barrierefreiheitswert liegt bei 50 bis 74 |
+| 0 | Der Barrierefreiheitswert liegt unter 50 |
+
+**B2 · Farbkontraste — 2 Punkte**
+
+Anteilig: Der gemessene Anteil wird auf 2 Punkte umgerechnet und kaufmännisch gerundet.
+
+**B3 · Alternativtexte für Bilder — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Mindestens 95 von 100 Inhaltsbildern haben einen Alternativtext |
+| 1 | 80 bis unter 95 von 100 Inhaltsbildern haben einen Alternativtext |
+| 0 | Weniger als 80 von 100 Inhaltsbildern haben einen Alternativtext |
+
+**B4 · Semantik und Struktur — 2 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Genau eine Hauptüberschrift und eine Hierarchie ohne Sprünge |
+| +1 | Sprachauszeichnung und Formularbeschriftungen sind vollständig |
+
+**B5 · Tastaturbedienung — 1 Punkt**
+
+Anteilig: Der gemessene Anteil wird auf 1 Punkt umgerechnet und kaufmännisch gerundet.
+
+### Auffindbarkeit
+
+**E1 · Seitentitel und Kurzbeschreibung — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Ein Seitentitel ist vorhanden und hat eine sinnvolle Länge |
+| +1 | Eine Kurzbeschreibung ist vorhanden und hat eine sinnvolle Länge |
+| +1 | Der Titel trägt, was die Branchenklasse erwartet — den Ort, sonst die Leistung |
+
+**E2 · Überschriften und Textumfang — 2 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Genau eine Hauptüberschrift und mindestens eine Zwischenüberschrift |
+| +1 | Mindestens 300 Wörter Text |
+
+**E3 · Auffindbarkeit für Suchmaschinen — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Eine robots.txt ist vorhanden und sperrt die Seite nicht aus |
+| +1 | Eine sitemap.xml ist vorhanden |
+| +1 | Eine Canonical-Angabe ist gesetzt |
+
+**E4 · Strukturierte Daten — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Strukturierte Daten sind überhaupt vorhanden |
+| +1 | Der Haupttyp passt zur Branchenklasse |
+| +1 | Mindestens ein passender Zusatztyp ist vorhanden |
+
+**E5 · Lokale Signale — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Der Ort steht im Seitentitel oder in der Hauptüberschrift |
+| +1 | Die Telefonnummer ist als Link hinterlegt |
+| +1 | Eine Karte oder eine Betriebsauszeichnung ist vorhanden |
+
+**E6 · Keine defekten Verweise — 1 Punkt**
+
+| Punkte | Bedingung |
+|---|---|
+| 1 | Kein Verweis der geprüften Seite läuft ins Leere |
+| 0 | Mindestens ein Verweis läuft ins Leere |
+
+**E7 · Lesbarkeit für KI-Systeme — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +2 | Kein KI-Crawler ist in der robots.txt ausgesperrt |
+| +1 | Eine llms.txt ist vorhanden |
+
+### Gestaltung
+
+**D1 · Visuelle Aktualität — 3 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 3 = kein Alterungsmerkmal erkennbar; die Seite koennte diesen Monat entstanden sein.
+> 2 = ein oder zwei Merkmale, sonst zeitgemaess.
+> 1 = drei bis vier Merkmale; der Eindruck kippt.
+> 0 = fuenf oder mehr, oder ein einzelnes so deutlich, dass es alles ueberlagert.
+> Die sechs Merkmale: feste Breite mit breiten leeren Raendern · kleine Schrift im
+> Fliesstext · Verlaeufe, Schlagschatten, Spiegelungen · Bildergalerien mit Rahmen
+> und Blaetterpfeilen · sichtbar veraltete Jahreszahl · gedraengte Anordnung ohne
+> Weissraum.
+> Nicht Teil dieses Kriteriums: die Aktualitaet der *Inhalte* (das ist I2) und die
+> Schriftgroesse als Messwert (das ist D2, gemessen).
+
+**D2 · Typografie und Lesbarkeit — 2 Punkte**
+
+Anteilig: Der gemessene Anteil wird auf 2 Punkte umgerechnet und kaufmännisch gerundet.
+
+**D3 · Farbsystem und Konsistenz — 2 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 2 = hoechstens drei tragende Farben, ueber alle Seiten gleich eingesetzt,
+>     erkennbare Betriebsfarbe.
+> 1 = ein System ist erkennbar, wird aber nicht durchgehalten — abweichende
+>     Schaltflaechenfarben, wechselnde Flaechen.
+> 0 = kein erkennbares System; Farben wirken einzeln gewaehlt.
+> Nicht Teil dieses Kriteriums: der Kontrastwert. Den misst B2 mit Lighthouse.
+> Bewerte hier die Konsistenz, nicht die Lesbarkeit — auch dann nicht, wenn dir
+> ein Paar zu blass erscheint.
+
+**D4 · Bildqualität und Echtheit — 2 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 2 = erkennbar eigene Aufnahmen: eigene Leute, eigene Fahrzeuge, eigene
+>     Baustellen, eigene Raeume.
+> 1 = gemischt — eigene Bilder neben deutlich gekauften.
+> 0 = durchgehend generisches Material, oder gar keine Bilder.
+> Anzeichen fuer gekauftes Material: freigestellte laechelnde Personen vor
+> weissem Grund, Werkzeug ohne Gebrauchsspuren, Innenraeume ohne jeden Bezug zum
+> Gewerk, dieselbe Person in mehreren Rollen.
+> Nicht Teil dieses Kriteriums: Dateigroesse, Format und Ladeverhalten. Das ist
+> P5 und wird gemessen.
+
+**D5 · Mobile Darstellung — 1 Punkt**
+
+| Punkte | Bedingung |
+|---|---|
+| 1 | Die Darstellungsanweisung für mobile Geräte steht im Kopf der Seite |
+| 0 | Es steht keine Darstellungsanweisung für mobile Geräte im Kopf der Seite |
+
+### Nutzerführung und Anfragen
+
+**C1 · Klarheit im ersten Bildschirmausschnitt — 3 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 3 = Leistung, Zielgruppe und — wo die Klasse es erwartet — das Gebiet stehen
+>     im ersten Bildschirmausschnitt und sind in fuenf Sekunden erfasst.
+> 2 = zwei der drei Angaben stehen da, die dritte muss man suchen.
+> 1 = nur eine Angabe, oder alle drei erst nach Scrollen.
+> 0 = der erste Ausschnitt sagt nicht, worum es geht.
+> Massstab ist die Klasse: Ein ueberregionaler Anbieter (K4) braucht kein Gebiet,
+> ein Publikumsbetrieb (K3) dafuer Oeffnungszeiten oder Standort.
+> Nicht Teil dieses Kriteriums: ob ein Handlungsaufruf vorhanden ist (C2) und ob
+> das Angebot inhaltlich klar ist (C5).
+
+**C2 · Die erwartete Hauptreaktion — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Drei oder mehr Handlungsangebote, die in dieser Branchenklasse zählen |
+| 2 | Ein oder zwei solche Handlungsangebote |
+| 0 | Kein Handlungsangebot |
+
+**C3 · Kontaktwege — 3 Punkte**
+
+Die Teilprüfungen addieren sich:
+
+| Punkte | Teilprüfung |
+|---|---|
+| +1 | Das erste der drei Kontaktmerkmale dieser Branchenklasse ist erfüllt |
+| +1 | Das zweite Kontaktmerkmal ist erfüllt |
+| +1 | Das dritte Kontaktmerkmal ist erfüllt |
+
+**C4 · Vertrauenssignale — 3 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 3 | Vier oder mehr Vertrauenssignale, die in dieser Branchenklasse zählen |
+| 2 | Zwei oder drei solche Vertrauenssignale |
+| 1 | Ein Vertrauenssignal |
+| 0 | Kein Vertrauenssignal |
+
+**C5 · Klarheit des Angebots — 3 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 3 = die Leistungen sind einzeln benannt, der Ablauf oder ein Preisrahmen steht
+>     da, und es gibt eine Zusage, die das Risiko des Kunden senkt
+>     (Festpreis, Garantie, kostenlose Erstbewertung).
+> 2 = zwei der drei Teile.
+> 1 = nur die Leistungen, ohne Ablauf, Preis oder Zusage.
+> 0 = die Leistungen bleiben allgemein („alles rund ums Bad").
+> Bei Beratungs- und Gesundheitsberufen (K2) ist die fehlende Preisangabe **kein**
+> Mangel — dort zaehlen Ablauf und Zusage. Ziehe dafuer keinen Punkt ab.
+> Nicht Teil dieses Kriteriums: eigene Leistungsseiten (I1) und die
+> Textqualitaet (I3).
+
+### Inhalt und Substanz
+
+**I1 · Eigene Leistungsseiten — 2 Punkte**
+
+| Punkte | Bedingung |
+|---|---|
+| 2 | Drei oder mehr eigene Leistungsseiten, die in dieser Branchenklasse zählen |
+| 1 | Eine oder zwei solche Leistungsseiten |
+| 0 | Keine eigene Leistungsseite |
+
+**I2 · Aktualität — 1 Punkt**
+
+| Punkte | Bedingung |
+|---|---|
+| 1 | Das Copyright trägt das laufende Jahr, oder es gibt datierte Inhalte |
+| 0 | Weder aktuelles Copyright noch datierte Inhalte |
+
+**I3 · Textqualität — 2 Punkte**
+
+Eingeschätzt nach diesem Maßstab:
+
+> 2 = die Texte gehen vom Anliegen des Kunden aus, nennen Konkretes (Orte,
+>     Fristen, Ablaeufe, Zahlen) und sind ohne Fachjargon verstaendlich.
+> 1 = teils kundenorientiert, teils Selbstbeschreibung; wenig Konkretes.
+> 0 = durchgehend ueber den Betrieb statt ueber das Anliegen, austauschbar
+>     formuliert.
+> Nicht Teil dieses Kriteriums: Textlaenge und Ueberschriftenstruktur (E2,
+> gemessen) und die Aktualitaet der Inhalte (I2).
+> Zum Ton: Beschreibe, was fehlt. Abwertende Urteile ueber Texte sind untersagt —
+> siehe den Abschnitt TON DER TEXTE.
+

@@ -117,7 +117,7 @@ Der Unterschied zur oberflächlichen Prüfung ist wesentlich: Ein abgelaufenes Z
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-si_ssl.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-si_ssl. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -159,7 +159,7 @@ Die unverschlüsselte Adresse wird aufgerufen. Führt sie zwingend auf die versc
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-si_redirect.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-si_redirect. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -200,7 +200,7 @@ Vier werden geprüft:
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-si_header.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-si_header. Die Abstufung ist eine ANTEIL; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Gesetzte Header |
 |---|---|
@@ -253,7 +253,7 @@ Beim Aufruf der Seite wird beobachtet, welche fremden Server kontaktiert werden 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-si_drittanbieter.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-si_drittanbieter. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 Die Punktzahl beginnt bei 2 und wird für jeden Befund um einen Punkt gesenkt:
 

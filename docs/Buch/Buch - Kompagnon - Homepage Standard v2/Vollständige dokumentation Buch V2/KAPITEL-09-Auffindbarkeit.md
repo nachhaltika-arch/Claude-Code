@@ -140,7 +140,7 @@ Zu lange Titel werden in der Ergebnisliste abgeschnitten. Was hinter dem Schnitt
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_meta.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_meta. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -184,7 +184,7 @@ Zwei Prüfungen, jede einen Punkt wert:
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_struktur.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_struktur. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -237,7 +237,7 @@ Drei technische Dateien und Angaben, die einer Suchmaschine sagen, was sie auf I
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_index.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_index. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -310,7 +310,7 @@ Sie müssen diese Bezeichnungen nicht kennen. Wer die Umsetzung beauftragt, gibt
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_schema.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_schema. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -351,7 +351,7 @@ Ob erkennbar ist, **wo** Sie arbeiten. Für einen Betrieb mit Einzugsgebiet ist 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_lokal.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_lokal. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -395,7 +395,7 @@ Die Verweise auf Ihrer Startseite werden aufgerufen. Führt einer ins Leere?
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_links.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_links. Die Abstufung ist eine JA_NEIN; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -447,7 +447,7 @@ Geprüft werden zehn verbreitete KI-Crawler. **Gewertet wird nur die vollständi
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-se_ki_lesbar.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-se_ki_lesbar. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|

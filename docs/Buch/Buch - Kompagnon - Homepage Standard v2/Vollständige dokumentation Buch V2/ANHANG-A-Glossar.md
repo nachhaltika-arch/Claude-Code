@@ -52,7 +52,7 @@ zielumfang: 6 Seiten
 
 ---
 
-**Einschätzung** — Die dritte Erhebungsart. Sieben Kriterien werden nach einem festgelegten Maßstab beurteilt statt gemessen; zusammen 17 von 103 Punkten. Jede Einschätzung ist im Bericht gekennzeichnet und begründet — **und Sie können ihr widersprechen.** → 3.4, 10.2
+**Einschätzung** — Die dritte Erhebungsart. Sechs Kriterien werden nach einem festgelegten Maßstab beurteilt statt gemessen; zusammen 15 von 103 Punkten. Jede Einschätzung ist im Bericht gekennzeichnet und begründet — **und Sie können ihr widersprechen.** → 3.4, 10.2
 
 **Erster Bildschirmausschnitt** — Was ein Besucher sieht, bevor er scrollt. Kriterium C1 prüft, ob dort erkennbar ist, was Sie anbieten und für wen. → 11.5
 

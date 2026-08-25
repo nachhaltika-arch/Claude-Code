@@ -185,7 +185,7 @@ Ob auf Ihrer Website erkennbar ist, was ein Besucher als Nächstes tun soll — 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-cv_cta.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-cv_cta. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -238,7 +238,7 @@ Ob die Wege, die ein Besucher Ihrer Klasse erwartet, tatsächlich vorhanden und 
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-cv_kontakt.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-cv_kontakt. Die Abstufung ist eine SUMME; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|
@@ -299,7 +299,7 @@ Fünf Gruppen. **Vier davon sind für alle Klassen gleich:**
 
 ### Punktvergabe
 
-<!-- ERZEUGT aus generiert/abstufung-cv_vertrauen.md — nicht von Hand ändern. -->
+<!-- VON HAND gepflegt: abstufung-cv_vertrauen. Die Abstufung ist eine SCHWELLE; ihre Ergebnistabelle haengt an der Zahl der Teilpruefungen und am Runden, beides steht in audit_scoring.py. Gegen Anhang B pruefen. -->
 
 | Punkte | Bedingung |
 |---|---|

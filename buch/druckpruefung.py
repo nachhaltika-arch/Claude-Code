@@ -12,8 +12,10 @@ Vier Punkte, jeder mit einem Grund:
 * **Schriften eingebettet.** Der häufigste Fehler dieser Baustrecke: Das
   Werkzeug findet eine Schriftdatei nicht, setzt still eine Systemschrift ein,
   und das Ergebnis sieht erst in der Druckerei falsch aus.
-* **Seitenformat 170 × 240 mm.** Ein PDF im falschen Format wird skaliert —
-  damit stimmt kein Satzspiegel mehr.
+* **Ein bekanntes Buchformat, und auf allen Seiten dasselbe.** Ein PDF im
+  falschen Format wird skaliert — damit stimmt kein Satzspiegel mehr. Und ein
+  einzelnes abweichendes Blatt mitten im Block fällt sonst erst der Druckerei
+  auf.
 * **Mindestumfang 48 Seiten**, sonst trägt der Rücken keine Beschriftung.
 """
 import sys
@@ -22,9 +24,29 @@ from pathlib import Path
 from pypdf import PdfReader
 
 MM = 72 / 25.4
-SOLL_BREIT, SOLL_HOCH = 170 * MM, 240 * MM
 TOLERANZ = 1.0          # Punkt
 MINDESTSEITEN = 48
+
+#: Welche Buchformate die Baustrecke baut — `buch/layout/satzspiegel.py`.
+#
+# **Warum eine Liste und nicht ein Sollwert.** Bis zum 25.08.2026 stand hier
+# `SOLL_BREIT, SOLL_HOCH = 170 × 240` fest. Sobald `bauen.py --ziel druck-a4`
+# dazukam, meldete die Prüfung an einer einwandfreien A4-Fassung „Seitenformat
+# 210 × 297 statt 170 × 240" — ein Fehler, den die Datei nicht hatte. Geprüft
+# wird deshalb: Ist es *eines* der gebauten Formate, und ist es auf *jeder*
+# Seite dasselbe.
+FORMATE = {
+    "170 × 240 mm": (170 * MM, 240 * MM),
+    "A4 (210 × 297 mm)": (210 * MM, 297 * MM),
+}
+
+
+def _format_erkennen(breit: float, hoch: float):
+    """Der Name des Formats, oder None, wenn es keines der gebauten ist."""
+    for name, (soll_b, soll_h) in FORMATE.items():
+        if abs(breit - soll_b) < TOLERANZ and abs(hoch - soll_h) < TOLERANZ:
+            return name
+    return None
 
 
 def pruefen(pfad: Path) -> list:
@@ -45,11 +67,23 @@ def pruefen(pfad: Path) -> list:
 
     kasten = leser.pages[0].mediabox
     breit, hoch = float(kasten.width), float(kasten.height)
-    passt = (abs(breit - SOLL_BREIT) < TOLERANZ and abs(hoch - SOLL_HOCH) < TOLERANZ)
-    befunde.append((
-        passt,
-        f"Seitenformat {breit / MM:.0f} × {hoch / MM:.0f} mm",
-        f"Seitenformat {breit / MM:.1f} × {hoch / MM:.1f} mm statt 170 × 240"))
+    erkannt = _format_erkennen(breit, hoch)
+    # Jede Seite, nicht nur die erste: Eine einzeln eingefügte Titelei oder
+    # eine von Hand ergänzte Vorlage im falschen Maß bleibt sonst unsichtbar.
+    abweichler = [nr for nr, seite in enumerate(leser.pages, 1)
+                  if _format_erkennen(float(seite.mediabox.width),
+                                      float(seite.mediabox.height)) != erkannt]
+    if erkannt is None:
+        befunde.append((
+            False, "",
+            f"Seitenformat {breit / MM:.1f} × {hoch / MM:.1f} mm ist keines der "
+            f"gebauten Formate ({', '.join(FORMATE)})"))
+    else:
+        befunde.append((
+            not abweichler,
+            f"Seitenformat {erkannt} auf allen {seiten} Seiten",
+            f"{len(abweichler)} Seiten weichen von {erkannt} ab, zuerst "
+            f"Seite {abweichler[0] if abweichler else '?'}"))
 
     eingebettet, lose = set(), set()
     for seite in leser.pages:

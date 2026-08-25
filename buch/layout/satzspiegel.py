@@ -42,6 +42,38 @@ RASTER = 13                      # Grundlinienraster in Punkt
 A4_BREIT, A4_HOCH = 210 * mm, 297 * mm
 A4_RAND = 20 * mm
 
+# ── A4 als Buchformat (Ziel `druck-a4`) ──────────────────────────────
+# **Nicht dasselbe wie `bildschirm`.** Die Bildschirmfassung ist ein
+# Lesedokument: ein Block, kein Bund, keine Marginalspalte. `druck-a4` ist der
+# Satzspiegel des Satzmusters, nur auf A4 aufgezogen — gespiegelte Ränder,
+# Marginalspalte, Kolumnentitel, Vakatseiten, 10 pt auf 13 pt.
+#
+# **Nicht proportional vergrößert.** 210/170 = 1,235; eine mitskalierte
+# Hauptspalte wäre 117 mm breit, und eine mitskalierte Schrift stünde bei
+# 12,35 pt. Wer den Schriftgrad mitzieht, ändert das Schriftbild des Buchs,
+# das Manuel abgenommen hat. Also bleibt der Grad bei 10 pt, die Spalte wächst
+# nur maßvoll, und der gewonnene Platz geht an Marginalspalte und Ränder —
+# dorthin, wo A4 ihn braucht.
+#
+#     170 × 240      A4 (210 × 297)
+#     Bund     20  →  25   der Block ist dicker, der Bund frisst mehr
+#     Haupt    95  → 115   ≈ 64 Zeichen bei 10 pt, gute Leseweite
+#     Steg      5  →   6
+#     Marg     35  →  45   die Marginalie darf zweizeilig laufen
+#     Außen    15  →  19
+#              ---     ---
+#             170     210
+#
+# **Die Höhe rastert exakt.** Der 170er-Satzspiegel hat 190 mm = 538,6 pt, also
+# 41,4 Zeilen zu 13 pt — er endet zwischen zwei Zeilen. Auf A4 ist das
+# vermeidbar: 51 Zeilen × 13 pt = 663 pt = 233,90 mm gehen glatt auf.
+A4B_BUND, A4B_HAUPT, A4B_STEG, A4B_MARG, A4B_AUSSEN = (
+    25 * mm, 115 * mm, 6 * mm, 45 * mm, 19 * mm)
+A4B_ZEILEN = 51
+A4B_SATZ = A4B_ZEILEN * RASTER              # 663 pt
+A4B_KOPF = 25 * mm
+A4B_FUSS = A4_HOCH - A4B_KOPF - A4B_SATZ    # 38,10 mm — Fuß größer als Kopf
+
 # ── Farbe ────────────────────────────────────────────────────────────
 # Innenteil einfarbig (Variante B des Buchkonzepts). Die Marke erscheint im
 # Druck als Grauwert; die Bildschirmfassung darf sie farbig zeigen.
@@ -92,8 +124,21 @@ def masse(ziel: str) -> dict:
 
     `druck` setzt den Buchsatzspiegel mit Marginalspalte, `bildschirm` eine
     A4-Seite ohne sie — am Bildschirm gibt es keinen Bund, und eine 35 mm
-    breite Spalte neben 95 mm Text verschenkt dort nur Platz.
+    breite Spalte neben 95 mm Text verschenkt dort nur Platz. `druck-a4` ist
+    derselbe Buchsatzspiegel auf A4, für alle, die das Buch als A4-Band wollen.
+
+    Wer ein Ziel hinzufügt, ändert nur diese Funktion: Alles andere — Stile,
+    Umsetzer, Seitenvorlagen, Marginalien — liest ausschließlich hier.
     """
+    if ziel == "druck-a4":
+        return {
+            "seite": (A4_BREIT, A4_HOCH),
+            "haupt": A4B_HAUPT, "marg": A4B_MARG, "steg": A4B_STEG,
+            "innen": A4B_BUND, "aussen": A4B_AUSSEN,
+            "kopf": A4B_KOPF, "satz": A4B_SATZ, "fuss": A4B_FUSS,
+            "grundschrift": 10, "raster": RASTER,
+            "marginalspalte": True,
+        }
     if ziel == "druck":
         return {
             "seite": (SEITE_BREIT, SEITE_HOCH),

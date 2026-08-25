@@ -245,7 +245,8 @@ def bauen(ziel: str, entwurf: bool) -> dict:
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Buch setzen")
-    p.add_argument("--ziel", choices=("bildschirm", "druck", "beide"),
+    p.add_argument("--ziel",
+                   choices=("bildschirm", "druck", "druck-a4", "beide"),
                    default="beide")
     p.add_argument("--entwurf", action="store_true",
                    help="Bestandteile mit `status: entwurf` mitsetzen")
@@ -258,7 +259,10 @@ def main() -> int:
               f"{e['bytes'] / 1024 / 1024:.1f} MB · {e['teile']} Bestandteile · "
               f"{e['abbildungen']} Abbildungen · {e['marginalien']} Marginalien · "
               f"{e['durchgaenge']} Durchgänge")
-        if e["linksbeginnend"] and ziel == "druck":
+        # **Am Satzspiegel gefragt, nicht am Namen des Ziels.** Die Warnung
+        # gilt für jede gebundene Fassung; als `ziel == "druck"` geschrieben
+        # hätte sie bei `druck-a4` stillschweigend geschwiegen.
+        if e["linksbeginnend"] and sp.masse(ziel)["marginalspalte"]:
             print(f"  ⚠ {len(e['linksbeginnend'])} Kapitel beginnen links: "
                   + ", ".join(e["linksbeginnend"][:4]))
     return 0

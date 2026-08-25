@@ -128,10 +128,28 @@ Die Kundenkarte versprach dem Abonnenten zweierlei, das nicht stimmte:
 | „Ihre Website wird **monatlich** überprüft" | Der Lauf steht wöchentlich im Planer |
 | „Den nächsten Report erhalten Sie automatisch **per E-Mail**" | Es gibt keinen solchen Versand — der Monatsbericht kennt die Nennung nicht |
 
-Beides ist berichtigt. **Der E-Mail-Bericht ist damit ein bewusst offener
-Punkt**, keine stillschweigende Lücke: Er wäre die nächste Ausbaustufe, und
-`tests/test_ki_nennung_kundenansicht.py` hält fest, dass die Karte ihn nicht
-verspricht, solange er nicht existiert.
+Beides war berichtigt — **und der Bericht ist am selben Tag gebaut worden**
+(`automations/bericht_ki_nennung.py`). Er hängt am Wochenlauf, nennt je System
+die Trefferzahl und die Richtung gegenüber der Vorwoche, weist nicht abgefragte
+Systeme aus und sichert keine Nennung zu. Damit darf die Karte ihn wieder
+zusagen; der Test prüft jetzt genau das — **was zugesagt wird, muss gebaut
+sein**, in beide Richtungen.
+
+**Was der Bericht bewusst nicht enthält:** die Antworttexte der Modelle. Sie
+nennen fremde Betriebe, und der Kunde hat sie nicht bestellt.
+
+---
+
+## 7. Entscheidungen vom 25.08.2026
+
+| Frage | Entscheidung | Folge |
+|---|---|---|
+| Erster Schlüssel | **OpenAI** | Die Kundenfrage lautet „Werde ich in ChatGPT gefunden?". Die anderen drei kommen später und erscheinen bis dahin als *nicht erhoben* |
+| Preismodell | **Ein Preis je Betrieb und Monat**, alle vier Systeme | Keine Anbieterauswahl je Abonnent nötig — die Abrechnung steht damit vollständig |
+| Nächster Bauschritt | **E-Mail-Bericht** | ✅ am selben Tag erledigt |
+
+**Damit ist alles gebaut.** Es fehlt der erste echte Lauf — er beantwortet die
+letzte offene Frage: den Preis.
 
 > **Korrektur zu Punkt 6.** Die erste Fassung dieses Papiers zählte die
 > wiederkehrende Abrechnung als fehlend und verwies auf L-101. **Das trifft

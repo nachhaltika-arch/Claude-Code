@@ -128,7 +128,7 @@ Bei der Abnahme ist der Kunde zufrieden, das Ergebnis ist sichtbar, die Beziehun
 ## Offene Punkte
 | # | Punkt |
 |---|---|
-| 1 | 🔴 **L1: Injection in den Netlify-Deploy plus automatische Verifikation** |
+| 1 | ✅ **erledigt 25.08.2026 — L1 ist zu.** Die Injektion stand bereits: `llms.txt` und die `schema.org`-Auszeichnung gehen mit **derselben** Auslieferung hoch wie die Seiten (`netlify_service.deploy_html`, Parameter `zusatzdateien`). Was fehlte, war Position 6 des Leistungsverzeichnisses — die **Nachschau**. Sie steht jetzt in `services/geo_auslieferung.py` und läuft nach jedem Deploy: Die veröffentlichte Adresse wird abgerufen, wie ein KI-Crawler sie abrufen würde. **Eine 200er-Antwort genügt dabei nicht** — viele Hosts liefern die Startseite für jede unbekannte Adresse aus, und eine Prüfung, die das durchgehen lässt, ist falsch grün. Antwortet die Seite selbst nicht, steht **nichts** im Befund: Über Dateien auf einer schweigenden Seite ist nichts bekannt, und eine Fehlanzeige wäre eine Behauptung |
 | 2 | 🔴 Preis mit tatsächlichem Aufwand abgleichen — 1.200 € ist eine Annahme |
-| 3 | Wirkungsbericht nach 60 Tagen braucht eine Messmethode, die es noch nicht gibt |
+| 3 | 🟡 **Wirkungsbericht nach 60 Tagen: die Messmethode gibt es jetzt.** Seit dem 25.08. misst `services/ki_sichtbarkeit.py` die Nennung in vier KI-Systemen und schreibt einen Verlauf fort. Was fehlt, ist die Auswertung „nach 60 Tagen" gegen den Stand bei Auslieferung — eine Abfrage auf vorhandene Daten, kein neues Verfahren |
 | 4 | Formulierung der Nicht-Garantie anwaltlich prüfen |

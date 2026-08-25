@@ -10,6 +10,69 @@ const FEATURES = [
   { icon: '⚙️', text: 'Automatische Optimierung der KI-Signale' },
 ];
 
+/**
+ * Was das Abo liefert: Wird der Betrieb genannt, und wird es mehr?
+ *
+ * **Zwei Nachrichten, die nie zu einer werden duerfen.** „Noch nicht
+ * gemessen" und „nirgends genannt" sehen beide nach null aus und bedeuten
+ * Verschiedenes — die zweite kostet den Betrieb Geld. Deshalb steht bei einem
+ * nicht abgefragten System ein Hinweis und keine Zahl.
+ */
+function NennungsBlock({ nennung }) {
+  const systeme = nennung.systeme || [];
+  const verlauf = nennung.verlauf || [];
+
+  if (!nennung.gemessen_am) {
+    return (
+      <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
+        Die erste Messung steht noch aus. Sie läuft automatisch — Sie müssen nichts tun.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+        Zuletzt gefragt am {new Date(nennung.gemessen_am).toLocaleDateString('de-DE')}
+      </div>
+
+      <div style={{ display: 'grid', gap: 6 }}>
+        {systeme.map((sys) => (
+          <div
+            key={sys.schluessel}
+            style={{
+              display: 'flex', justifyContent: 'space-between', gap: 12,
+              fontSize: 12, background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-sm)', padding: '7px 10px',
+            }}
+          >
+            <span>{sys.anzeige}</span>
+            {sys.genannt_bei == null ? (
+              <span style={{ color: 'var(--text-tertiary)' }}>{sys.hinweis}</span>
+            ) : (
+              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {sys.genannt_bei} von {sys.von} Fragen
+              </strong>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {verlauf.length > 1 && (
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)' }}>
+          {verlauf.length} Messungen seit{' '}
+          {new Date(verlauf[0].am).toLocaleDateString('de-DE')}
+        </div>
+      )}
+
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        Gefragt wird, was ein Kunde fragen würde — nach Leistung und Ort. Ob ein System Sie
+        nennt, entscheidet sein Anbieter; wir messen es und garantieren es nicht.
+      </div>
+    </div>
+  );
+}
+
 function scoreColor(score) {
   if (score == null) return 'var(--text-tertiary)';
   if (score >= 80) return 'var(--status-success-text)';
@@ -84,6 +147,7 @@ export default function GeoAddonCard({ projectId }) {
   const price = status.upsell_price;
   const score = status.geo_score_total;
   const periodEnd = status.subscription_current_period_end;
+  const nennung = status.ki_nennung;
 
   // ── Aktiv ───────────────────────────────────────────────────────
   if (subStatus === 'active' || subStatus === 'cancel_at_period_end') {
@@ -132,15 +196,22 @@ export default function GeoAddonCard({ projectId }) {
             <>
               Ihr Abo läuft am{' '}
               <strong>{periodEnd ? new Date(periodEnd).toLocaleDateString('de-DE') : 'Periodenende'}</strong>{' '}
-              aus. Bis dahin bleibt das Monitoring aktiv.
+              aus. Bis dahin wird weiter gemessen.
             </>
           ) : (
             <>
-              Ihre Website wird monatlich auf KI-Sichtbarkeit überprüft. Den nächsten Report
-              erhalten Sie automatisch per E-Mail.
+              {/* **Wöchentlich, nicht monatlich** — der Lauf steht seit dem
+                  25.08.2026 montags im Planer. Und **kein** Versprechen einer
+                  E-Mail: Der Monatsbericht kennt die Nennung nicht, und ein
+                  zugesagter Bericht, der nie ankommt, ist schlimmer als
+                  keiner. */}
+              Ihre Website wird <strong>wöchentlich</strong> danach gefragt, ob KI-Systeme
+              sie nennen. Das Ergebnis steht hier.
             </>
           )}
         </div>
+
+        {nennung && <NennungsBlock nennung={nennung} />}
       </div>
     );
   }

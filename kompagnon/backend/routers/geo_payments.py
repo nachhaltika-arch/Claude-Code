@@ -14,6 +14,7 @@ Beruehrt payments.py NICHT.
 import os
 import json
 import logging
+from typing import Optional
 from datetime import datetime
 
 import stripe
@@ -514,6 +515,60 @@ def get_subscription_status(
         "subscription_current_period_end": analysis.subscription_current_period_end.isoformat() if analysis.subscription_current_period_end else None,
         "geo_score_total": analysis.geo_score_total,
         "geo_status": analysis.status,
+        # Was das Abo tatsaechlich liefert: die Nennung und ihr Verlauf.
+        # Nur fuer Abonnenten — ohne Abo bleibt der Block leer, sonst waere
+        # die Leistung schon vor dem Kauf zu sehen.
+        "ki_nennung": _nennung_fuer_kunden(analysis),
+    }
+
+
+#: Was ein nicht abgefragtes System dem **Kunden** gegenueber heisst.
+#:
+#: Der interne Grund lautet „PERPLEXITY_API_KEY nicht gesetzt". Das ist die
+#: richtige Auskunft fuer den Innendienst und die falsche fuer den Kunden: Sie
+#: nennt eine Umgebungsvariable, verraet die Betriebsausstattung und beantwortet
+#: seine Frage nicht. Er soll erfahren, **dass** nicht gefragt wurde — nicht,
+#: welcher Schluessel in Render fehlt.
+NICHT_ABGEFRAGT = "wird derzeit nicht abgefragt"
+
+
+def _nennung_fuer_kunden(analysis) -> Optional[dict]:
+    """Der Nennungsbefund, auf das eingedampft, was den Kunden angeht.
+
+    **Ohne laufendes Abo gibt es nichts.** Der Verlauf ist die Leistung; ihn
+    vor dem Kauf zu zeigen hiesse, sie zu verschenken.
+
+    **Ohne Messung gibt es eine Auskunft, keine Null.** „Noch nicht gemessen"
+    und „nirgends genannt" sind zwei verschiedene Nachrichten, und die zweite
+    kostet den Betrieb Geld.
+    """
+    if analysis.subscription_status not in ("active", "trialing"):
+        return None
+
+    befund = analysis.ki_sichtbarkeit or {}
+    systeme = []
+    for schluessel, block in (befund.get("anbieter") or {}).items():
+        if block.get("collected"):
+            systeme.append({
+                "schluessel": schluessel,
+                "anzeige": block.get("anzeige", schluessel),
+                "genannt_bei": block.get("genannt_bei", 0),
+                "von": block.get("beantwortet", block.get("von", 0)),
+            })
+        else:
+            systeme.append({
+                "schluessel": schluessel,
+                "anzeige": block.get("anzeige", schluessel),
+                "genannt_bei": None,
+                "von": None,
+                "hinweis": NICHT_ABGEFRAGT,
+            })
+
+    return {
+        "gemessen_am": (analysis.ki_sichtbarkeit_am.isoformat()
+                        if analysis.ki_sichtbarkeit_am else None),
+        "systeme": systeme,
+        "verlauf": analysis.ki_sichtbarkeit_verlauf or [],
     }
 
 

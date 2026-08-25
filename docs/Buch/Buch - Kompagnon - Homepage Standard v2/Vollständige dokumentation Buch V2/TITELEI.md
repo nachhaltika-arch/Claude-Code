@@ -95,7 +95,21 @@ Die Prüfliste aus Kapitel 13 und die fünf Vorlagen aus Anhang C stehen als aus
 
 > **homepage-standard.de/pdf**
 
-`[QR-Code auf homepage-standard.de/pdf]`
+`[QR-Code auf homepage-standard.de/pdf?q=buch]`
+
+<!-- Der Parameter steht **im QR-Ziel, nicht in der gedruckten Adresse**
+     (B1.14f, 25.08.2026). Die gedruckte Adresse muss zum Abtippen taugen;
+     der QR-Code muss messbar machen, wer aus dem Buch kommt.
+
+     **„Je Kapitel ein Parameter" ist nicht umsetzbar** und war ein Irrtum der
+     Aufgabe: Das Buch druckt Adressen ausschliesslich hier in der Titelei —
+     Kapitel 2.8 und 13.11 verweisen darauf, statt selbst eine zu nennen, und
+     Kapitel 13 sagt ausdruecklich: „Mehr technische Adressen kommen in diesem
+     Buch nicht vor." Je Kapitel einen QR-Code zu setzen hiesse, diese Regel zu
+     brechen, um eine Kennzahl zu gewinnen.
+
+     Was ohne Regelbruch messbar bleibt: Buch gegen andere Herkunft (dieser
+     Parameter) und die drei Pfade untereinander. -->
 
 ### Der kostenlose Online-Check
 

@@ -40,23 +40,41 @@
 
 ---
 
-# B1 · Geschäftsführung — 13 Punkte, null Arbeitszeit
+# B1 · Geschäftsführung — **geschlossen**, 13 von 13
 
-| ID | Entscheidung | Folge |
+> **Diese Liste war bis zum 25.08.2026 nicht nachgeführt.** Sie zeigte dreizehn
+> offene Entscheidungen, während `ENTSCHEIDUNGSPROTOKOLL-B1.md` sie am
+> **24.08.2026 vollständig getroffen** hatte. Wer nur hier las, hielt den
+> Engpass für offen, der es nicht mehr war.
+
+| ID | Entscheidung vom 24.08.2026 |
+|---|---|
+| **B1.1** | **Umfang akzeptiert.** 284 Seiten; am 25.08. im Satz nachgemessen: **283**. Preisentscheidung dadurch neu offen → B1.15 |
+| **B1.2** | **C7 erheben, dann Originaltitel** „Die zwanzig häufigsten Fehler" → macht C7 zum Publikationsblocker, siehe B1.16 |
+| **B1.3** | **Eine Domain, drei Pfade** — `/pdf`, `/check`, `/fehler` unter `homepage-standard.de` |
+| **B1.4** | **Bei U belassen.** Eine Anleitung für S3 und E4 wäre technischer als alles andere im Buch |
+| **B1.5** | **D1-Staffelung gestrichen** — ankreuzen und bewusst schätzen |
+| **B1.6** | **Abschnitt 2.7 bleibt unverändert** |
+| **B1.7** | **Kapitel 17 ohne Anbieterempfehlung.** Am 25.08. maschinell bestätigt: kein Werbesatz im ganzen Buch (`test_buch_lektoratsregeln`) |
+| **B1.8** | **Vorlage 1 auf die Umschlaginnenseite.** Am 25.08. verifiziert: passt auf eine Seite (B6.2) |
+| **B1.9** | **Variante A** der Teil-Trennseite |
+| **B1.10** | **Keine Widmung**, Titelei sechs Seiten |
+| **B1.11** | **PDF-Fassung verbindlich**, nicht optional |
+| **B1.12** | **Untertitel** „39 Kriterien, 8 Kategorien, 103 Punkte" |
+| **B1.13** | **Zwei ISBN und eigene Verlagsnummer** bei MVB |
+
+## Was aus B1 noch offen ist
+
+| ID | Punkt | Wer |
 |---|---|---|
-| **B1.1** | 🔴 **Umfang.** 260 statt 208 Seiten. Akzeptieren, kürzen, oder Teil II abtrennen? | Preis, Rückenbreite, Satzbeginn |
-| **B1.2** | 🔴 **Kapiteltitel 14.** „Zwanzig Befunde" oder Originaltitel nach C7 | Inhaltsverzeichnis, Verweis in Kapitel 12 |
-| **B1.3** | 🔴 **Vier Adressen.** *Empfehlung: eine Domain mit drei Pfaden* — `/pdf`, `/check`, `/fehler` | **nach dem Druck unumkehrbar** |
-| **B1.4** | 🔴 **18 Punkte im Selbsttest nicht prüfbar.** S3 und E4 mit einer technischeren Anleitung erschließen, oder bei U belassen? | Kapitel 13, Anhang C |
-| **B1.5** | 🔴 **D1-Staffelung im Selbsttest ist konstruiert.** Zulässig oder streichen? | Kapitel 13 |
-| **B1.6** | 🔴 **Abschnitt 2.7 bestätigen** — der Interessenkonflikt bleibt unverändert | Glaubwürdigkeit des ganzen Buchs |
-| **B1.7** | 🔴 **Kapitel 17 gegen Eigenwerbung schützen** | dito |
-| **B1.8** | **Umschlaginnenseite:** Anhang B, Vorlage 1 oder Vorlage 5? *Empfehlung: Vorlage 1* | Satz |
-| **B1.9** | **Teil-Trennseite:** Variante A oder B aus dem Satzmuster | vier Teile, viermal dieselbe Frage |
-| **B1.10** | **Widmung oder Motto** auf Seite VII — oder Titelei auf sechs Seiten kürzen | Satz |
-| **B1.11** | **Klebebindung:** PDF-Fassung von Prüfliste und Vorlagen ist Voraussetzung, nicht Zugabe | Produktion |
-| **B1.12** | ✅ **Untertitel — entschieden.** „39 Kriterien, 8 Kategorien, 103 Punkte" | **ISBN kann beantragt werden** |
-| **B1.13** | **Zwei ISBN und eigene Verlagsnummer** bei MVB beantragen — erst nach B1.1 und B1.2 | Vorlauf |
+| **B1.15** | 🔴 **Preis neu prüfen** — BoD-Kalkulation für 283 Seiten in beiden Farbvarianten | GF |
+| **B1.16** | 🔴 **C7 ist Publikationsblocker.** Die Abfrage steht seit dem 25.08. (`tools/befunde-zaehlen.py`) — **sie findet aber keine Daten:** Grundgesamtheit **1** abgeschlossene Prüfung, jeder der zwanzig Befunde meldet „ohne Zahl". Solange das so bleibt, kann Kapitel 14 seinen Titel nicht tragen, und B1.13 (ISBN) wartet mit | GF / Technik |
+| **B1.14a** | 🔴 Domaininhaber muss die **KOMPAGNON communications BP GmbH** sein | GF |
+| **B1.14b** | 🔴 Impressum mit der Offenlegung aus 2.7 auf allen drei Seiten | GF / Recht |
+| **B1.14c** | 🔴 **Die drei Seiten anlegen** — keine davon existiert | Technik |
+| **B1.14d** | Weiterleitungen: `homepagestandard.de` pfaderhaltend 301, die drei Pfade als 302 | Technik |
+| **B1.14e** | Zertifikate beider Domains in die Ablaufüberwachung — S1 gilt für uns selbst | Technik |
+| **B1.14f** | Je Kapitel ein eigener Parameter im QR-Code (`?q=k13`) | Technik |
 
 ---
 

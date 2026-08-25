@@ -24,6 +24,7 @@ from automations.erinnerungen import (
 )
 from automations.scheduler_kontakt import _send_phase_email, job_check_missing_materials, job_check_overdue_phases, job_phase_postgolive_transitions, job_send_briefing_reminders, job_tag_14_funktionscheck, job_tag_21_bewertungsanfrage, job_tag_30_geo_check, job_tag_30_upsell, job_tag_5_followup
 from automations.scheduler_ueberwachung import job_check_all_domains, job_check_netlify_dns, job_check_netlify_ssl
+from automations.job_eigene_zertifikate import job_eigene_zertifikate_pruefen
 from automations.job_ki_sichtbarkeit import job_ki_sichtbarkeit_woechentlich
 from automations.scheduler_bericht import job_monthly_performance_report
 from automations.versandmodus import setze_probemodus
@@ -330,6 +331,17 @@ class CompagnonScheduler:
             "interval", minutes=15,
             id="netlify_dns_check_every_15min",
             replace_existing=True,
+        )
+        # **Kriterium S1 gilt für uns selbst (B1.14e).** Die Überwachung
+        # daneben liest `projects` — unsere eigenen Adressen stehen dort nicht.
+        # Eine davon steht gedruckt im Buch.
+        self.scheduler.add_job(
+            job_eigene_zertifikate_pruefen,
+            "cron",
+            hour=7, minute=30,
+            id="eigene_zertifikate",
+            replace_existing=True,
+            timezone="Europe/Berlin",
         )
         self.scheduler.add_job(
             job_check_netlify_ssl,

@@ -42,7 +42,7 @@ from tools.adressen import (  # noqa: E402
     importe_je_modul,
     gerufene_adressen,
     normalisieren,
-    passt_auf,
+    trifft_ende,
     routen_mit_funktion,
     routen_mit_methode,
     weitere_aufrufer,
@@ -155,14 +155,68 @@ def main(argv: list) -> int:
         in `start`, `pause` oder `stop` auf.
         """
         for gerufene in offene_aufrufe:
-            if gerufene != adresse and passt_auf(gerufene, adresse):
+            if gerufene == adresse:
+                continue
+            # Einseitig, aus demselben Grund wie unten: symmetrisch traefe
+            # `/{}/{}/editor` jede dreiteilige Route, die auf einen Parameter
+            # endet — das Wort `editor` verschwaende im Platzhalter der Route.
+            if trifft_ende(gerufene.strip("/").split("/"),
+                            adresse.strip("/").split("/")):
+                return gerufene
+
+        # Eine Variable kann auch fuer **mehrere** Abschnitte stehen.
+        # `GrapesEditor` ruft `${API_BASE_URL}${endpointBase}/${pageId}/editor`
+        # auf, und `endpointBase` ist `/api/pages` oder `/api/kas/pages` — die
+        # Adresse wird zu `/{}/{}/editor` und hat damit **weniger** Abschnitte
+        # als die Route. Abschnittsweise verglichen passt sie auf keine, und
+        # fuenf angeschlossene Routen standen als „ruft niemand auf" da.
+        #
+        # Erkennbar ist der Fall am Platzhalter an **erster** Stelle: Keine
+        # echte Route beginnt mit einem Parameter, alle mit `api`. Verglichen
+        # wird dann nur der Rest gegen das Ende der Route.
+        #
+        # **Nur wenn der Aufruf genau eine Route trifft.** `/{}/{}/editor`
+        # passt auf **26** Routen — es sagt damit ueber keine einzelne etwas
+        # aus. Sie trotzdem alle gutzuschreiben senkte die Zahl von 109 auf
+        # 85 und war die Untermessung, die dieses Werkzeug gerade vermeiden
+        # sollte. Mehrdeutige Aufrufe stehen unten als Hinweis; die Routen
+        # bleiben in „Ruft niemand".
+        eigene = adresse.strip("/").split("/")
+        for gerufene in eindeutige_variablenaufrufe:
+            rest = gerufene.strip("/").split("/")[1:]
+            if len(rest) >= len(eigene) or not rest:
+                continue
+            if trifft_ende(rest, eigene[-len(rest):]):
                 return gerufene
         return None
 
     #: Aufrufe, die auf keine Route genau passen — nur die duerfen ueber
     #: Platzhalter zugeordnet werden. Siehe `_ueber_variable`.
     alle_adressen = {normalisieren(p) for _, p in routen}
-    offene_aufrufe = {g for g in gerufen if g not in alle_adressen}
+    # Eine Adresse, die **nur** aus Platzhaltern besteht (`/{}` aus
+    # `apiCall(url)` in `AuthContext`), sagt ueber keine Route etwas aus und
+    # traf sonst jede mit gleicher Abschnittszahl.
+    offene_aufrufe = {g for g in gerufen
+                      if g not in alle_adressen
+                      and set(g.strip("/").split("/")) != {"{}"}}
+
+    # Aufrufe, deren Anfang eine Variable ist (`${endpointBase}/...`). Sie
+    # werden am **Ende** der Route verglichen — aber nur, wenn dabei genau
+    # eine Route herauskommt. Siehe `_ueber_variable`.
+    eindeutige_variablenaufrufe, mehrdeutige = [], []
+    for gerufene in offene_aufrufe:
+        teile = gerufene.strip("/").split("/")
+        if not teile or teile[0] != "{}" or len(teile) < 2:
+            continue
+        rest = teile[1:]
+        treffer = [p for _, p in routen
+                   if len(normalisieren(p).strip("/").split("/")) > len(rest)
+                   and trifft_ende(rest, normalisieren(p).strip("/")
+                                    .split("/")[-len(rest):])]
+        if len(set(treffer)) == 1:
+            eindeutige_variablenaufrufe.append(gerufene)
+        elif treffer:
+            mehrdeutige.append((gerufene, len(set(treffer))))
 
     offen, intern, nur_rand, erklaert, ueber_variable = [], [], [], [], []
     for methode, pfad in routen:
@@ -197,6 +251,12 @@ def main(argv: list) -> int:
         print("  keine")
     for methode, pfad, _ in offen:
         print(f"  {methode:<7} {pfad}")
+
+    if mehrdeutige:
+        print("\nAufrufe, deren Anfang eine Variable ist und die auf mehrere")
+        print("Routen passen — sie sagen ueber keine einzelne etwas aus:")
+        for gerufene, anzahl in sorted(mehrdeutige):
+            print(f"  {gerufene}  ({anzahl} moegliche Routen)")
 
     print(f"\nNur ueber eine Variable im Pfad getroffen — {len(ueber_variable)}:")
     print("  (Der Aufruf baut einen Abschnitt zur Laufzeit zusammen. Meist ist")

@@ -79,6 +79,63 @@ def passt_auf(gerufene: str, route: str) -> bool:
     return all(x == y or x == "{}" or y == "{}" for x, y in zip(a, b))
 
 
+def trifft_ende(gerufene_rest: list, routen_ende: list) -> bool:
+    """Wie `passt_auf`, aber **einseitig** — fuer den Vergleich mit dem Ende.
+
+    `passt_auf` laesst `{}` auf beiden Seiten gelten. Beim Vergleich mit dem
+    **Ende** einer Route ist das verheerend: `{}/editor` traefe auch
+    `/api/leads/{lead_id}` — der Parameter der Route schluckt das Wort
+    `editor`. So kamen 84 „moegliche Routen" fuer einen Aufruf heraus, der
+    genau zwei meint.
+
+    Hier darf nur der Platzhalter des **Aufrufs** etwas offen lassen. Ein
+    Wort im Aufruf muss ein Wort in der Route sein.
+    """
+    if len(gerufene_rest) != len(routen_ende):
+        return False
+    return all(x == y or x == "{}"
+               for x, y in zip(gerufene_rest, routen_ende))
+
+
+def trifft_irgendeine(gerufene: str, routen) -> bool:
+    """Landet dieser Aufruf auf **irgendeiner** dieser Routen?
+
+    **Warum das hier steht und nicht in einem der beiden Werkzeuge
+    (26.08.2026).** Der Kopf von `unaufgerufene-routen.py` sagt, beide
+    Werkzeuge laesen dieselbe Grundlage, „damit sie nicht auseinanderdriften".
+    Sie waren auseinandergedriftet: Das eine verglich abschnittsweise, das
+    andere mit `in`. Eine Begruendung im Kopftext ist keine Verbindung — der
+    gemeinsame Code ist eine.
+
+    Drei Formen werden erkannt:
+
+    1. gleich — die haeufige;
+    2. abschnittsweise gleich lang, etwa `/api/leads/{}/sequence/{}` gegen
+       `/api/leads/{id}/sequence/start`, weil der Knopf die Aktion in den
+       Pfad baut;
+    3. der Anfang ist eine Variable (`${endpointBase}/${pageId}/editor`) —
+       dann zaehlt das **Ende** der Route.
+    """
+    ziele = {normalisieren(r) for r in routen}
+    if gerufene in ziele:
+        return True
+
+    teile = gerufene.strip("/").split("/")
+    if set(teile) == {"{}"}:
+        # Eine Adresse, die nur aus Platzhaltern besteht (`apiCall(url)`),
+        # sagt ueber keine Route etwas aus — und traf sonst jede.
+        return False
+
+    for ziel in ziele:
+        eigene = ziel.strip("/").split("/")
+        if trifft_ende(teile, eigene):
+            return True
+        if teile[0] == "{}" and 0 < len(teile) - 1 < len(eigene):
+            if trifft_ende(teile[1:], eigene[-(len(teile) - 1):]):
+                return True
+    return False
+
+
 def bekannte_adressen() -> set:
     """Alle Adressen, die das Backend führt — normalisiert."""
     import main
@@ -375,7 +432,28 @@ def gerufene_adressen() -> dict:
             ab = start + len(MARKE)
             ende = text.find("`", ab)
             roh = text[ab:ende] if ende != -1 else ""
-            if roh.startswith("/api/"):
+
+            # **Eine Variable kann fuer den ganzen Anfang stehen
+            # (26.08.2026).** `GrapesEditor` ruft
+            # `${API_BASE_URL}${endpointBase}/${pageId}/editor` auf, und
+            # `endpointBase` ist `/api/pages` oder `/api/kas/pages`. Hier
+            # folgte auf die Marke kein `/api/`, also galt der Aufruf als
+            # nicht vorhanden — und fuenf angeschlossene Routen standen als
+            # „ruft niemand auf" da. Die Adresse wird zu `/{}/...`; das
+            # fuehrende `{}` ist das Kennzeichen, an dem das Zaehlwerkzeug
+            # sie am **Ende** der Route vergleicht statt am Anfang.
+            if roh.startswith("${") and "}" in roh:
+                roh = "/{}" + roh[roh.index("}") + 1:]
+
+            # Eine Adresse, die **nur** aus Platzhaltern besteht, ist keine.
+            # `apiCall(url)` in `AuthContext` und `${a.src}` im Bildverwalter
+            # bekommen den Pfad von aussen; aufgezeichnet sagt `/{}` in beide
+            # Richtungen nichts und trifft alles.
+            if set(normalisieren(roh).strip("/").split("/")) == {"{}"}:
+                start = text.find(MARKE, ab)
+                continue
+
+            if roh.startswith("/api/") or roh.startswith("/{}"):
                 # Drei Schritte, und die Reihenfolge ist jedes Mal
                 # aufgefallen, als sie falsch war:
                 #   1. Einsetzungen ersetzen — `${lead?.id}` enthaelt ein

@@ -234,10 +234,28 @@ class TestSperrenBleiben:
 
         assert antwort.status_code == 403, antwort.text[:200]
 
-    def test_die_freigabe_bleibt_ohne_innendienst_erreichbar(self, client):
-        """`PATCH /{id}/freigabe` prueft den Token selbst aus dem Rumpf — ein
-        Kunde muss sie erreichen. Eine Router-Vorgabe haette ihn gesperrt.
+    def test_die_freigabe_bleibt_fuer_kunden_erreichbar(self, client,
+                                                        kunde_headers):
+        """Ein **Kunde** muss sie erreichen — eine Router-Vorgabe fuer den
+        Innendienst haette ihn ausgesperrt, und genau deshalb liegt sie auf
+        dem Kundenrouter.
+
+        **Der Test hiess bis zum 26.08.2026 anders** und pruefte, dass ein
+        Aufruf **ohne** Anmeldung nicht mit 401 endet. Das war richtig,
+        solange der Endpunkt den JWT aus dem **Rumpf** las und von Hand
+        entschluesselte. Dieser zweite Anmeldeweg ist weg; jetzt gilt das
+        Kopfzeilen-Verfahren wie ueberall. Ein Aufruf ohne Anmeldung **soll**
+        seither abgewiesen werden — die Zusicherung von damals waere heute
+        eine Luecke.
         """
-        antwort = client.patch("/api/briefings/1/freigabe", json={"token": "falsch"})
+        antwort = client.patch("/api/briefings/1/freigabe",
+                               headers=kunde_headers, json={"key": "irgendwas"})
 
         assert antwort.status_code != 401, antwort.text[:200]
+        assert "Innendienst" not in antwort.text
+
+    def test_und_ohne_anmeldung_ist_sie_zu(self, client):
+        """Die andere Haelfte derselben Zusicherung."""
+        antwort = client.patch("/api/briefings/1/freigabe", json={"key": "x"})
+
+        assert antwort.status_code in (401, 403)

@@ -551,25 +551,33 @@ def briefing_des_kunden_pdf(lead_id: int, db: Session = Depends(get_db),
 
 
 @kunden_router.patch('/{lead_id}/freigabe')
-def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db)):
-    """Only customers (role=kunde) can grant approvals. Cannot be revoked."""
-    from routers.auth_router import require_kunde, get_current_user, oauth2_scheme
-    from fastapi import Security
-    # Manual auth check for kunde role
-    from routers.auth_router import decode_token
-    from database import User
-    token = data.get('_token', '')
-    if not token:
-        raise HTTPException(403, "Nicht authentifiziert")
-    try:
-        payload = decode_token(token)
-        current_user = db.query(User).filter(User.id == payload.get("user_id")).first()
-        if not current_user or current_user.role != 'kunde':
-            raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(403, "Authentifizierung fehlgeschlagen")
+def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db),
+                 current_user=Depends(get_current_user)):
+    """Der Kunde erteilt eine Freigabe — unwiderruflich, mit seinem Namen.
+
+    **Warum nur der Kunde (26.08.2026, Entscheidung David).** Das Briefing
+    fuehrt elf Freigaben, darunter „Impressum & Datenschutz geprueft" und
+    „Finale Abnahme & Go-Live". Abgehakt hat sie bisher der Innendienst
+    (`BriefingTab.toggleFreigabe`, Urheber fest `KOMPAGNON`). Eine Abnahme,
+    die der Auftragnehmer selbst abhakt, ist keine Abnahme.
+
+    Der Innendienst behaelt seinen Weg ueber `PATCH /{lead_id}` — fuer den
+    Fall, dass eine Freigabe telefonisch oder per Mail kommt. Am Eintrag
+    steht dann „KOMPAGNON" statt einer Kundenadresse, und genau deshalb
+    bleibt **dieser** Weg dem Kunden vorbehalten: Erteilte der Innendienst
+    hier, traege der Eintrag seine Adresse und waere von einer echten
+    Kundenfreigabe nicht mehr zu unterscheiden.
+
+    **Die Anmeldung lief ueber den Rumpf.** Hier stand ein `_token`-Feld,
+    aus dem der JWT von Hand entschluesselt wurde — ein zweiter Anmeldeweg
+    neben dem Kopfzeilen-Verfahren, das der ganze Rest benutzt. Zwei Wege
+    zum selben Ziel sind zwei, die falsch sein koennen; das hat am selben
+    Tag schon eine Willkommensmail gekostet. Jetzt `get_current_user`.
+    """
+    if getattr(current_user, "role", "") != "kunde":
+        raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
+    if current_user.lead_id != lead_id:
+        raise HTTPException(403, "Kein Zugriff auf diesen Betrieb")
 
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
     if not briefing:

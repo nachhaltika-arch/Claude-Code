@@ -568,6 +568,19 @@ def detect_blockers(facts: dict) -> List[str]:
     if _ok(third) and third.get("tracking_services") and not consent.get("cmp_detected"):
         blockers.append("tracking_ohne_consent")
 
+    # **Seit dem 26.08.2026 wirklich erhoben.** Der Katalog nannte diese
+    # Deckelregel seit jeher; gemessen hat sie niemand, weil sie einen
+    # Cookie-Vergleich vor der Einwilligung verlangt und die HTML-Erhebung
+    # nur die **Signatur** eines Consent-Werkzeugs erkennt, nicht sein
+    # Verhalten. Der Browserlauf klickt kein Banner an — was danach gesetzt
+    # ist, ist ohne Zustimmung gesetzt.
+    #
+    # `_ok` haelt die alte Lage aufrecht, wenn kein Browser lief: Dann steht
+    # dort `collected: False`, und es wird nichts behauptet.
+    cookies = facts.get("cookies_vor_consent") or {}
+    if _ok(cookies) and cookies.get("verstoss"):
+        blockers.append("cookies_ohne_consent")
+
     return blockers
 
 

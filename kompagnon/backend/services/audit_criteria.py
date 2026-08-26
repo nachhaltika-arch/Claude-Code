@@ -878,18 +878,23 @@ BLOCKING_MAJOR = frozenset({"tracking_ohne_consent", "cookies_ohne_consent"})
 
 #: Deckelregeln, die der Katalog **nennt**, aber niemand **erhebt**.
 #:
-#: `cookies_ohne_consent` verlangt laut Spezifikation einen „Cookie-Vergleich
-#: vor/nach" der Einwilligung. `audit_collectors.detect_consent` liest
-#: ausschliesslich HTML und erkennt Consent-Werkzeuge an ihrer Signatur — ob
-#: **tatsaechlich** Cookies vor der Einwilligung gesetzt werden, sieht dabei
-#: niemand. Dafuer braucht es einen echten Browserlauf.
+#: **Seit dem 26.08.2026 leer.** Hier stand `cookies_ohne_consent`: Die Regel
+#: verlangt einen „Cookie-Vergleich vor/nach" der Einwilligung, und
+#: `audit_collectors.detect_consent` liest ausschliesslich HTML — es erkennt
+#: ein Consent-Werkzeug an seiner **Signatur**, nicht an seinem Verhalten. Ob
+#: tatsaechlich Cookies gesetzt wurden, sah dabei niemand.
 #:
-#: Die Regel bleibt trotzdem stehen. Sie aus `BLOCKING_MAJOR` zu entfernen
-#: hiesse, den Massstab zu aendern, weil die Messung fehlt — und der Deckel
-#: gehoert in den Standard, nicht in die Erhebungslage. Sichtbar bleibt sie
-#: durch `tests/test_deckelregeln_erhoben.py`, der jede stille Erweiterung
-#: dieser Menge meldet.
-NICHT_ERHOBENE_BLOCKER = frozenset({"cookies_ohne_consent"})
+#: Die Regel blieb damals trotzdem in `BLOCKING_MAJOR` stehen. Sie zu
+#: entfernen, weil die Messung fehlt, hiesse den Massstab nach der
+#: Erhebungslage zu richten — der Deckel gehoert in den Standard. Jetzt
+#: erhebt sie der Browserlauf (`seitenbrowser`, `_cookies_vor_consent`): Er
+#: klickt kein Banner an, also ist alles, was danach im Kontext steht, ohne
+#: Zustimmung gesetzt.
+#:
+#: Die Menge bleibt bestehen, obwohl sie leer ist. Sie ist die Stelle, an der
+#: die naechste ungemessene Regel eintraegt, wer sie einfuehrt — und
+#: `tests/test_deckelregeln_erhoben.py` meldet jede stille Erweiterung.
+NICHT_ERHOBENE_BLOCKER = frozenset()
 
 BLOCKER_LABELS = {
     "kein_impressum": "Kein erreichbares Impressum (§ 5 DDG)",

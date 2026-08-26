@@ -309,8 +309,17 @@ async def collect_facts(
     # jeder Analyse zu starten waere Aufwand fuer die neunundneunzig Seiten,
     # die ihn nicht brauchen. Die Erkennung steht seit dem 25.08. und
     # entscheidet ohnehin schon, ob Kriterien als gemessen gelten duerfen.
-    browserlauf = {"wie": "nicht", "grund": "nicht noetig"}
-    if collectors.clientseitig_aufgebaut(soup, len(soup.get_text(" ").split())):
+    # **Ein Lauf, zwei Erkenntnisse (26.08.2026).** Die erste Fassung startete
+    # den Browser nur bei einer leeren Huelle — richtig, solange es allein um
+    # L-107 ging. Er sieht aber noch etwas, das sonst niemand sehen kann:
+    # welche Cookies **vor** jeder Einwilligung gesetzt werden. Das ist die
+    # Deckelregel `cookies_ohne_consent`, die der Katalog seit jeher nennt und
+    # die niemand erhoben hat. Zweimal zu laden waere zweimal zu zahlen.
+    #
+    # Kosten: rund 6 s bei einem Zeitrahmen von 200 s, und hoechstens ein
+    # Browser gleichzeitig (`seitenbrowser._EINER`).
+    browserlauf = {"wie": "nicht", "grund": "nicht eingeschaltet"}
+    if seitenbrowser.browser_erwuenscht():
         browserlauf = await seitenbrowser.hole_gerendert(base_url)
         if browserlauf.get("wie") == "browser" and browserlauf.get("html"):
             html = browserlauf["html"]
@@ -382,6 +391,11 @@ async def collect_facts(
         "browserlauf": {"collected": True,
                         "wie": browserlauf.get("wie", "nicht"),
                         "grund": browserlauf.get("grund", "")},
+        # **Erst erhoben, seit es einen Browser gibt.** Ohne Browserlauf
+        # steht hier `collected: False` — und die Deckelregel bleibt, was sie
+        # war: genannt, aber nicht gemessen. Sie mit `False` zu beantworten
+        # hiesse zu behaupten, nachgesehen zu haben.
+        "cookies_vor_consent": _cookies_vor_consent(browserlauf),
         "cdn": collectors.detect_cdn(homepage.get("headers", {})),
         "security_headers": _security_headers(homepage.get("headers", {})),
         "page_text": _gesamttext(befunde),
@@ -392,6 +406,29 @@ async def collect_facts(
         facts[key] = value if isinstance(value, dict) else {"collected": False}
 
     return facts
+
+
+def _cookies_vor_consent(browserlauf: dict) -> dict:
+    """Was ohne Einwilligung gesetzt wurde — oder dass niemand nachgesehen hat.
+
+    Der Browserlauf klickt kein Banner an. Was danach im Kontext steht, steht
+    dort ohne Zustimmung. `verfolger` nennt davon die Namen, bei denen es
+    **keine** Notwendigkeitsausnahme geben kann — Messung und Werbung. Alles
+    andere bleibt ungewertet: Ob ein Cookie technisch notwendig ist, haengt
+    von der Seite ab, und das kann von aussen niemand entscheiden.
+    """
+    if browserlauf.get("wie") != "browser":
+        return {"collected": False,
+                "grund": browserlauf.get("grund", "kein Browserlauf")}
+
+    cookies = browserlauf.get("cookies") or []
+    verfolger = seitenbrowser.verfolger_darunter(cookies)
+    return {
+        "collected": True,
+        "anzahl": len(cookies),
+        "verfolger": verfolger,
+        "verstoss": bool(verfolger),
+    }
 
 
 def summarise_facts(facts: dict) -> dict:

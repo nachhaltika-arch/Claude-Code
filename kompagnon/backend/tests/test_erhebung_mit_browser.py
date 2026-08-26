@@ -8,12 +8,18 @@ beim Probelauf gegen die eigene Produktivoberfläche waren es elf Wörter.
 wird — die betroffenen Kriterien fallen aus Zähler **und** Nenner, statt mit
 0 zu zählen. Gemessen wurde damit aber immer noch nichts.
 
+**Die Regel hat sich noch am selben Tag geändert, und das steht hier statt
+in einer gelöschten Zeile.** Zuerst lief der Browser **nur** bei einer leeren
+Hülle — richtig, solange es allein um L-107 ging. Er sieht aber noch etwas,
+das sonst niemand sehen kann: welche Cookies **vor** jeder Einwilligung
+gesetzt werden (`cookies_ohne_consent`, eine Deckelregel, die der Katalog
+seit jeher nennt und die niemand erhoben hat). Zweimal zu laden wäre zweimal
+zu zahlen. Jetzt entscheidet der Schalter, nicht die Seitenform.
+
 **Drei Eigenschaften, und die dritte ist der eigentliche Punkt:**
 
-1. Eine gewöhnliche Seite löst **keinen** Browserlauf aus. Ein Browser kostet
-   Sekunden und Speicher; ihn immer zu starten wäre Aufwand für die
-   neunundneunzig Seiten, die ihn nicht brauchen.
-2. Eine leere Hülle löst ihn aus.
+1. Ohne Schalter läuft **kein** Browser, und es wird nichts behauptet.
+2. Mit Schalter läuft er — auch für eine gewöhnliche Seite, wegen der Cookies.
 3. **Nach einem geglückten Lauf zählen die Kriterien wieder.** Bliebe
    `clientseitig` stehen, hätte der Browser nichts geändert außer der
    Laufzeit — die Seite wäre gesehen und trotzdem als „nicht messbar"
@@ -64,6 +70,12 @@ def _nur_die_startseite(monkeypatch):
 
 
 @pytest.fixture
+def an(monkeypatch):
+    """Schalter ein — sonst laeuft gar kein Browser."""
+    monkeypatch.setenv("AUDIT_BROWSER", "true")
+
+
+@pytest.fixture
 def gesehener_text(monkeypatch):
     """Was die Sammler tatsaechlich vor sich hatten.
 
@@ -103,24 +115,40 @@ def _erheben(url="https://betrieb.test/"):
     return asyncio.run(audit_runner.collect_facts(url, "Betrieb", "shk", "Bremen"))
 
 
-class TestErLaeuftNurWennNoetig:
-    def test_eine_gewoehnliche_seite_startet_keinen_browser(self, monkeypatch):
-        _mit_startseite(monkeypatch, ECHTE_SEITE)
+class TestDerSchalterEntscheidet:
+    def test_ohne_schalter_laeuft_kein_browser(self, monkeypatch):
+        monkeypatch.delenv("AUDIT_BROWSER", raising=False)
+        _mit_startseite(monkeypatch, HUELLE)
         protokoll = []
         _mit_browser(monkeypatch, {"wie": "browser", "html": GERENDERT},
                      protokoll)
 
         fakten = _erheben()
 
-        assert protokoll == [], "Browser lief fuer eine Seite, die ihn nicht braucht"
+        assert protokoll == []
         assert fakten["browserlauf"]["wie"] == "nicht"
 
-    def test_eine_leere_huelle_startet_ihn(self, monkeypatch):
+    def test_und_dann_wird_ueber_die_cookies_nichts_behauptet(self, monkeypatch):
+        """`collected: False`, nicht „keine Verfolger gefunden". Ohne
+        Browserlauf hat niemand nachgesehen."""
+        monkeypatch.delenv("AUDIT_BROWSER", raising=False)
         _mit_startseite(monkeypatch, HUELLE)
+        _mit_browser(monkeypatch, {"wie": "browser", "html": GERENDERT}, [])
+
+        fakten = _erheben()
+
+        assert fakten["cookies_vor_consent"]["collected"] is False
+
+    def test_mit_schalter_laeuft_er_auch_fuer_eine_gewoehnliche_seite(
+            self, monkeypatch, an):
+        """Wegen der Cookies — die gibt es auch auf einer Seite, die sich
+        serverseitig aufbaut."""
+        _mit_startseite(monkeypatch, ECHTE_SEITE)
         protokoll = []
         _mit_browser(monkeypatch,
-                     {"wie": "browser", "html": GERENDERT,
-                      "final_url": "https://betrieb.test/"}, protokoll)
+                     {"wie": "browser", "html": ECHTE_SEITE,
+                      "final_url": "https://betrieb.test/", "cookies": []},
+                     protokoll)
 
         _erheben()
 
@@ -128,7 +156,7 @@ class TestErLaeuftNurWennNoetig:
 
 
 class TestNachDemLaufZaehltDieSeiteWieder:
-    def test_clientseitig_faellt_zurueck_auf_falsch(self, monkeypatch):
+    def test_clientseitig_faellt_zurueck_auf_falsch(self, monkeypatch, an):
         """Der eigentliche Punkt. Bliebe die Kennzeichnung stehen, waere die
         Seite gesehen und trotzdem als „nicht messbar" gefuehrt — der
         Browser haette nur Laufzeit gekostet."""
@@ -142,7 +170,7 @@ class TestNachDemLaufZaehltDieSeiteWieder:
         assert fakten["clientseitig"] is False
 
     def test_die_sammler_bekommen_das_gerenderte_html(self, monkeypatch,
-                                                       gesehener_text):
+                                                       gesehener_text, an):
         """**Die erste Fassung dieses Tests war wertlos.** Sie schrieb
 
             assert "Waermepumpen" in fakten.get("page_text", "") + GERENDERT
@@ -165,7 +193,7 @@ class TestNachDemLaufZaehltDieSeiteWieder:
 
 
 class TestWennErNichtAnspringt:
-    def test_bleibt_die_seite_als_nicht_messbar_gekennzeichnet(self, monkeypatch):
+    def test_bleibt_die_seite_als_nicht_messbar_gekennzeichnet(self, monkeypatch, an):
         """Kein Rueckfall auf „dann eben mit 0 bewerten". Was niemand gesehen
         hat, wird nicht benotet."""
         _mit_startseite(monkeypatch, HUELLE)
@@ -177,7 +205,7 @@ class TestWennErNichtAnspringt:
 
         assert fakten["clientseitig"] is True
 
-    def test_und_der_grund_steht_im_ergebnis(self, monkeypatch):
+    def test_und_der_grund_steht_im_ergebnis(self, monkeypatch, an):
         """Sonst sieht ein Bericht ohne Browserlauf genauso aus wie einer mit."""
         _mit_startseite(monkeypatch, HUELLE)
         _mit_browser(monkeypatch,
@@ -190,7 +218,7 @@ class TestWennErNichtAnspringt:
         assert "Playwright" in fakten["browserlauf"]["grund"]
 
     def test_ein_leeres_html_wird_nicht_uebernommen(self, monkeypatch,
-                                                    gesehener_text):
+                                                    gesehener_text, an):
         """Ein Lauf, der `wie: browser` meldet und nichts liefert, darf die
         vorhandene Huelle nicht ueberschreiben — sonst waere das Ergebnis
         schlechter als vorher."""

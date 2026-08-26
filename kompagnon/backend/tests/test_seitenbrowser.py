@@ -215,6 +215,57 @@ class TestDerZwischenspeicher:
         assert "alt.test" not in seitenbrowser._GEPRUEFT
 
 
+class TestSeitenDieNochUmziehen:
+    """Am Gegenstand gefunden, nicht ausgedacht."""
+
+    class _Seite:
+        def __init__(self, fehler_bis):
+            self.versuche = 0
+            self.fehler_bis = fehler_bis
+            self.gewartet = 0
+
+        async def content(self):
+            self.versuche += 1
+            if self.versuche <= self.fehler_bis:
+                raise RuntimeError(
+                    "Page.content: Unable to retrieve content because the "
+                    "page is navigating and changing the content.")
+            return "<html>fertig</html>"
+
+        async def wait_for_timeout(self, ms):
+            self.gewartet += ms
+
+    def test_ein_zweiter_versuch_rettet_den_lauf(self):
+        """`stackoverflow.com` leitet nach dem Laden noch einmal weiter. Der
+        erste Versuch brach den **ganzen** Lauf ab — und damit ging nicht nur
+        das HTML verloren, sondern auch die Cookie-Messung, die am selben
+        Lauf haengt."""
+        seite = self._Seite(fehler_bis=1)
+
+        html = asyncio.run(seitenbrowser._inhalt(seite))
+
+        assert html == "<html>fertig</html>"
+        assert seite.versuche == 2
+        assert seite.gewartet == seitenbrowser.RUHEFRIST_MS
+
+    def test_ohne_stoerung_wird_nicht_gewartet(self):
+        """Gegenprobe: Sonst kostete jeder Lauf die Ruhefrist zweimal."""
+        seite = self._Seite(fehler_bis=0)
+
+        asyncio.run(seitenbrowser._inhalt(seite))
+
+        assert seite.versuche == 1
+        assert seite.gewartet == 0
+
+    def test_bleibt_es_kaputt_gibt_es_nichts_statt_der_haelfte(self):
+        """Der Aufrufer hat das HTML aus dem gewoehnlichen Abruf. Eine halbe
+        Seite waere schlechter als keine."""
+        seite = self._Seite(fehler_bis=9)
+
+        with pytest.raises(RuntimeError):
+            asyncio.run(seitenbrowser._inhalt(seite))
+
+
 def test_dieselbe_kennung_wie_der_gewoehnliche_abruf():
     """Zwei verschiedene Kennungen hiessen, dass zwei Messungen derselben
     Seite nicht vergleichbar sind — manche Server liefern je nach Kennung

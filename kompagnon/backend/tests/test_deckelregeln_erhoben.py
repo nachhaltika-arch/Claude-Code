@@ -53,9 +53,18 @@ def test_jede_deckelregel_ist_entweder_erhoben_oder_als_luecke_vermerkt():
     )
 
 
-def test_die_luecke_ist_genau_die_bekannte():
-    """Sonst waechst die Ausnahmeliste, ohne dass es jemandem auffaellt."""
-    assert NICHT_ERHOBENE_BLOCKER == {"cookies_ohne_consent"}
+def test_es_gibt_keine_ungemessene_deckelregel_mehr():
+    """**Am 26.08.2026 leer geworden.**
+
+    Hier stand `cookies_ohne_consent` — die einzige Regel, die der Katalog
+    nannte und niemand erhob. Seit dem Browserlauf wird sie gemessen: Er
+    klickt kein Banner an, also steht alles, was danach im Kontext liegt,
+    ohne Zustimmung dort.
+
+    Die Zusicherung bleibt und wird schaerfer: Waechst die Liste wieder,
+    faellt es hier auf. Eine Ausnahme darf entstehen — aber nicht unbemerkt.
+    """
+    assert NICHT_ERHOBENE_BLOCKER == frozenset()
 
 
 def test_die_erhobenen_regeln_sind_auch_erklaert():

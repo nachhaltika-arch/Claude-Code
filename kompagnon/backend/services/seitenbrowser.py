@@ -30,6 +30,7 @@ Render-Konto installiert Chrome im Buildbefehl auf der normalen Laufzeit und
 läuft. Die Systembibliotheken sind also da; ein eigenes Bild wäre eine
 Umstellung der ganzen Auslieferung für etwas, das ohne sie geht.
 """
+import asyncio
 import ipaddress
 import logging
 import os
@@ -112,6 +113,48 @@ def _ziel_ist_oeffentlich(url: str) -> bool:
 #: Je Lauf, nicht je Prozess — `hole_gerendert` legt ihn an und wirft ihn weg.
 _GEPRUEFT: dict = {}
 
+#: **Hoechstens ein Browser gleichzeitig.** Chromium belegt rund 300 MB. Ohne
+#: diese Sperre haetten zehn gleichzeitige Analysen zehn Browser gestartet und
+#: den Dienst mit dem Speicher erschlagen — ein Ausfall, der genau dann
+#: eintritt, wenn viel los ist. Wer wartet, wartet Sekunden; wer nicht wartet,
+#: nimmt den Dienst mit.
+_EINER = asyncio.Semaphore(1)
+
+#: Cookienamen, die **keine** technische Notwendigkeit haben koennen.
+#:
+#: Warum eine Namensliste und keine allgemeine Regel: Ob ein Cookie technisch
+#: notwendig ist, haengt von der Seite ab — das kann von aussen niemand
+#: entscheiden, und ein Warenkorb-Cookie darf vor der Einwilligung gesetzt
+#: werden. Diese Namen gehoeren aber zu Messung und Werbung, und dafuer gibt
+#: es keine Notwendigkeitsausnahme. Ein Fehlalarm auf `_ga` ist praktisch
+#: ausgeschlossen; das ist der Preis dafuer, dass die Aussage haelt.
+VERFOLGER = (
+    "_ga", "_gid", "_gat", "_gcl_au", "__utm",      # Google Analytics / Ads
+    "_fbp", "_fbc", "fr",                            # Meta
+    "IDE", "NID", "DSID", "test_cookie",             # DoubleClick
+    "_hj",                                            # Hotjar
+    "_clck", "_clsk", "MUID",                        # Microsoft Clarity
+    "_pk_",                                           # Matomo
+    "li_sugr", "bcookie", "lidc",                    # LinkedIn
+    "_tt_", "ttwid",                                  # TikTok
+    "personalization_id",                             # X/Twitter
+)
+
+
+def verfolger_darunter(cookies) -> list:
+    """Welche der gesetzten Cookies eindeutig Messung oder Werbung sind.
+
+    Verglichen wird auf Praefix, nicht auf Gleichheit: Google haengt an `_ga`
+    die Grundstuecksnummer (`_ga_XXXXXXX`), Hotjar zaehlt durch (`_hjSession`).
+    Wer auf Gleichheit prueft, findet die Haelfte nicht.
+    """
+    treffer = []
+    for cookie in cookies or []:
+        name = (cookie or {}).get("name") or ""
+        if any(name.startswith(p) for p in VERFOLGER):
+            treffer.append(name)
+    return sorted(set(treffer))
+
 
 async def hole_gerendert(url: str) -> dict:
     """Die Seite mit einem echten Browser laden.
@@ -151,7 +194,8 @@ async def hole_gerendert(url: str) -> dict:
                 "html": "", "final_url": url}
 
     try:
-        return await _laden(url)
+        async with _EINER:
+            return await _laden(url)
     except Exception as fehler:     # noqa: BLE001
         logger.warning("Browserlauf fuer %s fehlgeschlagen: %s", url, fehler)
         return {"wie": "nicht", "grund": f"{type(fehler).__name__}: {fehler}",
@@ -164,9 +208,10 @@ async def _laden(url: str) -> dict:
     async with async_playwright() as p:
         browser = await p.chromium.launch(args=["--no-sandbox"])
         try:
-            seite = await (await browser.new_context(
+            kontext = await browser.new_context(
                 user_agent=_kennung(), ignore_https_errors=False,
-            )).new_page()
+            )
+            seite = await kontext.new_page()
 
             # **Die zweite Sperre.** Jede Anfrage einzeln — sonst holt der
             # Browser ueber eine Weiterleitung oder ein eingebettetes Bild
@@ -185,15 +230,49 @@ async def _laden(url: str) -> dict:
             antwort = await seite.goto(url, timeout=AUFBAU_MS,
                                        wait_until="load")
             await seite.wait_for_timeout(RUHEFRIST_MS)
-            html = await seite.content()
+            html = await _inhalt(seite)
+
+            # **Cookies, bevor irgendjemand eingewilligt hat.** Hier wird
+            # nichts angeklickt — kein Banner, kein „Alle akzeptieren". Was
+            # jetzt gesetzt ist, ist ohne Einwilligung gesetzt worden. Genau
+            # das verlangt `cookies_ohne_consent`, und genau das konnte die
+            # HTML-Erhebung nie sehen: Sie erkennt ein Consent-Werkzeug an
+            # seiner Signatur, nicht sein Verhalten.
+            cookies = await kontext.cookies()
+
             return {
                 "wie": "browser",
                 "html": html,
                 "final_url": seite.url or url,
                 "status_code": antwort.status if antwort else 0,
+                "cookies": [{"name": c.get("name", ""),
+                             "domain": c.get("domain", "")}
+                            for c in (cookies or [])],
             }
         finally:
             await browser.close()
+
+
+async def _inhalt(seite) -> str:
+    """Das HTML holen, auch wenn die Seite gerade noch umzieht.
+
+    **Am Gegenstand gefunden (26.08.2026).** Bei `stackoverflow.com` brach
+    der ganze Lauf mit „Unable to retrieve content because the page is
+    navigating and changing the content" ab — eine Seite, die sich nach dem
+    Laden noch einmal weiterleitet. Verloren war damit nicht nur das HTML,
+    sondern auch die Cookie-Messung, die am selben Lauf haengt.
+
+    Ein zweiter Versuch nach kurzer Ruhe genuegt: Der Umzug ist dann durch.
+    Scheitert auch der, gibt es lieber nichts als eine halbe Seite — der
+    Aufrufer hat das HTML aus dem gewoehnlichen Abruf.
+    """
+    try:
+        return await seite.content()
+    except Exception as fehler:      # noqa: BLE001
+        logger.info("Seiteninhalt beim ersten Versuch nicht lesbar (%s) — "
+                    "noch einmal nach %d ms", fehler, RUHEFRIST_MS)
+        await seite.wait_for_timeout(RUHEFRIST_MS)
+        return await seite.content()
 
 
 def _kennung() -> str:

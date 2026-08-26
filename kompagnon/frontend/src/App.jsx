@@ -259,7 +259,9 @@ function App() {
             }
           />
 
-          {/* App — authenticated, with Navbar/Sidebar */}
+          {/* Der angemeldete Bereich — Rahmen und Navigation liegen in `AppLayout`.
+            * (Hier stand „with Navbar/Sidebar"; `Navbar.jsx` war seit Langem
+            * abgeloest und ist am 26.08.2026 entfernt.) */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRoute />} />

@@ -48,7 +48,11 @@ function seiten() {
       name: path.relative(SEITEN, datei).split(path.sep).join('/'),
       stufen,
       // Beide Bausteine erzeugen ein h1 — im Quelltext der Seite steht keines.
-      hatTitelBaustein: text.includes('<SeitenTitel>') || text.includes('<PageHeader'),
+      // `<PageHeader` stand hier als zweite erlaubte Form. Die Komponente
+      // war laut L-17 von **null** Seiten benutzt und ist am 26.08.2026
+      // entfernt; eine Alternative, die es nicht gibt, macht die Pruefung
+      // nur unschaerfer.
+      hatTitelBaustein: text.includes('<SeitenTitel>'),
     };
   });
 }

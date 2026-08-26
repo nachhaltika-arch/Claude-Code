@@ -5,7 +5,8 @@
  * ueberfaellige Phasen, kritische Margen und Scope-Creep; `GET
  * /api/dashboard/alerts` gibt sie heraus, und dieses Bauteil zeigt sie an.
  * Nur importiert hat es niemand — gebaut, nie verdrahtet, dieselbe Familie
- * wie `PageHeader` (L-17) und die vier unerreichbaren Reiter (L-128).
+ * wie `PageHeader` (L-17, am 26.08.2026 entfernt) und die vier
+ * unerreichbaren Reiter (L-128).
  *
  * `onOeffnen` ist neu und der Grund, warum die Zeilen Schaltflaechen sind:
  * Eine Warnung, die „Projekt 12" nennt und keinen Weg dorthin hat, verlangt

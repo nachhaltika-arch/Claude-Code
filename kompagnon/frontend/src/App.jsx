@@ -22,6 +22,7 @@ import LeadProfile from './pages/LeadProfile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import MeineDaten from './pages/MeineDaten';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
 import Settings from './pages/Settings';
@@ -300,6 +301,17 @@ function App() {
             {/* Ruft `/api/leads`, das am Router auf Innendienst steht — ein Kunde
               * saehe hier nur leere Listen und Fehler (L-67). */}
             <Route path="audit" element={<PrivateRoute roles={['admin', 'auditor']}><AuditTool /></PrivateRoute>} />
+            {/* Die Stammdaten des eigenen Betriebs (26.08.2026). „Meine
+              * Kartei" zeigte bis dahin auf `/app/betriebe/{id}` — eine Route
+              * mit `roles={['admin','auditor']}`, von der `PrivateRoute` einen
+              * Kunden auf sein Dashboard zurueckwirft. Der Punkt fuehrte ins
+              * Nichts. Der Innendienst darf mit, um im Zweifel dasselbe zu
+              * sehen wie der Kunde. */}
+            <Route path="meine-daten" element={
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'auditor']}>
+                <MeineDaten />
+              </PrivateRoute>
+            } />
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import KundenChat from '../components/kunde/KundenChat';
 
 // ── Category score config ─────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -297,7 +298,13 @@ export default function CustomerDashboard() {
         </div>
       )}
 
-      {/* ── 5. CONTACT BANNER ── */}
+      {/* ── 5. NACHRICHTEN ──
+        * Der Verlauf mit dem Innendienst. Es gab ihn seit jeher in beide
+        * Richtungen — aber im angemeldeten Portal fuehrte der einzige Weg
+        * zum Team ueber den `mailto:`-Link darunter (26.08.2026, L-95). */}
+      {user?.lead_id && <KundenChat leadId={user.lead_id} token={token} />}
+
+      {/* ── 6. CONTACT BANNER ── */}
       <div style={{
         background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
         borderRadius: 'var(--radius-xl)',

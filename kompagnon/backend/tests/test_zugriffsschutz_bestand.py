@@ -14,13 +14,14 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
-| `leads` | 2 | Betriebs-Eigentum wird geprueft. |
+| `leads` | 3 | Betriebs-Eigentum wird geprueft. **Seit 26.08.2026** dazu `PATCH /{id}/stammdaten` — der Kunde pflegt die Angaben seines eigenen Betriebs; dieselbe Eigentumspruefung wie beim Lesen, dazu eine Erlaubnisliste der Felder. |
 | `audit` | 2 | `_audit_oder_404` — Einmal-Token **oder** Anmeldung; das ist der Berichtsweg des Kunden. |
 | `geo-payments` | 2 | Seit dem 22.08. `eigenes_projekt_pruefen`. |
 | `usercards` | 1 | `_check_kunde_access`. |
 | `tickets` | 1 | filtert auf `current_user.email`. |
 | `invoices` | 1 | filtert auf `current_user.email`. |
 | `versand` | 1 | Ein Ja/Nein zum automatischen Versand, kein Kundendatum — siehe unten. |
+| `messages` | 2 | **Neu am 26.08.2026.** Der Nachrichtenverlauf des Kunden. Beide Routen nahmen bisher **nur** einen `customer_token` und zaehlten deshalb zu den ganz offenen; seit dem Chat im angemeldeten Portal nehmen sie auch eine Anmeldung. `_zugang_pruefen` entscheidet an **einer** Stelle: Ein mitgeschickter Token muss stimmen, sonst muss der Angemeldete zum Innendienst gehoeren oder den Betrieb besitzen. Sie sind damit **staerker** geschuetzt als vorher, nicht schwaecher — die Zahl unten steigt, weil sie aus der offenen Liste hierher gewandert sind. |
 
 **Warum diese Zahl bewacht wird.** Sie ist dreimal gewandert: von „166" ueber
 „120" auf 85 und schliesslich 46 — und die ersten beiden Zahlen waren zu
@@ -39,12 +40,17 @@ import pytest
 
 
 #: Stand vom 22.08.2026, an der geladenen Anwendung gemessen.
-ERWARTET = 46
+#: 22.08.2026: 46
+#: 26.08.2026: 49 — `PATCH /api/leads/{id}/stammdaten` (Kunde pflegt seine
+#:   Stammdaten) und die beiden `messages`-Routen, die aus der **offenen**
+#:   Liste hierher gewandert sind, weil sie jetzt auch eine Anmeldung nehmen.
+ERWARTET = 49
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {
     "academy", "portal", "auth", "assistant", "projects", "leads",
     "audit", "geo-payments", "usercards", "tickets", "invoices", "versand",
+    "messages",
 }
 
 #: Routen ganz **ohne** Anmeldepruefung, Stand 25.08.2026 (L-51).
@@ -52,7 +58,10 @@ ERLAUBTE_BEREICHE = {
 #: 22.08.2026: 49
 #: 25.08.2026: 53 — vier Routen des Buchverkaufs (BUCH-05). Ein Kaeufer ist
 #:   nicht angemeldet und wird es auch nicht: Er kauft ein Buch, kein Konto.
-OFFEN_ERWARTET = 53
+#: 26.08.2026: 51 — die beiden `messages`-Routen des Kunden sind **hoch**
+#:   gewandert: Sie nehmen jetzt neben dem Token auch eine Anmeldung und
+#:   zaehlen damit zu den schwach geschuetzten statt zu den offenen.
+OFFEN_ERWARTET = 51
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

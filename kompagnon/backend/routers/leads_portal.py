@@ -327,3 +327,94 @@ def get_lead(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     return lead
+
+# ── Stammdaten, vom Kunden gepflegt (26.08.2026) ─────────────────────
+#
+# **Erlaubnisliste, keine Verbotsliste.** Ein Betrieb traegt zweierlei: die
+# Angaben **ueber** ihn — Anschrift, Ansprechpartner, Rechtsform,
+# Registernummer — und die Angaben, die **wir** ueber ihn fuehren: Status,
+# Herkunft, interne Notizen, Punktzahl, Zugangs-Token. Das Erste gehoert ihm,
+# das Zweite ist unsere Arbeitsspur.
+#
+# Eine Verbotsliste vergisst das Feld, das morgen dazukommt. Diese Liste
+# laesst es draussen, bis jemand es ausdruecklich aufnimmt — die teurere,
+# aber die richtige Richtung.
+#
+# Ausdruecklich **nicht** darin: `status` (der Kunde setzte sich sonst selbst
+# auf „gewonnen"), `notes` (unsere Notizen ueber ihn), `lead_source`,
+# `customer_token` (der Schluessel zu seinem Portal), alle Punktzahlen und
+# Zaehler. `email` steht drin, weil es die Geschaeftsadresse des Betriebs
+# ist — die Anmeldeadresse liegt an `users` und ist davon unberuehrt.
+STAMMDATEN_DES_KUNDEN = (
+    "company_name", "contact_name", "phone", "email", "website_url",
+    "street", "house_number", "postal_code", "city",
+    "legal_form", "vat_id", "register_number", "register_court",
+    "ceo_first_name", "ceo_last_name", "display_name",
+)
+
+
+class StammdatenAenderung(BaseModel):
+    """Alles freiwillig — die Oberflaeche sendet nur, was sich geaendert hat."""
+
+    model_config = {"extra": "allow"}
+
+
+# **Eigener Pfad, nicht `PATCH /{lead_id}`.** Der Innendienst-Router liegt
+# auf demselben Praefix und registriert dieselbe Adresse zuerst; meine
+# Route wurde davon vollstaendig ueberdeckt (403 „Nur fuer den
+# Innendienst"). `/stammdaten` ist ausserdem die genauere Sprache: Es
+# geht um die Angaben des Betriebs, nicht um den Datensatz als Ganzes.
+@kunden_router.patch("/{lead_id}/stammdaten")
+def stammdaten_pflegen(
+    lead_id: int,
+    daten: StammdatenAenderung,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Der Kunde pflegt die Stammdaten seines Betriebs.
+
+    **Warum es das gibt:** Rechtsform, Registernummer und Registergericht
+    kennt der Betrieb, nicht wir — und sie muessen ins Impressum. Bisher
+    wurden sie im Briefing per Hand abgefragt und vom Innendienst
+    eingetragen.
+
+    **Warum es hier steht und nicht im Lead-Router:** Dort haengt
+    `edit_leads` davor, ein Innendienst-Recht. Diese Route ist die zweite
+    des `kunden_router` neben dem Lesen — und sie prueft dieselbe Grenze:
+    Wer nicht zum Innendienst gehoert, aendert nur den eigenen Betrieb.
+
+    **Nicht erlaubte Felder werden verworfen und benannt.** Sie stillschweigend
+    zu schlucken waere die schlechtere Haelfte von „nicht erlaubt": Der
+    Absender glaubt dann, es sei gespeichert.
+    """
+    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    gesendet = daten.model_dump(exclude_none=True)
+    # Der Innendienst behaelt seinen vollen Zugriff — die Liste gilt dem
+    # Kunden. Sonst haette diese Aenderung dem Innendienst etwas weggenommen.
+    erlaubt = (set(gesendet) if current_user.role in INNENDIENST
+               else set(gesendet) & set(STAMMDATEN_DES_KUNDEN))
+    verworfen = sorted(set(gesendet) - erlaubt)
+
+    for feld in erlaubt:
+        if hasattr(lead, feld):
+            setattr(lead, feld, gesendet[feld])
+    lead.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(lead)
+
+    if verworfen:
+        logger.info("Betrieb %s: %s nicht uebernommen (Rolle %s)",
+                    lead_id, ", ".join(verworfen), current_user.role)
+
+    return {
+        "success": True,
+        "id": lead.id,
+        "stammdaten": {f: getattr(lead, f, None) for f in STAMMDATEN_DES_KUNDEN},
+        "nicht_uebernommen": verworfen,
+    }

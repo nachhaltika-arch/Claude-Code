@@ -310,7 +310,10 @@ function SidebarNav({ badges }) {
           <div style={{ marginTop: 8 }}>
             {[
               { label: 'Dashboard',     path: '/app/dashboard' },
-              { label: 'Meine Kartei',  path: user.lead_id ? `/app/betriebe/${user.lead_id}` : '/app/dashboard' },
+              // Zeigte bis zum 26.08.2026 auf den Innendienst-Bildschirm, von dem
+              // `PrivateRoute` einen Kunden sofort zurueckwarf — ein Menuepunkt,
+              // der auf dieselbe Seite fuehrte, von der man kam.
+              { label: 'Meine Daten',   path: '/app/meine-daten' },
               { label: 'Freigaben',     path: '/app/freigaben' },
               { label: 'Support',       path: '/app/support' },
               { label: 'Rechnungen',    path: '/app/rechnungen' },

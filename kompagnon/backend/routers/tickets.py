@@ -64,7 +64,49 @@ def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
                          f"{req.type} · Priorität {req.priority}",
                  ziel="/app/tickets")
 
+    # **Zusaetzlich per Mail, wenn gewuenscht (26.08.2026).** Der Schalter
+    # steht vorgabegemaess **aus**: Ein Ticket meldete bisher nur die Glocke,
+    # und die Vorgabe jedes neuen Schalters ist das Verhalten von heute. Wer
+    # nichts umstellt, bekommt keine Mail, die er nicht kennt.
+    _ticket_mail(db, nr, req)
+
     return {"ticket_number": nr, "message": "Ticket erstellt"}
+
+
+def _ticket_mail(db, nr, req) -> None:
+    """Ein neues Ticket auch ins Postfach — Beiwerk, kein Vorgang.
+
+    Faellt der Versand aus, ist das Ticket trotzdem angelegt und die Glocke
+    meldet es. Dieselbe Reihenfolge wie bei `melden_leise`: Die Sache des
+    Kunden ist die Hauptsache.
+    """
+    import logging
+    import os
+
+    empfaenger = os.getenv("SMTP_USER", "").strip()
+    if not empfaenger:
+        return
+
+    try:
+        from services.meldungsvorlieben import soll_melden_leise
+
+        if not soll_melden_leise(db, "ticket_mail"):
+            return
+
+        from services.email import send_email
+
+        send_email(
+            to_email=empfaenger,
+            subject=f"🎫 Ticket {nr}: {req.title}"[:200],
+            html_body=(f"<p><strong>{req.user_name or req.user_email}</strong>"
+                       f" hat ein Ticket angelegt.</p>"
+                       f"<p><strong>{req.title}</strong></p>"
+                       f"<blockquote>{req.description or ''}</blockquote>"
+                       f"<p>Art: {req.type} · Priorität: {req.priority}</p>"),
+        )
+    except Exception as fehler:      # noqa: BLE001
+        logging.getLogger(__name__).warning(
+            "Ticket-Mail nicht versendet: %s", fehler)
 
 
 @router.get("/my")

@@ -35,6 +35,51 @@ const WURZEL = path.join(__dirname, '..');
 /** Meldungen, die einen abgeschlossenen Vorgang behaupten. */
 const BEHAUPTUNG = /toast\.success\(/;
 
+/**
+ * Kommentare ausblenden, bevor gesucht wird.
+ *
+ * **Der Waechter fand sich selbst (26.08.2026).** `MeldungsVorlieben.jsx`
+ * erklaert in seinem Kopf, was hier frueher stand — samt der Zeile
+ * `onClick={() => toast.success(...)}`. Prompt stand die Datei im Befund.
+ *
+ * Das ist Muster 2 der eigenen Messfehler, woertlich: Zwei Waechter haben
+ * sich schon einmal in ihrer eigenen Beschreibung gefunden. Das Backend hat
+ * dafuer laengst `tools/adressen.ohne_kommentare` — hier fehlte es.
+ *
+ * Ein Zustandsautomat statt eines Musters: `https://` enthaelt `//`, und ein
+ * Muster, das darauf anspringt, zerschneidet jede Adresse in einer
+ * Zeichenkette.
+ */
+function ohneKommentare(quelltext) {
+  let raus = '';
+  let i = 0;
+  while (i < quelltext.length) {
+    const zwei = quelltext.slice(i, i + 2);
+    if (zwei === '//') {
+      while (i < quelltext.length && quelltext[i] !== '\n') i += 1;
+    } else if (zwei === '/*') {
+      i += 2;
+      while (i < quelltext.length && quelltext.slice(i, i + 2) !== '*/') i += 1;
+      i += 2;
+    } else if (quelltext[i] === '"' || quelltext[i] === "'" || quelltext[i] === '`') {
+      const ende = quelltext[i];
+      raus += quelltext[i];
+      i += 1;
+      while (i < quelltext.length && quelltext[i] !== ende) {
+        if (quelltext[i] === '\\') { raus += quelltext[i]; i += 1; }
+        raus += quelltext[i];
+        i += 1;
+      }
+      raus += ende;
+      i += 1;
+    } else {
+      raus += quelltext[i];
+      i += 1;
+    }
+  }
+  return raus;
+}
+
 function dateien(verzeichnis) {
   return fs.readdirSync(verzeichnis, { withFileTypes: true }).flatMap((e) => {
     const voll = path.join(verzeichnis, e.name);
@@ -90,7 +135,9 @@ function leereVersprechen(quelltext) {
 }
 
 describe('Kein Knopf verspricht etwas, das nicht geschieht', () => {
-  const quellen = dateien(WURZEL).map((p) => [p, fs.readFileSync(p, 'utf8')]);
+  const quellen = dateien(WURZEL).map(
+    (p) => [p, ohneKommentare(fs.readFileSync(p, 'utf8'))],
+  );
 
   test('es gibt Quelldateien zu pruefen', () => {
     // Ohne diese Zusicherung waere ein leerer Suchlauf gruen — der Fehler,

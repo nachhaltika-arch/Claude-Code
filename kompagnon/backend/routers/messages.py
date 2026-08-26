@@ -274,8 +274,12 @@ def send_message_kunde(
                  ziel=f"/app/betriebe/{lead_id}",
                  lead_id=lead_id)
 
-    # Admin-Benachrichtigung per E-Mail
-    if SMTP_USER:
+    # Admin-Benachrichtigung per E-Mail — seit dem 26.08.2026 abschaltbar.
+    # Die Glocke meldet diese Nachricht ohnehin; die Mail ist der zweite Weg
+    # zur selben Sache, und ob man ihn will, ist eine Vorliebe. Die Vorgabe
+    # ist „an" — das Verhalten von vorher.
+    from services.meldungsvorlieben import soll_melden_leise
+    if SMTP_USER and soll_melden_leise(db, "chat_mail"):
         from services.email import send_email
         ok = send_email(
             to_email=SMTP_USER,

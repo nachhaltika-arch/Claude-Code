@@ -67,6 +67,42 @@ def anzahl(db: Session = Depends(get_db)):
     return {"ungelesen": offen}
 
 
+@router.get("/vorlieben")
+def vorlieben_lesen(db: Session = Depends(get_db)):
+    """Welche Ereignisse zusätzlich eine Mail auslösen.
+
+    **Steht vor `/{kennung}/gelesen`**, obwohl das eine `POST`-Route ist und
+    diese eine `GET`: Die Reihenfolge entscheidet in FastAPI, und sich darauf
+    zu verlassen, dass sich die Methoden schon unterscheiden, ist genau die
+    Art Annahme, die beim nächsten Umbau still bricht.
+    """
+    from services import meldungsvorlieben
+
+    return meldungsvorlieben.alle(db)
+
+
+@router.put("/vorlieben")
+def vorlieben_setzen(werte: dict, db: Session = Depends(get_db)):
+    """Schalter umlegen — als Zuordnung Schlüssel → an/aus.
+
+    Ein unbekannter Schlüssel ist ein **Fehler**, kein stilles Verwerfen.
+    Sonst meldet die Oberfläche Erfolg und nichts geschieht: genau der
+    Zustand, aus dem dieser Endpunkt entstanden ist.
+    """
+    from services import meldungsvorlieben
+
+    if not isinstance(werte, dict) or not werte:
+        raise HTTPException(400, "Nichts zu setzen")
+
+    try:
+        for schluessel, aktiv in werte.items():
+            meldungsvorlieben.setzen(db, schluessel, bool(aktiv))
+    except ValueError as fehler:
+        raise HTTPException(400, str(fehler))
+
+    return meldungsvorlieben.alle(db)
+
+
 @router.post("/{kennung}/gelesen")
 def gelesen(kennung: int, db: Session = Depends(get_db)):
     zeile = db.query(Benachrichtigung).filter(

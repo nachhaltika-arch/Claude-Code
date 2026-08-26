@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import MeldungsVorlieben from '../components/einstellungen/MeldungsVorlieben';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
@@ -262,7 +263,7 @@ function VersandSchalter() {
 
 // ── Notifications ──
 function NotificationsTab() {
-  const { hasRole } = useAuth();
+  const { hasRole, token } = useAuth();
   const [testEmail, setTestEmail] = useState('');
   const [testResult, setTestResult] = useState(null);
 
@@ -279,19 +280,7 @@ function NotificationsTab() {
     <>
       {hasRole('admin') && <VersandSchalter />}
       <Card title="Benachrichtigungen" icon="🔔">
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
-          Was von Kunden hereinkommt — <strong>Tickets, Chatnachrichten und
-          E-Mail-Antworten</strong> — meldet die Glocke oben in der Kopfzeile.
-          Sie zeigt jede Meldung mit einem Ziel, das man anklicken kann.
-        </p>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
-          Welche <em>ausgehenden</em> Mails einzeln an- und abschaltbar sind,
-          ist noch nicht entschieden. Hier standen bis zum 26.08.2026 sechs
-          Ankreuzfelder mit einem „Speichern"-Knopf — beides ohne Wirkung: Es
-          gab keine Stelle, die sie gelesen hätte, und der Knopf meldete
-          trotzdem Erfolg. Ein Feld, das nichts schaltet, ist schlimmer als
-          keines: Es beendet die Suche.
-        </p>
+        <MeldungsVorlieben token={token} />
       </Card>
       {hasRole('admin') && (
         <Card title="E-Mail-Versand" icon="⚙️">

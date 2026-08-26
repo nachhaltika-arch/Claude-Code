@@ -710,6 +710,28 @@ class Benachrichtigung(Base):
     gelesen_am  = Column(DateTime, nullable=True)
 
 
+class Meldungsvorliebe(Base):
+    """Ob ein Ereignis zusaetzlich per Mail gemeldet wird.
+
+    **Warum eine Zeile je Ereignis und kein Feld je Benutzer
+    (26.08.2026).** KOMPAGNON wird von einer Person bedient; ein
+    Vorlieben-Satz je Konto waere eine Verallgemeinerung auf Vorrat. Kommt
+    ein zweiter Innendienst dazu, kostet die Erweiterung eine Spalte — heute
+    kostet sie Bedienoberflaeche, die niemand braucht.
+
+    **Kein Eintrag heisst nicht „aus".** Fehlt die Zeile, gilt die Vorgabe
+    aus `services/meldungsvorlieben.EREIGNISSE` — und die ist fuer jedes
+    Ereignis genau das Verhalten von heute. Ein leerer Bestand darf keinen
+    Versand heimlich abschalten.
+    """
+
+    __tablename__ = "meldungsvorlieben"
+
+    schluessel  = Column(String(40), primary_key=True)
+    aktiv       = Column(Boolean, nullable=False, default=True)
+    geaendert_am = Column(DateTime, default=datetime.utcnow)
+
+
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
 
 

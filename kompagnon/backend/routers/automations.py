@@ -150,7 +150,13 @@ def get_dashboard_alerts(db: Session = Depends(get_db)):
                         alert_type="overdue_phase",
                         severity="warning" if days_in_phase < 5 else "critical",
                         project_id=project.id,
-                        message=f"Projekt {project.id} seit {days_in_phase} Tagen in Phase {project.status}",
+                        # `phase_3` → `3`. Solange die Warnung nirgends stand, las sie
+                        # niemand; seit sie auf dem Dashboard steht (L-95),
+                        # liest sie jemand — und „in Phase phase_3" ist die
+                        # Datenbankspalte, nicht die Sprache des Hauses.
+                        message=f"Projekt {project.id} seit {days_in_phase} "
+                                f"Tagen in Phase "
+                                f"{str(project.status).replace('phase_', '')}",
                         timestamp=datetime.utcnow(),
                     )
                 )

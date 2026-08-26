@@ -62,6 +62,17 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
   const [nennungFehler, setNennungFehler] = useState('');
   const [verlauf, setVerlauf] = useState(null);
 
+  // ── Das laufende Abo (26.08.2026, L-105) ──────────────────────────
+  // `POST /api/geo-payments/{id}/cancel` gibt es seit dem Bau des Add-ons
+  // und wurde **von nirgendwo** aufgerufen. Der Kasten darunter schaltet nur,
+  // ob das Add-on *angeboten* wird (`upsell_active`); das tatsaechliche
+  // Stripe-Abo, das der Kunde im Portal mit einem Klick abschliesst, sah im
+  // Innendienst niemand — und kuendigen konnte es niemand ausser per curl.
+  const [abo, setAbo] = useState(null);
+  const [aboLaeuft, setAboLaeuft] = useState(false);
+  const [aboFrage, setAboFrage] = useState(false);
+  const [aboFehler, setAboFehler] = useState('');
+
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const loadResult = useCallback(async () => {
@@ -168,6 +179,36 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       setNennungFehler('Verbindungsfehler — die Pruefung wurde nicht durchgefuehrt.');
     } finally {
       setNennungLaeuft(false);
+    }
+  };
+
+  const ladeAbo = useCallback(async () => {
+    if (!projectId || !isAdmin) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/geo-payments/${projectId}/status`, { headers });
+      setAbo(resp.ok ? await resp.json() : null);
+    } catch {
+      // Kein Rueckfall auf „kein Abo": Das waere eine Aussage, und geladen
+      // werden konnte nichts.
+      setAbo(null);
+    }
+  }, [projectId, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { ladeAbo(); }, [ladeAbo]);
+
+  const aboKuendigen = async () => {
+    setAboLaeuft(true); setAboFehler('');
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/geo-payments/${projectId}/cancel`,
+        { method: 'POST', headers });
+      const daten = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(daten.detail || `Status ${resp.status}`);
+      setAboFrage(false);
+      await ladeAbo();
+    } catch (e) {
+      setAboFehler(`Die Kuendigung wurde nicht eingereicht (${e.message}).`);
+    } finally {
+      setAboLaeuft(false);
     }
   };
 
@@ -278,6 +319,59 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           <div style={{ fontSize: 13, opacity: 0.9 }}>{SCORE_LABEL(score)} · /100</div>
         </div>
       </div>
+
+      {/* Das laufende Abo — Stand und Kuendigung (26.08.2026, L-105).
+        * Getrennt vom Kasten darunter: Der schaltet, ob das Add-on
+        * **angeboten** wird; hier steht, ob der Kunde es **gebucht** hat. */}
+      {isAdmin && abo?.subscription_status && (
+        <div style={{
+          background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+          borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <strong style={{ fontSize: 14 }}>Abo des Kunden</strong>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Status: {abo.subscription_status}
+                {abo.subscription_status === 'cancel_at_period_end'
+                  && ' — laeuft zum Periodenende aus'}
+              </p>
+            </div>
+            {abo.subscription_status === 'active' && !aboFrage && (
+              <button type="button" onClick={() => setAboFrage(true)}
+                style={{ background: 'transparent', color: 'var(--status-danger-text, var(--status-error-text))', border: '1px solid currentColor', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                Abo kuendigen
+              </button>
+            )}
+          </div>
+
+          {aboFrage && (
+            <div role="alertdialog" style={{ fontSize: 13, lineHeight: 1.55, padding: '10px 12px', borderRadius: 6, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
+              <div style={{ marginBottom: 8 }}>
+                Das GEO-Abo dieses Kunden zum <strong>Periodenende</strong>
+                {' '}kuendigen? Bis dahin laeuft es weiter; abgebucht wird nichts mehr danach.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" disabled={aboLaeuft} onClick={aboKuendigen}
+                  style={{ padding: '6px 14px', border: 'none', borderRadius: 6, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700, cursor: aboLaeuft ? 'default' : 'pointer', opacity: aboLaeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  {aboLaeuft ? 'Wird eingereicht …' : 'Ja, kuendigen'}
+                </button>
+                <button type="button" onClick={() => setAboFrage(false)}
+                  style={{ padding: '6px 14px', border: '1px solid currentColor', borderRadius: 6, background: 'transparent', color: 'inherit', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {aboFehler && (
+            <div role="alert" style={{ fontSize: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--status-error-bg)', color: 'var(--status-error-text)' }}>
+              {aboFehler}
+            </div>
+          )}
+        </div>
+      )}
 
       {isAdmin && (
         <div style={{

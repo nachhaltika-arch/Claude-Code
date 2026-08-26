@@ -2261,7 +2261,59 @@ export default function LeadProfile() {
 
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (
-        <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
+        <>
+          <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
+
+          {/* Die Auftragsbestaetigung (26.08.2026, L-105).
+            * `GET /api/projects/{id}/auftragsbestaetigung` gibt es seit dem
+            * Bau des Bestellwegs und hatte **keinen Aufrufer**. Das PDF
+            * entsteht bei der Stripe-Zahlung und liegt am Projekt — nur
+            * herankommen konnte niemand.
+            *
+            * Beim selben Vorgang hing heute Morgen der groessere Fund: Die
+            * Mail, die es dem Kunden mitschickt, ging wegen eines falschen
+            * Schluesselworts **gar nicht** raus. Deshalb ist dieser Knopf
+            * mehr als Bequemlichkeit — er ist der Weg, das Dokument
+            * nachzureichen.
+            *
+            * Kein Vorabpruefen, ob es das PDF gibt: Das waere ein zweiter
+            * Aufruf fuer jede Betriebsansicht. Fehlt es, sagt der Server 404,
+            * und der Knopf sagt es weiter. */}
+          {projectId && (
+            <Card padding="md">
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Auftragsbestätigung
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Entsteht automatisch bei der Zahlung. Falls sie beim Kunden
+                nie angekommen ist, können Sie sie hier herunterladen und
+                nachreichen.
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_BASE_URL}/api/projects/${projectId}/auftragsbestaetigung`,
+                      { headers: { Authorization: `Bearer ${token}` } });
+                    if (r.status === 404) { toast.error('Für dieses Projekt liegt keine Auftragsbestätigung vor.'); return; }
+                    if (!r.ok) throw new Error(`Status ${r.status}`);
+                    const blob = await r.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'KOMPAGNON-Auftragsbestaetigung.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    toast.error(`Download fehlgeschlagen: ${e.message}`);
+                  }
+                }}
+                style={{ padding: '8px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                PDF herunterladen
+              </button>
+            </Card>
+          )}
+        </>
       )}
 
       {/* QR-CODE TAB */}

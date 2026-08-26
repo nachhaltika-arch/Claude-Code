@@ -15,6 +15,24 @@ class MarginCalculator:
     DEFAULT_AI_COSTS = 50.0  # €
     TARGET_MARGIN_PERCENT = 78
     MIN_ACCEPTABLE_MARGIN_PERCENT = 70
+
+    @staticmethod
+    def status_fuer(margin_percent: float) -> str:
+        """Gruen, gelb oder rot — die Schwellen an **einer** Stelle.
+
+        **Warum das ein eigener Aufruf ist (26.08.2026).** Die Marge wird
+        taeglich gerechnet und war nirgends zu sehen; `MarginBadge.jsx` lag
+        gebaut und unverdrahtet im Quellbaum (L-95). Beim Anschliessen war die
+        naheliegende Abkuerzung, die beiden Schwellen im Frontend nachzubauen
+        — und genau das ist die zweite Quelle fuer dieselbe Zahl, die dieses
+        Haus bei den Paketpreisen schon einmal Geld gekostet hat. Der Status
+        kommt jetzt vom Server; hier steht er einmal.
+        """
+        if margin_percent >= MarginCalculator.TARGET_MARGIN_PERCENT:
+            return "green"
+        if margin_percent >= MarginCalculator.MIN_ACCEPTABLE_MARGIN_PERCENT:
+            return "yellow"
+        return "red"
     TARGET_HOURS = 8.5  # hours (total project target)
 
     @staticmethod
@@ -75,15 +93,8 @@ class MarginCalculator:
         hours_remaining_at_min = max(0, hours_remaining_at_min)
 
         # Status determination
-        if margin_percent >= MarginCalculator.TARGET_MARGIN_PERCENT:
-            status = "green"
-            alert = False
-        elif margin_percent >= MarginCalculator.MIN_ACCEPTABLE_MARGIN_PERCENT:
-            status = "yellow"
-            alert = False
-        else:
-            status = "red"
-            alert = True
+        status = MarginCalculator.status_fuer(margin_percent)
+        alert = status == "red"
 
         # Additional alert if:
         # - Hours exceed target by > 1 hour (8.5h target)

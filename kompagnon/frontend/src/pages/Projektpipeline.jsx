@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import { aufTaste } from '../utils/tastaturBedienung';
+import MarginBadge from '../components/MarginBadge';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  icon: '📋', color: 'var(--kc-mid)' },
@@ -330,6 +331,23 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
             🏅 {project.audit_level}
           </span>
+        )}
+        {/* Die Marge (26.08.2026, L-95). Sie wird taeglich gerechnet
+          * (`job_update_all_margins`) und war nirgends zu sehen —
+          * `MarginBadge.jsx` lag gebaut und von niemandem importiert im
+          * Quellbaum, und `margin_percent` kam im ganzen Frontend an keiner
+          * anderen Stelle vor. Der einzige Ort, an dem sie auftauchte, war
+          * die Warnliste auf dem Dashboard, und auch nur bei **kritisch**.
+          *
+          * `margin_status` kommt vom Server: Die Schwellen (78 % / 70 %)
+          * stehen in `MarginCalculator`, und eine zweite Quelle fuer
+          * dieselbe Zahl ist der Fehler, den `paketpreise.test.js` fuer
+          * Preise ausdruecklich verbietet.
+          *
+          * Nur bei Projekten — ein gewonnener Lead ohne Projekt hat keine. */}
+        {type === 'project' && project?.margin_status && (
+          <MarginBadge marginPercent={project.margin_percent}
+            status={project.margin_status} />
         )}
         {type === 'lead' && !certSt && (
           <span style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontWeight: 500 }}>→ Projekt anlegen</span>

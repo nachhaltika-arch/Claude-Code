@@ -181,6 +181,14 @@ def list_projects(
                 'hourly_rate': row[5] or 45,
                 'ai_tool_costs': row[6] or 50,
                 'margin_percent': row[7] or 0,
+                # Der Status kommt **vom Server**, nicht aus der Oberflaeche:
+                # Die Schwellen (78 % / 70 %) stehen in `MarginCalculator`,
+                # und eine zweite Quelle fuer dieselbe Zahl ist der Fehler,
+                # der bei den Paketpreisen schon einmal zugeschlagen hat.
+                # Gerechnet wird hier nichts — nur der gespeicherte Wert
+                # eingeordnet; `calculate_margin` je Zeile waere bei 200
+                # Projekten eine Abfrage je Projekt.
+                'margin_status': MarginCalculator.status_fuer(row[7] or 0),
                 'scope_creep_flags': row[8] or 0,
                 'created_at': str(row[9])[:10] if row[9] else '',
             })

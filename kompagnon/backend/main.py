@@ -730,6 +730,11 @@ app.include_router(tickets_router)
 app.include_router(newsletter_router)
 app.include_router(versand_router)
 
+# Der Posteingang des Innendienstes: was vom Kunden hereinkommt (L-18,
+# 26.08.2026). Ticket, Chat — und E-Mail, sobald es einen Posteingang gibt.
+from routers import benachrichtigungen
+app.include_router(benachrichtigungen.router)
+
 from routers import briefings
 app.include_router(briefings.router)      # Innendienst
 # Kunde: Freigabe (L-27) und seit dem 26.08.2026 das eigene Briefing unter

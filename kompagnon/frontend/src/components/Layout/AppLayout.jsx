@@ -15,6 +15,7 @@ import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
 import { aufTaste } from '../../utils/tastaturBedienung';
+import Glocke from './Glocke';
 
 const MOBILE_HEADER_H = 52;   // px — fixed top bar
 const MOBILE_NAV_H    = 64;   // px — fixed bottom nav (ohne safe-area)
@@ -597,6 +598,11 @@ function SidebarNav({ badges }) {
 
 function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  // Die Glocke traegt Betriebsnamen und Betreffzeilen anderer Kunden —
+  // sie gehoert dem Innendienst. Der Server weist einen Kunden ohnehin ab
+  // (403); hier faellt der Knopf weg, statt zuverlaessig zu scheitern.
+  const istInnendienst = hasRole('admin', 'auditor', 'nutzer');
   return (
     <header style={{
       height: 52,
@@ -645,6 +651,12 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
           );
         })}
       </nav>
+      {/* Der Posteingang (L-18, 26.08.2026). Nur fuer den Innendienst — die
+        * Meldungen tragen Betriebsnamen und Betreffzeilen anderer Kunden.
+        * Rechts neben der Handlungstaste, weil dort der Blick ohnehin
+        * hingeht. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {istInnendienst && <Glocke />}
       {ctaLabel && (
         <button
           onClick={ctaAction}
@@ -659,6 +671,7 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
           {ctaLabel}
         </button>
       )}
+      </div>
     </header>
   );
 }

@@ -264,6 +264,16 @@ def send_message_kunde(
     db.commit()
     db.refresh(msg)
 
+    # Im Werkzeug sichtbar machen — nicht nur per Mail an eine feste
+    # Adresse aus der Umgebung (L-18). Wer im Werkzeug arbeitet, soll dort
+    # sehen, dass etwas hereingekommen ist.
+    from services.benachrichtigungen import melden_leise
+    melden_leise(db, art="chat",
+                 titel=f"Nachricht von {lead.company_name or 'Kunde'}",
+                 hinweis=body.content[:200],
+                 ziel=f"/app/betriebe/{lead_id}",
+                 lead_id=lead_id)
+
     # Admin-Benachrichtigung per E-Mail
     if SMTP_USER:
         from services.email import send_email

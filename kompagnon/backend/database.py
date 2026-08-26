@@ -681,6 +681,35 @@ class Message(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
 
 
+class Benachrichtigung(Base):
+    """Was vom Kunden hereinkommt — Ticket, Chatnachricht, spaeter E-Mail.
+
+    **Warum eine eigene Tabelle und nicht „die ungelesenen zusammenzaehlen"
+    (26.08.2026, L-18).** Ein Ticket, eine Chatnachricht und eine Mail liegen
+    in drei Tabellen mit drei Formen. Sie beim Anzeigen zusammenzurechnen
+    hiesse, an jeder Stelle alle drei zu kennen — und die vierte, die
+    dazukommt, wird vergessen.
+
+    Eine Meldung ist ein eigener Vorgang: Sie entsteht einmal, sie wird einmal
+    gelesen, und sie traegt ein **Ziel**, das man anklicken kann. Eine Meldung
+    ohne Weg dorthin verlangt vom Leser, selbst zu suchen.
+    """
+
+    __tablename__ = "benachrichtigungen"
+
+    id         = Column(Integer, primary_key=True)
+    #: "ticket" | "chat" | "mail". Bewusst eine Zeichenkette und kein Enum —
+    #: eine vierte Quelle soll eine Zeile kosten, keine Migration.
+    art        = Column(String(20), nullable=False)
+    lead_id    = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    titel      = Column(String(300), nullable=False)
+    hinweis    = Column(Text)
+    #: Wohin der Klick fuehrt, als Pfad im Werkzeug.
+    ziel       = Column(String(300))
+    erstellt_am = Column(DateTime, default=datetime.utcnow)
+    gelesen_am  = Column(DateTime, nullable=True)
+
+
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
 
 

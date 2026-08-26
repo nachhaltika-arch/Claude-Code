@@ -53,6 +53,17 @@ def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
     ), {"nr": nr, "email": req.user_email, "name": req.user_name, "type": req.type, "prio": req.priority,
         "title": req.title, "desc": req.description, "page": req.page_url, "browser": req.browser_info, "screenshot": req.screenshot_base64})
     db.commit()
+
+    # Bis zum 26.08.2026 schrieb diese Route eine Zeile und schwieg. Wer ein
+    # Ticket aufgab, bekam eine Nummer — und im Innendienst passierte nichts,
+    # bis jemand von sich aus in die Ticketliste sah (L-18).
+    from services.benachrichtigungen import melden_leise
+    melden_leise(db, art="ticket",
+                 titel=f"Ticket {nr}: {req.title}"[:300],
+                 hinweis=f"{req.user_name or req.user_email} · "
+                         f"{req.type} · Priorität {req.priority}",
+                 ziel="/app/tickets")
+
     return {"ticket_number": nr, "message": "Ticket erstellt"}
 
 

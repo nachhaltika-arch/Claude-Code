@@ -2126,7 +2126,59 @@ export default function LeadProfile() {
       )}
 
       {/* DATEIEN TAB */}
-      {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
+      {activeTab === 'dateien' && (
+        <>
+          <ProjectFilesSection leadId={lead.id} />
+
+          {/* Die fertigen Seiten als ZIP (26.08.2026, L-105).
+            * `GET /api/projects/{id}/export-zip` packt jede gespeicherte
+            * Seite als HTML mit eingebettetem CSS — und hatte **keinen
+            * Aufrufer**. Wer eine Sicherung wollte oder einem Kunden seine
+            * Seiten mitgeben, hatte keinen Weg.
+            *
+            * (Beim Nachsehen hielt ich den Endpunkt kurz fuer ungeschuetzt:
+            * Die Funktion nennt keine Anmeldung. Die Sperre haengt am
+            * **Router** — `require_innendienst`, dieselbe Bauart wie in
+            * `files.py`. Der Verdacht war falsch.) */}
+          {projectId && (
+            <Card padding="md">
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Website als ZIP
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Alle gespeicherten Seiten des Projekts, je eine HTML-Datei mit
+                eingebettetem CSS. Nützlich als Sicherung und bei der Übergabe.
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_BASE_URL}/api/projects/${projectId}/export-zip`,
+                      { headers: { Authorization: `Bearer ${token}` } });
+                    if (r.status === 404) {
+                      const d = await r.json().catch(() => ({}));
+                      toast.error(d.detail || 'Es gibt noch keine gespeicherten Seiten.');
+                      return;
+                    }
+                    if (!r.ok) throw new Error(`Status ${r.status}`);
+                    const blob = await r.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `website-projekt-${projectId}.zip`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    toast.error(`Export fehlgeschlagen: ${e.message}`);
+                  }
+                }}
+                style={{ padding: '8px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                ZIP herunterladen
+              </button>
+            </Card>
+          )}
+        </>
+      )}
 
       {/* PAGESPEED TAB */}
       {activeTab === 'pagespeed' && <PageSpeedSection leadId={lead.id} />}

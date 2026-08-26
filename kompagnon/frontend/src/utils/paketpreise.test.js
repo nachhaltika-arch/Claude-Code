@@ -105,9 +105,14 @@ describe('preisZeile', () => {
 //
 // **Er lief zuerst über eine feste Liste von drei Dateien — und genau diese
 // Beschränkung war die Lücke.** Über alle Dateien gezählt standen weitere
-// feste Beträge in `AuditHook.jsx` (dem eingebetteten Widget, also auf fremden
-// Seiten), in `CustomerProjects.jsx` und in drei Paketseiten. Seitdem prüft er
-// den ganzen Baum; was ausgenommen ist, steht namentlich darunter.
+// feste Beträge in `AuditHook.jsx`, in `CustomerProjects.jsx` und in drei
+// Paketseiten. Seitdem prüft er den ganzen Baum; was ausgenommen ist, steht
+// namentlich darunter.
+//
+// (`AuditHook.jsx` ist am 26.08.2026 entfernt — eine React-Fassung des
+// Widgets, die nur über die abgelöste `Landing.jsx` erreichbar war. Das
+// **ausgelieferte** Widget ist `public/embed/audit-widget.html`, eigenes
+// Vanilla JS ohne Build, und liegt außerhalb dieser Prüfung.)
 
 const fs = require('fs');
 const path = require('path');

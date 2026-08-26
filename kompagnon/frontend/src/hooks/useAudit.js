@@ -6,7 +6,6 @@
  *  - LeadProfile.jsx
  *  - CustomerDetail.js
  *  - AuditTool.jsx
- *  - AuditHook.jsx
  *
  * Einheitlicher Endpoint: POST /api/audit/start + GET /api/audit/{id}
  * Sauberer Cleanup bei Unmount (kein Memory-Leak).

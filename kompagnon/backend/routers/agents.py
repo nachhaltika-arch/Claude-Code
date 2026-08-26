@@ -22,6 +22,7 @@ import asyncio
 import uuid
 import threading
 from functools import partial
+from html import escape
 
 router = APIRouter(prefix="/api/agents", tags=["agents"],
                    dependencies=[Depends(require_innendienst)])
@@ -162,9 +163,24 @@ def _json_to_html(data: dict, context: dict | None = None) -> str:
         f'margin-top:8px">Jetzt Kontakt aufnehmen</a></div>'
     ) if cta else ''
 
+    # Sprache und Titel der Huelle (26.08.2026, L-17). Beides sind
+    # Lighthouse-Kriterien, die **unser eigenes Audit beim Kunden prueft** —
+    # `html-has-lang` und `document-title`. Eine Seite, die wir fuer einen
+    # Betrieb bauen, muss bestehen, was wir bei ihm messen.
+    #
+    # Ohne `lang` waehlt die Vorlesehilfe die Aussprache nach der
+    # Voreinstellung des Zuhoerers; deutscher Text in englischer Aussprache
+    # ist nicht unschoen, sondern unverstaendlich.
+    #
+    # Der Titel nimmt den Firmennamen, sonst die Hauptueberschrift — das ist
+    # das, wonach ein Mensch im Tab sucht. Maskiert, weil beides aus einem
+    # Briefing kommt und ein `<` sonst den Kopf der Seite umschriebe.
+    titel = escape(ctx.get('company_name') or hero or 'Ihre neue Website')
+
     return (
-        '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>{titel}</title>'
         f'<style>*{{box-sizing:border-box;margin:0;padding:0}}'
         f'body{{font-family:{font_primary}}}</style>'
         # Reihenfolge nach Spec § 3 (Offer-Stack-Sequencing): Versprechen,

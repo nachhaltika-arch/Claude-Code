@@ -1,0 +1,265 @@
+From d3aedc3173589a04e8dd8d4514925a4089a3c19e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 25 Aug 2026 21:21:30 +0000
+Subject: [PATCH] Add A4 book target to the typesetting pipeline
+
+Adds `--ziel druck-a4`: the same book, the same Satzmuster page design
+(mirrored margins, marginal column, running heads, blank verso before
+each chapter), laid out on A4 instead of 170 x 240 mm.
+
+The type size does not scale with the page. 10 pt on a 13 pt baseline
+stays; the main column grows only from 95 to 115 mm (~64 characters) and
+the extra width goes to the marginal column and the margins. The A4 text
+block is an exact 51 x 13 pt, so unlike the 170 x 240 block it ends on a
+baseline instead of between two.
+
+`druckpruefung.py` no longer hardcodes 170 x 240. It recognises which of
+the built formats a file is in and then checks every page against it,
+which also catches a single odd-sized sheet inside the block -- the old
+version only ever looked at page one.
+
+Measured, not assumed: druck 283 pages and bildschirm 190 pages are
+unchanged, druck-a4 is 211 pages, fonts embedded on all three, and the
+A4 build carries at least as much text as the approved print build (it
+has fewer mid-word line breaks, not more).
+
+The Buchkonzept 1.2 still names 17 x 24 cm as the target format; this
+adds an edition beside it, it does not replace it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01KKks6DX48EMoU84CesZVrt
+---
+ buch/README.md             | 36 +++++++++++++++++++++++----
+ buch/bauen.py              |  8 ++++--
+ buch/druckpruefung.py      | 50 ++++++++++++++++++++++++++++++++------
+ buch/layout/satzspiegel.py | 47 ++++++++++++++++++++++++++++++++++-
+ 4 files changed, 125 insertions(+), 16 deletions(-)
+
+diff --git a/buch/README.md b/buch/README.md
+index 89860dd..9beb6e3 100644
+--- a/buch/README.md
++++ b/buch/README.md
+@@ -1,19 +1,45 @@
+ # Die Buch-Baustrecke
+ 
+-Setzt „Der Homepage Standard" aus dem Manuskript in zwei PDFs.
++Setzt „Der Homepage Standard" aus dem Manuskript in PDFs.
+ 
+ ```bash
+ python3 -m venv buch/venv
+ buch/venv/bin/pip install -r buch/requirements-build.txt
+ 
+ buch/venv/bin/python buch/bauen.py --ziel beide --entwurf
++buch/venv/bin/python buch/bauen.py --ziel druck-a4 --entwurf
+ buch/venv/bin/python buch/druckpruefung.py buch/build/homepage-standard-druck.pdf
+ ```
+ 
+-| Datei | Format | Zweck |
+-|---|---|---|
+-| `build/homepage-standard-bildschirm.pdf` | A4 | Verkauf als Download |
+-| `build/homepage-standard-druck.pdf` | 170 × 240 mm | Vorlage für die Druckerei |
++| Ziel | Datei | Format | Zweck |
++|---|---|---|---|
++| `bildschirm` | `build/homepage-standard-bildschirm.pdf` | A4 | Verkauf als Download |
++| `druck` | `build/homepage-standard-druck.pdf` | 170 × 240 mm | Vorlage für die Druckerei |
++| `druck-a4` | `build/homepage-standard-druck-a4.pdf` | A4 | dasselbe Buch als A4-Band |
++
++`--ziel beide` baut `bildschirm` und `druck` — die beiden Fassungen, die das
++Buchkonzept vorsieht. `druck-a4` ist ausdrücklich zu nennen.
++
++**`druck-a4` ist nicht `bildschirm`.** Beide sind A4, und mehr haben sie nicht
++gemeinsam. `bildschirm` ist ein Lesedokument: ein Block über die ganze Seite,
++kein Bund, keine Marginalspalte, 11 pt auf 15,5 pt. `druck-a4` ist der
++Buchsatzspiegel des Satzmusters, auf A4 aufgezogen — gespiegelte Ränder,
++Marginalspalte, Kolumnentitel, Vakatseiten vor jedem Kapitel, 10 pt auf 13 pt
++wie im Druck. Wer den A4-Band drucken lassen will, nimmt `druck-a4`; wer die
++Datei zum Download verkauft, `bildschirm`.
++
++**Der Schriftgrad wächst nicht mit.** A4 ist 23,5 % breiter als 170 × 240. Die
++Schrift mitzuziehen hieße, das Schriftbild zu ändern, das abgenommen ist; also
++bleiben 10 pt auf 13 pt, die Hauptspalte wächst nur von 95 auf 115 mm
++(≈ 64 Zeichen), und der übrige Platz geht an Marginalspalte und Ränder. Die
++Maße stehen in `buch/layout/satzspiegel.py`, kommentiert und mit Summenprobe.
++
++> **Das Buchkonzept 1.2 nennt weiterhin 17 × 24 cm als Zielformat**, und 1.2
++> begründet das auch: breit genug für die fünfspaltigen Tabellen, „schmal
++> genug, um noch als Buch und nicht als Ordner zu wirken". `druck-a4` hebt
++> diese Entscheidung nicht auf — es stellt eine zweite Fassung daneben. Wer A4
++> zum Zielformat macht, ändert das Buchkonzept zuerst; jedes Format braucht
++> zudem eine eigene ISBN (Buchkonzept 0.4).
+ 
+ ## Was Sie wissen sollten
+ 
+diff --git a/buch/bauen.py b/buch/bauen.py
+index c2d1c84..4c30dc3 100644
+--- a/buch/bauen.py
++++ b/buch/bauen.py
+@@ -245,7 +245,8 @@ def bauen(ziel: str, entwurf: bool) -> dict:
+ 
+ def main() -> int:
+     p = argparse.ArgumentParser(description="Buch setzen")
+-    p.add_argument("--ziel", choices=("bildschirm", "druck", "beide"),
++    p.add_argument("--ziel",
++                   choices=("bildschirm", "druck", "druck-a4", "beide"),
+                    default="beide")
+     p.add_argument("--entwurf", action="store_true",
+                    help="Bestandteile mit `status: entwurf` mitsetzen")
+@@ -258,7 +259,10 @@ def main() -> int:
+               f"{e['bytes'] / 1024 / 1024:.1f} MB · {e['teile']} Bestandteile · "
+               f"{e['abbildungen']} Abbildungen · {e['marginalien']} Marginalien · "
+               f"{e['durchgaenge']} Durchgänge")
+-        if e["linksbeginnend"] and ziel == "druck":
++        # **Am Satzspiegel gefragt, nicht am Namen des Ziels.** Die Warnung
++        # gilt für jede gebundene Fassung; als `ziel == "druck"` geschrieben
++        # hätte sie bei `druck-a4` stillschweigend geschwiegen.
++        if e["linksbeginnend"] and sp.masse(ziel)["marginalspalte"]:
+             print(f"  ⚠ {len(e['linksbeginnend'])} Kapitel beginnen links: "
+                   + ", ".join(e["linksbeginnend"][:4]))
+     return 0
+diff --git a/buch/druckpruefung.py b/buch/druckpruefung.py
+index d1eae3b..686f006 100644
+--- a/buch/druckpruefung.py
++++ b/buch/druckpruefung.py
+@@ -12,8 +12,10 @@ Vier Punkte, jeder mit einem Grund:
+ * **Schriften eingebettet.** Der häufigste Fehler dieser Baustrecke: Das
+   Werkzeug findet eine Schriftdatei nicht, setzt still eine Systemschrift ein,
+   und das Ergebnis sieht erst in der Druckerei falsch aus.
+-* **Seitenformat 170 × 240 mm.** Ein PDF im falschen Format wird skaliert —
+-  damit stimmt kein Satzspiegel mehr.
++* **Ein bekanntes Buchformat, und auf allen Seiten dasselbe.** Ein PDF im
++  falschen Format wird skaliert — damit stimmt kein Satzspiegel mehr. Und ein
++  einzelnes abweichendes Blatt mitten im Block fällt sonst erst der Druckerei
++  auf.
+ * **Mindestumfang 48 Seiten**, sonst trägt der Rücken keine Beschriftung.
+ """
+ import sys
+@@ -22,10 +24,30 @@ from pathlib import Path
+ from pypdf import PdfReader
+ 
+ MM = 72 / 25.4
+-SOLL_BREIT, SOLL_HOCH = 170 * MM, 240 * MM
+ TOLERANZ = 1.0          # Punkt
+ MINDESTSEITEN = 48
+ 
++#: Welche Buchformate die Baustrecke baut — `buch/layout/satzspiegel.py`.
++#
++# **Warum eine Liste und nicht ein Sollwert.** Bis zum 25.08.2026 stand hier
++# `SOLL_BREIT, SOLL_HOCH = 170 × 240` fest. Sobald `bauen.py --ziel druck-a4`
++# dazukam, meldete die Prüfung an einer einwandfreien A4-Fassung „Seitenformat
++# 210 × 297 statt 170 × 240" — ein Fehler, den die Datei nicht hatte. Geprüft
++# wird deshalb: Ist es *eines* der gebauten Formate, und ist es auf *jeder*
++# Seite dasselbe.
++FORMATE = {
++    "170 × 240 mm": (170 * MM, 240 * MM),
++    "A4 (210 × 297 mm)": (210 * MM, 297 * MM),
++}
++
++
++def _format_erkennen(breit: float, hoch: float):
++    """Der Name des Formats, oder None, wenn es keines der gebauten ist."""
++    for name, (soll_b, soll_h) in FORMATE.items():
++        if abs(breit - soll_b) < TOLERANZ and abs(hoch - soll_h) < TOLERANZ:
++            return name
++    return None
++
+ 
+ def pruefen(pfad: Path) -> list:
+     leser = PdfReader(str(pfad))
+@@ -45,11 +67,23 @@ def pruefen(pfad: Path) -> list:
+ 
+     kasten = leser.pages[0].mediabox
+     breit, hoch = float(kasten.width), float(kasten.height)
+-    passt = (abs(breit - SOLL_BREIT) < TOLERANZ and abs(hoch - SOLL_HOCH) < TOLERANZ)
+-    befunde.append((
+-        passt,
+-        f"Seitenformat {breit / MM:.0f} × {hoch / MM:.0f} mm",
+-        f"Seitenformat {breit / MM:.1f} × {hoch / MM:.1f} mm statt 170 × 240"))
++    erkannt = _format_erkennen(breit, hoch)
++    # Jede Seite, nicht nur die erste: Eine einzeln eingefügte Titelei oder
++    # eine von Hand ergänzte Vorlage im falschen Maß bleibt sonst unsichtbar.
++    abweichler = [nr for nr, seite in enumerate(leser.pages, 1)
++                  if _format_erkennen(float(seite.mediabox.width),
++                                      float(seite.mediabox.height)) != erkannt]
++    if erkannt is None:
++        befunde.append((
++            False, "",
++            f"Seitenformat {breit / MM:.1f} × {hoch / MM:.1f} mm ist keines der "
++            f"gebauten Formate ({', '.join(FORMATE)})"))
++    else:
++        befunde.append((
++            not abweichler,
++            f"Seitenformat {erkannt} auf allen {seiten} Seiten",
++            f"{len(abweichler)} Seiten weichen von {erkannt} ab, zuerst "
++            f"Seite {abweichler[0] if abweichler else '?'}"))
+ 
+     eingebettet, lose = set(), set()
+     for seite in leser.pages:
+diff --git a/buch/layout/satzspiegel.py b/buch/layout/satzspiegel.py
+index a2762d9..b067dd3 100644
+--- a/buch/layout/satzspiegel.py
++++ b/buch/layout/satzspiegel.py
+@@ -42,6 +42,38 @@ RASTER = 13                      # Grundlinienraster in Punkt
+ A4_BREIT, A4_HOCH = 210 * mm, 297 * mm
+ A4_RAND = 20 * mm
+ 
++# ── A4 als Buchformat (Ziel `druck-a4`) ──────────────────────────────
++# **Nicht dasselbe wie `bildschirm`.** Die Bildschirmfassung ist ein
++# Lesedokument: ein Block, kein Bund, keine Marginalspalte. `druck-a4` ist der
++# Satzspiegel des Satzmusters, nur auf A4 aufgezogen — gespiegelte Ränder,
++# Marginalspalte, Kolumnentitel, Vakatseiten, 10 pt auf 13 pt.
++#
++# **Nicht proportional vergrößert.** 210/170 = 1,235; eine mitskalierte
++# Hauptspalte wäre 117 mm breit, und eine mitskalierte Schrift stünde bei
++# 12,35 pt. Wer den Schriftgrad mitzieht, ändert das Schriftbild des Buchs,
++# das Manuel abgenommen hat. Also bleibt der Grad bei 10 pt, die Spalte wächst
++# nur maßvoll, und der gewonnene Platz geht an Marginalspalte und Ränder —
++# dorthin, wo A4 ihn braucht.
++#
++#     170 × 240      A4 (210 × 297)
++#     Bund     20  →  25   der Block ist dicker, der Bund frisst mehr
++#     Haupt    95  → 115   ≈ 64 Zeichen bei 10 pt, gute Leseweite
++#     Steg      5  →   6
++#     Marg     35  →  45   die Marginalie darf zweizeilig laufen
++#     Außen    15  →  19
++#              ---     ---
++#             170     210
++#
++# **Die Höhe rastert exakt.** Der 170er-Satzspiegel hat 190 mm = 538,6 pt, also
++# 41,4 Zeilen zu 13 pt — er endet zwischen zwei Zeilen. Auf A4 ist das
++# vermeidbar: 51 Zeilen × 13 pt = 663 pt = 233,90 mm gehen glatt auf.
++A4B_BUND, A4B_HAUPT, A4B_STEG, A4B_MARG, A4B_AUSSEN = (
++    25 * mm, 115 * mm, 6 * mm, 45 * mm, 19 * mm)
++A4B_ZEILEN = 51
++A4B_SATZ = A4B_ZEILEN * RASTER              # 663 pt
++A4B_KOPF = 25 * mm
++A4B_FUSS = A4_HOCH - A4B_KOPF - A4B_SATZ    # 38,10 mm — Fuß größer als Kopf
++
+ # ── Farbe ────────────────────────────────────────────────────────────
+ # Innenteil einfarbig (Variante B des Buchkonzepts). Die Marke erscheint im
+ # Druck als Grauwert; die Bildschirmfassung darf sie farbig zeigen.
+@@ -92,8 +124,21 @@ def masse(ziel: str) -> dict:
+ 
+     `druck` setzt den Buchsatzspiegel mit Marginalspalte, `bildschirm` eine
+     A4-Seite ohne sie — am Bildschirm gibt es keinen Bund, und eine 35 mm
+-    breite Spalte neben 95 mm Text verschenkt dort nur Platz.
++    breite Spalte neben 95 mm Text verschenkt dort nur Platz. `druck-a4` ist
++    derselbe Buchsatzspiegel auf A4, für alle, die das Buch als A4-Band wollen.
++
++    Wer ein Ziel hinzufügt, ändert nur diese Funktion: Alles andere — Stile,
++    Umsetzer, Seitenvorlagen, Marginalien — liest ausschließlich hier.
+     """
++    if ziel == "druck-a4":
++        return {
++            "seite": (A4_BREIT, A4_HOCH),
++            "haupt": A4B_HAUPT, "marg": A4B_MARG, "steg": A4B_STEG,
++            "innen": A4B_BUND, "aussen": A4B_AUSSEN,
++            "kopf": A4B_KOPF, "satz": A4B_SATZ, "fuss": A4B_FUSS,
++            "grundschrift": 10, "raster": RASTER,
++            "marginalspalte": True,
++        }
+     if ziel == "druck":
+         return {
+             "seite": (SEITE_BREIT, SEITE_HOCH),
+-- 
+2.43.0
+

@@ -181,7 +181,7 @@ def _briefbogen(titel: str, absatz: str, knopf: str, url: str,
     fussnoten = "".join(
         f'<p style="margin:0 0 8px;font-size:13px;color:#64748b;">{h}</p>'
         for h in hinweise)
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    return f"""<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f2f8;font-family:system-ui,sans-serif;">
 <div style="max-width:560px;margin:40px auto;padding:0 20px;">
 <div style="background:#0F1E3A;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
@@ -244,7 +244,7 @@ def send_welcome_email(to_email: str, user_name: str = "", temp_password: str = 
     name = user_name or "Nutzer"
     pw_block = f"<p style='font-size:13px;color:#475569;'>Passwort: <strong>{temp_password}</strong></p>" if temp_password else ""
 
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f2f8;font-family:system-ui,sans-serif;">
 <div style="max-width:560px;margin:40px auto;padding:0 20px;">
 <div style="background:#0F1E3A;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">

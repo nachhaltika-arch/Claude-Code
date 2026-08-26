@@ -333,8 +333,5 @@ def version_preview(
         raise HTTPException(404, "Version nicht gefunden")
     html = row.html or "<p>Kein Inhalt</p>"
     css  = row.css or ""
-    return HTMLResponse(
-        f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>{css}</style></head><body>{html}</body></html>"""
-    )
+    from services.seiten_huelle import vorschau_huelle
+    return HTMLResponse(vorschau_huelle(html, css, f"Vorschau — Version {version_id}"))

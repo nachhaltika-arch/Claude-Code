@@ -440,23 +440,21 @@ async def import_bulk(
 @router.get("/{template_id}/preview", response_class=HTMLResponse)
 def get_preview(template_id: int, db: Session = Depends(get_db)):
     """HTML-Vorschau eines Templates — iframe-safe."""
+    # `name` steht mit in der Abfrage, damit der Titel den Namen der Vorlage
+    # nennen kann statt nur ihrer Nummer — wer drei Vorschauen offen hat,
+    # unterscheidet sie am Tab.
     row = db.execute(
-        text("SELECT html_content, css_content FROM website_templates WHERE id=:id"),
+        text("SELECT html_content, css_content, name "
+             "FROM website_templates WHERE id=:id"),
         {"id": template_id},
     ).fetchone()
     if not row:
         raise HTTPException(404, "Template nicht gefunden")
 
-    html = row.html_content or ""
-    css  = row.css_content or ""
-
-    full = f"""<!DOCTYPE html>
-<html lang="de"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>{css}</style>
-</head><body>{html}</body></html>"""
-    return HTMLResponse(content=full)
+    from services.seiten_huelle import vorschau_huelle
+    return HTMLResponse(content=vorschau_huelle(
+        row.html_content or "", row.css_content or "",
+        row.name or f"Vorlage {template_id}"))
 
 
 @router.get("/{template_id}")

@@ -25,7 +25,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
+from database import (AuditResult, Lead, Project, UserCard, User,
+                      get_db, SessionLocal)
 from routers.auth_router import optional_auth, require_any_auth, require_innendienst
 from services.audit_pagespeed import (
     PSI_ENDPOINT,
@@ -196,6 +197,30 @@ def _get_card_or_404(card_id: int, db: Session) -> UserCard:
     return card
 
 
+def _betrieb_or_404(kennung: int, db: Session) -> Lead:
+    """Der Betrieb zu dieser Kennung — aus `leads`, nicht aus `usercards`.
+
+    **Warum das kein Umweg ist, sondern die Richtigstellung (26.08.2026).**
+    Die Kennung in diesem Pfad **ist** eine Lead-Kennung: `_check_kunde_access`
+    vergleicht sie mit `current_user.lead_id`, die Audits werden ueber
+    `AuditResult.lead_id` gesucht, die Projekte ueber `Project.lead_id`, und
+    der Antwortschluessel heisst `"lead"`. Nur die Existenzpruefung sah in
+    `usercards` nach — einer Tabelle, die seit dem Entfernen ihres
+    Kopierschritts (`migrations_runtime.py:445`) **nie befuellt** wird.
+
+    Die Folge sah David am 26.08. auf der Kundenstartseite: „Daten konnten
+    nicht geladen werden", dahinter ein 404. Jeder Kunde, immer.
+
+    `usercards` bleibt unangetastet; die Innendienst-Routen darauf auch. Ob
+    die Tabelle je gefuellt wird oder verschwindet, ist L-106 und eine eigene
+    Entscheidung.
+    """
+    betrieb = db.query(Lead).filter(Lead.id == kennung).first()
+    if not betrieb:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+    return betrieb
+
+
 def _check_kunde_access(card_id: int, current_user: User | None) -> None:
     """Raise 403 if the authenticated user is a Kunde accessing someone else's card."""
     if current_user and current_user.role == "kunde":
@@ -276,7 +301,7 @@ kunden_router = APIRouter(prefix="/api/usercards", tags=["usercards-kunde"],
 def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Full card profile with audits, projects, and score history."""
     _check_kunde_access(card_id, current_user)
-    card = _get_card_or_404(card_id, db)
+    card = _betrieb_or_404(card_id, db)
 
     audits = (
         db.query(AuditResult)

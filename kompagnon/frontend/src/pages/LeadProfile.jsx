@@ -270,6 +270,32 @@ export default function LeadProfile() {
     setMsgLoading(false);
   };
 
+  /**
+   * Den Newsletter-Entwurf wirklich ablegen.
+   *
+   * Vorher meldete `onSave` nur „Entwurf gespeichert" — der Designer reichte
+   * das fertige HTML herueber und es endete in einer Erfolgsmeldung. Wer den
+   * Kasten danach schloss, hatte seine Arbeit verloren und es grün bestaetigt
+   * bekommen. Der Ablageort gab es die ganze Zeit:
+   * `POST /api/newsletter/campaigns` legt mit `status='draft'` an.
+   */
+  const entwurfSpeichern = async (html) => {
+    const titel = `Entwurf ${profile?.company_name || `Betrieb ${leadId}`}`;
+    const gespeichert = await saveJson(
+      `${API_BASE_URL}/api/newsletter/campaigns`,
+      {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          title: titel,
+          subject: titel,
+          html_content: html || '',
+        }),
+      },
+      { context: 'Newsletter-Entwurf speichern' }
+    );
+    if (gespeichert) toast.success('Entwurf gespeichert');
+  };
+
   const sendMessage = async () => {
     if (!msgText.trim()) return;
     setMsgSending(true);
@@ -1306,7 +1332,7 @@ export default function LeadProfile() {
               setShowNewsletter(false);
               toast.success('Newsletter gesendet');
             }}
-            onSave={() => toast.success('Entwurf gespeichert')}
+            onSave={entwurfSpeichern}
           />
         </div>
       )}

@@ -11,7 +11,12 @@ import { computeStepStatus } from '../utils/schrittkette';
 import { SCHRITTE } from '../components/KASSidebar';
 
 const LEERES_PROJEKT = {};
-const FERTIGE_ANALYSE = { has_briefing: true, audit_score: 72, scrape_full_at: '2026-08-20' };
+// `content_analysiert_am` statt `scrape_full_at` (26.08.2026): Das alte
+// Feld stand in der Datenbank, kam aber nie ueber die Schnittstelle — die
+// Kette las hier `undefined`. Dieser Test war gruen, weil **er** das Feld
+// selbst setzte; die Oberflaeche bekam es nie. Ein Testdatensatz, den es so
+// draussen nicht gab.
+const FERTIGE_ANALYSE = { has_briefing: true, audit_score: 72, content_analysiert_am: '2026-08-20T09:00:00' };
 
 describe('Schrittnummern', () => {
   test('sind lückenlos und folgen der Reihenfolge', () => {

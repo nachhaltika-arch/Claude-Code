@@ -6,6 +6,7 @@ Gefunden am 21.08.2026 beim Auftrennen der zweiten Nahtstelle aus
     projects.router                  61 Routen   require_innendienst   ✓
     component_library.wireframe_router 8 Routen   nur angemeldet       ✗
     content_scraper_router.router      4 Routen   nur angemeldet       ✗
+                                     (am 26.08.2026 ganz entfernt)
     export.router                      1 Route    nur angemeldet       ✗
 
 Die dreizehn Routen der unteren drei trugen `require_any_auth` und **keine
@@ -74,11 +75,16 @@ def test_der_innendienst_kommt_weiterhin_durch(client, auth_headers):
     assert antwort.status_code == 404, antwort.text[:200]
 
 
-def test_alle_vier_router_der_naht_tragen_eine_vorgabe():
+def test_alle_router_der_naht_tragen_eine_vorgabe():
     """Am Router, nicht an der Route — genau diese Bauart hat am 19.08.
-    55 offene Routen erzeugt (L-51)."""
-    from routers import (component_library_wireframe, content_scraper_router,
-                         export, projects)
+    55 offene Routen erzeugt (L-51).
+
+    **Aus vier wurden drei (26.08.2026).** `content_scraper_router` ist
+    entfernt (Entscheidung David: „der crawler ist der richtige, den anderen
+    weg") — fuenf Routen, die niemand rief, und eine Ablage, die nur das
+    eigene Modul las. Die Naht wird dadurch kleiner, nicht schwaecher.
+    """
+    from routers import component_library_wireframe, export, projects
 
     fuer_pruefung = (
         ("projects.router", projects.router),
@@ -86,7 +92,6 @@ def test_alle_vier_router_der_naht_tragen_eine_vorgabe():
         # ist mitgewandert, dieser Test haelt sie fest.
         ("component_library_wireframe.wireframe_router",
          component_library_wireframe.wireframe_router),
-        ("content_scraper_router.router", content_scraper_router.router),
         ("export.router", export.router),
     )
     ohne = []

@@ -163,9 +163,23 @@ def test_es_gibt_nur_noch_eine_abnahme(app):
     Eine Abnahme ohne Beweis neben eine mit Beweis zu stellen ist ein
     Rueckschritt. Dieser Test verhindert, dass sie zurueckkommt, ohne dass
     jemand die Entscheidung noch einmal trifft.
+
+    **Und dieser Waechter war bis zum Abend desselben Tages wertlos.**
+    Er las `app.routes` — das zeigt unter Starlette 1.4 nur die **oberste
+    Ebene**, 88 Eintraege statt 414. Eine Zusicherung „dieser Pfad ist nicht
+    dabei" ist dann immer erfuellt, ganz gleich, was im Bestand steht. Vier
+    andere Testdateien beschreiben diese Falle ausdruecklich; diese hier
+    nicht, weil ich sie am selben Vormittag geschrieben und die Zusicherung
+    nie gegen einen **vorhandenen** Pfad gegengeprueft habe.
+
+    Gezaehlt wird jetzt ueber `openapi()`, und die zweite Zusicherung ist die
+    Gegenprobe: Fiele der Suchbereich wieder in sich zusammen, waere sie rot.
     """
     from main import app as anwendung
 
-    pfade = {getattr(r, "path", "") for r in anwendung.routes}
+    pfade = set(anwendung.openapi()["paths"])
 
     assert "/api/projects/{project_id}/abnahme" not in pfade
+    assert "/api/projects/{project_id}/time" in pfade, (
+        "der Suchbereich ist leer oder unvollstaendig — dann sagt die "
+        "Zusicherung oben nichts")

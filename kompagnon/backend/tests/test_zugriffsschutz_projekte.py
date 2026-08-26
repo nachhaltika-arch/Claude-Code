@@ -27,7 +27,10 @@ VERTRAULICH_LESEND = (
     "/api/projects/1/checklist",
     "/api/projects/1/margin",
     "/api/projects/1/qa/result",
-    "/api/projects/1/scrape-content",
+    # `/api/projects/1/scrape-content` stand hier bis zum 26.08.2026. Die
+    # Route ist entfernt (Entscheidung David: „der crawler ist der richtige,
+    # den anderen weg") — sie stehen zu lassen hiesse, eine 404 als
+    # Zugriffsschutz zu feiern.
     "/api/projects/1/versions/1/preview",
 )
 

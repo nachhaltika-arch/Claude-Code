@@ -42,7 +42,6 @@ from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
-from routers.content_scraper_router import _run_content_scrape
 from routers.auth_router import (
     require_admin,
     require_any_auth,
@@ -202,6 +201,29 @@ def list_projects(
     return result
 
 
+def _content_analysiert_am(db, lead_id):
+    """Der juengste Auslesezeitpunkt des Crawlers fuer diesen Betrieb.
+
+    `None`, wenn nie gelesen wurde — und das ist keine Aussage ueber die
+    Website, sondern ueber uns. Ein Fehler beim Lesen ergibt ebenfalls `None`
+    und eine Protokollzeile: Ein Zeitstempel zu erfinden waere schlimmer als
+    keiner.
+    """
+    if not lead_id:
+        return None
+    try:
+        zeile = db.execute(
+            text("SELECT MAX(scraped_at) FROM website_content_cache "
+                 "WHERE customer_id = :c"),
+            {"c": lead_id},
+        ).fetchone()
+    except Exception as fehler:      # noqa: BLE001
+        logger.warning("Auslesezeitpunkt fuer Betrieb %s nicht lesbar: %s",
+                       lead_id, fehler)
+        return None
+    return zeile[0].isoformat() if zeile and zeile[0] else None
+
+
 @kunden_router.get("/{project_id}")
 def get_project(project_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """Get project detail via raw SQL — bypasses ORM column mapping issues."""
@@ -279,6 +301,19 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'netlify_site_url':         row[26] or None,
         'netlify_last_deploy':      row[27].isoformat() if row[27] else None,
         'steps_confirmed':          row[28] or '{}',
+        # **Wann der Crawler diese Website zuletzt ausgelesen hat.**
+        #
+        # Vorher las die Prozesskette `project.scrape_full_at` — ein Feld, das
+        # diese Antwort **nie enthielt**. Die Kette bekam `undefined` und der
+        # Schritt „Content-Vollanalyse" stand ewig auf offen, obwohl der Lauf
+        # (damals als Hintergrundaufgabe beim Anlegen) tatsaechlich
+        # stattgefunden hatte. Ein Wert, der nicht ueber die Schnittstelle
+        # geht, ist fuer die Oberflaeche nicht vorhanden.
+        #
+        # Seit dem 26.08.2026 gibt es nur noch **einen** Scraper, und das ist
+        # der, den die Oberflaeche ruft (`/api/crawler/…`). Sein Zeitstempel
+        # steht in `website_content_cache`, dort nach Betrieb abgelegt.
+        'content_analysiert_am': _content_analysiert_am(db, lead_id),
     }
 
 

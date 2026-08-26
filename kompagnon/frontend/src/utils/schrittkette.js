@@ -20,7 +20,17 @@ export function computeStepStatus(project, wireframeData, confirmedSteps) {
   // Wir haben keine direkten boolean-Flags fürs Briefing/Audit hier — heuristisch
   status['briefing-unternehmen'] = project.has_briefing ? 'completed' : 'pending';
   status['audit'] = project.audit_score ? 'completed' : 'pending';
-  status['content-vollanalyse'] = project.scrape_full_at ? 'completed' : 'pending';
+  // **Der Schritt las bis zum 26.08.2026 ein Feld, das nie ankam.**
+  // `project.scrape_full_at` steht in der Datenbank, aber
+  // `GET /api/projects/{id}` trug es nie in seine Antwort — hier stand also
+  // immer `undefined`, und der Schritt blieb ewig auf `pending`, obwohl der
+  // Lauf stattgefunden hatte. Ein Wert, der nicht ueber die Schnittstelle
+  // geht, ist fuer die Oberflaeche nicht vorhanden.
+  //
+  // Seit Davids Entscheidung („der crawler ist der richtige, den anderen
+  // weg") gibt es nur noch einen Scraper — den, den `AnalyseCentrale` ruft.
+  // Sein Zeitstempel kommt jetzt als `content_analysiert_am` mit.
+  status['content-vollanalyse'] = project.content_analysiert_am ? 'completed' : 'pending';
   status['briefing-website'] = project.has_briefing ? 'completed' : 'pending';
   status['zugangsdaten'] = 'pending'; // optional, kein eindeutiges Signal
   // Beide sind optional und tragen deshalb keine Sperre. Die Heuristik sagt

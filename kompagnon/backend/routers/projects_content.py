@@ -17,7 +17,6 @@ dieselben Objekte wie zuvor, damit sich keine Adresse verschiebt.
 Gegengeprueft mit `tools/endpunkte_auflisten.py`.
 """
 import logging
-from datetime import datetime
 
 from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -41,62 +40,22 @@ logger = logging.getLogger(__name__)
 
 # ── Scrape Website Content ─────────────────────────────────────────────────────
 
-@router.get("/{project_id}/scrape-content")
-def scrape_project_content(project_id: int, db: Session = Depends(get_db)):
-    """Fetch and parse the project's website, store clean text in scraped_content."""
-    import requests
-    from bs4 import BeautifulSoup
-
-    # Ensure columns exist
-    db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_content TEXT"))
-    db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP"))
-    db.commit()
-
-    # Load project URL
-    row = db.execute(
-        text("SELECT website_url FROM projects WHERE id = :id"),
-        {"id": project_id},
-    ).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
-    website_url = row[0]
-    if not website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    # Fetch page
-    try:
-        resp = requests.get(
-            website_url,
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"},
-        )
-        resp.raise_for_status()
-    except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Website nicht erreichbar: {e}")
-
-    # Parse with BeautifulSoup
-    soup = BeautifulSoup(resp.text, "html.parser")
-    for tag in soup.find_all(["script", "style", "nav", "footer", "header"]):
-        tag.decompose()
-
-    parts = []
-    for el in soup.find_all(["main", "article", "section", "p", "h1", "h2", "h3", "h4", "h5", "h6"]):
-        text_content = el.get_text(separator=" ", strip=True)
-        if text_content:
-            parts.append(text_content)
-
-    content = "\n\n".join(parts)
-
-    # Persist
-    scraped_at = datetime.utcnow()
-    db.execute(
-        text("UPDATE projects SET scraped_content = :content, scraped_at = :ts WHERE id = :id"),
-        {"content": content, "ts": scraped_at, "id": project_id},
-    )
-    db.commit()
-
-    return {"content": content, "scraped_at": scraped_at.isoformat()}
-
+# ── Der dritte Scraper — entfernt am 26.08.2026 ──────────────────────────────
+#
+# Hier stand `GET /api/projects/{id}/scrape-content`: noch ein Weg, dieselbe
+# Kundenwebsite auszulesen, mit eigener Ablage (`projects.scraped_content`).
+# Gelesen hat diese Spalte **keine Zeile im Bestand** — weder eine Oberflaeche
+# noch ein anderer Dienst.
+#
+# **Entscheidung David:** „der crawler ist der richtige, den anderen weg."
+# Die Oberflaeche arbeitet mit `/api/crawler/…`; der zweite Weg
+# (`content_scraper_router`) ist am selben Tag ebenfalls entfernt worden.
+#
+# Die Spalten `scraped_content` und `scraped_at` bleiben stehen. Sie zu
+# loeschen waere ein Datenverlust fuer einen Aufraeumgewinn — dieselbe
+# Ueberlegung wie bei den Abnahme-Spalten.
+#
+# `tests/test_ein_scraper.py` verhindert die Rueckkehr.
 
 # ── Sitemap-Planer ────────────────────────────────────────────────────────────
 

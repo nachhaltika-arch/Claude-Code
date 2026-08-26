@@ -829,8 +829,12 @@ app.include_router(designs.router)
 from routers import design_canvas
 app.include_router(design_canvas.router)
 
-from routers import content_scraper_router
-app.include_router(content_scraper_router.router)
+# **Entfernt am 26.08.2026 (Entscheidung David: „der crawler ist der
+# richtige, den anderen weg").** `content_scraper_router` fuehrte fuenf
+# Routen, die keine Oberflaeche rief, und startete beim Anlegen eines
+# Projekts einen Hintergrundlauf. Was er ablegte (`projects.scrape_full_data`)
+# las **nur sein eigenes Modul**. Der Weg, den die Oberflaeche geht, ist
+# `/api/crawler/…`.
 
 from routers.branddesign import router as branddesign_router
 app.include_router(branddesign_router)

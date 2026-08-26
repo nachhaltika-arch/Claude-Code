@@ -16,10 +16,8 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Qu
 from database import Customer
 from database import Lead
 from database import Project
-from database import ProjectScrapeJob
 from database import get_db
 from datetime import datetime
-from routers.content_scraper_router import _run_content_scrape
 from services.audit_pagespeed import (
     PSI_ENDPOINT,
     auth_headers as pagespeed_auth_headers,
@@ -174,16 +172,11 @@ def create_project_from_lead(
     db.commit()
     db.refresh(project)
 
-    # 3b. Auto-start content scrape if website_url is present
-    if lead.website_url:
-        try:
-            scrape_job = ProjectScrapeJob(project_id=project.id, status="pending")
-            db.add(scrape_job)
-            db.commit()
-            db.refresh(scrape_job)
-            background_tasks.add_task(_run_content_scrape, scrape_job.id, project.id, lead.website_url)
-        except Exception as exc:
-            logger.warning("Could not start auto-scrape for project %s: %s", project.id, exc)
+    # 3b. **Kein automatischer Scrape mehr (26.08.2026, Entscheidung David).**
+    # Hier startete beim Anlegen ein Hintergrundlauf des zweiten Scrapers. Was
+    # er ablegte, las nur sein eigenes Modul — die Oberflaeche arbeitet mit
+    # `/api/crawler/…` und dessen Ablage `website_content_cache`. Zwei
+    # Erhebungen derselben Website sind zweimal Last und eine Wahrheit zu viel.
 
     # 4. Try to find an existing customer linked via email
     customer_id = None

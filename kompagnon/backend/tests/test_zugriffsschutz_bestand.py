@@ -21,6 +21,7 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | `tickets` | 1 | filtert auf `current_user.email`. |
 | `invoices` | 1 | filtert auf `current_user.email`. |
 | `versand` | 1 | Ein Ja/Nein zum automatischen Versand, kein Kundendatum — siehe unten. |
+| `geo` | 1 | **Neu am 26.08.2026.** Der Kunde sieht seinen GEO-Wert (L-95). `eigenes_projekt_pruefen` haelt die Grenze, und die Antwort ist **verkuerzt**: keine Rohpruefungen, kein Upsell-Preis, keine Betriebsfehler. Die uebrigen zehn `geo`-Routen — Analyse anstossen, Monitoring schalten, `admin/run-monitoring-now` — liegen unveraendert hinter `require_innendienst`. |
 | `briefings` | 4 | **Neu am 26.08.2026.** Der Kunde fuellt sein Briefing selbst aus. Alle drei tragen `_eigener_betrieb` — dieselbe Umkehrung wie ueberall: Wer nicht zum Innendienst gehoert, kommt nur an den eigenen Betrieb. Ein eigenes Wegstueck `/mein/…`, damit sich die zwei Router nicht ueberdecken (L-27). |
 | `files` | 3 | **Neu am 26.08.2026.** Logo, Fotos, Unterlagen zum eigenen Betrieb. Der Download prueft am **Datensatz**, nicht am Pfad: Die Dateikennung ist eine fortlaufende Zahl, und der Pfad nennt keinen Betrieb. |
 | `messages` | 2 | **Neu am 26.08.2026.** Der Nachrichtenverlauf des Kunden. Beide Routen nahmen bisher **nur** einen `customer_token` und zaehlten deshalb zu den ganz offenen; seit dem Chat im angemeldeten Portal nehmen sie auch eine Anmeldung. `_zugang_pruefen` entscheidet an **einer** Stelle: Ein mitgeschickter Token muss stimmen, sonst muss der Angemeldete zum Innendienst gehoeren oder den Betrieb besitzen. Sie sind damit **staerker** geschuetzt als vorher, nicht schwaecher — die Zahl unten steigt, weil sie aus der offenen Liste hierher gewandert sind. |
@@ -48,13 +49,15 @@ import pytest
 #:   Liste hierher gewandert sind, weil sie jetzt auch eine Anmeldung nehmen.
 #: 26.08.2026, spaeter: 55 — der Kunde fuellt sein Briefing aus (3) und laedt
 #:   Dateien hoch (3). Alle sieben pruefen den eigenen Betrieb selbst.
-ERWARTET = 56
+#: 26.08.2026, abends: 57 — `GET /api/geo/mein/{id}/result`. Der GEO-Wert war
+#:   berechnet und dem Kunden nie gezeigt (L-95).
+ERWARTET = 57
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {
     "academy", "portal", "auth", "assistant", "projects", "leads",
     "audit", "geo-payments", "usercards", "tickets", "invoices", "versand",
-    "messages", "briefings", "files",
+    "messages", "briefings", "files", "geo",
 }
 
 #: Routen ganz **ohne** Anmeldepruefung, Stand 25.08.2026 (L-51).

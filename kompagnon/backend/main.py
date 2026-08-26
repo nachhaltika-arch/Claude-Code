@@ -902,6 +902,10 @@ app.include_router(kas_router)
 
 from routers.geo import router as geo_router
 app.include_router(geo_router)
+# Der Kunde sieht seinen GEO-Wert — verkuerzt, mit Eigentumspruefung
+# (26.08.2026, L-95). Eigenes Praefix `/api/geo/mein`, keine Ueberdeckung.
+from routers.geo import kunden_router as geo_kunden_router
+app.include_router(geo_kunden_router)
 
 from routers.geo_payments import router as geo_payments_router
 app.include_router(geo_payments_router)

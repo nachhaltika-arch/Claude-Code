@@ -50,6 +50,35 @@ def normalisieren(pfad: str) -> str:
     return pfad.rstrip("/") or "/"
 
 
+def passt_auf(gerufene: str, route: str) -> bool:
+    """Trifft eine gerufene Adresse diese Route — Abschnitt fuer Abschnitt?
+
+    **Der dritte Messfehler desselben Tages (26.08.2026).** `L-105` meldete
+    `POST /api/leads/{id}/sequence/start` als „ruft niemand auf". Den Knopf
+    gibt es (`LeadProfile.jsx`, „Sequenz starten") — nur baut er die **Aktion**
+    in den Pfad:
+
+        `${API_BASE_URL}/api/leads/${leadId}/sequence/${action}`
+
+    Der Schritt, der Vorlagen zu `{}` macht, trifft damit auch `${action}`,
+    und `/api/leads/{}/sequence/{}` ist als **Zeichenkette** nicht
+    `/api/leads/{}/sequence/start`.
+
+    Ein Vergleich von Zeichenketten misst die Schreibweise. Hier wird
+    verglichen, was gemeint ist: gleich viele Abschnitte, und je Abschnitt
+    entweder derselbe Text oder auf einer der beiden Seiten ein Platzhalter.
+
+    (Es ist der dritte Fall an einem Tag — davor: `public/` wurde nicht
+    gelesen, und `+`-Verkettung nicht verstanden. Wer nach **einer** Form
+    sucht, misst die Form und nicht die Sache.)
+    """
+    a = gerufene.strip("/").split("/")
+    b = route.strip("/").split("/")
+    if len(a) != len(b):
+        return False
+    return all(x == y or x == "{}" or y == "{}" for x, y in zip(a, b))
+
+
 def bekannte_adressen() -> set:
     """Alle Adressen, die das Backend führt — normalisiert."""
     import main

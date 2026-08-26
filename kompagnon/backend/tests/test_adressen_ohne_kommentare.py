@@ -142,3 +142,52 @@ def test_verkettete_adressen_treffen_ihre_route():
     # Und die Form ohne Platzhalter darf **nicht** mehr entstehen, sonst
     # waeren die Fehlalarme zurueck.
     assert "/api/widget/teaser" not in gerufen
+
+
+class TestAbschnittsweiserVergleich:
+    """**Der dritte Messfehler desselben Tages (26.08.2026).**
+
+    L-105 meldete `POST /api/leads/{id}/sequence/start` als „ruft niemand
+    auf". Den Knopf gibt es — `LeadProfile.jsx`, „Sequenz starten" — nur baut
+    er die **Aktion** in den Pfad:
+
+        `${API_BASE_URL}/api/leads/${leadId}/sequence/${action}`
+
+    Der Schritt, der Vorlagen zu `{}` macht, trifft damit auch `${action}`,
+    und `/api/leads/{}/sequence/{}` ist als **Zeichenkette** nicht
+    `/api/leads/{}/sequence/start`.
+
+    Der Unterschied ist nicht klein: Mit abschnittsweisem Vergleich fielen
+    **59 von 134** gemeldeten Routen weg — die Zahl war um mehr als 40 %
+    zu hoch.
+    """
+
+    def test_ein_platzhalter_trifft_einen_festen_abschnitt(self):
+        from tools.adressen import passt_auf
+
+        assert passt_auf("/api/leads/{}/sequence/{}",
+                         "/api/leads/{}/sequence/start")
+        assert passt_auf("/api/leads/{}/sequence/{}",
+                         "/api/leads/{}/sequence/stop")
+
+    def test_aber_nicht_ueber_abschnittsgrenzen_hinweg(self):
+        """Sonst traefe jeder Platzhalter alles, und der Waechter waere
+        gruen und wertlos."""
+        from tools.adressen import passt_auf
+
+        assert not passt_auf("/api/leads/{}", "/api/leads/{}/zugaenge")
+        assert not passt_auf("/api/leads/{}/zugaenge", "/api/leads/{}")
+
+    def test_und_verschiedene_wege_bleiben_verschieden(self):
+        """`/api/geo/mein/{}/result` ist der Kundenweg, `/api/geo/{}/result`
+        der des Innendienstes. Wer sie gleichsetzt, verliert genau die
+        Trennung, die heute gebaut wurde."""
+        from tools.adressen import passt_auf
+
+        assert not passt_auf("/api/geo/mein/{}/result", "/api/geo/{}/result")
+
+    def test_gleiches_bleibt_gleich(self):
+        from tools.adressen import passt_auf
+
+        assert passt_auf("/api/widget/teaser/{}", "/api/widget/teaser/{}")
+        assert passt_auf("/api/health", "/api/health")

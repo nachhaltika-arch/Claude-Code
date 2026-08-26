@@ -919,6 +919,10 @@ app.include_router(assistant_router)
 from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
 
+# Eingehende Kundenmails (Brevo Inbound Parsing) — L-18.
+from routers.posteingang import router as posteingang_router
+app.include_router(posteingang_router)
+
 
 # Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
 #

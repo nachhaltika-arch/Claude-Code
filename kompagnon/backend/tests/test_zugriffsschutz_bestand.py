@@ -73,12 +73,16 @@ ERLAUBTE_BEREICHE = {
 #:   gewandert: Sie nehmen jetzt neben dem Token auch eine Anmeldung und
 #:   zaehlen damit zu den schwach geschuetzten statt zu den offenen.
 #: 26.08.2026, spaet: 50 — `PATCH /api/briefings/{id}/freigabe` ebenso.
-OFFEN_ERWARTET = 50
+#: 26.08.2026, Posteingang: 51 — `POST /api/posteingang/brevo/{secret}`.
+#: Brevo signiert eingehende Mails nicht; das Geheimnis steht im Pfad, wie
+#: beim `mail-events`-Webhook, von dem dieser Weg die Absicherung uebernimmt.
+OFFEN_ERWARTET = 51
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
 #: `widget`, `kampagne`      Das eingebettete Widget laeuft auf fremden Seiten.
-#: `webhooks`, `mail-events` Rufe von aussen; sie weisen sich mit einem
+#: `webhooks`, `mail-events`,
+#: `posteingang`             Rufe von aussen; sie weisen sich mit einem
 #:                           Geheimnis im Pfad aus.
 #: `auth`                    Anmelden, Registrieren, Passwort zuruecksetzen.
 #: `leads`, `messages`,
@@ -105,6 +109,7 @@ OFFENE_BEREICHE = {
     "widget", "webhooks", "auth", "leads", "payments", "tickets",
     "products", "projects", "audit", "messages", "briefings", "kampagne",
     "academy", "geo-payments", "mail-events", "health", "ping", "book",
+    "posteingang",
 }
 
 

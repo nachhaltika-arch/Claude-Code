@@ -37,6 +37,7 @@ import { aufteilung } from '../utils/betriebReiter';
 import { aufTaste } from '../utils/tastaturBedienung';
 import CrawlerReiter from '../components/betrieb/CrawlerReiter';
 import Zugaenge from '../components/betrieb/Zugaenge';
+import CredentialsSafe from '../components/CredentialsSafe';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -2345,6 +2346,26 @@ export default function LeadProfile() {
                 * mehrere sein. Der Reiter hiess schon „Zugang"; er zeigte
                 * bis dahin nur den QR-Einmallink, nicht die Menschen. */}
               <Zugaenge leadId={leadId} token={token} />
+
+              {/* Der Safe fuer Hosting-, CMS- und Domainzugaenge (26.08.2026,
+                * L-95). `CredentialsSafe.jsx` lag seit jeher im Quellbaum und
+                * war von niemandem importiert — die Routen dahinter gibt es,
+                * verschluesselt, samt `CREDENTIALS_KEY` in der
+                * Wiederherstellungspruefung; nur keinen Bildschirm.
+                *
+                * **Warum hier und nicht im Projektbildschirm:** Dieser Reiter
+                * sammelt, was mit Zugang zu tun hat — der Einmallink fuer den
+                * Kunden, die Menschen mit Konto, und jetzt die Zugaenge zu
+                * fremden Systemen. Drei Richtungen desselben Themas an einer
+                * Stelle statt an dreien.
+                *
+                * Der Safe haengt am **Projekt**; ohne Projekt gibt es nichts
+                * zu hinterlegen. */}
+              {projectId && (
+                <Card>
+                  <CredentialsSafe projectId={projectId} token={token} />
+                </Card>
+              )}
             </div>
           </div>
         );

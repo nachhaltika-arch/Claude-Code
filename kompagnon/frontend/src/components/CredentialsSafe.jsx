@@ -1,7 +1,23 @@
+/**
+ * Der Safe für Hosting-, CMS- und Domainzugänge eines Projekts.
+ *
+ * **Angeschlossen am 26.08.2026 (L-95).** Die Datei lag seit jeher im
+ * Quellbaum und wurde von **niemandem** importiert. Die Routen dahinter
+ * (`/api/projects/{id}/credentials`) gab es, verschlüsselt mit Fernet, samt
+ * `CREDENTIALS_KEY` in der Wiederherstellungsprüfung — nur eben keinen
+ * Bildschirm.
+ *
+ * **Ein gesperrter Safe darf nicht wie ein leerer aussehen.** Fehlt
+ * `CREDENTIALS_KEY`, antwortet der Server mit **503**. Der erste Entwurf
+ * benutzte hier `loadJson(..., { fallback: [] })`: Der Fehler wurde als
+ * Kurzmeldung angezeigt — die verschwindet —, und stehen blieb der Satz
+ * „Noch keine Zugangsdaten hinterlegt". Das ist die stille Null, vor der
+ * dieses Haus an mehreren Stellen warnt: eine Aussage über den Bestand, wo
+ * gar nicht gemessen werden konnte.
+ */
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
-import { loadJson } from '../utils/apiRequest';
 
 export default function CredentialsSafe({ projectId, token }) {
   const [creds, setCreds] = useState([]);
@@ -10,13 +26,31 @@ export default function CredentialsSafe({ projectId, token }) {
   const [form, setForm] = useState({ label: '', username: '', password: '', url: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [visiblePw, setVisiblePw] = useState({});
+  /** Gesetzt, wenn der Safe nicht aufgeht — dann wird nichts über den Bestand behauptet. */
+  const [sperre, setSperre] = useState('');
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
-  const load = () =>
-    loadJson(`${API_BASE_URL}/api/projects/${projectId}/credentials`, { headers: h }, { context: 'Zugangsdaten', fallback: [] })
-      .then(d => setCreds(Array.isArray(d) ? d : []))
-      .finally(() => setLoading(false));
+  const load = async () => {
+    setSperre('');
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${projectId}/credentials`, { headers: h });
+      if (r.status === 503) {
+        const d = await r.json().catch(() => ({}));
+        setSperre(d.detail || 'Der Zugangsdaten-Safe ist nicht verfügbar.');
+        setCreds([]);
+        return;
+      }
+      if (!r.ok) throw new Error(`Status ${r.status}`);
+      const d = await r.json();
+      setCreds(Array.isArray(d) ? d : []);
+    } catch (e) {
+      setSperre(`Die Zugangsdaten konnten nicht geladen werden (${e.message}).`);
+      setCreds([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { load(); }, [projectId]); // eslint-disable-line
 
@@ -47,13 +81,21 @@ export default function CredentialsSafe({ projectId, token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Zugangsdaten-Safe</div>
-        <button onClick={() => setShowAdd(true)} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Zugangsdaten</button>
+        <button onClick={() => setShowAdd(true)} disabled={!!sperre} style={{ opacity: sperre ? 0.5 : 1, cursor: sperre ? 'default' : 'pointer', padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Zugangsdaten</button>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 12px' }}>
         Alle Passwoerter werden verschluesselt gespeichert (Fernet / AES-256).
       </div>
 
-      {creds.length === 0 ? (
+      {sperre ? (
+        <div role="alert" style={{ padding: '14px 16px', fontSize: 13, lineHeight: 1.55, borderRadius: 'var(--radius-md)', background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
+          {sperre}
+          <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85 }}>
+            Ob hier Zugangsdaten liegen, ist damit nicht beantwortet — der
+            Safe liess sich nicht oeffnen.
+          </div>
+        </div>
+      ) : creds.length === 0 ? (
         <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, border: '2px dashed var(--border-light)', borderRadius: 8 }}>Noch keine Zugangsdaten hinterlegt.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

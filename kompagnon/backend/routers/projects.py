@@ -564,16 +564,64 @@ def change_phase(
     }
 
 
+@router.get("/{project_id}/time")
+def zeiten_lesen(project_id: int, db: Session = Depends(get_db)):
+    """Die erfassten Zeiten eines Projekts, neueste zuerst.
+
+    **Warum es das erst seit dem 26.08.2026 gibt.** Eintragen ging, nachsehen
+    nicht — eine Eingabe ohne Rueckschau laedt zum doppelten Eintragen ein.
+
+    Die **Summe** kommt mit: Sonst rechnet sie jeder Bildschirm selbst, und
+    einer davon falsch. Dieselbe Ueberlegung wie beim Margenstatus, der
+    seit heute ebenfalls vom Server kommt.
+    """
+    if not db.query(Project).filter(Project.id == project_id).first():
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    zeilen = db.execute(text(
+        "SELECT id, hours, phase, logged_by, activity_description, logged_at "
+        "FROM time_tracking WHERE project_id = :p "
+        "ORDER BY logged_at DESC, id DESC"
+    ), {"p": project_id}).fetchall()
+
+    eintraege = [{
+        "id": z[0],
+        "hours": float(z[1] or 0),
+        "phase": z[2],
+        "logged_by": z[3] or "",
+        "activity_description": z[4] or "",
+        "logged_at": z[5].isoformat() if z[5] else None,
+    } for z in zeilen]
+
+    return {"eintraege": eintraege,
+            "summe": round(sum(e["hours"] for e in eintraege), 2)}
+
+
 @router.post("/{project_id}/time")
 def log_time(
     project_id: int,
     time_log: TimeLogRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Log hours spent on a project and update margin."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    # **Null oder negativ wird abgewiesen.** Eine negative Stunde waere eine
+    # Korrektur, und die gehoert besprochen statt stillschweigend verbucht;
+    # null ist kein Eintrag, sondern ein Fehlklick.
+    if (time_log.hours or 0) <= 0:
+        raise HTTPException(status_code=400,
+                            detail="Bitte eine Stundenzahl größer als 0 angeben.")
+
+    # Wer eingetragen hat, kommt aus der Anmeldung — nicht aus einem
+    # Textfeld (siehe `TimeLogRequest.logged_by`).
+    wer = (time_log.logged_by or "").strip() or (
+        f"{getattr(current_user, 'first_name', '') or ''} "
+        f"{getattr(current_user, 'last_name', '') or ''}".strip()
+        or getattr(current_user, "email", "") or "Innendienst")
 
     try:
         # Log time
@@ -581,7 +629,7 @@ def log_time(
             db=db,
             project_id=project_id,
             hours=time_log.hours,
-            logged_by=time_log.logged_by,
+            logged_by=wer,
             phase=time_log.phase,
             activity_description=time_log.activity_description,
         )
@@ -592,7 +640,7 @@ def log_time(
         return {
             "time_entry_id": time_entry.id,
             "hours_logged": time_log.hours,
-            "logged_by": time_log.logged_by,
+            "logged_by": wer,
             "updated_margin": margin,
         }
 

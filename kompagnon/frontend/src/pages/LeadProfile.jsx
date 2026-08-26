@@ -37,6 +37,7 @@ import { aufteilung } from '../utils/betriebReiter';
 import { aufTaste } from '../utils/tastaturBedienung';
 import CrawlerReiter from '../components/betrieb/CrawlerReiter';
 import Zugaenge from '../components/betrieb/Zugaenge';
+import Zeiterfassung from '../components/betrieb/Zeiterfassung';
 import CredentialsSafe from '../components/CredentialsSafe';
 
 const scoreColor = (s) =>
@@ -1697,6 +1698,18 @@ export default function LeadProfile() {
                   📁 Zum Projekt
                 </button>
               </Card>
+            )}
+
+            {/* Zeiterfassung (26.08.2026, Entscheidung David). Ohne sie
+              * bleibt die Marge dauerhaft „unbekannt" — `actual_hours` war an
+              * jedem Projekt 0, `time_tracking` leer, und `POST
+              * /api/projects/{id}/time` hatte keinen Aufrufer (L-105).
+              * Sie steht neben dem Projektkasten, weil sie zum Projekt
+              * gehoert und nicht zum Betrieb. */}
+            {projectId && (
+              <Zeiterfassung projectId={projectId}
+                phase={projectData?.status ? Number(String(projectData.status).replace('phase_', '')) || null : null}
+                token={token} />
             )}
 
             {(lead.vat_id || lead.register_number || lead.register_court) && (

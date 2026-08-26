@@ -72,7 +72,12 @@ class ProjectResponse(BaseModel):
 class TimeLogRequest(BaseModel):
     hours: float
     phase: int = None
-    logged_by: str
+    #: **Freiwillig seit dem 26.08.2026.** Stand hier als Pflichtfeld: Wer
+    #: eintippt, wer gearbeitet hat, kann eintippen, was er will — dieselbe
+    #: Schwaeche, die bei `POST /{id}/abnahme` der Grund war, den Endpunkt
+    #: ganz zu entfernen. Fehlt der Wert, traegt der Server den angemeldeten
+    #: Benutzer ein.
+    logged_by: str = None
     activity_description: str = None
 
 

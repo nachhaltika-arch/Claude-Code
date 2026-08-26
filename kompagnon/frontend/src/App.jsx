@@ -23,6 +23,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import MeineDaten from './pages/MeineDaten';
+import MeinBriefing from './pages/MeinBriefing';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
 import Settings from './pages/Settings';
@@ -307,6 +308,15 @@ function App() {
               * Kunden auf sein Dashboard zurueckwirft. Der Punkt fuehrte ins
               * Nichts. Der Innendienst darf mit, um im Zweifel dasselbe zu
               * sehen wie der Kunde. */}
+            {/* Das Briefing, vom Kunden ausgefuellt (26.08.2026). Bis dahin
+              * lag der ganze Briefing-Router hinter `require_innendienst`;
+              * der Kunde durfte nur zustimmen, was jemand anderes eingetragen
+              * hatte (L-27). Was ins Briefing gehoert, weiss aber der Betrieb. */}
+            <Route path="mein-briefing" element={
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'auditor']}>
+                <MeinBriefing />
+              </PrivateRoute>
+            } />
             <Route path="meine-daten" element={
               <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'auditor']}>
                 <MeineDaten />

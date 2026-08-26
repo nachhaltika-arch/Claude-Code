@@ -732,7 +732,11 @@ app.include_router(versand_router)
 
 from routers import briefings
 app.include_router(briefings.router)      # Innendienst
-app.include_router(briefings.kunden_router)   # nur die Freigabe ueber Token (L-27)
+# Kunde: Freigabe (L-27) und seit dem 26.08.2026 das eigene Briefing unter
+# `/mein/…`. **Eigene Adressen, keine Ueberdeckung** — der erste Entwurf
+# stuetzte sich auf die Reihenfolge der Registrierung, und genau das
+# verbietet `test_briefing_zusammengelegt.py` aus gutem Grund.
+app.include_router(briefings.kunden_router)
 
 # Die KI-Vorbefuellung liegt seit dem 22.08.2026 in einer eigenen Datei
 # (L-25): sechs Routen, die alle ein Modell fragen und die Antwort in ein
@@ -776,9 +780,14 @@ except Exception as e:
     logger.warning(f"⚠ Crawler Router nicht geladen: {e}")
 
 try:
+    from routers.files import kunden_router as _files_kunden_router
     from routers.files import router as _files_router
     app.include_router(_files_router)
-    logger.info("✓ Files Router geladen")
+    # Der angemeldete Kunde: eigene Dateien, eigene Eigentumspruefung
+    # (26.08.2026). Eigenes Praefix `/api/files/mein`, deshalb keine
+    # Ueberdeckung — anders als beim Briefing, wo die Reihenfolge zaehlt.
+    app.include_router(_files_kunden_router)
+    logger.info("✓ Files Router geladen (Innendienst + Kunde)")
 except Exception as e:
     logger.warning(f"⚠ Files Router nicht geladen: {e}")
 

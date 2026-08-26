@@ -159,15 +159,58 @@ def test_die_router_ueberschneiden_sich_nicht():
                 f"gewinnt, der andere ist tot.")
 
 
-def test_der_kundenrouter_traegt_nur_die_freigabe():
-    """Er hat **keine** Vorgabe. Jede weitere Route dort waere ungeschuetzt —
-    genau die Bauart, die am 19.08. 55 offene Routen erzeugt hat (L-51).
-    """
+#: Was auf dem Kundenrouter liegen darf — und warum.
+#:
+#: **26.08.2026:** Hier stand `== {"/api/briefings/{lead_id}/freigabe"}`. Der
+#: Grund war richtig und gilt weiter: Der Router hat **keine** Vorgabe, also
+#: ist jede Route dort ungeschuetzt, solange sie sich nicht selbst schuetzt.
+#: Genau die Bauart hat am 19.08. 55 offene Routen erzeugt (L-51).
+#:
+#: Seit der Kunde sein Briefing ausfuellt, kommen drei dazu. Statt die Liste
+#: nur zu verlaengern, prueft der Test jetzt die **Eigenschaft**, um die es
+#: geht: Jede Route hier muss sich selbst ausweisen — entweder ueber
+#: `get_current_user` als Abhaengigkeit oder, wie die Freigabe, ueber einen
+#: Einmal-Token aus dem Rumpf. Eine Liste vergisst den naechsten Eintrag;
+#: eine Eigenschaft nicht.
+PRUEFT_DEN_TOKEN_SELBST = {"/api/briefings/{lead_id}/freigabe"}
+
+
+def test_jede_route_des_kundenrouters_weist_sich_selbst_aus():
+    from routers import briefings
+
+    ohne_ausweis = []
+    for route in briefings.kunden_router.routes:
+        if route.path in PRUEFT_DEN_TOKEN_SELBST:
+            continue
+        namen = {getattr(getattr(d, "dependency", None), "__name__", "")
+                 for d in getattr(route, "dependencies", [])}
+        # Der uebliche Weg ist der Parameter `current_user=Depends(...)`; er
+        # steht nicht in `route.dependencies`, sondern in der Signatur.
+        import inspect
+        for wert in inspect.signature(route.endpoint).parameters.values():
+            abhaengig = getattr(wert.default, "dependency", None)
+            if abhaengig is not None:
+                namen.add(getattr(abhaengig, "__name__", ""))
+        if "get_current_user" not in namen:
+            ohne_ausweis.append(f"{route.path} — Abhaengigkeiten: {sorted(namen)}")
+
+    assert ohne_ausweis == [], (
+        "Routen auf dem Kundenrouter ohne eigene Anmeldepruefung:\n  "
+        + "\n  ".join(ohne_ausweis))
+
+
+def test_der_kundenrouter_bleibt_klein_und_benannt():
+    """Die Liste bleibt trotzdem stehen — sie sagt, was jemand *entschieden*
+    hat. Waechst sie, soll das eine Entscheidung sein und kein Nebeneffekt."""
     from routers import briefings
 
     pfade = {r.path for r in briefings.kunden_router.routes}
 
-    assert pfade == {"/api/briefings/{lead_id}/freigabe"}, pfade
+    assert pfade == {
+        "/api/briefings/{lead_id}/freigabe",
+        "/api/briefings/mein/{lead_id}",
+        "/api/briefings/mein/{lead_id}/pdf",
+    }, pfade
 
 
 def test_jede_innendienst_route_ist_gesichert():

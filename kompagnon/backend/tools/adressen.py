@@ -94,6 +94,67 @@ WEITERE_QUELLEN = (
 _PFAD_IM_TEXT = re.compile(r"""['"`]([^'"`\s]*/api/[^'"`\s]*)['"`]""")
 
 
+def ohne_kommentare(text: str) -> str:
+    """JavaScript ohne `//`- und `/* */`-Kommentare.
+
+    **Warum es das braucht (26.08.2026).** Der Waechter meldete
+    `/api/briefings` als Aufruf einer Route, die es nicht gibt. Gerufen wurde
+    sie nie — sie stand in einem **Kommentar**, in Backticks, und die Marke
+    oben sucht genau zwischen Anfuehrungszeichen und Backticks.
+
+    Dieser Bestand erklaert sich ausfuehrlich und nennt dabei staendig
+    Adressen: `/api/briefings/{id}`, `/api/leads/{id}`. Jede davon waere ein
+    Fehlalarm, und ein Waechter mit Fehlalarmen wird abgeschaltet — das steht
+    schon zweimal im Kopf dieser Datei.
+
+    **Zeichenweise, nicht per Muster.** Ein Ausdruck ueber Kommentare stolpert
+    ueber `'http://…'` in einer Zeichenkette und ueber `/regex/`-Literale.
+    Hier wird gezaehlt: in welchem Anfuehrungszeichen stehe ich gerade, und
+    beginnt hier wirklich ein Kommentar.
+    """
+    ergebnis = []
+    i, laenge = 0, len(text)
+    anfuehrung = None
+
+    while i < laenge:
+        z = text[i]
+
+        if anfuehrung:
+            ergebnis.append(z)
+            if z == "\\" and i + 1 < laenge:      # maskiertes Zeichen mitnehmen
+                ergebnis.append(text[i + 1])
+                i += 2
+                continue
+            if z == anfuehrung:
+                anfuehrung = None
+            i += 1
+            continue
+
+        if z in "\"'`":
+            anfuehrung = z
+            ergebnis.append(z)
+            i += 1
+            continue
+
+        if text.startswith("//", i):
+            ende = text.find("\n", i)
+            i = laenge if ende == -1 else ende
+            continue
+
+        if text.startswith("/*", i):
+            ende = text.find("*/", i + 2)
+            # Zeilenumbrueche behalten, damit Zeilennummern stimmen.
+            block = text[i:laenge if ende == -1 else ende + 2]
+            ergebnis.append("\n" * block.count("\n"))
+            i = laenge if ende == -1 else ende + 2
+            continue
+
+        ergebnis.append(z)
+        i += 1
+
+    return "".join(ergebnis)
+
+
 def weitere_aufrufer() -> dict:
     """Adressen aus Widget und E2E-Tests — Adresse → Herkunft.
 
@@ -242,7 +303,8 @@ def gerufene_adressen() -> dict:
         # ruft, weil sie gar kein Aufruf sind. Die Marke oben war davon nie
         # betroffen; sie kommt in JSON nicht vor.
         if datei.suffix in (".js", ".jsx"):
-            for roh in _PFAD_IM_TEXT.findall(text):
+            # Kommentare zaehlen nicht mit — siehe `ohne_kommentare`.
+            for roh in _PFAD_IM_TEXT.findall(ohne_kommentare(text)):
                 ab = roh.index("/api/")
                 adresse = normalisieren(
                     re.sub(r"\$\{[^{}]*\}", "{}", roh[ab:]).split("?", 1)[0]

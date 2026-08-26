@@ -314,6 +314,7 @@ function SidebarNav({ badges }) {
               // `PrivateRoute` einen Kunden sofort zurueckwarf — ein Menuepunkt,
               // der auf dieselbe Seite fuehrte, von der man kam.
               { label: 'Meine Daten',   path: '/app/meine-daten' },
+              { label: 'Mein Briefing', path: '/app/mein-briefing' },
               { label: 'Freigaben',     path: '/app/freigaben' },
               { label: 'Support',       path: '/app/support' },
               { label: 'Rechnungen',    path: '/app/rechnungen' },

@@ -27,6 +27,40 @@ export default function MeinBriefing() {
   const [betrieb, setBetrieb] = useState(null);
   const [fehler, setFehler] = useState('');
   const [fertig, setFertig] = useState(false);
+  const [pdfLaeuft, setPdfLaeuft] = useState(false);
+
+  /**
+   * Das Briefing als Dokument holen.
+   *
+   * Der Weg dahin (`GET /api/briefings/mein/{lead_id}/pdf`) entstand am
+   * selben Tag wie diese Seite \u2014 und blieb ohne Knopf. Genau die Klasse,
+   * aus der an diesem Tag vier Produktionsfehler kamen; diesmal war es meine
+   * eigene Zeile. Der Abruf braucht die Kopfzeile mit dem Zugangstoken,
+   * deshalb kein schlichter Link: Der Browser sendet sie nicht mit.
+   */
+  const pdfLaden = async () => {
+    setPdfLaeuft(true); setFehler('');
+    try {
+      const antwort = await fetch(`${API_BASE_URL}/api/briefings/mein/${leadId}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!antwort.ok) throw new Error(`Status ${antwort.status}`);
+      const daten = await antwort.blob();
+      const adresse = URL.createObjectURL(daten);
+      const verweis = document.createElement('a');
+      verweis.href = adresse;
+      verweis.download = `Briefing-${leadId}.pdf`;
+      document.body.appendChild(verweis);
+      verweis.click();
+      document.body.removeChild(verweis);
+      URL.revokeObjectURL(adresse);
+    } catch (e) {
+      setFehler(`Das PDF konnte nicht erstellt werden (${e.message}). `
+        + 'Bitte tragen Sie zuerst etwas ein und speichern Sie den Entwurf.');
+    } finally {
+      setPdfLaeuft(false);
+    }
+  };
 
   useEffect(() => {
     if (!leadId) return;
@@ -89,6 +123,21 @@ export default function MeinBriefing() {
       />
 
       <MeineDateien leadId={Number(leadId)} token={token} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+        <button type="button" onClick={pdfLaden} disabled={pdfLaeuft} style={{
+          padding: '9px 16px', border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
+          color: 'var(--text-primary)', fontSize: 12, fontWeight: 600,
+          fontFamily: 'var(--font-sans)', cursor: pdfLaeuft ? 'default' : 'pointer',
+          opacity: pdfLaeuft ? 0.6 : 1,
+        }}>
+          {pdfLaeuft ? 'Wird erstellt \u2026' : 'Briefing als PDF laden'}
+        </button>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          Was Sie eingetragen haben, als Dokument \u2014 zum Ablegen oder Weitergeben.
+        </span>
+      </div>
     </div>
   );
 }

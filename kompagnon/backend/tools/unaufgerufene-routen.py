@@ -42,6 +42,7 @@ from tools.adressen import (  # noqa: E402
     importe_je_modul,
     gerufene_adressen,
     normalisieren,
+    passt_auf,
     routen_mit_funktion,
     routen_mit_methode,
     weitere_aufrufer,
@@ -129,10 +130,48 @@ def main(argv: list) -> int:
         fremde = {m for m in importe.get((eigene, name), set()) if m != eigene}
         return f"{name}() aus {', '.join(sorted(fremde))}" if fremde else None
 
-    offen, intern, nur_rand, erklaert = [], [], [], []
+    def _ueber_variable(adresse: str):
+        """Trifft ein Aufruf diese Route nur ueber einen Platzhalter?
+
+        **Warum das eine eigene Gruppe wird und kein stiller Abzug
+        (26.08.2026).** `passt_auf` laesst `{}` auf **beiden** Seiten gelten.
+        Der Knopf fuer die Mailstrecke baut die Aktion in den Pfad
+        (`/api/leads/${leadId}/sequence/${action}`) und trifft damit
+        `start`, `pause` und `stop` — richtig so. Ein Aufruf
+        `/api/projects/${id}/${was}` traefe aber ebenso **jede**
+        Projektroute mit zwei Abschnitten.
+
+        Ein Werkzeug, das zu wenig meldet, ist schlimmer als eines, das zu
+        viel meldet: Es sagt „alles angeschlossen", wo niemand nachgesehen
+        hat. Deshalb wird der Treffer gezeigt, nicht verrechnet.
+
+        **Und nur Aufrufe, die sonst nirgends landen, zaehlen hier.** Die
+        erste Fassung nahm alle und meldete 57 Treffer, fast durchweg Unsinn:
+        `/api/leads/befunde-nachtragen` „gerufen als `/api/leads/{}`" — der
+        Platzhalter eines **anderen** Aufrufs, der laengst seine eigene Route
+        trifft (`/api/leads/{lead_id}`). Wer schon exakt landet, wird nicht
+        zusaetzlich anderen Routen gutgeschrieben. `/api/leads/{}/sequence/{}`
+        dagegen trifft **keine** Route genau — also loest es sich zur Laufzeit
+        in `start`, `pause` oder `stop` auf.
+        """
+        for gerufene in offene_aufrufe:
+            if gerufene != adresse and passt_auf(gerufene, adresse):
+                return gerufene
+        return None
+
+    #: Aufrufe, die auf keine Route genau passen — nur die duerfen ueber
+    #: Platzhalter zugeordnet werden. Siehe `_ueber_variable`.
+    alle_adressen = {normalisieren(p) for _, p in routen}
+    offene_aufrufe = {g for g in gerufen if g not in alle_adressen}
+
+    offen, intern, nur_rand, erklaert, ueber_variable = [], [], [], [], []
     for methode, pfad in routen:
         adresse = normalisieren(pfad)
         if adresse in gerufen:
+            continue
+        treffer = _ueber_variable(adresse)
+        if treffer:
+            ueber_variable.append((methode, pfad, treffer))
             continue
         grund = _erklaerung(pfad)
         if grund:
@@ -146,7 +185,7 @@ def main(argv: list) -> int:
         else:
             offen.append((methode, pfad, None))
 
-    for liste in (offen, nur_rand, erklaert):
+    for liste in (offen, nur_rand, erklaert, ueber_variable):
         liste.sort(key=lambda e: (e[1], e[0]))
 
     print(f"Backend: {len(routen)} Endpunkte · Frontend ruft "
@@ -158,6 +197,15 @@ def main(argv: list) -> int:
         print("  keine")
     for methode, pfad, _ in offen:
         print(f"  {methode:<7} {pfad}")
+
+    print(f"\nNur ueber eine Variable im Pfad getroffen — {len(ueber_variable)}:")
+    print("  (Der Aufruf baut einen Abschnitt zur Laufzeit zusammen. Meist ist")
+    print("   das genau richtig — aber ein Aufruf mit zwei Platzhaltern trifft")
+    print("   auch Routen, die niemand meint. Von Hand beurteilen.)")
+    if not ueber_variable:
+        print("  keine")
+    for methode, pfad, treffer in ueber_variable:
+        print(f"  {methode:<7} {pfad}\n            gerufen als {treffer}")
 
     print(f"\nNicht ueber HTTP, aber aus Backend-Code gerufen — {len(intern)}:")
     if not intern:

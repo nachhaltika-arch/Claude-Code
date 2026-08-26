@@ -188,7 +188,12 @@ def list_projects(
                 # Gerechnet wird hier nichts — nur der gespeicherte Wert
                 # eingeordnet; `calculate_margin` je Zeile waere bei 200
                 # Projekten eine Abfrage je Projekt.
-                'margin_status': MarginCalculator.status_fuer(row[7] or 0),
+                # Die Stunden werden **mitgegeben**: Ohne erfasste Zeit ist
+                # die Marge keine Messung, sondern der Festpreis minus
+                # Werkzeugkosten — und ein gruenes Abzeichen darueber waere
+                # eine Behauptung (26.08.2026, L-105).
+                'margin_status': MarginCalculator.status_fuer(row[7] or 0,
+                                                             row[4] or 0),
                 'scope_creep_flags': row[8] or 0,
                 'created_at': str(row[9])[:10] if row[9] else '',
             })

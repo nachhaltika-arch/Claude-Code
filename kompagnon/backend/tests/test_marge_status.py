@@ -57,7 +57,11 @@ class TestDieProjektlisteSagtEs:
 
         db = SessionLocal()
         try:
-            p = Project(lead_id=None, status="phase_3", margin_percent=64.0)
+            # **Mit erfassten Stunden.** Ohne sie waere der Status seit dem
+            # 26.08.2026 „unbekannt" — richtig so, aber dann pruefte dieser
+            # Fall die Schwellen nicht mehr, sondern die Ausnahme.
+            p = Project(lead_id=None, status="phase_3", margin_percent=64.0,
+                        actual_hours=12.0)
             db.add(p)
             db.commit()
             db.refresh(p)
@@ -81,8 +85,12 @@ class TestDieProjektlisteSagtEs:
     def test_der_status_passt_immer_zum_wert(self, client, auth_headers,
                                              projekt):
         """Der Wächter gegen ein Auseinanderlaufen: Was die Liste als Status
-        nennt, muss zu dem Prozentwert daneben passen — beides kommt aus
-        derselben Zeile, aber über zwei Wege."""
+        nennt, muss zu Prozentwert **und Stunden** daneben passen — alles drei
+        kommt aus derselben Zeile, aber über zwei Wege.
+
+        Die Stunden gehören seit dem 26.08.2026 dazu: Ohne erfasste Zeit ist
+        der Status „unbekannt", und ein Vergleich, der sie wegließe, würde
+        genau diese Ausnahme als Fehler melden."""
         zeilen = client.get("/api/projects/?limit=200",
                             headers=auth_headers).json()
 
@@ -91,7 +99,62 @@ class TestDieProjektlisteSagtEs:
             for z in zeilen
             if z.get("margin_status")
             and z["margin_status"] != MarginCalculator.status_fuer(
-                z.get("margin_percent") or 0)
+                z.get("margin_percent") or 0, z.get("actual_hours") or 0)
         ]
 
         assert falsch == [], "Status und Wert laufen auseinander:\n  " + "\n  ".join(falsch)
+
+
+class TestOhneErfassteZeitIstSieUnbekannt:
+    """**Der Fund vom selben Abend (L-105).** `actual_hours` ist an jedem
+    Projekt 0, `time_tracking` ist leer, und **keine Oberflaeche ruft**
+    `POST /api/projects/{id}/time`. Die Marge rechnet damit den Festpreis
+    minus Werkzeugkosten und kommt ueberall auf ~97,5 %.
+
+    Ein gruenes Abzeichen darueber ist schlimmer als keines: Es behauptet
+    einen Deckungsbeitrag, den niemand geprueft hat. Und es traf ausgerechnet
+    die Zahl, die am selben Tag auf jede Kanban-Karte gesetzt wurde.
+    """
+
+    def test_null_stunden_heisst_unbekannt(self):
+        assert MarginCalculator.status_fuer(97.5, 0) == "unbekannt"
+
+    def test_auch_bei_schlechter_marge(self):
+        """Sonst saehe ein Projekt ohne erfasste Zeit rot aus — genauso
+        falsch wie gruen. Was nicht gemessen ist, ist nicht gemessen."""
+        assert MarginCalculator.status_fuer(12.0, 0) == "unbekannt"
+
+    def test_mit_stunden_gilt_wieder_die_schwelle(self):
+        assert MarginCalculator.status_fuer(97.5, 8.5) == "green"
+        assert MarginCalculator.status_fuer(64.0, 12.0) == "red"
+
+    def test_ohne_angabe_bleibt_es_beim_alten(self):
+        """`None` heisst „nicht gefragt". Wer die Stunden nicht kennt, soll
+        keine Aussage ueber sie erzwingen."""
+        assert MarginCalculator.status_fuer(97.5) == "green"
+
+    def test_die_projektliste_sagt_es_auch(self, client, auth_headers):
+        from database import Project, SessionLocal
+
+        db = SessionLocal()
+        try:
+            p = Project(lead_id=None, status="phase_2",
+                        margin_percent=97.5, actual_hours=0)
+            db.add(p)
+            db.commit()
+            db.refresh(p)
+            kennung = p.id
+        finally:
+            db.close()
+
+        try:
+            zeilen = client.get("/api/projects/?limit=200",
+                                headers=auth_headers).json()
+            meins = [z for z in zeilen if z["id"] == kennung]
+            assert meins and meins[0]["margin_status"] == "unbekannt"
+        finally:
+            db = SessionLocal()
+            db.query(Project).filter(Project.id == kennung).delete(
+                synchronize_session=False)
+            db.commit()
+            db.close()

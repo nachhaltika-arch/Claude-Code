@@ -186,14 +186,24 @@ def send_campaign(
     if not brevo_list_rows:
         raise HTTPException(status_code=400, detail="Keine gueltigen Listen gefunden")
 
-    brevo_list_id = brevo_list_rows[0]["brevo_list_id"]
+    # **Alle gewaehlten Listen, nicht die erste (26.08.2026).** Hier stand
+    # `brevo_list_rows[0]`: Wer drei Listen waehlte, erreichte eine — still,
+    # ohne Fehler, und die Antwort meldete Erfolg. Aufgefallen beim
+    # Anschliessen des Senden-Knopfs (L-105), also bevor der erste echte
+    # Rundbrief hinausging.
+    brevo_list_ids = [z["brevo_list_id"] for z in brevo_list_rows
+                      if z["brevo_list_id"]]
+    if not brevo_list_ids:
+        raise HTTPException(status_code=400,
+                            detail="Die gewählten Listen haben keine "
+                                   "Brevo-Kennung — bitte zuerst abgleichen.")
 
     with _brevo() as brevo:
         brevo_campaign_id = brevo.create_email_campaign(
             title=newsletter["title"],
             subject=newsletter["subject"],
             html_content=newsletter["html_content"] or "",
-            list_id=brevo_list_id,
+            list_ids=brevo_list_ids,
             scheduled_at=body.scheduled_at.isoformat() if body.scheduled_at else None,
         )
 

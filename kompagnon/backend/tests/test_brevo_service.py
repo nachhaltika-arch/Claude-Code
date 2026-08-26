@@ -138,7 +138,7 @@ def test_create_email_campaign_baut_die_nutzdaten_in_brevos_schreibweise():
             title="August",
             subject="Neues von KOMPAGNON",
             html_content="<p>Hallo</p>",
-            list_id=7,
+            list_ids=[7],
         )
 
     assert campaign_id == 55
@@ -161,7 +161,7 @@ def test_geplante_kampagne_traegt_den_termin():
             title="September",
             subject="Vorschau",
             html_content="<p>Hallo</p>",
-            list_id=7,
+            list_ids=[7],
             scheduled_at="2026-09-01T08:00:00Z",
         )
 
@@ -238,3 +238,51 @@ def test_stats_ohne_statistikblock_liefern_leere_werte():
         stats = brevo.get_campaign_stats(55)
 
     assert stats == {"openRate": None, "clickRate": None, "unsubscriptions": None, "sentCount": None}
+
+
+# ── Mehrere Empfaengerlisten (26.08.2026, L-105) ─────────────────────────────
+#
+# **Der Fund beim Anschliessen des Senden-Knopfs.**
+# `POST /api/newsletter/campaigns/{id}/send` nimmt `list_ids` — Mehrzahl —,
+# holt die passenden Brevo-Kennungen und benutzte dann `rows[0]`: Wer drei
+# Listen waehlte, erreichte eine. **Still**, ohne Fehler, und die Antwort
+# meldete Erfolg.
+#
+# Aufgefallen ist es nur, weil der Endpunkt bis dahin **keinen Aufrufer** hatte
+# (L-105). Mit einer Mehrfachauswahl in der Oberflaeche waere der erste echte
+# Rundbrief an einen Teil der Empfaenger gegangen, und niemand haette es
+# gemerkt.
+#
+# Brevo kann es laengst: Die Nutzdaten heissen `listIds` und sind eine Liste;
+# die eine Kennung wurde nur kuenstlich hineingezwaengt.
+
+def test_alle_gewaehlten_listen_stehen_in_den_nutzdaten():
+    gesehen = {}
+
+    def handler(request):
+        gesehen["body"] = json.loads(request.content)
+        return _json_response(201, {"id": 57})
+
+    with _service(handler) as brevo:
+        brevo.create_email_campaign(title="August", subject="Neues",
+                                    html_content="<p>Hallo</p>",
+                                    list_ids=[7, 9, 11])
+
+    assert gesehen["body"]["recipients"]["listIds"] == [7, 9, 11]
+
+
+def test_ohne_liste_wird_brevo_gar_nicht_erst_gerufen():
+    """Eine Kampagne ohne Empfaenger ist keine Kampagne — und die Absage
+    kommt hier, wo sie lesbar ist, statt als Brevo-Fehlermeldung."""
+    gerufen = []
+
+    def handler(request):
+        gerufen.append(request.url.path)
+        return _json_response(201, {"id": 58})
+
+    with _service(handler) as brevo:
+        with pytest.raises(ValueError, match="Empfängerliste"):
+            brevo.create_email_campaign(title="A", subject="B",
+                                        html_content="", list_ids=[])
+
+    assert gerufen == []

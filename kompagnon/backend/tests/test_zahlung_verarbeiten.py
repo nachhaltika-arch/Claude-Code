@@ -160,3 +160,105 @@ class TestOhneAngaben:
         lead = db.query(Lead).filter(Lead.notes.like(f"%{SITZUNG}%")).first()
         assert lead is not None
         assert db.query(User).filter(User.email == "").count() == 0
+
+# ── Die Willkommensmail, 26.08.2026 ──────────────────────────────────
+
+class TestDieWillkommensmailGehtRaus:
+    """**Der Grund fuer diese Klasse.** Der Kopf dieser Datei sagt: „Der Test
+    prueft, was in der Datenbank landet, nicht ob eine Mail hinausgeht." Genau
+    in dieser Luecke sass der Fehler.
+
+    `send_email(..., attachment_path=...)` — ein Schluesselwort, das es nie
+    gab. Python meldet das erst zur Laufzeit; die Stelle faengt breit ab und
+    schreibt „Willkommens-E-Mail Fehler" ins Protokoll. **Jeder Kunde, der
+    seit Einbau der Auftragsbestaetigung gezahlt hat, bekam keine Mail** — und
+    damit keine Zugangsdaten.
+
+    Deshalb wird hier nicht der Versand geprueft (der braucht Brevo), sondern
+    **dass der Aufruf zustande kommt**. Das ist die Zusage, die gebrochen war.
+    """
+
+    def _mit_aufgezeichneter_mail(self, monkeypatch):
+        """Der Doppelgaenger traegt **dieselbe Unterschrift** wie das Original.
+
+        Ein `def merken(**k)` haette hier alles angenommen — auch das
+        `attachment_path`, das den Fehler ausmachte. Der Test waere gruen
+        geblieben und haette nichts bewiesen. Wer eine Funktion ersetzt, muss
+        ihre Grenzen mitnehmen, sonst prueft er seinen eigenen Doppelgaenger.
+        """
+        aufgezeichnet = []
+
+        def merken(to_email, subject, html_body, text_body="", db=None,
+                   attachments=None):
+            aufgezeichnet.append({"to_email": to_email, "subject": subject,
+                                  "html_body": html_body,
+                                  "attachments": attachments})
+            return True
+
+        import services.email as mail
+        monkeypatch.setattr(mail, "send_email", merken)
+        return aufgezeichnet
+
+    def test_der_kunde_bekommt_eine_mail(self, db, monkeypatch):
+        # Arrange
+        gesendet = self._mit_aufgezeichneter_mail(monkeypatch)
+
+        # Act
+        _verarbeiten(db, _sitzung())
+
+        # Assert
+        assert len(gesendet) == 1, "keine Willkommensmail"
+        assert gesendet[0]["to_email"] == EMAIL
+
+    def test_sie_nennt_die_zugangsdaten_im_betreff(self, db, monkeypatch):
+        """Was der Kunde sucht, wenn er die Mail spaeter wiederfinden muss."""
+        gesendet = self._mit_aufgezeichneter_mail(monkeypatch)
+
+        _verarbeiten(db, _sitzung())
+
+        assert "Zugangsdaten" in gesendet[0]["subject"]
+
+    def test_der_anhang_kommt_in_der_erwarteten_form(self, db, monkeypatch):
+        """`attachments` ist eine Liste von Tupeln — nicht ein Pfad.
+
+        Ob eine Auftragsbestaetigung entstanden ist, haengt an ReportLab und
+        der Paketliste; fehlt sie, ist die Liste leer und die Mail geht
+        trotzdem. Geprueft wird die **Form**, nicht die Anwesenheit.
+        """
+        gesendet = self._mit_aufgezeichneter_mail(monkeypatch)
+
+        _verarbeiten(db, _sitzung())
+
+        anhaenge = gesendet[0].get("attachments")
+        assert isinstance(anhaenge, list)
+        for name, inhalt, untertyp in anhaenge:
+            assert isinstance(name, str) and name.endswith(".pdf")
+            assert isinstance(inhalt, (bytes, bytearray)) and inhalt
+            assert untertyp == "pdf"
+
+    def test_ohne_e_mail_wird_auch_keine_verschickt(self, db, monkeypatch):
+        gesendet = self._mit_aufgezeichneter_mail(monkeypatch)
+
+        _verarbeiten(db, _sitzung(email=""))
+
+        assert gesendet == []
+
+
+class TestDerAnhangHelfer:
+    def test_eine_fehlende_datei_verhindert_die_mail_nicht(self):
+        """Der Anhang ist Beiwerk, die Nachricht ist die Hauptsache."""
+        from services.email import anhang_aus_datei
+
+        assert anhang_aus_datei("/gibt/es/nicht.pdf") == []
+        assert anhang_aus_datei(None) == []
+
+    def test_er_nimmt_den_uebergebenen_namen(self, tmp_path):
+        from services.email import anhang_aus_datei
+
+        datei = tmp_path / "roh.pdf"
+        datei.write_bytes(b"%PDF-1.4 Probe")
+
+        (name, inhalt, untertyp), = anhang_aus_datei(str(datei), "Schoen.pdf")
+
+        assert (name, untertyp) == ("Schoen.pdf", "pdf")
+        assert inhalt == b"%PDF-1.4 Probe"

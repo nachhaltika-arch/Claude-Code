@@ -451,7 +451,7 @@ def _handle_successful_payment(session: dict, db: Session):
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:
         try:
-            from services.email import send_email
+            from services.email import anhang_aus_datei, send_email
             from services.qr_service import get_portal_url
             # Token-Direktlink als primaerer Einstieg (passwortfrei, Domain-Verify).
             # Fallback auf /portal/login bleibt im Mail-Body als Login-Daten.
@@ -595,8 +595,12 @@ def _handle_successful_payment(session: dict, db: Session):
                 to_email        = email,
                 subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
                 html_body       = html_body,
-                attachment_path = pdf_path,
-                attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
+                # `attachments`, nicht `attachment_path` — Letzteres gab es
+                # nie, und der TypeError verhinderte **die ganze Mail** samt
+                # Zugangsdaten (gefunden 26.08.2026, Waechter:
+                # `test_mailaufrufe_passen.py`).
+                attachments     = anhang_aus_datei(
+                    pdf_path, "KOMPAGNON-Auftragsbestaetigung.pdf"),
             )
             if ok:
                 logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")

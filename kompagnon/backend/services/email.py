@@ -80,6 +80,35 @@ def _build_message(subject: str, sender: str, to_email: str, html_body: str,
     return msg
 
 
+def anhang_aus_datei(pfad, name: str = "") -> list:
+    """Eine Datei als Anhang, in der Form, die `send_email` erwartet.
+
+    **Warum es diesen Helfer gibt (26.08.2026).** Zwei Aufrufstellen riefen
+    `send_email(..., attachment_path=...)` — ein Schluesselwort, das es hier
+    nie gab. Python meldet das erst zur Laufzeit, beide Stellen fingen breit
+    ab, und damit ging **die ganze Mail** nicht raus, nicht bloss der Anhang.
+    Der naheliegende Name war also der falsche; statt die Unterschrift um ein
+    zweites Verfahren zu erweitern, gibt es jetzt einen Weg vom Pfad zur
+    erwarteten Form.
+
+    **Eine fehlende Datei verhindert die Mail nicht.** Sie ist der Beiwerk,
+    die Nachricht ist die Hauptsache — eine Willkommensmail ohne Anhang ist
+    immer noch eine Willkommensmail.
+    """
+    import os
+
+    if not pfad or not os.path.exists(pfad):
+        if pfad:
+            logger.warning("Anhang nicht gefunden, Mail geht ohne: %s", pfad)
+        return []
+
+    with open(pfad, "rb") as datei:
+        inhalt = datei.read()
+    dateiname = name or os.path.basename(pfad)
+    untertyp = (os.path.splitext(dateiname)[1].lstrip(".") or "octet-stream")
+    return [(dateiname, inhalt, untertyp)]
+
+
 def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
                db=None, attachments=None) -> bool:
     """Versendet eine E-Mail.

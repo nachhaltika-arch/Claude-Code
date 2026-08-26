@@ -231,13 +231,14 @@ Antworte NUR mit einem JSON-Objekt:
 </div>"""
 
     # ── E-Mail senden ─────────────────────────────────────────────────────
+    from services.email import anhang_aus_datei
     from services.email import send_email as _send_kalt_email
     ok = _send_kalt_email(
         to_email=lead.email,
         subject=betreff,
         html_body=html_body,
-        attachment_path=pdf_path,
-        attachment_name=f"Website-Analyse-{company.replace(' ', '-')}.pdf",
+        attachments=anhang_aus_datei(
+            pdf_path, f"Website-Analyse-{company.replace(' ', '-')}.pdf"),
     )
 
     if pdf_path and _os.path.exists(pdf_path):

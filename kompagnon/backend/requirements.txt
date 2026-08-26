@@ -17,6 +17,9 @@
 # Stand: 2026-08-07 — Python 3.11
 
 APScheduler==3.11.3
+greenlet==3.5.5
+playwright==1.56.0
+pyee==13.0.1
 PyOTP==2.10.0
 SQLAlchemy==2.0.51
 annotated-doc==0.0.5

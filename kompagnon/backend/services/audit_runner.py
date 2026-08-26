@@ -31,7 +31,7 @@ from typing import Optional
 import httpx
 from bs4 import BeautifulSoup
 
-from services import audit_aggregat, audit_collectors as collectors
+from services import audit_aggregat, seitenbrowser, audit_collectors as collectors
 from services.audit_pagespeed import fetch_pagespeed
 from services.audit_seiten import MAX_SEITEN, finde_unterseiten
 from services.url_guard import UnsafeUrlError, fetch_guarded
@@ -299,6 +299,28 @@ async def collect_facts(
     soup = BeautifulSoup(html, "html.parser")
     base_url = homepage.get("final_url") or url
 
+    # **Entsteht die Seite erst im Browser? Dann noch einmal, mit einem
+    # (L-107, Entscheidung David 26.08.2026).** `httpx` fuehrt kein
+    # JavaScript aus; von einer React-Anwendung sieht die Erhebung
+    # `<div id="root"></div>` und sonst nichts — beim Probelauf gegen die
+    # eigene Produktivoberflaeche elf Woerter.
+    #
+    # **Nur dann.** Ein Browserlauf kostet Sekunden und Speicher; ihn bei
+    # jeder Analyse zu starten waere Aufwand fuer die neunundneunzig Seiten,
+    # die ihn nicht brauchen. Die Erkennung steht seit dem 25.08. und
+    # entscheidet ohnehin schon, ob Kriterien als gemessen gelten duerfen.
+    browserlauf = {"wie": "nicht", "grund": "nicht noetig"}
+    if collectors.clientseitig_aufgebaut(soup, len(soup.get_text(" ").split())):
+        browserlauf = await seitenbrowser.hole_gerendert(base_url)
+        if browserlauf.get("wie") == "browser" and browserlauf.get("html"):
+            html = browserlauf["html"]
+            soup = BeautifulSoup(html, "html.parser")
+            base_url = browserlauf.get("final_url") or base_url
+            logger.info("%s wurde im Browser geladen (%d statt %d Woerter)",
+                        base_url, len(soup.get_text(" ").split()),
+                        len(BeautifulSoup(homepage["html"], "html.parser")
+                            .get_text(" ").split()))
+
     # Netzwerkabhängige Erhebungen parallel — alle auf Domain-Ebene, deshalb
     # weiter an der Startseite und nicht je Unterseite.
     tasks = {
@@ -348,8 +370,18 @@ async def collect_facts(
         # Entsteht der Inhalt erst im Browser? Dann hat die Erhebung die Seite
         # nie gesehen, und die inhaltsabhaengigen Kriterien duerfen nicht als
         # gemessen gelten (24.08.2026, `clientseitig_aufgebaut`).
+        # Nach einem geglueckten Browserlauf ist die Seite **gesehen** — die
+        # inhaltsabhaengigen Kriterien duerfen dann wieder zaehlen. Ohne diese
+        # Neubewertung fielen sie weiter aus Zaehler und Nenner, und der
+        # Browser haette nichts geaendert ausser der Laufzeit.
         "clientseitig": collectors.clientseitig_aufgebaut(
             soup, len(soup.get_text(" ").split())),
+        # Wie die Seite geholt wurde. **Ein Bericht, der das nicht sagen kann,
+        # ist die Fehlerfamilie, die diesen Bestand am haeufigsten getroffen
+        # hat** — eine Zahl, die aussieht wie eine Messung.
+        "browserlauf": {"collected": True,
+                        "wie": browserlauf.get("wie", "nicht"),
+                        "grund": browserlauf.get("grund", "")},
         "cdn": collectors.detect_cdn(homepage.get("headers", {})),
         "security_headers": _security_headers(homepage.get("headers", {})),
         "page_text": _gesamttext(befunde),

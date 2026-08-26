@@ -106,7 +106,34 @@ services:
     # Daraus folgt der eigentliche Befund — siehe L-57: Der **Oregon-Dienst
     # laesst sich heute nicht mehr von Grund auf bauen.** Er laeuft auf einem
     # Build-Artefakt, das sich nicht reproduzieren laesst.
-    buildCommand: pip install -r requirements.txt
+    #
+    # ── Und am 26.08.2026 kommt der Browser zurueck, diesmal begruendet ──
+    #
+    # **Was am 19.08. fehlte, steht jetzt da.** Der Einwand von damals war
+    # richtig und ist erledigt: `playwright==1.56.0` steht seit heute in
+    # `requirements.txt` (mit `greenlet` und `pyee`), und importiert wird es
+    # nicht mehr nur von einer Testdatei, sondern von
+    # `services/seitenbrowser.py`. Der Anlass ist L-107 und Davids
+    # Entscheidung: Die Erhebung fuehrt kein JavaScript aus und sah von der
+    # eigenen Produktivoberflaeche **elf Woerter**.
+    #
+    # **`install-deps` bleibt weg — das war der zweite Teil des Fehlers von
+    # damals.** Es ruft `apt-get` und braucht root; auf Renders Laufzeit
+    # scheitert es. Gebraucht wird es nicht: Der Dienst `iearv4-backend` im
+    # selben Konto installiert seit Monaten Chrome ohne, und laeuft. Die
+    # Systembibliotheken sind also da. Deshalb auch **kein** eigenes
+    # Docker-Bild — das waere eine Umstellung der ganzen Auslieferung fuer
+    # etwas, das ohne sie geht.
+    #
+    # **Schlaegt der Browserlauf trotzdem fehl, faellt nichts aus.** Der
+    # Schalter `AUDIT_BROWSER` unten entscheidet, ob ueberhaupt gestartet
+    # wird, und ohne Browser laeuft die Erhebung wie bisher — sie behauptet
+    # dann nur nicht, gesehen zu haben, was sie nicht gesehen hat.
+    #
+    # **Render nimmt Buildbefehle nicht ueber die API entgegen** (siehe
+    # L-35). Diese Zeile beschreibt, sie steuert nicht — sie muss im
+    # Dashboard des Dienstes nachgezogen werden.
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
     # alten Blueprints es behaupten. Hier steht, was er tut.
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -145,6 +172,13 @@ services:
       # der Code weiter relativ nach `uploads` — also in den Container.
       - key: UPLOAD_ROOT
         value: /var/data/uploads
+
+      # Ohne diese Variable wird kein Browser gestartet, und die Erhebung
+      # laeuft wie bisher. Steht sie auf `true` und fehlt der Browser, sagt
+      # das Ergebnis es (`browserlauf.grund`) — es wird nie behauptet,
+      # gemessen zu haben.
+      - key: AUDIT_BROWSER
+        value: "true"
       # War produktiv nie gesetzt. Der Vorgabewert ist `development`, und der
       # legt die Demo-Konten an, statt sie zu deaktivieren — drei waren live
       # (kunde@, nutzer@, auditor@kompagnon.de). Nicht weglassen.

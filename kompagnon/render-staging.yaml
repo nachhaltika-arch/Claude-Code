@@ -43,7 +43,17 @@ services:
     plan: starter
     branch: staging
     rootDir: kompagnon/backend
-    buildCommand: pip install -r requirements.txt
+    # **Der Browser fuer die Erhebung (L-107, 26.08.2026).**
+    # `playwright install chromium` laedt nur das Browserbinaerpaket; die
+    # Systembibliotheken sind auf Renders Laufzeit vorhanden — der Dienst
+    # `iearv4-backend` im selben Konto installiert seit Monaten Chrome auf
+    # dieselbe Weise. Deshalb **kein** eigenes Docker-Bild: Das waere eine
+    # Umstellung der ganzen Auslieferung fuer etwas, das ohne sie geht.
+    #
+    # **Render nimmt Buildbefehle nicht ueber die API entgegen** (siehe
+    # L-35). Diese Zeile beschreibt, sie steuert nicht — sie muss im
+    # Dashboard des Dienstes nachgezogen werden.
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
     healthCheckPath: /health
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
@@ -73,6 +83,13 @@ services:
         value: /var/data/uploads
       - key: ENVIRONMENT
         value: staging
+
+      # Ohne diese Variable wird kein Browser gestartet, und die Erhebung
+      # laeuft wie bisher. Steht sie auf `true` und fehlt der Browser, sagt
+      # das Ergebnis es (`browserlauf.grund`) — es wird nie behauptet,
+      # gemessen zu haben.
+      - key: AUDIT_BROWSER
+        value: "true"
 
       # Database — automatisch aus Postgres-Service oben gezogen
       - key: DATABASE_URL

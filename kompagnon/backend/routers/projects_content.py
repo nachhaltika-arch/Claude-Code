@@ -342,37 +342,28 @@ def confirm_approval(
 
 # ── Abnahme & Go-Live Nachher ─────────────────────────────────────────────────
 
-@router.post("/{project_id}/abnahme")
-def abnahme_erteilen(
-    project_id: int,
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    from datetime import datetime as dt
-
-    name = (data.get("name") or "").strip()
-    if not name:
-        raise HTTPException(400, "Name ist Pflichtfeld")
-
-    now = dt.utcnow()
-    db.execute(text("""
-        UPDATE projects SET
-          abnahme_datum=:ts,
-          abnahme_durch=:name,
-          actual_go_live=COALESCE(actual_go_live, :ts)
-        WHERE id=:id
-    """), {"ts": now, "name": name, "id": project_id})
-    db.commit()
-
-    now_de = now.strftime("%d.%m.%Y um %H:%M Uhr")
-    return {
-        "success":       True,
-        "abnahme_datum": str(now)[:16],
-        "abnahme_durch": name,
-        "text":          f"Abgenommen am {now_de} von {name}",
-    }
-
+# ── Abnahme: entfernt am 26.08.2026 (Entscheidung David) ─────────────
+#
+# Hier stand `POST /{project_id}/abnahme`. Er nahm einen **frei getippten
+# Namen** entgegen und schrieb ihn nach `projects.abnahme_durch`, dazu
+# `abnahme_datum` und `actual_go_live`. Aufgerufen hat ihn nie jemand
+# (L-105) — er hatte keinen Knopf.
+#
+# **Warum entfernt und nicht verdrahtet.** Es waere die **dritte** Stelle
+# gewesen, an der „abgenommen" steht:
+#
+#   `briefing.freigaben['abnahme_go_live']`  Kundenkonto, Zeitstempel,
+#                                            unwiderruflich (seit 26.08.)
+#   `content_freigaben`                      Kunde, je Seite
+#   `projects.abnahme_datum`                 irgendwer, getippter Name
+#
+# Eine Abnahme, die der Auftragnehmer selbst abhakt, ist keine Abnahme; eine
+# ohne Beweis neben eine mit Beweis zu stellen waere ein Rueckschritt. Wo die
+# Abnahme jetzt steht, sagt der Kundenbildschirm „Freigaben".
+#
+# **Die Spalten bleiben.** Sie sind leer — nur dieser Endpunkt hat je
+# hineingeschrieben —, und eine Spalte zu loeschen ist ein Eingriff, der
+# nichts gewinnt. `actual_go_live` setzt weiterhin `projects_anlegen.py`.
 
 @router.post("/{project_id}/go-live-pagespeed")
 async def go_live_pagespeed(

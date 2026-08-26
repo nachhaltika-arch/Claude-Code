@@ -151,3 +151,21 @@ class TestDerZweiteAnmeldewegIstWeg:
                                json={"key": SCHLUESSEL, "_token": "egal"})
 
         assert antwort.status_code in (401, 403)
+
+
+def test_es_gibt_nur_noch_eine_abnahme(app):
+    """**Entfernt am 26.08.2026 (Entscheidung David).**
+    `POST /api/projects/{id}/abnahme` nahm einen frei getippten Namen und
+    haette als **dritte** Stelle „abgenommen" behauptet — neben der
+    Kundenfreigabe hier (Konto, Zeitstempel, unwiderruflich) und den
+    Inhaltsfreigaben.
+
+    Eine Abnahme ohne Beweis neben eine mit Beweis zu stellen ist ein
+    Rueckschritt. Dieser Test verhindert, dass sie zurueckkommt, ohne dass
+    jemand die Entscheidung noch einmal trifft.
+    """
+    from main import app as anwendung
+
+    pfade = {getattr(r, "path", "") for r in anwendung.routes}
+
+    assert "/api/projects/{project_id}/abnahme" not in pfade

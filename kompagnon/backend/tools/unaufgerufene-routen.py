@@ -52,6 +52,12 @@ from tools.adressen import (  # noqa: E402
 #: Jede Gruppe braucht einen Grund — sonst wird die Liste zum Ablagefach.
 ERKLAERT = (
     ("/api/webhooks/", "Webhook — wird von aussen gerufen (Stripe, Brevo, Netlify)"),
+    # **Zwei weitere Rufe von aussen (26.08.2026).** Beide standen unter
+    # „ruft niemand auf", obwohl sie taeglich gerufen werden — nur eben von
+    # Brevo, nicht vom Browser. Sie weisen sich mit einem Geheimnis im Pfad
+    # aus, weil Brevo seine Webhooks nicht signiert.
+    ("/api/mail-events/", "Brevo meldet Zustellstoerungen — Geheimnis im Pfad"),
+    ("/api/posteingang/", "Brevo liefert eingehende Kundenmails — Geheimnis im Pfad"),
     ("/api/widget/", "Widget — lebt eingebettet auf fremden Seiten"),
     ("/api/portal/", "Kundenportal — haengt am Einmal-Token aus der Mail"),
     ("/api/public/", "Oeffentlich — Landingpage und Freigabelinks"),

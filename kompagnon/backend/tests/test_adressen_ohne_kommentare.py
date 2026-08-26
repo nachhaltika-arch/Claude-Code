@@ -90,3 +90,55 @@ def test_der_waechter_findet_die_echten_adressen_weiterhin():
     from tools.adressen import gerufene_adressen
 
     assert len(gerufene_adressen()) >= 150
+
+
+def test_das_ausgelieferte_widget_zaehlt_mit():
+    """**Ein Messfehler, kein Befund (26.08.2026).** `L-105` zaehlt Routen,
+    die niemand ruft. Vier `/api/widget/…`-Adressen standen darin — gerufen
+    werden sie aber sehr wohl, naemlich von
+    `public/embed/audit-widget.html`: dem **ausgelieferten** Widget,
+    eigenstaendiges Vanilla JS ohne Build, per iframe auf fremden Seiten
+    eingebunden.
+
+    Es lag ausserhalb von `src` und endet nicht auf `.js` — beides Gruende,
+    aus denen das Werkzeug es nie gelesen hat. Dieselbe Sorte Fehler wie die
+    zwei anderen im Kopf von `tools/adressen.py`: Wer nach **einer** Form
+    sucht, misst die Form und nicht die Sache.
+    """
+    from tools.adressen import gerufene_adressen
+
+    gerufen = gerufene_adressen()
+    aus_dem_widget = {a for a, wo in gerufen.items()
+                      if any("audit-widget.html" in stelle for stelle in wo)}
+
+    assert "/api/widget/audit" in aus_dem_widget
+    assert "/api/widget/config" in aus_dem_widget
+    # Mit Platzhalter: Das Widget verkettet mit `+`, nicht mit einer Vorlage —
+    # siehe den zweiten Fall unten.
+    assert "/api/widget/teaser/{}" in aus_dem_widget
+    assert len(aus_dem_widget) >= 4, sorted(aus_dem_widget)
+
+
+def test_verkettete_adressen_treffen_ihre_route():
+    """**Der zweite Messfehler desselben Nachmittags.** Kaum war `public/`
+    mitgelesen, meldete der Waechter zwei Adressen als „gibt es im Backend
+    nicht": `/api/widget/teaser` und `/api/widget/bestaetigung`.
+
+    Die Routen gibt es sehr wohl — `/teaser/{token}` und
+    `/bestaetigung/{token}`. Das Widget baut sie nur anders: In `src` steht
+    eine Vorlage (`${token}`), im Widget eine Verkettung
+    (`'/api/widget/teaser/' + encodeURIComponent(token)`). Der Ausdruck sah
+    nur den Teil bis zum Anfuehrungszeichen und damit eine Adresse, die auf
+    einem Schraegstrich endet.
+
+    Ein Waechter mit Fehlalarmen wird abgeschaltet — deshalb steht das hier.
+    """
+    from tools.adressen import gerufene_adressen
+
+    gerufen = gerufene_adressen()
+
+    assert "/api/widget/teaser/{}" in gerufen
+    assert "/api/widget/bestaetigung/{}" in gerufen
+    # Und die Form ohne Platzhalter darf **nicht** mehr entstehen, sonst
+    # waeren die Fehlalarme zurueck.
+    assert "/api/widget/teaser" not in gerufen

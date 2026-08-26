@@ -30,6 +30,15 @@ import re
 WURZEL = pathlib.Path(__file__).resolve().parent.parent
 FRONTEND = WURZEL.parent / "frontend" / "src"
 
+#: **Was ausserhalb von `src` liegt und trotzdem ruft (26.08.2026).**
+#: `public/embed/audit-widget.html` ist das **ausgelieferte** Widget —
+#: eigenstaendiges Vanilla JS ohne Build, per iframe auf fremden Seiten
+#: eingebunden. Es ruft vier `/api/widget/…`-Adressen, und weil es weder in
+#: `src` liegt noch auf `.js` endet, galten die vier als „ruft niemand auf"
+#: (L-105). Dieselbe Sorte Fehler wie zweimal darunter beschrieben: Wer nach
+#: **einer** Form sucht, misst die Form und nicht die Sache.
+OEFFENTLICH = WURZEL.parent / "frontend" / "public"
+
 #: Die Marke, an der ein Backend-Aufruf im Frontend erkennbar ist.
 MARKE = "API_BASE_URL}"
 
@@ -279,7 +288,10 @@ def gerufene_adressen() -> dict:
     abgeschaltet.
     """
     gerufen = {}
-    for datei in sorted(FRONTEND.rglob("*.js*")):
+    quellen = list(FRONTEND.rglob("*.js*"))
+    if OEFFENTLICH.is_dir():
+        quellen += list(OEFFENTLICH.rglob("*.html"))
+    for datei in sorted(quellen):
         if ".test." in datei.name:
             continue
         text = datei.read_text(encoding="utf-8", errors="ignore")
@@ -302,15 +314,31 @@ def gerufene_adressen() -> dict:
         # Gegenrichtung hat das sofort gemeldet — vier Adressen, die niemand
         # ruft, weil sie gar kein Aufruf sind. Die Marke oben war davon nie
         # betroffen; sie kommt in JSON nicht vor.
-        if datei.suffix in (".js", ".jsx"):
+        if datei.suffix in (".js", ".jsx", ".html"):
             # Kommentare zaehlen nicht mit — siehe `ohne_kommentare`.
-            for roh in _PFAD_IM_TEXT.findall(ohne_kommentare(text)):
+            sauber = ohne_kommentare(text)
+            for treffer in _PFAD_IM_TEXT.finditer(sauber):
+                roh = treffer.group(1)
                 ab = roh.index("/api/")
                 adresse = normalisieren(
                     re.sub(r"\$\{[^{}]*\}", "{}", roh[ab:]).split("?", 1)[0]
                 )
                 adresse = re.sub(r"(\{\})+", "{}", adresse)
-                zeile = text[:text.index(roh)].count("\n") + 1
+
+                # **Verkettung mit `+` (26.08.2026).** In `src` werden
+                # Adressen als Vorlage geschrieben (`${id}`), und die ersetzt
+                # der Schritt darueber. Das ausgelieferte Widget ist Vanilla
+                # JS ohne Build und schreibt
+                # `'/api/widget/teaser/' + encodeURIComponent(token)`.
+                # Ohne diese Zeilen endete die Adresse auf einem Schraegstrich
+                # und traf `/api/widget/teaser/{token}` nicht — zwei
+                # Fehlalarme, kaum dass `public/` mitgelesen wurde. Ein
+                # Waechter mit Fehlalarmen wird abgeschaltet.
+                danach = sauber[treffer.end():treffer.end() + 4].lstrip()
+                if roh.endswith("/") and danach.startswith("+"):
+                    adresse = adresse.rstrip("/") + "/{}"
+
+                zeile = sauber[:treffer.start()].count("\n") + 1
                 gerufen.setdefault(adresse, set()).add(f"{datei.name}:{zeile}")
 
         start = text.find(MARKE)

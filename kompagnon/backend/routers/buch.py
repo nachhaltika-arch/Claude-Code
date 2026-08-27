@@ -46,7 +46,20 @@ FRONTEND_BOOK_URL = os.getenv("FRONTEND_BOOK_URL", "").rstrip("/")
 #: Der in Stripe angelegte Steuersatz von sieben Prozent. `automatic_tax`
 #: bleibt aus: Stripe würde sonst 19 % ansetzen, weil es das Buch nicht kennt.
 STRIPE_TAX_RATE_ID_7 = os.getenv("STRIPE_TAX_RATE_ID_7", "")
-WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+#: Das Signaturgeheimnis **dieses** Endpunkts.
+#:
+#: **Jede in Stripe eingetragene Adresse hat ihr eigenes.** Bis zum
+#: 27.08.2026 stand hier `STRIPE_WEBHOOK_SECRET` — dasselbe, das
+#: `routers/payments.py` liest. Sobald `/api/book/webhook` als zweite Adresse
+#: eingetragen wird, prüft diese Zeile jede Meldung gegen das Geheimnis der
+#: **falschen** Adresse: Die Signatur schlägt fehl, der Endpunkt antwortet
+#: mit 400, Stripe wiederholt tagelang, und keine einzige Buchbestellung
+#: würde je auf „bezahlt" gesetzt.
+#:
+#: Der Rückfall auf den alten Namen ist Absicht: Solange nur **eine** Adresse
+#: eingetragen ist, bleibt die bisherige Einrichtung gültig.
+WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET_BUCH")
+                  or os.getenv("STRIPE_WEBHOOK_SECRET", ""))
 
 #: Wie lange ein Abruflink gilt. Lang genug für einen Urlaub, kurz genug,
 #: dass ein weitergereichter Link nicht ewig trägt.
@@ -63,7 +76,7 @@ def konfiguration_pruefen() -> list:
     if not os.getenv("STRIPE_SECRET_KEY"):
         fehlt.append("STRIPE_SECRET_KEY")
     if not WEBHOOK_SECRET:
-        fehlt.append("STRIPE_WEBHOOK_SECRET")
+        fehlt.append("STRIPE_WEBHOOK_SECRET_BUCH")
     if not FRONTEND_BOOK_URL:
         fehlt.append("FRONTEND_BOOK_URL")
     if not STRIPE_TAX_RATE_ID_7:
@@ -331,6 +344,19 @@ def auslieferung_anstossen(order_number: str) -> None:
 
 
 def _zahlung_verbuchen(sitzung: dict) -> None:
+    # **Auch hier kommt jede Kasse des Kontos an**, nicht nur die des Buchs
+    # und des Shops (siehe `services/zahlungsweg.py`). Ohne diese Weiche
+    # meldete der Eintrag unten bei **jedem** Websprint-Kauf einen Fehler —
+    # ein Protokoll voller Fehlalarme ist eines, in dem der echte Fehler
+    # untergeht.
+    from services.zahlungsweg import BUCH, weg_der_sitzung
+
+    weg = weg_der_sitzung(sitzung.get("metadata"))
+    if weg != BUCH:
+        logger.info("Buch: Sitzung %s gehoert zum Weg %r — hier uebersprungen",
+                    sitzung.get("id", "?"), weg)
+        return
+
     db = SessionLocal()
     try:
         eintrag = db.query(BookOrder).filter(

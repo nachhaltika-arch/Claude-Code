@@ -302,6 +302,8 @@ services:
       # onrender.com-Adresse.
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_WEBHOOK_SECRET_BUCH
+        sync: false
       - key: STRIPE_WEBHOOK_SECRET_GEO
         sync: false
       - key: NETLIFY_WEBHOOK_SECRET

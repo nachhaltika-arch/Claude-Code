@@ -304,6 +304,26 @@ def _handle_successful_payment(session: dict, db: Session):
     from sqlalchemy import text as _t
 
     meta        = session.get("metadata", {})
+
+    # ── GEHOERT DIESE KASSE UEBERHAUPT HIERHER? ──────────────────────
+    #
+    # **Ein Stripe-Endpunkt abonniert Ereignisarten, nicht Vorgaenge.** Diese
+    # Adresse bekommt deshalb **jede** abgeschlossene Kasse des Kontos, auch
+    # die des Buchs, des Shops und des GEO-Abos. Ohne diese Zeilen haette ein
+    # Buchkauf fuer 49 EUR hier einen Lead, ein Benutzerkonto, ein
+    # Website-Projekt und eine Willkommensmail ausgeloest — der Kaeufer
+    # bekaeme Zugangsdaten fuer ein Projekt, das er nie bestellt hat.
+    #
+    # Siehe `services/zahlungsweg.py` fuer die Marker.
+    from services.zahlungsweg import WEBSPRINT, weg_der_sitzung
+
+    weg = weg_der_sitzung(meta)
+    if weg != WEBSPRINT:
+        logger.info(
+            "Stripe: Sitzung %s gehoert zum Weg %r — hier uebersprungen",
+            session.get("id", "?"), weg)
+        return
+
     email       = meta.get("customer_email") or session.get("customer_email", "")
     company     = meta.get("company_name", "")
     name        = meta.get("customer_name", "")

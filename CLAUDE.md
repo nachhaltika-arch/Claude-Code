@@ -47,8 +47,15 @@ Falls das Repo nicht stimmt:
 - **Produktiv**: Render deployt auf jeden Merge in `main`
 
 Produktiv-URLs:
-- Frontend: https://kompagnon-frontend.onrender.com
-- Backend:  https://claude-code-znq2.onrender.com
+- Frontend: https://kompagnon.group (Dienst `kompagnon-frontend`, Static Site)
+- Backend:  https://api.kompagnon.group (Dienst `kompagnon-backend-fra`, Frankfurt)
+
+> **Korrigiert am 2026-08-27.** Hier stand `https://claude-code-znq2.onrender.com`
+> als Produktiv-Backend. Dieser Dienst liegt in Oregon, ist seit dem Umzug
+> (L-34) **suspendiert** und antwortet mit 503. Am selben Tag an allen drei
+> Adressen nachgemessen. Eine Anweisungsdatei, die auf einen toten Dienst
+> zeigt, ist gefaehrlicher als gar keine: Wer dort 503 misst, meldet einen
+> Produktivausfall, den es nicht gibt.
 
 Staging-URLs (live seit 2026-05-02):
 - Frontend: https://kompagnon-frontend-staging.onrender.com

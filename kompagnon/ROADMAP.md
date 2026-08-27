@@ -264,7 +264,7 @@
 
 ## 🔗 Live-URLs
 
-- **Backend**: https://claude-code-znq2.onrender.com  
+- **Backend**: https://api.kompagnon.group  
 - **Frontend**: https://kompagnon-frontend.onrender.com  
 - **Repo**: nachhaltika-arch/Claude-Code  
 - **Branch**: staging

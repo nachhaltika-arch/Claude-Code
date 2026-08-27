@@ -199,7 +199,8 @@ Dual-Branch-Workflow `staging → main` (ab 2026-05-01):
 4. Manueller Merge durch den Nutzer. Nach Merge:
    - Render deployed automatisch auf Produktiv:
      - Frontend: `https://kompagnon-frontend.onrender.com`
-     - Backend: `https://claude-code-znq2.onrender.com`
+     - Backend: `https://api.kompagnon.group` (Dienst `kompagnon-backend-fra`;
+       `claude-code-znq2` ist der suspendierte Oregon-Vorgaenger)
 5. `staging` bleibt langlebig stehen — wird nicht gelöscht. Keine zusätzlichen `claude/*`- oder `feature/*`-Branches.
 
 ---

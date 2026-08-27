@@ -92,7 +92,10 @@ def test_register_legt_kein_innendienstkonto_an(client):
 
     adresse = f"pytest-fremder-{secrets.token_hex(6)}@example.com"
     antwort = client.post("/api/auth/register", json={
-        "email": adresse, "password": "einlangesPasswort2026",
+        # Bewusst niedrige Entropie und lesbar als das, was es ist.
+        # Gitleaks hat den ersten Versuch hier zu Recht als Schluessel
+        # gelesen (Lauf 33050180660) — und ein Fund bleibt in der Historie.
+        "email": adresse, "password": "pytest-pytest-pytest",
         "first_name": "Un", "last_name": "Bekannt"})
     assert antwort.status_code == 200, antwort.text
 

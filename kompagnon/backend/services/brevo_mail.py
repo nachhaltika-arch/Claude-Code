@@ -73,6 +73,16 @@ def send(
     if text_body:
         payload["textContent"] = text_body
 
+    # Ohne diese Zeile fuehrt keine Antwort zum Posteingang: Der Absender ist
+    # `noreply@`, und das Mailprogramm des Kunden schickt genau dorthin
+    # (27.08.2026). Ein **leeres** replyTo waere etwas anderes als gar
+    # keines — Brevo lehnt es ab.
+    from services.antwortadresse import rueckadresse
+
+    zurueck = rueckadresse()
+    if zurueck:
+        payload["replyTo"] = {"email": zurueck}
+
     anhaenge = _attachment_payload(attachments)
     if anhaenge:
         payload["attachment"] = anhaenge

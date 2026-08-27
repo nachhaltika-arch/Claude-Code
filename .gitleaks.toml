@@ -26,6 +26,13 @@ regexes = [
   # deshalb **woertlich** statt als Muster: Diese eine Zeichenkette
   # verstummt, jede kuenftige `AIzaSy…`-Zeichenkette schlaegt weiter an.
   '''AIzaSyGEHEIM123''',
+  # Derselbe Fehler, drei Tage spaeter (27.08.2026, Lauf 33050180660): ein
+  # Testpasswort in `tests/test_rolle_mitarbeiter.py` mit Entropie 3.78, das
+  # Gitleaks als `generic-api-key` las. Im Arbeitsstand steht laengst ein
+  # Wert ohne Schluesselform; diese Zeichenkette steckt nur noch im Commit
+  # fbc593d. Woertlich wie oben — der naechste hochentropische Testwert soll
+  # weiter anschlagen.
+  '''einlangesPasswort2026''',
 ]
 # Also allowlist by historical commit hash for belt-and-braces:
 commits = [

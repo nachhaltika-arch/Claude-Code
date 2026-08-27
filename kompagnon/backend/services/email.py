@@ -60,16 +60,27 @@ def _build_message(subject: str, sender: str, to_email: str, html_body: str,
         inhalt.attach(MIMEText(text_body, "plain", "utf-8"))
     inhalt.attach(MIMEText(html_body, "html", "utf-8"))
 
+    # Beide Zweige, eine Zusicherung. Der Anhangzweig baut eine andere
+    # Nachricht, und genau an dieser Verzweigung ist am 26.08. schon einmal
+    # etwas verloren gegangen.
+    from services.antwortadresse import rueckadresse
+
+    zurueck = rueckadresse()
+
     if not attachments:
         inhalt["Subject"] = subject
         inhalt["From"] = sender
         inhalt["To"] = to_email
+        if zurueck:
+            inhalt["Reply-To"] = zurueck
         return inhalt
 
     msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
     msg["From"] = sender
     msg["To"] = to_email
+    if zurueck:
+        msg["Reply-To"] = zurueck
     msg.attach(inhalt)
 
     for dateiname, daten, subtyp in attachments:

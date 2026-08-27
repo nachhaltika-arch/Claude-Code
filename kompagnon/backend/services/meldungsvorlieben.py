@@ -7,8 +7,13 @@ Kein Backend las die sechs Schlüssel; es gab nicht einmal eine Stelle, an die
 sie hätten gehen können. Sie sind am selben Tag entfernt worden — ein Feld,
 das nichts schaltet, ist schlimmer als keines, weil es die Suche beendet.
 
-**Hier wird deshalb nichts erfunden.** Nachgezählt, welche Mails überhaupt in
-Davids eigenes Postfach gehen, gibt es genau zwei: die Chatnachricht vom
+**Nachtrag 27.08.2026.** Das vierte Ereignis geht an den **Kunden** und nicht
+an David — die Trennung unten gilt also nicht mehr wortwörtlich. Es steht
+trotzdem hier: Die Einstellungsseite holt ihre Liste von hier, und ein
+zweiter Ort für Schalter wäre ein zweiter Ort, an dem sie auseinanderlaufen.
+
+**Hier wird nichts erfunden.** Nachgezählt, welche Mails überhaupt in
+Davids eigenes Postfach gehen, gab es am 26.08. genau zwei: die Chatnachricht vom
 Kunden (`routers/messages.py` → `SMTP_USER`) und den monatlichen GEO-Bericht
 (`services/geo_monitor.py` → `ADMIN_EMAIL`). Alles andere geht an **Kunden**
 und wird vom Versandschalter und von `project.email_notifications_enabled`
@@ -41,6 +46,17 @@ EREIGNISSE = (
      False),
     ("geo_bericht",
      "Monatlicher GEO-Bericht per E-Mail an die Admin-Adresse",
+     True),
+    # **Das vierte Ereignis geht an den Kunden, nicht an David** — und
+    # weicht damit von dem ab, was oben steht. Es steht trotzdem hier, weil
+    # es ein Schalter ist und die Einstellungsseite ihre Liste von hier
+    # holt; ein zweiter Ort waere ein zweiter Ort. Warum die Vorgabe „an"
+    # ist und nicht „das Verhalten von heute": siehe
+    # `services/kundenmeldung.py` — das Verhalten von heute war, dass die
+    # Nachricht niemanden erreichte.
+    ("kunde_portalnachricht",
+     "Kunde per E-Mail darauf hinweisen, dass eine Portalnachricht fuer ihn "
+     "bereitliegt (ohne den Text)",
      True),
 )
 

@@ -994,6 +994,27 @@ def _ablage_zustand() -> dict:
         return {"grund": f"{type(fehler).__name__}: {fehler}"}
 
 
+def _browser_zustand() -> dict:
+    """Zwei Fragen, nicht eine.
+
+    „Nicht eingeschaltet" und „eingeschaltet, aber Playwright fehlt" sind
+    verschiedene Zustaende, und der zweite ist ein Einrichtungsfehler, der
+    auffallen soll. Ein einzelnes `browser: false` wuerde beide zu derselben
+    Achselzucken-Antwort verschmelzen.
+    """
+    try:
+        from services.seitenbrowser import browser_erwuenscht, browser_verfuegbar
+
+        an = bool(browser_erwuenscht())
+        da = bool(browser_verfuegbar())
+    except Exception:                       # noqa: BLE001
+        # `/health` selbst darf daran nicht scheitern — es ist die Auskunft,
+        # die man liest, wenn sonst nichts mehr geht.
+        return {"eingeschaltet": False, "verfuegbar": False, "bereit": False}
+    return {"eingeschaltet": an, "verfuegbar": da, "bereit": an and da}
+
+
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -1029,6 +1050,14 @@ def health_check():
             # und beim Deploy ist alles weg (16.08.2026). Von aussen abfragbar,
             # damit man es nicht im Dashboard nachsehen muss.
             "uploads": _ablage_zustand(),
+            # Ob der Browserlauf der Erhebung wirklich laufen kann. Er haengt
+            # an zwei Dingen, die **nicht im Quelltext** stehen, sondern in
+            # Render: dem Buildbefehl (`playwright install chromium`) und
+            # `AUDIT_BROWSER=true`. Fehlt eines, misst die Erhebung eine
+            # React-Seite als leer — und das steht dann als Befund im
+            # Kundenbericht (L-107). Am Gegenstand fragen statt im Dashboard
+            # ablesen, wie schon bei den Uploads.
+            "browser": _browser_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

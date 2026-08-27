@@ -41,13 +41,24 @@ class KundeMessageIn(BaseModel):
 # ── Hilfsfunktion ─────────────────────────────────────────────────────────────
 
 def _email_wrapper(content: str, company_name: str) -> str:
+    """Der Rahmen um eine Nachricht an den Kunden.
+
+    **Der Hinweis nennt nur Wege, die es gibt (27.08.2026).** Hier stand
+    „antworten Sie direkt auf diese E-Mail", waehrend jede Mail von
+    `noreply@` kam und keinen `Reply-To` trug. Ein Kunde, der dem Satz
+    folgte, schrieb ins Leere — und wir hielten sein Schweigen fuer
+    Zufriedenheit.
+    """
+    from services.antwortadresse import ist_eingerichtet
+
+    antwort_moeglich = ("<br>Oder antworten Sie direkt auf diese E-Mail."
+                        if ist_eingerichtet() else "")
     return f"""
 <h3>Nachricht von KOMPAGNON</h3>
 <p>{content}</p>
 <hr>
 <p style="color:gray;font-size:12px">
-  Um zu antworten, besuchen Sie Ihr Kundenportal oder
-  antworten Sie direkt auf diese E-Mail.
+  Um zu antworten, besuchen Sie Ihr Kundenportal.{antwort_moeglich}
 </p>
 """
 
@@ -205,8 +216,16 @@ def send_message_admin(
     lead_id: int,
     body: AdminMessageIn,
     db: Session = Depends(get_db),
-    user=Depends(require_admin),
+    user=Depends(require_innendienst),
 ):
+    """Der Innendienst schreibt einem Betrieb.
+
+    **Stand bis zum 27.08.2026 auf `require_admin`**, waehrend das `GET`
+    daneben `require_innendienst` trug. Ein Mitarbeiter konnte den Verlauf
+    also **lesen und nicht beantworten** — und die Oberflaeche zeigte ihm das
+    Eingabefeld trotzdem. Mit der Zusammenlegung der Rollen waere das die
+    Regel geworden statt die Ausnahme.
+    """
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -234,6 +253,15 @@ def send_message_admin(
         )
         if not ok:
             logger.warning(f"E-Mail an {lead.email} konnte nicht gesendet werden")
+    elif body.channel != "email":
+        # Der Weg `in_app` legte bisher eine Nachricht ab und erreichte
+        # niemanden: Die Glocke meldet nur nach innen, und der Kunde erfuhr
+        # es erst, wenn er von sich aus das Portal oeffnete (27.08.2026).
+        # Der Hinweis traegt den Text **nicht** mit — wer `in_app` waehlt,
+        # hat sich gegen den Mailweg entschieden.
+        from services.kundenmeldung import hinweisen
+
+        hinweisen(db, lead)
 
     return {"id": msg.id, "created_at": msg.created_at.isoformat(), "success": True}
 

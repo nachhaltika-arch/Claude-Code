@@ -91,6 +91,19 @@ services:
       - key: AUDIT_BROWSER
         value: "true"
 
+      # **Der Rueckweg der Kundenkommunikation** (27.08.2026). Ohne diese
+      # Variable traegt jede ausgehende Mail `From: noreply@…` und **keinen**
+      # `Reply-To` — wer im Mailprogramm auf „Antworten" klickt, schreibt ins
+      # Leere. Der Posteingang (`/api/posteingang/brevo/…`) steht dann da und
+      # empfaengt nie etwas, und Stille sieht aus wie „keine Rueckfragen".
+      #
+      # Erst setzen, wenn der MX-Eintrag fuer die Subdomain wirklich auf
+      # Brevo zeigt. Vorher bekaeme jeder antwortende Kunde einen
+      # Unzustellbarkeitsbericht — schlechter als der heutige Zustand.
+      # `GET /health` sagt nichts darueber; die Probe ist eine echte Antwort.
+      - key: MAIL_ANTWORT_ADRESSE
+        sync: false
+
       # Database — automatisch aus Postgres-Service oben gezogen
       - key: DATABASE_URL
         fromDatabase:

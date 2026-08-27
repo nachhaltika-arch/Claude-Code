@@ -106,7 +106,34 @@ def generate_auftragsbestaetigung(
     KC_BORDER = colors.HexColor("#e2e8f0")
 
     def ps(name, **kw):
-        return ParagraphStyle(name, fontName=fn, textColor=KC_DARK, **kw)
+        """Ein Absatzformat mit Vorgaben, die der Aufrufer **ueberschreiben
+        darf**.
+
+        **Der Befund (27.08.2026, erster echter Testkauf).** Hier stand
+
+            return ParagraphStyle(name, fontName=fn, textColor=KC_DARK, **kw)
+
+        und drei Aufrufer unten geben genau diese beiden Namen noch einmal
+        mit (`fontName=fb`, `textColor=KC_GRAY`). Python bricht bei einem
+        doppelten Schluesselwort ab:
+
+            TypeError: ParagraphStyle() got multiple values for
+                       keyword argument 'fontName'
+
+        Damit ist **nie eine Auftragsbestaetigung entstanden**, seit es diese
+        Funktion gibt. Aufgefallen ist es nicht, weil der Fehler im
+        Zahlungspfad in einem `except Exception` landet und dort nur
+        protokolliert wird — richtig so, eine kaputte Beilage darf keinen
+        Kauf kippen. Nur sieht dann eben niemand hin.
+
+        **Und kein Test hat es gefunden**, obwohl es zwei zu dieser Datei
+        gibt: Sie pruefen die *Preisermittlung* rund um das PDF. **Erzeugt**
+        hat das Dokument keiner. Dieselbe Luecke wie beim StripeObject am
+        selben Abend — geprueft wurde alles ausser dem Gegenstand.
+        """
+        vorgaben = {"fontName": fn, "textColor": KC_DARK}
+        vorgaben.update(kw)             # der Aufrufer hat das letzte Wort
+        return ParagraphStyle(name, **vorgaben)
 
     st_label   = ps("label",   fontSize=8,  fontName=fb, textColor=KC_GRAY,
                     spaceAfter=2, leading=10)

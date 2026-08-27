@@ -18,11 +18,19 @@ ohne sie deployt es nichts. Die Site-ID des Kunden wird hier nirgends gelesen.
 import logging
 import os
 
+import anyio
+import httpx
+
 from services.netlify_service import deploy_html
 
 logger = logging.getLogger(__name__)
 
 VORSCHAU_SITE_ENV = "NETLIFY_VORSCHAU_SITE_ID"
+
+#: Wie lange auf die Veroeffentlichung der Vorschau gewartet wird, und in
+#: welchem Abstand nachgesehen wird.
+BEREIT_FRIST_SEKUNDEN = 30.0
+BEREIT_ABSTAND_SEKUNDEN = 1.5
 
 # Eine Vorschau der Kundenseite gehört nicht in den Suchindex: Sie stünde dort
 # als Doppel des späteren Auftritts und würde ihm Sichtbarkeit nehmen.
@@ -35,6 +43,10 @@ class NichtsZuPruefen(Exception):
 
 class KeineVorschauSite(Exception):
     """Ohne eigene Vorschau-Site wird nicht deployt."""
+
+
+class VorschauKamNicht(Exception):
+    """Die Vorschau war auch nach der Frist nicht abrufbar."""
 
 
 def seiten_inhalt(seite) -> tuple:
@@ -86,6 +98,56 @@ async def deploye_vorschau(seite, firmenname: str = "") -> str:
     if not url:
         raise RuntimeError("Netlify hat keine Adresse für die Vorschau geliefert.")
 
+    await warte_bis_abrufbar(url)
+
     logger.info(f"Qualitätsschleife: Seite {getattr(seite, 'id', '?')} "
                 f"liegt zur Prüfung unter {url}")
     return url
+
+
+async def warte_bis_abrufbar(url: str) -> None:
+    """Wartet, bis die Vorschau wirklich ausgeliefert wird.
+
+    **Der Befund (27.08.2026, erster gelungener Durchstich).** Nachdem der
+    Netlify-Token endlich trug, lief der Deploy — und der Audit scheiterte
+    trotzdem. Im Protokoll liegen die beiden Zeilen **dreihundert
+    Millisekunden** auseinander:
+
+        20:28:39.386  POST …/sites/…/deploys            → 200 OK
+        20:28:39.692  GET  …--kompagnon-vorschau-…      → 500
+        20:28:41      Audit 92 fehlgeschlagen: Website nicht erreichbar
+
+    `deploy_html` gibt die Adresse zurueck, sobald Netlify den Deploy
+    **angenommen** hat — nicht, wenn er ausgeliefert wird. Ein `curl` zwei
+    Minuten spaeter bekam 200: Die Seite war in Ordnung, der Audit hat zu
+    frueh hingesehen.
+
+    **Warum das schlimmer ist als ein Fehler, der immer auftritt.** Der
+    Ausgang haengt an der Tagesform von Netlify. Mal ist die Vorschau in
+    einer Sekunde da, mal in fuenf — und der Bericht sagte dann „Website
+    nicht erreichbar", also einen **Befund ueber die Seite**, wo in
+    Wirklichkeit unser eigener Ablauf zu schnell war. Ein Kunde haette
+    gelesen, seine Seite sei kaputt.
+
+    **Gewartet wird auf die Adresse, nicht auf Netlifys Zustandsfeld.**
+    `GET /deploys/{id}` wuerde melden, was Netlify ueber sich denkt; hier
+    zaehlt aber genau das, was der Audit gleich tut — die Seite abrufen.
+    Am Gegenstand messen statt am Werkzeug ablesen.
+    """
+    frist = BEREIT_FRIST_SEKUNDEN
+    letzter = "kein Versuch"
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        while frist > 0:
+            try:
+                antwort = await client.get(url)
+                if antwort.is_success:
+                    return
+                letzter = f"Status {antwort.status_code}"
+            except Exception as fehler:            # noqa: BLE001
+                letzter = f"{type(fehler).__name__}: {fehler}"
+            await anyio.sleep(BEREIT_ABSTAND_SEKUNDEN)
+            frist -= BEREIT_ABSTAND_SEKUNDEN
+
+    raise VorschauKamNicht(
+        f"Die Vorschau war nach {BEREIT_FRIST_SEKUNDEN:.0f} Sekunden nicht "
+        f"abrufbar ({letzter}). Der Deploy lief, die Auslieferung nicht.")

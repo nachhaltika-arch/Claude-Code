@@ -3,35 +3,17 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-/**
- * Die Gliederung der Einstellungen (Bitte David, 27.08.2026).
- *
- * **Warum diese Namen.** Die **mobile** Ansicht dieser Datei ist seit jeher
- * gruppiert — „Account", „Team", „System", „Produkt", „Benachrichtigungen".
- * Nur die Seitenleiste am Rechner war eine flache Liste aus zehn Einträgen,
- * in der Profil neben Rollenverwaltung und Komponenten-Bibliothek stand.
- *
- * Eine dritte Gliederung zu erfinden hiesse, zwei Ansichten desselben
- * Bildschirms verschieden zu sortieren — die Sorte Unterschied, die man
- * einmal bemerkt und danach nicht mehr traut. Deshalb dieselben Gruppen und
- * dieselbe Reihenfolge.
- *
- * **Verschoben wird nichts.** Kein Pfad ändert sich, kein Eintrag wird
- * umbenannt. Wer einen Weg im Kopf hat, findet ihn weiter.
- */
-const GRUPPEN = ['Account', 'Team', 'System', 'Produkt', 'Benachrichtigungen'];
-
 const SETTINGS_NAV = [
-  { label: 'Profil', path: '/app/settings/profile', gruppe: 'Account', icon: '👤', roles: ['admin', 'superadmin', 'mitarbeiter', 'kunde'] },
-  { label: 'Sicherheit', path: '/app/settings/security', gruppe: 'Account', icon: '🔐', roles: ['admin', 'superadmin', 'mitarbeiter', 'kunde'] },
-  { label: 'Rollenverwaltung', path: '/app/settings/roles', gruppe: 'Team', icon: '👥', roles: ['admin', 'superadmin'] },
-  { label: 'Benutzerverwaltung', path: '/app/settings/users', gruppe: 'Team', icon: '🧑‍💼', roles: ['admin', 'superadmin'] },
-  { label: 'System', path: '/app/settings/system', gruppe: 'System', icon: '🏢', roles: ['admin', 'superadmin'] },
-  { label: 'KAS Website', path: '/app/settings/kas-website', gruppe: 'Produkt', icon: '🌐', roles: ['admin', 'superadmin'] },
-  { label: 'Benachrichtigungen', path: '/app/settings/notifications', gruppe: 'Benachrichtigungen', icon: '📧', roles: ['admin', 'superadmin', 'mitarbeiter'] },
-  { label: 'Abonnement', path: '/app/settings/subscription', gruppe: 'Account', icon: '💳', roles: ['kunde'] },
-  { label: 'Templates', path: '/app/settings/templates', gruppe: 'Produkt', icon: '🗂️', roles: ['admin', 'superadmin'] },
-  { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', gruppe: 'Produkt', icon: '🧩', roles: ['admin', 'superadmin'] },
+  { label: 'Profil', path: '/app/settings/profile', icon: '👤', roles: ['admin', 'superadmin', 'mitarbeiter', 'kunde'] },
+  { label: 'Sicherheit', path: '/app/settings/security', icon: '🔐', roles: ['admin', 'superadmin', 'mitarbeiter', 'kunde'] },
+  { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: '👥', roles: ['admin', 'superadmin'] },
+  { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼', roles: ['admin', 'superadmin'] },
+  { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin', 'superadmin'] },
+  { label: 'KAS Website', path: '/app/settings/kas-website', icon: '🌐', roles: ['admin', 'superadmin'] },
+  { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'superadmin', 'mitarbeiter'] },
+  { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['kunde'] },
+  { label: 'Templates', path: '/app/settings/templates', icon: '🗂️', roles: ['admin', 'superadmin'] },
+  { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', icon: '🧩', roles: ['admin', 'superadmin'] },
 ];
 
 function SettingRow({ icon, bg, label, val, path }) {
@@ -215,52 +197,23 @@ export default function SettingsLayout() {
     );
   }
 
-  return (
-    <div style={{ display: 'flex', gap: 20 }}>
-      <nav style={{ width: 220, flexShrink: 0 }}>
-        <div style={{
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-light)', overflow: 'hidden', padding: 4,
-        }}>
-          {/* Gruppiert wie die mobile Ansicht (27.08.2026). Eine Gruppe, die
-              fuer diese Rolle keinen Eintrag hat, erscheint gar nicht — eine
-              leere Ueberschrift laesst den Leser suchen, was darunter fehlt. */}
-          {GRUPPEN.map((gruppe) => {
-            const darin = items.filter((i) => i.gruppe === gruppe);
-            if (darin.length === 0) return null;
-            return (
-              <div key={gruppe} style={{ marginBottom: 6 }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 800, letterSpacing: '.09em',
-                  textTransform: 'uppercase', color: 'var(--text-tertiary)',
-                  padding: '10px 12px 4px',
-                }}>
-                  {gruppe}
-                </div>
-                {darin.map((item) => {
-                  const active = location.pathname === item.path;
-                  return (
-                    <button key={item.path} onClick={() => navigate(item.path)}
-                    className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '7px 12px', borderRadius: 'var(--radius-md)',
-                      border: 'none', fontSize: 13, cursor: 'pointer',
-                      textAlign: 'left', fontFamily: 'var(--font-sans)',
-                    }}
-                    >
-                      <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </nav>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Outlet />
-      </div>
-    </div>
-  );
+  // ── Am Rechner: nur der Inhalt ───────────────────────────────────
+  //
+  // **Die Seitenleiste ist am 27.08.2026 entfallen** (Bitte David). Sie stand
+  // neben dem Hauptmenue und wiederholte es zur Haelfte: Profil, Sicherheit,
+  // System, Rollen- und Benutzerverwaltung und die Komponenten-Bibliothek
+  // gab es an **beiden** Stellen — teils sogar mit verschiedenen Zielen.
+  // „System" im Hauptmenue fuehrte auf `/app/settings` und damit auf das
+  // Profil.
+  //
+  // Zwei Navigationen fuer dieselben Seiten sind kein Komfort, sondern eine
+  // Frage, die sich der Mensch bei jedem Klick neu stellt. Alle Eintraege
+  // stehen jetzt im Hauptmenue; `menueZiele.test.js` haelt fest, dass jeder
+  // davon irgendwohin fuehrt.
+  //
+  // **Die mobile Ansicht oben bleibt.** Dort gibt es kein dauerhaft
+  // sichtbares Hauptmenue, und die gruppierte Liste **ist** der
+  // Einstellungsbildschirm — sie zu entfernen hiesse, auf dem Handy einen
+  // Weg zu streichen statt einen doppelten zu schliessen.
+  return <Outlet />;
 }

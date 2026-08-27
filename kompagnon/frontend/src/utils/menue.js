@@ -104,7 +104,15 @@ export const MENUE_GRUPPEN = [
     eintraege: [
       { label: 'Profil',            path: '/app/profile' },
       { label: 'Sicherheit',        path: '/app/2fa-setup' },
-      { label: 'System',            path: '/app/settings' },
+      // **Zeigte bis zum 27.08.2026 auf `/app/settings`** — und das leitet
+      // auf `/app/settings/profile` um. Wer „System" anklickte, landete auf
+      // dem Profil. Ein Menuepunkt, der woanders hinfuehrt, als er sagt,
+      // ist schlimmer als einer, der fehlt.
+      { label: 'System',            path: '/app/settings/system' },
+      // Aus der Einstellungs-Seitenleiste hierher geholt (Bitte David,
+      // 27.08.2026). Sie stand neben dem Hauptmenue und wiederholte es zur
+      // Haelfte; diese drei gab es **nur** dort.
+      { label: 'Benachrichtigungen', path: '/app/settings/notifications' },
     ],
   },
   {
@@ -129,6 +137,11 @@ export const MENUE_GRUPPEN = [
       // laufen zu lassen ist genau UX-01, der erste Befund dieser Pruefung.
       // Wer umbenennen will, benennt beides um.
       { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
+      // Ebenfalls aus der Seitenleiste. „KAS Website" gehoert hierher und
+      // nicht unter „Einstellungen": Es ist die eigene Agenturseite mit
+      // eigenem Deploy — ein Arbeitsbereich, keine Einstellung.
+      { label: 'KAS Website',       path: '/app/settings/kas-website', adminOnly: true },
+      { label: 'Vorlagen',          path: '/app/settings/templates', adminOnly: true },
       // Ein Fehlerprotokoll, das niemand findet, ist so gut wie keines (L-10).
       { label: 'Fehlerprotokoll', path: '/app/fehler', adminOnly: true },
     ],

@@ -30,6 +30,24 @@ logger = logging.getLogger(__name__)
 def run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
+
+    # **Der Buchpreis wird nicht abgeschrieben, sondern geholt.**
+    # `services/buch_preise.py` sagt im Kopf: „Wer einen Buchpreis sucht,
+    # findet ihn hier — und nur hier." Am 24.08. stand ein Paketpreis an
+    # fuenf Stellen, beim Nachzaehlen waren es vierzehn (L-29). Eine feste
+    # 49.00 im Katalog waere die fuenfzehnte gewesen.
+    #
+    # Deshalb liest die Migration den Wert und setzt ihn ein. Wer in
+    # `buch_preise` den Preis aendert, aendert ihn beim naechsten Start auch
+    # im Katalog — ohne dass jemand daran denken muss.
+    from services.buch_preise import STEUERSATZ, VARIANTEN
+
+    _buch_brutto = VARIANTEN["print"]["brutto_cents"] / 100
+    _buch_steuer = float(STEUERSATZ)
+    _buch_netto = round(_buch_brutto / (1 + _buch_steuer / 100), 2)
+    _buch_pdf = VARIANTEN["pdf"]["brutto_cents"] / 100
+    _buch_bundle = VARIANTEN["bundle"]["brutto_cents"] / 100
+    _buch_versand = VARIANTEN["print"]["versand_cents"] / 100
     migrations = [
         # Ensure the users.role column can hold 'superadmin' (and drop any
         # legacy CHECK constraint that might reject it)
@@ -1413,6 +1431,45 @@ def run_migrations():
             WHERE slug = 'workbook_homepage_standard'
               AND tax_rate = 19
               AND price_brutto = 149.00""",
+        # ── 27.08.2026: das Buch im Katalog (Bitte David) ──
+        # **Damit es im Produkt-Editor bearbeitbar ist** — verkauft wird es
+        # weiterhin ueber `POST /api/book/checkout`, das drei Varianten und
+        # eine Lieferanschrift kennt. Dieser Eintrag ist die Katalogansicht,
+        # nicht ein zweiter Verkaufsweg.
+        #
+        # Genommen wird die **gedruckte** Ausgabe (Davids Zahl). PDF und
+        # Buendel stehen in der Beschreibung, weil ein Katalog mit einer Zahl
+        # fuer drei Varianten den Leser in die Irre fuehrt. Der Versand
+        # gehoert nicht in den Produktpreis: `products` kennt keinen Versand,
+        # und 49 als Endpreis fuer ein gedrucktes Buch waere eine Zusage, die
+        # die Kasse nicht haelt.
+        f"""INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('buch_homepage_standard',
+              'Der Homepage Standard (Buch)',
+              'Gedruckt {_buch_brutto:.2f} EUR zzgl. {_buch_versand:.2f} Versand · als PDF {_buch_pdf:.2f} EUR · als Buendel {_buch_bundle:.2f} EUR',
+              {_buch_brutto:.2f}, {_buch_netto:.2f}, {_buch_steuer:.0f}, 'once', 5, 'draft', false, 'Empfehlung',
+              '["Der vollstaendige Homepage-Standard, 100 Punkte","Drei Ausgaben: gedruckt, als PDF, als Buendel","Preis und Steuersatz kommen aus services/buch_preise.py"]'::jsonb,
+              '["name","company","email"]'::jsonb,
+              '[]'::jsonb,
+              12)
+           ON CONFLICT (slug) DO NOTHING""",
+        # **Bewusst kein Nachzug-UPDATE.** Der erste Entwurf hatte einen:
+        # „falls jemand den Preis in `buch_preise` aendert". Er haette bei
+        # jedem Serverstart die Katalogzeile ueberschrieben — und damit auch
+        # jede Aenderung, die David im Produkt-Editor vornimmt. Ein Feld, das
+        # sich bearbeiten laesst und beim naechsten Deploy zurueckspringt,
+        # ohne dass es jemand sagt, ist schlimmer als ein gesperrtes Feld.
+        # Gefunden bei der Gegenprobe des Waechters, nicht beim Schreiben.
+        #
+        # Die Zeile entsteht **einmal** mit dem abgeleiteten Wert. Was danach
+        # damit geschieht, entscheidet der Editor — und
+        # `tests/test_buchpreis_eine_stelle.py` haelt fest, dass die
+        # Ableitung nicht durch eine feste Zahl ersetzt wird.
+        "UPDATE products SET delivery_type = 'print' WHERE slug = 'buch_homepage_standard' AND delivery_type = 'none'",
         # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
         # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
         # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein

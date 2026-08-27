@@ -1330,6 +1330,57 @@ def run_migrations():
         # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
         # Sinn der Zusammenlegung und keine Nebenwirkung.
         "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
+        # ── 27.08.2026: die zwei digitalen Produkte in den Katalog (L-100) ──
+        # Aus Davids ORDERS-Prompt-Paket, Schritt 01. Der Katalog (`products`)
+        # und die Bestellablage (`book_orders`) gab es laengst — verkaufbar
+        # waren bisher nur die zwei Websprints.
+        #
+        # **Preise sind Endpreise, nicht netto** — und das weicht bewusst vom
+        # Prompt ab. ORDERS_01 nennt „14900 Cent netto"; am 21.08.2026 hat
+        # David fuer L-61 aber „Endpreise" entschieden: `price_brutto` ist,
+        # was abgebucht wird, und die Verkaufsseiten nennen genau diese Zahl.
+        # Woertlich gefolgt haette der Kunde 149 EUR gelesen und 177,31 EUR
+        # gezahlt — exakt der Fehler, den L-61 geschlossen hat.
+        #
+        # TODO Steuersatz fuer WB-01 mit Steuerberater klaeren — 7 % fuer
+        # elektronische Publikationen gegen 19 % fuer digitale Werkzeuge.
+        # Siehe Datenblatt WB-01 Abschnitt 6. Bis dahin 19 %, wie im Prompt
+        # vorgegeben. Das Buch selbst steht auf 7 % (Anlage 2 UStG), aber ein
+        # Arbeitsbuch ist nicht automatisch dasselbe.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('workbook_homepage_standard',
+              'Workbook Homepage-Standard',
+              'Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten',
+              149.00, 125.21, 19, 'once', 0, 'draft', false, 'Empfehlung',
+              '["Arbeitsbuch als PDF, sofort nach Zahlung","30 Schritte entlang des Homepage-Standards","89 Ankreuzkaesten zum Abhaken","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["name","email"]'::jsonb,
+              '[]'::jsonb,
+              10)
+           ON CONFLICT (slug) DO NOTHING""",
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('check_plus',
+              'Check PLUS',
+              'Der Homepage-Standard-Check mit persoenlicher Auswertung',
+              249.00, 209.24, 19, 'once', 7, 'draft', false, 'Empfehlung',
+              '["Vollpruefung nach dem Homepage-Standard, 100 Punkte","Schriftlicher Befundbericht","Persoenliche Auswertung, 45 Minuten","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '[]'::jsonb,
+              11)
+           ON CONFLICT (slug) DO NOTHING""",
+        # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
+        # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
+        # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein
+        # Rechtsverstoss, und die Widerrufsfrist laeuft dann **nicht ab** —
+        # der Kaeufer kann noch nach einem Jahr widerrufen. Wer die zwei
+        # Zeilen auf `live` setzt, muss vorher ORDERS_05 gebaut haben.
         # ── 27.08.2026: der Bestaetigungsriegel bekommt einen Altbestand ──
         # Ab heute sperrt die Anmeldung Konten ohne bestaetigte Adresse aus
         # (Entscheidung David). Ohne diese Zeile waere jedes bestehende

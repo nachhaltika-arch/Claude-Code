@@ -34,6 +34,7 @@ import ResetPassword from './pages/ResetPassword';
 import EmailBestaetigen from './pages/EmailBestaetigen';
 import Shop from './pages/Shop';
 import ShopDanke from './pages/ShopDanke';
+import NichtGefunden from './pages/NichtGefunden';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -426,8 +427,17 @@ function App() {
             <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* **Auffang.** Bis zum 27.08.2026 stand hier
+              `<Navigate to="/login" replace />`: Jeder unbekannte Pfad
+              landete auf der Anmeldemaske, und wer sich vertippte, hielt sich
+              fuer abgemeldet. David ist genau darueber gestolpert —
+              `/app/admin/rollen` gibt es nicht, die Rollenverwaltung liegt
+              unter `/app/settings/roles`.
+
+              Das ist die Fehlerklasse aus L-64: ein Weg, der still bei der
+              Anmeldung endet. Eine falsche Adresse ist etwas anderes als eine
+              abgelaufene Sitzung. */}
+          <Route path="*" element={<NichtGefunden />} />
         </Routes>
         <FeedbackButton />
         <Toaster

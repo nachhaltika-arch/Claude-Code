@@ -21,6 +21,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [successText, setSuccessText] = useState('');
+  const [mailVersandt, setMailVersandt] = useState(true);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -38,6 +40,13 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Registrierung fehlgeschlagen'); return; }
+      // Was hier steht, entscheidet das Backend — es weiss als einziges, ob
+      // die Bestaetigungsmail wirklich hinausging (27.08.2026). Vorher stand
+      // hier fest „Sie koennen sich jetzt anmelden", waehrend das Backend
+      // „Bitte E-Mail bestaetigen" antwortete. Zwei Saetze nebeneinander,
+      // einer musste falsch sein.
+      setSuccessText(data.message || '');
+      setMailVersandt(data.mail_versandt !== false);
       setSuccess(true);
     } catch { setError('Verbindungsfehler. Bitte erneut versuchen.'); }
     finally { setLoading(false); }
@@ -66,10 +75,10 @@ export default function Register() {
             </div>
           </div>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>{mailVersandt ? '📬' : '🎉'}</div>
             <h2 style={{ color: 'var(--text-primary)', marginBottom: 8, fontSize: 22, fontWeight: 800 }}>Konto erstellt!</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 24, fontSize: 14 }}>
-              Ihr Konto wurde erfolgreich angelegt. Sie koennen sich jetzt anmelden.
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 24, fontSize: 14, lineHeight: 1.7 }}>
+              {successText || 'Ihr Konto wurde erfolgreich angelegt.'}
             </p>
             <button onClick={() => navigate('/login')} style={{
               width: '100%', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)',

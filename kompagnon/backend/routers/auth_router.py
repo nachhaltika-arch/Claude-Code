@@ -235,11 +235,38 @@ class AdminUpdateUser(BaseModel):
 # ═══════════════════════════════════════════════════════════
 
 @router.post("/register")
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+def register(req: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    """Ein Kunde legt sich selbst ein Konto an.
+
+    **Entscheidung David, 27.08.2026:** Die oeffentliche Registrierung bleibt.
+
+    **Was daran bis dahin nicht funktionierte.** Es entstand ein
+    `email_verify_token`, die Antwort sagte „Bitte E-Mail bestaetigen" — und
+    **gesendet wurde nie etwas**. Der Token lag in der Datenbank, und niemand
+    bekam ihn je zu sehen. `POST /verify-email` daneben hatte keinen einzigen
+    Aufrufer.
+
+    > Ein Satz, der eine Handlung ankuendigt, die nicht stattfindet, ist
+    > schlimmer als gar kein Satz: Er beendet die Suche. Wer „Bitte E-Mail
+    > bestaetigen" liest, sucht im Spam-Ordner, nicht im Quelltext.
+    """
+    from services.registrierungsschutz import (herkunft_aus, vermerken,
+                                               zu_viele)
+
+    # Ein oeffentliches Formular, das Zeilen schreibt, braucht eine Grenze.
+    # Was diese Drosselung kann und was nicht, steht im Kopf des Moduls.
+    herkunft = herkunft_aus(request)
+    if zu_viele(herkunft):
+        raise HTTPException(
+            429, "Zu viele Registrierungen von dieser Verbindung. "
+                 "Bitte spaeter erneut versuchen.")
+
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
         raise HTTPException(400, "E-Mail bereits registriert")
     if len(req.password) < 8:
         raise HTTPException(400, "Passwort muss mindestens 8 Zeichen haben")
+
+    vermerken(herkunft)
 
     user = User(
         email=req.email.lower().strip(),
@@ -258,7 +285,31 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"user_id": user.id, "message": "Konto erstellt. Bitte E-Mail bestaetigen."}
+    # **Erst das Konto, dann die Mail.** Die Registrierung an einem
+    # Mailserver-Schluckauf scheitern zu lassen waere schlimmer als eine
+    # ausbleibende Bestaetigungsmail — das Konto ist die Hauptsache.
+    from services.email import send_verify_email
+
+    try:
+        versandt = bool(send_verify_email(
+            user.email, user.email_verify_token,
+            " ".join(filter(None, [user.first_name, user.last_name]))))
+    except Exception as fehler:            # noqa: BLE001 — siehe Kommentar
+        logger.warning("Bestaetigungsmail an %s fehlgeschlagen: %s",
+                       user.email, fehler)
+        versandt = False
+
+    # Die Antwort sagt, was **wirklich** passiert ist. Kam die Mail nicht
+    # heraus, darf hier nicht „pruefen Sie Ihr Postfach" stehen — sonst sucht
+    # der Mensch im Spam-Ordner, statt sich zu melden.
+    return {
+        "user_id": user.id,
+        "mail_versandt": versandt,
+        "message": ("Konto erstellt. Bitte bestaetigen Sie den Link in Ihrem "
+                    "Postfach." if versandt else
+                    "Konto erstellt. Die Bestaetigungsmail konnte gerade nicht "
+                    "zugestellt werden — Sie koennen sich trotzdem anmelden."),
+    }
 
 
 @router.post("/verify-email")

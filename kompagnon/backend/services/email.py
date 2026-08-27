@@ -255,6 +255,36 @@ def send_password_reset_email(to_email: str, reset_token: str, user_name: str = 
         f"Hallo {name},\n\nLink zum Zuruecksetzen: {reset_url}\n\nGueltig fuer 1 Stunde.\n\nKOMPAGNON")
 
 
+def send_verify_email(to_email: str, token: str, user_name: str = "") -> bool:
+    """Die Bestaetigungsmail nach einer Selbstregistrierung.
+
+    **Sie fehlte bis zum 27.08.2026 vollstaendig.** `POST /api/auth/register`
+    erzeugte einen `email_verify_token`, antwortete „Bitte E-Mail
+    bestaetigen" — und verschickte nie etwas. Der Token lag in der Datenbank,
+    und niemand bekam ihn je zu sehen.
+
+    Der Link zeigt auf die Oberflaeche, nicht auf die Schnittstelle: Wer in
+    einer Mail auf einen Knopf drueckt, soll auf einer Seite landen, die ihm
+    etwas sagt, und nicht auf einer JSON-Antwort.
+    """
+    url = f"{public_base_url()}/e-mail-bestaetigen?token={token}"
+    anrede = user_name or "Sie"
+
+    html = _briefbogen(
+        "Bitte bestaetigen Sie Ihre E-Mail-Adresse",
+        f"Hallo {anrede},<br><br>willkommen bei KOMPAGNON. Bestaetigen Sie "
+        f"bitte kurz, dass diese E-Mail-Adresse Ihnen gehoert.",
+        "E-Mail-Adresse bestaetigen", url,
+        ("Der Link laesst sich genau einmal verwenden.",
+         "Falls Sie sich nicht registriert haben, ignorieren Sie diese E-Mail — "
+         "ohne Bestaetigung passiert nichts weiter."))
+
+    return send_email(to_email, "Bitte bestaetigen Sie Ihre E-Mail — KOMPAGNON",
+        html,
+        f"Hallo {anrede},\n\nwillkommen bei KOMPAGNON.\n"
+        f"E-Mail bestaetigen: {url}\n\nKOMPAGNON")
+
+
 def send_einladung_email(to_email: str, token: str, betrieb: str,
                          name: str = "", tage: int = 7) -> bool:
     """Der Brief, mit dem ein zweiter Mensch an einen Betrieb kommt.

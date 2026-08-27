@@ -31,6 +31,7 @@ import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
+import EmailBestaetigen from './pages/EmailBestaetigen';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -183,6 +184,12 @@ function App() {
           <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          {/* Das Ziel des Links aus der Bestaetigungsmail. Der Endpunkt
+              dahinter gab es seit jeher, mit keinem einzigen Aufrufer
+              (27.08.2026). Nicht `PublicRoute`: Wer angemeldet ist und den
+              Link aus seinem Postfach oeffnet, wuerde sonst weggeleitet,
+              ohne dass seine Adresse je bestaetigt wird. */}
+          <Route path="/e-mail-bestaetigen" element={<EmailBestaetigen />} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />

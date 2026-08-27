@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET_GEO = os.getenv("STRIPE_WEBHOOK_SECRET_GEO", "")
+
+from services.stripe_ereignis import gegenstand as _gegenstand  # noqa: E402
 # siehe payments.py — die Adresse kommt aus services.base_urls
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -164,12 +166,14 @@ async def geo_stripe_webhook(
     logger.info("GEO Webhook Event: %s", event_type)
 
     if event_type == "checkout.session.completed":
-        session = event["data"]["object"]
+        # Siehe `services/stripe_ereignis.py`: ein StripeObject ist seit
+        # stripe 15 keine dict-Unterklasse, `.get(...)` wirft.
+        session = _gegenstand(event)
         if session.get("metadata", {}).get("addon_type") == "geo":
             background_tasks.add_task(_handle_geo_subscription_start, session)
 
     elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
-        subscription = event["data"]["object"]
+        subscription = _gegenstand(event)
         if subscription.get("metadata", {}).get("addon_type") == "geo":
             background_tasks.add_task(_handle_subscription_change, subscription)
 

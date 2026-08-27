@@ -263,7 +263,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, "Webhook Fehler")
 
     if event["type"] == "checkout.session.completed":
-        session_obj = event["data"]["object"]
+        # **Erst zu gewoehnlichen Daten machen, dann weiterreichen.**
+        # `construct_event` liefert ein `StripeObject`, und das ist seit
+        # stripe 15 keine dict-Unterklasse mehr: `.get(...)` sucht dort
+        # einen *Schluessel* namens „get" und wirft. Erster echter Testkauf
+        # am 27.08.2026 → HTTP 500. Siehe `services/stripe_ereignis.py`.
+        from services.stripe_ereignis import gegenstand
+
+        session_obj = gegenstand(event)
         try:
             _handle_successful_payment(session_obj, db)
         except Exception as e:

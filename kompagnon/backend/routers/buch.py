@@ -405,7 +405,13 @@ async def webhook(request: Request, hintergrund: BackgroundTasks):
 
     if ereignis["type"] == "checkout.session.completed":
         try:
-            hintergrund.add_task(_zahlung_verbuchen, ereignis["data"]["object"])
+            # Siehe `services/stripe_ereignis.py`. Hier waere der Fehler
+            # noch stiller gewesen als im Zahlungspfad: Der Absturz passiert
+            # im Hintergrund, die Antwort an Stripe bleibt 200 — eine
+            # bezahlte Bestellung, die nie auf „bezahlt" gesetzt wird.
+            from services.stripe_ereignis import gegenstand
+
+            hintergrund.add_task(_zahlung_verbuchen, gegenstand(ereignis))
         except Exception as fehler:                     # pragma: no cover
             logger.exception("Zahlung konnte nicht verbucht werden: %s", fehler)
 

@@ -1330,6 +1330,28 @@ def run_migrations():
         # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
         # Sinn der Zusammenlegung und keine Nebenwirkung.
         "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
+        # ── 27.08.2026: drei Felder fuer den Shop (L-100, ORDERS_02) ──
+        # Der Katalog kannte Preis, Steuersatz und Lieferzeit — nicht aber,
+        # ob ein Produkt auf einen Websprint **anrechenbar** ist (Garantie
+        # G5), wie lange, und **wie** es ausgeliefert wird. Genau diese drei
+        # Angaben braucht die Verkaufsseite, und ORDERS_08 rechnet spaeter
+        # mit den ersten beiden.
+        #
+        # Vorgabe `false` / `0` / `none`: Die bestehenden Websprints sind
+        # nicht anrechenbar (sie **sind** das, worauf angerechnet wird), und
+        # ihre Auslieferung ist ein Projekt, kein Download.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_creditable BOOLEAN DEFAULT false",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS credit_months INTEGER DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_type VARCHAR(30) DEFAULT 'none'",
+        # Die zwei digitalen Produkte sind anrechenbar, sechs Monate lang.
+        # Eng gehalten wie oben: nur solange niemand es von Hand geaendert hat.
+        """UPDATE products
+              SET is_creditable = true, credit_months = 6, delivery_type = 'download'
+            WHERE slug = 'workbook_homepage_standard' AND credit_months = 0""",
+        """UPDATE products
+              SET is_creditable = true, credit_months = 6, delivery_type = 'appointment'
+            WHERE slug = 'check_plus' AND credit_months = 0""",
+
         # ── 27.08.2026: die zwei digitalen Produkte in den Katalog (L-100) ──
         # Aus Davids ORDERS-Prompt-Paket, Schritt 01. Der Katalog (`products`)
         # und die Bestellablage (`book_orders`) gab es laengst — verkaufbar

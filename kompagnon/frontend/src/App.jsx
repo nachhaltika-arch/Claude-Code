@@ -32,6 +32,7 @@ import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
 import EmailBestaetigen from './pages/EmailBestaetigen';
+import Shop from './pages/Shop';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -190,6 +191,11 @@ function App() {
               Link aus seinem Postfach oeffnet, wuerde sonst weggeleitet,
               ohne dass seine Adresse je bestaetigt wird. */}
           <Route path="/e-mail-bestaetigen" element={<EmailBestaetigen />} />
+          {/* Die oeffentliche Verkaufsseite fuer die digitalen Produkte
+              (L-100, ORDERS_02). **Ohne `PublicRoute`**: Die leitet
+              Angemeldete auf das Dashboard um — hier waere das falsch.
+              Wer schon Kunde ist, darf ein Workbook kaufen. */}
+          <Route path="/shop" element={<Shop />} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />

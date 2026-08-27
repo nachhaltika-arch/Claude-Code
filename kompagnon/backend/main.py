@@ -939,6 +939,11 @@ app.include_router(mail_events_router)
 from routers.posteingang import router as posteingang_router
 app.include_router(posteingang_router)
 
+# Der Bezahlvorgang fuer digitale Produkte (L-100, ORDERS_03). Oeffentlich:
+# Wer kaufen will, hat noch kein Konto.
+from routers.shop import router as shop_router
+app.include_router(shop_router)
+
 
 # Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
 #

@@ -87,7 +87,12 @@ ERLAUBTE_BEREICHE = {
 #:   speiste den Werbesatz „Ueber X Handwerksbetriebe analysiert" im Widget;
 #:   der Satz kam am 24.08. weg (L-65/L-95), der Hook dazu am 27.08. Damit
 #:   war der Endpunkt oeffentlich, ungerufen und ohne Zweck.
-OFFEN_ERWARTET = 51
+#: 27.08.2026, ORDERS_03: 52 — `POST /api/shop/checkout`. Sie **muss** offen
+#:   sein: Wer ein digitales Produkt kauft, hat noch kein Konto; das Konto
+#:   entstuende erst mit dem Kauf. Abgesichert ist sie anders — der Preis
+#:   kommt aus dem Katalog und nie aus der Anfrage, ein Entwurf ist nicht
+#:   bestellbar, und ein Verbraucher ohne Widerrufsverzicht wird abgelehnt.
+OFFEN_ERWARTET = 52
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
@@ -116,11 +121,19 @@ OFFEN_ERWARTET = 51
 #:                           **verkuerzte** Adresse heraus — keine Anschrift,
 #:                           kein Abruftoken.
 #: `health`, `ping`          Betriebsanzeigen ohne Inhalt.
+#: `shop`                    Der Bezahlvorgang fuer digitale Produkte
+#:                           (L-100, 27.08.2026). Offen aus demselben Grund
+#:                           wie `payments` und `book`: Wer kauft, hat noch
+#:                           kein Konto. Abgesichert ist er anders — der
+#:                           Preis kommt aus dem Katalog und nie aus der
+#:                           Anfrage, ein Entwurf ist nicht bestellbar, und
+#:                           ein Verbraucher ohne Widerrufsverzicht wird
+#:                           abgelehnt.
 OFFENE_BEREICHE = {
     "widget", "webhooks", "auth", "leads", "payments", "tickets",
     "products", "projects", "audit", "messages", "briefings", "kampagne",
     "academy", "geo-payments", "mail-events", "health", "ping", "book",
-    "posteingang",
+    "posteingang", "shop",
 }
 
 

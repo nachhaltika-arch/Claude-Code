@@ -1491,6 +1491,22 @@ def run_migrations():
             WHERE slug IN ('workbook_homepage_standard', 'check_plus',
                            'buch_homepage_standard')
               AND webhook_actions = '[]'::jsonb""",
+        # ── 27.08.2026: `book_orders` wird zur Bestellung digitaler Produkte ──
+        # Davids Entscheidung: verallgemeinern statt eine zweite Tabelle. Die
+        # Spalte heisst weiter `book_orders`; sie umzubenennen waere ein
+        # Eingriff in eine Tabelle mit echten Buchbestellungen, und der Name
+        # ist das Unwichtigste daran. Was fehlte, sind vier Angaben:
+        #
+        #   product_slug        welches Katalogprodukt (das Buch nutzt weiter
+        #                       `variant` fuer pdf/print/bundle)
+        #   is_business         steuert Widerrufsrecht und Nettoausweis
+        #   buyer_vat_id        USt-IdNr. bei Geschaeftskunden
+        #   credit_valid_until  bis wann die Anrechnung gilt (Garantie G5)
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS product_slug VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT false",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS buyer_vat_id VARCHAR(50) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_valid_until DATE",
+        "CREATE INDEX IF NOT EXISTS ix_book_orders_product_slug ON book_orders (product_slug)",
         # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
         # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
         # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein

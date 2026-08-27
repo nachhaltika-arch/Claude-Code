@@ -24,7 +24,7 @@ hält das fest.
 """
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
+from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
                         Numeric, String)
 
 from database import Base
@@ -86,6 +86,24 @@ class BookOrder(Base):
     fulfillment_status = Column(String(20), default="not_applicable")
     fulfillment_exported_at = Column(DateTime, nullable=True)
     tracking_number = Column(String(100), default="")
+
+    # ── Welches Katalogprodukt (27.08.2026) ──────────────────────────
+    #: Leer bei den Buchbestellungen von vor dem 27.08. — dort sagt
+    #: `variant` (pdf/print/bundle), was gekauft wurde. Fuer alles andere aus
+    #: `products` steht hier der Slug.
+    product_slug = Column(String(100), default="", index=True)
+
+    #: Steuert Widerrufsrecht und Nettoausweis. Ein Geschaeftskunde hat kein
+    #: Widerrufsrecht nach § 355 BGB; ein Verbraucher schon, und deshalb
+    #: braucht er den Verzicht (§ 356 Abs. 5), bevor sofort ausgeliefert wird.
+    is_business = Column(Boolean, nullable=False, default=False)
+    buyer_vat_id = Column(String(50), default="")
+
+    #: Bis wann sich der Betrag auf einen Websprint anrechnen laesst
+    #: (Garantie G5). Errechnet beim Kauf aus `products.credit_months` —
+    #: **nicht** spaeter aus dem heutigen Stand des Katalogs: Wer im Mai
+    #: gekauft hat, behaelt die Frist, die im Mai galt.
+    credit_valid_until = Column(Date, nullable=True)
 
     # ── Anschluss an den Vertrieb ────────────────────────────────────
     #: **Der eigentliche Geschäftszweck.** Ohne diese Verknüpfung verkauft

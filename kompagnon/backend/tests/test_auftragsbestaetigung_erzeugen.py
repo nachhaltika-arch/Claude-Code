@@ -34,6 +34,7 @@ PAKET = {
     "brutto": 4165.00,
     "netto": 3500.00,
     "mwst": 665.00,
+    "steuersatz": 19.0,
     "leistungen": ["Eingangsaudit nach Homepage-Standard",
                    "Aufbau im Komponentensystem"],
 }
@@ -107,14 +108,51 @@ def test_die_zahlen_stehen_im_dokument():
     """
     text = _inhalt()
 
-    # **Die Schreibweise ist die, die das Dokument heute wirklich benutzt**
-    # (`4165.00 EUR`), nicht die, die ich fuer richtig halte. Ein Test, der
-    # eine gewuenschte Formatierung behauptet, prueft nicht das Dokument,
-    # sondern meine Meinung — und faerbt sich rot, ohne dass etwas kaputt
-    # ist. Dass ein deutscher Beleg eigentlich `4.165,00 EUR` schreiben
-    # sollte, ist eine eigene Frage und steht im Lagebild.
-    for erwartet in ("4165.00", "3500.00", "665.00"):
+    for erwartet in ("4.165,00 EUR", "3.500,00 EUR", "665,00 EUR"):
         assert erwartet in text, f"{erwartet} fehlt im Beleg:\n{text[:400]}"
+
+
+def test_die_englische_schreibweise_ist_weg():
+    """**Die Gegenprobe.** Ohne sie waere der Test darueber auch dann gruen,
+    wenn beide Schreibweisen nebeneinander im Dokument staenden."""
+    text = _inhalt()
+
+    for falsch in ("4165.00", "3500.00", "665.00"):
+        assert falsch not in text, f"{falsch} steht noch im Beleg"
+
+
+# ── Der Steuersatz ────────────────────────────────────────────────────
+
+def test_der_steuersatz_kommt_aus_dem_produkt():
+    """Hier stand `MwSt. 19 %` **fest im Dokument**. Das Buch hat sieben; ein
+    Beleg darueber haette 19 % ausgewiesen und daneben den 7-%-Betrag — eine
+    falsche Angabe auf einem Steuerdokument (dieselbe Bauart wie L-29).
+    """
+    buch = dict(PAKET, name="Der Homepage Standard", brutto=49.00,
+                netto=45.79, mwst=3.21, steuersatz=7.0)
+
+    text = "\n".join(__import__("pdf_inhalt").inhalt_von(
+        _erzeugen, paket=buch))
+
+    assert "MwSt. 7 %" in text
+    assert "19 %" not in text, "Der feste Satz steht noch im Beleg"
+
+
+def test_und_der_regelsatz_wird_weiter_ausgewiesen():
+    """Die Gegenprobe: Ein Wechsel, der bei den Websprints die Angabe
+    verliert, waere kein Fortschritt."""
+    assert "MwSt. 19 %" in _inhalt()
+
+
+def test_ohne_satz_steht_dort_keine_erfundene_zahl():
+    """Lieber nackt als falsch — dieselbe Regel wie beim Paketnamen."""
+    ohne = {k: v for k, v in PAKET.items() if k != "steuersatz"}
+
+    text = "\n".join(__import__("pdf_inhalt").inhalt_von(_erzeugen, paket=ohne))
+
+    assert "MwSt." in text
+    assert "MwSt. 19 %" not in text
+    assert "MwSt. 0 %" not in text
 
 
 def test_der_paketname_steht_darin_und_nicht_die_kennung():

@@ -42,6 +42,42 @@ def _register_fonts():
         return "Helvetica", "Helvetica-Bold"
 
 
+def _euro(betrag) -> str:
+    """Ein Betrag in deutscher Schreibweise: `4.165,00 EUR`.
+
+    **Der Anlass (27.08.2026, David).** Das Dokument schrieb `4165.00 EUR` —
+    englische Schreibweise, ohne Tausenderpunkt, in einer Auftragsbestaetigung
+    einer deutschen GmbH an deutsche Handwerksbetriebe. Kein Fehler in der
+    Zahl, aber einer im Beleg: Er sieht aus, als waere er nicht fuer den
+    Empfaenger gemacht.
+
+    **Ohne `locale`.** Das Modul haengt an dem, was im Betriebssystem des
+    Servers installiert ist; `de_DE.UTF-8` fehlt in schlanken Containern, und
+    `setlocale` wirkt prozessweit — es wuerde jede andere Zahlenausgabe
+    desselben Dienstes mitveraendern. Zwei Zeilen Umstellen sind hier der
+    ehrlichere Weg als eine globale Einstellung fuer eine Tabellenzelle.
+    """
+    ganz, _, nach = f"{float(betrag or 0):,.2f}".partition(".")
+    return f"{ganz.replace(',', '.')},{nach} EUR"
+
+
+def _steuerzeile(paket: dict) -> str:
+    """„MwSt. 19 %" — mit dem Satz aus dem Produkt, nicht mit einem festen.
+
+    Hier stand die Zahl **fest im Dokument**. Das Buch hat sieben Prozent; ein
+    Beleg darueber haette „MwSt. 19 %" ausgewiesen und daneben den
+    7-%-Betrag — eine falsche Angabe auf einem Steuerdokument. Dieselbe
+    Bauart wie die feste Preisliste, die am 22.08.2026 aus derselben Datei
+    verschwand (L-29).
+
+    Fehlt der Satz, steht dort **kein Prozentwert** statt eines erfundenen.
+    """
+    satz = paket.get("steuersatz")
+    if satz is None:
+        return "MwSt."
+    return f"MwSt. {satz:.0f} %" if float(satz) == int(satz) else f"MwSt. {satz} %"
+
+
 def _clean_text(text):
     """Normalize Unicode text for PDF rendering."""
     if not text:
@@ -254,15 +290,15 @@ def generate_auftragsbestaetigung(
         ],
         [
             Paragraph(_clean_text(paket["name"]), st_value),
-            Paragraph(_clean_text(f"{paket['netto']:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_euro(paket['netto'])), st_right),
         ],
         [
             Paragraph(_clean_text("Nettobetrag"), st_label),
-            Paragraph(_clean_text(f"{paket['netto']:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_euro(paket['netto'])), st_right),
         ],
         [
-            Paragraph(_clean_text("MwSt. 19 %"), st_label),
-            Paragraph(_clean_text(f"{mwst:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_steuerzeile(paket)), st_label),
+            Paragraph(_clean_text(_euro(mwst)), st_right),
         ],
         [
             Paragraph(
@@ -271,7 +307,7 @@ def generate_auftragsbestaetigung(
                                textColor=KC_WHITE)
             ),
             Paragraph(
-                _clean_text(f"{paket['brutto']:.2f} EUR"),
+                _clean_text(_euro(paket['brutto'])),
                 ParagraphStyle("totalr", fontName=fb, fontSize=11,
                                textColor=KC_WHITE, alignment=TA_RIGHT)
             ),

@@ -189,6 +189,47 @@ WEITERE_QUELLEN = (
 _PFAD_IM_TEXT = re.compile(r"""['"`]([^'"`\s]*/api/[^'"`\s]*)['"`]""")
 
 
+def ohne_python_kommentare(text: str) -> str:
+    """Python ohne `#`-Kommentare — Zeichenketten bleiben.
+
+    **Warum das Gegenstueck zu `ohne_kommentare` (27.08.2026).** Der Helfer
+    darunter entfernt JavaScript-Kommentare. Am 27.08. meldete
+    `test_erzeugte_seiten_huelle` die Datei `services/html_seite.py` als
+    „erzeugte Seite ohne Sprachangabe" — dort steht `<html>` in einem
+    **Kommentar**, der erklaert, warum genau dieses Element **nicht**
+    uebernommen wird.
+
+    Dritter Waechter an einem Tag, der sich in einer Erklaerung selbst
+    findet. Die zwei anderen waren `ariaWerte` und, am 26.08.,
+    `keinLeeresVersprechen`.
+
+    **Zeichenketten bleiben unangetastet**, und das ist der ganze Punkt: In
+    ihnen steht das erzeugte HTML, das die Waechter pruefen sollen. Deshalb
+    `tokenize` statt eines Musters — es weiss, was Kommentar ist und was
+    Inhalt.
+    """
+    import io
+    import tokenize
+
+    try:
+        marken = list(tokenize.generate_tokens(io.StringIO(text).readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        # Eine Datei, die sich nicht zerlegen laesst, wird unveraendert
+        # zurueckgegeben. Ein Waechter, der an kaputtem Python scheitert,
+        # meldet den falschen Fehler.
+        return text
+
+    zeilen = text.splitlines(keepends=True)
+    for marke in marken:
+        if marke.type != tokenize.COMMENT:
+            continue
+        nr = marke.start[0] - 1
+        von, bis = marke.start[1], marke.end[1]
+        zeile = zeilen[nr]
+        zeilen[nr] = zeile[:von] + " " * (bis - von) + zeile[bis:]
+    return "".join(zeilen)
+
+
 def ohne_kommentare(text: str) -> str:
     """JavaScript ohne `//`- und `/* */`-Kommentare.
 

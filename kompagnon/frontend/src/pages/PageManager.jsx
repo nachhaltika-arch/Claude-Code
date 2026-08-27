@@ -63,6 +63,13 @@ export default function PageManager() {
   const [loading, setLoading] = useState(true);
   const [showNewPage, setShowNewPage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  //: Der Upload einer **Seite** (nicht einer Vorlage) — Bitte David,
+  //: 27.08.2026. `/templates/upload` nimmt nur .zip und .grapesjs und
+  //: legt Vorlagen an; hier entsteht eine bearbeitbare Systemseite.
+  const [seiteHochladen, setSeiteHochladen] = useState(false);
+  const [seiteDatei, setSeiteDatei] = useState(null);
+  const [seiteName, setSeiteName] = useState('');
+  const [seiteLaeuft, setSeiteLaeuft] = useState(false);
   const [newPage, setNewPage] = useState({ slug: '', name: '', page_type: 'custom', description: '' });
   // Tracks ob der User den Slug schon manuell editiert hat — sobald ja, stoppt
   // das Auto-Suggest aus dem Name-Feld, damit User-Input nicht überschrieben wird.
@@ -169,6 +176,39 @@ export default function PageManager() {
     } catch { toast.error('Fehler'); }
   };
 
+  const htmlHochladen = async () => {
+    if (!seiteDatei) { toast.error('Bitte eine .html-Datei waehlen'); return; }
+    setSeiteLaeuft(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', seiteName);
+      fd.append('file', seiteDatei);
+      const res = await fetch(`${API_BASE_URL}/api/pages/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const daten = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error(daten.detail || 'Upload fehlgeschlagen'); return; }
+
+      // **Der Hinweis wird angezeigt, nicht verschluckt.** Wenn beim Einlesen
+      // Skripte oder Rahmen entfernt wurden, sagt das Backend es — und wer
+      // seine Seite danach nicht wiedererkennt, soll den Grund lesen und
+      // nicht bei sich suchen.
+      toast.success(`Seite „${daten.name}" angelegt`);
+      if (daten.hinweis) toast(daten.hinweis, { duration: 9000, icon: 'ℹ️' });
+
+      setSeiteHochladen(false);
+      setSeiteDatei(null);
+      setSeiteName('');
+      loadData();
+    } catch {
+      toast.error('Verbindungsfehler — es wurde nichts angelegt');
+    } finally {
+      setSeiteLaeuft(false);
+    }
+  };
+
   const filteredPages = activeTab === 2
     ? pages.filter(p => p.page_type === 'paket' || p.product_id)
     : pages;
@@ -213,8 +253,11 @@ export default function PageManager() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button style={S.btn(false)} onClick={() => setSeiteHochladen(true)}>
+            ⬆ HTML-Seite hochladen
+          </button>
           <button style={S.btn(false)} onClick={() => setShowUpload(true)}>
-            ⬆ Template hochladen
+            ⬆ Vorlage hochladen
           </button>
           <button style={S.btn(true)} onClick={() => setShowNewPage(true)}>
             + Neue Seite
@@ -527,6 +570,86 @@ export default function PageManager() {
       )}
 
       {/* Modal: Template Upload */}
+      {/* Der Dialog fuer eine **Seite** aus einer .html-Datei. Bewusst neben
+          dem Vorlagen-Dialog und nicht darin: Es sind zwei verschiedene
+          Dinge, und ein Dialog mit einem Schalter „Seite oder Vorlage" laesst
+          den Menschen raten, was er gerade tut. */}
+      {seiteHochladen && createPortal(
+        // **Der Hintergrund schliesst, aber nicht nur mit der Maus.**
+        // `onKeyDown` faengt Escape, und der Klick prueft `e.target ===
+        // e.currentTarget` statt `stopPropagation` im Kasten darin — so
+        // braucht der Kasten gar keinen Klickfaenger. `tastaturZugang.test.js`
+        // zaehlt jedes klickbare Element ohne Tastaturweg, und die Ratsche
+        // soll nicht wegen eines Dialogs steigen.
+        <div
+          role="presentation"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSeiteHochladen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSeiteHochladen(false); }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: 20,
+          }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12, padding: 24,
+            width: '100%', maxWidth: 480,
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                HTML-Seite hochladen
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 0', lineHeight: 1.65 }}>
+                Die Datei wird als bearbeitbare Seite angelegt — Stile und
+                Beschreibung werden übernommen. Skripte und eingebettete Rahmen
+                werden entfernt; was fehlt, steht danach im Hinweis.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="pm-seite-name" style={{
+                display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4,
+                color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em',
+              }}>
+                Name (leer lassen: aus dem Titel der Datei)
+              </label>
+              <input id="pm-seite-name" value={seiteName}
+                     onChange={(e) => setSeiteName(e.target.value)}
+                     style={{
+                       width: '100%', padding: '10px 12px', fontSize: 14, boxSizing: 'border-box',
+                       border: '1px solid var(--border-medium)', borderRadius: 8,
+                       fontFamily: 'var(--font-sans)',
+                     }} />
+            </div>
+
+            <div>
+              <label htmlFor="pm-seite-datei" style={{
+                display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4,
+                color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em',
+              }}>
+                Datei (.html)
+              </label>
+              <input id="pm-seite-datei" type="file" accept=".html,.htm"
+                     onChange={(e) => setSeiteDatei(e.target.files?.[0] || null)}
+                     style={{ fontSize: 13 }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" style={S.btn(true)} disabled={seiteLaeuft}
+                      onClick={htmlHochladen}>
+                {seiteLaeuft ? 'Wird eingelesen…' : 'Hochladen'}
+              </button>
+              <button type="button" style={S.btn(false)}
+                      onClick={() => setSeiteHochladen(false)}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {showUpload && createPortal(
         <div onClick={() => setShowUpload(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',

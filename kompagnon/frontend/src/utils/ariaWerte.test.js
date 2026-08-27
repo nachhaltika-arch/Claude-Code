@@ -26,6 +26,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { ohneKommentare } = require('./ohneKommentare');
 
 const QUELLE = path.join(__dirname, '..');
 
@@ -97,7 +98,12 @@ function tagUm(text, stelle) {
 function fundstellen(muster) {
   const treffer = [];
   for (const datei of dateien()) {
-    const text = fs.readFileSync(datei, 'utf8');
+    // **Ohne Kommentare.** Ein Waechter, der eine Zeile sucht, findet sie
+    // sonst in der Erklaerung, warum sie verboten ist — am 27.08.2026
+    // meldete er `pages/Checklists.jsx`, weil dort ein Kommentar
+    // `role="checkbox"` erwaehnt, und griff sich das `<input>` aus
+    // demselben Kommentar als umgebendes Tag.
+    const text = ohneKommentare(fs.readFileSync(datei, 'utf8'));
     const kurz = path.relative(QUELLE, datei);
     let m;
     const re = new RegExp(muster.source, 'g');
@@ -138,7 +144,12 @@ test('kein aria-Attribut trägt einen Wert, den niemand versteht', () => {
 test('kein aria-labelledby zeigt auf eine Kennung, die es nicht gibt', () => {
   const ins_leere = [];
   for (const datei of dateien()) {
-    const text = fs.readFileSync(datei, 'utf8');
+    // **Ohne Kommentare.** Ein Waechter, der eine Zeile sucht, findet sie
+    // sonst in der Erklaerung, warum sie verboten ist — am 27.08.2026
+    // meldete er `pages/Checklists.jsx`, weil dort ein Kommentar
+    // `role="checkbox"` erwaehnt, und griff sich das `<input>` aus
+    // demselben Kommentar als umgebendes Tag.
+    const text = ohneKommentare(fs.readFileSync(datei, 'utf8'));
     const kurz = path.relative(QUELLE, datei);
     const kennungen = new Set([...text.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
     for (const attribut of ['aria-labelledby', 'aria-describedby', 'aria-controls']) {

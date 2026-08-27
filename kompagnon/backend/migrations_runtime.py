@@ -1470,6 +1470,27 @@ def run_migrations():
         # `tests/test_buchpreis_eine_stelle.py` haelt fest, dass die
         # Ableitung nicht durch eine feste Zahl ersetzt wird.
         "UPDATE products SET delivery_type = 'print' WHERE slug = 'buch_homepage_standard' AND delivery_type = 'none'",
+        # ── 27.08.2026: die Kaufabwicklung je Produkt (Bitte David) ──
+        # `webhook_actions` wurde seit jeher geschrieben und von **keiner
+        # Zeile gelesen**; `_handle_successful_payment` machte nach jeder
+        # Zahlung den Websprint-Ablauf. Seit heute liest der Zahlungspfad die
+        # Liste (`services/kaufabwicklung.py`) — und deshalb muessen die drei
+        # digitalen Produkte jetzt sagen, was sie wollen.
+        #
+        # **`create_user` fehlt mit Absicht.** Das Konto entsteht mit einem
+        # Zufallspasswort, und das erfaehrt der Kaeufer **nur** aus der
+        # Willkommensmail — die ist ueber eine neue Website geschrieben und
+        # passt hier nicht. Ein Konto anzulegen, dessen Passwort niemand
+        # kennt, waere ein Zugang, den es nur auf dem Papier gibt.
+        # Beides kommt zusammen mit ORDERS_06 (Auslieferung und Mail).
+        #
+        # `create_lead` steht drin, weil der Lead den Idempotenz-Schutz
+        # traegt; `send_pdf` ist die Auftragsbestaetigung.
+        """UPDATE products
+              SET webhook_actions = '["create_lead","send_pdf"]'::jsonb
+            WHERE slug IN ('workbook_homepage_standard', 'check_plus',
+                           'buch_homepage_standard')
+              AND webhook_actions = '[]'::jsonb""",
         # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
         # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
         # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein

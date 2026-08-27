@@ -34,6 +34,24 @@ Falls das Repo nicht stimmt:
 4. **Nutzer merged manuell** in `main`. Claude Code merged NIE selbst.
 5. Render deployt automatisch auf den **Produktiv-Server** → live.
 
+> **Schritt 5 kostet rund 40 Sekunden Produktion.** Das ist keine Störung,
+> sondern eine bewusst gewählte Betriebseigenschaft (L-94, Entscheidung
+> David am 2026-08-27): Der Dienst hat einen Datenträger unter `/var/data`,
+> und Render erlaubt Diensten mit Datenträger nur **eine** Instanz — also
+> „erst beenden, dann starten" statt rollierend. Wörtlich aus der
+> Herstellerdoku: *„Adding a persistent disk to your service disables
+> zero-downtime deploys for it."*
+>
+> Wer während eines Merges misst, sieht **502** und meldet einen Ausfall,
+> den es als Fehler nicht gibt. Wer den Datenträger entfernt, um die
+> Sekunden loszuwerden, verliert die hochgeladenen Dateien **und** die
+> Auftragsbestätigungen der Kunden.
+>
+> **Wann die Entscheidung neu zu treffen ist:** sobald produktiv spürbar
+> Verkehr ankommt (heute sechs Anfragen pro Stunde) oder ein Kunde während
+> des Freitagsmerges arbeitet. Der Weg heraus ist dann ein Objektspeicher
+> für die Uploads, nicht das Löschen des Datenträgers.
+
 ## Repo-Regel
 - Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
 - NIE in anderen Repos Änderungen machen

@@ -1343,9 +1343,19 @@ def run_migrations():
         # nach einem Monat lautlos abgeschafft. Deshalb ein Datum, und
         # deshalb dasselbe Datum wie in `services/rollen.RIEGEL_STICHTAG` —
         # `tests/test_riegel_unbestaetigt.py` haelt beide zusammen.
+        #
+        # **`created_at IS NULL` zaehlt als alt — und das ist kein Detail.**
+        # Die Spalte traegt nur einen Vorgabewert auf **Python**-Seite
+        # (`default=datetime.utcnow`), keinen in der Datenbank. Eine Zeile,
+        # die per SQL entstand oder die aelter ist als die Spalte selbst,
+        # traegt dort NULL — und `NULL < TIMESTAMP ...` ergibt nicht `false`,
+        # sondern **NULL**. Ohne diesen Zweig waeren genau die aeltesten
+        # Konten die einzigen, die der Riegel dauerhaft aussperrt, und man
+        # haette es erst gemerkt, wenn sich jemand nicht mehr anmelden kann.
         """UPDATE users SET is_verified = true
             WHERE is_verified = false
-              AND created_at < TIMESTAMP '2026-08-28 00:00:00'""",
+              AND (created_at IS NULL
+                   OR created_at < TIMESTAMP '2026-08-28 00:00:00')""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

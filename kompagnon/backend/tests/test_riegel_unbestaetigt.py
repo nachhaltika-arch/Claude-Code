@@ -286,6 +286,31 @@ def test_die_migration_hebt_nur_altbestand_an():
         "Registrierung freischalten")
 
 
+def test_die_migration_zaehlt_ein_fehlendes_datum_als_alt():
+    """`created_at IS NULL` muss mitgehoben werden.
+
+    **Gefunden am 27.08.2026 beim Nachsehen, bevor der Riegel produktiv
+    ging.** `users.created_at` traegt nur einen Vorgabewert auf
+    **Python**-Seite (`default=datetime.utcnow`), keinen in der Datenbank.
+    Eine Zeile, die per SQL entstand oder die aelter ist als die Spalte
+    selbst, traegt dort NULL — und `NULL < TIMESTAMP ...` ergibt nicht
+    `false`, sondern **NULL**.
+
+    Ohne diesen Zweig waeren ausgerechnet die **aeltesten** Konten die
+    einzigen, die der Riegel dauerhaft aussperrt. Gemerkt haette man es erst,
+    wenn sich jemand nicht mehr anmelden kann.
+    """
+    import inspect
+
+    import migrations_runtime
+
+    quelle = inspect.getsource(migrations_runtime.run_migrations)
+    stelle = quelle.index("SET is_verified = true")
+    ausschnitt = quelle[stelle:stelle + 400]
+
+    assert "created_at IS NULL" in ausschnitt, ausschnitt[:300]
+
+
 # ── Der Ersatzschlüssel ───────────────────────────────────────────────
 
 def test_die_bestaetigungsmail_laesst_sich_erneut_anfordern(client, briefkasten):

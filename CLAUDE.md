@@ -47,15 +47,22 @@ Falls das Repo nicht stimmt:
 - **Produktiv**: Render deployt auf jeden Merge in `main`
 
 Produktiv-URLs:
-- Frontend: https://kompagnon.group (Dienst `kompagnon-frontend`, Static Site)
+- Frontend: https://kompagnon-frontend.onrender.com (Dienst `kompagnon-frontend`, Static Site)
 - Backend:  https://api.kompagnon.group (Dienst `kompagnon-backend-fra`, Frankfurt)
 
 > **Korrigiert am 2026-08-27.** Hier stand `https://claude-code-znq2.onrender.com`
 > als Produktiv-Backend. Dieser Dienst liegt in Oregon, ist seit dem Umzug
-> (L-34) **suspendiert** und antwortet mit 503. Am selben Tag an allen drei
-> Adressen nachgemessen. Eine Anweisungsdatei, die auf einen toten Dienst
-> zeigt, ist gefaehrlicher als gar keine: Wer dort 503 misst, meldet einen
-> Produktivausfall, den es nicht gibt.
+> (L-34) **suspendiert** und antwortet mit 503. Eine Anweisungsdatei, die auf
+> einen toten Dienst zeigt, ist gefaehrlicher als gar keine: Wer dort 503
+> misst, meldet einen Produktivausfall, den es nicht gibt.
+>
+> **Zweimal korrigiert, am selben Tag.** Beim ersten Anlauf stand hier
+> `https://kompagnon.group` als Frontend — abgeleitet aus einem **302**, dem
+> ich nicht gefolgt bin. Diese Adresse leitet auf die Agenturseite
+> `www.kompagnon.eu` weiter und hat mit dem Werkzeug nichts zu tun. Ein
+> Statuscode ist kein Ziel: Erst der Weiterleitung folgen, dann behaupten.
+> Das Werkzeug traegt bis heute **keine** eigene Domain — nur das Backend hat
+> eine (`api.kompagnon.group`).
 
 Staging-URLs (live seit 2026-05-02):
 - Frontend: https://kompagnon-frontend-staging.onrender.com

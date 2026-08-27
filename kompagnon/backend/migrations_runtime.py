@@ -1342,11 +1342,15 @@ def run_migrations():
         # Woertlich gefolgt haette der Kunde 149 EUR gelesen und 177,31 EUR
         # gezahlt — exakt der Fehler, den L-61 geschlossen hat.
         #
-        # TODO Steuersatz fuer WB-01 mit Steuerberater klaeren — 7 % fuer
-        # elektronische Publikationen gegen 19 % fuer digitale Werkzeuge.
-        # Siehe Datenblatt WB-01 Abschnitt 6. Bis dahin 19 %, wie im Prompt
-        # vorgegeben. Das Buch selbst steht auf 7 % (Anlage 2 UStG), aber ein
-        # Arbeitsbuch ist nicht automatisch dasselbe.
+        # **Steuersatz geklaert (Entscheidung David, 27.08.2026): 7 % fuer das
+        # Workbook.** Es ist eine elektronische Publikation und faellt damit
+        # unter Anlage 2 UStG — wie das Buch, dem das E-Book seit Dezember
+        # 2019 gleichgestellt ist. Der Prompt gab 19 % vor; das war der
+        # Platzhalter bis zur Klaerung.
+        #
+        # **Check PLUS bleibt bei 19 %**, und das ist kein Versehen: Dort wird
+        # eine Pruefleistung mit persoenlicher Auswertung verkauft, keine
+        # Publikation. Zwei Produkte, zwei Saetze, je ein Grund.
         """INSERT INTO products
              (slug, name, short_desc, price_brutto, price_netto, tax_rate,
               payment_type, delivery_days, status, highlighted, highlight_label,
@@ -1355,7 +1359,7 @@ def run_migrations():
              ('workbook_homepage_standard',
               'Workbook Homepage-Standard',
               'Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten',
-              149.00, 125.21, 19, 'once', 0, 'draft', false, 'Empfehlung',
+              149.00, 139.25, 7, 'once', 0, 'draft', false, 'Empfehlung',
               '["Arbeitsbuch als PDF, sofort nach Zahlung","30 Schritte entlang des Homepage-Standards","89 Ankreuzkaesten zum Abhaken","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
               '["name","email"]'::jsonb,
               '[]'::jsonb,
@@ -1375,6 +1379,18 @@ def run_migrations():
               '[]'::jsonb,
               11)
            ON CONFLICT (slug) DO NOTHING""",
+        # `ON CONFLICT DO NOTHING` oben fasst eine **bestehende** Zeile nicht
+        # an — auf Staging stand das Workbook seit heute Mittag mit 19 %. Ohne
+        # diesen Nachzug gaelte die Entscheidung nur dort, wo die Tabelle noch
+        # leer war, und zwei Umgebungen truegen verschiedene Steuersaetze.
+        #
+        # Eng gehalten: Nur solange Preis und alter Satz unveraendert sind.
+        # Wer den Preis gepflegt hat, bekommt seine Zeile nicht ueberschrieben.
+        """UPDATE products
+              SET tax_rate = 7, price_netto = 139.25
+            WHERE slug = 'workbook_homepage_standard'
+              AND tax_rate = 19
+              AND price_brutto = 149.00""",
         # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
         # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
         # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein

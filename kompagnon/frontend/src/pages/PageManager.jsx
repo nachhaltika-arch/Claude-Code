@@ -165,6 +165,30 @@ export default function PageManager() {
     setUploading(false);
   };
 
+  const seiteLoeschen = async (page) => {
+    // **Der Name steht in der Rueckfrage, nicht nur „Seite loeschen?".**
+    // Wer drei Zeilen offen hat, weiss sonst nicht, welche er gerade
+    // wegwirft — und die Loeschung ist nicht rueckholbar.
+    if (!window.confirm(
+      `Die Seite „${page.name}" (${page.slug}) wirklich loeschen? `
+      + 'Das laesst sich nicht rueckgaengig machen.')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pages/${page.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const daten = await res.json().catch(() => ({}));
+        toast.error(daten.detail || 'Die Seite konnte nicht geloescht werden');
+        return;
+      }
+      toast.success(`„${page.name}" geloescht`);
+      loadData();
+    } catch {
+      toast.error('Verbindungsfehler — es wurde nichts geloescht');
+    }
+  };
+
   const handleDeleteTemplate = async (id) => {
     if (!window.confirm('Template löschen?')) return;
     try {
@@ -363,6 +387,17 @@ export default function PageManager() {
                   }}>
                     👁
                   </a>
+                  {/* `DELETE /api/pages/{id}` gab es seit jeher und hatte
+                      keinen Aufrufer — geloescht werden konnten nur Vorlagen
+                      (Bitte David, 27.08.2026). */}
+                  <button onClick={() => seiteLoeschen(page)}
+                          aria-label={`Seite „${page.name}" loeschen`}
+                          style={{
+                            ...S.btn(false), padding: '5px 10px', fontSize: 12,
+                            color: 'var(--status-danger-text)',
+                          }}>
+                    🗑 Löschen
+                  </button>
                 </div>
               </div>
             );

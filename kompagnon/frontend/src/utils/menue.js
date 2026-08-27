@@ -113,7 +113,16 @@ export const MENUE_GRUPPEN = [
     icon: '🔧',
     eintraege: [
       { label: 'Benutzer',          path: '/app/admin/users', adminOnly: true },
-      { label: 'Rollen',            path: '/app/admin/roles', adminOnly: true },
+      // **Zeigte bis zum 27.08.2026 auf `/app/admin/roles` — den Pfad gibt
+      // es nicht.** Die Rollenverwaltung liegt unter
+      // `/app/settings/roles`, innerhalb der Einstellungen mit ihrer
+      // Seitenleiste. Wer den Menuepunkt anklickte, landete im Auffang;
+      // bis heute hiess das: auf der Anmeldemaske. David hat es gemeldet.
+      //
+      // `menueZiele.test.js` haelt seither jeden Eintrag gegen die
+      // Routen — ein Menuepunkt, der nirgendwohin fuehrt, ist die
+      // teuerste Sorte Knopf.
+      { label: 'Rollen',            path: '/app/settings/roles', adminOnly: true },
       // Heisst wie die Seite, zu der er fuehrt. Hier stand kurz „Bausteine" —
       // kuerzer und besseres Deutsch, aber die Seite traegt weiter die
       // Ueberschrift „Komponenten-Bibliothek". Menue und Titel auseinander

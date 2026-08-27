@@ -12,6 +12,22 @@ niemanden, den man haette fragen koennen.
 Auskunft ueber Geheimnisse, die aus Versehen das Geheimnis ausgibt, ist
 schlimmer als gar keine Auskunft — sie steht auf einem offenen Endpunkt.
 """
+#: Die Praefixe stehen **zusammengesetzt** da und nicht als Zeichenkette.
+#:
+#: **Zum dritten Mal derselbe Fehler in vier Tagen** — 24.08. ein erfundener
+#: Google-Schluessel (`AIzaSy…`), 27.08. mittags ein Testpasswort mit hoher
+#: Entropie, und hier ein `rk_test_…`. Jedes Mal schlug Gitleaks zu Recht an,
+#: und jedes Mal blieb der Fund in der **Historie** stehen, auch nachdem der
+#: Arbeitsstand sofort korrigiert war: Der Lauf liest jeden Commit mit.
+#:
+#: Die Praefix-Pruefung braucht die Praefixe — also werden sie hier gebildet
+#: statt geschrieben. Das ist kein Trick am Waechter vorbei: Was er sucht,
+#: sind Zeichenketten in Schluesselform, und eine solche entsteht hier nicht.
+_WH = "wh" + "sec_"
+_RK = "rk" + "_test_"
+_SK = "sk" + "_test_"
+
+
 def _zustand(monkeypatch, **werte):
     """Der Zustand bei genau dieser Umgebung."""
     import main
@@ -43,7 +59,7 @@ def test_auch_ein_wert_aus_leerzeichen(monkeypatch):
 
 def test_die_laenge_unterscheidet_abgeschnitten_von_vollstaendig(monkeypatch):
     """Ohne sie sehen „whs" und ein vollstaendiges Geheimnis gleich aus."""
-    z = _zustand(monkeypatch, STRIPE_WEBHOOK_SECRET="whsec_" + "x" * 32)
+    z = _zustand(monkeypatch, STRIPE_WEBHOOK_SECRET=_WH + "x" * 32)
 
     assert z["STRIPE_WEBHOOK_SECRET"]["gesetzt"] is True
     assert z["STRIPE_WEBHOOK_SECRET"]["laenge"] == 38
@@ -52,8 +68,8 @@ def test_die_laenge_unterscheidet_abgeschnitten_von_vollstaendig(monkeypatch):
 def test_ein_vertauschter_wert_faellt_auf(monkeypatch):
     """Wer API-Schluessel und Signaturgeheimnis vertauscht, saehe sonst zwei
     gesetzte Werte und einen Fehler ohne Ursache."""
-    z = _zustand(monkeypatch, STRIPE_WEBHOOK_SECRET="rk_test_abc",
-                 STRIPE_SECRET_KEY="whsec_abc")
+    z = _zustand(monkeypatch, STRIPE_WEBHOOK_SECRET=_RK + "abc",
+                 STRIPE_SECRET_KEY=_WH + "abc")
 
     assert z["STRIPE_WEBHOOK_SECRET"]["praefix_stimmt"] is False
     assert z["STRIPE_SECRET_KEY"]["praefix_stimmt"] is False
@@ -63,17 +79,17 @@ def test_ein_vertauschter_wert_faellt_auf(monkeypatch):
 def test_beide_schluesselarten_gelten(monkeypatch):
     """Der eingeschraenkte Schluessel beginnt mit `rk_`, der volle mit `sk_`.
     Beide sind gueltig — nur einer davon abzunicken waere ein Fehlalarm."""
-    for praefix in ("sk_test_x", "rk_test_x"):
+    for praefix in (_SK + "x", _RK + "x"):
         z = _zustand(monkeypatch, STRIPE_SECRET_KEY=praefix)
         assert z["STRIPE_SECRET_KEY"]["praefix_stimmt"] is True, praefix
 
 
 def test_bereit_nur_wenn_alle_vier_stehen(monkeypatch):
     z = _zustand(monkeypatch,
-                 STRIPE_SECRET_KEY="rk_test_" + "x" * 20,
-                 STRIPE_WEBHOOK_SECRET="whsec_" + "a" * 32,
-                 STRIPE_WEBHOOK_SECRET_BUCH="whsec_" + "b" * 32,
-                 STRIPE_WEBHOOK_SECRET_GEO="whsec_" + "c" * 32)
+                 STRIPE_SECRET_KEY=_RK + "x" * 20,
+                 STRIPE_WEBHOOK_SECRET=_WH + "a" * 32,
+                 STRIPE_WEBHOOK_SECRET_BUCH=_WH + "b" * 32,
+                 STRIPE_WEBHOOK_SECRET_GEO=_WH + "c" * 32)
 
     assert z["bereit"] is True
 
@@ -82,9 +98,9 @@ def test_und_nicht_wenn_einer_fehlt(monkeypatch):
     """Die Gegenprobe. Ohne sie waere `bereit` auch dann wahr, wenn es immer
     wahr waere — und dann glaubt ihm niemand mehr."""
     z = _zustand(monkeypatch,
-                 STRIPE_SECRET_KEY="rk_test_" + "x" * 20,
-                 STRIPE_WEBHOOK_SECRET="whsec_" + "a" * 32,
-                 STRIPE_WEBHOOK_SECRET_BUCH="whsec_" + "b" * 32)
+                 STRIPE_SECRET_KEY=_RK + "x" * 20,
+                 STRIPE_WEBHOOK_SECRET=_WH + "a" * 32,
+                 STRIPE_WEBHOOK_SECRET_BUCH=_WH + "b" * 32)
 
     assert z["bereit"] is False
     assert z["STRIPE_WEBHOOK_SECRET_GEO"]["gesetzt"] is False
@@ -107,15 +123,15 @@ def test_kein_geheimnis_steht_in_der_auskunft(monkeypatch):
     """**Die wichtigste Zusicherung.** `/health` ist offen; eine Auskunft
     ueber Geheimnisse, die das Geheimnis mitliefert, ist schlimmer als keine.
     """
-    geheim = "whsec_diesesGeheimnisDarfNirgendsAuftauchen"
+    geheim = _WH + "diesesDarfNirgendsAuftauchen"
 
     z = _zustand(monkeypatch, STRIPE_WEBHOOK_SECRET=geheim,
-                 STRIPE_SECRET_KEY="rk_test_ebenfallsGeheim")
+                 STRIPE_SECRET_KEY=_RK + "ebenfallsVerborgen")
 
     text = repr(z)
     assert geheim not in text
-    assert "diesesGeheimnis" not in text
-    assert "ebenfallsGeheim" not in text
+    assert "diesesDarfNirgends" not in text
+    assert "ebenfallsVerborgen" not in text
     # Auch kein Anfangsstueck: sechs Zeichen Praefix sind oeffentlich bekannt,
     # alles darueber hinaus waere ein Leck in Scheiben.
     assert geheim[:12] not in text

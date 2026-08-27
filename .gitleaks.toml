@@ -33,6 +33,16 @@ regexes = [
   # fbc593d. Woertlich wie oben — der naechste hochentropische Testwert soll
   # weiter anschlagen.
   '''einlangesPasswort2026''',
+  # Und noch einmal am selben Abend (27.08.2026, Lauf 33100571929): ein
+  # Testwert in `tests/test_health_zahlungen.py`, der die Praefix-Pruefung
+  # belegen sollte und dabei die Form eines eingeschraenkten
+  # Stripe-Schluessels annahm (Regel `stripe-access-token`).
+  #
+  # Im Arbeitsstand werden die Praefixe seither **zusammengesetzt** statt
+  # geschrieben, es entsteht dort also gar keine Schluesselform mehr. Diese
+  # Zeichenkette steckt nur noch im Commit aecf6c4. Woertlich wie die beiden
+  # darueber — jeder kuenftige `rk_test_…`-Wert soll weiter anschlagen.
+  '''rk_test_ebenfallsGeheim''',
 ]
 # Also allowlist by historical commit hash for belt-and-braces:
 commits = [

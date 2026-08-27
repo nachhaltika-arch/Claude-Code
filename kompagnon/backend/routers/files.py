@@ -15,6 +15,7 @@ from sqlalchemy import text
 
 from database import get_db
 from routers.auth_router import get_current_user, require_admin, require_innendienst
+from services.rollen import ist_innendienst
 from services.base_urls import api_base_url
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ async def upload_file(
     dest.write_bytes(content)
 
     # Determine uploader role
-    uploaded_by_role = "admin" if getattr(current_user, "role", "") in ("admin", "auditor") else "kunde"
+    uploaded_by_role = "admin" if ist_innendienst(getattr(current_user, "role", "")) else "kunde"
 
     # Insert DB record
     db.execute(text("""
@@ -350,9 +351,10 @@ kunden_router = APIRouter(prefix="/api/files/mein", tags=["files-kunde"])
 
 
 def _eigener_betrieb(lead_id: int, current_user):
-    from routers.auth_router import INNENDIENST
+    from services.rechte import gehoert_zum_innendienst
 
-    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
 

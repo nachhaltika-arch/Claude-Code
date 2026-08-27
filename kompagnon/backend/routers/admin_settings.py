@@ -13,6 +13,7 @@ from routers.auth_router import require_admin, verlangt_recht
 logger = logging.getLogger(__name__)
 
 from services.rechte import DURCHGESETZTE_RECHTE
+from services.rollen import BEARBEITBAR
 
 router = APIRouter(prefix="/api/admin", tags=["admin-settings"])
 
@@ -38,20 +39,23 @@ DEFAULT_PERMISSIONS = {
         # Kein `manage_system_settings`: Wer Rechte vergeben darf, kann sich
         # alles geben. Diese Trennung bleibt.
     ],
-    "auditor": [
+    # Mitarbeiter KOMPAGNON. Bis zum 27.08.2026 hiess diese Zeile `auditor`;
+    # daneben stand ein `nutzer` mit drei Rechten, der an keinen Betrieb kam.
+    # Beide sind jetzt eine Rolle (Entscheidung David, siehe
+    # `services/rollen.py`), und sie fuehrt **die Rechte des Auditors** —
+    # das sind die, mit denen im Werkzeug tatsaechlich gearbeitet wurde.
+    # Die Zusammenlegung ist damit additiv: Sie nimmt niemandem etwas weg.
+    "mitarbeiter": [
         "view_dashboard", "view_leads", "create_leads", "edit_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects",
         # `manage_projects` am 22.08.2026 dazugenommen (L-05, Davids
         # Entscheidung). Die 61 Routen unter `/api/projects` stehen seit jeher
-        # auf `require_innendienst` — der Auditor arbeitet dort. Die Vorgabe
-        # war irgendwann geschrieben, die Routen sind gewachsen; wo beide
-        # auseinandergehen, ist nicht automatisch die Route falsch. Erst
+        # auf `require_innendienst` — der Innendienst arbeitet dort. Die
+        # Vorgabe war irgendwann geschrieben, die Routen sind gewachsen; wo
+        # beide auseinandergehen, ist nicht automatisch die Route falsch. Erst
         # dadurch laesst sich das Recht durchsetzen, ohne jemandem etwas
         # wegzunehmen.
         "manage_projects",
-    ],
-    "nutzer": [
-        "view_dashboard", "view_audits", "download_pdf",
     ],
     "kunde": [
         "view_dashboard", "view_audits", "download_pdf",
@@ -154,7 +158,7 @@ def update_role_permissions(role: str, req: RolePermissionsUpdate, admin=Depends
         raise HTTPException(400, "Superadmin-Rolle kann nicht ueber die UI geaendert werden")
     if role == "admin":
         raise HTTPException(400, "Admin-Rolle kann nicht geaendert werden")
-    if role not in ("auditor", "nutzer", "kunde"):
+    if role not in BEARBEITBAR:
         raise HTTPException(400, "Unbekannte Rolle")
 
     for perm, allowed in req.permissions.items():

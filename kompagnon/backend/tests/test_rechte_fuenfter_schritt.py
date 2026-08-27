@@ -38,17 +38,17 @@ from sqlalchemy import text
 
 
 @pytest.fixture
-def als_auditor(client, auditor_headers):
-    return auditor_headers
+def als_mitarbeiter(client, mitarbeiter_headers):
+    return mitarbeiter_headers
 
 
 class TestMatrixBildetDieWirklichkeitAb:
-    def test_der_auditor_darf_projekte_verwalten(self):
+    def test_der_mitarbeiter_darf_projekte_verwalten(self):
         from routers.admin_settings import DEFAULT_PERMISSIONS
 
-        assert "manage_projects" in DEFAULT_PERMISSIONS["auditor"], (
+        assert "manage_projects" in DEFAULT_PERMISSIONS["mitarbeiter"], (
             "Die 61 Routen unter /api/projects stehen auf require_innendienst — "
-            "ohne diesen Eintrag naehme das Durchsetzen dem Auditor alle weg")
+            "ohne diesen Eintrag naehme das Durchsetzen dem Mitarbeiter alle weg")
 
     def test_die_eigene_agenturseite_bleibt_beim_superadmin(self):
         """**Korrigiert am 22.08.2026, noch am selben Tag.**
@@ -113,7 +113,7 @@ class TestRechtepflege:
     def test_der_admin_kommt_nicht_mehr_an_die_rechtematrix(self, client, auth_headers):
         """Der Sinn der Entscheidung: Wer Rechte vergeben darf, kann sich
         alles geben."""
-        antwort = client.patch("/api/admin/roles/auditor",
+        antwort = client.patch("/api/admin/roles/mitarbeiter",
                                json={"permissions": {"view_leads": False}},
                                headers=auth_headers)
 

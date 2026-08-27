@@ -479,9 +479,10 @@ def _eigener_betrieb(lead_id: int, current_user):
     kommt nur an den eigenen Betrieb. Ein Briefing traegt
     Geschaeftsgeheimnisse — Preise, Zielgruppen, Alleinstellung — und die
     Kennung steht offen im Pfad."""
-    from routers.auth_router import INNENDIENST
+    from services.rechte import gehoert_zum_innendienst
 
-    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
 
@@ -508,9 +509,9 @@ def _ohne_ablauffelder(body: "BriefingBody", current_user) -> "BriefingBody":
     in beiden Faellen richtig — und steht an **einer** Stelle, damit nicht
     einer der beiden Wege es morgen vergisst.
     """
-    from routers.auth_router import INNENDIENST
+    from services.rechte import gehoert_zum_innendienst
 
-    if current_user.role in INNENDIENST:
+    if gehoert_zum_innendienst(current_user.role):
         return body
 
     for feld in NICHT_VOM_KUNDEN:

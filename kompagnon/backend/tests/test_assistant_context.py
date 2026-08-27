@@ -79,11 +79,28 @@ def test_die_rolle_bestimmt_den_modus(rolle, erwartet):
     assert modus_fuer_rolle(rolle) == erwartet
 
 
-@pytest.mark.parametrize("rolle", ["auditor", "nutzer", "", None, "erfunden"])
-def test_eine_unklare_rolle_bekommt_den_engeren_modus(rolle):
-    """`auditor` ist im Backend nicht abgegrenzt (§ 2.1 der Anforderungen). Bis
-    das entschieden ist, gilt die restriktivere Sicht — nicht die großzügigere."""
+@pytest.mark.parametrize("rolle", ["mitarbeiter", "auditor", "nutzer",
+                                  "", None, "erfunden"])
+def test_wer_die_rechnung_nicht_sieht_bekommt_den_engeren_modus(rolle):
+    """Die Teamsicht öffnet Marge, Stundensatz und KI-Kosten.
+
+    **`mitarbeiter` steht hier seit dem 27.08.2026 ausdrücklich mit drin**, und
+    zwar aus einem Grund statt aus Unentschiedenheit: Die Rolle hat weder
+    `view_billing` noch `manage_billing`. Wer die Rechnung nicht sehen darf,
+    soll sie nicht über den Assistenten erzählt bekommen.
+
+    Die alten Namen `auditor` und `nutzer` bleiben in der Liste — es kann
+    Konten geben, die noch so gespeichert sind, und für die muss dieselbe
+    Antwort herauskommen.
+    """
     assert modus_fuer_rolle(rolle) == MODUS_KUNDE
+
+
+def test_admin_und_superadmin_bekommen_weiterhin_die_teamsicht():
+    """Die positive Gegenprobe. Ohne sie wäre der Test oben auch dann grün,
+    wenn *niemand* mehr die Teamsicht bekäme."""
+    assert modus_fuer_rolle("admin") == MODUS_TEAM
+    assert modus_fuer_rolle("superadmin") == MODUS_TEAM
 
 
 # ── Was der Kunde sieht ──────────────────────────────────────────────────

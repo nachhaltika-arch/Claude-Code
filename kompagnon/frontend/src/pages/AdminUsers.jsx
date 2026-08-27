@@ -7,12 +7,17 @@ import { useScreenSize } from '../utils/responsive';
 
 
 
+// Die alten Namen `auditor` und `nutzer` stehen hier weiter drin, obwohl
+// niemand sie mehr vergibt (27.08.2026). Solange ein Konto im Bestand noch so
+// gespeichert ist, soll die Liste es benennen koennen — sonst zeigt sie ein
+// leeres Abzeichen und sieht aus wie ein Fehler.
 const ROLE_BADGES = {
   superadmin: { bg: '#7c3aed', color: '#fff', label: 'Superadmin' },
   admin: { bg: 'var(--text-primary)', color: '#fff', label: 'Admin' },
-  auditor: { bg: '#2a5aa0', color: '#fff', label: 'Auditor' },
-  nutzer: { bg: '#4a5a7a', color: '#fff', label: 'Nutzer' },
+  mitarbeiter: { bg: '#2a5aa0', color: '#fff', label: 'Mitarbeiter KOMPAGNON' },
   kunde: { bg: '#2a7a3a', color: '#fff', label: 'Kunde' },
+  auditor: { bg: '#4a5a7a', color: '#fff', label: 'Auditor (alt)' },
+  nutzer: { bg: '#4a5a7a', color: '#fff', label: 'Nutzer (alt)' },
 };
 
 export default function AdminUsers() {
@@ -21,7 +26,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', role: 'nutzer', position: '' });
+  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '' });
   const [creating, setCreating] = useState(false);
   const [tempPw, setTempPw] = useState('');
 
@@ -81,7 +86,7 @@ export default function AdminUsers() {
     <div style={{ width: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Benutzerverwaltung</h1>
-        <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'nutzer', position: '' }); }} style={{
+        <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '' }); }} style={{
           background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
         }}>
           + Neuer Benutzer
@@ -93,7 +98,7 @@ export default function AdminUsers() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {users.map((u) => {
-            const badge = ROLE_BADGES[u.role] || ROLE_BADGES.nutzer;
+            const badge = ROLE_BADGES[u.role] || ROLE_BADGES.mitarbeiter;
             return (
               <div key={u.id} style={{
                 background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: isMobile ? '12px 14px' : '14px 20px', minHeight: 44,
@@ -137,16 +142,15 @@ export default function AdminUsers() {
             </div>
             <input aria-label="E-Mail" value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} placeholder="E-Mail" type="email" required style={inpStyle} />
             <select aria-label="Rolle" value={newUser.role} onChange={(e) => setNewUser((f) => ({ ...f, role: e.target.value }))} style={inpStyle}>
-              <option value="nutzer">Nutzer</option>
-              <option value="auditor">Auditor</option>
+              <option value="mitarbeiter">Mitarbeiter KOMPAGNON</option>
               <option value="admin">Admin</option>
               {isSuperadmin && isSuperadmin() && (
                 <option value="superadmin">Superadmin</option>
               )}
               <option value="kunde">Kunde</option>
             </select>
-            {newUser.role === 'auditor' && (
-              <input aria-label="Position (z.B. Senior Auditor)" value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
+            {newUser.role === 'mitarbeiter' && (
+              <input aria-label="Position (erscheint im Audit-Bericht)" value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (erscheint im Audit-Bericht)" style={inpStyle} />
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button type="submit" disabled={creating} style={{ flex: 1, background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>{creating ? 'Anlegen…' : 'Benutzer anlegen'}</button>

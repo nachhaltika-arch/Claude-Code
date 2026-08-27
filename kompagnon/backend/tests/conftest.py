@@ -163,35 +163,42 @@ def auth_headers(client, admin_user):
     return {"Authorization": f"Bearer {token}"}
 
 
-AUDITOR_EMAIL = "pytest-auditor@kompagnon.local"
-AUDITOR_PASSWORT = "pytest-auditor-passwort"
+MITARBEITER_EMAIL = "pytest-mitarbeiter@kompagnon.local"
+MITARBEITER_PASSWORT = "pytest-mitarbeiter-passwort"
 
 
 @pytest.fixture(scope="session")
-def auditor_headers(client, app):
-    """Ein Auditor — die Rolle, an der sich zeigt, ob Rechte wirken.
+def mitarbeiter_headers(client, app):
+    """Ein Mitarbeiter KOMPAGNON — die Rolle, an der sich zeigt, ob Rechte
+    wirken.
 
-    Sie steht zwischen Innendienst und Kunde: laut Rechtematrix darf sie
-    Betriebe sehen, aber keine loeschen und keine Benutzer verwalten.
+    Sie steht zwischen Admin und Kunde: laut Rechtematrix darf sie Betriebe
+    sehen, anlegen und bearbeiten, aber keine loeschen und keine Benutzer
+    verwalten.
+
+    **Hiess bis zum 27.08.2026 `auditor_headers`.** Die Rollen `auditor` und
+    `nutzer` sind an dem Tag zu `mitarbeiter` zusammengelegt worden
+    (Entscheidung David, siehe `services/rollen.py`).
     """
     from auth import hash_password
     from database import SessionLocal, User
 
     db = SessionLocal()
     try:
-        if not db.query(User).filter(User.email == AUDITOR_EMAIL).first():
+        if not db.query(User).filter(User.email == MITARBEITER_EMAIL).first():
             db.add(User(
-                email=AUDITOR_EMAIL,
-                password_hash=hash_password(AUDITOR_PASSWORT),
-                first_name="Pytest", last_name="Auditor",
-                role="auditor", is_active=True, is_verified=True,
+                email=MITARBEITER_EMAIL,
+                password_hash=hash_password(MITARBEITER_PASSWORT),
+                first_name="Pytest", last_name="Mitarbeiter",
+                role="mitarbeiter", is_active=True, is_verified=True,
             ))
             db.commit()
     finally:
         db.close()
 
     antwort = client.post("/api/auth/login",
-                          json={"email": AUDITOR_EMAIL, "password": AUDITOR_PASSWORT})
+                          json={"email": MITARBEITER_EMAIL,
+                                "password": MITARBEITER_PASSWORT})
     assert antwort.status_code == 200, antwort.text
     return {"Authorization": f"Bearer {antwort.json()['access_token']}"}
 

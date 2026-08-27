@@ -14,6 +14,10 @@ from sqlalchemy.exc import OperationalError
 from pydantic import BaseModel
 
 from database import User, UserSession, get_db
+from services.rollen import IMMER_INNENDIENST as ROLLEN_IMMER_INNENDIENST
+from services.rollen import INNENDIENST as ROLLEN_INNENDIENST
+from services.rollen import (MIT_UNTERSCHRIFT, SELBSTREGISTRIERUNG, VORGABE,
+                             rolle_normalisieren)
 from auth import (
     hash_password, verify_password, create_access_token, decode_token,
     generate_totp_secret, generate_totp_qr, verify_totp,
@@ -64,25 +68,16 @@ def require_superadmin(user: User = Depends(get_current_user)):
     return user
 
 
-def require_auditor(user: User = Depends(get_current_user)):
-    if user.role not in ("admin", "superadmin", "auditor"):
-        raise HTTPException(403, "Nur fuer Auditoren und Admins")
-    return user
-
-
 def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
-#: Wer zum Innendienst gehoert, **wenn niemand etwas anderes eingestellt hat**.
-#: Fuer die eigentliche Frage siehe `require_innendienst`: Die liest die
-#: Rechteverwaltung, statt Rollen aufzuzaehlen.
-INNENDIENST = ("superadmin", "admin", "auditor")
-
-#: Admin und Superadmin bleiben drin, was auch immer jemand anhakt. Die
-#: Oberflaeche laesst beide Rollen nicht bearbeiten; hier steht derselbe Boden
-#: noch einmal, weil eine Oberflaechenpruefung keine Sperre ist.
-IMMER_INNENDIENST = ("superadmin", "admin")
+#: Weitergereicht aus `services.rollen` — elf Dateien holen die Liste hier ab,
+#: und sie soll dieselbe sein. **`require_auditor` stand bis zum 27.08.2026
+#: daneben und hing an keiner einzigen Route** (L-12); mit der Rolle ist auch
+#: die Sperre weg. Was Innendienst heisst, entscheidet `require_innendienst`.
+INNENDIENST = ROLLEN_INNENDIENST
+IMMER_INNENDIENST = ROLLEN_IMMER_INNENDIENST
 
 
 def require_innendienst(user: User = Depends(get_current_user)):
@@ -94,15 +89,18 @@ def require_innendienst(user: User = Depends(get_current_user)):
     `GET /api/projects/{id}/credentials` entschluesselte CMS-Passwoerter.
 
     Die Rechtematrix in `admin_settings.py` sagt es laengst: `view_leads` und
-    `view_projects` haben superadmin, admin und auditor. Was ein Kunde
+    `view_projects` haben superadmin, admin und mitarbeiter. Was ein Kunde
     braucht, haengt am `kunden_router` des jeweiligen Bereichs und prueft
     dort einzeln, ob die Zeile ihm gehoert.
 
     **18.08.2026:** Die Sperre zaehlte auf, wer *nicht* darf — und liess
-    damit die Rolle `nutzer` durch. Die hat laut derselben Matrix nur
-    Dashboard, Audits und PDF, bekam ueber `GET /api/leads/` aber den
+    damit die damalige Rolle `nutzer` durch. Die hatte laut derselben Matrix
+    nur Dashboard, Audits und PDF, bekam ueber `GET /api/leads/` aber den
     vollstaendigen Bestand (am laufenden Server nachgestellt: HTTP 200).
     Dieselbe Luecke wie am 17.08. bei den Kundenzugaengen, eine Rolle weiter.
+    (Seit dem 27.08.2026 gibt es `nutzer` nicht mehr — sie ist mit `auditor`
+    zu `mitarbeiter` zusammengelegt. Der Befund bleibt hier stehen, weil er
+    die Bauart der Sperre erklaert, nicht eine einzelne Rolle.)
 
     Jetzt umgekehrt: Es zaehlt auf, **wer darf**. Eine spaeter erfundene Rolle
     ist damit erst einmal draussen, statt aus Versehen drin.
@@ -112,12 +110,9 @@ def require_innendienst(user: User = Depends(get_current_user)):
     im Bildschirm „Rollen" endlich etwas — vorher liess er sich setzen und
     wegnehmen, ohne dass irgendetwas geschah.
     """
-    if user.role in IMMER_INNENDIENST:
-        return user
+    from services.rechte import gehoert_zum_innendienst
 
-    from services.rechte import hat_recht
-
-    if not hat_recht(user.role, "view_leads"):
+    if not gehoert_zum_innendienst(user.role):
         raise HTTPException(403, "Nur fuer den Innendienst")
     return user
 
@@ -224,7 +219,7 @@ class AdminCreateUser(BaseModel):
     email: str
     first_name: str = ""
     last_name: str = ""
-    role: str = "nutzer"
+    role: str = VORGABE
     position: str = ""
     send_invite: bool = False
 
@@ -251,7 +246,10 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hash_password(req.password),
         first_name=req.first_name.strip(),
         last_name=req.last_name.strip(),
-        role="nutzer",
+        # **Nicht `VORGABE`.** Dieses Formular ist oeffentlich erreichbar;
+        # wer hier durchkommt, hat niemand geprueft. Die Begruendung steht
+        # bei der Konstante.
+        role=SELBSTREGISTRIERUNG,
         is_active=True,
         is_verified=False,
         email_verify_token=generate_reset_token(),
@@ -441,7 +439,7 @@ def update_me(req: ProfileUpdate, user: User = Depends(get_current_user), db: Se
         user.last_name = req.last_name.strip()
     if req.phone is not None:
         user.phone = req.phone.strip()
-    if req.position is not None and user.role in ("admin", "superadmin", "auditor"):
+    if req.position is not None and user.role in MIT_UNTERSCHRIFT:
         user.position = req.position.strip()
     db.commit()
     return _user_dict(user)
@@ -449,8 +447,8 @@ def update_me(req: ProfileUpdate, user: User = Depends(get_current_user), db: Se
 
 @router.post("/me/signature")
 def update_signature(req: SignatureUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.role not in ("admin", "superadmin", "auditor"):
-        raise HTTPException(403, "Nur fuer Auditoren")
+    if user.role not in MIT_UNTERSCHRIFT:
+        raise HTTPException(403, "Nur fuer den Innendienst")
     user.signature_data = req.signature_data
     db.commit()
     return {"message": "Unterschrift gespeichert"}
@@ -478,7 +476,7 @@ def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: 
         password_hash=hash_password(temp_password),
         first_name=req.first_name.strip(),
         last_name=req.last_name.strip(),
-        role=req.role if req.role in ("admin", "superadmin", "auditor", "nutzer", "kunde") else "nutzer",
+        role=rolle_normalisieren(req.role) or VORGABE,
         position=req.position.strip(),
         is_active=True,
         is_verified=True,
@@ -500,7 +498,7 @@ def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(requir
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "Benutzer nicht gefunden")
-    if req.role is not None and req.role in ("admin", "superadmin", "auditor", "nutzer", "kunde"):
+    if req.role is not None and rolle_normalisieren(req.role):
         # Only superadmin may promote users to superadmin
         if req.role == "superadmin" and admin.role != "superadmin":
             raise HTTPException(403, "Nur Superadmin darf die Superadmin-Rolle vergeben")

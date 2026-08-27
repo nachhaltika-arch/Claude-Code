@@ -48,11 +48,11 @@ function ProfileTab() {
       </div>
       <Field label="E-Mail" value={user?.email || ''} disabled />
       <Field label="Telefon" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
-      {(hasRole('admin') || hasRole('auditor')) && (
+      {(hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) && (
         <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
       )}
       <Btn onClick={save} loading={saving}>Aenderungen speichern</Btn>
-      {(hasRole('admin') || hasRole('auditor')) && <SignatureSection />}
+      {(hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) && <SignatureSection />}
     </Card>
   );
 }
@@ -164,7 +164,10 @@ function SystemTab() {
     <Card title="Systemeinstellungen" icon="🏢">
       <Field label="Firmenname" value={settings.company_name || ''} onChange={set('company_name')} placeholder="KOMPAGNON" />
       <Field label="Website" value={settings.company_website || ''} onChange={set('company_website')} placeholder="kompagnon.de" />
-      <Field label="Auditor-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
+      {/* Der Schluessel heisst weiter `pdf_auditor_name` — er traegt den
+          Wert, den David hinterlegt hat. Umbenennen hiesse ihn verlieren.
+          Nur die Beschriftung folgt der Rolle. */}
+      <Field label="Prüfer-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
       <Field label="PDF-Footer-Text" value={settings.pdf_footer_text || ''} onChange={set('pdf_footer_text')} placeholder="Dieses Audit ersetzt keine Rechtsberatung." />
       <div style={{ marginTop: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Freie Registrierung</div>

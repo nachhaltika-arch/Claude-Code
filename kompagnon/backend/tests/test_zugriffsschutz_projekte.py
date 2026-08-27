@@ -121,8 +121,12 @@ OEFFENTLICH_ERLAUBT = {
     "/api/leads/portal/{token}/complete-onboarding",
 }
 
+# `require_auditor` stand hier bis zum 27.08.2026 und hing an keiner Route
+# (L-12); mit der Rolle ist die Sperre weg. Ein Name in dieser Liste, den es
+# nicht gibt, ist nicht harmlos: Er laesst die Liste vollstaendiger aussehen,
+# als sie ist.
 ANMELDEPRUEFUNGEN = (
-    "require_admin", "require_superadmin", "require_auditor",
+    "require_admin", "require_superadmin",
     "require_any_auth", "require_innendienst", "require_kunde",
     "get_current_user",
 )

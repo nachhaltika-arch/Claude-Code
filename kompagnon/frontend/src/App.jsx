@@ -245,7 +245,7 @@ function App() {
           <Route
             path="/app/projects/:id"
             element={
-              <PrivateRoute roles={['admin', 'auditor']}>
+              <PrivateRoute roles={['admin', 'mitarbeiter']}>
                 <OnlineFertigEditor />
               </PrivateRoute>
             }
@@ -253,7 +253,7 @@ function App() {
           <Route
             path="/app/projects/:id/online-fertig"
             element={
-              <PrivateRoute roles={['admin', 'auditor']}>
+              <PrivateRoute roles={['admin', 'mitarbeiter']}>
                 <OnlineFertigEditor />
               </PrivateRoute>
             }
@@ -268,7 +268,7 @@ function App() {
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
             {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
-            <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
+            <Route path="deals" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Deals /></PrivateRoute>} />
             <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
@@ -276,20 +276,20 @@ function App() {
             {/* Betriebe — das Objekt heisst seit 2026-08-16 ueberall so, auch
               * in der Adresszeile. Die alten Adressen leiten weiter: Es gibt
               * Lesezeichen, geteilte Links und Mails, die darauf zeigen. */}
-            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Betriebe /></PrivateRoute>} />
-            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Betriebe /></PrivateRoute>} />
+            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><LeadProfile /></PrivateRoute>} />
             <Route path="companies" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
             {/* Die Projektpipeline lag unter /app/leads und zeigte Projekte.
               * Das Menue war richtig beschriftet, die Adresse nicht — was
               * genuegte, um bei der Pruefung am 16.08. einen Fehlbefund zu
               * erzeugen. Jetzt heisst die Adresse, was sie liefert. */}
-            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'auditor']}><Projektpipeline /></PrivateRoute>} />
+            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Projektpipeline /></PrivateRoute>} />
             <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
             <Route path="leads/:leadId" element={<LeadRedirect />} />
-            <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
-            <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
+            <Route path="projects" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><CustomerProjects /></PrivateRoute>} />
+            <Route path="checklists" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Checklists /></PrivateRoute>} />
+            <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Checklists /></PrivateRoute>} />
             {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere
               * Gestaltung, aber ohne Menueeintrag und mit nur 50 der 61
               * Betriebe, weil das `limit` fehlte. Zusammengelegt am 2026-08-17;
@@ -298,15 +298,15 @@ function App() {
               * anderes als die Liste. */}
             <Route path="customers" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
-            <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
+            <Route path="import" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><DomainImport /></PrivateRoute>} />
             <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
-            <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
+            <Route path="export" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><MassExport /></PrivateRoute>} />
             {/* Ruft `/api/leads`, das am Router auf Innendienst steht — ein Kunde
               * saehe hier nur leere Listen und Fehler (L-67). */}
-            <Route path="audit" element={<PrivateRoute roles={['admin', 'auditor']}><AuditTool /></PrivateRoute>} />
+            <Route path="audit" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><AuditTool /></PrivateRoute>} />
             {/* Die Stammdaten des eigenen Betriebs (26.08.2026). „Meine
               * Kartei" zeigte bis dahin auf `/app/betriebe/{id}` — eine Route
-              * mit `roles={['admin','auditor']}`, von der `PrivateRoute` einen
+              * mit `roles={['admin','mitarbeiter']}`, von der `PrivateRoute` einen
               * Kunden auf sein Dashboard zurueckwirft. Der Punkt fuehrte ins
               * Nichts. Der Innendienst darf mit, um im Zweifel dasselbe zu
               * sehen wie der Kunde. */}
@@ -315,19 +315,19 @@ function App() {
               * der Kunde durfte nur zustimmen, was jemand anderes eingetragen
               * hatte (L-27). Was ins Briefing gehoert, weiss aber der Betrieb. */}
             <Route path="mein-briefing" element={
-              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'auditor']}>
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'mitarbeiter']}>
                 <MeinBriefing />
               </PrivateRoute>
             } />
             <Route path="meine-daten" element={
-              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'auditor']}>
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'mitarbeiter']}>
                 <MeineDaten />
               </PrivateRoute>
             } />
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
-            <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
+            <Route path="tickets" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
@@ -355,8 +355,8 @@ function App() {
               * Designer ruft `POST /api/messages/send-email`. Der Server sperrt
               * das seit demselben Tag; hier steht es, damit niemand auf einer
               * Seite landet, die ihm nur Fehler zeigt. */}
-            <Route path="newsletter" element={<PrivateRoute roles={['admin', 'auditor']}><Newsletter /></PrivateRoute>} />
-            <Route path="newsletter/editor/:id" element={<PrivateRoute roles={['admin', 'auditor']}><NewsletterDesigner /></PrivateRoute>} />
+            <Route path="newsletter" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Newsletter /></PrivateRoute>} />
+            <Route path="newsletter/editor/:id" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
@@ -383,7 +383,7 @@ function App() {
             {/* `m-vertrieb` war eine zweite Adresse fuer denselben Bildschirm,
               * von nirgends verlinkt — entfernt am 18.08.2026. Die Mobilleiste
               * fuehrt auf `/app/vertrieb`. */}
-            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','mitarbeiter']}><MobileVertrieb /></PrivateRoute>} />
             {/* `m-leads`, `m-projekte` und `m-settings` standen hier, ohne dass
               * irgendetwas auf sie zeigte — und sie doppelten, was es schon
               * gibt: `/app/settings` rendert eine eigene Mobilansicht, die

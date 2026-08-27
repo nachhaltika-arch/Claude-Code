@@ -59,7 +59,10 @@ def db(app):
 
 @pytest.fixture
 def recht_entziehen(db):
-    """Nimmt der Rolle `auditor` bzw. `admin` ein Recht — und gibt es zurueck."""
+    """Nimmt einer Rolle ein Recht — und gibt es danach zurueck.
+
+    Benutzt wird sie hier fuer `admin` und `superadmin`.
+    """
     gesetzt = []
 
     def entziehen(rolle, recht):

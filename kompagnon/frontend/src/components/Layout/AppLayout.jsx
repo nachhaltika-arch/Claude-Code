@@ -602,7 +602,7 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
   // Die Glocke traegt Betriebsnamen und Betreffzeilen anderer Kunden —
   // sie gehoert dem Innendienst. Der Server weist einen Kunden ohnehin ab
   // (403); hier faellt der Knopf weg, statt zuverlaessig zu scheitern.
-  const istInnendienst = hasRole('admin', 'auditor', 'nutzer');
+  const istInnendienst = hasRole('admin', 'superadmin', 'mitarbeiter');
   return (
     <header style={{
       height: 52,
@@ -684,7 +684,7 @@ function BottomNav() {
   const { user } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const role = user?.role || 'nutzer';
+  const role = user?.role || 'mitarbeiter';
   const tabs = getMobileTabs(role, user?.lead_id);
   const moreItems = (role === 'admin' || role === 'superadmin') ? MORE_ITEMS_ADMIN : MORE_ITEMS;
 

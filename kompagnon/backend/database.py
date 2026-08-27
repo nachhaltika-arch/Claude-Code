@@ -504,10 +504,11 @@ class User(Base):
     phone = Column(String(30), default="")
     avatar_url = Column(String(500), default="")
 
-    # Role: admin | auditor | nutzer | kunde
-    role = Column(String(20), default="nutzer")
+    # Role: superadmin | admin | mitarbeiter | kunde — siehe
+    # `services/rollen.py`, dort steht die Liste einmal.
+    role = Column(String(20), default="mitarbeiter")
 
-    # Auditor-specific
+    # Fuer den Pruefer im Audit-Bericht (Innendienst)
     position = Column(String(100), default="")
     signature_data = Column(Text, default="")
 

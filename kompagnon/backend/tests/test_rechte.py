@@ -56,16 +56,18 @@ def _setze(rolle: str, recht: str, erlaubt: bool):
 def test_ohne_eintrag_gilt_die_vorgabe(app):
     from services.rechte import hat_recht
 
-    assert hat_recht("auditor", "view_leads") is True
-    assert hat_recht("nutzer", "view_leads") is False
+    assert hat_recht("mitarbeiter", "view_leads") is True
+    # Die Gegenprobe stand hier bis zum 27.08.2026 auf der Rolle `nutzer`.
+    # Die gibt es nicht mehr; `kunde` ist jetzt die Rolle, die drausen bleibt.
+    assert hat_recht("kunde", "view_leads") is False
 
 
 def test_ein_gesetzter_eintrag_sticht_die_vorgabe(app, rechte_zuruecksetzen):
     from services.rechte import hat_recht
 
-    _setze("auditor", "view_leads", False)
+    _setze("mitarbeiter", "view_leads", False)
 
-    assert hat_recht("auditor", "view_leads") is False
+    assert hat_recht("mitarbeiter", "view_leads") is False
 
 
 def test_superadmin_darf_immer(app, rechte_zuruecksetzen):
@@ -85,19 +87,19 @@ def test_ein_unbekanntes_recht_ist_keins(app):
 
 # ── Die Wirkung an der Route ──────────────────────────────────────────
 
-def test_der_auditor_kommt_an_den_bestand(client, auditor_headers):
-    antwort = client.get("/api/leads/", headers=auditor_headers, follow_redirects=True)
+def test_der_mitarbeiter_kommt_an_den_bestand(client, mitarbeiter_headers):
+    antwort = client.get("/api/leads/", headers=mitarbeiter_headers, follow_redirects=True)
 
     assert antwort.status_code == 200, antwort.text
 
 
 def test_nimmt_man_ihm_das_recht_kommt_er_nicht_mehr_dran(
-    client, auditor_headers, rechte_zuruecksetzen
+    client, mitarbeiter_headers, rechte_zuruecksetzen
 ):
     """Der Beweis, dass der Haken etwas tut."""
-    _setze("auditor", "view_leads", False)
+    _setze("mitarbeiter", "view_leads", False)
 
-    antwort = client.get("/api/leads/", headers=auditor_headers, follow_redirects=True)
+    antwort = client.get("/api/leads/", headers=mitarbeiter_headers, follow_redirects=True)
 
     assert antwort.status_code == 403, antwort.text
 

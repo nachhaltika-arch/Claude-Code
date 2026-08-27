@@ -13,7 +13,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import (
-    INNENDIENST, require_admin, require_any_auth, require_innendienst,
+    require_admin, require_any_auth, require_innendienst,
     verlangt_recht,
     get_current_user,
 )

@@ -92,70 +92,104 @@ def test_der_geschuetzte_router_traegt_die_abhaengigkeit():
 
 # ── Angemeldet heisst nicht berechtigt ────────────────────────────────
 #
-# Befund vom 18.08.2026: `require_innendienst` sperrt nur die Rolle `kunde`
-# aus. Die Rechtematrix in `admin_settings.py` gibt `view_leads` und
-# `view_projects` aber nur an **superadmin, admin und auditor** — die Rolle
-# `nutzer` hat dieselben Rechte wie ein Kunde (Dashboard, Audits, PDF).
+# Befund vom 18.08.2026: `require_innendienst` sperrte nur die Rolle `kunde`
+# aus. Die Rechtematrix gab `view_leads` aber nur an superadmin, admin und
+# auditor — die damalige Rolle `nutzer` hatte dieselben Rechte wie ein Kunde
+# (Dashboard, Audits, PDF). Am laufenden Server nachgestellt: Ein Konto mit
+# Rolle `nutzer` bekam auf `GET /api/leads/` eine **200** samt vollstaendigem
+# Bestand. Dieselbe Luecke wie am 17.08. bei den Kundenzugaengen, eine Rolle
+# weiter. Die Sperre fragt seither, **wer darf**, statt aufzuzaehlen, wer
+# nicht darf.
 #
-# Am laufenden Server nachgestellt: Ein Konto mit Rolle `nutzer` bekam auf
-# `GET /api/leads/` eine **200** samt vollstaendigem Bestand. Dieselbe Luecke
-# wie am 17.08. bei den Kundenzugaengen, nur eine Rolle weiter.
+# **Umgeschrieben am 27.08.2026.** Die Rolle `nutzer` gibt es nicht mehr; sie
+# ist mit `auditor` zu `mitarbeiter` zusammengelegt. Damit waere der alte Test
+# sinnlos geworden — die neue Rolle *darf* den Bestand sehen.
 #
-# Die Sperre fragt jetzt, **wer darf**, statt aufzuzaehlen, wer nicht darf:
-# Eine spaeter erfundene Rolle ist damit erst einmal draussen.
+# Geprueft wird jetzt die Eigenschaft, um die es damals ging, und zwar
+# schaerfer: **Die Sperre liest die Rechtetabelle, nicht den Rollennamen.**
+# Derselbe Mitarbeiter kommt mit dem Recht durch und ohne es nicht. Ein Test,
+# der nur den Entzug prueft, waere auch dann gruen, wenn die Route fuer alle
+# geschlossen waere.
 
-NUTZER_EMAIL = "pytest-nutzer@kompagnon.local"
-NUTZER_PASSWORT = "pytest-nutzer-passwort"
 
-
-@pytest.fixture(scope="module")
-def nutzer_headers(client, app):
-    from auth import hash_password
-    from database import SessionLocal, User
+def _view_leads_setzen(rolle: str, erlaubt: bool):
+    from database import RolePermission, SessionLocal
 
     db = SessionLocal()
     try:
-        vorhanden = db.query(User).filter(User.email == NUTZER_EMAIL).first()
-        if not vorhanden:
-            db.add(User(
-                email=NUTZER_EMAIL,
-                password_hash=hash_password(NUTZER_PASSWORT),
-                first_name="Pytest", last_name="Nutzer",
-                role="nutzer", is_active=True, is_verified=True,
-            ))
-            db.commit()
+        eintrag = (db.query(RolePermission)
+                     .filter(RolePermission.role == rolle,
+                             RolePermission.permission == "view_leads")
+                     .first())
+        if eintrag:
+            eintrag.is_allowed = erlaubt
+        else:
+            db.add(RolePermission(role=rolle, permission="view_leads",
+                                  is_allowed=erlaubt))
+        db.commit()
     finally:
         db.close()
 
-    antwort = client.post("/api/auth/login",
-                          json={"email": NUTZER_EMAIL, "password": NUTZER_PASSWORT})
-    assert antwort.status_code == 200, antwort.text
-    return {"Authorization": f"Bearer {antwort.json()['access_token']}"}
+
+@pytest.fixture()
+def rechte_zuruecksetzen():
+    yield
+    from database import RolePermission, SessionLocal
+
+    db = SessionLocal()
+    try:
+        db.query(RolePermission).delete()
+        db.commit()
+    finally:
+        db.close()
 
 
 @pytest.mark.parametrize("pfad", ["/api/leads/", "/api/customers/"])
-def test_die_rolle_nutzer_sieht_den_bestand_nicht(client, nutzer_headers, pfad):
-    antwort = client.get(pfad, headers=nutzer_headers, follow_redirects=True)
+def test_mit_dem_recht_kommt_der_mitarbeiter_an_den_bestand(
+        client, mitarbeiter_headers, pfad):
+    """Die positive Haelfte. Ohne sie sagt die negative nichts."""
+    antwort = client.get(pfad, headers=mitarbeiter_headers,
+                         follow_redirects=True)
+
+    assert antwort.status_code == 200, antwort.text[:200]
+
+
+@pytest.mark.parametrize("pfad", ["/api/leads/", "/api/customers/"])
+def test_ohne_das_recht_sieht_er_ihn_nicht(
+        client, mitarbeiter_headers, rechte_zuruecksetzen, pfad):
+    _view_leads_setzen("mitarbeiter", False)
+
+    antwort = client.get(pfad, headers=mitarbeiter_headers,
+                         follow_redirects=True)
 
     assert antwort.status_code == 403, (
-        f"{pfad} -> {antwort.status_code}: Ein angemeldeter Nutzer bekommt "
-        "Kundendaten, obwohl die Rechtematrix ihm view_leads nicht gibt."
+        f"{pfad} -> {antwort.status_code}: Ein Angemeldeter bekommt "
+        "Kundendaten, obwohl die Rechtematrix ihm view_leads entzogen hat."
     )
 
 
-def test_die_sperre_zaehlt_auf_wer_darf(client):
-    """Nicht wer nicht darf — sonst ist die naechste neue Rolle wieder drin."""
-    import inspect
+def test_dem_admin_kann_man_es_nicht_nehmen(client, auth_headers,
+                                            rechte_zuruecksetzen):
+    """Der Boden unter der Rechtetabelle.
 
-    from routers.auth_router import require_innendienst
+    Ohne ihn koennte ein einziger Haken den letzten aussperren, der ihn
+    wieder wegnehmen koennte.
+    """
+    _view_leads_setzen("admin", False)
 
-    quelle = inspect.getsource(require_innendienst)
-    assert "auditor" in quelle, "Die Sperre nennt die erlaubten Rollen nicht"
+    antwort = client.get("/api/leads/", headers=auth_headers,
+                         follow_redirects=True)
+
+    assert antwort.status_code == 200, antwort.text[:200]
 
 
-def test_auch_kein_einzelner_betrieb(client, nutzer_headers, kunde_user):
+def test_auch_kein_einzelner_betrieb(client, mitarbeiter_headers, kunde_user,
+                                     rechte_zuruecksetzen):
     """Am vorhandenen Datensatz geprueft — sonst waere ein 404 die Antwort,
     und der sagt nichts ueber die Berechtigung."""
-    antwort = client.get(f"/api/leads/{kunde_user.lead_id}", headers=nutzer_headers)
+    _view_leads_setzen("mitarbeiter", False)
+
+    antwort = client.get(f"/api/leads/{kunde_user.lead_id}",
+                         headers=mitarbeiter_headers)
 
     assert antwort.status_code == 403, f"-> {antwort.status_code}: {antwort.text[:120]}"

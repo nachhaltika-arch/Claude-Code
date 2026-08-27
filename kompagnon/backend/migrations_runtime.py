@@ -1310,6 +1310,26 @@ def run_migrations():
             WHERE slug = 'websprint_relaunch'
               AND status = 'draft'
               AND features = '[]'::jsonb""",
+        # ── 27.08.2026: aus `auditor` und `nutzer` wird `mitarbeiter` ──
+        # Entscheidung David. Die Begruendung steht in `services/rollen.py`.
+        #
+        # Reihenfolge mit Absicht, wegen `uq_role_permission` (eine Zeile je
+        # Rolle und Recht): Erst faellt der Bestand von `nutzer` weg — die
+        # zusammengelegte Rolle erbt die Rechte des Auditors, das war die
+        # Entscheidung. Dann fallen die `auditor`-Zeilen, fuer die es schon
+        # eine `mitarbeiter`-Zeile gibt; erst danach darf umbenannt werden.
+        # Ohne diesen Zwischenschritt scheitert der zweite Lauf an der
+        # Eindeutigkeit — und diese Migrationen laufen bei **jedem** Start.
+        "DELETE FROM role_permissions WHERE role = 'nutzer'",
+        """DELETE FROM role_permissions
+            WHERE role = 'auditor'
+              AND permission IN (SELECT permission FROM role_permissions
+                                  WHERE role = 'mitarbeiter')""",
+        "UPDATE role_permissions SET role = 'mitarbeiter' WHERE role = 'auditor'",
+        # Und die Konten selbst. Wer gestern Auditor war, arbeitet heute
+        # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
+        # Sinn der Zusammenlegung und keine Nebenwirkung.
+        "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -135,8 +135,15 @@ def _create_default_admin():
     try:
         demo_users = [
             {"email": os.getenv("ADMIN_EMAIL",   "admin@kompagnon.de"),   "password": os.getenv("ADMIN_PASSWORD",   ""), "first_name": "Admin",  "last_name": "KOMPAGNON",  "role": "admin"},
-            {"email": os.getenv("AUDITOR_EMAIL", "auditor@kompagnon.de"), "password": os.getenv("AUDITOR_PASSWORD", ""), "first_name": "Max",    "last_name": "Auditor",    "role": "auditor", "position": "Senior Auditor"},
-            {"email": os.getenv("NUTZER_EMAIL",  "nutzer@kompagnon.de"),  "password": os.getenv("NUTZER_PASSWORD",  ""), "first_name": "Lisa",   "last_name": "Nutzer",     "role": "nutzer"},
+            # Aus zwei Demo-Konten (auditor, nutzer) ist am 27.08.2026 eines
+            # geworden — wie aus den zwei Rollen. `MITARBEITER_*` sind die
+            # neuen Variablennamen; die alten werden weiter gelesen, damit
+            # eine Umgebung, die sie gesetzt hat, nicht ploetzlich ein
+            # Zufallspasswort bekommt.
+            {"email": os.getenv("MITARBEITER_EMAIL") or os.getenv("AUDITOR_EMAIL", "mitarbeiter@kompagnon.de"),
+             "password": os.getenv("MITARBEITER_PASSWORD") or os.getenv("AUDITOR_PASSWORD", ""),
+             "first_name": "Max", "last_name": "Mitarbeiter",
+             "role": "mitarbeiter", "position": "Mitarbeiter KOMPAGNON"},
             {"email": os.getenv("KUNDE_EMAIL",   "kunde@kompagnon.de"),   "password": os.getenv("KUNDE_PASSWORD",   ""), "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
         ]
         created = 0
@@ -392,8 +399,13 @@ def _disable_demo_accounts_in_production():
     if os.getenv("ENVIRONMENT", "development").lower() != "production":
         return
 
+    # Die alten beiden Adressen bleiben stehen, obwohl sie niemand mehr
+    # anlegt: Wer sie in einer Umgebung schon hat, soll sie auch abgeschaltet
+    # bekommen. Eine Liste, die einen Namen nicht mehr kennt, den der Bestand
+    # noch traegt, laesst genau die Konten offen, die sie schliessen soll.
     DEMO_EMAILS = [
         "admin@kompagnon.de",
+        "mitarbeiter@kompagnon.de",
         "auditor@kompagnon.de",
         "nutzer@kompagnon.de",
         "kunde@kompagnon.de",

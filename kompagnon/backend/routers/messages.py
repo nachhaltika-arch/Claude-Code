@@ -77,8 +77,9 @@ def _zugang_pruefen(lead, token: str | None, current_user) -> None:
         raise HTTPException(status_code=403,
                             detail="Anmeldung oder Zugangslink nötig")
 
-    from routers.auth_router import INNENDIENST
-    if current_user.role in INNENDIENST or current_user.lead_id == lead.id:
+    from services.rechte import gehoert_zum_innendienst
+    if (gehoert_zum_innendienst(current_user.role)
+            or current_user.lead_id == lead.id):
         return
 
     raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")

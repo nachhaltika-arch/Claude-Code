@@ -6,7 +6,7 @@
  *
  * **Was der Menüpunkt „Meine Kartei" vorher tat:** Er zeigte auf
  * `/app/betriebe/{id}` — den Innendienst-Bildschirm, dessen Route
- * `roles={['admin','auditor']}` trägt. `PrivateRoute` wirft einen Kunden von
+ * `roles={['admin','mitarbeiter']}` trägt. `PrivateRoute` wirft einen Kunden von
  * dort auf sein Dashboard zurück. Der Punkt sah aus wie eine zweite Seite und
  * war eine Schleife auf dieselbe.
  *

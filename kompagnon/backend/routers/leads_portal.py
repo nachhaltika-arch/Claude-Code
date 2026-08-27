@@ -24,7 +24,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from services.ratenbegrenzung import lead_grenzen
-from routers.auth_router import require_any_auth, get_current_user, INNENDIENST
+from routers.auth_router import require_any_auth, get_current_user
+from services.rechte import gehoert_zum_innendienst
 # `LeadResponse` steht in `leads.py`: Zwei Dateien brauchen es —
 # hier der Kundenweg, drueben die Ausfuhr. Ein Antwortmodell, das
 # zwei Seiten teilen, gehoert an eine Stelle.
@@ -320,7 +321,8 @@ def get_lead(
     hat. Jetzt umgekehrt: Wer nicht zum Innendienst gehört, sieht nur den
     eigenen Betrieb. Dieselbe Umkehrung wie in `require_innendienst`.
     """
-    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -387,7 +389,8 @@ def stammdaten_pflegen(
     zu schlucken waere die schlechtere Haelfte von „nicht erlaubt": Der
     Absender glaubt dann, es sei gespeichert.
     """
-    if current_user.role not in INNENDIENST and current_user.lead_id != lead_id:
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
         raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -397,7 +400,7 @@ def stammdaten_pflegen(
     gesendet = daten.model_dump(exclude_none=True)
     # Der Innendienst behaelt seinen vollen Zugriff — die Liste gilt dem
     # Kunden. Sonst haette diese Aenderung dem Innendienst etwas weggenommen.
-    erlaubt = (set(gesendet) if current_user.role in INNENDIENST
+    erlaubt = (set(gesendet) if gehoert_zum_innendienst(current_user.role)
                else set(gesendet) & set(STAMMDATEN_DES_KUNDEN))
     verworfen = sorted(set(gesendet) - erlaubt)
 

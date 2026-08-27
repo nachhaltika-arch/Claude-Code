@@ -72,6 +72,28 @@ DURCHGESETZTE_RECHTE = frozenset({
 })
 
 
+def gehoert_zum_innendienst(rolle: str, db=None) -> bool:
+    """Die Innendienstschwelle als einfache Frage — ohne FastAPI.
+
+    **Warum es das gibt (27.08.2026).** `require_innendienst` fragt die
+    Rechtetabelle nach `view_leads`. Sieben weitere Stellen im Bestand
+    fragten dieselbe Sache anders: `current_user.role not in INNENDIENST` —
+    also den **Rollennamen** statt des Rechts. Beim Zusammenlegen der Rollen
+    fiel es auf: Nimmt man `mitarbeiter` das `view_leads` weg, sperrt
+    `GET /api/leads/` zu, `GET /api/leads/{id}` aber nicht. Ein Haken, der
+    an sechs von sieben Türen wirkt, ist schlimmer als keiner — man glaubt
+    ihm.
+
+    Beides ist jetzt dieselbe Funktion. Der Boden bleibt: Admin und
+    Superadmin kommen durch, was auch immer jemand anhakt.
+    """
+    from services.rollen import IMMER_INNENDIENST
+
+    if rolle in IMMER_INNENDIENST:
+        return True
+    return hat_recht(rolle, "view_leads", db)
+
+
 def _vorgabe(rolle: str, recht: str) -> bool:
     from routers.admin_settings import DEFAULT_PERMISSIONS
 

@@ -47,8 +47,11 @@ Falls das Repo nicht stimmt:
 - **Produktiv**: Render deployt auf jeden Merge in `main`
 
 Produktiv-URLs:
-- Frontend: https://kompagnon-frontend.onrender.com (Dienst `kompagnon-frontend`, Static Site)
-- Backend:  https://api.kompagnon.group (Dienst `kompagnon-backend-fra`, Frankfurt)
+- Werkzeug (Frontend): https://kas.kompagnon.group — Dienst `kompagnon-frontend`,
+  Static Site. Direkt auch unter https://kompagnon-frontend.onrender.com.
+- Backend/API: https://api.kompagnon.group — Dienst `kompagnon-backend-fra`, Frankfurt.
+- **Nicht** `kompagnon.group` — die leitet auf die Agenturseite
+  `www.kompagnon.eu` weiter und hat mit dem Werkzeug nichts zu tun.
 
 > **Korrigiert am 2026-08-27.** Hier stand `https://claude-code-znq2.onrender.com`
 > als Produktiv-Backend. Dieser Dienst liegt in Oregon, ist seit dem Umzug
@@ -56,13 +59,16 @@ Produktiv-URLs:
 > einen toten Dienst zeigt, ist gefaehrlicher als gar keine: Wer dort 503
 > misst, meldet einen Produktivausfall, den es nicht gibt.
 >
-> **Zweimal korrigiert, am selben Tag.** Beim ersten Anlauf stand hier
-> `https://kompagnon.group` als Frontend — abgeleitet aus einem **302**, dem
-> ich nicht gefolgt bin. Diese Adresse leitet auf die Agenturseite
-> `www.kompagnon.eu` weiter und hat mit dem Werkzeug nichts zu tun. Ein
-> Statuscode ist kein Ziel: Erst der Weiterleitung folgen, dann behaupten.
-> Das Werkzeug traegt bis heute **keine** eigene Domain — nur das Backend hat
-> eine (`api.kompagnon.group`).
+> **Dreimal korrigiert, am selben Tag — und die ersten zwei Male war ich zu
+> schnell.** Erst stand hier `https://kompagnon.group` als Frontend,
+> abgeleitet aus einem **302**, dem ich nicht gefolgt bin; die Adresse fuehrt
+> zur Agenturseite. Dann schrieb ich, das Werkzeug habe **gar keine** Domain —
+> auch falsch: Es hat `kas.kompagnon.group`, und die stand seit dem 22.08. in
+> L-03 als Einbettungsadresse des Widgets.
+>
+> Beide Male habe ich aus **einer** Messung geschlossen, statt die naheliegende
+> zweite zu machen. Ein Statuscode ist kein Ziel, und „ich habe keine gefunden"
+> ist keine Abwesenheit. Am 27.08. an vier Adressen gleichzeitig geprueft.
 
 Staging-URLs (live seit 2026-05-02):
 - Frontend: https://kompagnon-frontend-staging.onrender.com

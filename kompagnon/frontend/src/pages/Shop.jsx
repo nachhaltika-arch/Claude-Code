@@ -47,7 +47,16 @@ export default function Shop() {
         const antwort = await fetch(`${API_BASE_URL}/api/products/public`);
         if (!antwort.ok) throw new Error(String(antwort.status));
         const daten = await antwort.json();
-        if (!abgemeldet) setProdukte(Array.isArray(daten) ? daten : []);
+        // **Nur die digitalen Produkte.** Dieselbe Liste speist `Checkout.jsx`
+        // und traegt die zwei Websprints — die gehoeren hier nicht her: Diese
+        // Seite verspricht „zum Mitnehmen", ein Websprint ist ein Projekt.
+        //
+        // Unterschieden wird an `delivery_type` (`download` / `appointment`
+        // gegen `none`) und nicht am Preis oder am Namen: Das ist ein Feld
+        // mit einer Bedeutung, kein Merkmal, das zufaellig heute passt.
+        const digital = (Array.isArray(daten) ? daten : [])
+          .filter((p) => p.delivery_type && p.delivery_type !== 'none');
+        if (!abgemeldet) setProdukte(digital);
       } catch {
         // Verständlich statt technisch — und **kein leerer Bildschirm**: Wer
         // hier nichts sieht, hält das Angebot für nicht vorhanden.
@@ -95,8 +104,9 @@ export default function Shop() {
             ist; ein stiller leerer Bereich wäre der vierte, den niemand
             deuten kann. */}
         {!fehler && Array.isArray(produkte) && produkte.length === 0 && (
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            Zurzeit ist kein Produkt verfügbar.
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7 }}>
+            Zurzeit ist kein Produkt verfügbar. Workbook und Check&nbsp;PLUS sind
+            angelegt, aber noch nicht freigeschaltet.
           </p>
         )}
 

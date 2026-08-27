@@ -142,8 +142,34 @@ Preis dafür, es einmal wirklich zu wissen.
 | Datenträger 1 GB auf `/var/data`, am Dienst nachgewiesen | belegt, 18.08. |
 | Am 18.08. null Dateien auf dem Datenträger | belegt |
 | `pg_dump` über die Render-Shell funktioniert ohne offene Inbound-Regel | plausibel, **nicht durchgeführt** |
-| Renders Aufbewahrungsdauer für Wiederherstellungspunkte | **unbekannt** — Dashboard |
+| Aufbewahrung der Wiederherstellungspunkte: **7 Tage** | belegt, 27.08. |
+| Logische Sicherungen laufen **nicht** automatisch | belegt, 27.08. |
+| Inbound-Regel der Produktiv-DB ist zu (`ipAllowList: null`) | belegt, 27.08. |
+| Keine Hochverfügbarkeit, keine Lesekopie | belegt, 27.08. |
+| `CMS_ENCRYPTION_KEY` produktiv gesetzt | **offen** — bei David |
 | Eine Wiederherstellung wurde je durchgeführt | **nein** |
 
-Die letzten beiden Zeilen sind der eigentliche Inhalt dieser Datei: Wir haben
-Wege zurück, aber keinen davon je gegangen.
+## 6. Was am 27.08.2026 dazugekommen ist
+
+**Die Aufbewahrungsdauer ist keine Vermutung mehr: sieben Tage.** Sie hängt
+nicht am Datenbank-Tarif, sondern am **Workspace**-Tarif — Hobby drei Tage,
+Pro und höher sieben. Am Dashboard nachgesehen: „Current Plan: **Pro**".
+
+**Und die unbequemere Hälfte derselben Auskunft:** Logische Sicherungen legt
+Render **nicht von selbst** an. Sie werden von Hand ausgelöst und dann sieben
+Tage aufbewahrt. Ausgelöst hat sie bisher niemand.
+
+> Damit ist das gesamte automatische Netz **sieben Tage breit**. Was älter ist
+> als eine Woche, gibt es nicht mehr — auch nicht gegen Bezahlung, auch nicht
+> mit Renders Hilfe. Ein Schaden, der am achten Tag auffällt, ist endgültig.
+
+Das ist der eigentliche Inhalt dieser Datei, präziser als vorher: Wir haben
+Wege zurück, keinen davon je gegangen — und das Zeitfenster, in dem sie
+überhaupt existieren, ist schmaler als gedacht.
+
+**Was daraus folgt und noch niemand entschieden hat:** ob ein regelmäßiger
+eigener Auszug (Weg B) irgendwohin gehört, wo er länger als sieben Tage
+liegt. Der Scheduler läuft und führt vierzehn Jobs; ein fünfzehnter wäre
+technisch der kleinste Teil. Die Frage ist nicht, ob es geht, sondern wohin
+der Auszug soll — und das ist eine Entscheidung über Ort, Kosten und
+Zugriffsrechte.

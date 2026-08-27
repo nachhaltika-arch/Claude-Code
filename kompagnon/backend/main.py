@@ -1019,6 +1019,53 @@ def _browser_zustand() -> dict:
     return {"eingeschaltet": an, "verfuegbar": da, "bereit": an and da}
 
 
+#: Die Umgebungswerte, ohne die kein Geld ankommt — und wozu jeder gehoert.
+_ZAHLUNGSWERTE = {
+    "STRIPE_SECRET_KEY": "Kasse eroeffnen",
+    "STRIPE_WEBHOOK_SECRET": "/api/payments/webhook",
+    "STRIPE_WEBHOOK_SECRET_BUCH": "/api/book/webhook",
+    "STRIPE_WEBHOOK_SECRET_GEO": "/api/geo-payments/webhook",
+}
+
+
+def _zahlungszustand() -> dict:
+    """Ob die Zahlungskette eingerichtet ist — von aussen abfragbar.
+
+    **Der Anlass (27.08.2026).** Beim Einrichten der drei Stripe-Adressen ging
+    eine Stunde damit verloren, herauszufinden, **ob** die Geheimnisse im
+    laufenden Prozess ankommen. Das Render-Dashboard zeigt eine Zeile mit
+    leerem Wert genauso an wie eine mit Inhalt — beide als Punkte. Die
+    Protokolle sagten „nicht gesetzt", der Bildschirm sagte „steht da", und
+    zwischen beiden gab es keine Instanz, die man haette fragen koennen.
+
+    Dieselbe Fehlerfamilie wie die Uploads am 16.08. und der Browserlauf am
+    27.08. (L-136): Ein Zustand, der **nicht im Quelltext** steht, sondern in
+    der Umgebung, und den man deshalb im Dashboard „ablesen" muss statt am
+    Gegenstand zu messen. Ein Dashboard zeigt die **Einstellung**. Hier steht,
+    was der Prozess tatsaechlich hat.
+
+    **Es wird die Laenge gemeldet, nicht der Wert** — und das ist die ganze
+    Absicht: Sie unterscheidet „leer", „aus Versehen abgeschnitten" und
+    „vollstaendig", ohne dass ein Geheimnis ueber eine offene Auskunft geht.
+    Ein `whsec_` ist um die 38 Zeichen lang; steht dort 3, hat jemand beim
+    Einfuegen etwas verloren.
+
+    Gemeldet wird ausserdem der **Praefix**, aber nur, ob er stimmt: Wer den
+    API-Schluessel und das Signaturgeheimnis vertauscht, sieht sonst zwei
+    gesetzte Werte und einen Fehler ohne Ursache.
+    """
+    zustand = {}
+    for name, wofuer in _ZAHLUNGSWERTE.items():
+        wert = (os.getenv(name) or "").strip()
+        eintrag = {"gesetzt": bool(wert), "laenge": len(wert), "wofuer": wofuer}
+        if wert:
+            erwartet = "whsec_" if "WEBHOOK" in name else ("sk_", "rk_")
+            eintrag["praefix_stimmt"] = wert.startswith(erwartet)
+        zustand[name] = eintrag
+    zustand["bereit"] = all(e.get("gesetzt") and e.get("praefix_stimmt", True)
+                            for k, e in zustand.items() if k in _ZAHLUNGSWERTE)
+    return zustand
+
 
 @app.get("/health")
 def health_check():
@@ -1063,6 +1110,10 @@ def health_check():
             # Kundenbericht (L-107). Am Gegenstand fragen statt im Dashboard
             # ablesen, wie schon bei den Uploads.
             "browser": _browser_zustand(),
+            # Ob Geld ankommen kann. Vier Werte, die nur in Render stehen —
+            # und ein Dashboard zeigt die Einstellung, nicht den Zustand des
+            # Prozesses. Gemeldet werden Laenge und Praefix, nie der Wert.
+            "zahlungen": _zahlungszustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

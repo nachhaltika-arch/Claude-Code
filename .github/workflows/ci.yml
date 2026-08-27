@@ -133,12 +133,18 @@ jobs:
         env:
           CI: true
         run: npm test -- --watchAll=false
+      # `CI: false` bleibt stehen — mit `true` waere jede der 53
+      # `no-unused-vars`-Warnungen ein Fehler und der Job dauerhaft rot.
+      # Der Preis dafuer war, dass ein nicht aufloesbarer Import im
+      # `try`-Block nur eine Warnung ist und der Job trotzdem gruen wird
+      # (L-102, belegt an Lauf 32596544696). Das Skript trennt die beiden
+      # Faelle: Lint-Warnung bleibt Warnung, gebrochener Import wird rot.
       - name: Build
         working-directory: kompagnon/frontend
         env:
           CI: false
           REACT_APP_API_URL: https://api.kompagnon.group
-        run: npm run build
+        run: bash "$GITHUB_WORKSPACE/scripts/frontend-bauen.sh"
       - name: Report bundle size
         working-directory: kompagnon/frontend
         run: du -sh build && du -sh build/static/js
@@ -218,7 +224,10 @@ jobs:
           REACT_APP_API_URL: http://localhost:8000
         run: |
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci --legacy-peer-deps
-          npm run build
+          # Dasselbe Tor wie im Build-Job (L-102): Der E2E-Lauf baut ein
+          # zweites Mal, und ein gebrochener Import wuerde sich hier sonst
+          # ebenfalls als blosse Warnung verstecken.
+          bash "$GITHUB_WORKSPACE/scripts/frontend-bauen.sh"
           # serve fest installieren statt per npx zur Startzeit zu ziehen:
           # ein Registry-Aussetzer soll den Test nicht mitten im Start treffen.
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm install --global serve@14.2.6

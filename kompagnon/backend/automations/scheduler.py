@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
 from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
-from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.email import send_email as _send_email_canonical
 from services import versandsperre
 from automations.email_templates import render_template
@@ -25,6 +24,8 @@ from automations.erinnerungen import (
 )
 from automations.scheduler_kontakt import _send_phase_email, job_check_missing_materials, job_check_overdue_phases, job_phase_postgolive_transitions, job_send_briefing_reminders, job_tag_14_funktionscheck, job_tag_21_bewertungsanfrage, job_tag_30_geo_check, job_tag_30_upsell, job_tag_5_followup
 from automations.scheduler_ueberwachung import job_check_all_domains, job_check_netlify_dns, job_check_netlify_ssl
+from automations.job_eigene_zertifikate import job_eigene_zertifikate_pruefen
+from automations.job_ki_sichtbarkeit import job_ki_sichtbarkeit_woechentlich
 from automations.scheduler_bericht import job_monthly_performance_report
 from automations.versandmodus import setze_probemodus
 import logging
@@ -195,13 +196,26 @@ def _run_geo_monitoring_sync():
 class CompagnonScheduler:
     """APScheduler wrapper for KOMPAGNON automation."""
 
-    def __init__(self, database_url: str = None, use_mock_email: bool = False):
+    def __init__(self, database_url: str = None, use_mock_email: bool = None):
         database_url = database_url or DATABASE_URL
         # Der Schalter liegt seit dem 22.08.2026 in `versandmodus` (L-25):
         # Beim Aufteilen der Datei haette ein Namensimport ihn im
         # Kontakt-Teil eingefroren — der Probemodus waere angezeigt und die
         # Mails trotzdem hinausgegangen.
-        setze_probemodus(use_mock_email)
+        #
+        # **`None` statt `False` seit dem 24.08.2026 (L-104).** Der
+        # Vorgabewert war `False`, und `start_scheduler()` uebergibt nichts —
+        # also setzte jeder Start den Probemodus auf „echt versenden"
+        # zurueck, **auch wenn `USE_MOCK_EMAIL=true` in der Umgebung stand**.
+        # Es gab damit keinen wirksamen Probemodus fuer einen laufenden
+        # Dienst; nachgestellt, nicht vermutet.
+        #
+        # Dieselbe Falle wie oben, eine Ebene hoeher: Dort fror ein kopierter
+        # **Name** den Wert ein, hier ueberschrieb ihn ein **Vorgabewert**.
+        # `None` heisst jetzt „nimm, was die Umgebung sagt"; wer es
+        # ausdruecklich angibt, bestimmt weiterhin.
+        if use_mock_email is not None:
+            setze_probemodus(use_mock_email)
 
         # JobStore mit Fallback auf MemoryJobStore wenn DB nicht erreichbar.
         # `SCHEDULER_JOBSTORE=memory` erzwingt den fluechtigen Speicher — ein
@@ -295,6 +309,17 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
+        # **Wöchentlich, montags früh.** Jede Frage kostet Geld; der Takt
+        # ergibt eine Kurve statt Rauschen. Läuft nur für zahlende Abonnenten
+        # und nur, wenn ein Schlüssel hinterlegt ist (L-58 b).
+        self.scheduler.add_job(
+            job_ki_sichtbarkeit_woechentlich,
+            "cron",
+            day_of_week="mon", hour=6, minute=0,
+            id="ki_sichtbarkeit_woechentlich",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
         self.scheduler.add_job(
             job_check_all_domains,
             "interval", hours=6,
@@ -306,6 +331,17 @@ class CompagnonScheduler:
             "interval", minutes=15,
             id="netlify_dns_check_every_15min",
             replace_existing=True,
+        )
+        # **Kriterium S1 gilt für uns selbst (B1.14e).** Die Überwachung
+        # daneben liest `projects` — unsere eigenen Adressen stehen dort nicht.
+        # Eine davon steht gedruckt im Buch.
+        self.scheduler.add_job(
+            job_eigene_zertifikate_pruefen,
+            "cron",
+            hour=7, minute=30,
+            id="eigene_zertifikate",
+            replace_existing=True,
+            timezone="Europe/Berlin",
         )
         self.scheduler.add_job(
             job_check_netlify_ssl,
@@ -535,8 +571,11 @@ def verwaiste_jobs(vorhandene_ids, registrierte_ids) -> list:
     ]
 
 
-def get_scheduler(database_url: str = None, use_mock_email: bool = False):
-    """Get or create scheduler instance."""
+def get_scheduler(database_url: str = None, use_mock_email: bool = None):
+    """Get or create scheduler instance.
+
+    `use_mock_email=None` heisst „nimm, was `USE_MOCK_EMAIL` sagt" (L-104).
+    """
     global _scheduler
     if _scheduler is None:
         _scheduler = CompagnonScheduler(database_url, use_mock_email)

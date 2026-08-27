@@ -46,6 +46,18 @@ export function paketeZusammenfuehren(darstellung, ausApi) {
       preis: label === null ? null : preis,
       preisLabel: label,
       preisBekannt: label !== null,
+      // Kaeuflich ist, was der Server liefert: `/api/payments/packages` gibt
+      // nur Pakete mit Status `live` heraus, und `create-checkout` nimmt auch
+      // nur solche an. Beim Wechsel auf die Websprint-Produkte (L-97,
+      // 23.08.2026) wurden drei Pakete archiviert, waehrend ihre
+      // Verkaufsseiten den Kauf weiter anboten — der Aufruf endete in einem
+      // 400er. Wer einen Kaufknopf zeigt, prueft das hier.
+      //
+      // Bewusst nicht dasselbe wie `preisBekannt`: Das beantwortet „kennen
+      // wir den Preis", nicht „darf das jemand kaufen". Heute faellt beides
+      // zusammen; ein Paket mit Preis, das nicht verkauft wird, wuerde die
+      // beiden trennen.
+      verkaeuflich: Boolean(zeile),
     };
   });
 }

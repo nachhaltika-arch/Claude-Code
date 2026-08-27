@@ -13,6 +13,18 @@ export default function Newsletter() {
   const [activeTab, setActiveTab] = useState('campaigns');
   const [campaigns, setCampaigns] = useState([]);
   const [lists, setLists] = useState([]);
+
+  /**
+   * Der Versand (26.08.2026, L-105). `POST /campaigns/{id}/send` gibt es
+   * seit jeher und wurde **von nirgendwo** gerufen: Ein Rundbrief liess
+   * sich schreiben, listen und loeschen — nur nicht verschicken.
+   *
+   * `versand` traegt die Kampagne, die gerade abgeschickt werden soll,
+   * samt gewaehlten Listen. Erst der zweite Klick sendet; ein Rundbrief
+   * geht an alle Empfaenger einer Liste und laesst sich nicht zurueckholen.
+   */
+  const [versand, setVersand] = useState(null);
+  const [versandLaeuft, setVersandLaeuft] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -59,6 +71,26 @@ export default function Newsletter() {
   const openStats = (id) => setSelectedCampaignId(id);
 
   // ── Delete ──────────────────────────────────────────────────────
+
+  const sendeKampagne = async () => {
+    if (!versand?.listIds?.length) return;
+    setVersandLaeuft(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/newsletter/campaigns/${versand.campaign.id}/send`, {
+        method: 'POST', headers: mkH(),
+        body: JSON.stringify({ list_ids: versand.listIds }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.detail || `Status ${r.status}`);
+      toast.success('Rundbrief ist raus.');
+      setVersand(null);
+      fetchCampaigns();
+    } catch (e) {
+      toast.error(`Versand fehlgeschlagen: ${e.message}`);
+    } finally {
+      setVersandLaeuft(false);
+    }
+  };
 
   const deleteCampaign = async (id) => {
     if (!window.confirm('Kampagne wirklich loeschen?')) return;
@@ -254,6 +286,17 @@ export default function Newsletter() {
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{fmtDate(c.created_at)}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{fmtDate(c.sent_at)}</div>
               <div style={{ display: 'flex', gap: 4 }}>
+                {/* Senden — nur, solange nichts raus ist (26.08.2026, L-105).
+                  * Eine bereits versandte Kampagne ein zweites Mal zu
+                  * schicken waere kein Knopf, sondern eine Falle. */}
+                {c.status !== 'sent' && (
+                  <button style={iconBtn} title="Rundbrief versenden"
+                    onClick={() => setVersand({ campaign: c, listIds: [] })}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2L7 9M14 2l-4.5 12-2.5-5-5-2.5L14 2z"/>
+                    </svg>
+                  </button>
+                )}
                 {/* Edit */}
                 <button style={iconBtn} title="Bearbeiten" onClick={() => navigate(`/app/newsletter/editor/${c.id}`)}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -275,6 +318,87 @@ export default function Newsletter() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Der Versand — zwei Schritte, und der zweite nennt die Zahl.
+        * Ein Rundbrief geht an alle Empfaenger der gewaehlten Listen und
+        * laesst sich nicht zurueckholen; „Sind Sie sicher?" ohne Gegenstand
+        * liest niemand. */}
+      {versand && (
+        <div role="alertdialog" aria-label="Rundbrief versenden" style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-lg)',
+            padding: '20px 22px', maxWidth: 460, width: '100%',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                „{versand.campaign.title}" versenden
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
+                Betreff: {versand.campaign.subject || '—'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>An welche Listen?</div>
+              {lists.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                  Es gibt noch keine Liste. Legen Sie unter „Listen" eine an
+                  und gleichen Sie sie ab — ohne Empfänger gibt es nichts zu
+                  versenden.
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+                {lists.map(l => (
+                  <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '4px 2px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={versand.listIds.includes(l.id)}
+                      onChange={e => setVersand(v => ({
+                        ...v,
+                        listIds: e.target.checked
+                          ? [...v.listIds, l.id]
+                          : v.listIds.filter(x => x !== l.id),
+                      }))}
+                    />
+                    <span>{l.name}</span>
+                    {typeof l.contact_count === 'number' && (
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                        · {l.contact_count} Empfänger
+                      </span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {versand.listIds.length > 0 && (
+              <div style={{ fontSize: 12, lineHeight: 1.55, padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
+                Der Rundbrief geht an {versand.listIds.length === 1 ? 'eine Liste' : `${versand.listIds.length} Listen`}
+                {' '}und lässt sich nicht zurückholen.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button onClick={() => setVersand(null)} style={{ ...btnPrimary, background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-medium)' }}>
+                Abbrechen
+              </button>
+              <button
+                onClick={sendeKampagne}
+                disabled={versandLaeuft || versand.listIds.length === 0}
+                style={{ ...btnPrimary, opacity: versandLaeuft || versand.listIds.length === 0 ? 0.5 : 1, cursor: versandLaeuft || versand.listIds.length === 0 ? 'default' : 'pointer' }}
+              >
+                {versandLaeuft ? 'Wird versendet …' : 'Jetzt versenden'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

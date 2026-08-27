@@ -4,9 +4,10 @@ import API_BASE_URL from '../../config';
 import { saveJson } from '../../utils/apiRequest';
 import { istEntschieden } from '../../utils/freigabeStand';
 import SeitenTitel from '../../components/ui/SeitenTitel';
+import Projektfreigaben from '../../components/kunde/Projektfreigaben';
 
 export default function Freigaben() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [project, setProject] = useState(null);
   const [freigaben, setFreigaben] = useState({});
   const [loading, setLoading] = useState(true);
@@ -213,6 +214,13 @@ export default function Freigaben() {
           ))}
         </div>
       )}
+      {/* Die elf Freigaben zum Projektablauf (26.08.2026, L-105). Sie
+        * standen bisher nur im Innendienst, wo sie **wir** abgehakt haben —
+        * eine Abnahme, die der Auftragnehmer selbst abhakt, ist keine.
+        * Unter den Inhaltsfreigaben, weil die das taegliche Geschaeft sind
+        * und diese hier den Ablauf begleiten. */}
+      <Projektfreigaben leadId={user?.lead_id} token={token} />
+
     </div>
   );
 }

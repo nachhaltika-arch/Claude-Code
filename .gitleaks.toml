@@ -16,6 +16,23 @@ description = "Historical dev fallback key removed in 7ea99bf — not a real sec
 regexTarget = "match"
 regexes = [
   '''dGhpc2lzYWZha2Vf[A-Za-z0-9+/=]+''',
+  # Erfundener Testwert aus Commit f7dece2 (L-98, 24.08.2026). Er stand in
+  # `tests/test_schluessel_nicht_im_protokoll.py` und pruefte, dass die
+  # Schwaerzung greift — hatte aber die Form eines echten Google-Schluessels
+  # (`AIzaSy…`), und Gitleaks schlug zu Recht an (Lauf 32716902764).
+  #
+  # Im Arbeitsstand ist der Wert bereits ersetzt; er steckt nur noch in der
+  # Historie, und die wird bei jedem Lauf mitgelesen. Deshalb hier, und
+  # deshalb **woertlich** statt als Muster: Diese eine Zeichenkette
+  # verstummt, jede kuenftige `AIzaSy…`-Zeichenkette schlaegt weiter an.
+  '''AIzaSyGEHEIM123''',
+  # Derselbe Fehler, drei Tage spaeter (27.08.2026, Lauf 33050180660): ein
+  # Testpasswort in `tests/test_rolle_mitarbeiter.py` mit Entropie 3.78, das
+  # Gitleaks als `generic-api-key` las. Im Arbeitsstand steht laengst ein
+  # Wert ohne Schluesselform; diese Zeichenkette steckt nur noch im Commit
+  # fbc593d. Woertlich wie oben — der naechste hochentropische Testwert soll
+  # weiter anschlagen.
+  '''einlangesPasswort2026''',
 ]
 # Also allowlist by historical commit hash for belt-and-braces:
 commits = [

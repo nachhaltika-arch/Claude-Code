@@ -44,7 +44,7 @@ function buildTabs(role) {
   if (role === 'kunde') {
     return null; // no tabs for Kunde
   }
-  // nutzer / auditor
+  // mitarbeiter
   return [
     { id: 'mine',     label: 'Meine Kurse' },
     { id: 'customer', label: 'Für Kunden' },

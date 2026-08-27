@@ -8,7 +8,10 @@ import logging
 from datetime import datetime
 
 import httpx
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +23,17 @@ async def _pagespeed_mobil(url: str) -> int:
     vorher steckte der Aufruf mitten in `enrich_lead`.
     """
     try:
-        api_key = pagespeed_api_key()
-        ps_url = (
-            "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-            f"?url={url}&strategy=mobile"
-            + (f"&key={api_key}" if api_key else "")
-        )
+        # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+        # vollstaendige Anfrage-URL (L-98). Diese Stelle war die am besten
+        # versteckte der sechs: Sie baute den Schluessel per f-String in die
+        # Adresse, nicht ueber `params` — und fiel deshalb durch die Suche,
+        # die die anderen fuenf gefunden hat.
         async with httpx.AsyncClient(timeout=12.0) as client:
-            ps_resp = await client.get(ps_url)
+            ps_resp = await client.get(
+                PSI_ENDPOINT,
+                params={"url": url, "strategy": "mobile"},
+                headers=pagespeed_auth_headers(),
+            )
             ps_data = ps_resp.json()
             raw = (ps_data.get("lighthouseResult", {}).get("categories", {})
                    .get("performance", {}).get("score", 0))

@@ -18,10 +18,17 @@ from typing import Any, Dict, Optional
 MODUS_KUNDE = "kunde"
 MODUS_TEAM = "team"
 
-# `auditor` ist im Backend nicht abgegrenzt (`require_auditor` ist definiert,
-# aber an keiner Route eingehängt) — § 2.1 der Anforderungen nennt das als offen.
-# Bis das entschieden ist, gilt die engere Sicht. Wer mehr sehen soll, wird hier
-# ausdrücklich eingetragen.
+# **Entschieden am 27.08.2026, und die Antwort bleibt dieselbe.** Bis dahin
+# stand hier, `auditor` sei im Backend nicht abgegrenzt (§ 2.1 der
+# Anforderungen), deshalb gelte vorerst die engere Sicht. Die Rolle gibt es
+# nicht mehr; an ihrer Stelle steht `mitarbeiter` — und die bleibt draußen,
+# jetzt aus einem Grund statt aus Unentschiedenheit:
+#
+# Die Teamsicht öffnet Marge, Stundensatz, KI-Kosten und geleistete Stunden.
+# Genau das sind Abrechnungsdaten, und `mitarbeiter` hat weder `view_billing`
+# noch `manage_billing` — David hat das bei der Zusammenlegung ausdrücklich so
+# entschieden. Eine Rolle, die die Rechnung nicht sehen darf, soll sie nicht
+# über den Assistenten erzählt bekommen.
 ROLLEN_MIT_TEAMSICHT = frozenset({"admin", "superadmin"})
 
 # ── Die Freigabelisten ──────────────────────────────────────────────────

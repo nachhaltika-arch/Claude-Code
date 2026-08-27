@@ -14,7 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from database import get_db, GeoAnalysis, Project
-from routers.auth_router import require_any_auth, require_admin, require_innendienst
+from routers.auth_router import (get_current_user, require_any_auth,
+                                 require_admin, require_innendienst)
 
 logger = logging.getLogger(__name__)
 # **Die Sperre haengt am Router (L-67, 22.08.2026).** Die fuenf Routen hier
@@ -169,6 +170,44 @@ def get_geo_result(
         "updated_at": analysis.updated_at.isoformat() if analysis.updated_at else None,
         "error_message": analysis.error_message,
     }
+
+
+# ── Der Kunde sieht seinen Wert (26.08.2026, L-95) ───────────────────
+#
+# `components/GeoReport.jsx` war fuer genau das gebaut — und von niemandem
+# importiert. GEO wird verkauft und war nirgends ausgeliefert.
+#
+# **Eigener Router, eigene Auskunft.** `/api/geo` liegt vollstaendig hinter
+# `require_innendienst`, und dort steht mehr als der Wert: Rohdaten der
+# Analyse, Upsell-Status, Monitoring-Schalter, `admin/run-monitoring-now`.
+kunden_router = APIRouter(prefix="/api/geo/mein", tags=["geo-kunde"])
+
+#: Was der Kunde von seinem Ergebnis sieht. Die Komponente sagt es selbst:
+#: „Score, Bedeutung und was gemacht wird — **KEINE technischen Details**".
+#: Draussen bleiben `raw_checks` (die Rohpruefungen), `upsell_active` und
+#: `upsell_price` (unser Vertrieb) und `error_message` (unser Betrieb).
+FUER_DEN_KUNDEN = (
+    "status", "geo_score_total", "llms_txt_score", "robots_ai_score",
+    "structured_data_score", "content_depth_score", "local_signal_score",
+    "recommendations", "updated_at",
+)
+
+
+@kunden_router.get("/{project_id}/result")
+def geo_ergebnis_des_kunden(project_id: int, db: Session = Depends(get_db),
+                            current_user=Depends(get_current_user)):
+    """Der GEO-Wert des eigenen Projekts — verkuerzt.
+
+    Die Eigentumspruefung steht in `eigenes_projekt_pruefen`: Die
+    Projektnummer ist eine fortlaufende Zahl, und hochzuzaehlen ist der
+    naheliegendste Angriff.
+    """
+    from routers.projects_helfer import eigenes_projekt_pruefen
+
+    eigenes_projekt_pruefen(db, project_id, current_user)
+
+    voll = get_geo_result(project_id, db=db)
+    return {feld: voll.get(feld) for feld in FUER_DEN_KUNDEN}
 
 
 @router.patch("/{project_id}/upsell")
@@ -424,6 +463,29 @@ async def pruefe_ki_sichtbarkeit_endpunkt(
     db.commit()
 
     return {**befund, "verlauf_laenge": len(analyse.ki_sichtbarkeit_verlauf or [])}
+
+
+@router.get("/{project_id}/wirkungsbericht")
+def wirkungsbericht(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_innendienst),
+):
+    """Der Vergleich 60 Tage nach der Auslieferung (GEO-01, Position 7).
+
+    Rechnet nur auf vorhandenen Daten — er kostet nichts und darf deshalb
+    jederzeit abgerufen werden. Ist es zu frueh, sagt er das, statt eine
+    Wirkung aus zwei Messpunkten zu behaupten.
+    """
+    from services.geo_wirkungsbericht import baue_wirkungsbericht, klartext
+
+    analyse = db.query(GeoAnalysis).filter(
+        GeoAnalysis.project_id == project_id).first()
+    if not analyse:
+        raise HTTPException(404, "Fuer dieses Projekt gibt es keine GEO-Analyse")
+
+    bericht = baue_wirkungsbericht(analyse)
+    return {**bericht, "klartext": klartext(bericht)}
 
 
 @router.get("/{project_id}/ki-sichtbarkeit/verlauf")

@@ -22,6 +22,8 @@ import LeadProfile from './pages/LeadProfile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import MeineDaten from './pages/MeineDaten';
+import MeinBriefing from './pages/MeinBriefing';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
 import Settings from './pages/Settings';
@@ -29,6 +31,7 @@ import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
+import EmailBestaetigen from './pages/EmailBestaetigen';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -43,6 +46,7 @@ import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
+import KampagneLandingPage from './pages/KampagneLandingPage';
 import PaketSeite from './pages/PaketSeite';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
@@ -180,6 +184,12 @@ function App() {
           <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          {/* Das Ziel des Links aus der Bestaetigungsmail. Der Endpunkt
+              dahinter gab es seit jeher, mit keinem einzigen Aufrufer
+              (27.08.2026). Nicht `PublicRoute`: Wer angemeldet ist und den
+              Link aus seinem Postfach oeffnet, wuerde sonst weggeleitet,
+              ohne dass seine Adresse je bestaetigt wird. */}
+          <Route path="/e-mail-bestaetigen" element={<EmailBestaetigen />} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />
@@ -209,6 +219,13 @@ function App() {
             * Oeffentlich und ohne Anmeldung: Wer kaufen will, hat noch kein
             * Konto. Das Konto entsteht erst beim Zahlungseingang
             * (`_handle_successful_payment`). */}
+          {/* Kampagnen-Landingpage (L-95). Die Seite lag seit Monaten im
+              Baum, ohne dass eine Route hinfuehrte — waehrend ihr
+              Gegenstueck `POST /api/kampagne/audit-anfrage` produktiv und
+              ohne Anmeldung erreichbar war. Der Slug wird als
+              `utm_source`/`utm_campaign` mitgeschickt, wenn die Adresse
+              keine eigenen UTM-Parameter traegt. */}
+          <Route path="/kampagne/:slug"    element={<KampagneLandingPage />} />
           <Route path="/paket/:slug"       element={<PaketSeite />} />
           <Route path="/checkout"          element={<Checkout />} />
           <Route path="/checkout/success"  element={<CheckoutSuccess />} />
@@ -235,7 +252,7 @@ function App() {
           <Route
             path="/app/projects/:id"
             element={
-              <PrivateRoute roles={['admin', 'auditor']}>
+              <PrivateRoute roles={['admin', 'mitarbeiter']}>
                 <OnlineFertigEditor />
               </PrivateRoute>
             }
@@ -243,20 +260,22 @@ function App() {
           <Route
             path="/app/projects/:id/online-fertig"
             element={
-              <PrivateRoute roles={['admin', 'auditor']}>
+              <PrivateRoute roles={['admin', 'mitarbeiter']}>
                 <OnlineFertigEditor />
               </PrivateRoute>
             }
           />
 
-          {/* App — authenticated, with Navbar/Sidebar */}
+          {/* Der angemeldete Bereich — Rahmen und Navigation liegen in `AppLayout`.
+            * (Hier stand „with Navbar/Sidebar"; `Navbar.jsx` war seit Langem
+            * abgeloest und ist am 26.08.2026 entfernt.) */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
             {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
-            <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
+            <Route path="deals" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Deals /></PrivateRoute>} />
             <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
@@ -264,20 +283,20 @@ function App() {
             {/* Betriebe — das Objekt heisst seit 2026-08-16 ueberall so, auch
               * in der Adresszeile. Die alten Adressen leiten weiter: Es gibt
               * Lesezeichen, geteilte Links und Mails, die darauf zeigen. */}
-            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Betriebe /></PrivateRoute>} />
-            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Betriebe /></PrivateRoute>} />
+            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><LeadProfile /></PrivateRoute>} />
             <Route path="companies" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
             {/* Die Projektpipeline lag unter /app/leads und zeigte Projekte.
               * Das Menue war richtig beschriftet, die Adresse nicht — was
               * genuegte, um bei der Pruefung am 16.08. einen Fehlbefund zu
               * erzeugen. Jetzt heisst die Adresse, was sie liefert. */}
-            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'auditor']}><Projektpipeline /></PrivateRoute>} />
+            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Projektpipeline /></PrivateRoute>} />
             <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
             <Route path="leads/:leadId" element={<LeadRedirect />} />
-            <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
-            <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
+            <Route path="projects" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><CustomerProjects /></PrivateRoute>} />
+            <Route path="checklists" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Checklists /></PrivateRoute>} />
+            <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Checklists /></PrivateRoute>} />
             {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere
               * Gestaltung, aber ohne Menueeintrag und mit nur 50 der 61
               * Betriebe, weil das `limit` fehlte. Zusammengelegt am 2026-08-17;
@@ -286,16 +305,36 @@ function App() {
               * anderes als die Liste. */}
             <Route path="customers" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
-            <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
+            <Route path="import" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><DomainImport /></PrivateRoute>} />
             <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
-            <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
+            <Route path="export" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><MassExport /></PrivateRoute>} />
             {/* Ruft `/api/leads`, das am Router auf Innendienst steht — ein Kunde
               * saehe hier nur leere Listen und Fehler (L-67). */}
-            <Route path="audit" element={<PrivateRoute roles={['admin', 'auditor']}><AuditTool /></PrivateRoute>} />
+            <Route path="audit" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><AuditTool /></PrivateRoute>} />
+            {/* Die Stammdaten des eigenen Betriebs (26.08.2026). „Meine
+              * Kartei" zeigte bis dahin auf `/app/betriebe/{id}` — eine Route
+              * mit `roles={['admin','mitarbeiter']}`, von der `PrivateRoute` einen
+              * Kunden auf sein Dashboard zurueckwirft. Der Punkt fuehrte ins
+              * Nichts. Der Innendienst darf mit, um im Zweifel dasselbe zu
+              * sehen wie der Kunde. */}
+            {/* Das Briefing, vom Kunden ausgefuellt (26.08.2026). Bis dahin
+              * lag der ganze Briefing-Router hinter `require_innendienst`;
+              * der Kunde durfte nur zustimmen, was jemand anderes eingetragen
+              * hatte (L-27). Was ins Briefing gehoert, weiss aber der Betrieb. */}
+            <Route path="mein-briefing" element={
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'mitarbeiter']}>
+                <MeinBriefing />
+              </PrivateRoute>
+            } />
+            <Route path="meine-daten" element={
+              <PrivateRoute roles={['kunde', 'admin', 'superadmin', 'mitarbeiter']}>
+                <MeineDaten />
+              </PrivateRoute>
+            } />
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
-            <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
+            <Route path="tickets" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
@@ -323,8 +362,8 @@ function App() {
               * Designer ruft `POST /api/messages/send-email`. Der Server sperrt
               * das seit demselben Tag; hier steht es, damit niemand auf einer
               * Seite landet, die ihm nur Fehler zeigt. */}
-            <Route path="newsletter" element={<PrivateRoute roles={['admin', 'auditor']}><Newsletter /></PrivateRoute>} />
-            <Route path="newsletter/editor/:id" element={<PrivateRoute roles={['admin', 'auditor']}><NewsletterDesigner /></PrivateRoute>} />
+            <Route path="newsletter" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><Newsletter /></PrivateRoute>} />
+            <Route path="newsletter/editor/:id" element={<PrivateRoute roles={['admin', 'mitarbeiter']}><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
@@ -351,7 +390,7 @@ function App() {
             {/* `m-vertrieb` war eine zweite Adresse fuer denselben Bildschirm,
               * von nirgends verlinkt — entfernt am 18.08.2026. Die Mobilleiste
               * fuehrt auf `/app/vertrieb`. */}
-            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','mitarbeiter']}><MobileVertrieb /></PrivateRoute>} />
             {/* `m-leads`, `m-projekte` und `m-settings` standen hier, ohne dass
               * irgendetwas auf sie zeigte — und sie doppelten, was es schon
               * gibt: `/app/settings` rendert eine eigene Mobilansicht, die

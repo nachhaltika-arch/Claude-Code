@@ -15,6 +15,7 @@ from sqlalchemy import text
 
 from database import get_db
 from routers.auth_router import get_current_user, require_admin, require_innendienst
+from services.rollen import ist_innendienst
 from services.base_urls import api_base_url
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ async def upload_file(
     dest.write_bytes(content)
 
     # Determine uploader role
-    uploaded_by_role = "admin" if getattr(current_user, "role", "") in ("admin", "auditor") else "kunde"
+    uploaded_by_role = "admin" if ist_innendienst(getattr(current_user, "role", "")) else "kunde"
 
     # Insert DB record
     db.execute(text("""
@@ -332,6 +333,78 @@ def delete_file(
     logger.info(f"✓ Datei gelöscht: {original_filename} (id={file_id}, admin={current_user.id})")
 
     return {"deleted": True, "id": file_id}
+
+
+# ── Der angemeldete Kunde (26.08.2026) ────────────────────────
+#
+# **Warum ein eigener Router und nicht eine gelockerte Sperre.** Die Routen
+# oben fuehren die Dateien **aller** Betriebe — Vertraege, Angebote,
+# Zugangsdaten. `GET /{lead_id}` listete sie bis zum 22.08. fuer jeden
+# Angemeldeten auf (L-67). Diese drei hier tragen die Eigentumspruefung
+# selbst und nehmen dem Innendienst nichts.
+#
+# **Warum ueberhaupt:** Zum Briefing gehoeren Logo, Fotos und Unterlagen.
+# Den Weg gab es fuer den Innendienst und fuer das QR-Portal (Token) — nur
+# nicht fuer den Kunden, der sich anmeldet. Einen Token hat er nicht in der
+# Hand, und er gehoerte auch nicht in eine Adresszeile.
+kunden_router = APIRouter(prefix="/api/files/mein", tags=["files-kunde"])
+
+
+def _eigener_betrieb(lead_id: int, current_user):
+    from services.rechte import gehoert_zum_innendienst
+
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
+
+
+@kunden_router.post("/{lead_id}/upload")
+async def kunde_datei_hochladen(
+    lead_id: int,
+    file: UploadFile = File(...),
+    file_type: str = Form(default="sonstiges"),
+    note: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Eine Datei zum eigenen Betrieb.
+
+    Dateityp und Groesse pruefe **nicht ich**, sondern `upload_file` — eine
+    Grenze, die nur an einer von drei Tueren haengt, ist keine.
+    """
+    _eigener_betrieb(lead_id, current_user)
+    return await upload_file(lead_id, file=file, file_type=file_type, note=note,
+                             db=db, current_user=current_user)
+
+
+@kunden_router.get("/{lead_id}")
+def kunde_dateien_auflisten(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Die Dateien des eigenen Betriebs — auch die, die der Innendienst
+    beigesteuert hat; `uploaded_by_role` sagt, von wem sie kommt."""
+    _eigener_betrieb(lead_id, current_user)
+    return list_files(lead_id, db=db, current_user=current_user)
+
+
+@kunden_router.get("/download/{file_id}")
+def kunde_datei_herunterladen(
+    file_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """**Die Pruefung haengt hier an der Datei, nicht am Pfad.** Die
+    Dateikennung ist eine fortlaufende Zahl, und der Pfad nennt keinen
+    Betrieb — hochzuzaehlen waere sonst der naheliegendste Angriff."""
+    zeile = db.execute(text("SELECT lead_id FROM project_files WHERE id = :id"),
+                       {"id": file_id}).fetchone()
+    if not zeile:
+        raise HTTPException(status_code=404, detail="Datei nicht gefunden")
+
+    _eigener_betrieb(zeile[0], current_user)
+    return download_file(file_id, db=db, current_user=current_user)
 
 
 # ── Portal endpoints (no JWT — authenticated via portal token) ─

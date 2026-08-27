@@ -1,6 +1,19 @@
 /**
  * GeoReport — vereinfachte Ansicht fuer das Kundenportal.
  * Kunde sieht Score, Bedeutung und was gemacht wird — KEINE technischen Details.
+ *
+ * **Angeschlossen am 26.08.2026 (L-95).** Diese Datei stand seit ihrer
+ * Entstehung im Quellbaum und wurde von **niemandem** importiert — gebaut,
+ * nie verdrahtet. Die Lueckenliste fuehrt daneben „GEO/GAIO wird verkauft,
+ * aber nicht ausgeliefert": Der Wert wurde berechnet, monatlich ueberwacht,
+ * und der Kunde, der dafuer zahlt, sah ihn nirgends.
+ *
+ * **Sie ruft jetzt `/api/geo/mein/{id}/result`.** Der alte Pfad
+ * `/api/geo/{id}/result` liegt hinter `require_innendienst` — ein Kunde
+ * bekam dort zuverlaessig 403. Der Kundenweg gibt ausserdem **weniger**
+ * heraus: keine Rohpruefungen, keinen Upsell-Preis, keine Betriebsfehler.
+ * Das steht im Server, nicht in diesem Bildschirm; was die Antwort traegt,
+ * ist im Netzwerkprotokoll zu lesen, egal was die Oberflaeche damit macht.
  */
 
 import { useState, useEffect } from 'react';
@@ -21,16 +34,15 @@ const LEVEL_INFO = (score) => {
   };
 };
 
-export default function GeoReport({ projectId, customerToken }) {
+export default function GeoReport({ projectId, customerToken, token }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!projectId) return;
-    const headers = customerToken
-      ? { Authorization: `Bearer ${customerToken}` }
-      : {};
-    fetch(`${API_BASE_URL}/api/geo/${projectId}/result`, { headers })
+    const schluessel = token || customerToken;
+    const headers = schluessel ? { Authorization: `Bearer ${schluessel}` } : {};
+    fetch(`${API_BASE_URL}/api/geo/mein/${projectId}/result`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));

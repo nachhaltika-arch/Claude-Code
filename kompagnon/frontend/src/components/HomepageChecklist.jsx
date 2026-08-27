@@ -4,7 +4,7 @@ const CHECKLIST = [
   {
     area: 'Compliance', icon: '⚖️', color: 'var(--status-danger-text)', bg: 'var(--status-danger-bg)',
     items: [
-      { id: 'impressum', label: 'Impressum', desc: 'Name, Adresse, Telefon, E-Mail — max. 2 Klicks erreichbar', law: 'TMG §5', critical: true, auditField: 'rc_impressum', maxScore: 6 },
+      { id: 'impressum', label: 'Impressum', desc: 'Name, Adresse, Telefon, E-Mail — max. 2 Klicks erreichbar', law: 'DDG §5', critical: true, auditField: 'rc_impressum', maxScore: 6 },
       { id: 'datenschutz', label: 'Datenschutzerklaerung', desc: 'Erklaert welche Daten gesammelt werden und warum', law: 'DSGVO', critical: true, auditField: 'rc_datenschutz', maxScore: 6 },
       { id: 'cookie', label: 'Cookie-Banner', desc: 'Aktive Einwilligung bei nicht-technischen Cookies', law: 'TDDDG', critical: true, auditField: 'rc_cookie', maxScore: 6 },
       { id: 'agb', label: 'AGB & Widerrufsbelehrung', desc: 'Nur bei Online-Shops / E-Commerce', law: 'BGB §355', critical: false, auditField: 'rc_ecommerce', maxScore: 3 },
@@ -26,7 +26,7 @@ const CHECKLIST = [
       { id: 'logo', label: 'Logo + Firmenname im Header', desc: 'Nutzer muessen in 3 Sek. wissen wo sie sind', law: 'UX Standard', critical: true, auditField: 'ux_erstindruck', maxScore: 2 },
       { id: 'nav', label: 'Hauptnavigation', desc: 'Max. 5-7 Punkte, mobil als Hamburger-Menue', law: 'UX Standard', critical: true, auditField: 'ux_navigation', maxScore: 2 },
       { id: 'hero', label: 'Hero-Bereich', desc: 'Ueberschrift, Kernbotschaft und CTA-Button above the fold', law: 'Conversion', critical: true, auditField: 'ux_erstindruck', maxScore: 2 },
-      { id: 'footer', label: 'Footer', desc: 'Impressum, Datenschutz, Kontakt auf jeder Seite', law: 'TMG + UX', critical: true, auditField: 'rc_impressum', maxScore: 6 },
+      { id: 'footer', label: 'Footer', desc: 'Impressum, Datenschutz, Kontakt auf jeder Seite', law: 'DDG + UX', critical: true, auditField: 'rc_impressum', maxScore: 6 },
       { id: 'contact_header', label: 'Kontakt sichtbar im Header', desc: 'Telefonnummer oder Button direkt im Header-Bereich', law: 'UX Standard', critical: true, auditField: 'ux_kontakt', maxScore: 1 },
     ],
   },
@@ -146,7 +146,7 @@ export default function HomepageChecklist({ auditData }) {
       })}
 
       <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span>ℹ️</span> Basierend auf TMG, DSGVO, WCAG 2.1 und Google Core Web Vitals. Stand: 2025.
+        <span>ℹ️</span> Basierend auf DDG, DSGVO, WCAG 2.1 und Google Core Web Vitals. Stand: 2026.
       </div>
     </div>
   );

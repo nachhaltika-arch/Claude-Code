@@ -15,6 +15,44 @@ class MarginCalculator:
     DEFAULT_AI_COSTS = 50.0  # €
     TARGET_MARGIN_PERCENT = 78
     MIN_ACCEPTABLE_MARGIN_PERCENT = 70
+
+    #: Der Status, wenn noch keine Arbeitszeit erfasst ist.
+    #:
+    #: **Warum es ihn gibt (26.08.2026).** Beim Anschliessen von `MarginBadge`
+    #: fiel auf: `actual_hours` ist an **jedem** Projekt 0, `time_tracking` ist
+    #: leer, und **keine Oberflaeche ruft `POST /api/projects/{id}/time`**
+    #: (L-105). Die Marge rechnet damit den Festpreis minus Werkzeugkosten und
+    #: kommt ueberall auf ~97,5 % — eine Zahl, die aussieht wie eine Messung
+    #: und keine ist.
+    #:
+    #: Ein gruenes Abzeichen darueber waere schlimmer als keines: Es behauptet
+    #: einen Deckungsbeitrag, den niemand geprueft hat. „Unbekannt" ist die
+    #: ehrliche Auskunft, und am Anfang eines Projekts ist sie auch die
+    #: richtige — da **weiss** man die Marge noch nicht.
+    UNBEKANNT = "unbekannt"
+
+    @staticmethod
+    def status_fuer(margin_percent: float, stunden: float = None) -> str:
+        """Gruen, gelb oder rot — die Schwellen an **einer** Stelle.
+
+        **Warum das ein eigener Aufruf ist (26.08.2026).** Die Marge wird
+        taeglich gerechnet und war nirgends zu sehen; `MarginBadge.jsx` lag
+        gebaut und unverdrahtet im Quellbaum (L-95). Beim Anschliessen war die
+        naheliegende Abkuerzung, die beiden Schwellen im Frontend nachzubauen
+        — und genau das ist die zweite Quelle fuer dieselbe Zahl, die dieses
+        Haus bei den Paketpreisen schon einmal Geld gekostet hat. Der Status
+        kommt jetzt vom Server; hier steht er einmal.
+        """
+        # `None` heisst „nicht gefragt" — der Rechner selbst kennt seine
+        # Stunden und uebergibt sie; die Projektliste ebenso.
+        if stunden is not None and (stunden or 0) <= 0:
+            return MarginCalculator.UNBEKANNT
+
+        if margin_percent >= MarginCalculator.TARGET_MARGIN_PERCENT:
+            return "green"
+        if margin_percent >= MarginCalculator.MIN_ACCEPTABLE_MARGIN_PERCENT:
+            return "yellow"
+        return "red"
     TARGET_HOURS = 8.5  # hours (total project target)
 
     @staticmethod
@@ -75,15 +113,8 @@ class MarginCalculator:
         hours_remaining_at_min = max(0, hours_remaining_at_min)
 
         # Status determination
-        if margin_percent >= MarginCalculator.TARGET_MARGIN_PERCENT:
-            status = "green"
-            alert = False
-        elif margin_percent >= MarginCalculator.MIN_ACCEPTABLE_MARGIN_PERCENT:
-            status = "yellow"
-            alert = False
-        else:
-            status = "red"
-            alert = True
+        status = MarginCalculator.status_fuer(margin_percent, human_hours)
+        alert = status == "red"
 
         # Additional alert if:
         # - Hours exceed target by > 1 hour (8.5h target)

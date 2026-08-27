@@ -1,0 +1,401 @@
+KOMPAGNON<font color="0xfae600">.</font><font size="8" color="0xffffff">&nbsp;&nbsp;HOMEPAGE STANDARD</font>
+HOMEPAGE STANDARD
+Audit- und Zertifizierungsrahmen 2026
+100<font size="20" color="0x4a5a5c"> / 100</font>
+<font color="0xffffff"><b>Homepage Standard Platin</b></font>
+<b>Muster GmbH</b>
+<font color="0x4a5a5c">https://muster.de</font>
+<font color="0x4a5a5c">Auditdatum: 15.01.2026<br/>Auditor: KOMPAGNON Communications</font>
+Rechtliche Grundlagen
+Die folgenden Gesetze und Standards bilden die Grundlage für die Bewertung.
+Rechtsgrundlage
+Pflicht seit
+Betrifft
+Risiko
+DDG § 5 – Impressumspflicht
+seit 14.05.2024 (zuvor TMG § 5)
+Alle komm. Websites
+Abmahnung bis 50.000 €
+DSGVO – Datenschutz
+25.05.2018
+Websites mit EU-Besuchern
+Bußgeld bis 20 Mio €
+TDDDG §25 – Cookie
+2021/2023
+Websites mit Tracking
+Bußgeld, Abmahnungen
+BFSG – Barrierefreiheit
+28.06.2025
+Private Anbieter
+Marktaufsicht, Bußgeld
+WCAG 2.1 Level AA
+laufend
+Technische Umsetzung
+Grundlage BFSG
+Google Core Web Vitals
+Mai 2021
+Alle Websites
+Sichtbarkeitsverlust
+<font color="0x004f59"><b>Hinweis zum BFSG:</b></font> Ab dem 28. Juni 2025 gilt das Barrierefreiheitsstärkungsgesetz (BFSG) auch für private Anbieter digitaler Produkte und Dienstleistungen. Websites müssen die WCAG 2.1 Level AA Kriterien erfüllen.
+Bewertungsmatrix
+ID
+Prüfbereich
+Quelle
+Max.
+Ist
+Status
+<b>Recht & Compliance (max. 20 Pkt.)</b>
+<b>20 / 20</b>
+RC-01
+Impressum (§ 5 DDG)
+gemessen
+6
+6
+erfüllt
+RC-02
+Datenschutzerklärung (DSGVO)
+gemessen
+6
+6
+erfüllt
+RC-03
+Cookie-Consent (TDDDG)
+gemessen
+4
+4
+erfüllt
+RC-04
+Barrierefreiheitserklärung (BFSG)
+gemessen
+2
+2
+erfüllt
+RC-05
+Formular DSGVO-konform
+gemessen
+2
+2
+erfüllt
+<b>Sicherheit & Datenschutz (max. 10 Pkt.)</b>
+<b>10 / 10</b>
+SI-01
+TLS-Zertifikat gültig
+gemessen
+3
+3
+erfüllt
+SI-02
+HTTP->HTTPS erzwungen
+gemessen
+2
+2
+erfüllt
+SI-03
+Security-Header
+gemessen
+3
+3
+erfüllt
+SI-04
+Drittanbieter ohne Einwilligung
+gemessen
+2
+2
+erfüllt
+<b>Performance & Core Web Vitals (max. 15 Pkt.)</b>
+<b>15 / 15</b>
+TP-01
+LCP (Ladezeit Hauptinhalt)
+gemessen
+4
+4
+erfüllt
+TP-02
+CLS (Layout-Stabilität)
+gemessen
+3
+3
+erfüllt
+TP-03
+INP (Interaktionszeit)
+gemessen
+2
+2
+erfüllt
+TP-04
+Mobile-Performance
+gemessen
+3
+3
+erfüllt
+TP-05
+Bildoptimierung
+gemessen
+3
+3
+erfüllt
+<b>Barrierefreiheit (WCAG/BFSG) (max. 10 Pkt.)</b>
+<b>10 / 10</b>
+BF-01
+Lighthouse-Accessibility-Score
+gemessen
+3
+3
+erfüllt
+BF-02
+Farbkontraste (WCAG AA)
+gemessen
+2
+2
+erfüllt
+BF-03
+Alt-Texte der Inhaltsbilder
+gemessen
+2
+2
+erfüllt
+BF-04
+Semantik & Struktur
+gemessen
+2
+2
+erfüllt
+BF-05
+Tastaturbedienung
+gemessen
+1
+1
+erfüllt
+<b>SEO & Auffindbarkeit (max. 18 Pkt.)</b>
+<b>18 / 18</b>
+SE-01
+Title & Meta-Description
+gemessen
+3
+3
+erfüllt
+SE-02
+Überschriften & Content-Tiefe
+gemessen
+2
+2
+erfüllt
+SE-03
+Indexierbarkeit
+gemessen
+3
+3
+erfüllt
+SE-04
+Strukturierte Daten
+gemessen
+3
+3
+erfüllt
+SE-05
+Lokale Signale
+gemessen
+3
+3
+erfüllt
+SE-06
+Keine defekten Links
+gemessen
+1
+1
+erfüllt
+SE-07
+Lesbarkeit für KI-Systeme
+gemessen
+3
+3
+erfüllt
+<b>Design & Gestaltung (max. 10 Pkt.)</b>
+<b>10 / 10</b>
+DG-01
+Visuelle Aktualität
+gemessen
+3
+3
+erfüllt
+DG-02
+Typografie & Lesbarkeit
+gemessen
+2
+2
+erfüllt
+DG-03
+Farbsystem & Konsistenz
+gemessen
+2
+2
+erfüllt
+DG-04
+Bildqualität & Authentizität
+gemessen
+2
+2
+erfüllt
+DG-05
+Mobile Darstellung
+gemessen
+1
+1
+erfüllt
+<b>Conversion & Nutzerführung (max. 15 Pkt.)</b>
+<b>15 / 15</b>
+CV-01
+Klarheit above the fold
+gemessen
+3
+3
+erfüllt
+CV-02
+Primär-CTA
+gemessen
+3
+3
+erfüllt
+CV-03
+Kontaktwege
+gemessen
+3
+3
+erfüllt
+CV-04
+Vertrauenssignale
+gemessen
+3
+3
+erfüllt
+CV-05
+Angebots-Klarheit
+gemessen
+3
+3
+erfüllt
+<b>Inhalt & Substanz (max. 5 Pkt.)</b>
+<b>5 / 5</b>
+IH-01
+Eigene Leistungsseiten
+gemessen
+2
+2
+erfüllt
+IH-02
+Aktualität
+gemessen
+1
+1
+erfüllt
+IH-03
+Textqualität
+gemessen
+2
+2
+erfüllt
+<font color="0xffffff"><b>GESAMTERGEBNIS</b></font>
+100
+<font color="0xffffff"><b>100</b></font>
+Legende: <font color="0x00875a"><b>erfüllt</b></font> konform &nbsp;·&nbsp; <font color="0xa86800"><b>teils</b></font> teilweise konform &nbsp;·&nbsp; <font color="0xc0392b"><b>offen</b></font> nicht konform &nbsp;·&nbsp; „nicht erhoben" fließt nicht in die Bewertung ein
+Auditprotokoll
+Website-URL
+https://muster.de
+Auftraggeber / Unternehmen
+Muster GmbH
+Branche
+Heizung
+Stadt
+Bochum
+Auditdatum
+15.01.2026
+Auditor/in
+KOMPAGNON Communications
+Audittyp
+Erst-Audit
+Technische Prüfergebnisse
+Prüfung
+Ergebnis
+SSL-Zertifikat
+Nicht vorhanden
+HTTPS aktiv
+Nein
+Mobile-Score
+0 / 100
+LCP
+k.A.
+CLS
+k.A.
+Prüfergebnis je Kategorie
+Kategorie
+Ergebnis
+Recht & Compliance (max. 20)
+20 / 20
+Sicherheit & Datenschutz (max. 10)
+10 / 10
+Performance & Core Web Vitals (max. 15)
+15 / 15
+Barrierefreiheit (WCAG/BFSG) (max. 10)
+10 / 10
+SEO & Auffindbarkeit (max. 18)
+18 / 18
+Design & Gestaltung (max. 10)
+10 / 10
+Conversion & Nutzerführung (max. 15)
+15 / 15
+Inhalt & Substanz (max. 5)
+5 / 5
+GESAMTERGEBNIS (normiert)
+100 / 100
+Zielerreichung je Bereich
+Keyword-Positionen werden in dieser Analyse nicht erhoben.
+Maßnahmen & Empfehlungen
+<font color="0xc0392b"><b>Kritische Mängel</b></font>
+Nr.
+Mangel
+1
+Kein Problem gefunden
+<font color="0x00875a"><b>Empfehlungen</b></font>
+Prio.
+Maßnahme
+hoch
+Weiter so
+Bewertung durch KOMPAGNON
+Sehr gute Website.
+GEO & KI-Sichtbarkeit
+KI-Suchsysteme wie ChatGPT, Google AI Overview oder Perplexity crawlen Websites nach eigenen Regeln. Die folgenden Prüfpunkte zeigen, wie gut die Website für diese neuen Sichtbarkeitskanäle aufgestellt ist.
+Prüfpunkt
+Status
+Empfehlung
+llms.txt vorhanden
+<font color="0x4a5a5c"><b>nicht erhoben</b></font>
+<font color="0x4a5a5c">Nicht Teil dieser Analyse</font>
+robots.txt KI-freundlich
+<font color="0x4a5a5c"><b>nicht erhoben</b></font>
+<font color="0x4a5a5c">Nicht Teil dieser Analyse</font>
+Strukturierte Daten
+<font color="0x4a5a5c"><b>nicht erhoben</b></font>
+<font color="0x4a5a5c">Nicht Teil dieser Analyse</font>
+KI-Erwähnungen
+<font color="0x4a5a5c"><b>nicht erhoben</b></font>
+<font color="0x4a5a5c">Nicht Teil dieser Analyse</font>
+Google AI Overview
+<font color="0x4a5a5c"><b>nicht erhoben</b></font>
+<font color="0x4a5a5c">Nicht Teil dieser Analyse</font>
+<b>Was ist llms.txt?</b> Eine neue Konvention (ähnlich robots.txt) die KI-Systemen mitteilt, welche Inhalte für das Training oder die Antwortgenerierung genutzt werden dürfen. Websites mit llms.txt werden von ChatGPT, Claude & Co. bevorzugt zitiert.
+Maßnahmen-Roadmap
+Basierend auf den Audit-Ergebnissen empfehlen wir folgende Umsetzungsreihenfolge:
+<font color="white"><b>Phase 1 — Quick Wins (Woche 1–2)</b></font>
+• Audit-Score weiter optimieren & Inhalte aktualisieren
+<font color="white"><b>Phase 2 — Mittelfristig (Monat 1–3)</b></font>
+• Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen
+<font color="white"><b>Phase 3 — Langfristig (Monat 3–6)</b></font>
+• Backlink-Aufbau über lokale Verzeichnisse und Branchenportale
+• Google Business Profil optimieren und regelmäßig pflegen
+• KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen
+Zertifizierungsaussage
+<font color="0xffffff"><b>Homepage Standard Platin</b></font>
+Hiermit wird bestätigt, dass die geprüfte Website <b>https://muster.de</b> zum Zeitpunkt des Audits am <b>15.01.2026</b> den Anforderungen des <b>Homepage Standard Platin</b> entspricht und eine Gesamtbewertung von <b>100 / 100 Punkten</b> erzielt hat.
+Ort, Datum
+Auditor/in: KOMPAGNON
+Auftraggeber

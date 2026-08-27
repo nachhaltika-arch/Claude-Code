@@ -544,17 +544,105 @@ Sperre über Prozessgrenzen. Geschlossen über `SCHEDULER_ENABLED` — der liegt
 aber auf `staging`, und Frankfurt baut aus `main`. **Bis zum nächsten Merge
 bleibt der Zustand bestehen.**
 
+### Stand nach dem Merge von PR #45 (23.08., 10:45)
+
+Oregon ist auf `77c8fbb` live, Frankfurt ebenfalls. Zwei Dinge sind damit
+belegt, die vorher nur gegen einen Speicher-Jobstore geprüft waren:
+
+- **Der verwaiste Job ist weg.** `apscheduler_jobs` trug 15 Zeilen mit *zwei*
+  DNS-Prüfungen (10 und 15 Minuten). Nach dem Start mit dem Aufräumcode:
+  **14 Zeilen, eine** DNS-Prüfung. Der Abgleich wirkt am echten Jobstore.
+- **Der Schalter wirkt.** Frankfurt meldet `scheduler_enabled: false`,
+  `scheduler_running: false` — und dabei `startup_complete: true` mit leerem
+  `startup_missing`. Ein abgeschalteter Scheduler wird also **nicht** als
+  ausgefallene Startphase gewertet. Oregon fährt die Jobs weiter.
+
+| | Frankfurt | Oregon |
+|---|---|---|
+| `/health` | ok, 0,18 s | ok, ~2,9 s |
+| Routen | **391, deckungsgleich** | 391 |
+| Scheduler | aus (gewollt) | an |
+
+`scripts/umzug-bereitschaft.sh`: **Alle Prüfungen halten.**
+
+### Der Schritt, der beim Umhängen leicht vergessen wird
+
+Das Bereitschaftsskript wertete `scheduler_running: False` zunächst als
+Fehler und verweigerte die Freigabe — für einen Zustand, den wir absichtlich
+hergestellt haben. Das eigene Werkzeug hätte den Umzug blockiert.
+
+Dahinter steckt aber ein echter Ablaufpunkt, der im Plan fehlte:
+
+> **Beim Umhängen der Domain muss `SCHEDULER_ENABLED` bei Frankfurt entfernt
+> und bei Oregon auf `false` gesetzt werden.**
+
+Sonst fährt produktiv **kein** Scheduler. Das fällt nicht auf: `/health`
+antwortet makellos, alle Routen stimmen, und die Lücke zeigt sich erst, wenn
+wochenlang keine Nachfassmail mehr ankommt. Das Skript weist jetzt darauf hin,
+statt zu blockieren.
+
+## Vollzogen am 23.08.2026, 10:56 UTC
+
+Die Domain `api.kompagnon.group` zeigt auf `kompagnon-backend-fra`.
+
+| Probe | Ergebnis |
+|---|---|
+| `/health` über die Domain | **0,155 s** (vorher 2,5–2,9 s) |
+| Routen | **391, deckungsgleich** mit der Referenz |
+| `/api/dashboard/kpis`, `/api/webhooks/log`, `/api/leads/` | je **401** |
+| `/api/widget/config` | 200 |
+| CORS-Preflight vom Frontend | 200 |
+| Frontend-Bundle | trägt `api.kompagnon.group`, **null** Treffer für `claude-code-znq2` |
+| `RENDER_SERVICE_BACKEND_PROD` | `srv-da30dg3bc2fs73fomi0g` |
+| Scheduler | genau **einer**, auf Frankfurt |
+| Jobs im Store | 14, eine DNS-Prüfung |
+
+### Der Schritt, der beinahe vergessen wurde
+
+Nach dem Umhängen stand der Scheduler **falsch herum**: Frankfurt trug die
+Domain mit `SCHEDULER_ENABLED=false`, während Oregon ohne Verkehr die Jobs
+fuhr. Akut folgenlos — beide arbeiten auf derselben Datenbank, die Jobs liefen
+also. Mit dem Suspendieren von Oregon wären sie **alle** stehen geblieben, und
+`/health` hätte weiter „ok" gemeldet.
+
+Umgedreht in dieser Reihenfolge: **erst Oregon aus, dann Frankfurt an.** Ein
+kurzes Fenster *ohne* Scheduler ist harmloser als eines mit *zweien* — das
+Doppelrisiko aus L-91 ist genau das, was hier nicht zurückkommen darf.
+
+### Was der Umzug gekostet hat: 40 Sekunden Ausfall (L-94)
+
+Während des Umschaltens antwortete die Produktivdomain sechsmal hintereinander
+im Achtsekundentakt: `200 502 502 502 502 502`, dann wieder 200.
+
+**Das ist keine Eigenheit dieses Umzugs, sondern die jedes Deploys.**
+`instance_count` steht über alle drei Deploys des Tages konstant auf **1** —
+bei einem rollierenden Deploy müsste kurz eine zweite Instanz danebenstehen.
+Der Grund ist der Datenträger: Render begrenzt Dienste mit `disk` auf eine
+Instanz. Alte beenden, neue starten.
+
+Seit dem 18.08. ist damit **jeder** Deploy ein Ausfall — auch der gewöhnliche
+nach einem Merge nach `main`. Aufgefallen ist es nie, weil produktiv rund sechs
+Anfragen pro Stunde ankommen. Siehe L-94.
+
 ### Noch offen — nur noch drei Handgriffe
 
-1. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
-   `https://api.kompagnon.group/...` — jederzeit möglich, die Domain zeigt
-   noch auf Oregon
+1. ~~**Oregon suspendieren**~~ — **erledigt am 23.08., 11:07 UTC.** `suspended`,
+   durch den Nutzer, nicht gelöscht. Danach geprüft: Produktivdomain 200 in
+   0,20 s, Scheduler läuft, Widget und Paketliste je 200, 391 Routen; die alte
+   Adresse antwortet **503**. Zwei Standard-Dienste parallel sind damit vorbei
+2. **L-44**: Inbound-Regel der Produktiv-DB von `0.0.0.0/0` auf leer. Jetzt
+   möglich: Frankfurt erreicht die Datenbank über die **interne** Adresse
+3. **Webhooks** bei Trackdesk, Netlify (2×), Brevo und Stripe (2×) auf
+   `https://api.kompagnon.group/...` — eilt nicht, dort kommt nichts an
+   (`webhook_log`, `mail_events`, `email_logs` alle leer). Ausnahme Stripe
 2. **`RENDER_SERVICE_BACKEND_PROD`** auf `srv-da30dg3bc2fs73fomi0g` — sonst
    deployt die CI weiter nach Oregon und meldet trotzdem grün. **Eng vor
    Schritt 3 legen:** Dazwischen erreicht ein Merge nach `main` den
    produktiven Dienst nicht mehr
-3. **Domain umhängen** — der erste unumkehrbare Schritt, im Dashboard. Danach:
-   Oregon suspendieren (nicht löschen), dann L-44
+3. **Domain umhängen** — der erste unumkehrbare Schritt, im Dashboard. In
+   derselben Minute: `SCHEDULER_ENABLED` bei Frankfurt **entfernen** und bei
+   Oregon auf `false` setzen. Danach Oregon suspendieren (nicht löschen),
+   dann L-44
 
 ---
 

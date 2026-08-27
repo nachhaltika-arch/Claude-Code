@@ -170,15 +170,31 @@ class BrevoService:
         title: str,
         subject: str,
         html_content: str,
-        list_id: int,
+        list_ids: list[int],
         scheduled_at: Optional[str] = None,
     ) -> int:
+        """Eine Kampagne bei Brevo anlegen.
+
+        **`list_ids`, nicht `list_id` (26.08.2026).** Der Parameter hiess bis
+        dahin Einzahl, und `send_campaign` nahm aus mehreren gewaehlten Listen
+        stillschweigend die **erste** — wer drei waehlte, erreichte eine, ohne
+        Fehler und ohne Meldung. Brevos Nutzdaten heissen `listIds` und sind
+        eine Liste; die eine Kennung wurde nur kuenstlich hineingezwaengt.
+
+        Aufgefallen ist es, weil der Endpunkt bis dahin **keinen Aufrufer**
+        hatte (L-105): Mit einer Mehrfachauswahl in der Oberflaeche waere der
+        erste echte Rundbrief an einen Teil der Empfaenger gegangen.
+        """
+        if not list_ids:
+            raise ValueError("Eine Kampagne ohne Empfängerliste ergibt keine "
+                             "Kampagne — mindestens eine Liste angeben.")
+
         payload: dict[str, Any] = {
             "name": title,
             "subject": subject,
             "htmlContent": html_content,
             "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
-            "recipients": {"listIds": [list_id]},
+            "recipients": {"listIds": list(list_ids)},
         }
         if scheduled_at:
             payload["scheduledAt"] = scheduled_at

@@ -69,7 +69,7 @@ Ersetze `{{N}}`, `{{DATEI}}`, `{{TITEL}}`, `{{PUNKTE}}`, `{{SEITEN}}` und den Ka
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 KONTEXT
@@ -115,7 +115,7 @@ NACH DEM SCHREIBEN
 Zaehle die Woerter und melde: "Kapitel {{N}}: X Woerter, ca. Y Seiten"
 git add buch/manuskript/{{DATEI}}
 git commit -m "Add book chapter {{N}}: {{TITEL}}"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

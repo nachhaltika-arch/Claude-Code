@@ -1,5 +1,19 @@
 # Bewertungslogik — Homepage Standard 2026.1
 
+> ## ⚠ Überholt — nicht mehr anwenden
+>
+> **Ersetzt durch:** [`2026-08-14-bewertungslogik-homepage-standard-2026-2.md`](2026-08-14-bewertungslogik-homepage-standard-2026-2.md)
+> (Fassung 2026.2, vom selben Tag, nachmittags).
+>
+> Diese Fassung beschreibt den **alten Katalog mit sechs Kategorien** aus
+> `AuditReport.jsx`. Der geltende Katalog hat **acht Kategorien, 39 Kriterien und
+> 103 Punkte** und steht in `services/audit_criteria.py`. Wer hier nachschlägt,
+> bekommt Kategorienamen, Punktzahlen und Stufenschwellen, die es so nicht mehr gibt.
+>
+> Die Datei bleibt liegen, weil sie die Begründungen enthält, aus denen der
+> Nachfolger hervorging — nicht, weil sie noch gilt.
+
+
 **Status:** Spezifikationsentwurf zur Umsetzung
 **Gilt für:** Backend-Audit-Service, Frontend-Anzeige, Buch „Der Homepage Standard"
 **Version:** 2026.1
@@ -9,7 +23,7 @@
 
 ## 0. Zweck dieses Dokuments
 
-Dieses Dokument ist die **einzige verbindliche Quelle** für die Bewertungslogik des
+Dieses Dokument **war** die verbindliche Quelle für die Bewertungslogik des
 Homepage Standards. Backend, Frontend und Buch müssen ihm entsprechen. Bei Widersprüchen
 gilt dieses Dokument.
 

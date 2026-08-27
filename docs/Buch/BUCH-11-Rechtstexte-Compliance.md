@@ -83,7 +83,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 WICHTIGER HINWEIS
@@ -157,7 +157,7 @@ buch/README.md, dass jedes Rechtskapitel (03, 06) damit beginnen muss.
 SCHRITT 5
 git add -A
 git commit -m "Add legal pages for book landing page and book front matter"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

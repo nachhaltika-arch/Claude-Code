@@ -95,6 +95,65 @@ async def netlify_create_site(
     return {"site_id": result["site_id"], "site_url": result["site_url"]}
 
 
+def _llms_txt_fuer(db, project_id: int) -> str:
+    """Die `llms.txt` fuer die Site dieses Projekts (L-99).
+
+    **Warum sie mit dem Deploy hochgeht und nicht danach.** Netlify ersetzt
+    bei jeder Auslieferung den **ganzen** Inhalt der Site. Ein zweiter Aufruf
+    nur fuer die Datei naehme die Seiten wieder weg; umgekehrt zeigte eine
+    Datei aus einem frueheren Deploy auf Seiten, die es nicht mehr gibt.
+
+    **Der Slug wird abgeleitet, nicht aus der Spalte gelesen.** Die Tabelle
+    fuehrt zwar `sitemap_pages.slug`, aber der Multi-Page-Deploy benutzt sie
+    **nicht**: Dort entsteht der Dateiname immer aus
+    `_slugify_page_name(page_name)`. Wer hier die Spalte naehme, schriebe
+    Adressen in die Datei, die es auf der Site nicht gibt — und ein Modell
+    liest sie als Quelle.
+
+    Fehlt die Anschrift, entsteht keine Datei: `geo_artefakte` erfindet
+    nichts, und eine halbe `llms.txt` sieht fuer ein Modell aus wie eine
+    Auskunft.
+    """
+    from services.geo_artefakte import llms_txt
+
+    betrieb = db.execute(
+        text("SELECT l.* FROM leads l JOIN projects p ON p.lead_id = l.id "
+             "WHERE p.id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not betrieb:
+        return ""
+    seiten = [
+        {"page_name": z[0], "slug": _slugify_page_name(z[0] or ""),
+         "zweck": z[1] or ""}
+        for z in db.execute(
+            text("SELECT s.page_name, s.zweck FROM sitemap_pages s "
+                 "JOIN projects p ON p.lead_id = s.lead_id "
+                 "WHERE p.id = :id ORDER BY s.position"),
+            {"id": project_id},
+        ).fetchall()
+    ]
+    return llms_txt(betrieb, seiten)
+
+
+def _geo_artefakte_fuer(db, project_id: int) -> tuple:
+    """(`llms.txt`, JSON-LD) fuer die Site dieses Projekts (L-99).
+
+    Beide aus **einer** Abfrage: Sie lesen dieselben Betriebsdaten, und zwei
+    getrennte Wege waeren zwei Staende derselben Sache.
+    """
+    from services.geo_artefakte import local_business_jsonld
+
+    betrieb = db.execute(
+        text("SELECT l.* FROM leads l JOIN projects p ON p.lead_id = l.id "
+             "WHERE p.id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not betrieb:
+        return "", ""
+    return _llms_txt_fuer(db, project_id), local_business_jsonld(betrieb)
+
+
 @router.post("/{project_id}/netlify/deploy")
 async def netlify_deploy(
     project_id: int,
@@ -118,6 +177,8 @@ async def netlify_deploy(
     company_name  = body.company_name or row[1] or ""
     page_title    = body.page_title or company_name or "Website"
 
+    geo_datei, geo_jsonld = _geo_artefakte_fuer(db, project_id)
+
     # DB-Verbindung vor externem Netlify-Deploy freigeben
     db.close()
 
@@ -130,7 +191,14 @@ async def netlify_deploy(
         page_title=page_title,
         meta_description=body.meta_description,
         company_name=company_name,
+        zusatzdateien={"llms.txt": geo_datei},
+        jsonld=geo_jsonld,
     )
+
+    # **Nachsehen, ob angekommen ist, was hochgegangen ist** (GEO-01, Pos. 6).
+    # Der Deploy meldet „erfolgreich"; ob `llms.txt` danach unter ihrer Adresse
+    # steht, ist eine andere Frage. Sie zu stellen kostet zwei Abrufe.
+    auslieferung = await _pruefe_und_merke(project_id, result.get("deploy_url"))
 
     # Neue Session zum Speichern
     db2 = SessionLocal()
@@ -149,7 +217,43 @@ async def netlify_deploy(
         "deploy_id":  result["deploy_id"],
         "deploy_url": result["deploy_url"],
         "state":      result["state"],
+        "auslieferung": auslieferung,
     }
+
+
+async def _pruefe_und_merke(project_id: int, deploy_url: str) -> dict:
+    """Die Auslieferung pruefen und das Ergebnis am Projekt festhalten.
+
+    **Wirft nie.** Eine misslungene Nachschau darf keinen gelungenen Deploy zu
+    einem Fehler machen — sie ist eine Auskunft, kein Tor.
+    """
+    from datetime import datetime as _dt
+
+    from services.geo_auslieferung import pruefe_auslieferung
+
+    try:
+        befund = await pruefe_auslieferung(deploy_url or "")
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Auslieferungspruefung fuer Projekt %s gescheitert: %s",
+                       project_id, fehler)
+        return {"collected": False, "grund": "Pruefung selbst gescheitert"}
+
+    db = SessionLocal()
+    try:
+        from modelle_audit import GeoAnalysis
+
+        analyse = db.query(GeoAnalysis).filter(
+            GeoAnalysis.project_id == project_id).first()
+        if analyse:
+            analyse.auslieferung = befund
+            analyse.auslieferung_am = _dt.utcnow()
+            db.commit()
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Auslieferungsbefund nicht gespeichert (Projekt %s): %s",
+                       project_id, fehler)
+    finally:
+        db.close()
+    return befund
 
 
 def _slugify_page_name(name: str) -> str:
@@ -236,12 +340,17 @@ async def netlify_deploy_all(
     # Deduplicate CSS (gemeinsame Styles)
     shared_css = "\n".join(dict.fromkeys(css_parts))
 
+    geo_datei, geo_jsonld = _geo_artefakte_fuer(db, project_id)
+
     # DB-Verbindung vor externem API-Call freigeben
     db.close()
 
     from services.netlify_service import deploy_all_pages
     try:
-        result = await deploy_all_pages(site_id, page_files, shared_css, company_name)
+        result = await deploy_all_pages(site_id, page_files, shared_css,
+                                        company_name,
+                                        zusatzdateien={"llms.txt": geo_datei},
+                                        jsonld=geo_jsonld)
     except Exception as e:
         raise HTTPException(500, f"Netlify Deploy Fehler: {str(e)[:200]}")
 
@@ -259,11 +368,17 @@ async def netlify_deploy_all(
     finally:
         db2.close()
 
+    # Dieselbe Nachschau wie beim Einzelseiten-Deploy: Wer GEO-01 gekauft hat,
+    # hat Anspruch darauf — unabhaengig davon, ueber welchen Weg seine Seite
+    # veroeffentlicht wurde (25.08.2026).
+    auslieferung = await _pruefe_und_merke(project_id, result.get("deploy_url"))
+
     return {
         "deploy_id":      result["deploy_id"],
         "deploy_url":     result["deploy_url"],
         "state":          result["state"],
         "pages_deployed": list(page_files.keys()),
+        "auslieferung":   auslieferung,
     }
 
 

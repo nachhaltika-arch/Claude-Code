@@ -14,13 +14,17 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
-| `leads` | 2 | Betriebs-Eigentum wird geprueft. |
+| `leads` | 3 | Betriebs-Eigentum wird geprueft. **Seit 26.08.2026** dazu `PATCH /{id}/stammdaten` — der Kunde pflegt die Angaben seines eigenen Betriebs; dieselbe Eigentumspruefung wie beim Lesen, dazu eine Erlaubnisliste der Felder. |
 | `audit` | 2 | `_audit_oder_404` — Einmal-Token **oder** Anmeldung; das ist der Berichtsweg des Kunden. |
 | `geo-payments` | 2 | Seit dem 22.08. `eigenes_projekt_pruefen`. |
 | `usercards` | 1 | `_check_kunde_access`. |
 | `tickets` | 1 | filtert auf `current_user.email`. |
 | `invoices` | 1 | filtert auf `current_user.email`. |
 | `versand` | 1 | Ein Ja/Nein zum automatischen Versand, kein Kundendatum — siehe unten. |
+| `geo` | 1 | **Neu am 26.08.2026.** Der Kunde sieht seinen GEO-Wert (L-95). `eigenes_projekt_pruefen` haelt die Grenze, und die Antwort ist **verkuerzt**: keine Rohpruefungen, kein Upsell-Preis, keine Betriebsfehler. Die uebrigen zehn `geo`-Routen — Analyse anstossen, Monitoring schalten, `admin/run-monitoring-now` — liegen unveraendert hinter `require_innendienst`. |
+| `briefings` | 5 | **Neu am 26.08.2026.** Der Kunde fuellt sein Briefing selbst aus. Alle drei tragen `_eigener_betrieb` — dieselbe Umkehrung wie ueberall: Wer nicht zum Innendienst gehoert, kommt nur an den eigenen Betrieb. Ein eigenes Wegstueck `/mein/…`, damit sich die zwei Router nicht ueberdecken (L-27). |
+| `files` | 3 | **Neu am 26.08.2026.** Logo, Fotos, Unterlagen zum eigenen Betrieb. Der Download prueft am **Datensatz**, nicht am Pfad: Die Dateikennung ist eine fortlaufende Zahl, und der Pfad nennt keinen Betrieb. |
+| `messages` | 2 | **Neu am 26.08.2026.** Der Nachrichtenverlauf des Kunden. Beide Routen nahmen bisher **nur** einen `customer_token` und zaehlten deshalb zu den ganz offenen; seit dem Chat im angemeldeten Portal nehmen sie auch eine Anmeldung. `_zugang_pruefen` entscheidet an **einer** Stelle: Ein mitgeschickter Token muss stimmen, sonst muss der Angemeldete zum Innendienst gehoeren oder den Betrieb besitzen. Sie sind damit **staerker** geschuetzt als vorher, nicht schwaecher — die Zahl unten steigt, weil sie aus der offenen Liste hierher gewandert sind. |
 
 **Warum diese Zahl bewacht wird.** Sie ist dreimal gewandert: von „166" ueber
 „120" auf 85 und schliesslich 46 — und die ersten beiden Zahlen waren zu
@@ -39,21 +43,53 @@ import pytest
 
 
 #: Stand vom 22.08.2026, an der geladenen Anwendung gemessen.
-ERWARTET = 46
+#: 22.08.2026: 46
+#: 26.08.2026: 49 — `PATCH /api/leads/{id}/stammdaten` (Kunde pflegt seine
+#:   Stammdaten) und die beiden `messages`-Routen, die aus der **offenen**
+#:   Liste hierher gewandert sind, weil sie jetzt auch eine Anmeldung nehmen.
+#: 26.08.2026, spaeter: 55 — der Kunde fuellt sein Briefing aus (3) und laedt
+#:   Dateien hoch (3). Alle sieben pruefen den eigenen Betrieb selbst.
+#: 26.08.2026, abends: 57 — `GET /api/geo/mein/{id}/result`. Der GEO-Wert war
+#:   berechnet und dem Kunden nie gezeigt (L-95).
+#: 26.08.2026, spaet: 58 — `PATCH /api/briefings/{id}/freigabe` ist aus der
+#:   **offenen** Liste hierher gewandert: Der Endpunkt las den JWT aus dem
+#:   Rumpf und entschluesselte ihn von Hand; jetzt `get_current_user` wie
+#:   ueberall, dazu Rollen- und Eigentumspruefung. Staerker als vorher.
+ERWARTET = 58
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {
     "academy", "portal", "auth", "assistant", "projects", "leads",
     "audit", "geo-payments", "usercards", "tickets", "invoices", "versand",
+    "messages", "briefings", "files", "geo",
 }
 
-#: Routen ganz **ohne** Anmeldepruefung, Stand 22.08.2026 (L-51).
-OFFEN_ERWARTET = 49
+#: Routen ganz **ohne** Anmeldepruefung, Stand 25.08.2026 (L-51).
+#:
+#: 22.08.2026: 49
+#: 25.08.2026: 53 — vier Routen des Buchverkaufs (BUCH-05). Ein Kaeufer ist
+#:   nicht angemeldet und wird es auch nicht: Er kauft ein Buch, kein Konto.
+#: 26.08.2026: 51 — die beiden `messages`-Routen des Kunden sind **hoch**
+#:   gewandert: Sie nehmen jetzt neben dem Token auch eine Anmeldung und
+#:   zaehlen damit zu den schwach geschuetzten statt zu den offenen.
+#: 26.08.2026, spaet: 50 — `PATCH /api/briefings/{id}/freigabe` ebenso.
+#: 26.08.2026, Posteingang: 51 — `POST /api/posteingang/brevo/{secret}`.
+#: Brevo signiert eingehende Mails nicht; das Geheimnis steht im Pfad, wie
+#: beim `mail-events`-Webhook, von dem dieser Weg die Absicherung uebernimmt.
+#: 27.08.2026: 52 — `POST /api/auth/resend-verification`. Sie **muss** offen
+#:   sein: Wer sie braucht, kommt gerade nicht durch die Anmeldung (der
+#:   Bestaetigungsriegel haelt ihn auf). Eine Anmeldepruefung davor waere die
+#:   verschlossene Tuer, hinter der der Schluessel liegt. Abgesichert ist sie
+#:   anders — gedrosselt je Herkunft, und ihre Antwort ist fuer „gibt es
+#:   nicht", „schon bestaetigt" und „gesendet" **dieselbe**, damit sie kein
+#:   Adressverzeichnis wird.
+OFFEN_ERWARTET = 52
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
 #: `widget`, `kampagne`      Das eingebettete Widget laeuft auf fremden Seiten.
-#: `webhooks`, `mail-events` Rufe von aussen; sie weisen sich mit einem
+#: `webhooks`, `mail-events`,
+#: `posteingang`             Rufe von aussen; sie weisen sich mit einem
 #:                           Geheimnis im Pfad aus.
 #: `auth`                    Anmelden, Registrieren, Passwort zuruecksetzen.
 #: `leads`, `messages`,
@@ -67,11 +103,20 @@ OFFEN_ERWARTET = 49
 #: `audit`                   Analyse starten und die Anzahl abfragen; beides
 #:                           gehoert dem Widget.
 #: `academy`                 Zertifikatspruefung ueber den Code.
+#: `book`                    Der Buchverkauf. Vier Routen: die Kasse und die
+#:                           Preisliste (ein Kaeufer ist nicht angemeldet),
+#:                           der Stripe-Rueckruf (weist sich per Signatur aus,
+#:                           siehe `test_buch_bestellung`) und die Auskunft
+#:                           fuer die Danke-Seite. Letztere gibt bewusst nur
+#:                           Nummer, Ausgabe, Zahlungsstand und eine
+#:                           **verkuerzte** Adresse heraus — keine Anschrift,
+#:                           kein Abruftoken.
 #: `health`, `ping`          Betriebsanzeigen ohne Inhalt.
 OFFENE_BEREICHE = {
     "widget", "webhooks", "auth", "leads", "payments", "tickets",
     "products", "projects", "audit", "messages", "briefings", "kampagne",
-    "academy", "geo-payments", "mail-events", "health", "ping",
+    "academy", "geo-payments", "mail-events", "health", "ping", "book",
+    "posteingang",
 }
 
 

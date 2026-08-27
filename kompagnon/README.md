@@ -199,7 +199,8 @@ Dual-Branch-Workflow `staging → main` (ab 2026-05-01):
 4. Manueller Merge durch den Nutzer. Nach Merge:
    - Render deployed automatisch auf Produktiv:
      - Frontend: `https://kompagnon-frontend.onrender.com`
-     - Backend: `https://claude-code-znq2.onrender.com`
+     - Backend: `https://api.kompagnon.group` (Dienst `kompagnon-backend-fra`;
+       `claude-code-znq2` ist der suspendierte Oregon-Vorgaenger)
 5. `staging` bleibt langlebig stehen — wird nicht gelöscht. Keine zusätzlichen `claude/*`- oder `feature/*`-Branches.
 
 ---
@@ -289,7 +290,7 @@ Quelle: Tagesreport vom 2026-04-30 + Bug-Liste.
 ### CI / Deployment (manuelle UI-Schritte)
 
 - **GitHub Branch Protection für `main`**: Ruleset `protect-main` existiert + Target ist gesetzt. Noch zu tun: **Required Status Checks aktivieren** und alle vier CI-Jobs (`Backend — Lint (ruff)`, `Backend — Smoke import`, `Frontend — Build`, `Secrets — Gitleaks`) als Required hinzufügen. Geht erst, wenn die Jobs mindestens einmal grün gelaufen sind.
-- **Render Blueprint** (`kompagnon/render.yaml`) ist erweitert (Postgres-Service, alle Env-Vars, region: frankfurt). Bestehende Services laufen unverändert; Blueprint dient als Wahrheits-Datei. Bei neuen Services (z. B. Umami) Blueprint via Render Dashboard → "Blueprints" → "New Blueprint Instance" nutzen.
+- **Render Blueprints.** Die Wahrheits-Datei für Produktiv ist `kompagnon/render-produktiv.yaml` (Frankfurt, Dienst `kompagnon-backend-fra`), für Staging `kompagnon/render-staging.yaml`. **`kompagnon/render.yaml` ist überholt** — sie beschreibt den Oregon-Dienst, der seit dem 23.08.2026 suspendiert ist. Bei neuen Diensten den passenden Blueprint über Render Dashboard → "Blueprints" → "New Blueprint Instance" nutzen. Achtung: Produktiv ist heute **nichts** blueprint-verwaltet (L-35); die Dateien beschreiben, sie steuern nicht.
 
 ---
 

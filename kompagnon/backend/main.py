@@ -56,6 +56,7 @@ from routers import (
     customers_router,
     automations_router,
     audit_router,
+    buch_router,
     diagnostics_router,
     widget_router,
     acquisition_router,
@@ -80,6 +81,19 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+# Geheimnisse aus dem Protokoll halten (L-98). `httpx` protokolliert jede
+# Anfrage mit vollstaendiger URL — ein Schluessel als Abfrageparameter stand
+# damit im Klartext im Render-Protokoll.
+#
+# Der Filter haengt an den **Handlern der Wurzel**, nicht am httpx-Logger:
+# Eine Bibliothek, die morgen dazukommt, soll nicht erst wieder auffallen
+# muessen. Wo der Schluessel gar nicht in die URL muss, steht der bessere
+# Riegel eine Ebene tiefer (services.audit_pagespeed.auth_headers).
+from services.protokoll_schwaerzung import Schwaerzung  # noqa: E402
+
+for _wurzel_handler in logging.getLogger().handlers:
+    _wurzel_handler.addFilter(Schwaerzung())
 
 
 def _kurse_zusammenfuehren():
@@ -121,8 +135,15 @@ def _create_default_admin():
     try:
         demo_users = [
             {"email": os.getenv("ADMIN_EMAIL",   "admin@kompagnon.de"),   "password": os.getenv("ADMIN_PASSWORD",   ""), "first_name": "Admin",  "last_name": "KOMPAGNON",  "role": "admin"},
-            {"email": os.getenv("AUDITOR_EMAIL", "auditor@kompagnon.de"), "password": os.getenv("AUDITOR_PASSWORD", ""), "first_name": "Max",    "last_name": "Auditor",    "role": "auditor", "position": "Senior Auditor"},
-            {"email": os.getenv("NUTZER_EMAIL",  "nutzer@kompagnon.de"),  "password": os.getenv("NUTZER_PASSWORD",  ""), "first_name": "Lisa",   "last_name": "Nutzer",     "role": "nutzer"},
+            # Aus zwei Demo-Konten (auditor, nutzer) ist am 27.08.2026 eines
+            # geworden — wie aus den zwei Rollen. `MITARBEITER_*` sind die
+            # neuen Variablennamen; die alten werden weiter gelesen, damit
+            # eine Umgebung, die sie gesetzt hat, nicht ploetzlich ein
+            # Zufallspasswort bekommt.
+            {"email": os.getenv("MITARBEITER_EMAIL") or os.getenv("AUDITOR_EMAIL", "mitarbeiter@kompagnon.de"),
+             "password": os.getenv("MITARBEITER_PASSWORD") or os.getenv("AUDITOR_PASSWORD", ""),
+             "first_name": "Max", "last_name": "Mitarbeiter",
+             "role": "mitarbeiter", "position": "Mitarbeiter KOMPAGNON"},
             {"email": os.getenv("KUNDE_EMAIL",   "kunde@kompagnon.de"),   "password": os.getenv("KUNDE_PASSWORD",   ""), "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
         ]
         created = 0
@@ -244,43 +265,94 @@ def _create_default_admin():
         _db3 = SessionLocal()
         count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
         if count == 0:
+            # Der Katalog einer frischen Datenbank. Bis zum 23.08.2026
+            # standen hier Starter/KOMPAGNON/Premium zu 1.500/2.000/2.800 EUR
+            # brutto, waehrend die Angebote Websprints zu 3.500/7.900/12.900
+            # EUR **netto** fuehrten — zwei Produktlinien nebeneinander, und
+            # aus dieser Zeile zieht die Stripe-Sitzung ihren Betrag (L-97).
+            #
+            # Die Bestandsprodukte werden nicht geloescht, sondern in der
+            # Migration auf `archived` gesetzt: Ein Projekt aus dem Fruehjahr
+            # traegt `package_type='kompagnon'`, und die Kundenmail liest den
+            # Preis aus genau dieser Zeile. Wer sie entfernt, deutet eine
+            # bezahlte Rechnung nachtraeglich um.
+            #
+            # Preise sind **netto** angegeben (B2B, Handwerksbetriebe sind
+            # vorsteuerabzugsberechtigt); `price_brutto` ist der Betrag, den
+            # Stripe abbucht, und muss dazu passen — `test_produktkatalog`
+            # rechnet es nach.
             SEED = [
                 {
-                    "slug": "starter", "name": "Starter-Paket", "sort_order": 1,
-                    "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
-                    "price_brutto": 1500.00, "price_netto": 1260.50, "tax_rate": 19,
+                    "slug": "websprint_relaunch", "name": "Websprint Relaunch",
+                    "sort_order": 1,
+                    "short_desc": "Bestehende Website auf den Homepage-Standard heben",
+                    "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
                     "payment_type": "once", "delivery_days": 14, "status": "live",
-                    "features": ["5-seitige WordPress-Website",
-                        "Mobile-First Design", "SEO-Grundoptimierung",
-                        "SSL-Zertifikat & DSGVO-konform", "Kontaktformular",
-                        "30 Tage Support"],
+                    # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
+                    # docs/produkte/ws-rel-01.md. Das Blatt nannte als
+                    # Freigabebedingung „nach Behebung L2 und L3" — beides ist
+                    # am 23.08. am laufenden System widerlegt worden (der
+                    # PageSpeed-Schluessel arbeitet, die Score-Schwellen sind
+                    # beidseitig gleich). Damit ist das Paket verkaufbar.
+                    "features": [
+                        "Eingangsaudit nach Homepage-Standard, 100 Punkte",
+                        "Strukturabgleich und Seitenplan",
+                        "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
+                        "Redaktionelle Ueberarbeitung der vorhandenen Texte",
+                        "Bildaufbereitung, bis 30 Bilder",
+                        "Kontaktformular mit Spam-Schutz",
+                        "Grundlagen der Barrierefreiheit",
+                        "Technische Grundoptimierung",
+                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                        "Eine Korrekturschleife",
+                        "Abnahmeaudit mit schriftlichem Protokoll",
+                        "Einweisung, 30 Minuten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],
                 },
                 {
-                    "slug": "kompagnon", "name": "KOMPAGNON-Paket", "sort_order": 2,
-                    "short_desc": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
-                    "price_brutto": 2000.00, "price_netto": 1680.67, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "slug": "websprint_neubau", "name": "Websprint Neubau",
+                    "sort_order": 2,
+                    "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
+                    "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 28, "status": "live",
                     "highlighted": True, "highlight_label": "Empfehlung",
-                    "features": ["8-seitige WordPress-Website",
-                        "SEO + GEO-Optimierung", "Strategy Workshop (60 Min.)",
-                        "Schema Markup & KI-Optimierung",
-                        "Google Business Verknuepfung", "30 Tage Support"],
+                    "features": ["Positionierungsgespraech, 90 Minuten",
+                        "Bauplan als Freigabedokument, eine Ueberarbeitung",
+                        "Texterstellung fuer bis zu 12 Seiten",
+                        "Bildkonzept und Fotobriefing",
+                        "Aufbau im KOMPAGNON-Komponentensystem, responsiv",
+                        "Technische Optimierung und strukturierte Auszeichnung",
+                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                        "Zwei Korrekturschleifen",
+                        "Abnahmeaudit mit schriftlichem Protokoll",
+                        "Einweisung, 60 Minuten",
+                        "Pflege Basic fuer 3 Monate",
+                        "Re-Audit nach 3 Monaten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],
                 },
                 {
-                    "slug": "premium", "name": "Premium-Paket", "sort_order": 3,
-                    "short_desc": "12 Seiten, Shop-Ready, Fotoshooting",
-                    "price_brutto": 2800.00, "price_netto": 2352.94, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 21, "status": "live",
-                    "features": ["12-seitige WordPress-Website",
-                        "Individual-Design nach CI", "SEO + GEO + KI-Volloptimierung",
-                        "Strategy Workshop (90 Min.)", "Professioneller Fotoshooting-Tag",
-                        "Google Ads Einrichtung", "3 Monate Support"],
+                    "slug": "websprint_system", "name": "Websprint System",
+                    "sort_order": 3,
+                    "short_desc": "Neubau mit GEO/GAIO, Karriereseite und Messgrundlage",
+                    "price_brutto": 15351.00, "price_netto": 12900.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 42, "status": "draft",
+                    # `draft`, nicht `live`: Die Kernleistung dieses Pakets —
+                    # Auslieferung von llms.txt, schema.org und Ground Page an
+                    # die Kundenseite — ist nicht implementiert (L-99). Das
+                    # Datenblatt WS-SYS-01 fuehrt es selbst als 🔴 gesperrt.
+                    "features": ["Alles aus dem Websprint Neubau",
+                        "Erweiterter Seitenumfang, bis 20 Seiten",
+                        "Karriereseite mit Bewerbungsformular",
+                        "GEO/GAIO-Layer: llms.txt, schema.org, Ground Page",
+                        "Messgrundlage mit Consent-Layer und EU-Datenhaltung",
+                        "Auftragsverarbeitungsvertrag",
+                        "Pflege Pro fuer 12 Monate",
+                        "Quartalsweises Re-Audit mit Massnahmenliste",
+                        "Jahresgespraech, 90 Minuten"],
                     "checkout_fields": ["name", "company", "email", "phone"],
                     "webhook_actions": ["create_lead", "create_user",
                         "create_project", "send_welcome_email", "send_pdf"],
@@ -327,8 +399,13 @@ def _disable_demo_accounts_in_production():
     if os.getenv("ENVIRONMENT", "development").lower() != "production":
         return
 
+    # Die alten beiden Adressen bleiben stehen, obwohl sie niemand mehr
+    # anlegt: Wer sie in einer Umgebung schon hat, soll sie auch abgeschaltet
+    # bekommen. Eine Liste, die einen Namen nicht mehr kennt, den der Bestand
+    # noch traegt, laesst genau die Konten offen, die sie schliessen soll.
     DEMO_EMAILS = [
         "admin@kompagnon.de",
+        "mitarbeiter@kompagnon.de",
         "auditor@kompagnon.de",
         "nutzer@kompagnon.de",
         "kunde@kompagnon.de",
@@ -383,8 +460,32 @@ async def lifespan(app: FastAPI):
         await asyncio.sleep(3)  # 3s warten bis Server stabil ist
         logger.info("🔄 Hintergrund-Init gestartet...")
 
+        def _wiederherstellbarkeit_melden():
+            from services.wiederherstellbarkeit import beim_start_melden
+            beim_start_melden()
+
+        def _betriebsschalter_melden():
+            """Was dieser Dienst tut, sobald der Scheduler laeuft (L-104).
+
+            **Nach dem Scheduler, nicht davor** — und das ist der ganze
+            Punkt: `CompagnonScheduler.__init__` legt den Probemodus fest.
+            Wer vorher meldet, meldet den Wert aus der Umgebung und nicht
+            den, der gilt. Genau diese Verwechslung war L-104.
+            """
+            from automations.scheduler import scheduler_ist_eingeschaltet
+            from automations.versandmodus import probemodus
+
+            if probemodus():
+                logger.info("✉ Probemodus: Mails werden protokolliert, "
+                            "nicht zugestellt")
+            else:
+                logger.warning("✉ Echter Mailversand: Mails gehen an die "
+                               "hinterlegten Adressen")
+            if not scheduler_ist_eingeschaltet():
+                logger.info("⏸ Zeitauftraege abgeschaltet (SCHEDULER_ENABLED)")
+
         def _academy_seed():
-            from routers.academy import seed_academy_courses
+            from routers.academy_zuweisung import seed_academy_courses
             from database import SessionLocal
             _db = SessionLocal()
             try:
@@ -472,6 +573,16 @@ async def lifespan(app: FastAPI):
             Phase("Deals migration", _deals_migration),
             Phase("Component library seed", _component_library_seed),
             Phase("Scheduler", start_scheduler),
+            # **Keine Startphase im eigentlichen Sinn, aber der Ort, an dem
+            # es jemand sieht (L-11).** Fehlt ein Wiederherstellungs-
+            # Schluessel, laeuft der Dienst trotzdem — nur waere eine
+            # Wiederherstellung unvollstaendig, und das faellt sonst erst
+            # auf, wenn man sie braucht.
+            Phase("Wiederherstellbarkeit", _wiederherstellbarkeit_melden),
+            # Ebenfalls keine Startphase, sondern die Stelle, an der sichtbar
+            # wird, **was dieser Dienst tut** (L-104). Muss nach "Scheduler"
+            # stehen: Der legt den Probemodus fest.
+            Phase("Betriebsschalter", _betriebsschalter_melden),
         ]
         ergebnis = await fuehre_phasen_aus(phasen)
 
@@ -573,9 +684,24 @@ app.include_router(leads_import.router)
 from routers import leads_anreicherung, leads_kaltakquise
 app.include_router(leads_kaltakquise.router)
 app.include_router(leads_anreicherung.router)
+
+# Weiter geteilt am 23.08.2026 (L-25), `leads.py` von 1.186 auf 790 Zeilen:
+# das Blatt eines Betriebs (Profil mit 139 Zeilen, Auditverlauf, QR-Code) und
+# was nach dem Erstkontakt kommt (Mailstrecke, Leistungsbericht). Beide tragen
+# dieselbe Innendienst-Sperre am Router.
+from routers import leads_nachfassen, leads_profil
+app.include_router(leads_profil.router)
+app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router
 app.include_router(leads_kunden_router)
+# Mehrere Menschen an einem Betrieb (25.08.2026). Der Innendienst laedt ein;
+# `manage_users` sperrt die drei Routen. Steht **nach** `leads_router`, weil
+# der dort registrierte `DELETE /{lead_id}` sonst `/{lead_id}/zugaenge/{id}`
+# nicht ueberdeckt — die Pfade sind verschieden lang, FastAPI trennt sie
+# sauber; die Reihenfolge ist hier nur der Lesbarkeit wegen.
+from routers import betriebszugaenge
+app.include_router(betriebszugaenge.router)
 # Die drei Alias-Router sind am 21.08.2026 entfernt (Modulkarte, Nahtstelle
 # `/api/customers`). Der Kommentar hier sagte „real customers router first" —
 # er war es nicht: `usercards_customers_alias_router` stand eine Zeile davor
@@ -603,6 +729,7 @@ app.include_router(automations_router)
 app.include_router(cms_connect_router)
 app.include_router(portal_router)
 app.include_router(audit_router)
+app.include_router(buch_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
 app.include_router(acquisition_router)
@@ -615,9 +742,18 @@ app.include_router(tickets_router)
 app.include_router(newsletter_router)
 app.include_router(versand_router)
 
+# Der Posteingang des Innendienstes: was vom Kunden hereinkommt (L-18,
+# 26.08.2026). Ticket, Chat — und E-Mail, sobald es einen Posteingang gibt.
+from routers import benachrichtigungen
+app.include_router(benachrichtigungen.router)
+
 from routers import briefings
 app.include_router(briefings.router)      # Innendienst
-app.include_router(briefings.kunden_router)   # nur die Freigabe ueber Token (L-27)
+# Kunde: Freigabe (L-27) und seit dem 26.08.2026 das eigene Briefing unter
+# `/mein/…`. **Eigene Adressen, keine Ueberdeckung** — der erste Entwurf
+# stuetzte sich auf die Reihenfolge der Registrierung, und genau das
+# verbietet `test_briefing_zusammengelegt.py` aus gutem Grund.
+app.include_router(briefings.kunden_router)
 
 # Die KI-Vorbefuellung liegt seit dem 22.08.2026 in einer eigenen Datei
 # (L-25): sechs Routen, die alle ein Modell fragen und die Antwort in ein
@@ -636,12 +772,22 @@ app.include_router(kampagne_router)
 # strukturlose Tabelle neben der Akademie — siehe
 # services/kurse_zusammenfuehren.py.
 
-try:
-    from routers.academy import router as _academy_router
-    app.include_router(_academy_router)
-    logger.info("✓ Academy Router geladen")
-except Exception as e:
-    logger.warning(f"⚠ Academy Router nicht geladen: {e}")
+# **Vier Router statt einem, seit dem 23.08.2026 (L-25).** `academy.py` hatte
+# 1.109 Zeilen; die Abschnitte sind nach Zustaendigkeit ausgezogen. Alle
+# tragen dasselbe Praefix `/api/academy` — fuer die Oberflaeche aendert sich
+# nichts, kein Pfad hat sich verschoben.
+#
+# **Einzeln geladen, mit einzelner Meldung.** Faellt einer aus, sagt das
+# Protokoll welcher; eine Sammelmeldung „Academy Router nicht geladen" haette
+# vier Moeglichkeiten offengelassen.
+for _name in ('academy', 'academy_fortschritt', 'academy_zertifikate',
+              'academy_zuweisung'):
+    try:
+        _modul = __import__(f'routers.{_name}', fromlist=['router'])
+        app.include_router(_modul.router)
+        logger.info(f"✓ Academy Router geladen: {_name}")
+    except Exception as e:
+        logger.warning(f"⚠ Academy Router nicht geladen ({_name}): {e}")
 
 try:
     from routers.crawler import router as _crawler_router
@@ -651,9 +797,14 @@ except Exception as e:
     logger.warning(f"⚠ Crawler Router nicht geladen: {e}")
 
 try:
+    from routers.files import kunden_router as _files_kunden_router
     from routers.files import router as _files_router
     app.include_router(_files_router)
-    logger.info("✓ Files Router geladen")
+    # Der angemeldete Kunde: eigene Dateien, eigene Eigentumspruefung
+    # (26.08.2026). Eigenes Praefix `/api/files/mein`, deshalb keine
+    # Ueberdeckung — anders als beim Briefing, wo die Reihenfolge zaehlt.
+    app.include_router(_files_kunden_router)
+    logger.info("✓ Files Router geladen (Innendienst + Kunde)")
 except Exception as e:
     logger.warning(f"⚠ Files Router nicht geladen: {e}")
 
@@ -690,8 +841,12 @@ app.include_router(designs.router)
 from routers import design_canvas
 app.include_router(design_canvas.router)
 
-from routers import content_scraper_router
-app.include_router(content_scraper_router.router)
+# **Entfernt am 26.08.2026 (Entscheidung David: „der crawler ist der
+# richtige, den anderen weg").** `content_scraper_router` fuehrte fuenf
+# Routen, die keine Oberflaeche rief, und startete beim Anlegen eines
+# Projekts einen Hintergrundlauf. Was er ablegte (`projects.scrape_full_data`)
+# las **nur sein eigenes Modul**. Der Weg, den die Oberflaeche geht, ist
+# `/api/crawler/…`.
 
 from routers.branddesign import router as branddesign_router
 app.include_router(branddesign_router)
@@ -763,6 +918,10 @@ app.include_router(kas_router)
 
 from routers.geo import router as geo_router
 app.include_router(geo_router)
+# Der Kunde sieht seinen GEO-Wert — verkuerzt, mit Eigentumspruefung
+# (26.08.2026, L-95). Eigenes Praefix `/api/geo/mein`, keine Ueberdeckung.
+from routers.geo import kunden_router as geo_kunden_router
+app.include_router(geo_kunden_router)
 
 from routers.geo_payments import router as geo_payments_router
 app.include_router(geo_payments_router)
@@ -775,6 +934,10 @@ app.include_router(assistant_router)
 # niemand erfährt, dass die Mail beim Empfänger abgewiesen wurde.
 from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
+
+# Eingehende Kundenmails (Brevo Inbound Parsing) — L-18.
+from routers.posteingang import router as posteingang_router
+app.include_router(posteingang_router)
 
 
 # Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
@@ -831,6 +994,27 @@ def _ablage_zustand() -> dict:
         return {"grund": f"{type(fehler).__name__}: {fehler}"}
 
 
+def _browser_zustand() -> dict:
+    """Zwei Fragen, nicht eine.
+
+    „Nicht eingeschaltet" und „eingeschaltet, aber Playwright fehlt" sind
+    verschiedene Zustaende, und der zweite ist ein Einrichtungsfehler, der
+    auffallen soll. Ein einzelnes `browser: false` wuerde beide zu derselben
+    Achselzucken-Antwort verschmelzen.
+    """
+    try:
+        from services.seitenbrowser import browser_erwuenscht, browser_verfuegbar
+
+        an = bool(browser_erwuenscht())
+        da = bool(browser_verfuegbar())
+    except Exception:                       # noqa: BLE001
+        # `/health` selbst darf daran nicht scheitern — es ist die Auskunft,
+        # die man liest, wenn sonst nichts mehr geht.
+        return {"eingeschaltet": False, "verfuegbar": False, "bereit": False}
+    return {"eingeschaltet": an, "verfuegbar": da, "bereit": an and da}
+
+
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -866,6 +1050,14 @@ def health_check():
             # und beim Deploy ist alles weg (16.08.2026). Von aussen abfragbar,
             # damit man es nicht im Dashboard nachsehen muss.
             "uploads": _ablage_zustand(),
+            # Ob der Browserlauf der Erhebung wirklich laufen kann. Er haengt
+            # an zwei Dingen, die **nicht im Quelltext** stehen, sondern in
+            # Render: dem Buildbefehl (`playwright install chromium`) und
+            # `AUDIT_BROWSER=true`. Fehlt eines, misst die Erhebung eine
+            # React-Seite als leer — und das steht dann als Befund im
+            # Kundenbericht (L-107). Am Gegenstand fragen statt im Dashboard
+            # ablesen, wie schon bei den Uploads.
+            "browser": _browser_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

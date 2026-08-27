@@ -33,7 +33,9 @@ class TestDasZertifikatGehoertZumEigenenFortschritt:
         sich das Zertifikat eines anderen ausstellen lassen."""
         import inspect
 
-        from routers.academy import issue_certificate
+        # Umgezogen am 23.08.2026 nach `academy_zertifikate` (L-25) — die
+        # Pruefung gilt der Funktion, nicht ihrem Fundort.
+        from routers.academy_zertifikate import issue_certificate
 
         felder = set(inspect.signature(issue_certificate).parameters)
         assert "user_id" not in felder and "customer_id" not in felder, felder
@@ -41,9 +43,9 @@ class TestDasZertifikatGehoertZumEigenenFortschritt:
     def test_und_liest_den_fortschritt_zum_angemeldeten_nutzer(self):
         import inspect
 
-        from routers import academy
+        from routers import academy_zertifikate
 
-        quelle = inspect.getsource(academy.issue_certificate)
+        quelle = inspect.getsource(academy_zertifikate.issue_certificate)
         assert "current_user.id" in quelle
         assert "progress_pct'] < 100" in quelle or "progress_pct\"] < 100" in quelle
 

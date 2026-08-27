@@ -529,7 +529,30 @@ function Step6({ data, saving, error, onSaveAndPdf, onSaveOnly }) {
 
 // ── Wizard ───────────────────────────────────────────────────────────────────
 
-export default function BriefingWizard({ leadId, leadData, onClose, onComplete, embedded = false }) {
+export default function BriefingWizard({ leadId, leadData, onClose, onComplete, embedded = false,
+  /**
+   * Ohne die KI-Vorschlagsknoepfe (26.08.2026). Im Kundenportal sind sie
+   * gesperrt — jeder Klick ist ein Modellaufruf, und ob Kunden ihn ausloesen
+   * duerfen, ist eine Preisfrage. Der Knopf gehoert dann weg, nicht ins
+   * Leere: Ein Knopf, der zuverlaessig „Nur fuer den Innendienst" antwortet,
+   * ist schlechter als keiner.
+   */
+  ohneVorschlaege = false,
+  /**
+   * Bedient ein **Kunde** den Assistenten? (26.08.2026)
+   *
+   * Der Innendienst spricht `/api/briefings/{id}`, der Kunde
+   * `/api/briefings/mein/{id}`. **Warum nicht dieselbe Adresse fuer beide:**
+   * Zwei Router auf einer Adresse verdecken sich still — das hat L-27
+   * gekostet, und ein Test verbietet es seither.
+   *
+   * **Warum ein Wahrheitswert und kein Pfad-Parameter:** Ein Vorgabewert
+   * `'/api/briefings'` sieht fuer `test_frontend_adressen.py` aus wie ein
+   * Aufruf einer Adresse, die es so nicht gibt — der Waechter schlug beim
+   * Bauen genau darauf an. Jetzt stehen beide Adressen ausgeschrieben da,
+   * und er prueft zwei echte.
+   */
+  kundenweg = false }) {
   const { isMobile, isTablet } = useScreenSize();
   // Bei Tablet UND Mobile (Width < 1024) den Stepper-Bereich kompakt halten,
   // sonst frisst die 6-stufige Stepper-Liste den knappen Body-Platz auf
@@ -537,6 +560,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const isCompact = isMobile || isTablet;
   const { token } = useAuth();
   const suggestHeaders = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const briefingAdresse = (zusatz = '') => (kundenweg
+    ? `${API_BASE_URL}/api/briefings/mein/${leadId}${zusatz}`
+    : `${API_BASE_URL}/api/briefings/${leadId}${zusatz}`);
   const existingDraft = loadDraft(leadId);
 
   const [step, setStep] = useState(existingDraft?.step ?? 0);
@@ -713,7 +739,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
         fotos_vorhanden:   data.fotos_vorhanden,
         sonstige_hinweise: data.sonstige_hinweise,
       };
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+      const res = await fetch(briefingAdresse(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -740,7 +766,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       // Open PDF in new tab (with auth)
       clearDraft(leadId);
       try {
-        const pdfRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, {
+        const pdfRes = await fetch(briefingAdresse('/pdf'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (pdfRes.ok) {
@@ -774,7 +800,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     // Speicherung zeigte trotzdem "gespeichert".
     const t = localStorage.getItem('kompagnon_token');
     const saved = await saveJson(
-      `${API_BASE_URL}/api/briefings/${leadId}`,
+      briefingAdresse(),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
@@ -808,7 +834,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     setSaving(true); setSaveError('');
     try {
       const t = localStorage.getItem('kompagnon_token');
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+      const res = await fetch(briefingAdresse(), {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify(buildPayload()),
       });
@@ -820,7 +846,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   };
 
   const renderStep = () => {
-    const suggestProps = { suggestions, onSuggest: suggestField, onApply: applySuggestion };
+    const suggestProps = ohneVorschlaege
+      ? { suggestions: {}, onSuggest: null, onApply: applySuggestion }
+      : { suggestions, onSuggest: suggestField, onApply: applySuggestion };
     const p = { data, set, touch, fieldError, firstRef: firstFieldRef, ...suggestProps };
     switch (step) {
       case 0: return <Step1 {...p} />;
@@ -1194,6 +1222,8 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 }
 
 function SuggestButton({ field, suggestions, onSuggest, onApply, set, currentValue }) {
+  // Ohne Zusage kein Knopf — siehe `ohneVorschlaege` oben.
+  if (!onSuggest) return null;
   const s = suggestions?.[field] || {};
   if (s.loading) return (
     <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

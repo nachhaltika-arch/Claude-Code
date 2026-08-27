@@ -59,8 +59,12 @@ class TestAnbieterStand:
 
         assert antwort.status_code == 200
         stand = {a["schluessel"]: a for a in antwort.json()["anbieter"]}
-        assert set(stand) == {"chatgpt", "perplexity", "claude"}
+        # 25.08.2026: Google AI kam als viertes System dazu. Die Oberflaeche
+        # muss **jedes** nennen — auch das nicht angebundene, sonst sieht ein
+        # fehlender Schluessel aus wie ein System, das den Betrieb nicht kennt.
+        assert set(stand) == {"chatgpt", "perplexity", "claude", "gemini"}
         assert stand["chatgpt"]["env_name"] == "OPENAI_API_KEY"
+        assert stand["gemini"]["env_name"] == "GEMINI_API_KEY"
         assert "konfiguriert" in stand["claude"]
 
     def test_verraet_keine_schluesselwerte(self, client, auth_headers, monkeypatch):

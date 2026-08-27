@@ -17,7 +17,10 @@ from typing import Optional
 from pydantic import BaseModel
 from database import Customer, Project, get_db, SessionLocal
 from routers.auth_router import require_innendienst
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 
 # Vorgabe: geschlossen. Bis zum 14.08.2026 trug keine der sieben Routen eine
 # Anmeldung — der Kundenbestand war produktiv ohne Token abrufbar und änderbar.
@@ -236,22 +239,25 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     # DB-Verbindung vor externem PageSpeed-Call freigeben
     db.close()
 
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    base = PSI_ENDPOINT
 
-    # Ohne Schlüssel muss der Parameter WEG, nicht leer mitgeschickt werden:
-    # `key=` beantwortet Google mit 400, während ein Aufruf ganz ohne `key`
-    # auf dem anonymen Kontingent funktioniert. Alle Nachbarstellen machen es
-    # so; diese eine nicht — und sie fiel nie auf, weil `_score` jede
+    # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+    # vollstaendige Anfrage-URL (L-98). Eine Stelle, vier Aufrufer.
+    #
+    # Die Regel von vorher gilt unveraendert weiter, nur eine Ebene hoeher:
+    # Ohne Schluessel muss die Kopfzeile **weg**, nicht leer mitgeschickt
+    # werden — ein leerer Schluessel ist 400, ein Aufruf ganz ohne laeuft auf
+    # dem anonymen Kontingent. `pagespeed_auth_headers()` haelt das fest, und
+    # damit kann diese Stelle nicht mehr von ihren Nachbarn abweichen. Genau
+    # das war hier passiert, und es fiel nie auf, weil `_score` jede
     # Fehlerantwort still zu `None` macht.
     params = {"url": website_url}
-    if api_key:
-        params["key"] = api_key
+    kopf = pagespeed_auth_headers()
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         mobile_resp, desktop_resp = await asyncio.gather(
-            client.get(base, params={**params, "strategy": "mobile"}),
-            client.get(base, params={**params, "strategy": "desktop"}),
+            client.get(base, params={**params, "strategy": "mobile"}, headers=kopf),
+            client.get(base, params={**params, "strategy": "desktop"}, headers=kopf),
         )
 
     def _score(resp) -> int | None:

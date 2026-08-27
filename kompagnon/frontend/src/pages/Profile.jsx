@@ -47,7 +47,7 @@ export default function Profile() {
 
   const inputStyle = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box' };
   const tabs = [{ key: 'profil', label: 'Profil' }, { key: 'sicherheit', label: 'Sicherheit' }];
-  if (hasRole('admin') || hasRole('auditor')) tabs.splice(1, 0, { key: 'unterschrift', label: 'Unterschrift' });
+  if (hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) tabs.splice(1, 0, { key: 'unterschrift', label: 'Unterschrift' });
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
@@ -73,7 +73,7 @@ export default function Profile() {
           </div>
           <Field label="E-Mail" value={user?.email || ''} disabled />
           <Field label="Telefon" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
-          {(hasRole('admin') || hasRole('auditor')) && (
+          {(hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) && (
             <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>

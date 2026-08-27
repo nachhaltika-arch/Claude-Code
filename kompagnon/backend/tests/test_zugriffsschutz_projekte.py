@@ -27,7 +27,10 @@ VERTRAULICH_LESEND = (
     "/api/projects/1/checklist",
     "/api/projects/1/margin",
     "/api/projects/1/qa/result",
-    "/api/projects/1/scrape-content",
+    # `/api/projects/1/scrape-content` stand hier bis zum 26.08.2026. Die
+    # Route ist entfernt (Entscheidung David: „der crawler ist der richtige,
+    # den anderen weg") — sie stehen zu lassen hiesse, eine 404 als
+    # Zugriffsschutz zu feiern.
     "/api/projects/1/versions/1/preview",
 )
 
@@ -118,8 +121,12 @@ OEFFENTLICH_ERLAUBT = {
     "/api/leads/portal/{token}/complete-onboarding",
 }
 
+# `require_auditor` stand hier bis zum 27.08.2026 und hing an keiner Route
+# (L-12); mit der Rolle ist die Sperre weg. Ein Name in dieser Liste, den es
+# nicht gibt, ist nicht harmlos: Er laesst die Liste vollstaendiger aussehen,
+# als sie ist.
 ANMELDEPRUEFUNGEN = (
-    "require_admin", "require_superadmin", "require_auditor",
+    "require_admin", "require_superadmin",
     "require_any_auth", "require_innendienst", "require_kunde",
     "get_current_user",
 )

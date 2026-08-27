@@ -63,8 +63,18 @@ Gewerk, bei anderen Branchen die dort passende Kundschaft. Bewerte nicht aus
 Sicht eines Designers.
 
 Sei streng, aber begründet. Vergib die volle Punktzahl nur, wenn es dafür
-sichtbare Belege gibt. Wenn du etwas nicht beurteilen kannst, vergib 0 Punkte
-und benenne im Feld 'begruendung', was fehlt.
+sichtbare Belege gibt.
+
+WENN DU ETWAS NICHT BEURTEILEN KANNST: Trage die Kennung des Kriteriums in
+das Feld 'nicht_beurteilbar' ein und schreibe in 'begruendung', warum. Vergib
+in diesem Fall KEINE 0 Punkte. Null Punkte heißt „geprüft und nicht erfüllt";
+das ist eine Aussage über den Betrieb. Was du nicht sehen konntest, ist eine
+Lücke der Prüfung und darf ihn nichts kosten — es fällt aus der Wertung
+heraus, aus der erreichten Punktzahl ebenso wie aus der erreichbaren.
+
+Der Unterschied ist nicht formal. Ein Betrieb, dessen Seite du nicht laden
+konntest, bekäme sonst eine schlechte Bewertung für etwas, das er nicht getan
+hat.
 
 TON DER TEXTE: Der Betriebsinhaber liest das über seine eigene Arbeit. Sei in
 der Sache klar und in der Wortwahl sachlich — beschreibe, was fehlt oder
@@ -106,7 +116,13 @@ def _rubric(klasse: str = "") -> str:
     for crit in ai_criteria():
         if klasse and not ist_anwendbar(crit.key, klasse):
             continue
-        lines.append(f"- {crit.key} (0-{crit.max_points}): {crit.label} — {crit.hint}")
+        lines.append(f"\n{crit.key} (0-{crit.max_points}) — {crit.label}")
+        # **Das ausformulierte Rubric statt einer Zeile (A8, S8.2).** Bis zum
+        # 25.08.2026 bekam das Modell „Wirkt das Layout zeitgemaess oder
+        # veraltet?" fuer drei Punkte. Was zwei Punkte von einem unterscheidet,
+        # stand nirgends — und ohne das ist Wiederholbarkeit (A9) nicht
+        # herstellbar, sondern Glueckssache.
+        lines.append(crit.rubric or crit.hint)
     return "\n".join(lines)
 
 
@@ -124,6 +140,15 @@ def _schema() -> dict:
     """
     properties = {c.key: {"type": "integer"} for c in ai_criteria()}
     properties.update({
+        # Ohne dieses Feld **kann** das Modell nichts anderes als eine Zahl
+        # liefern — alle Kriterien stehen unter `required`. Eine Aenderung
+        # allein am Prompt waere wirkungslos geblieben (S8.1).
+        #
+        # Eine Liste von Kennungen statt `null` im Typ: Ein Vereinigungstyp
+        # haengt am Schema-Dialekt der Schnittstelle, eine Liste ist ueberall
+        # gueltig. Und sie zwingt das Modell, das Nichtbeurteilbare zu
+        # benennen, statt es wegzulassen.
+        "nicht_beurteilbar": {"type": "array", "items": {"type": "string"}},
         "begruendung": {"type": "string"},
         "ai_summary": {"type": "string"},
         "top_issues": {"type": "array", "items": {"type": "string"}},

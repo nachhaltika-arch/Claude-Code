@@ -55,12 +55,12 @@ ZU_SPERREN = (
 
 
 @pytest.mark.parametrize("methode,pfad,recht", ZU_SPERREN)
-def test_ohne_das_recht_geht_es_nicht(client, auditor_headers, methode, pfad, recht):
-    """Der Auditor darf das nicht — und zwar, weil ihm das Recht fehlt."""
+def test_ohne_das_recht_geht_es_nicht(client, mitarbeiter_headers, methode, pfad, recht):
+    """Der Mitarbeiter darf das nicht — und zwar, weil ihm das Recht fehlt."""
     # Act
     aufruf = getattr(client, methode)
-    antwort = (aufruf(pfad, headers=auditor_headers) if methode == "delete"
-               else aufruf(pfad, json={}, headers=auditor_headers))
+    antwort = (aufruf(pfad, headers=mitarbeiter_headers) if methode == "delete"
+               else aufruf(pfad, json={}, headers=mitarbeiter_headers))
 
     # Assert
     assert antwort.status_code == GESPERRT, (

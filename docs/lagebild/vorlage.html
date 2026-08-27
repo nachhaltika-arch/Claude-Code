@@ -309,6 +309,23 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
 .unter h3{font-weight:900; font-size:15px}
 .unter .z{font-size:12.5px; color:var(--ink-3)}
 @media (max-width:620px){ .stop-z{flex-wrap:wrap} .stop-z .g{text-align:left; max-width:100%} }
+
+.ms-block{margin:34px 0 8px}
+.ms-h{font-size:20px;font-weight:800;margin:0 0 6px}
+.ms-q{font-weight:500;font-size:14px;opacity:.6}
+.ms-hinweis{font-size:13px;line-height:1.55;opacity:.72;max-width:74ch;margin:0 0 16px}
+.ms{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:start;
+    padding:12px 14px;border:1px solid var(--li,#2a3b45);border-radius:10px;margin-bottom:8px}
+.ms .mid{font-weight:800;font-size:15px}
+.ms .mt{font-weight:700;font-size:14px;display:block}
+.ms .me{font-size:12.5px;opacity:.7;display:block;margin-top:2px}
+.ms .mw{font-size:12.5px;margin-top:6px;display:block}
+.ms .mdatum{font-size:12.5px;opacity:.75;white-space:nowrap}
+.ms-frei{border-left:3px solid #2e9e6b}
+.ms-warte{border-left:3px solid #c99a2e}
+.ms .knb{display:inline-block;padding:1px 6px;border-radius:5px;
+   background:rgba(201,154,46,.16);font-size:11.5px;font-weight:700;margin-right:5px}
+.ms .ext{opacity:.72}
 </style>
 
 <header class="kopf">
@@ -467,6 +484,16 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   <!-- ══ Plan ══════════════════════════════════════════ -->
   <section class="blatt" id="b-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
     <p class="vorwort">Die Reihenfolge folgt vier Fragen, in dieser Rangfolge: <b>Was blockiert anderes?</b> · <b>Was ist heute ein Produktivrisiko?</b> · <b>Was bringt den nächsten Kunden durch die Kette M1→M2→M4→M5→M6→M7?</b> · <b>Was ist so billig, dass es alles Folgende überprüfbar macht?</b> Nicht nach Priorität allein — P3 kann vor P1 stehen, wenn es etwas trägt. Nach jeder Phase steht ein auslieferbarer Zustand; der Takt folgt Ihrer Kadenz: Mo–Do auf <code>staging</code>, freitags der Sammel-PR.</p>
+
+    <section class="ms-block">
+      <h2 class="ms-h">Meilensteine <span class="ms-q">aus dem Projektplan KW35–52</span></h2>
+      <p class="ms-hinweis">Was an einer Lücke hängt, ist hier gemessen. Was an
+      Anwalt, Steuerberater oder einer Referenzmessung hängt, kann dieses
+      Lagebild nicht messen — es steht als <b>extern</b> daneben und bleibt
+      stehen, bis es jemand streicht. „Technisch frei" heißt deshalb nicht
+      „erreicht".</p>
+      <div id="meilensteine"></div>
+    </section>
 
     <div id="phasen"></div>
 
@@ -659,4 +686,20 @@ document.getElementById("spaeter").innerHTML = PLAN.spaeter.map(s => `
   <div class="sp"><div class="z1"><span class="kn">${schutz(s.id)}</span>
       <span class="t">${schutz(s.titel)}</span><span class="aufwand">${schutz(s.aufwand)}</span></div>
     <p>${schutz(s.warum)}</p></div>`).join("");
+
+const MS = PLAN.meilensteine || [];
+document.getElementById("meilensteine").innerHTML = MS.map(m => {
+  const wartet = (m.offen || []).map(i => `<span class="knb">${schutz(i)}</span>`).join("");
+  const ext = (m.extern || []).map(e => `<div class="ext">· ${schutz(e)}</div>`).join("");
+  const zeile = m.frei
+    ? (ext ? `<b>Technisch frei.</b> Es fehlt noch:` : `<b>Technisch frei</b> — keine Lücke hält ihn auf.`)
+    : `Wartet auf: ${wartet}`;
+  return `<div class="ms ${m.frei ? "ms-frei" : "ms-warte"}">
+    <span class="mid">${schutz(m.id)}</span>
+    <span><span class="mt">${schutz(m.titel)}</span>
+      <span class="me">${schutz(m.erkennbar)}</span>
+      <span class="mw">${zeile}${ext}</span></span>
+    <span class="mdatum">${schutz(m.datum)}</span>
+  </div>`;
+}).join("");
 </script>

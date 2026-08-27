@@ -95,6 +95,24 @@ class Lead(Base):
     website_url = Column(String(500), default="")
     city = Column(String(100), nullable=True, default=None)
     trade = Column(String(100), nullable=True, default=None)
+    # ── Oeffnungszeiten (L-15, L-99, 24.08.2026) ────────────────────────
+    #
+    # **Nur dieses eine Feld fehlte wirklich.** Der SEO/GEO-Agent verlangt
+    # `street`, `postal_code` **und** `opening_hours` (`CompanyData` in
+    # `routers/agents.py`). Beim Nachsehen standen die ersten beiden laengst
+    # weiter unten in diesem Modell (Zeile 77/79, zusammen mit
+    # `house_number`) — der erste Suchlauf hatte ein zu kurzes Fenster und
+    # haette hier beinahe zwei **doppelte** Spalten angelegt. Bei SQLAlchemy
+    # gewinnt dann stillschweigend die spaetere Definition.
+    #
+    # Ohne die Oeffnungszeiten ist `schema.org/LocalBusiness` trotzdem nicht
+    # zu erzeugen: `openingHours` ist dort Pflicht, und der Agent verlangt es.
+    #
+    # `opening_hours` ist **JSON-Text und keine sieben Spalten**. Sie sind
+    # eine Struktur, keine Skalare, und `schema.org/openingHours` will sie
+    # ohnehin zusammengesetzt. Sieben Spalten waeren sieben Migrationen beim
+    # ersten Sonderfall („Mo-Do 8-17, Fr 8-13, Sa nach Vereinbarung").
+    opening_hours = Column(Text, nullable=True, default=None)
     lead_source = Column(String(100), default="")
     status = Column(String(50), default="new")
     # Wo im Trichter — getrennt davon, wie weit die Bearbeitung ist.
@@ -235,7 +253,10 @@ class Project(Base):
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     go_live_date = Column(String(20))  # stored as ISO date string
-    package_type = Column(String(50), default="kompagnon")
+    # Standard war bis 23.08.2026 "kompagnon" — seither archiviert (L-97).
+    # Dieser Wert greift bei ORM-Inserts und schlaegt den Spaltenstandard
+    # der Datenbank; beide muessen auf dasselbe lebende Paket zeigen.
+    package_type = Column(String(50), default="websprint_neubau")
     payment_status = Column(String(50), default="offen")
     # Project-Type ('standard' oder 'impuls') — orthogonal zu package_type.
     # ISB-158-Förder-Felder werden nur bei project_type='impuls' gefüllt.
@@ -469,141 +490,6 @@ class TimeTracking(Base):
     project = relationship("Project", back_populates="time_trackings")
 
 
-class AuditResult(Base):
-    """Website audit results based on Homepage Standard framework."""
-    __tablename__ = "audit_results"
-
-    id = Column(Integer, primary_key=True, index=True)
-    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
-    # Gesetzt, wenn dieses Audit eine Eigenprüfung ist: die Qualitätsschleife
-    # deployt eine selbst gebaute Seite als Vorschau und misst sie mit
-    # demselben Katalog, den wir Kunden vorhalten. `website_url` zeigt dann auf
-    # die Vorschau, nicht auf den Auftritt des Kunden.
-    sitemap_page_id = Column(Integer, nullable=True, index=True)
-    website_url = Column(String(500), nullable=False)
-    company_name = Column(String(255), nullable=False)
-    contact_name = Column(String(255))
-    city = Column(String(100))
-    trade = Column(String(100))
-
-    # Async status: pending -> running -> completed / failed
-    status = Column(String(50), default="pending")
-    error_message = Column(Text)
-
-    # Das Geheimnis, mit dem ein Interessent ohne Konto sein eigenes Ergebnis
-    # abholt. Ohne das war die Kennung eine fortlaufende Zahl, und wer sie
-    # hochzaehlte, las fremde Audits (L-52, 19.08.2026). Das Widget macht es
-    # unter `/api/widget/report/{token}` seit jeher so.
-    # Bestandsdaten haben keins und bleiben damit nur ueber eine Anmeldung
-    # erreichbar — ein Audit von gestern holt niemand mehr ueber die
-    # Landingpage ab.
-    public_token = Column(String(64), nullable=True, index=True)
-
-    # Scores (6 categories)
-    total_score = Column(Integer, default=0)  # 0-100
-    level = Column(String(50))  # Nicht konform, Bronze, Silber, Gold, Platin
-    rc_score = Column(Integer, default=0)  # Rechtliche Compliance (max 30)
-    tp_score = Column(Integer, default=0)  # Technische Performance (max 20)
-    bf_score = Column(Integer, default=0)  # Barrierefreiheit (max 20)
-    si_score = Column(Integer, default=0)  # Sicherheit & Datenschutz (max 15)
-    se_score = Column(Integer, default=0)  # SEO & Sichtbarkeit (max 10)
-    ux_score = Column(Integer, default=0)  # Inhalt & Nutzererfahrung (max 5)
-
-    # Granular item scores (per-criterion)
-    rc_impressum = Column(Integer, default=0)
-    rc_datenschutz = Column(Integer, default=0)
-    rc_cookie = Column(Integer, default=0)
-    rc_bfsg = Column(Integer, default=0)
-    rc_urheberrecht = Column(Integer, default=0)
-    rc_ecommerce = Column(Integer, default=0)
-    tp_lcp = Column(Integer, default=0)
-    tp_cls = Column(Integer, default=0)
-    tp_inp = Column(Integer, default=0)
-    tp_mobile = Column(Integer, default=0)
-    tp_bilder = Column(Integer, default=0)
-    ho_anbieter = Column(Integer, default=0)
-    ho_uptime = Column(Integer, default=0)
-    ho_http = Column(Integer, default=0)
-    ho_backup = Column(Integer, default=0)
-    ho_cdn = Column(Integer, default=0)
-    bf_kontrast = Column(Integer, default=0)
-    bf_tastatur = Column(Integer, default=0)
-    bf_screenreader = Column(Integer, default=0)
-    bf_lesbarkeit = Column(Integer, default=0)
-    si_ssl = Column(Integer, default=0)
-    si_header = Column(Integer, default=0)
-    si_drittanbieter = Column(Integer, default=0)
-    si_formulare = Column(Integer, default=0)
-    se_seo = Column(Integer, default=0)
-    se_schema = Column(Integer, default=0)
-    se_lokal = Column(Integer, default=0)
-    ux_erstindruck = Column(Integer, default=0)
-    ux_cta = Column(Integer, default=0)
-    ux_navigation = Column(Integer, default=0)
-    ux_vertrauen = Column(Integer, default=0)
-    ux_content = Column(Integer, default=0)
-    ux_kontakt = Column(Integer, default=0)
-
-    # Kriterienkatalog ab 2026-08-11 (siehe services/audit_criteria.py).
-    # JSON statt Einzelspalten, damit neue Kriterien keine Migration brauchen.
-    # Die Einzelspalten oberhalb sind Altbestand und werden nicht mehr gefüllt.
-    item_scores = Column(Text, default="{}")      # {kriterium: punkte}
-    item_sources = Column(Text, default="{}")     # {kriterium: gemessen|abgeleitet|...}
-    category_scores = Column(Text, default="[]")  # [{key, label, score, max, ...}]
-    blockers = Column(Text, default="[]")         # K.-o.-Kriterien
-    coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
-    collection_notes = Column(Text, default="{}") # warum eine Prüfung ausfiel
-
-    # Über wie viele Seiten das Audit urteilt. Bis zum 21.08.2026 war es immer
-    # genau eine — die Startseite. Ohne diese Zahl vergleicht jemand später
-    # eine alte Note mit einer neuen, ohne zu merken, dass die eine über eine
-    # Seite und die andere über zwanzig gefällt wurde. Die Vorgabe 1 ist für
-    # Altzeilen deshalb keine Behelfszahl, sondern die Wahrheit.
-    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
-    seiten_geprueft = Column(Integer, default=1)
-    seiten_gefunden = Column(Integer, nullable=True)
-
-    # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
-    # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
-    # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.
-    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.
-    erkannte_branche = Column(String, default="")   # Freitext des Modells
-    branchenklasse = Column(String, default="")     # K1…K6
-    standard_version = Column(String, default="")   # Fassung des Standards
-
-    # Raw check results
-    ssl_ok = Column(Boolean, default=False)
-    impressum_ok = Column(Boolean, default=False)
-    datenschutz_ok = Column(Boolean, default=False)
-    lcp_value = Column(Float)  # seconds
-    cls_value = Column(Float)
-    inp_value = Column(Float)  # ms
-    mobile_score = Column(Integer)  # 0-100
-    performance_score = Column(Integer)  # 0-100
-
-    # Scraped data (auto-detected from website)
-    scraped_phone = Column(String(50), default="")
-    scraped_email = Column(String(255), default="")
-    scraped_description = Column(Text, default="")
-    screenshot_base64 = Column(Text, default="")
-
-    # AI analysis
-    ai_summary = Column(Text)  # 3-5 sentences plain language
-    top_issues = Column(Text)  # JSON array of top issues
-    recommendations = Column(Text)  # JSON array of recommendations
-
-    # GEO / KI-Sichtbarkeit
-    llms_txt = Column(Boolean, default=False)
-    robots_ai_friendly = Column(Boolean, default=False)
-    structured_data = Column(Boolean, default=False)
-    ai_mentions = Column(Integer, default=0)
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    lead = relationship("Lead", backref="audits", foreign_keys=[lead_id])
-
-
 class User(Base):
     """User accounts with roles and 2FA support."""
     __tablename__ = "users"
@@ -618,10 +504,11 @@ class User(Base):
     phone = Column(String(30), default="")
     avatar_url = Column(String(500), default="")
 
-    # Role: admin | auditor | nutzer | kunde
-    role = Column(String(20), default="nutzer")
+    # Role: superadmin | admin | mitarbeiter | kunde — siehe
+    # `services/rollen.py`, dort steht die Liste einmal.
+    role = Column(String(20), default="mitarbeiter")
 
-    # Auditor-specific
+    # Fuer den Pruefer im Audit-Bericht (Innendienst)
     position = Column(String(100), default="")
     signature_data = Column(Text, default="")
 
@@ -693,68 +580,6 @@ class RolePermission(Base):
     __table_args__ = (
         UniqueConstraint("role", "permission", name="uq_role_permission"),
     )
-
-
-class Briefing(Base):
-    """Briefing questionnaire for web design projects."""
-    __tablename__ = "briefings"
-
-    id = Column(Integer, primary_key=True)
-    lead_id = Column(Integer, ForeignKey('leads.id', ondelete='CASCADE'), nullable=False, unique=True)
-    # Legacy JSON sections (used by BriefingTab)
-    projektrahmen = Column(Text, default='{}')
-    positionierung = Column(Text, default='{}')
-    zielgruppe = Column(Text, default='{}')
-    wettbewerb = Column(Text, default='{}')
-    inhalte = Column(Text, default='{}')
-    funktionen = Column(Text, default='{}')
-    branding = Column(Text, default='{}')
-    struktur = Column(Text, default='{}')
-    hosting = Column(Text, default='{}')
-    seo = Column(Text, default='{}')
-    projektplan = Column(Text, default='{}')
-    freigaben = Column(Text, default='{}')
-    # Flat project briefing fields
-    project_id = Column(Integer, nullable=True)
-    gewerk = Column(Text)
-    leistungen = Column(Text)
-    einzugsgebiet = Column(Text)
-    usp = Column(Text)
-    mitbewerber = Column(Text)
-    vorbilder = Column(Text)
-    farben = Column(Text)
-    wunschseiten = Column(Text)
-    stil = Column(Text)
-    logo_vorhanden = Column(Boolean, default=False)
-    fotos_vorhanden = Column(Boolean, default=False)
-    sonstige_hinweise = Column(Text)
-    status = Column(String(50), default='entwurf')
-    hauptziel = Column(Text)
-    aktionen = Column(Text)
-    typischer_kunde = Column(Text)
-    haeufige_anfrage = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class UserCard(Base):
@@ -857,62 +682,61 @@ class Message(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
 
 
+class Benachrichtigung(Base):
+    """Was vom Kunden hereinkommt — Ticket, Chatnachricht, spaeter E-Mail.
+
+    **Warum eine eigene Tabelle und nicht „die ungelesenen zusammenzaehlen"
+    (26.08.2026, L-18).** Ein Ticket, eine Chatnachricht und eine Mail liegen
+    in drei Tabellen mit drei Formen. Sie beim Anzeigen zusammenzurechnen
+    hiesse, an jeder Stelle alle drei zu kennen — und die vierte, die
+    dazukommt, wird vergessen.
+
+    Eine Meldung ist ein eigener Vorgang: Sie entsteht einmal, sie wird einmal
+    gelesen, und sie traegt ein **Ziel**, das man anklicken kann. Eine Meldung
+    ohne Weg dorthin verlangt vom Leser, selbst zu suchen.
+    """
+
+    __tablename__ = "benachrichtigungen"
+
+    id         = Column(Integer, primary_key=True)
+    #: "ticket" | "chat" | "mail". Bewusst eine Zeichenkette und kein Enum —
+    #: eine vierte Quelle soll eine Zeile kosten, keine Migration.
+    art        = Column(String(20), nullable=False)
+    lead_id    = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    titel      = Column(String(300), nullable=False)
+    hinweis    = Column(Text)
+    #: Wohin der Klick fuehrt, als Pfad im Werkzeug.
+    ziel       = Column(String(300))
+    erstellt_am = Column(DateTime, default=datetime.utcnow)
+    gelesen_am  = Column(DateTime, nullable=True)
+
+
+class Meldungsvorliebe(Base):
+    """Ob ein Ereignis zusaetzlich per Mail gemeldet wird.
+
+    **Warum eine Zeile je Ereignis und kein Feld je Benutzer
+    (26.08.2026).** KOMPAGNON wird von einer Person bedient; ein
+    Vorlieben-Satz je Konto waere eine Verallgemeinerung auf Vorrat. Kommt
+    ein zweiter Innendienst dazu, kostet die Erweiterung eine Spalte — heute
+    kostet sie Bedienoberflaeche, die niemand braucht.
+
+    **Kein Eintrag heisst nicht „aus".** Fehlt die Zeile, gilt die Vorgabe
+    aus `services/meldungsvorlieben.EREIGNISSE` — und die ist fuer jedes
+    Ereignis genau das Verhalten von heute. Ein leerer Bestand darf keinen
+    Versand heimlich abschalten.
+    """
+
+    __tablename__ = "meldungsvorlieben"
+
+    schluessel  = Column(String(40), primary_key=True)
+    aktiv       = Column(Boolean, nullable=False, default=True)
+    geaendert_am = Column(DateTime, default=datetime.utcnow)
+
+
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
 
 
 
-
-
-class GeoAnalysis(Base):
-    __tablename__ = "geo_analyses"
-
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    geo_score_total = Column(Integer, default=0)
-    llms_txt_score = Column(Integer, default=0)
-    robots_ai_score = Column(Integer, default=0)
-    structured_data_score = Column(Integer, default=0)
-    content_depth_score = Column(Integer, default=0)
-    local_signal_score = Column(Integer, default=0)
-
-    raw_checks = Column(JSONB, default=dict)
-    recommendations = Column(JSONB, default=list)
-    generated_files = Column(JSONB, default=dict)
-
-    status = Column(String(50), default="pending")
-    error_message = Column(Text, nullable=True)
-
-    upsell_active = Column(Boolean, default=False)
-    upsell_price = Column(Float, nullable=True)
-
-    # Monitoring
-    last_monitored_at = Column(DateTime, nullable=True)
-    monitoring_history = Column(JSONB, default=list)
-    monitoring_enabled = Column(Boolean, default=True)
-    last_score_change = Column(Integer, nullable=True)
-
-    # Ob eine KI den Betrieb auf eine Kundenfrage hin wirklich nennt (L-58 b).
-    # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all` —
-    # siehe die Nachbarn oben. NULL heisst „nie gelaufen", nicht „nicht
-    # gefunden": Der Lauf kostet Geld und laeuft nur auf Anforderung.
-    ki_sichtbarkeit = Column(JSONB, nullable=True)
-    ki_sichtbarkeit_am = Column(DateTime, nullable=True)
-    # Je Lauf die Trefferzahl je System — ohne die Antworttexte, die
-    # den Verlauf in einem Jahr unlesbar machten (L-85). Nach oben
-    # begrenzt: `services/ki_sichtbarkeit.VERLAUF_MAX`.
-    ki_sichtbarkeit_verlauf = Column(JSONB, nullable=True)
-
-    # Stripe Subscription
-    stripe_subscription_id = Column(String(200), nullable=True)
-    stripe_customer_id = Column(String(200), nullable=True)
-    stripe_price_id = Column(String(200), nullable=True)
-    subscription_status = Column(String(50), nullable=True)
-    subscription_started_at = Column(DateTime, nullable=True)
-    subscription_canceled_at = Column(DateTime, nullable=True)
-    subscription_current_period_end = Column(DateTime, nullable=True)
 
 
 class ComponentLibrary(Base):
@@ -1013,7 +837,10 @@ def _phase_beim_anlegen(mapper, verbindung, ziel):
 # und SQLAlchemy loest den Namen erst beim ersten Zugriff auf. Fehlt eine
 # Datei, faellt das nicht beim Start auf, sondern bei irgendeiner Abfrage.
 from modelle_akademie import *      # noqa: E402,F401,F403
+from modelle_audit import *         # noqa: E402,F401,F403
+from modelle_briefing import *      # noqa: E402,F401,F403
 from modelle_assistent import *     # noqa: E402,F401,F403
 from modelle_crawler import *       # noqa: E402,F401,F403
 from modelle_kas import *           # noqa: E402,F401,F403
 from modelle_widget import *        # noqa: E402,F401,F403
+from modelle_buch import *          # noqa: E402,F401,F403

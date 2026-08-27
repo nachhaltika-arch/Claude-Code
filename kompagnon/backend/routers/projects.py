@@ -28,13 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 
-def _fernet_available() -> bool:
-    """True wenn CREDENTIALS_KEY gültig gesetzt ist."""
-    try:
-        _get_fernet()
-        return True
-    except Exception:
-        return False
+# `_fernet_available()` stand hier und ist am 23.08.2026 entfallen (L-25):
+# kein Aufruf im Bestand, kein Import von aussen. Sie meldete, ob
+# `CREDENTIALS_KEY` gesetzt ist — das beantwortet inzwischen der Startbericht.
 
 
 from fastapi.responses import FileResponse
@@ -46,8 +42,6 @@ from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
-from services.audit_pagespeed import api_key as pagespeed_api_key
-from routers.content_scraper_router import _run_content_scrape
 from routers.auth_router import (
     require_admin,
     require_any_auth,
@@ -75,6 +69,13 @@ logger = logging.getLogger(__name__)
 # werden von den herausgeloesten Modulen mitbenutzt (L-25). Ein Router je
 # Zugangsart, damit nicht zwei auf derselben Adresse liegen.
 from routers.projects_router import kunden_router, public_router, router
+# Die Datenformate stehen seit dem 23.08.2026 in `projects_modelle.py`
+# (L-25) — 165 Zeilen ohne Logik, die man nachschlaegt statt durchblaettert.
+from routers.projects_modelle import (  # noqa: F401
+    ChecklistItemResponse, ChecklistItemUpdate, LeistungsseitenCreate,
+    MarginResponse, PhaseChangeRequest, ProjectResponse,
+    ProjectUpdateRequest, TimeLogRequest,
+)
 # Gemeinsame Helfer aller Module unter `/api/projects` — seit dem
 # 22.08.2026 in `projects_helfer.py`, damit die herausgeloesten Module
 # nicht an dieser Datei haengen (L-25).
@@ -84,171 +85,6 @@ from routers.projects_helfer import (  # noqa: F401
     safe_json_parse,
 )
 
-
-
-
-class ProjectResponse(BaseModel):
-    id: int
-    lead_id: Optional[int] = None
-    name: Optional[str] = None
-    customer_name: Optional[str] = None
-    status: Optional[str] = None
-    current_phase: Optional[int] = None
-    website_url: Optional[str] = None
-    cms_type: Optional[str] = None
-    contact_name: Optional[str] = None
-    contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    industry: Optional[str] = None
-    wz_code: Optional[str] = None
-    wz_title: Optional[str] = None
-    package_type: Optional[str] = None
-    payment_status: Optional[str] = None
-    desired_pages: Optional[str] = None
-    top_problems: Optional[str] = None
-    customer_email: Optional[str] = None
-    hosting_provider: Optional[str] = None
-    domain_registrar: Optional[str] = None
-    nameserver1: Optional[str] = None
-    nameserver2: Optional[str] = None
-    ftp_credentials: Optional[str] = None
-    wp_admin_url: Optional[str] = None
-    hosting_notes: Optional[str] = None
-    fixed_price: Optional[float] = None
-    actual_hours: Optional[float] = None
-    hourly_rate: Optional[float] = None
-    ai_tool_costs: Optional[float] = None
-    margin_percent: Optional[float] = None
-    scope_creep_flags: Optional[int] = None
-    pagespeed_mobile: Optional[int] = None
-    pagespeed_desktop: Optional[int] = None
-    analysis_score: Optional[int] = None
-    audit_score: Optional[int] = None
-    has_logo: Optional[bool] = None
-    has_briefing: Optional[bool] = None
-    has_photos: Optional[bool] = None
-    email_notifications_enabled: Optional[bool] = None
-    start_date: datetime = None
-    target_go_live: datetime = None
-    actual_go_live: datetime = None
-    go_live_date: datetime = None
-    created_at: datetime = None
-
-    class Config:
-        from_attributes = True
-
-
-class TimeLogRequest(BaseModel):
-    hours: float
-    phase: int = None
-    logged_by: str
-    activity_description: str = None
-
-
-class ChecklistItemResponse(BaseModel):
-    id: int
-    phase: int
-    item_key: str
-    item_label: str
-    responsible: str
-    is_critical: bool
-    is_completed: bool
-    completed_at: datetime = None
-    completed_by: str = None
-
-    class Config:
-        from_attributes = True
-
-
-class ChecklistItemUpdate(BaseModel):
-    is_completed: bool
-    completed_by: str = None
-
-
-class PhaseChangeRequest(BaseModel):
-    new_status: str
-
-
-class ProjectUpdateRequest(BaseModel):
-    customer_name: str = None
-    website_url: str = None
-    cms_type: str = None
-    contact_name: str = None
-    contact_phone: str = None
-    contact_email: str = None
-    go_live_date: str = None        # ISO date string, e.g. "2025-09-01"
-    package_type: str = None
-    payment_status: str = None
-    desired_pages: str = None
-    has_logo: bool = None
-    has_briefing: bool = None
-    has_photos: bool = None
-    pagespeed_mobile: int = None
-    pagespeed_desktop: int = None
-    audit_score: int = None
-    audit_level: str = None
-    top_problems: str = None
-    industry: str = None
-    wz_code: str = None
-    wz_title: str = None
-    email_notifications_enabled: bool = None
-    customer_email: str = None
-    fixed_price: float = None
-    target_go_live: str = None
-    status: str = None
-    current_phase: int = None
-    hosting_provider: str = None
-    domain_registrar: str = None
-    nameserver1: str = None
-    nameserver2: str = None
-    ftp_credentials: str = None
-    wp_admin_url: str = None
-    hosting_notes: str = None
-
-
-class MarginResponse(BaseModel):
-    human_hours: float
-    human_costs: float
-    ai_tool_costs: float
-    total_costs: float
-    margin_eur: float
-    margin_percent: float
-    hours_remaining_at_target: float
-    status: str  # green, yellow, red
-    alert: bool
-    target_margin: float
-    min_acceptable_margin: float
-
-
-class LeistungsseitenCreate(BaseModel):
-    """Fragebogen-Eingabe fuer eine neue Leistungsseite (Teil 1 Stub).
-
-    Pflichtfelder werden client-seitig im Wizard validiert; server-seitig
-    sind alle Felder optional, damit Teil-2-Erweiterungen problemlos moeglich
-    sind und kein 422 den Stub-Save blockiert.
-    """
-    # Schritt 1 — Leistung definieren
-    leistung: str = ""
-    gebiet: str = ""
-    zielgruppe: str = ""
-    # Schritt 2 — Zielkunde & Problem
-    idealer_kunde: str = ""
-    problem: str = ""
-    problem_folgen: str = ""
-    # Schritt 3 — USP & Preis
-    usp: str = ""
-    einstiegspreis: str = ""
-    inkludiert: str = ""
-    # Schritt 4 — Beweis & Vertrauen
-    referenzen: str = ""
-    projekt_anzahl: str = ""
-    kundenstimmen: str = ""
-    zertifikate: str = ""
-    # Schritt 5 — Kontakt & CTA
-    kontakt_kanal: str = ""
-    telefon: str = ""
-    cta_text: str = ""
-    dringlichkeit: str = ""
 
 
 @router.get("/debug")
@@ -344,12 +180,48 @@ def list_projects(
                 'hourly_rate': row[5] or 45,
                 'ai_tool_costs': row[6] or 50,
                 'margin_percent': row[7] or 0,
+                # Der Status kommt **vom Server**, nicht aus der Oberflaeche:
+                # Die Schwellen (78 % / 70 %) stehen in `MarginCalculator`,
+                # und eine zweite Quelle fuer dieselbe Zahl ist der Fehler,
+                # der bei den Paketpreisen schon einmal zugeschlagen hat.
+                # Gerechnet wird hier nichts — nur der gespeicherte Wert
+                # eingeordnet; `calculate_margin` je Zeile waere bei 200
+                # Projekten eine Abfrage je Projekt.
+                # Die Stunden werden **mitgegeben**: Ohne erfasste Zeit ist
+                # die Marge keine Messung, sondern der Festpreis minus
+                # Werkzeugkosten — und ein gruenes Abzeichen darueber waere
+                # eine Behauptung (26.08.2026, L-105).
+                'margin_status': MarginCalculator.status_fuer(row[7] or 0,
+                                                             row[4] or 0),
                 'scope_creep_flags': row[8] or 0,
                 'created_at': str(row[9])[:10] if row[9] else '',
             })
         except Exception:
             continue
     return result
+
+
+def _content_analysiert_am(db, lead_id):
+    """Der juengste Auslesezeitpunkt des Crawlers fuer diesen Betrieb.
+
+    `None`, wenn nie gelesen wurde — und das ist keine Aussage ueber die
+    Website, sondern ueber uns. Ein Fehler beim Lesen ergibt ebenfalls `None`
+    und eine Protokollzeile: Ein Zeitstempel zu erfinden waere schlimmer als
+    keiner.
+    """
+    if not lead_id:
+        return None
+    try:
+        zeile = db.execute(
+            text("SELECT MAX(scraped_at) FROM website_content_cache "
+                 "WHERE customer_id = :c"),
+            {"c": lead_id},
+        ).fetchone()
+    except Exception as fehler:      # noqa: BLE001
+        logger.warning("Auslesezeitpunkt fuer Betrieb %s nicht lesbar: %s",
+                       lead_id, fehler)
+        return None
+    return zeile[0].isoformat() if zeile and zeile[0] else None
 
 
 @kunden_router.get("/{project_id}")
@@ -429,6 +301,19 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'netlify_site_url':         row[26] or None,
         'netlify_last_deploy':      row[27].isoformat() if row[27] else None,
         'steps_confirmed':          row[28] or '{}',
+        # **Wann der Crawler diese Website zuletzt ausgelesen hat.**
+        #
+        # Vorher las die Prozesskette `project.scrape_full_at` — ein Feld, das
+        # diese Antwort **nie enthielt**. Die Kette bekam `undefined` und der
+        # Schritt „Content-Vollanalyse" stand ewig auf offen, obwohl der Lauf
+        # (damals als Hintergrundaufgabe beim Anlegen) tatsaechlich
+        # stattgefunden hatte. Ein Wert, der nicht ueber die Schnittstelle
+        # geht, ist fuer die Oberflaeche nicht vorhanden.
+        #
+        # Seit dem 26.08.2026 gibt es nur noch **einen** Scraper, und das ist
+        # der, den die Oberflaeche ruft (`/api/crawler/…`). Sein Zeitstempel
+        # steht in `website_content_cache`, dort nach Betrieb abgelegt.
+        'content_analysiert_am': _content_analysiert_am(db, lead_id),
     }
 
 
@@ -520,90 +405,11 @@ def create_leistungsseite(
     }
 
 
-# ── Projekte entfernen ────────────────────────────────────────────────
-# Bis zum 17.08.2026 gab es dafür keinen Endpunkt. Wer ein Projekt loswerden
-# wollte, musste SQL von Hand fahren — und das stand an dem Tag an, weil ein
-# Projekt 135 Tage lang jeden Morgen dieselbe Mail ausgelöst hatte.
-# Die Reihenfolge über die fünfzehn abhängigen Tabellen steht in
-# `services/projekt_loeschen.py`, damit sie nur einmal existiert.
-
-
-class ProjekteLoeschenRequest(BaseModel):
-    ids: list[int]
-
-
-def _ids_aus_abfrage(ids: str) -> list:
-    """"1,2,3" → [1, 2, 3]. Was keine Zahl ist, fliegt raus."""
-    return [int(teil) for teil in ids.split(",") if teil.strip().isdigit()]
-
-
-@router.get("/loeschvorschau")
-def loeschvorschau(
-    ids: str = Query(..., description="Projektnummern, mit Komma getrennt"),
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Was ein Löschen anfassen würde — ohne etwas anzufassen.
-
-    In `customers` stecken wiederkehrender Umsatz und CMS-Zugangsdaten. Die
-    Zeilen können nicht bleiben (NOT-NULL-Fremdschlüssel), also soll wenigstens
-    vorher jemand gesehen haben, wie viele es sind.
-    """
-    from services.projekt_loeschen import zaehlen
-
-    projekt_ids = _ids_aus_abfrage(ids)
-    if not projekt_ids:
-        raise HTTPException(400, "Keine gültigen Projektnummern angegeben")
-
-    return zaehlen(db, projekt_ids)
-
-
-@router.delete("/{project_id}")
-def delete_project(
-    project_id: int,
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Entfernt ein Projekt samt allem, was ohne es keinen Inhalt hat.
-
-    Das Versandprotokoll bleibt erhalten — nur sein Verweis wird gelöst.
-    Der Betrieb (`leads`) bleibt unberührt: Gelöscht wird das Projekt, nicht
-    der Kunde.
-    """
-    from services.projekt_loeschen import entfernen
-
-    vorhanden = db.execute(
-        text("SELECT id FROM projects WHERE id = :id"), {"id": project_id}
-    ).fetchone()
-    if not vorhanden:
-        raise HTTPException(404, "Projekt nicht gefunden")
-
-    bericht = entfernen(db, [project_id])
-    db.commit()
-    return bericht
-
-
-@router.post("/loeschen")
-def projekte_loeschen(
-    anfrage: ProjekteLoeschenRequest,
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Mehrere auf einmal.
-
-    Eine leere Liste wird abgewiesen statt als „alle" gelesen zu werden — ein
-    versehentlich leerer Rumpf darf nicht den ganzen Bestand kosten.
-    """
-    from services.projekt_loeschen import entfernen
-
-    if not anfrage.ids:
-        raise HTTPException(400, "Keine Projektnummern angegeben")
-
-    bericht = entfernen(db, anfrage.ids)
-    db.commit()
-    return bericht
-
-
+# **Standen bis zum 23.08.2026 im Abschnitt „Projekte entfernen“** und sind
+# beim Schnitt beinahe mit ausgezogen — sie gehoeren aber zu `PUT`
+# darunter: `BLOCKED_KEYS` begrenzt, was ueberhaupt geschrieben werden
+# darf, `spalten_der_projekttabelle` sagt, was es gibt. Dass sie dort
+# lagen, sagt nichts darueber, wozu sie gehoeren (L-25).
 BLOCKED_KEYS = {
     "id", "pid", "project_id", "projects_id",
     "created_at", "updated_at", "lead_id"
@@ -627,6 +433,34 @@ def spalten_der_projekttabelle(db: Session) -> frozenset:
     spalten = frozenset(s["name"] for s in _inspect(bind).get_columns("projects"))
     _SPALTEN_JE_DATENBANK[kennung] = spalten
     return spalten
+
+
+# Zurueck bei den uebrigen `/{project_id}`-Routen, nicht im Loeschmodul:
+# Das wird frueher geladen, und ein Platzhalter dort verdeckte jeden
+# festen Pfad danach (L-25, 23.08.2026).
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Entfernt ein Projekt samt allem, was ohne es keinen Inhalt hat.
+
+    Das Versandprotokoll bleibt erhalten — nur sein Verweis wird gelöst.
+    Der Betrieb (`leads`) bleibt unberührt: Gelöscht wird das Projekt, nicht
+    der Kunde.
+    """
+    from services.projekt_loeschen import entfernen
+
+    vorhanden = db.execute(
+        text("SELECT id FROM projects WHERE id = :id"), {"id": project_id}
+    ).fetchone()
+    if not vorhanden:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    bericht = entfernen(db, [project_id])
+    db.commit()
+    return bericht
 
 
 @router.put("/{project_id}")
@@ -765,16 +599,64 @@ def change_phase(
     }
 
 
+@router.get("/{project_id}/time")
+def zeiten_lesen(project_id: int, db: Session = Depends(get_db)):
+    """Die erfassten Zeiten eines Projekts, neueste zuerst.
+
+    **Warum es das erst seit dem 26.08.2026 gibt.** Eintragen ging, nachsehen
+    nicht — eine Eingabe ohne Rueckschau laedt zum doppelten Eintragen ein.
+
+    Die **Summe** kommt mit: Sonst rechnet sie jeder Bildschirm selbst, und
+    einer davon falsch. Dieselbe Ueberlegung wie beim Margenstatus, der
+    seit heute ebenfalls vom Server kommt.
+    """
+    if not db.query(Project).filter(Project.id == project_id).first():
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    zeilen = db.execute(text(
+        "SELECT id, hours, phase, logged_by, activity_description, logged_at "
+        "FROM time_tracking WHERE project_id = :p "
+        "ORDER BY logged_at DESC, id DESC"
+    ), {"p": project_id}).fetchall()
+
+    eintraege = [{
+        "id": z[0],
+        "hours": float(z[1] or 0),
+        "phase": z[2],
+        "logged_by": z[3] or "",
+        "activity_description": z[4] or "",
+        "logged_at": z[5].isoformat() if z[5] else None,
+    } for z in zeilen]
+
+    return {"eintraege": eintraege,
+            "summe": round(sum(e["hours"] for e in eintraege), 2)}
+
+
 @router.post("/{project_id}/time")
 def log_time(
     project_id: int,
     time_log: TimeLogRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Log hours spent on a project and update margin."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    # **Null oder negativ wird abgewiesen.** Eine negative Stunde waere eine
+    # Korrektur, und die gehoert besprochen statt stillschweigend verbucht;
+    # null ist kein Eintrag, sondern ein Fehlklick.
+    if (time_log.hours or 0) <= 0:
+        raise HTTPException(status_code=400,
+                            detail="Bitte eine Stundenzahl größer als 0 angeben.")
+
+    # Wer eingetragen hat, kommt aus der Anmeldung — nicht aus einem
+    # Textfeld (siehe `TimeLogRequest.logged_by`).
+    wer = (time_log.logged_by or "").strip() or (
+        f"{getattr(current_user, 'first_name', '') or ''} "
+        f"{getattr(current_user, 'last_name', '') or ''}".strip()
+        or getattr(current_user, "email", "") or "Innendienst")
 
     try:
         # Log time
@@ -782,7 +664,7 @@ def log_time(
             db=db,
             project_id=project_id,
             hours=time_log.hours,
-            logged_by=time_log.logged_by,
+            logged_by=wer,
             phase=time_log.phase,
             activity_description=time_log.activity_description,
         )
@@ -793,7 +675,7 @@ def log_time(
         return {
             "time_entry_id": time_entry.id,
             "hours_logged": time_log.hours,
-            "logged_by": time_log.logged_by,
+            "logged_by": wer,
             "updated_margin": margin,
         }
 

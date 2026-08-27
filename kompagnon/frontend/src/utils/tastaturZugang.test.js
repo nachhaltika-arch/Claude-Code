@@ -33,7 +33,17 @@ const WURZEL = path.join(__dirname, '..');
  *  `components/ProzessFlowV3.jsx` sind entfernt. Drei Stellen weniger, ohne
  *  dass jemand eine Tastaturbedienung nachgerüstet hat — gelöschter Code hat
  *  keine Barrieren. */
-const VERBLEIBEND = 50;
+// 24.08.2026: 50 → 45. `SalesPipeline.jsx` und `TemplateGallery.jsx` sind
+// entfernt (L-95) — beide waren nachweislich abgeloest, und mit ihnen
+// fielen fuenf nur-mit-Maus-Stellen weg. Die Ratsche wird nachgezogen,
+// damit der Rueckstand nicht unbemerkt wieder unter die Schranke waechst.
+// 26.08.2026: 45 → 44. Acht abgeloeste Dateien sind entfernt (L-95, je
+// einzeln nachgesehen: `Landing`, `AuditHistory`, `ProjectCard`,
+// `ProjectSitemapPlaner`, `PhaseTracker`, `Navbar`, `PageHeader`,
+// `backend/config.py`). Eine davon trug eine nur-mit-Maus-Stelle.
+// Wieder gilt: geloeschter Code hat keine Barrieren — es hat niemand eine
+// Tastaturbedienung nachgeruestet, es ist nur eine Stelle weniger da.
+const VERBLEIBEND = 44;
 
 function tagEnde(text, start) {
   let tiefe = 0;

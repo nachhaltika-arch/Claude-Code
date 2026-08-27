@@ -14,6 +14,7 @@ Beruehrt payments.py NICHT.
 import os
 import json
 import logging
+from typing import Optional
 from datetime import datetime
 
 import stripe
@@ -318,10 +319,73 @@ def _run_geo_automation_after_purchase(project_id: int):
         finally:
             db.close()
 
+        _erste_nennungsmessung(project_id, company_name, website_url, gewerk, city)
+
         logger.info("GEO Auto-Setup nach Kauf abgeschlossen: Projekt %d", project_id)
 
     except Exception as e:
         logger.error("GEO Auto-Setup fehlgeschlagen fuer Projekt %d: %s", project_id, e)
+
+
+def _erste_nennungsmessung(project_id: int, name: str, domain: str,
+                           gewerk: str, ort: str) -> None:
+    """Der erste Nennungslauf direkt nach dem Kauf (L-58 b).
+
+    **Warum sofort und nicht erst am Montag.** Das Abo verkauft eine Kurve, und
+    eine Kurve braucht einen ersten Punkt. Wer heute kauft und bis zum
+    Wochenlauf eine leere Ansicht sieht, hat den Eindruck, nichts bekommen zu
+    haben — sechs Tage lang.
+
+    **Und warum er nichts umwirft, wenn er scheitert.** Ohne Schluessel, ohne
+    Gewerk oder ohne Ort passiert hier nichts ausser einem Protokolleintrag.
+    Der Kauf ist abgeschlossen, die GEO-Analyse steht; eine fehlende Messung
+    ist ein Nachtrag, kein Grund, den Kaufvorgang scheitern zu lassen.
+    """
+    import asyncio
+
+    from database import SessionLocal
+    from services.ki_anbieter import konfigurierte_anbieter
+    from services.ki_sichtbarkeit import (pruefe_ki_sichtbarkeit,
+                                          verlauf_fortschreiben)
+
+    if not konfigurierte_anbieter():
+        logger.info("Erste Nennungsmessung fuer Projekt %d entfaellt — "
+                    "kein KI-System angebunden", project_id)
+        return
+    if not gewerk or not ort:
+        logger.info("Erste Nennungsmessung fuer Projekt %d entfaellt — "
+                    "Gewerk oder Ort fehlt", project_id)
+        return
+
+    try:
+        befund = asyncio.run(pruefe_ki_sichtbarkeit(
+            name=name, domain=domain, gewerk=gewerk, ort=ort, max_fragen=3))
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Erste Nennungsmessung fuer Projekt %d gescheitert: %s",
+                       project_id, fehler)
+        return
+
+    if not befund.get("collected"):
+        return
+
+    db = SessionLocal()
+    try:
+        analyse = db.query(GeoAnalysis).filter(
+            GeoAnalysis.project_id == project_id).first()
+        if not analyse:
+            return
+        jetzt = datetime.utcnow()
+        analyse.ki_sichtbarkeit = befund
+        analyse.ki_sichtbarkeit_am = jetzt
+        analyse.ki_sichtbarkeit_verlauf = verlauf_fortschreiben(
+            analyse.ki_sichtbarkeit_verlauf, befund,
+            jetzt.isoformat(timespec="seconds"))
+        db.commit()
+        logger.info("Erste Nennungsmessung fuer Projekt %d: bei %d von %d "
+                    "Systemen genannt", project_id,
+                    befund.get("genannt_bei", 0), befund.get("erhoben_bei", 0))
+    finally:
+        db.close()
 
 
 def _handle_subscription_change(subscription: dict):
@@ -451,6 +515,60 @@ def get_subscription_status(
         "subscription_current_period_end": analysis.subscription_current_period_end.isoformat() if analysis.subscription_current_period_end else None,
         "geo_score_total": analysis.geo_score_total,
         "geo_status": analysis.status,
+        # Was das Abo tatsaechlich liefert: die Nennung und ihr Verlauf.
+        # Nur fuer Abonnenten — ohne Abo bleibt der Block leer, sonst waere
+        # die Leistung schon vor dem Kauf zu sehen.
+        "ki_nennung": _nennung_fuer_kunden(analysis),
+    }
+
+
+#: Was ein nicht abgefragtes System dem **Kunden** gegenueber heisst.
+#:
+#: Der interne Grund lautet „PERPLEXITY_API_KEY nicht gesetzt". Das ist die
+#: richtige Auskunft fuer den Innendienst und die falsche fuer den Kunden: Sie
+#: nennt eine Umgebungsvariable, verraet die Betriebsausstattung und beantwortet
+#: seine Frage nicht. Er soll erfahren, **dass** nicht gefragt wurde — nicht,
+#: welcher Schluessel in Render fehlt.
+NICHT_ABGEFRAGT = "wird derzeit nicht abgefragt"
+
+
+def _nennung_fuer_kunden(analysis) -> Optional[dict]:
+    """Der Nennungsbefund, auf das eingedampft, was den Kunden angeht.
+
+    **Ohne laufendes Abo gibt es nichts.** Der Verlauf ist die Leistung; ihn
+    vor dem Kauf zu zeigen hiesse, sie zu verschenken.
+
+    **Ohne Messung gibt es eine Auskunft, keine Null.** „Noch nicht gemessen"
+    und „nirgends genannt" sind zwei verschiedene Nachrichten, und die zweite
+    kostet den Betrieb Geld.
+    """
+    if analysis.subscription_status not in ("active", "trialing"):
+        return None
+
+    befund = analysis.ki_sichtbarkeit or {}
+    systeme = []
+    for schluessel, block in (befund.get("anbieter") or {}).items():
+        if block.get("collected"):
+            systeme.append({
+                "schluessel": schluessel,
+                "anzeige": block.get("anzeige", schluessel),
+                "genannt_bei": block.get("genannt_bei", 0),
+                "von": block.get("beantwortet", block.get("von", 0)),
+            })
+        else:
+            systeme.append({
+                "schluessel": schluessel,
+                "anzeige": block.get("anzeige", schluessel),
+                "genannt_bei": None,
+                "von": None,
+                "hinweis": NICHT_ABGEFRAGT,
+            })
+
+    return {
+        "gemessen_am": (analysis.ki_sichtbarkeit_am.isoformat()
+                        if analysis.ki_sichtbarkeit_am else None),
+        "systeme": systeme,
+        "verlauf": analysis.ki_sichtbarkeit_verlauf or [],
     }
 
 

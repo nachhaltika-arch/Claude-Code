@@ -40,7 +40,7 @@ _MARGIN = 18 * mm
 _MID_GREY   = colors.HexColor("#8A9BA8")
 
 _PFLICHT_DESC = {
-    "Impressum":                  "Gesetzliche Anbieterkennzeichnung nach § 5 TMG",
+    "Impressum":                  "Gesetzliche Anbieterkennzeichnung nach § 5 DDG",
     "Datenschutzerklärung":       "Informationspflicht gemäß Art. 13/14 DSGVO",
     "Barrierefreiheitserklärung": "Konformitätserklärung gemäß BFSG / BITV 2.0",
     "AGB":                        "Allgemeine Geschäftsbedingungen / Vertragsgrundlage",

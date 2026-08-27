@@ -31,7 +31,7 @@ from typing import Optional
 import httpx
 from bs4 import BeautifulSoup
 
-from services import audit_aggregat, audit_collectors as collectors
+from services import audit_aggregat, seitenbrowser, audit_collectors as collectors
 from services.audit_pagespeed import fetch_pagespeed
 from services.audit_seiten import MAX_SEITEN, finde_unterseiten
 from services.url_guard import UnsafeUrlError, fetch_guarded
@@ -299,6 +299,37 @@ async def collect_facts(
     soup = BeautifulSoup(html, "html.parser")
     base_url = homepage.get("final_url") or url
 
+    # **Entsteht die Seite erst im Browser? Dann noch einmal, mit einem
+    # (L-107, Entscheidung David 26.08.2026).** `httpx` fuehrt kein
+    # JavaScript aus; von einer React-Anwendung sieht die Erhebung
+    # `<div id="root"></div>` und sonst nichts — beim Probelauf gegen die
+    # eigene Produktivoberflaeche elf Woerter.
+    #
+    # **Nur dann.** Ein Browserlauf kostet Sekunden und Speicher; ihn bei
+    # jeder Analyse zu starten waere Aufwand fuer die neunundneunzig Seiten,
+    # die ihn nicht brauchen. Die Erkennung steht seit dem 25.08. und
+    # entscheidet ohnehin schon, ob Kriterien als gemessen gelten duerfen.
+    # **Ein Lauf, zwei Erkenntnisse (26.08.2026).** Die erste Fassung startete
+    # den Browser nur bei einer leeren Huelle — richtig, solange es allein um
+    # L-107 ging. Er sieht aber noch etwas, das sonst niemand sehen kann:
+    # welche Cookies **vor** jeder Einwilligung gesetzt werden. Das ist die
+    # Deckelregel `cookies_ohne_consent`, die der Katalog seit jeher nennt und
+    # die niemand erhoben hat. Zweimal zu laden waere zweimal zu zahlen.
+    #
+    # Kosten: rund 6 s bei einem Zeitrahmen von 200 s, und hoechstens ein
+    # Browser gleichzeitig (`seitenbrowser._EINER`).
+    browserlauf = {"wie": "nicht", "grund": "nicht eingeschaltet"}
+    if seitenbrowser.browser_erwuenscht():
+        browserlauf = await seitenbrowser.hole_gerendert(base_url)
+        if browserlauf.get("wie") == "browser" and browserlauf.get("html"):
+            html = browserlauf["html"]
+            soup = BeautifulSoup(html, "html.parser")
+            base_url = browserlauf.get("final_url") or base_url
+            logger.info("%s wurde im Browser geladen (%d statt %d Woerter)",
+                        base_url, len(soup.get_text(" ").split()),
+                        len(BeautifulSoup(homepage["html"], "html.parser")
+                            .get_text(" ").split()))
+
     # Netzwerkabhängige Erhebungen parallel — alle auf Domain-Ebene, deshalb
     # weiter an der Startseite und nicht je Unterseite.
     tasks = {
@@ -345,6 +376,26 @@ async def collect_facts(
         **audit_aggregat.fasse_zusammen(befunde),
         # Nur die Startseite: die Navigation ist auf allen Seiten dieselbe.
         "navigation": collectors.analyse_navigation(soup),
+        # Entsteht der Inhalt erst im Browser? Dann hat die Erhebung die Seite
+        # nie gesehen, und die inhaltsabhaengigen Kriterien duerfen nicht als
+        # gemessen gelten (24.08.2026, `clientseitig_aufgebaut`).
+        # Nach einem geglueckten Browserlauf ist die Seite **gesehen** — die
+        # inhaltsabhaengigen Kriterien duerfen dann wieder zaehlen. Ohne diese
+        # Neubewertung fielen sie weiter aus Zaehler und Nenner, und der
+        # Browser haette nichts geaendert ausser der Laufzeit.
+        "clientseitig": collectors.clientseitig_aufgebaut(
+            soup, len(soup.get_text(" ").split())),
+        # Wie die Seite geholt wurde. **Ein Bericht, der das nicht sagen kann,
+        # ist die Fehlerfamilie, die diesen Bestand am haeufigsten getroffen
+        # hat** — eine Zahl, die aussieht wie eine Messung.
+        "browserlauf": {"collected": True,
+                        "wie": browserlauf.get("wie", "nicht"),
+                        "grund": browserlauf.get("grund", "")},
+        # **Erst erhoben, seit es einen Browser gibt.** Ohne Browserlauf
+        # steht hier `collected: False` — und die Deckelregel bleibt, was sie
+        # war: genannt, aber nicht gemessen. Sie mit `False` zu beantworten
+        # hiesse zu behaupten, nachgesehen zu haben.
+        "cookies_vor_consent": _cookies_vor_consent(browserlauf),
         "cdn": collectors.detect_cdn(homepage.get("headers", {})),
         "security_headers": _security_headers(homepage.get("headers", {})),
         "page_text": _gesamttext(befunde),
@@ -355,6 +406,29 @@ async def collect_facts(
         facts[key] = value if isinstance(value, dict) else {"collected": False}
 
     return facts
+
+
+def _cookies_vor_consent(browserlauf: dict) -> dict:
+    """Was ohne Einwilligung gesetzt wurde — oder dass niemand nachgesehen hat.
+
+    Der Browserlauf klickt kein Banner an. Was danach im Kontext steht, steht
+    dort ohne Zustimmung. `verfolger` nennt davon die Namen, bei denen es
+    **keine** Notwendigkeitsausnahme geben kann — Messung und Werbung. Alles
+    andere bleibt ungewertet: Ob ein Cookie technisch notwendig ist, haengt
+    von der Seite ab, und das kann von aussen niemand entscheiden.
+    """
+    if browserlauf.get("wie") != "browser":
+        return {"collected": False,
+                "grund": browserlauf.get("grund", "kein Browserlauf")}
+
+    cookies = browserlauf.get("cookies") or []
+    verfolger = seitenbrowser.verfolger_darunter(cookies)
+    return {
+        "collected": True,
+        "anzahl": len(cookies),
+        "verfolger": verfolger,
+        "verstoss": bool(verfolger),
+    }
 
 
 def summarise_facts(facts: dict) -> dict:

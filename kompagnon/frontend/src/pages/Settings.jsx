@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import MeldungsVorlieben from '../components/einstellungen/MeldungsVorlieben';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
@@ -47,11 +48,11 @@ function ProfileTab() {
       </div>
       <Field label="E-Mail" value={user?.email || ''} disabled />
       <Field label="Telefon" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
-      {(hasRole('admin') || hasRole('auditor')) && (
+      {(hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) && (
         <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
       )}
       <Btn onClick={save} loading={saving}>Aenderungen speichern</Btn>
-      {(hasRole('admin') || hasRole('auditor')) && <SignatureSection />}
+      {(hasRole('admin') || hasRole('superadmin') || hasRole('mitarbeiter')) && <SignatureSection />}
     </Card>
   );
 }
@@ -163,7 +164,10 @@ function SystemTab() {
     <Card title="Systemeinstellungen" icon="🏢">
       <Field label="Firmenname" value={settings.company_name || ''} onChange={set('company_name')} placeholder="KOMPAGNON" />
       <Field label="Website" value={settings.company_website || ''} onChange={set('company_website')} placeholder="kompagnon.de" />
-      <Field label="Auditor-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
+      {/* Der Schluessel heisst weiter `pdf_auditor_name` — er traegt den
+          Wert, den David hinterlegt hat. Umbenennen hiesse ihn verlieren.
+          Nur die Beschriftung folgt der Rolle. */}
+      <Field label="Prüfer-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
       <Field label="PDF-Footer-Text" value={settings.pdf_footer_text || ''} onChange={set('pdf_footer_text')} placeholder="Dieses Audit ersetzt keine Rechtsberatung." />
       <div style={{ marginTop: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Freie Registrierung</div>
@@ -262,13 +266,9 @@ function VersandSchalter() {
 
 // ── Notifications ──
 function NotificationsTab() {
-  const { user, hasRole } = useAuth();
-  const [prefs, setPrefs] = useState({ new_lead: true, audit_done: true, project_status: true, daily_report: false, review_reminder: true, weekly_report: false });
-  const [smtp, setSmtp] = useState({ host: '', port: '', user: '', password: '', from_name: '', from_email: '' });
+  const { hasRole, token } = useAuth();
   const [testEmail, setTestEmail] = useState('');
   const [testResult, setTestResult] = useState(null);
-
-  const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
 
   const sendTest = async () => {
     setTestResult(null);
@@ -282,31 +282,23 @@ function NotificationsTab() {
   return (
     <>
       {hasRole('admin') && <VersandSchalter />}
-      <Card title="E-Mail Benachrichtigungen" icon="📧">
-        {[
-          ['new_lead', 'Neuer Lead eingegangen'],
-          ['audit_done', 'Audit abgeschlossen'],
-          ['project_status', 'Projekt-Status geaendert'],
-          ['daily_report', 'Taeglicher Zusammenfassungsreport'],
-          ['review_reminder', 'Bewertungs-Erinnerung'],
-          ['weekly_report', 'Woechentlicher Report'],
-        ].map(([key, label]) => (
-          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer', fontSize: 14, borderBottom: '1px solid #f0f2f8' }}>
-            <input type="checkbox" checked={prefs[key]} onChange={() => toggle(key)} />
-            {label}
-          </label>
-        ))}
-        <Btn onClick={() => toast.success('Einstellungen gespeichert')} style={{ marginTop: 12 }}>Speichern</Btn>
+      <Card title="Benachrichtigungen" icon="🔔">
+        <MeldungsVorlieben token={token} />
       </Card>
       {hasRole('admin') && (
-        <Card title="SMTP-Einstellungen" icon="⚙️">
-          <Field label="SMTP Host" value={smtp.host} onChange={(v) => setSmtp((s) => ({ ...s, host: v }))} placeholder="smtp.example.com" />
-          <Field label="SMTP Port" value={smtp.port} onChange={(v) => setSmtp((s) => ({ ...s, port: v }))} placeholder="587" />
-          <Field label="Benutzername" value={smtp.user} onChange={(v) => setSmtp((s) => ({ ...s, user: v }))} />
-          <Field label="Passwort" type="password" value={smtp.password} onChange={(v) => setSmtp((s) => ({ ...s, password: v }))} />
-          <Field label="Absender-Name" value={smtp.from_name} onChange={(v) => setSmtp((s) => ({ ...s, from_name: v }))} placeholder="KOMPAGNON" />
-          <Field label="Absender-E-Mail" value={smtp.from_email} onChange={(v) => setSmtp((s) => ({ ...s, from_email: v }))} placeholder="noreply@kompagnon.de" />
-          <Btn onClick={() => toast.success('Einstellungen gespeichert')} style={{ marginTop: 4 }}>Speichern</Btn>
+        <Card title="E-Mail-Versand" icon="⚙️">
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 4px' }}>
+            Der Versand läuft über <strong>Brevo</strong>; Zugang und
+            Absenderadresse stehen als Umgebungsvariablen in Render und
+            gehören dorthin — ein Passwortfeld im Browser wäre ein zweiter
+            Ort für dasselbe Geheimnis.
+          </p>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>
+            Hier stand bis zum 26.08.2026 ein vollständiges SMTP-Formular samt
+            Passwortfeld mit einem „Speichern"-Knopf, der nichts sendete und
+            trotzdem Erfolg meldete. Ein getipptes Passwort war danach
+            verworfen.
+          </p>
           <div style={{ marginTop: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>SMTP Test-E-Mail</label>
             <div style={{ display: 'flex', gap: 8 }}>

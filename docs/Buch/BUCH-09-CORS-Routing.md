@@ -44,7 +44,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 SCHRITT 0 — Bestand analysieren
@@ -109,7 +109,7 @@ bash scripts/check-cors.sh https://DEINE-NETLIFY-DOMAIN.netlify.app
 SCHRITT 6
 git add -A
 git commit -m "Make CORS origins configurable and add CORS diagnostics endpoint"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

@@ -15,6 +15,7 @@ import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
 import { aufTaste } from '../../utils/tastaturBedienung';
+import Glocke from './Glocke';
 
 const MOBILE_HEADER_H = 52;   // px — fixed top bar
 const MOBILE_NAV_H    = 64;   // px — fixed bottom nav (ohne safe-area)
@@ -310,7 +311,11 @@ function SidebarNav({ badges }) {
           <div style={{ marginTop: 8 }}>
             {[
               { label: 'Dashboard',     path: '/app/dashboard' },
-              { label: 'Meine Kartei',  path: user.lead_id ? `/app/betriebe/${user.lead_id}` : '/app/dashboard' },
+              // Zeigte bis zum 26.08.2026 auf den Innendienst-Bildschirm, von dem
+              // `PrivateRoute` einen Kunden sofort zurueckwarf — ein Menuepunkt,
+              // der auf dieselbe Seite fuehrte, von der man kam.
+              { label: 'Meine Daten',   path: '/app/meine-daten' },
+              { label: 'Mein Briefing', path: '/app/mein-briefing' },
               { label: 'Freigaben',     path: '/app/freigaben' },
               { label: 'Support',       path: '/app/support' },
               { label: 'Rechnungen',    path: '/app/rechnungen' },
@@ -593,6 +598,11 @@ function SidebarNav({ badges }) {
 
 function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  // Die Glocke traegt Betriebsnamen und Betreffzeilen anderer Kunden —
+  // sie gehoert dem Innendienst. Der Server weist einen Kunden ohnehin ab
+  // (403); hier faellt der Knopf weg, statt zuverlaessig zu scheitern.
+  const istInnendienst = hasRole('admin', 'superadmin', 'mitarbeiter');
   return (
     <header style={{
       height: 52,
@@ -641,6 +651,12 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
           );
         })}
       </nav>
+      {/* Der Posteingang (L-18, 26.08.2026). Nur fuer den Innendienst — die
+        * Meldungen tragen Betriebsnamen und Betreffzeilen anderer Kunden.
+        * Rechts neben der Handlungstaste, weil dort der Blick ohnehin
+        * hingeht. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {istInnendienst && <Glocke />}
       {ctaLabel && (
         <button
           onClick={ctaAction}
@@ -655,6 +671,7 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
           {ctaLabel}
         </button>
       )}
+      </div>
     </header>
   );
 }
@@ -667,7 +684,7 @@ function BottomNav() {
   const { user } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const role = user?.role || 'nutzer';
+  const role = user?.role || 'mitarbeiter';
   const tabs = getMobileTabs(role, user?.lead_id);
   const moreItems = (role === 'admin' || role === 'superadmin') ? MORE_ITEMS_ADMIN : MORE_ITEMS;
 

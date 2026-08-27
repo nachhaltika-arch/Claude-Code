@@ -12,6 +12,7 @@ import { useScreenSize } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
+import { fassungText } from '../utils/fassung';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -29,7 +30,13 @@ const CATEGORIES = [
     max: 30,
     color: '#3f51b5',
     items: [
-      { key: 'rc_impressum',    label: 'Impressum (TMG/DDG)',              max: 7 },
+            // Diese Liste ist der **Rueckfall fuer Altbestaende** — Audits ohne
+      // mitgelieferten Katalog. Ihre Punktzahlen sind deshalb bewusst die
+      // alten (Impressum 7 statt heute 6): So wurden diese Audits damals
+      // gerechnet. Neue Audits laufen ueber `audit.catalogue`.
+      // Was hier nicht bleiben darf, ist die Rechtsangabe: Das TMG ist
+      // seit Mai 2024 abgeloest (25.08.2026).
+      { key: 'rc_impressum',    label: 'Impressum (§ 5 DDG)',              max: 7 },
       { key: 'rc_datenschutz',  label: 'Datenschutzerklärung (DSGVO)', max: 7 },
       { key: 'rc_cookie',       label: 'Cookie Consent (TDDDG)',            max: 6 },
       { key: 'rc_bfsg',         label: 'Barrierefreiheitserklärung (BFSG)', max: 4 },
@@ -388,6 +395,17 @@ export default function AuditReport({ auditData, onClose }) {
           )}
         </div>
       )}
+
+      {/* Die Fassung, gegen die bewertet wurde (S6.2). Das Backend setzt sie
+          seit 2026.2 und liefert sie aus; gelesen hat sie bis zum 24.08.2026
+          niemand. Ein Ergebnis ohne Massstab ist keine Aussage — und zwei
+          Ergebnisse aus zwei Fassungen sind nicht dasselbe Ergebnis. */}
+      <div style={{
+        fontSize: 11, color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-mono)', textAlign: 'right',
+      }}>
+        Homepage Standard · {fassungText(r.standard_version)}
+      </div>
 
       {/* Score Hero */}
       <div

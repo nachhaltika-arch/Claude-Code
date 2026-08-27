@@ -238,8 +238,27 @@ Leitgedanken:
 
 | Code | Kriterium | P | Erhebung |
 |---|---|---|---|
-| L1 | Impressum erreichbar **und** Pflichtangaben vollständig (Name, Anschrift, Kontakt, Vertretungsberechtigter, USt-ID/HRB, Kammer bei Handwerk) | 6 | 🟢 Unterseite laden + Feldprüfung |
-| L2 | Datenschutzerklärung erreichbar **und** Pflichtinhalte (Verantwortlicher, Zwecke, Rechtsgrundlagen, Betroffenenrechte, Auftragsverarbeiter) | 6 | 🟢 Unterseite laden + Feldprüfung |
+| L1 | Impressum erreichbar **und** Pflichtangaben vollständig (Anschrift, Kontakt, Vertretungsberechtigter, Register/USt-ID) | 6 | 🟢 Unterseite laden + Feldprüfung |
+| L2 | Datenschutzerklärung erreichbar **und** Pflichtinhalte (Verantwortlicher, Rechtsgrundlage, Betroffenenrechte) | 6 | 🟢 Unterseite laden + Feldprüfung |
+
+> **Auf den Stand des Codes gebracht am 24.08.2026 (S4.2, S4.3).** Die beiden Zeilen
+> nannten vorher Angaben, die der Code **nicht** zu den Pflichtfeldern zählt: bei L1 die
+> **Kammer**, bei L2 **Zwecke** und **Auftragsverarbeiter**. Damit stand hier ein
+> strengerer Maßstab als der, der tatsächlich lief — ein Handwerksbetrieb ohne
+> Kammerangabe bekam 6 von 6 Punkten, obwohl dieses Dokument etwas anderes versprach.
+>
+> **Warum die Beschreibung nachgibt und nicht die Messung.** Die Kammerangabe ist keine
+> Pflicht für jeden Betrieb, sondern für Handwerk und reglementierte Berufe. Sie einfach
+> in den Pflichtsatz aufzunehmen, würde eine überregionale Agentur (K4) für das Fehlen
+> einer Kammer bestrafen, die sie gar nicht hat — der Fehler wäre größer als der jetzige.
+> Richtig wäre eine **klassenabhängige** Prüfung (K1, K2 verlangen sie, K4, K5, K6 nicht).
+> Das setzt das Branchenmodell in `audit_collectors.py` voraus, wo es noch nicht ankommt,
+> und verändert die Punkte, die reale Seiten bekommen. Beides gehört in die
+> **Fassung 2027.1**, nicht in eine Nachbesserung an der Beschreibung.
+>
+> Erhoben **wird** die Kammer bereits (`_evaluate_impressum` → `fields["kammer"]`); sie
+> steht nur nicht in `core`. Der Umbau ist damit klein — die Entscheidung, wen er Punkte
+> kostet, ist es nicht.
 | L3 | Cookie-Consent real vorhanden (bekanntes CMP-Skript erkannt, kein Setzen vor Einwilligung) | 4 | 🟢 Skript-Erkennung + Cookie-Vergleich vor/nach |
 | L4 | Barrierefreiheitserklärung (BFSG) — nur bewertet, wenn anwendbar | 2 | 🟢 Keyword + Unterseite |
 | L5 | Kontaktformular DSGVO-konform (Einwilligungs-Checkbox, Link zur DSE, HTTPS-Ziel) | 2 | 🟢 DOM-Prüfung |

@@ -12,7 +12,11 @@ Zeilen, was offensichtlich falsch war.
 """
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    api_key as pagespeed_api_key,
+    auth_headers as pagespeed_auth_headers,
+)
 import os
 import logging
 
@@ -78,7 +82,7 @@ def job_monthly_performance_report():
 
                 if api_key and website_url:
                     try:
-                        new_mobile, new_desktop = _measure_pagespeed_sync(website_url, api_key)
+                        new_mobile, new_desktop = _measure_pagespeed_sync(website_url)
                     except Exception as ps_err:
                         logger.warning(f"PageSpeed-Messung fehlgeschlagen für Lead {lead_id}: {ps_err}")
 
@@ -151,20 +155,22 @@ def job_monthly_performance_report():
         db.close()
 
 
-def _measure_pagespeed_sync(url: str, api_key: str):
+def _measure_pagespeed_sync(url: str):
     """Synchrone PageSpeed-Messung für den Scheduler-Thread."""
     import httpx as _httpx
     results = []
     for strategy in ("mobile", "desktop"):
         try:
+            # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert
+            # die vollstaendige Anfrage-URL (L-98).
             resp = _httpx.get(
-                "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+                PSI_ENDPOINT,
                 params={
                     "url": url,
-                    "key": api_key,
                     "strategy": strategy,
                     "category": "performance",
                 },
+                headers=pagespeed_auth_headers(),
                 timeout=30.0,
             )
             if resp.is_success:

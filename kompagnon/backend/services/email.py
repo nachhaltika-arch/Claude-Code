@@ -60,16 +60,27 @@ def _build_message(subject: str, sender: str, to_email: str, html_body: str,
         inhalt.attach(MIMEText(text_body, "plain", "utf-8"))
     inhalt.attach(MIMEText(html_body, "html", "utf-8"))
 
+    # Beide Zweige, eine Zusicherung. Der Anhangzweig baut eine andere
+    # Nachricht, und genau an dieser Verzweigung ist am 26.08. schon einmal
+    # etwas verloren gegangen.
+    from services.antwortadresse import rueckadresse
+
+    zurueck = rueckadresse()
+
     if not attachments:
         inhalt["Subject"] = subject
         inhalt["From"] = sender
         inhalt["To"] = to_email
+        if zurueck:
+            inhalt["Reply-To"] = zurueck
         return inhalt
 
     msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
     msg["From"] = sender
     msg["To"] = to_email
+    if zurueck:
+        msg["Reply-To"] = zurueck
     msg.attach(inhalt)
 
     for dateiname, daten, subtyp in attachments:
@@ -78,6 +89,35 @@ def _build_message(subject: str, sender: str, to_email: str, html_body: str,
         msg.attach(teil)
 
     return msg
+
+
+def anhang_aus_datei(pfad, name: str = "") -> list:
+    """Eine Datei als Anhang, in der Form, die `send_email` erwartet.
+
+    **Warum es diesen Helfer gibt (26.08.2026).** Zwei Aufrufstellen riefen
+    `send_email(..., attachment_path=...)` — ein Schluesselwort, das es hier
+    nie gab. Python meldet das erst zur Laufzeit, beide Stellen fingen breit
+    ab, und damit ging **die ganze Mail** nicht raus, nicht bloss der Anhang.
+    Der naheliegende Name war also der falsche; statt die Unterschrift um ein
+    zweites Verfahren zu erweitern, gibt es jetzt einen Weg vom Pfad zur
+    erwarteten Form.
+
+    **Eine fehlende Datei verhindert die Mail nicht.** Sie ist der Beiwerk,
+    die Nachricht ist die Hauptsache — eine Willkommensmail ohne Anhang ist
+    immer noch eine Willkommensmail.
+    """
+    import os
+
+    if not pfad or not os.path.exists(pfad):
+        if pfad:
+            logger.warning("Anhang nicht gefunden, Mail geht ohne: %s", pfad)
+        return []
+
+    with open(pfad, "rb") as datei:
+        inhalt = datei.read()
+    dateiname = name or os.path.basename(pfad)
+    untertyp = (os.path.splitext(dateiname)[1].lstrip(".") or "octet-stream")
+    return [(dateiname, inhalt, untertyp)]
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
@@ -169,33 +209,104 @@ def send_email_detailed(to_email: str, subject: str, html_body: str,
         return False, f"{brevo_fehler} | {smtp_fehler}" if brevo_fehler else smtp_fehler
 
 
-def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:
-    frontend_url = public_base_url()
-    reset_url = f"{frontend_url}/reset-password?token={reset_token}"
-    name = user_name or "Nutzer"
+def _briefbogen(titel: str, absatz: str, knopf: str, url: str,
+                hinweise: tuple = ()) -> str:
+    """Der gemeinsame Briefbogen fuer jede Mail, die zu einem Link fuehrt.
 
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    Er stand am 25.08.2026 zweimal fast gleich im Code — einmal fuer das
+    Zuruecksetzen, und die Einladung haette ihn ein drittes Mal kopiert.
+    Drei Kopien driften; die Fussnote „1 Stunde gueltig" waere in der
+    Einladung schlicht falsch gewesen, und niemand haette es gemerkt.
+    """
+    fussnoten = "".join(
+        f'<p style="margin:0 0 8px;font-size:13px;color:#64748b;">{h}</p>'
+        for h in hinweise)
+    return f"""<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f2f8;font-family:system-ui,sans-serif;">
 <div style="max-width:560px;margin:40px auto;padding:0 20px;">
 <div style="background:#0F1E3A;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
 <span style="color:#fff;font-weight:800;font-size:20px;">KOMPAGNON</span></div>
 <div style="background:#fff;padding:36px 32px;border:1px solid #e2e8f0;border-top:none;">
-<h2 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0F1E3A;">Passwort zuruecksetzen</h2>
-<p style="font-size:15px;color:#475569;line-height:1.6;">Hallo {name},<br><br>
-Sie haben eine Anfrage zum Zuruecksetzen Ihres Passworts gestellt.</p>
+<h2 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0F1E3A;">{titel}</h2>
+<p style="font-size:15px;color:#475569;line-height:1.6;">{absatz}</p>
 <div style="text-align:center;margin:32px 0;">
-<a href="{reset_url}" style="display:inline-block;background:#0F1E3A;color:#fff;text-decoration:none;
-padding:14px 36px;border-radius:8px;font-size:15px;font-weight:700;">Passwort zuruecksetzen</a></div>
-<div style="background:#f8fafc;border-radius:8px;padding:16px 20px;margin:24px 0;">
-<p style="margin:0 0 8px;font-size:13px;color:#64748b;">Dieser Link ist 1 Stunde gueltig.</p>
-<p style="margin:0;font-size:13px;color:#64748b;">Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.</p></div>
-<p style="font-size:11px;color:#64748b;word-break:break-all;">Link: {reset_url}</p></div>
+<a href="{url}" style="display:inline-block;background:#0F1E3A;color:#fff;text-decoration:none;
+padding:14px 36px;border-radius:8px;font-size:15px;font-weight:700;">{knopf}</a></div>
+<div style="background:#f8fafc;border-radius:8px;padding:16px 20px;margin:24px 0;">{fussnoten}</div>
+<p style="font-size:11px;color:#64748b;word-break:break-all;">Link: {url}</p></div>
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;
 padding:16px 32px;text-align:center;"><p style="margin:0;font-size:12px;color:#94a3b8;">2026 KOMPAGNON</p></div>
 </div></body></html>"""
 
+
+def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:
+    reset_url = f"{public_base_url()}/reset-password?token={reset_token}"
+    name = user_name or "Nutzer"
+
+    html = _briefbogen(
+        "Passwort zuruecksetzen",
+        f"Hallo {name},<br><br>Sie haben eine Anfrage zum Zuruecksetzen "
+        f"Ihres Passworts gestellt.",
+        "Passwort zuruecksetzen", reset_url,
+        ("Dieser Link ist 1 Stunde gueltig.",
+         "Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail."))
+
     return send_email(to_email, "Passwort zuruecksetzen — KOMPAGNON", html,
         f"Hallo {name},\n\nLink zum Zuruecksetzen: {reset_url}\n\nGueltig fuer 1 Stunde.\n\nKOMPAGNON")
+
+
+def send_verify_email(to_email: str, token: str, user_name: str = "") -> bool:
+    """Die Bestaetigungsmail nach einer Selbstregistrierung.
+
+    **Sie fehlte bis zum 27.08.2026 vollstaendig.** `POST /api/auth/register`
+    erzeugte einen `email_verify_token`, antwortete „Bitte E-Mail
+    bestaetigen" — und verschickte nie etwas. Der Token lag in der Datenbank,
+    und niemand bekam ihn je zu sehen.
+
+    Der Link zeigt auf die Oberflaeche, nicht auf die Schnittstelle: Wer in
+    einer Mail auf einen Knopf drueckt, soll auf einer Seite landen, die ihm
+    etwas sagt, und nicht auf einer JSON-Antwort.
+    """
+    url = f"{public_base_url()}/e-mail-bestaetigen?token={token}"
+    anrede = user_name or "Sie"
+
+    html = _briefbogen(
+        "Bitte bestaetigen Sie Ihre E-Mail-Adresse",
+        f"Hallo {anrede},<br><br>willkommen bei KOMPAGNON. Bestaetigen Sie "
+        f"bitte kurz, dass diese E-Mail-Adresse Ihnen gehoert.",
+        "E-Mail-Adresse bestaetigen", url,
+        ("Der Link laesst sich genau einmal verwenden.",
+         "Falls Sie sich nicht registriert haben, ignorieren Sie diese E-Mail — "
+         "ohne Bestaetigung passiert nichts weiter."))
+
+    return send_email(to_email, "Bitte bestaetigen Sie Ihre E-Mail — KOMPAGNON",
+        html,
+        f"Hallo {anrede},\n\nwillkommen bei KOMPAGNON.\n"
+        f"E-Mail bestaetigen: {url}\n\nKOMPAGNON")
+
+
+def send_einladung_email(to_email: str, token: str, betrieb: str,
+                         name: str = "", tage: int = 7) -> bool:
+    """Der Brief, mit dem ein zweiter Mensch an einen Betrieb kommt.
+
+    Er nennt **den Betrieb**. Wer eingeladen wird, hat oft mit mehreren
+    Firmen zu tun; „Sie wurden eingeladen" allein beantwortet nicht, wozu.
+    """
+    url = f"{public_base_url()}/reset-password?token={token}"
+    anrede = name or "Sie"
+
+    html = _briefbogen(
+        "Ihr Zugang zu KOMPAGNON",
+        f"Hallo {anrede},<br><br>fuer <strong>{betrieb}</strong> wurde Ihnen "
+        f"ein eigener Zugang zu KOMPAGNON eingerichtet. Vergeben Sie hier Ihr "
+        f"Passwort, dann koennen Sie sich mit dieser E-Mail-Adresse anmelden.",
+        "Passwort vergeben", url,
+        (f"Dieser Link ist {tage} Tage gueltig.",
+         "Danach fordern Sie ueber „Passwort vergessen“ einen neuen an."))
+
+    return send_email(to_email, f"Ihr Zugang zu KOMPAGNON — {betrieb}", html,
+        f"Hallo {anrede},\n\nfuer {betrieb} wurde Ihnen ein Zugang eingerichtet.\n"
+        f"Passwort vergeben: {url}\n\nGueltig fuer {tage} Tage.\n\nKOMPAGNON")
 
 
 def send_welcome_email(to_email: str, user_name: str = "", temp_password: str = "") -> bool:
@@ -203,7 +314,7 @@ def send_welcome_email(to_email: str, user_name: str = "", temp_password: str = 
     name = user_name or "Nutzer"
     pw_block = f"<p style='font-size:13px;color:#475569;'>Passwort: <strong>{temp_password}</strong></p>" if temp_password else ""
 
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f2f8;font-family:system-ui,sans-serif;">
 <div style="max-width:560px;margin:40px auto;padding:0 20px;">
 <div style="background:#0F1E3A;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">

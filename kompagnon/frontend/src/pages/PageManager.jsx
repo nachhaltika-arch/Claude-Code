@@ -314,7 +314,7 @@ export default function PageManager() {
                   }}>
                     ✏️ Bearbeiten
                   </button>
-                  <a href={page.slug} target="_blank" rel="noreferrer" style={{
+                  <a href={page.slug} target="_blank" rel="noreferrer" aria-label="Seite in neuem Tab ansehen" style={{
                     ...S.btn(false), padding: '5px 10px', fontSize: 12,
                     textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
                   }}>

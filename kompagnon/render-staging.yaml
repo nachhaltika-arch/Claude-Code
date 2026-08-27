@@ -43,7 +43,17 @@ services:
     plan: starter
     branch: staging
     rootDir: kompagnon/backend
-    buildCommand: pip install -r requirements.txt
+    # **Der Browser fuer die Erhebung (L-107, 26.08.2026).**
+    # `playwright install chromium` laedt nur das Browserbinaerpaket; die
+    # Systembibliotheken sind auf Renders Laufzeit vorhanden — der Dienst
+    # `iearv4-backend` im selben Konto installiert seit Monaten Chrome auf
+    # dieselbe Weise. Deshalb **kein** eigenes Docker-Bild: Das waere eine
+    # Umstellung der ganzen Auslieferung fuer etwas, das ohne sie geht.
+    #
+    # **Render nimmt Buildbefehle nicht ueber die API entgegen** (siehe
+    # L-35). Diese Zeile beschreibt, sie steuert nicht — sie muss im
+    # Dashboard des Dienstes nachgezogen werden.
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
     healthCheckPath: /health
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
@@ -73,6 +83,26 @@ services:
         value: /var/data/uploads
       - key: ENVIRONMENT
         value: staging
+
+      # Ohne diese Variable wird kein Browser gestartet, und die Erhebung
+      # laeuft wie bisher. Steht sie auf `true` und fehlt der Browser, sagt
+      # das Ergebnis es (`browserlauf.grund`) — es wird nie behauptet,
+      # gemessen zu haben.
+      - key: AUDIT_BROWSER
+        value: "true"
+
+      # **Der Rueckweg der Kundenkommunikation** (27.08.2026). Ohne diese
+      # Variable traegt jede ausgehende Mail `From: noreply@…` und **keinen**
+      # `Reply-To` — wer im Mailprogramm auf „Antworten" klickt, schreibt ins
+      # Leere. Der Posteingang (`/api/posteingang/brevo/…`) steht dann da und
+      # empfaengt nie etwas, und Stille sieht aus wie „keine Rueckfragen".
+      #
+      # Erst setzen, wenn der MX-Eintrag fuer die Subdomain wirklich auf
+      # Brevo zeigt. Vorher bekaeme jeder antwortende Kunde einen
+      # Unzustellbarkeitsbericht — schlechter als der heutige Zustand.
+      # `GET /health` sagt nichts darueber; die Probe ist eine echte Antwort.
+      - key: MAIL_ANTWORT_ADRESSE
+        sync: false
 
       # Database — automatisch aus Postgres-Service oben gezogen
       - key: DATABASE_URL
@@ -122,6 +152,27 @@ services:
       - key: BREVO_API_KEY
         sync: false
 
+      # ── Der Scheduler auf Staging (L-104, 24.08.2026) ───────────────────
+      #
+      # **Warum Staging den Scheduler fährt und nicht abschaltet:** Staging
+      # ist die Probe der Produktion. Ein Dienst, der die vierzehn
+      # Zeitaufträge gar nicht startet, probt sie auch nicht — dann fällt ein
+      # kaputter Job erst produktiv auf.
+      #
+      # **Warum er trotzdem nichts versenden darf:** Unter den vierzehn sind
+      # versendende (`email_sequence_runner`, der Monatsbericht). Welche
+      # Adressen in der Staging-Datenbank stehen, weiß niemand sicher — genau
+      # die Frage, die am 17.08. den Mail-Vorfall ausgelöst hat.
+      #
+      # Beide Werte stehen **ausdrücklich** hier, nicht als Vorgabe im Code:
+      # `SCHEDULER_ENABLED` hat den Standard `true` und `USE_MOCK_EMAIL` den
+      # Standard `false` — ein aus dieser Datei neu gebautes Staging hätte
+      # also versendet, ohne dass irgendeine Datei das sagt.
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: USE_MOCK_EMAIL
+        value: "true"
+
       # Stripe — PFLICHT: Test-Keys (sk_test_…) auf Staging
       - key: STRIPE_SECRET_KEY
         sync: false
@@ -132,6 +183,18 @@ services:
 
       # Netlify (Customer Site Hosting) — eigener Test-Token oder gleicher Token mit anderem Site-Prefix
       - key: NETLIFY_API_TOKEN
+        sync: false
+      # Die Qualitätsschleife deployt die eigene Seite als Vorschau und misst
+      # sie. Ohne diese eine Adresse passiert nichts (503) — genau so gebaut,
+      # damit keine Vorschau je eine Kundensite überschreibt. L-40.
+      #
+      # **Am 24.08.2026 nachgetragen.** Am Dienst war die Variable seit dem
+      # 23.08. gesetzt (`kompagnon-vorschau-staging`), in dieser Datei fehlte
+      # sie. Wer Staging aus dem Blueprint neu aufbaut, verliert die
+      # Qualitätsschleife stillschweigend: Sie antwortet dann sauber mit 503,
+      # und niemand sucht nach einer Variablen, die im Blueprint nie stand.
+      # Dieselbe Klasse wie L-35 — die Dateien beschreiben, sie steuern nicht.
+      - key: NETLIFY_VORSCHAU_SITE_ID
         sync: false
 
       # Google PageSpeed Insights — gleicher Key wie Produktiv ist OK (read-only Quota)

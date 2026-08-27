@@ -64,14 +64,18 @@
 
 services:
   # ── Backend (FastAPI) ──────────────────────────────────────────────────────
-  # ACHTUNG: `kompagnon-backend` ist der Name des **laufenden** Oregon-Dienstes
-  # (URL-Kennung `claude-code-znq2`). Zwei Dienste können ihn nicht tragen.
-  # Vor dem Anlegen also den alten umbenennen — etwa auf
-  # `kompagnon-backend-oregon`; die URL-Kennung bleibt davon unberührt, es
-  # bricht nichts. Danach ist der gute Name für den neuen Dienst frei, und
-  # nach dem Löschen des alten bleibt kein Namensrest zurück.
+  # **Name auf die Wirklichkeit gebracht am 2026-08-23.** Hier stand
+  # `kompagnon-backend` mit dem Hinweis, vor dem Anlegen den Oregon-Dienst
+  # umzubenennen. Beides ist überholt: Der Dienst wurde am 19.08. von Hand
+  # angelegt und heißt `kompagnon-backend-fra`; seit dem 23.08. trägt er die
+  # Domain und den gesamten Verkehr. `kompagnon-backend` ist heute der Name des
+  # **suspendierten** Oregon-Dienstes.
+  #
+  # Das ist der Grund, warum der Name hier zählt und nicht Kosmetik ist: Wer
+  # diesen Blueprint anwendet, während er den falschen Namen trägt, legt
+  # entweder einen dritten Dienst an oder greift nach dem stillgelegten.
   - type: web
-    name: kompagnon-backend
+    name: kompagnon-backend-fra
     runtime: python
     # Der Grund für den ganzen Umzug. Die DB steht in Frankfurt, das Backend
     # stand in Oregon: 2,1–2,6 s pro Health-Check statt 0,16 s, sieben von acht
@@ -102,7 +106,34 @@ services:
     # Daraus folgt der eigentliche Befund — siehe L-57: Der **Oregon-Dienst
     # laesst sich heute nicht mehr von Grund auf bauen.** Er laeuft auf einem
     # Build-Artefakt, das sich nicht reproduzieren laesst.
-    buildCommand: pip install -r requirements.txt
+    #
+    # ── Und am 26.08.2026 kommt der Browser zurueck, diesmal begruendet ──
+    #
+    # **Was am 19.08. fehlte, steht jetzt da.** Der Einwand von damals war
+    # richtig und ist erledigt: `playwright==1.56.0` steht seit heute in
+    # `requirements.txt` (mit `greenlet` und `pyee`), und importiert wird es
+    # nicht mehr nur von einer Testdatei, sondern von
+    # `services/seitenbrowser.py`. Der Anlass ist L-107 und Davids
+    # Entscheidung: Die Erhebung fuehrt kein JavaScript aus und sah von der
+    # eigenen Produktivoberflaeche **elf Woerter**.
+    #
+    # **`install-deps` bleibt weg — das war der zweite Teil des Fehlers von
+    # damals.** Es ruft `apt-get` und braucht root; auf Renders Laufzeit
+    # scheitert es. Gebraucht wird es nicht: Der Dienst `iearv4-backend` im
+    # selben Konto installiert seit Monaten Chrome ohne, und laeuft. Die
+    # Systembibliotheken sind also da. Deshalb auch **kein** eigenes
+    # Docker-Bild — das waere eine Umstellung der ganzen Auslieferung fuer
+    # etwas, das ohne sie geht.
+    #
+    # **Schlaegt der Browserlauf trotzdem fehl, faellt nichts aus.** Der
+    # Schalter `AUDIT_BROWSER` unten entscheidet, ob ueberhaupt gestartet
+    # wird, und ohne Browser laeuft die Erhebung wie bisher — sie behauptet
+    # dann nur nicht, gesehen zu haben, was sie nicht gesehen hat.
+    #
+    # **Render nimmt Buildbefehle nicht ueber die API entgegen** (siehe
+    # L-35). Diese Zeile beschreibt, sie steuert nicht — sie muss im
+    # Dashboard des Dienstes nachgezogen werden.
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
     # alten Blueprints es behaupten. Hier steht, was er tut.
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -141,11 +172,43 @@ services:
       # der Code weiter relativ nach `uploads` — also in den Container.
       - key: UPLOAD_ROOT
         value: /var/data/uploads
+
+      # Ohne diese Variable wird kein Browser gestartet, und die Erhebung
+      # laeuft wie bisher. Steht sie auf `true` und fehlt der Browser, sagt
+      # das Ergebnis es (`browserlauf.grund`) — es wird nie behauptet,
+      # gemessen zu haben.
+      - key: AUDIT_BROWSER
+        value: "true"
+
+      # **Der Rueckweg der Kundenkommunikation** (27.08.2026). Ohne diese
+      # Variable traegt jede ausgehende Mail `From: noreply@…` und **keinen**
+      # `Reply-To` — wer im Mailprogramm auf „Antworten" klickt, schreibt ins
+      # Leere. Der Posteingang (`/api/posteingang/brevo/…`) steht dann da und
+      # empfaengt nie etwas, und Stille sieht aus wie „keine Rueckfragen".
+      #
+      # Erst setzen, wenn der MX-Eintrag fuer die Subdomain wirklich auf
+      # Brevo zeigt. Vorher bekaeme jeder antwortende Kunde einen
+      # Unzustellbarkeitsbericht — schlechter als der heutige Zustand.
+      # `GET /health` sagt nichts darueber; die Probe ist eine echte Antwort.
+      - key: MAIL_ANTWORT_ADRESSE
+        sync: false
       # War produktiv nie gesetzt. Der Vorgabewert ist `development`, und der
       # legt die Demo-Konten an, statt sie zu deaktivieren — drei waren live
       # (kunde@, nutzer@, auditor@kompagnon.de). Nicht weglassen.
       - key: ENVIRONMENT
         value: production
+      # **Wer faehrt die Hintergrundjobs?** (L-91, dazugekommen am 23.08.2026)
+      # APScheduler kennt keine Sperre ueber Prozessgrenzen: Zwei Dienste
+      # gegen dieselbe `apscheduler_jobs`-Tabelle koennen denselben faelligen
+      # Job **zweimal** ausfuehren, und einer davon versendet Mails. Waehrend
+      # des Umzugs liefen genau so zwei Scheduler nebeneinander.
+      #
+      # `true` gehoert an **den** Dienst, der die Domain traegt — und nur an
+      # den. Ein zweiter Dienst auf derselben Datenbank bekommt `false`.
+      # Die Vorgabe im Code ist `true`; hier steht sie ausdruecklich, damit
+      # beim naechsten Parallelbetrieb niemand raten muss.
+      - key: SCHEDULER_ENABLED
+        value: "true"
       - key: LOG_LEVEL
         value: INFO
       - key: DEBUG
@@ -296,6 +359,18 @@ services:
     runtime: static
     branch: main
     rootDir: kompagnon/frontend
+    # **Abweichung zur Wirklichkeit, gemessen am 2026-08-23 — und diese eine
+    # ist keine Nachlaessigkeit im Blueprint, sondern eine im Dienst.** Der
+    # laufende Static Site baut mit `npm install && npm run build`, Staging und
+    # dieser Blueprint mit `npm ci`. Der Unterschied ist nicht kosmetisch:
+    # `npm install` darf neuere Versionen ziehen, als `package-lock.json`
+    # festhaelt (762 KB), `npm ci` installiert genau den Lockstand.
+    #
+    # Produktiv kann damit aus **anderen** Abhaengigkeiten gebaut werden als
+    # das, was auf Staging geprueft wurde — die Klasse Fehler, die als „lief
+    # auf Staging" beginnt. Hier steht bewusst der richtige Befehl; der Dienst
+    # gehoert nachgezogen (Dashboard, die Render-API kann Build-Befehle nicht
+    # setzen).
     buildCommand: npm ci --legacy-peer-deps && npm run build
     staticPublishPath: build
     autoDeploy: false

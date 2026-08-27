@@ -53,7 +53,60 @@ def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
     ), {"nr": nr, "email": req.user_email, "name": req.user_name, "type": req.type, "prio": req.priority,
         "title": req.title, "desc": req.description, "page": req.page_url, "browser": req.browser_info, "screenshot": req.screenshot_base64})
     db.commit()
+
+    # Bis zum 26.08.2026 schrieb diese Route eine Zeile und schwieg. Wer ein
+    # Ticket aufgab, bekam eine Nummer — und im Innendienst passierte nichts,
+    # bis jemand von sich aus in die Ticketliste sah (L-18).
+    from services.benachrichtigungen import melden_leise
+    melden_leise(db, art="ticket",
+                 titel=f"Ticket {nr}: {req.title}"[:300],
+                 hinweis=f"{req.user_name or req.user_email} · "
+                         f"{req.type} · Priorität {req.priority}",
+                 ziel="/app/tickets")
+
+    # **Zusaetzlich per Mail, wenn gewuenscht (26.08.2026).** Der Schalter
+    # steht vorgabegemaess **aus**: Ein Ticket meldete bisher nur die Glocke,
+    # und die Vorgabe jedes neuen Schalters ist das Verhalten von heute. Wer
+    # nichts umstellt, bekommt keine Mail, die er nicht kennt.
+    _ticket_mail(db, nr, req)
+
     return {"ticket_number": nr, "message": "Ticket erstellt"}
+
+
+def _ticket_mail(db, nr, req) -> None:
+    """Ein neues Ticket auch ins Postfach — Beiwerk, kein Vorgang.
+
+    Faellt der Versand aus, ist das Ticket trotzdem angelegt und die Glocke
+    meldet es. Dieselbe Reihenfolge wie bei `melden_leise`: Die Sache des
+    Kunden ist die Hauptsache.
+    """
+    import logging
+    import os
+
+    empfaenger = os.getenv("SMTP_USER", "").strip()
+    if not empfaenger:
+        return
+
+    try:
+        from services.meldungsvorlieben import soll_melden_leise
+
+        if not soll_melden_leise(db, "ticket_mail"):
+            return
+
+        from services.email import send_email
+
+        send_email(
+            to_email=empfaenger,
+            subject=f"🎫 Ticket {nr}: {req.title}"[:200],
+            html_body=(f"<p><strong>{req.user_name or req.user_email}</strong>"
+                       f" hat ein Ticket angelegt.</p>"
+                       f"<p><strong>{req.title}</strong></p>"
+                       f"<blockquote>{req.description or ''}</blockquote>"
+                       f"<p>Art: {req.type} · Priorität: {req.priority}</p>"),
+        )
+    except Exception as fehler:      # noqa: BLE001
+        logging.getLogger(__name__).warning(
+            "Ticket-Mail nicht versendet: %s", fehler)
 
 
 @router.get("/my")

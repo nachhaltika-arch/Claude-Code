@@ -34,7 +34,12 @@ def _fakten(**overrides) -> dict:
         "psi_mobile": {
             "collected": True, "lcp_seconds": 1.8, "cls_value": 0.02, "inp_ms": 120,
             "performance_score": 95, "accessibility_score": 96,
+            # Seit S1 (24.08.2026) tragen `semantik` und `typografie` eigene
+            # Gruppen: Sie speisen `bf_semantik` (lang-Attribut, Labels) und
+            # `dg_typografie` (Schriftgroesse). Eine tadellose Website
+            # besteht beide.
             "a11y_audits": {"kontrast": 1.0, "tastatur": 1.0,
+                            "semantik": 1.0, "typografie": 1.0,
                             "screenreader": 1.0, "lesbarkeit": 1.0},
         },
         "images": {"collected": True, "total": 10, "modern_share": 90,
@@ -117,8 +122,14 @@ def test_ohne_pagespeed_gelten_performance_und_a11y_als_nicht_erhoben():
 
 
 def test_ohne_ki_bleiben_design_und_conversion_nicht_erhoben():
+    """Ohne KI-Antwort fallen die eingeschaetzten Kriterien aus.
+
+    `dg_typografie` gehoert seit S1.2 (24.08.2026) **nicht** mehr dazu: Die
+    Schriftgroesse kommt aus Lighthouse und bleibt auch ohne KI erhoben.
+    """
     result = score_audit(_fakten(), ai={})
-    for key in ("dg_aktualitaet", "dg_typografie", "cv_klarheit",
+    assert result["sources"]["dg_typografie"] == Source.MEASURED.value
+    for key in ("dg_aktualitaet", "cv_klarheit",
                 "cv_angebot", "ih_textqualitaet"):
         assert result["sources"][key] == Source.NOT_COLLECTED.value, key
     assert result["total_score"] == 100
@@ -151,8 +162,11 @@ def test_ohne_betriebsseite_bleibt_die_gestaltung_bewertet():
     ki = {**_ki_voll(), "betriebsseite": False, "branche": "Verein"}
     result = score_audit(_fakten(), ki)
 
-    for key in ("dg_aktualitaet", "dg_typografie", "dg_farbsystem", "dg_bildqualitaet"):
+    # `dg_typografie` steht seit S1.2 (24.08.2026) nicht mehr dabei: Die
+    # Schriftgroesse wird aus Lighthouse **gemessen**, nicht geschaetzt.
+    for key in ("dg_aktualitaet", "dg_farbsystem", "dg_bildqualitaet"):
         assert result["sources"][key] == Source.AI.value, key
+    assert result["sources"]["dg_typografie"] == Source.MEASURED.value
 
 
 def test_eine_betriebsseite_wird_vollstaendig_bewertet():
@@ -320,9 +334,9 @@ def test_gestaltung_wird_auch_ohne_betrieb_bewertet():
     ki = {**_ki_voll(), "branchenklasse": "K6", "betriebsseite": False}
     result = score_audit(_fakten(), ki)
 
-    for key in ("dg_aktualitaet", "dg_typografie", "dg_farbsystem",
-                "dg_bildqualitaet"):
+    for key in ("dg_aktualitaet", "dg_farbsystem", "dg_bildqualitaet"):
         assert result["sources"][key] == Source.AI.value, key
+    assert result["sources"]["dg_typografie"] == Source.MEASURED.value
 
 
 def test_ohne_klasse_im_ergebnis_wird_sie_aus_der_branche_abgeleitet():

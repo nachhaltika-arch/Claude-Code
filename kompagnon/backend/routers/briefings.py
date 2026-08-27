@@ -16,7 +16,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db, Briefing, Lead, Project
-from routers.auth_router import require_any_auth, require_innendienst
+from routers.auth_router import (get_current_user, require_any_auth,
+                                 require_innendienst)
 
 logger = logging.getLogger(__name__)
 
@@ -448,26 +449,136 @@ def briefing_teilweise_aendern(lead_id: int, data: dict, db: Session = Depends(g
     return _serialize(briefing)
 
 
+# ── Der Kunde fuellt sein Briefing selbst aus (26.08.2026) ───────────
+#
+# **`/mein/…` statt derselben Adresse.** Der erste Entwurf legte
+# `GET`/`PUT /{lead_id}` ein zweites Mal an und verliess sich darauf, dass der
+# Kundenrouter zuerst registriert wird. Das ist genau die Falle, die L-27
+# gekostet hat: Wer eine Route ergaenzt, die es schon gibt, verdeckt sie
+# **still**, und `test_briefing_zusammengelegt.py` verbietet es deshalb. Ein
+# eigenes Wegstueck kostet einen Parameter im Assistenten und keine Falle.
+#
+# **Warum das die richtige Reihenfolge ist.** Was ins Briefing gehoert —
+# Zielgruppe, Leistungen, Alleinstellung, Vorbilder — weiss der Betrieb und
+# nicht wir. Bisher hat der Innendienst es abgefragt und abgetippt, und der
+# Kunde durfte am Ende **zustimmen** (`/freigabe`, L-27).
+#
+# Kein zweiter Assistent: Der Wizard im Frontend ruft genau diese Adressen
+# und merkt nicht, wer ihn bedient. Nur die Sperre davor ist eine andere.
+
+#: Was der Kunde **nicht** setzt. `status` traegt die Freigabe, `project_id`
+#: die Zuordnung zum Projekt — beides ist Ablauf, nicht Inhalt, und Ablauf
+#: fuehren wir. Ohne diese zwei koennte ein Kunde sein Briefing selbst auf
+#: „freigegeben" setzen und einen Schritt ueberspringen, den es aus einem
+#: Grund gibt.
+NICHT_VOM_KUNDEN = {"status", "project_id"}
+
+
+def _eigener_betrieb(lead_id: int, current_user):
+    """Dieselbe Umkehrung wie ueberall: Wer nicht zum Innendienst gehoert,
+    kommt nur an den eigenen Betrieb. Ein Briefing traegt
+    Geschaeftsgeheimnisse — Preise, Zielgruppen, Alleinstellung — und die
+    Kennung steht offen im Pfad."""
+    from services.rechte import gehoert_zum_innendienst
+
+    if (not gehoert_zum_innendienst(current_user.role)
+            and current_user.lead_id != lead_id):
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
+
+
+@kunden_router.get("/mein/{lead_id}")
+def briefing_des_kunden(lead_id: int, db: Session = Depends(get_db),
+                        current_user=Depends(get_current_user)):
+    """Sein Briefing — und wenn es noch keines gibt, ein leeres.
+
+    Ein 404 waere hier die falsche Auskunft: „noch nichts eingetragen" ist
+    der Normalfall am Anfang, kein Fehler.
+    """
+    _eigener_betrieb(lead_id, current_user)
+    return get_briefing(lead_id, db=db)
+
+
+def _ohne_ablauffelder(body: "BriefingBody", current_user) -> "BriefingBody":
+    """`status` und `project_id` aus dem Rumpf nehmen — es sei denn, der
+    Innendienst schickt sie.
+
+    **Zwei Wege, ein Handgriff.** `POST` ueberschreibt alles Gesendete,
+    `PUT` nur das Gesetzte; entsprechend wirkt hier zweierlei: Der Wert auf
+    `None` zu setzen genuegt fuer `POST` (dort wird `None` uebersprungen),
+    und `model_fields_set` zu leeren genuegt fuer `PUT`. Beides zusammen ist
+    in beiden Faellen richtig — und steht an **einer** Stelle, damit nicht
+    einer der beiden Wege es morgen vergisst.
+    """
+    from services.rechte import gehoert_zum_innendienst
+
+    if gehoert_zum_innendienst(current_user.role):
+        return body
+
+    for feld in NICHT_VOM_KUNDEN:
+        setattr(body, feld, None)
+        body.model_fields_set.discard(feld)
+    return body
+
+
+@kunden_router.post("/mein/{lead_id}")
+def briefing_des_kunden_anlegen(lead_id: int, body: BriefingBody,
+                                db: Session = Depends(get_db),
+                                current_user=Depends(get_current_user)):
+    """Der Weg, den der Assistent geht — er sendet je Schritt den Stand.
+
+    `POST`, nicht `PUT`: So macht es `BriefingWizard` seit jeher, und den
+    Assistenten umzuschreiben waere der teurere und riskantere Weg.
+    """
+    _eigener_betrieb(lead_id, current_user)
+    return create_briefing(lead_id, _ohne_ablauffelder(body, current_user), db=db)
+
+
+@kunden_router.put("/mein/{lead_id}")
+def briefing_des_kunden_speichern(lead_id: int, body: BriefingBody,
+                                  db: Session = Depends(get_db),
+                                  current_user=Depends(get_current_user)):
+    """Speichert nur, was gesendet wurde — ein Schritt darf den vorigen
+    nicht leeren."""
+    _eigener_betrieb(lead_id, current_user)
+    return update_briefing(lead_id, _ohne_ablauffelder(body, current_user), db=db)
+
+
+@kunden_router.get("/mein/{lead_id}/pdf")
+def briefing_des_kunden_pdf(lead_id: int, db: Session = Depends(get_db),
+                            current_user=Depends(get_current_user)):
+    """Was er eingetragen hat, soll er mitnehmen koennen."""
+    _eigener_betrieb(lead_id, current_user)
+    return briefing_pdf(lead_id, db=db)
+
+
 @kunden_router.patch('/{lead_id}/freigabe')
-def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db)):
-    """Only customers (role=kunde) can grant approvals. Cannot be revoked."""
-    from routers.auth_router import require_kunde, get_current_user, oauth2_scheme
-    from fastapi import Security
-    # Manual auth check for kunde role
-    from routers.auth_router import decode_token
-    from database import User
-    token = data.get('_token', '')
-    if not token:
-        raise HTTPException(403, "Nicht authentifiziert")
-    try:
-        payload = decode_token(token)
-        current_user = db.query(User).filter(User.id == payload.get("user_id")).first()
-        if not current_user or current_user.role != 'kunde':
-            raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(403, "Authentifizierung fehlgeschlagen")
+def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db),
+                 current_user=Depends(get_current_user)):
+    """Der Kunde erteilt eine Freigabe — unwiderruflich, mit seinem Namen.
+
+    **Warum nur der Kunde (26.08.2026, Entscheidung David).** Das Briefing
+    fuehrt elf Freigaben, darunter „Impressum & Datenschutz geprueft" und
+    „Finale Abnahme & Go-Live". Abgehakt hat sie bisher der Innendienst
+    (`BriefingTab.toggleFreigabe`, Urheber fest `KOMPAGNON`). Eine Abnahme,
+    die der Auftragnehmer selbst abhakt, ist keine Abnahme.
+
+    Der Innendienst behaelt seinen Weg ueber `PATCH /{lead_id}` — fuer den
+    Fall, dass eine Freigabe telefonisch oder per Mail kommt. Am Eintrag
+    steht dann „KOMPAGNON" statt einer Kundenadresse, und genau deshalb
+    bleibt **dieser** Weg dem Kunden vorbehalten: Erteilte der Innendienst
+    hier, traege der Eintrag seine Adresse und waere von einer echten
+    Kundenfreigabe nicht mehr zu unterscheiden.
+
+    **Die Anmeldung lief ueber den Rumpf.** Hier stand ein `_token`-Feld,
+    aus dem der JWT von Hand entschluesselt wurde — ein zweiter Anmeldeweg
+    neben dem Kopfzeilen-Verfahren, das der ganze Rest benutzt. Zwei Wege
+    zum selben Ziel sind zwei, die falsch sein koennen; das hat am selben
+    Tag schon eine Willkommensmail gekostet. Jetzt `get_current_user`.
+    """
+    if getattr(current_user, "role", "") != "kunde":
+        raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
+    if current_user.lead_id != lead_id:
+        raise HTTPException(403, "Kein Zugriff auf diesen Betrieb")
 
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
     if not briefing:

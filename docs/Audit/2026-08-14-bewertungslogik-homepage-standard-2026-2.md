@@ -33,7 +33,9 @@ guter Ausgang, auch ohne Website-Auftrag.
 
 ---
 
-## 1. Der Katalog — 8 Kategorien, 100 Punkte
+## 1. Der Katalog
+
+<!-- ERZEUGT: gewichtung — nicht von Hand ändern, siehe scripts/standard-export.py -->
 
 | # | Kategorie | P | Kriterien |
 |---|---|---|---|
@@ -41,12 +43,14 @@ guter Ausgang, auch ohne Website-Auftrag.
 | 2 | Sicherheit & Datenschutz | 10 | S1–S4 |
 | 3 | Performance & Core Web Vitals | 15 | P1–P5 |
 | 4 | Barrierefreiheit (WCAG/BFSG) | 10 | B1–B5 |
-| 5 | SEO & Auffindbarkeit | 15 | E1–E6 |
+| 5 | SEO & Auffindbarkeit | 18 | E1–E7 |
 | 6 | Design & Gestaltung | 10 | D1–D5 |
 | 7 | Conversion & Nutzerführung | 15 | C1–C5 |
 | 8 | Inhalt & Substanz | 5 | I1–I3 |
 | — | Infrastruktur-Befund | 0 | rein informativ |
-| | **Summe** | **100** | 38 Kriterien |
+| | **Summe** | **103** | 39 Kriterien |
+
+<!-- /ERZEUGT: gewichtung -->
 
 ### Stufen
 
@@ -74,6 +78,17 @@ guter Ausgang, auch ohne Website-Auftrag.
 | Kein gültiges TLS-Zertifikat | Nicht konform |
 | Tracking oder Schriften ohne Einwilligung | Bronze |
 | Cookies gesetzt ohne Consent | Bronze |
+
+> **Von den fünf Regeln greifen vier (Stand 24.08.2026, S6.1).** „Cookies gesetzt ohne
+> Consent" kann kein Audit auslösen. Die Regel verlangt einen Vergleich der gesetzten
+> Cookies vor und nach der Einwilligung; erhoben wird stattdessen nur, ob im HTML ein
+> bekanntes Consent-Werkzeug steckt. Dafür braucht es einen echten Browserlauf, den die
+> Erhebung nicht hat.
+>
+> Die Regel bleibt trotzdem im Standard. Sie zu streichen, weil die Messung fehlt, hieße
+> den Maßstab nach der Erhebungslage zu richten — und damit genau die Richtung, vor der
+> § 0 warnt. Sichtbar gehalten wird sie durch `NICHT_ERHOBENE_BLOCKER` im Katalog und
+> `tests/test_deckelregeln_erhoben.py`.
 
 Der Bericht weist die Deckelung mit Grund aus, nie nur die Stufe:
 
@@ -188,12 +203,18 @@ werden geloggt, damit die Lücken sichtbar werden.
 
 **Anwendbares Maximum je Klasse** (ohne bedingte Kriterien):
 
+<!-- ERZEUGT: klassenmaxima — nicht von Hand ändern, siehe scripts/standard-export.py -->
+
 | Klasse | Maximum | Nicht anwendbar |
 |---|---|---|
-| K1, K2, K3 | 100 | — |
-| K4 | 97 | E5 (3 P) |
-| K5 | 97–100 | E5 je nach lokalem Bezug |
-| K6 | 79 | E5, C1–C5, I1, I3 (21 P) |
+| K1 | 103 | — |
+| K2 | 103 | — |
+| K3 | 103 | — |
+| K4 | 100 | E5 (3 P) |
+| K5 | 103 | — |
+| K6 | 81 | E5, C1, C2, C3, C4, C5, I1, I3 (22 P) |
+
+<!-- /ERZEUGT: klassenmaxima -->
 
 ---
 
@@ -289,6 +310,20 @@ Das Kriterium mit dem größten Klassenunterschied.
 | K5 | `Organization` + `Product` + `Offer` | `AggregateRating` |
 | K6 | `Organization` oder `Person` | — |
 
+### E7 — Lesbarkeit für KI-Systeme (3 P)
+
+**Klassenunabhängig.** Ob ein Sprachmodell die Seite lesen darf, hängt nicht am Gewerk.
+Gemessen wird zweierlei, und die Gewichtung sagt, was schwerer wiegt:
+
+| Teil | Punkte | Gemessen an |
+|---|---|---|
+| Kein KI-Crawler ausgesperrt | 2 | `robots.txt` |
+| `llms.txt` vorhanden | 1 | Abruf unter `/llms.txt` |
+
+Wer GPTBot aussperrt, ist für ChatGPT nicht vorhanden — das wiegt schwerer als eine
+fehlende `llms.txt`, die kaum eine Seite hat. Fehlen **beide** Erhebungen, wird das
+Kriterium übersprungen und zählt in keinem der beiden Brüche mit.
+
 ### I1 — Eigene Leistungsseiten (2 P)
 
 | Klasse | Erwartung |
@@ -357,15 +392,38 @@ Besucher.
 
 ---
 
-## 6. GEO-Wert (0–10, außerhalb der Wertung)
+## 6. GEO — fünf Prüfpunkte, kein Punktwert
 
-`llms.txt` · strukturierte Daten über das Pflichtmaß hinaus · `FAQPage` ·
-Leistungsbeschreibungen als Text statt Bild · Einzugsgebiet maschinenlesbar ·
-Öffnungszeiten strukturiert · Preisangaben oder -spannen · Autoren- oder
-Verantwortlichkeitsangabe · Aktualitätsdatum · zitierfähige Faktenabschnitte.
+Frühere Fassungen nannten hier einen „GEO-Wert (0–10)". **Den gibt es nicht** — weder im
+Katalog noch im Bericht. Gerechnet wurde er nie; die Zahl stand nur in diesem Dokument.
+Was es gibt, ist eine eigene Seite im Bericht mit fünf Prüfpunkten
+(`services/pdf_kataloge.py::geo_pruefpunkte`):
 
-Bleibt außerhalb der 100 Punkte: Das Feld verändert sich zu schnell für einen Standard,
-der über Jahre vergleichbar sein soll — und für ein gedrucktes Buch.
+| Prüfpunkt | Erhoben | Fließt in die Wertung |
+|---|---|---|
+| `llms.txt` vorhanden | ja | E7 (1 P) |
+| `robots.txt` KI-freundlich | ja | E7 (2 P) |
+| Strukturierte Daten | ja | E4 (3 P) |
+| KI-Erwähnungen | **nein** | — |
+| Google AI Overview | **nein** | — |
+
+Die letzten beiden bleiben im Bericht, damit der Leser weiß, dass es sie gibt — aber ohne
+Behauptung: Sie bekommen den Status „unbekannt" und **keine** Empfehlung. Ein früherer
+Stand druckte für jeden der fünf Punkte eine Aufforderung, auch „GPTBot nicht blockieren"
+an einen Betrieb, dessen `robots.txt` niemanden sperrt.
+
+Die Trennung „GEO steht außerhalb der Wertung" gilt damit **nicht mehr vollständig**: Seit
+E7 im Katalog steht, sind zwei der drei erhobenen Prüfpunkte Teil der 103 Punkte. Außerhalb
+bleibt, was sich zu schnell ändert für einen Standard, der über Jahre vergleichbar sein
+soll — und für ein gedrucktes Buch: Erwähnungen in Modellen und Sichtbarkeit in AI
+Overviews. Beides ist nicht reproduzierbar messbar und wäre in einem Buch ein Jahr später
+falsch.
+
+> **Die Trennlinie in einem Satz (Nachtrag 24.08.2026).** In der Wertung steht, ob eine
+> Maschine den Betrieb **lesen kann**; außerhalb bleibt, ob sie ihn **nennt**. Das Erste
+> ist binär, stabil messbar und veraltet nicht — eine `robots.txt` sperrt heute und in
+> zwei Jahren nach denselben Regeln. Das Zweite hängt an Modellen, die sich in Monaten
+> ändern. Nur deshalb ist E7 im Katalog und der Rest nicht.
 
 ---
 
@@ -448,7 +506,7 @@ messbar macht.
 | # | Prüfpunkt | Warum | Befehl / Ort |
 |---|---|---|---|
 | 1 | **Stufenschwellen Frontend vs. Backend** | Backend 95/85/70/50, Frontend laut Projektwissen 85/70/50/30 → derselbe Score zeigt zwei Stufen | `grep -rn "85\|70\|50\|30" frontend/src/components/AuditHook.jsx frontend/public/embed/audit-widget.html` |
-| 2 | **Ist der Umbau auf dem Arbeitsbranch?** | Doc sagt `main`, Arbeitsregel sagt Feature-Branch. Projektwissen zeigt alten Katalog im Frontend | `git diff main claude/kompagnon-automation-system-FapM9 --stat` |
+| 2 | **Ist der Umbau auf dem Arbeitsbranch?** | Doc sagt `main`, Arbeitsregel sagt Feature-Branch. Projektwissen zeigt alten Katalog im Frontend | `git diff main staging --stat` |
 | 3 | **Zeigt das Frontend die 8 Kategorien?** | `AuditReport.jsx`, `CustomerDashboard.jsx`, `HomepageChecklist.jsx` tragen im Projektwissen den alten 6er-Katalog | `grep -n "rc_score\|bf_score\|max: 30" frontend/src/` |
 | 4 | **PageSpeed-Key auf Render gesetzt?** | Offener Punkt 1 aus § 6 des Anforderungskatalogs. Ohne Key sind 15 Punkte dauerhaft ⚪ | Render → Environment |
 | 5 | **Lauf gegen 3 echte fremde Websites** | Offener Punkt 4 — der Katalog ist nie gegen reale Seiten gelaufen | manuell |
@@ -481,7 +539,7 @@ in einer Stunde mehr als jede weitere Spezifikation.
 | # | Frage | Tragweite |
 |---|---|---|
 | 1 | Wird `trade` aus den Stammdaten mit der erkannten `branche` abgeglichen und zurückgeschrieben? | Heute laufen beide auseinander (§ 7 Schlussabsatz) |
-| 2 | Bleibt der Verkauf in der SHK-Nische, während die Bewertung alle Klassen abdeckt? | Empfehlung: ja — sonst verwässert Phase 1 |
-| 3 | Buchtitel: branchenoffen oder Handwerk im Titel? | Bei branchenoffener Bewertung ist ein Handwerk-Titel nicht mehr haltbar |
-| 4 | Werden Bestandsaudits nach 2026.1 neu berechnet? | Empfehlung: nein, Versionsstempel und Trennlinie im Verlauf |
+| 2 | ~~Bleibt der Verkauf in der SHK-Nische, während die Bewertung alle Klassen abdeckt?~~ | **Entschieden — und zwar in § 0 dieses Dokuments.** Dort steht die Abgrenzung wörtlich: Bewertung branchenoffen, Verkauf in der Nische der Phase 1, keine Erweiterung vor fünf produktiven Kunden. Die Frage stand hier nur, weil § 11 nie mit § 0 abgeglichen wurde. |
+| 3 | ~~Buchtitel: branchenoffen oder Handwerk im Titel?~~ | **Entschieden 14.08.2026: branchenoffen.** Untertitel „Der Selbsttest für Unternehmenswebsites" (`00-titelei.md`). Das Datenblatt `KAS_DB_05_Buch.md` § 6 trägt noch „Handwerks- und Baubetriebe" und ist zu korrigieren. |
+| 4 | Werden Bestandsaudits nach 2026.1 neu berechnet? | Nein — die Hälfte ist gebaut. `audit_results.standard_version` wird gesetzt (`audit_scoring.STANDARD_VERSION`) und vom Endpunkt geliefert. **Die Trennlinie im Verlauf fehlt:** Am 24.08.2026 las kein Frontend-Bauteil das Feld, also sah der Leser nicht, welche Ergebnisse gegen welchen Maßstab entstanden sind. |
 | 5 | Wird K2 anwaltlich zur Preisangabe geprüft? | Betrifft die Aussage in C5 und im Buch |

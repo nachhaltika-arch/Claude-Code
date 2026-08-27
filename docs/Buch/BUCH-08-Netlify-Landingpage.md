@@ -49,7 +49,7 @@ git remote -v && git branch --show-current
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 ZIEL
@@ -152,7 +152,7 @@ Pruefe und melde mir:
 
 git add -A
 git commit -m "Add standalone Netlify landing page for book sales"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---
@@ -162,7 +162,7 @@ git push origin claude/kompagnon-automation-system-FapM9
 Das Repo enthält jetzt den Ordner. Deployen musst du selbst:
 
 1. Netlify-Konto → **Add new site** → **Import from Git** → `nachhaltika-arch/Claude-Code`
-2. **Branch:** `claude/kompagnon-automation-system-FapM9`
+2. **Branch:** `staging`
 3. **Base directory:** `landing-buch`
 4. **Publish directory:** `landing-buch`
 5. **Build command:** leer lassen

@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
 import OnboardingWizard from '../components/OnboardingWizard';
+import AlertBanner from '../components/AlertBanner';
 import { datumKurz } from '../utils/datum';
 import { aufTaste } from '../utils/tastaturBedienung';
 
@@ -26,6 +27,9 @@ export default function Dashboard() {
   const [loadingKpis, setLoadingKpis] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [loadingSecondary, setLoadingSecondary] = useState(true);
+  //: Die aktiven Warnungen. Sie stehen ueber allem anderen — wer das
+  //: Dashboard oeffnet, soll zuerst sehen, was klemmt (L-95).
+  const [warnungen, setWarnungen] = useState([]);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -59,10 +63,17 @@ export default function Dashboard() {
       fetch(`${API_BASE_URL}/api/audit/recent`,    { headers: h }).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/api/deals/stats`,     { headers: h }).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE_URL}/api/campaigns/stats`, { headers: h }).then(r => r.json()).catch(() => []),
-    ]).then(([auditData, dealsData, campaignData]) => {
+      // Der Rueckfall auf `[]` ist hier kein Beiwerk: Diese Route antwortete
+      // produktiv einmal mit 500 (L-53, `scope_creep_flags` war NULL). Ein
+      // Dashboard, das daran zerbricht, waere schlimmer als eines ohne
+      // Warnungen.
+      fetch(`${API_BASE_URL}/api/dashboard/alerts`, { headers: h })
+        .then(r => (r.ok ? r.json() : [])).catch(() => []),
+    ]).then(([auditData, dealsData, campaignData, alertData]) => {
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
       setDealStats(dealsData);
       setCampaignStats(Array.isArray(campaignData) ? campaignData : []);
+      setWarnungen(Array.isArray(alertData) ? alertData : []);
     }).finally(() => setLoadingSecondary(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -155,6 +166,12 @@ export default function Dashboard() {
           + Neuer Betrieb
         </button>
       </div>
+
+      {/* Was klemmt, steht ueber den Zahlen. Der Scheduler rechnet diese
+        * Warnungen seit jeher taeglich aus; angezeigt wurden sie nie, weil
+        * `AlertBanner` von keiner Datei importiert war (L-95). */}
+      <AlertBanner alerts={warnungen}
+        onOeffnen={a => navigate(`/app/projects/${a.project_id}`)} />
 
       {/* Die Zahlen, die etwas sagen — und deshalb zuerst.
         * Vorher standen oben drei Kacheln mit 0,00 €, groß und grün, und

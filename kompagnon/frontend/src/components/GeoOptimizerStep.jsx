@@ -52,6 +52,26 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
   const [files, setFiles] = useState(null);
   const [monitoring, setMonitoring] = useState(null);
   const [upsellLoading, setUpsellLoading] = useState(false);
+  // ── Nennung in KI-Antworten (L-58 b) ──────────────────────────────
+  // Der Endpunkt gibt es seit dem 17.08.2026 und hatte bis zum 25.08. keinen
+  // einzigen Aufrufer. Der Kasten oben verspricht dem Nutzer, es werde
+  // geprueft, ob die Seite "gefunden und zitiert" wird — geprueft wurde bis
+  // dahin nur das Erste.
+  const [nennung, setNennung] = useState(null);
+  const [nennungLaeuft, setNennungLaeuft] = useState(false);
+  const [nennungFehler, setNennungFehler] = useState('');
+  const [verlauf, setVerlauf] = useState(null);
+
+  // ── Das laufende Abo (26.08.2026, L-105) ──────────────────────────
+  // `POST /api/geo-payments/{id}/cancel` gibt es seit dem Bau des Add-ons
+  // und wurde **von nirgendwo** aufgerufen. Der Kasten darunter schaltet nur,
+  // ob das Add-on *angeboten* wird (`upsell_active`); das tatsaechliche
+  // Stripe-Abo, das der Kunde im Portal mit einem Klick abschliesst, sah im
+  // Innendienst niemand — und kuendigen konnte es niemand ausser per curl.
+  const [abo, setAbo] = useState(null);
+  const [aboLaeuft, setAboLaeuft] = useState(false);
+  const [aboFrage, setAboFrage] = useState(false);
+  const [aboFehler, setAboFehler] = useState('');
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -122,6 +142,73 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       alert('Verbindungsfehler');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // **Lesen kostet nichts, Messen kostet Geld.** Deshalb zwei Aufrufe: Der
+  // Verlauf wird beim Oeffnen des Reiters geladen, der Lauf nur auf Klick.
+  const ladeVerlauf = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/ki-sichtbarkeit/verlauf`, { headers });
+      if (resp.ok) setVerlauf(await resp.json());
+    } catch (err) {
+      console.error('Verlauf der Nennungen nicht ladbar:', err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, token]);
+
+  const pruefeNennung = async () => {
+    setNennungLaeuft(true);
+    setNennungFehler('');
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/ki-sichtbarkeit?max_fragen=3`,
+        { method: 'POST', headers });
+      const daten = await resp.json();
+      if (resp.ok) {
+        setNennung(daten);
+        await ladeVerlauf();
+      } else {
+        // 503 heisst: kein Schluessel hinterlegt. Das ist keine Aussage ueber
+        // den Betrieb, und der Text sagt das auch.
+        setNennungFehler(daten.detail || 'Die Pruefung ist fehlgeschlagen.');
+      }
+    } catch (err) {
+      setNennungFehler('Verbindungsfehler — die Pruefung wurde nicht durchgefuehrt.');
+    } finally {
+      setNennungLaeuft(false);
+    }
+  };
+
+  const ladeAbo = useCallback(async () => {
+    if (!projectId || !isAdmin) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/geo-payments/${projectId}/status`, { headers });
+      setAbo(resp.ok ? await resp.json() : null);
+    } catch {
+      // Kein Rueckfall auf „kein Abo": Das waere eine Aussage, und geladen
+      // werden konnte nichts.
+      setAbo(null);
+    }
+  }, [projectId, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { ladeAbo(); }, [ladeAbo]);
+
+  const aboKuendigen = async () => {
+    setAboLaeuft(true); setAboFehler('');
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/geo-payments/${projectId}/cancel`,
+        { method: 'POST', headers });
+      const daten = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(daten.detail || `Status ${resp.status}`);
+      setAboFrage(false);
+      await ladeAbo();
+    } catch (e) {
+      setAboFehler(`Die Kuendigung wurde nicht eingereicht (${e.message}).`);
+    } finally {
+      setAboLaeuft(false);
     }
   };
 
@@ -233,6 +320,59 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
         </div>
       </div>
 
+      {/* Das laufende Abo — Stand und Kuendigung (26.08.2026, L-105).
+        * Getrennt vom Kasten darunter: Der schaltet, ob das Add-on
+        * **angeboten** wird; hier steht, ob der Kunde es **gebucht** hat. */}
+      {isAdmin && abo?.subscription_status && (
+        <div style={{
+          background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+          borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <strong style={{ fontSize: 14 }}>Abo des Kunden</strong>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Status: {abo.subscription_status}
+                {abo.subscription_status === 'cancel_at_period_end'
+                  && ' — laeuft zum Periodenende aus'}
+              </p>
+            </div>
+            {abo.subscription_status === 'active' && !aboFrage && (
+              <button type="button" onClick={() => setAboFrage(true)}
+                style={{ background: 'transparent', color: 'var(--status-danger-text, var(--status-error-text))', border: '1px solid currentColor', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                Abo kuendigen
+              </button>
+            )}
+          </div>
+
+          {aboFrage && (
+            <div role="alertdialog" style={{ fontSize: 13, lineHeight: 1.55, padding: '10px 12px', borderRadius: 6, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
+              <div style={{ marginBottom: 8 }}>
+                Das GEO-Abo dieses Kunden zum <strong>Periodenende</strong>
+                {' '}kuendigen? Bis dahin laeuft es weiter; abgebucht wird nichts mehr danach.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" disabled={aboLaeuft} onClick={aboKuendigen}
+                  style={{ padding: '6px 14px', border: 'none', borderRadius: 6, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700, cursor: aboLaeuft ? 'default' : 'pointer', opacity: aboLaeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  {aboLaeuft ? 'Wird eingereicht …' : 'Ja, kuendigen'}
+                </button>
+                <button type="button" onClick={() => setAboFrage(false)}
+                  style={{ padding: '6px 14px', border: '1px solid currentColor', borderRadius: 6, background: 'transparent', color: 'inherit', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {aboFehler && (
+            <div role="alert" style={{ fontSize: 12, padding: '8px 12px', borderRadius: 6, background: 'var(--status-error-bg)', color: 'var(--status-error-text)' }}>
+              {aboFehler}
+            </div>
+          )}
+        </div>
+      )}
+
       {isAdmin && (
         <div style={{
           background: result.upsell_active ? '#ECFDF5' : '#F9FAFB',
@@ -282,6 +422,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           { id: 'analyse', label: '📊 Analyse' },
           { id: 'empfehlungen', label: `🔧 Empfehlungen (${recs.length})` },
           { id: 'dateien', label: '📁 Dateien' },
+          { id: 'nennung', label: '💬 Nennung' },
           { id: 'monitoring', label: '📈 Verlauf' },
         ].map(tab => (
           <button
@@ -289,6 +430,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={() => {
               setActiveTab(tab.id);
               if (tab.id === 'monitoring' && !monitoring) loadMonitoring();
+              if (tab.id === 'nennung' && !verlauf) ladeVerlauf();
             }}
             style={{
               background: 'none', border: 'none',
@@ -424,6 +566,115 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                 </div>
               );
             })
+          )}
+        </div>
+      )}
+
+      {activeTab === 'nennung' && (
+        <div>
+          <div style={{
+            background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8,
+            padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#374151',
+          }}>
+            <strong>Zwei verschiedene Fragen.</strong> Die Analyse nebenan misst, ob eine
+            Maschine den Betrieb <em>lesen</em> kann. Hier wird gefragt, ob sie ihn auch
+            <em> nennt</em> — mit denselben Fragen, die ein Kunde stellt.
+            {' '}Jeder Lauf kostet Geld und fliesst deshalb in keinen Score ein.
+          </div>
+
+          <button
+            onClick={pruefeNennung}
+            disabled={nennungLaeuft}
+            style={{
+              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
+              border: 'none', padding: '10px 20px', borderRadius: 8, fontSize: 14,
+              fontWeight: 600, cursor: nennungLaeuft ? 'not-allowed' : 'pointer',
+              opacity: nennungLaeuft ? 0.7 : 1, marginBottom: 16,
+            }}
+          >
+            {nennungLaeuft ? 'Wird gefragt … (bis zu einer Minute)' : 'Nennung jetzt pruefen'}
+          </button>
+
+          {nennungFehler && (
+            <div style={{
+              background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8,
+              padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#78350F',
+            }}>
+              <strong>Nicht gemessen.</strong> {nennungFehler}
+              <div style={{ marginTop: 6 }}>
+                Das ist <strong>keine</strong> Aussage ueber den Betrieb — es wurde nicht gefragt.
+              </div>
+            </div>
+          )}
+
+          {nennung && (
+            <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+              {Object.entries(nennung.anbieter || {}).map(([schluessel, block]) => (
+                <div key={schluessel} style={{
+                  border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 16px',
+                  background: block.collected ? '#fff' : '#F9FAFB',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between',
+                                alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: 14 }}>{block.anzeige || schluessel}</strong>
+                    {block.collected ? (
+                      <span style={{ fontSize: 14, fontWeight: 700,
+                                     color: SCORE_COLOR((block.quote || 0) * 100) }}>
+                        {block.genannt_bei} von {block.beantwortet} Fragen
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: '#6B7280' }}>nicht erhoben</span>
+                    )}
+                  </div>
+                  {block.collected ? (
+                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                      Modell {block.modell}
+                      {block.fehler > 0 && ` · ${block.fehler} Frage(n) ohne Antwort`}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                      {block.grund}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {verlauf?.verlauf?.length > 0 && (
+            <div>
+              <h4 style={{ fontSize: 14, margin: '0 0 8px' }}>Verlauf</h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13,
+                                fontVariantNumeric: 'tabular-nums' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#6B7280' }}>
+                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Lauf</th>
+                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Genannt bei</th>
+                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Nicht erhoben</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...verlauf.verlauf].reverse().map((eintrag, i) => (
+                      <tr key={eintrag.am || i}>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                          {datumKurz(eintrag.am)}
+                        </td>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                          {Object.entries(eintrag.anbieter || {})
+                            .map(([k, w]) => `${k}: ${w.genannt_bei}/${w.von}`)
+                            .join(' · ') || '—'}
+                        </td>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6',
+                                     color: '#6B7280' }}>
+                          {(eintrag.nicht_erhoben || []).join(', ') || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       )}

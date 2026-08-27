@@ -114,6 +114,17 @@ export default function PackageStarter() {
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{`Starter — ${preis}`}</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
+            {!paket?.verkaeuflich ? (
+              /* Dieses Paket ist nicht mehr im Katalog (L-97, 23.08.2026).
+                 Der Kaufweg pruefte hier nichts und haette einen 400er
+                 geliefert — die Kasse nimmt nur Pakete mit Status `live`. */
+              <div style={{ padding: 16, borderRadius: 12, background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)', fontSize: 14, lineHeight: 1.5 }}>
+                <strong>Dieses Paket wird nicht mehr angeboten.</strong>
+                <div style={{ marginTop: 6 }}>
+                  Unser aktuelles Angebot heisst <strong>Websprint</strong>. Sprechen Sie uns an — wir sagen Ihnen, welche Variante zu Ihrem Betrieb passt.
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleCheckout}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
@@ -124,6 +135,7 @@ export default function PackageStarter() {
               </button>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>
             </form>
+            )}
             <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {['✓ Projekt startet binnen 24h', '✓ Fertigstellung in 7–10 Werktagen', '✓ Eine Korrekturschleife inklusive'].map(t => (
                 <div key={t} style={{ fontSize: 12, color: '#4a6470' }}>{t}</div>

@@ -272,6 +272,47 @@ def _evaluate_datenschutz(url: Optional[str], html: Optional[str]) -> dict:
 # Consent und Drittanbieter
 # ═══════════════════════════════════════════════════════════════════
 
+# Einhaengepunkte, an denen die gaengigen Rahmenwerke ihre Anwendung starten.
+# Steht so ein Element **leer** in einem sonst textlosen Dokument, entsteht der
+# Inhalt erst im Browser — und die Erhebung sieht ihn nie.
+EINHAENGEPUNKTE = ("root", "app", "__next", "__nuxt", "app-root", "___gatsby")
+
+# Unterhalb dieser Wortzahl ist ein Dokument kein Text, sondern ein Geruest.
+# Bewusst niedrig: Eine duenne Seite mit 60 Woertern ist ein Befund ueber den
+# Betrieb; 11 Woerter sind ein Befund ueber die Erhebung.
+GERUEST_WORTGRENZE = 40
+
+
+def clientseitig_aufgebaut(soup, wortzahl: int) -> bool:
+    """Entsteht der Inhalt dieser Seite erst im Browser?
+
+    **Der Fund (24.08.2026).** Die Erhebung holt HTML ueber ``httpx`` und
+    fuehrt kein JavaScript aus. Von einer React-Anwendung bekommt sie
+    ``<div id="root"></div>`` — und der Bericht schrieb daraufhin
+    „keine Ueberschriftenstruktur, keine lokalen Signale" als **gemessenen**
+    Befund ueber den Betrieb. Gesehen hatte die Seite niemand.
+
+    **Beide Bedingungen zusammen, nie eine allein.** Wenig Text ohne
+    Einhaengepunkt ist eine duenne Seite — ein echter Befund. Ein
+    Einhaengepunkt **mit** Inhalt ist serverseitig vorgerendert (Next.js,
+    Nuxt) und wird korrekt gemessen. Nur die Verbindung aus fast keinem Text
+    und einem leeren Einhaengepunkt sagt, dass der Inhalt anderswo entsteht.
+
+    Erkannt wird damit nicht jeder Fall — eine Anwendung, die ohne
+    kennzeichnendes Element startet, rutscht durch. Ein Verfahren, das die
+    haeufigen Faelle sicher trifft und keine echte Seite faelschlich
+    aussortiert, ist hier mehr wert als eines, das alles zu erwischen
+    versucht und dabei richtige Messungen verwirft.
+    """
+    if wortzahl >= GERUEST_WORTGRENZE:
+        return False
+    for kennung in EINHAENGEPUNKTE:
+        element = soup.find(id=kennung)
+        if element is not None and not element.get_text(strip=True):
+            return True
+    return False
+
+
 def detect_consent(html: str) -> dict:
     """Erkennt ein echtes Consent-Tool statt nur das Wort 'Cookie'."""
     lower = html.lower()

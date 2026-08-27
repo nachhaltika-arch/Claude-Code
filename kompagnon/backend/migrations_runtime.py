@@ -598,6 +598,10 @@ def run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT true",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
+        # Oeffnungszeiten (L-15, L-99, 24.08.2026). `street` und `postal_code`
+        # gibt es laengst — nur diese eine Spalte fehlte, und ohne sie ist
+        # `schema.org/LocalBusiness` nicht zu erzeugen.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS opening_hours TEXT",
         "ALTER TABLE usercards ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
         # Flat briefing fields on existing briefings table
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS project_id INTEGER",
@@ -1207,6 +1211,9 @@ def run_migrations():
         # Betrieb auf eine Kundenfrage hin wirklich **nennen**, steht jetzt
         # hier: je System die gestellten Fragen, die Belege und die Trefferzahl.
         # NULL heisst „nie gelaufen" — ausdruecklich nicht „nicht gefunden".
+        # Die Nachschau nach dem Deploy (GEO-01 Position 6, 25.08.2026).
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS auslieferung JSONB",
+        "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS auslieferung_am TIMESTAMP",
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit JSONB",
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_am TIMESTAMP",
         # Der Verlauf, nicht nur der letzte Stand (L-85, 22.08.2026). Der
@@ -1214,6 +1221,141 @@ def run_migrations():
         # null Nennungen, heute drei" ist die Aussage, fuer die ein
         # Betrieb zahlt.
         "ALTER TABLE geo_analyses ADD COLUMN IF NOT EXISTS ki_sichtbarkeit_verlauf JSONB",
+        # ── Websprint-Katalog loest die Bestandspakete ab (L-97, 23.08.2026) ──
+        #
+        # Bis hierhin fuehrte `products` Starter/KOMPAGNON/Premium zu
+        # 1.500/2.000/2.800 EUR **brutto**, waehrend die Angebote Websprints zu
+        # 3.500/7.900/12.900 EUR **netto** nannten. Zwei Produktlinien fuer
+        # dasselbe Geschaeft — und aus dieser Tabelle zieht die Stripe-Sitzung
+        # ihren Betrag.
+        #
+        # **Warum die Bestandspakete bleiben.** Sie werden auf `archived`
+        # gesetzt, nicht geloescht. Ein Projekt aus dem Fruehjahr traegt
+        # `package_type='kompagnon'`, und `payments.paketbezeichnung` liest
+        # Name und Preis fuer die Kundenmail aus genau dieser Zeile. Wer sie
+        # entfernt, deutet eine bezahlte Rechnung nachtraeglich um; wer sie
+        # ueberschreibt, macht aus 2.000 EUR rueckwirkend 7.900 EUR. Dieselbe
+        # Entscheidung wie bei den Systemtickets am 23.08.: stilllegen,
+        # niemals loeschen.
+        #
+        # `archived` ist kein neuer Wert — der Produkteditor kennt seit jeher
+        # `draft`, `live` und `archived`. Nur `live` erscheint unter
+        # `/api/products/public`.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_relaunch', 'Websprint Relaunch',
+              'Bestehende Website auf den Homepage-Standard heben',
+              4165.00, 3500.00, 19, 'once', 14, 'live', false, 'Empfehlung',
+              '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              1)
+           ON CONFLICT (slug) DO NOTHING""",
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_neubau', 'Websprint Neubau',
+              'Neuaufbau nach Homepage-Standard, bis 12 Seiten',
+              9401.00, 7900.00, 19, 'once', 28, 'live', true, 'Empfehlung',
+              '["Positionierungsgespraech, 90 Minuten","Bauplan als Freigabedokument, eine Ueberarbeitung","Texterstellung fuer bis zu 12 Seiten","Bildkonzept und Fotobriefing","Aufbau im KOMPAGNON-Komponentensystem, responsiv","Technische Optimierung und strukturierte Auszeichnung","Hosting, SSL, Weiterleitungen, Domainumstellung","Zwei Korrekturschleifen","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 60 Minuten","Pflege Basic fuer 3 Monate","Re-Audit nach 3 Monaten"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              2)
+           ON CONFLICT (slug) DO NOTHING""",
+        # `draft`, nicht `live`: Die Kernleistung dieses Pakets — Auslieferung
+        # von llms.txt, schema.org und Ground Page an die Kundenseite — ist
+        # nicht implementiert (L-99). Das Datenblatt WS-SYS-01 fuehrt es
+        # selbst als gesperrt. Freischalten heisst hier: erst bauen.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('websprint_system', 'Websprint System',
+              'Neubau mit GEO/GAIO, Karriereseite und Messgrundlage',
+              15351.00, 12900.00, 19, 'once', 42, 'draft', false, 'Empfehlung',
+              '["Alles aus dem Websprint Neubau","Erweiterter Seitenumfang, bis 20 Seiten","Karriereseite mit Bewerbungsformular","GEO/GAIO-Layer: llms.txt, schema.org, Ground Page","Messgrundlage mit Consent-Layer und EU-Datenhaltung","Auftragsverarbeitungsvertrag","Pflege Pro fuer 12 Monate","Quartalsweises Re-Audit mit Massnahmenliste","Jahresgespraech, 90 Minuten"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              3)
+           ON CONFLICT (slug) DO NOTHING""",
+        # Die Bestandspakete verschwinden aus dem Angebot, bleiben aber
+        # lesbar. `WHERE status <> 'archived'` haelt die Anweisung
+        # wiederholbar — sie laeuft bei jedem Start.
+        """UPDATE products SET status = 'archived'
+            WHERE slug IN ('starter', 'kompagnon', 'premium')
+              AND status <> 'archived'""",
+        # Der Spaltenstandard zeigte auf 'kompagnon' — ab jetzt archiviert.
+        # Ein Projekt ohne Paketangabe haette sonst ein Produkt bekommen, das
+        # niemand mehr kaufen kann.
+        "ALTER TABLE projects ALTER COLUMN package_type SET DEFAULT 'websprint_neubau'",
+        # Nachtrag vom selben Tag: Der Relaunch wurde zunaechst als Entwurf
+        # angelegt, weil sein Datenblatt WS-REL-01 nicht vorlag. Es liegt
+        # inzwischen vor — und nennt als Freigabebedingung genau die beiden
+        # Blocker L2 und L3, die am 23.08. widerlegt wurden. Das INSERT oben
+        # traegt den neuen Stand; fuer Datenbanken, in denen die Zeile schon
+        # als Entwurf steht, holt dies nach.
+        #
+        # `AND features = '[]'::jsonb` haelt es eng: Sobald jemand Merkmale
+        # gepflegt hat, fasst die Migration die Zeile nicht mehr an. Ein
+        # bewusst auf Entwurf zurueckgesetztes Paket bleibt so, wie es ist.
+        """UPDATE products
+              SET status = 'live',
+                  features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb
+            WHERE slug = 'websprint_relaunch'
+              AND status = 'draft'
+              AND features = '[]'::jsonb""",
+        # ── 27.08.2026: aus `auditor` und `nutzer` wird `mitarbeiter` ──
+        # Entscheidung David. Die Begruendung steht in `services/rollen.py`.
+        #
+        # Reihenfolge mit Absicht, wegen `uq_role_permission` (eine Zeile je
+        # Rolle und Recht): Erst faellt der Bestand von `nutzer` weg — die
+        # zusammengelegte Rolle erbt die Rechte des Auditors, das war die
+        # Entscheidung. Dann fallen die `auditor`-Zeilen, fuer die es schon
+        # eine `mitarbeiter`-Zeile gibt; erst danach darf umbenannt werden.
+        # Ohne diesen Zwischenschritt scheitert der zweite Lauf an der
+        # Eindeutigkeit — und diese Migrationen laufen bei **jedem** Start.
+        "DELETE FROM role_permissions WHERE role = 'nutzer'",
+        """DELETE FROM role_permissions
+            WHERE role = 'auditor'
+              AND permission IN (SELECT permission FROM role_permissions
+                                  WHERE role = 'mitarbeiter')""",
+        "UPDATE role_permissions SET role = 'mitarbeiter' WHERE role = 'auditor'",
+        # Und die Konten selbst. Wer gestern Auditor war, arbeitet heute
+        # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
+        # Sinn der Zusammenlegung und keine Nebenwirkung.
+        "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
+        # ── 27.08.2026: der Bestaetigungsriegel bekommt einen Altbestand ──
+        # Ab heute sperrt die Anmeldung Konten ohne bestaetigte Adresse aus
+        # (Entscheidung David). Ohne diese Zeile waere jedes bestehende
+        # selbstregistrierte **und jedes eingeladene** Konto (L-127) ab dem
+        # naechsten Deploy draussen — beide entstehen mit
+        # `is_verified = false`.
+        #
+        # **Der Stichtag steht fest und ist keine Rechnung.** Ein gleitendes
+        # „alles aelter als 30 Tage" wuerde bei jedem Start neue Konten
+        # mitnehmen; die Migration liefe dem Riegel hinterher und haette ihn
+        # nach einem Monat lautlos abgeschafft. Deshalb ein Datum, und
+        # deshalb dasselbe Datum wie in `services/rollen.RIEGEL_STICHTAG` —
+        # `tests/test_riegel_unbestaetigt.py` haelt beide zusammen.
+        #
+        # **`created_at IS NULL` zaehlt als alt — und das ist kein Detail.**
+        # Die Spalte traegt nur einen Vorgabewert auf **Python**-Seite
+        # (`default=datetime.utcnow`), keinen in der Datenbank. Eine Zeile,
+        # die per SQL entstand oder die aelter ist als die Spalte selbst,
+        # traegt dort NULL — und `NULL < TIMESTAMP ...` ergibt nicht `false`,
+        # sondern **NULL**. Ohne diesen Zweig waeren genau die aeltesten
+        # Konten die einzigen, die der Riegel dauerhaft aussperrt, und man
+        # haette es erst gemerkt, wenn sich jemand nicht mehr anmelden kann.
+        """UPDATE users SET is_verified = true
+            WHERE is_verified = false
+              AND (created_at IS NULL
+                   OR created_at < TIMESTAMP '2026-08-28 00:00:00')""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

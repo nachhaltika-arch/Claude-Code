@@ -36,6 +36,7 @@ def _build_full_html(
     shared_css: str = "",
     meta_description: str = "",
     company_name: str = "",
+    jsonld: str = "",
 ) -> str:
     """
     Builds a complete HTML document from a GrapesJS body fragment.
@@ -54,6 +55,16 @@ def _build_full_html(
     combined_css = "\n".join(filter(None, [shared_css.strip(), css.strip()]))
     style_block = f"<style>\n{combined_css}\n</style>" if combined_css else ""
 
+    # `schema.org/LocalBusiness` als JSON-LD (L-99). Steht im Kopf, weil es
+    # beim Laden der Seite mitgelesen wird — anders als `llms.txt`, die ein
+    # Modell eigens abruft. Ist die Grundlage unvollstaendig, liefert
+    # `geo_artefakte` einen leeren Text, und dann steht hier nichts: eine
+    # halbe Auszeichnung ist schlechter als keine.
+    jsonld_block = (
+        f'<script type="application/ld+json">\n{jsonld}\n</script>'
+        if jsonld and jsonld.strip() else ""
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -64,6 +75,7 @@ def _build_full_html(
   <meta property="og:title" content="{title}">
   <meta property="og:description" content="{og_desc}">
   <meta property="og:type" content="website">
+  {jsonld_block}
   {style_block}
 </head>
 <body>
@@ -119,10 +131,21 @@ async def deploy_html(
     page_title: str = "Website",
     meta_description: str = "",
     company_name: str = "",
+    zusatzdateien: dict = None,
+    jsonld: str = "",
 ) -> dict:
     """
     Deployt HTML (+ optionales CSS / Redirects) als ZIP auf eine Netlify-Site.
     Rückgabe: { deploy_id, deploy_url, state }
+
+    `zusatzdateien` ist ein Verzeichnis `Dateiname → Inhalt` und landet
+    unveraendert im Wurzelverzeichnis der Site (L-99). Gebraucht wird es fuer
+    `llms.txt`: Die Datei muss **mit derselben Auslieferung** hochgehen wie die
+    Seiten, sonst zeigt sie beim naechsten Deploy auf einen Stand, den es nicht
+    mehr gibt. Ein eigener Deploy-Aufruf haette genau das getan.
+
+    Leere Inhalte werden uebersprungen — eine leere `llms.txt` waere schlechter
+    als keine: Sie sieht aus wie eine Auskunft.
     """
     default_headers = (
         "/*\n"
@@ -139,6 +162,7 @@ async def deploy_html(
             css=css,
             meta_description=meta_description,
             company_name=company_name,
+            jsonld=jsonld,
         )
         zf.writestr("index.html", full_html)
         zf.writestr(
@@ -146,6 +170,9 @@ async def deploy_html(
             redirects if redirects else "/*  /index.html  200",
         )
         zf.writestr("_headers", default_headers)
+        for name, inhalt in (zusatzdateien or {}).items():
+            if inhalt and str(inhalt).strip():
+                zf.writestr(name, inhalt)
     zip_bytes = buf.getvalue()
 
     t = os.getenv("NETLIFY_API_TOKEN", "").strip()
@@ -183,6 +210,8 @@ async def deploy_all_pages(
     page_files: dict,
     shared_css: str = "",
     company_name: str = "Website",
+    zusatzdateien: dict = None,
+    jsonld: str = "",
 ) -> dict:
     """
     Deployt mehrere Seiten als ZIP auf Netlify (Multi-Page Deploy).
@@ -215,12 +244,22 @@ async def deploy_all_pages(
                 shared_css=shared_css,
                 meta_description=page.get("meta_desc", ""),
                 company_name=company_name,
+                # Die Auszeichnung steht auf **jeder** Seite, nicht nur der
+                # Startseite: `LocalBusiness` beschreibt den Betrieb, und ein
+                # Modell landet oft auf einer Unterseite (L-99).
+                jsonld=jsonld,
             )
             zf.writestr(filename, full_html)
 
         # Keine SPA-Redirect-Regel — echte Dateien fuer echte Pfade
         zf.writestr("_redirects", "")
         zf.writestr("_headers", default_headers)
+        # `llms.txt` und Verwandte gehen mit **dieser** Auslieferung hoch
+        # (L-99): Netlify ersetzt bei jedem Deploy den ganzen Inhalt der Site,
+        # ein zweiter Aufruf naehme die Seiten wieder weg.
+        for name, inhalt in (zusatzdateien or {}).items():
+            if inhalt and str(inhalt).strip():
+                zf.writestr(name, inhalt)
 
     zip_bytes = buf.getvalue()
 

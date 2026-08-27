@@ -9,8 +9,7 @@ import { aufTaste } from '../utils/tastaturBedienung';
 const ROLE_META = {
   superadmin: { icon: '⚡', label: 'Superadmin', desc: 'Systemkritische Aktionen, KAS-Deploy', locked: true, bg: '#7c3aed', fg: '#fff' },
   admin: { icon: '👑', label: 'Admin', desc: 'Vollstaendige Systemrechte', locked: true, bg: 'var(--text-primary)', fg: '#fff' },
-  auditor: { icon: '🔍', label: 'Auditor', desc: 'Zugriff auf Audit-Funktionen', locked: false, bg: '#2a5aa0', fg: '#fff' },
-  nutzer: { icon: '👤', label: 'Nutzer', desc: 'Eingeschraenkter Zugriff', locked: false, bg: '#4a5a7a', fg: '#fff' },
+  mitarbeiter: { icon: '🛠️', label: 'Mitarbeiter KOMPAGNON', desc: 'Betriebe, Projekte und Audits — ohne Loeschen, Benutzer und Abrechnung', locked: false, bg: '#2a5aa0', fg: '#fff' },
   kunde: { icon: '🏢', label: 'Kunde', desc: 'Nur eigene Daten & Leistungen', locked: false, bg: '#2a7a3a', fg: '#fff' },
 };
 

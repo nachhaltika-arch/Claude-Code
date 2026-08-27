@@ -59,11 +59,80 @@ const KATEGORIEN = [
       { id: 'sitemap_eingereicht', label: 'Sitemap.xml über Search Console eingereicht', info: null },
     ],
   },
+  // ── Übernommen aus der kurzen Checkliste (L-95, 24.08.2026) ─────────
+  //
+  // Diese Liste tritt an die Stelle von `QmChecklisteEmbed` (53 Zeilen).
+  // Die reichere Fassung deckte aber **sieben** ihrer zehn Punkte nicht ab —
+  // SSL, Links, Formular, Favicon, Maps, Social und die Mobilprüfung. Ein
+  // glatter Tausch hätte sie stillschweigend fallen lassen, und niemand hätte
+  // gemerkt, dass seit dem Tausch niemand mehr prüft, ob das Kontaktformular
+  // sendet.
+  //
+  // **Die Kennungen sind bewusst die alten** (`ssl`, `links`, `forms`, …).
+  // Beide Listen speichern ein Verzeichnis aus Kennung → Haken; damit werden
+  // bereits gesetzte Haken beim Umstieg übernommen, statt zurückgesetzt.
+  {
+    id:    'technik',
+    label: 'Technik & Auffindbarkeit',
+    icon:  '🔧',
+    items: [
+      { id: 'ssl',     label: 'SSL-Zertifikat aktiv (https://)',            info: null },
+      { id: 'links',   label: 'Alle Links funktionieren (kein 404)',        info: null },
+      { id: 'forms',   label: 'Kontaktformular sendet korrekt',             info: null },
+      { id: 'mobile',  label: 'Mobile Ansicht korrekt auf iOS & Android',   info: null },
+      { id: 'favicon', label: 'Favicon + Meta-Titel korrekt',              info: null },
+      { id: 'maps',    label: 'Google Maps / Adresse stimmt',              info: null },
+      { id: 'social',  label: 'Social-Media-Links korrekt',                info: null },
+    ],
+  },
 ];
 
 const TOTAL = KATEGORIEN.reduce((acc, k) => acc + k.items.length, 0);
 
-export default function QAChecklist({ projectId, token, qaChecklistJson, pagespeedMobile, pagespeedDesktop }) {
+// Kennungen, die in der kurzen Checkliste anders hiessen (L-95, 24.08.2026).
+//
+// **`impressum` wird bewusst NICHT auf `datenschutz` uebertragen.** Die alte
+// Zeile lautete „Impressum + Datenschutz vorhanden", die neue verlangt
+// „Datenschutzerklaerung DSGVO-konform" — das ist mehr als Vorhandensein. Ein
+// uebernommener Haken waere dort eine Behauptung, die niemand geprueft hat.
+//
+// Die PageSpeed-Punkte werden ebenfalls nicht uebernommen: Sie setzt die
+// Komponente unten aus den tatsaechlichen Messwerten.
+const ALTE_KENNUNGEN = {
+  analytics: 'ga_eingerichtet',
+};
+
+/**
+ * Haken aus der kurzen Checkliste in die Kennungen dieser Liste bringen.
+ *
+ * @param {string|null|undefined} altesJson Inhalt von `gbp_checklist_json`.
+ * @returns {Record<string, boolean>} Nur gesetzte Haken, mit den Kennungen
+ *   dieser Liste. Beschaedigtes JSON ergibt ein leeres Verzeichnis.
+ */
+export function altenStandUebernehmen(altesJson) {
+  if (!altesJson) return {};
+  let alt;
+  try {
+    alt = JSON.parse(altesJson);
+  } catch {
+    return {};
+  }
+  if (!alt || typeof alt !== 'object' || Array.isArray(alt)) return {};
+
+  const uebernommen = {};
+  for (const [kennung, gesetzt] of Object.entries(alt)) {
+    if (!gesetzt) continue;
+    if (kennung === 'speed' || kennung === 'impressum') {
+      if (kennung === 'impressum') uebernommen.impressum = true;
+      continue;
+    }
+    uebernommen[ALTE_KENNUNGEN[kennung] || kennung] = true;
+  }
+  return uebernommen;
+}
+
+
+export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChecklistJson, pagespeedMobile, pagespeedDesktop }) {
   const h = {
     'Content-Type': 'application/json',
     Authorization:  `Bearer ${token}`,
@@ -72,18 +141,28 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
   const [checked, setChecked] = useState({});
   const [saving, setSaving]   = useState(false);
 
-  // Vorhandene Daten aus Prop laden
+  // Vorhandene Daten aus Prop laden.
+  //
+  // **Der Stand der kurzen Checkliste zaehlt mit (L-95).** Diese Liste tritt
+  // an ihre Stelle; wer dort schon Haken gesetzt hatte, soll sie hier
+  // wiederfinden und nicht von vorn anfangen. Der eigene Stand hat Vorrang —
+  // wurde hier bereits gespeichert, ist der alte ueberholt.
   useEffect(() => {
-    if (!qaChecklistJson) return;
+    const alt = altenStandUebernehmen(gbpChecklistJson);
+    if (!qaChecklistJson) {
+      setChecked(alt);
+      return;
+    }
     try {
       const parsed = JSON.parse(qaChecklistJson);
-      setChecked(parsed || {});
+      setChecked({ ...alt, ...(parsed || {}) });
     } catch {
       toast.error('Die gespeicherte QA-Checkliste ist beschädigt und wurde zurückgesetzt.', {
         id: 'qa-checkliste-beschaedigt',
       });
+      setChecked(alt);
     }
-  }, [qaChecklistJson]);
+  }, [qaChecklistJson, gbpChecklistJson]);
 
   // PageSpeed-Punkte automatisch setzen
   useEffect(() => {

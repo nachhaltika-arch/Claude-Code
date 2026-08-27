@@ -72,14 +72,26 @@ def _ok(fact: Optional[dict]) -> bool:
     return bool(fact) and fact.get("collected") is True
 
 
-def _tier(value: Optional[float], thresholds) -> Optional[int]:
-    """Erste passende Schwelle (Grenzwert, Punkte) — absteigend geprüft."""
-    if value is None:
-        return None
-    for limit, points in thresholds:
-        if value < limit:
-            return points
-    return 0
+def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASURED) -> None:
+    """Punkte nach der am Kriterium hinterlegten Abstufung vergeben.
+
+    Bis zum 25.08.2026 standen die Schwellen hier — teils als Liste (`_tier`),
+    teils als Bedingung mitten im Satz (`3 if perf >= 90 else ...`). Die zweite
+    Form kann kein Ausleseprogramm lesen; das Buch musste seine Punktetabellen
+    deshalb raten. Jetzt stehen die Zahlen in `audit_criteria.py`, wo auch die
+    Punktwerte stehen, und diese Funktion holt sie sich von dort.
+
+    Der Fall `wert is None` heißt: nicht erhoben. Er wird übersprungen, nicht
+    mit null Punkten bewertet — sonst verkauft die Auswertung eine fehlende
+    Messung als Mangel.
+    """
+    if wert is None:
+        sheet.skip(key)
+        return
+    criterion = find_criterion(key)
+    if criterion is None or criterion.abstufung is None:
+        raise ValueError(f"Kriterium ohne hinterlegte Abstufung: {key}")
+    sheet.set(key, criterion.abstufung.punkte_fuer(wert), quelle)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -173,17 +185,11 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
     images = facts.get("images") or {}
 
     if _ok(psi):
-        _set_or_skip(sheet, "tp_lcp", _tier(psi.get("lcp_seconds"), ((2.5, 4), (4.0, 2))))
-        _set_or_skip(sheet, "tp_cls", _tier(psi.get("cls_value"), ((0.1, 3), (0.25, 1))))
+        _nach_abstufung(sheet, "tp_lcp", psi.get("lcp_seconds"))
+        _nach_abstufung(sheet, "tp_cls", psi.get("cls_value"))
         # INP stammt nur aus CrUX-Felddaten; für kleine Betriebsseiten meist leer.
-        _set_or_skip(sheet, "tp_inp", _tier(psi.get("inp_ms"), ((200, 2), (500, 1))))
-
-        perf = psi.get("performance_score")
-        if perf is None:
-            sheet.skip("tp_mobile")
-        else:
-            sheet.set("tp_mobile", 3 if perf >= 90 else (2 if perf >= 70 else
-                      (1 if perf >= 50 else 0)), Source.MEASURED)
+        _nach_abstufung(sheet, "tp_inp", psi.get("inp_ms"))
+        _nach_abstufung(sheet, "tp_mobile", psi.get("performance_score"))
     else:
         for key in ("tp_lcp", "tp_cls", "tp_inp", "tp_mobile"):
             sheet.skip(key)
@@ -199,13 +205,6 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
         sheet.skip("tp_bilder")
 
 
-def _set_or_skip(sheet: _Sheet, key: str, points: Optional[int]) -> None:
-    if points is None:
-        sheet.skip(key)
-    else:
-        sheet.set(key, points, Source.MEASURED)
-
-
 # ═══════════════════════════════════════════════════════════════════
 # Barrierefreiheit
 # ═══════════════════════════════════════════════════════════════════
@@ -215,31 +214,43 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
     qa = facts.get("qa") or {}
     audits = (psi.get("a11y_audits") or {}) if _ok(psi) else {}
 
-    score = psi.get("accessibility_score") if _ok(psi) else None
-    if score is None:
-        sheet.skip("bf_lighthouse")
-    else:
-        sheet.set("bf_lighthouse", 3 if score >= 90 else (2 if score >= 75 else
-                  (1 if score >= 50 else 0)), Source.MEASURED)
+    _nach_abstufung(sheet, "bf_lighthouse",
+                    psi.get("accessibility_score") if _ok(psi) else None)
 
     sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED)
     sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED)
 
-    quote = qa.get("alt_texte_quote")
-    if quote is None:
-        sheet.skip("bf_alt")
-    else:
-        sheet.set("bf_alt", 2 if quote >= 95 else (1 if quote >= 80 else 0), Source.MEASURED)
+    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"))
 
-    # Bewusst rein DOM-basiert: gemischt aus DOM und Lighthouse wäre das
-    # Kriterium bei fehlendem PageSpeed nur halb prüfbar, würde aber voll
-    # gewertet — genau der stille Abzug, den die Überarbeitung beseitigt.
-    if not qa:
+    # ── bf_semantik: zwei Haelften zu je einem Punkt (S1.1, 24.08.2026) ──
+    #
+    # Der Kriterienhinweis verspricht vier Dinge: „genau eine H1, saubere
+    # Hierarchie, lang-Attribut, Labels". Geprueft wurden bis zum 24.08.2026
+    # nur die ersten beiden. `html-has-lang` und `label` lagen die ganze Zeit
+    # in `A11Y_AUDIT_GROUPS` — berechnet und weggeworfen.
+    #
+    # **Warum die DOM-Haelfte jetzt einen Punkt statt zwei traegt.** Die
+    # beiden alten Stufen ueberlappten sich: `heading_struktur_ok` verlangt
+    # selbst schon `len(h1) == 1`. „Hierarchie ohne H1" gibt es nicht; die
+    # zweite Stufe war nie unabhaengig. Ein Punkt fuer die Struktur, einer
+    # fuer die Screenreader-Grundlagen — das ist dieselbe Hoechstpunktzahl bei
+    # zwei tatsaechlich verschiedenen Fragen.
+    #
+    # **Warum ohne PageSpeed nicht gewertet wird.** Hier stand vorher „bewusst
+    # rein DOM-basiert: gemischt waere das Kriterium bei fehlendem PageSpeed
+    # nur halb pruefbar, wuerde aber voll gewertet — genau der stille Abzug,
+    # den die Ueberarbeitung beseitigt." Der Einwand bleibt richtig; die
+    # Antwort darauf ist nicht, die Haelfte wegzulassen, sondern das Kriterium
+    # als **nicht erhoben** zu fuehren. Dann faellt es aus der Normierung,
+    # statt einen Abzug zu erzeugen — so wie `bf_kontrast` und `bf_tastatur`
+    # sich in derselben Lage verhalten.
+    semantik = audits.get("semantik")
+    if not qa or semantik is None:
         sheet.skip("bf_semantik")
     else:
         sheet.set("bf_semantik", sum([
-            1 if qa.get("h1_genau_eins") else 0,
             1 if qa.get("heading_struktur_ok") else 0,
+            1 if semantik >= 1.0 else 0,
         ]), Source.MEASURED)
 
 
@@ -264,6 +275,12 @@ def _titel_traegt_den_massstab(title: str, city: str, klasse: str) -> bool:
 
 def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     qa = facts.get("qa") or {}
+    # Eine Seite, die erst im Browser entsteht, hat die Erhebung nie gesehen.
+    # `se_struktur` und `se_lokal` haengen vollstaendig am ausgelieferten DOM;
+    # sie mit 0 zu bewerten hiesse, dem Betrieb etwas zu bescheinigen, das
+    # niemand geprueft hat. `se_meta` bleibt: Titel und Kurzbeschreibung
+    # stehen in der Huelle und sind echt.
+    nur_geruest = bool(facts.get("clientseitig"))
     if not qa:
         for key in ("se_meta", "se_struktur", "se_index", "se_schema", "se_lokal"):
             sheet.skip(key)
@@ -279,10 +296,13 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         ]), Source.MEASURED)
 
         words = facts.get("word_count") or 0
-        sheet.set("se_struktur", sum([
-            1 if qa.get("h1_genau_eins") and qa.get("h2_vorhanden") else 0,
-            1 if words >= MIN_CONTENT_WORDS else 0,
-        ]), Source.MEASURED)
+        if nur_geruest:
+            sheet.skip("se_struktur")
+        else:
+            sheet.set("se_struktur", sum([
+                1 if qa.get("h1_genau_eins") and qa.get("h2_vorhanden") else 0,
+                1 if words >= MIN_CONTENT_WORDS else 0,
+            ]), Source.MEASURED)
 
         sheet.set("se_index", sum([
             1 if qa.get("robots_txt") and qa.get("robots_txt_indexiert") else 0,
@@ -308,11 +328,14 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         ]), Source.MEASURED)
 
         contact = facts.get("contact") or {}
-        sheet.set("se_lokal", sum([
-            1 if city and (city in title or city in h1) else 0,
-            1 if contact.get("tel_link") else 0,
-            1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
-        ]), Source.MEASURED)
+        if nur_geruest:
+            sheet.skip("se_lokal")
+        else:
+            sheet.set("se_lokal", sum([
+                1 if city and (city in title or city in h1) else 0,
+                1 if contact.get("tel_link") else 0,
+                1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
+            ]), Source.MEASURED)
 
     # KI-Lesbarkeit (L-58 a). Die Werte stehen in `qa`, nicht eine Ebene
     # hoeher: `summarise_facts` hebt sie zwar hoch, aber `routers/audit.py:180`
@@ -349,11 +372,24 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 
 def _score_design(sheet: _Sheet, facts: dict) -> None:
     qa = facts.get("qa") or {}
+    psi = facts.get("psi_mobile") or {}
+    audits = (psi.get("a11y_audits") or {}) if _ok(psi) else {}
+
     if qa:
         sheet.set("dg_mobil", 1 if qa.get("mobile_viewport") else 0, Source.MEASURED)
     else:
         sheet.skip("dg_mobil")
-    # dg_aktualitaet, dg_typografie, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
+
+    # **dg_typografie: gemessen statt geschaetzt (S1.2, 24.08.2026).**
+    # Lighthouse liefert `font-size`; das Kriterium liess die Schriftgroesse
+    # bis dahin von einem Sprachmodell schaetzen. Ohne PageSpeed gilt es als
+    # nicht erhoben — `scale` macht das selbst, wenn der Wert `None` ist.
+    #
+    # Die Pruefung ist binaer, also sind es 0 oder 2 Punkte. Dieselbe Bauart
+    # wie `bf_kontrast`, das `color-contrast` genauso abbildet.
+    sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED)
+
+    # dg_aktualitaet, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -400,7 +436,7 @@ def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     if _ok(cta):
         count = _treffer_in_klasse(cta.get("elemente"), "cta", klasse,
                                    cta.get("cta_count", 0))
-        sheet.set("cv_cta", 3 if count >= 3 else (2 if count >= 1 else 0), Source.DERIVED)
+        _nach_abstufung(sheet, "cv_cta", count, Source.DERIVED)
     else:
         sheet.skip("cv_cta")
 
@@ -418,8 +454,7 @@ def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 
     if _ok(trust):
         signale = _vertrauenssignale(trust, klasse)
-        sheet.set("cv_vertrauen", 3 if signale >= 4 else (2 if signale >= 2 else
-                  (1 if signale >= 1 else 0)), Source.DERIVED)
+        _nach_abstufung(sheet, "cv_vertrauen", signale, Source.DERIVED)
     else:
         sheet.skip("cv_vertrauen")
     # cv_klarheit, cv_angebot: KI (siehe _apply_ai)
@@ -453,8 +488,7 @@ def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     if _ok(services):
         count = _treffer_in_klasse(services.get("seiten"), "leistungsseiten", klasse,
                                    services.get("service_page_count", 0))
-        sheet.set("ih_leistungsseiten", 2 if count >= 3 else (1 if count >= 1 else 0),
-                  Source.MEASURED)
+        _nach_abstufung(sheet, "ih_leistungsseiten", count)
     else:
         sheet.skip("ih_leistungsseiten")
 
@@ -471,10 +505,22 @@ def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 # ═══════════════════════════════════════════════════════════════════
 
 def _apply_ai(sheet: _Sheet, ai: dict) -> None:
-    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind."""
+    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind.
+
+    **Was das Modell nicht beurteilen konnte, kostet nichts (S8.1).** Bis zum
+    25.08.2026 verlangte der Prompt in diesem Fall 0 Punkte — gegen § 3.5 der
+    Bewertungslogik, und im Bericht las es sich als Urteil über den Betrieb
+    statt als Lücke der Prüfung. Bis zu neun Punkte für etwas, das er nicht
+    getan hat.
+
+    Unbekannte Kennungen in der Liste werden übergangen: Das Modell könnte
+    etwas benennen, das kein Kriterium ist, und daran soll keine Bewertung
+    scheitern.
+    """
+    offen = set(ai.get("nicht_beurteilbar") or []) if ai else set()
     for criterion in ai_criteria():
         value = ai.get(criterion.key) if ai else None
-        if value is None:
+        if value is None or criterion.key in offen:
             sheet.skip(criterion.key)
         else:
             sheet.set(criterion.key, value, Source.AI)
@@ -521,6 +567,19 @@ def detect_blockers(facts: dict) -> List[str]:
 
     if _ok(third) and third.get("tracking_services") and not consent.get("cmp_detected"):
         blockers.append("tracking_ohne_consent")
+
+    # **Seit dem 26.08.2026 wirklich erhoben.** Der Katalog nannte diese
+    # Deckelregel seit jeher; gemessen hat sie niemand, weil sie einen
+    # Cookie-Vergleich vor der Einwilligung verlangt und die HTML-Erhebung
+    # nur die **Signatur** eines Consent-Werkzeugs erkennt, nicht sein
+    # Verhalten. Der Browserlauf klickt kein Banner an — was danach gesetzt
+    # ist, ist ohne Zustimmung gesetzt.
+    #
+    # `_ok` haelt die alte Lage aufrecht, wenn kein Browser lief: Dann steht
+    # dort `collected: False`, und es wird nichts behauptet.
+    cookies = facts.get("cookies_vor_consent") or {}
+    if _ok(cookies) and cookies.get("verstoss"):
+        blockers.append("cookies_ohne_consent")
 
     return blockers
 

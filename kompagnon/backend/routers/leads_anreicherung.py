@@ -14,7 +14,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from services import betriebsname, lead_quellen
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 import asyncio
 import httpx
 import json
@@ -217,17 +220,17 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     # Persistiert wird unten ueber eine frische SessionLocal().
     db.close()
 
-    api_key = pagespeed_api_key()
-    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    # Schluessel als Kopfzeile, nicht in der URL — httpx protokolliert die
+    # vollstaendige Anfrage-URL (L-98). Eine Stelle, vier Aufrufer.
+    base = PSI_ENDPOINT
     params_base = {"url": website_url}
-    if api_key:
-        params_base["key"] = api_key
+    kopf = pagespeed_auth_headers()
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             mobile_resp, desktop_resp = await asyncio.gather(
-                client.get(base, params={**params_base, "strategy": "mobile"}),
-                client.get(base, params={**params_base, "strategy": "desktop"}),
+                client.get(base, params={**params_base, "strategy": "mobile"}, headers=kopf),
+                client.get(base, params={**params_base, "strategy": "desktop"}, headers=kopf),
             )
     except Exception as e:
         logger.error(f"PageSpeed API request failed for {website_url}: {e}")
@@ -338,3 +341,124 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
         }
     finally:
         db2.close()
+
+
+# ── Dazugekommen am 23.08.2026 (L-25) ────────────────────────────────────
+#
+# Diese vier Routen standen in `leads.py` unter der Ueberschrift
+# „IMPORT ENDPOINTS" — und keine davon importiert etwas. Die Ueberschrift war
+# stehengeblieben, als die echten Import-Routen am 22.08. nach
+# `leads_import.py` gingen; darunter sammelte sich, was thematisch hierher
+# gehoert: Daten zu einem bekannten Betrieb nachtragen.
+#
+# Ein Wegweiser, der in die falsche Richtung zeigt, ist schlimmer als keiner.
+
+
+# ===== IMPORT ENDPOINTS =====
+
+
+
+
+
+
+
+@router.post("/{lead_id}/enrich")
+async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Manually trigger enrichment for a single lead."""
+    from services.lead_enrichment import enrich_lead
+    result = await enrich_lead(lead_id, db)
+    return result
+
+
+@router.get("/{lead_id}/latest-screenshot")
+def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Get the latest audit screenshot for a lead, saving it to the lead if found."""
+    latest = (
+        db.query(AuditResult)
+        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed", AuditResult.screenshot_base64 != "", AuditResult.screenshot_base64 != None)
+        .order_by(AuditResult.created_at.desc())
+        .first()
+    )
+    if not latest or not latest.screenshot_base64:
+        return {"screenshot_url": None}
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if lead and not lead.website_screenshot:
+        lead.website_screenshot = latest.screenshot_base64
+        db.commit()
+    return {
+        "screenshot_url": f"data:image/jpeg;base64,{latest.screenshot_base64}",
+        "audit_date": latest.created_at.strftime("%d.%m.%Y") if latest.created_at else "",
+        "audit_score": latest.total_score,
+    }
+
+
+@router.post("/{lead_id}/screenshot")
+async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Capture website screenshot and return it immediately."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
+
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    try:
+        from services.screenshot import capture_screenshot
+        screenshot_b64 = await capture_screenshot(url)
+        if screenshot_b64:
+            lead.website_screenshot = screenshot_b64
+            db.commit()
+            return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}"}
+        else:
+            raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Screenshot Fehler: {str(e)}")
+
+
+@router.post("/befunde-nachtragen")
+def befunde_nachtragen(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt SSL, Impressum und PageSpeed aus der alten Notizzeile in die Spalten.
+
+    Seit dem 17.08.2026 stehen diese Befunde in eigenen Spalten. Für den
+    Bestand hieß das: Spalten leer, Oberfläche sagt „nicht geprüft" — und
+    darunter behauptet die alte Notiz „SSL: OK". Beides stimmt für sich,
+    zusammen widersprechen sie sich auf einem Bildschirm.
+
+    Übernommen wird nur, was noch leer ist: Was die neue Anreicherung
+    geschrieben hat, ist jünger als die Notiz. Ein Zeitpunkt wird nicht
+    erfunden — die Zeile trug keinen.
+    """
+    from services import anreicherungsnotiz
+
+    betroffen = db.query(Lead).filter(
+        Lead.notes.ilike(f"%{anreicherungsnotiz.MARKE}%")).all()
+
+    bericht = []
+    for lead in betroffen:
+        befunde = anreicherungsnotiz.befunde_aus_notiz(lead.notes)
+        uebernommen = []
+        for feld, wert in befunde.items():
+            if getattr(lead, feld, None) is None:
+                setattr(lead, feld, wert)
+                uebernommen.append(feld)
+
+        lead.notes = anreicherungsnotiz.notiz_ohne_maschinenzeilen(lead.notes)
+        bericht.append({
+            "id": lead.id,
+            "betrieb": lead.company_name,
+            "uebernommen": uebernommen,
+            "notiz_bleibt": bool(lead.notes),
+        })
+
+    if bericht:
+        db.commit()
+
+    return {"betroffen": len(betroffen), "betriebe": bericht}

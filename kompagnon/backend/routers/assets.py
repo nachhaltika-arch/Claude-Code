@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from routers.auth_router import get_current_user, require_innendienst
+from services.rollen import ist_innendienst
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +173,7 @@ async def upload_asset(
     dest = _lead_dir(lead_id) / unique_name
     dest.write_bytes(content)
 
-    uploaded_by_role = "admin" if getattr(current_user, "role", "") in ("admin", "auditor") else "kunde"
+    uploaded_by_role = "admin" if ist_innendienst(getattr(current_user, "role", "")) else "kunde"
 
     db.execute(text("""
         INSERT INTO project_files

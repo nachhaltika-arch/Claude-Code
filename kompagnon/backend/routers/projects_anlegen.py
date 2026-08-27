@@ -16,11 +16,12 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Qu
 from database import Customer
 from database import Lead
 from database import Project
-from database import ProjectScrapeJob
 from database import get_db
 from datetime import datetime
-from routers.content_scraper_router import _run_content_scrape
-from services.audit_pagespeed import api_key as pagespeed_api_key
+from services.audit_pagespeed import (
+    PSI_ENDPOINT,
+    auth_headers as pagespeed_auth_headers,
+)
 from services.base_urls import public_base_url
 from sqlalchemy.orm import Session
 import logging
@@ -31,6 +32,7 @@ from routers.projects_router import router
 # Bildschirmfoto **danach** — dieselbe Route, die der Innendienst
 # auch von Hand ausloest.
 from routers.projects_erhebung import screenshot_after
+from services import produktkatalog
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +103,13 @@ def create_project_from_lead(
     )
     # Optional fields from body — whitelist + parse, fall back to DB defaults.
     body = body or {}
+    # Gegen den Katalog pruefen, nicht gegen eine Liste im Quelltext: Hier
+    # stand bis zum 23.08.2026 `("starter", "kompagnon", "premium")`. Beim
+    # Wechsel auf die Websprint-Produkte waere daraus eine stille Falle
+    # geworden — die neue Kennung faellt durch, die Angabe wird `None`, und
+    # das Projekt bekommt den Spaltenstandard (L-97).
     package_type = body.get("package_type")
-    if package_type not in ("starter", "kompagnon", "premium"):
+    if package_type not in produktkatalog.bekannte_slugs(db):
         package_type = None
     project_type = body.get("project_type")
     if project_type not in ("standard", "impuls"):
@@ -165,16 +172,11 @@ def create_project_from_lead(
     db.commit()
     db.refresh(project)
 
-    # 3b. Auto-start content scrape if website_url is present
-    if lead.website_url:
-        try:
-            scrape_job = ProjectScrapeJob(project_id=project.id, status="pending")
-            db.add(scrape_job)
-            db.commit()
-            db.refresh(scrape_job)
-            background_tasks.add_task(_run_content_scrape, scrape_job.id, project.id, lead.website_url)
-        except Exception as exc:
-            logger.warning("Could not start auto-scrape for project %s: %s", project.id, exc)
+    # 3b. **Kein automatischer Scrape mehr (26.08.2026, Entscheidung David).**
+    # Hier startete beim Anlegen ein Hintergrundlauf des zweiten Scrapers. Was
+    # er ablegte, las nur sein eigenes Modul — die Oberflaeche arbeitet mit
+    # `/api/crawler/…` und dessen Ablage `website_content_cache`. Zwei
+    # Erhebungen derselben Website sind zweimal Last und eine Wahrheit zu viel.
 
     # 4. Try to find an existing customer linked via email
     customer_id = None
@@ -252,17 +254,16 @@ async def _golive_automation(project_id: int):
             # ── 3. NACHHER-PAGESPEED ─────────────────────────
             try:
                 import httpx
-                api_key = pagespeed_api_key()
 
                 async def _ps(strategy):
-                    url = (
-                        "https://www.googleapis.com/pagespeedonline"
-                        f"/v5/runPagespeed?url={website_url}"
-                        f"&strategy={strategy}"
-                        + (f"&key={api_key}" if api_key else "")
-                    )
+                    # Schluessel als Kopfzeile, nicht in der URL — httpx
+                    # protokolliert die vollstaendige Anfrage-URL (L-98).
                     async with httpx.AsyncClient(timeout=20.0) as c:
-                        r = await c.get(url)
+                        r = await c.get(
+                            PSI_ENDPOINT,
+                            params={"url": website_url, "strategy": strategy},
+                            headers=pagespeed_auth_headers(),
+                        )
                         score = r.json().get("lighthouseResult", {}) \
                                        .get("categories", {}) \
                                        .get("performance", {}) \

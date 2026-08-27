@@ -20,6 +20,8 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unbestaetigt, setUnbestaetigt] = useState(false);
+  const [erneutGesendet, setErneutGesendet] = useState(false);
   const [success, setSuccess] = useState('');
 
   const inputStyle = {
@@ -37,6 +39,21 @@ export default function Login() {
     letterSpacing: '0.06em', marginBottom: 6,
   };
 
+  const erneutSenden = async () => {
+    // Die Antwort ist absichtlich immer dieselbe — der Endpunkt soll kein
+    // Adressverzeichnis werden. Die Oberfläche sagt deshalb auch nicht
+    // „gesendet", sondern was das Backend sagt: „falls ein Konto dazu
+    // gehört".
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch { /* Auch ein Fehlschlag darf nichts über die Adresse verraten. */ }
+    setErneutGesendet(true);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -48,7 +65,15 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.detail || 'E-Mail oder Passwort falsch'); return; }
+      if (!res.ok) {
+        // Seit dem 27.08.2026 kann die Anmeldung an einer **unbestaetigten**
+        // Adresse scheitern (Bestaetigungsriegel). Dann ist die Meldung
+        // allein eine Sackgasse — der Weg heraus gehoert daneben, sonst
+        // sucht der Mensch im Spam-Ordner und wir erfahren nie davon.
+        setUnbestaetigt(res.status === 403 && /best[äa]tig/i.test(data.detail || ''));
+        setError(data.detail || 'E-Mail oder Passwort falsch');
+        return;
+      }
       if (data.require_2fa) { setTempToken(data.temp_token); setStep('2fa'); return; }
       login(data.access_token, data.user);
       navigate('/app/dashboard');
@@ -141,6 +166,26 @@ export default function Login() {
               {error && (
                 <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>
                   {error}
+                </div>
+              )}
+
+              {unbestaetigt && (
+                <div style={{ marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {erneutGesendet ? (
+                    'Falls ein unbestätigtes Konto zu dieser Adresse gehört, ist die Mail unterwegs.'
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={erneutSenden}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        color: 'var(--brand-primary)', fontSize: 12, fontWeight: 700,
+                        textDecoration: 'underline', cursor: 'pointer',
+                      }}
+                    >
+                      Bestätigungsmail erneut senden
+                    </button>
+                  )}
                 </div>
               )}
 

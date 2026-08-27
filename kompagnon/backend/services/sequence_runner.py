@@ -184,3 +184,41 @@ def start_sequence_for_lead(lead_id: int):
         return False
     finally:
         db.close()
+
+
+def strecke_anstossen_wenn_erlaubt(lead_id: int) -> bool:
+    """Startet die Mailstrecke, falls Herkunft **und** Stichtag es erlauben (L-62).
+
+    **Eine Stelle fuer alle Wege.** Bis zum 24.08.2026 stand die Entscheidung
+    in `routers/leads.py::create_lead` — und die Webhooks liefen mit rohem SQL
+    daran vorbei. Von fuenf Lead-Wegen bekam kein einziger die Strecke.
+    Deshalb wird die Frage jetzt hier beantwortet, und jeder Weg ruft hierher.
+
+    Der Lead wird aus der Datenbank gelesen und nicht als Objekt uebergeben:
+    `created_at` setzt die Datenbank, und der Stichtag darf nicht an einem
+    Wert haengen, den der Aufrufer mitbringt.
+    """
+    from services.lead_quellen import soll_strecke_starten
+
+    db = SessionLocal()
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if not lead:
+            return False
+        if not soll_strecke_starten(lead):
+            logger.info(
+                "Keine Auto-Strecke fuer Lead %s (Quelle %r, angelegt %s) — "
+                "Herkunft oder Stichtag sprechen dagegen (L-62)",
+                lead_id, lead.lead_source, lead.created_at,
+            )
+            return False
+    finally:
+        db.close()
+
+    import threading
+
+    threading.Thread(
+        target=start_sequence_for_lead, args=(lead_id,), daemon=True,
+    ).start()
+    logger.info("Auto-Strecke angestossen fuer Lead %s", lead_id)
+    return True

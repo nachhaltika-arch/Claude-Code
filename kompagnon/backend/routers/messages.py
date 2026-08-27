@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from database import get_db, Message, Lead
-from routers.auth_router import get_current_user, require_admin, require_innendienst
+from routers.auth_router import (get_current_user, optional_auth,
+                                 require_admin, require_innendienst)
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +31,69 @@ class AdminMessageIn(BaseModel):
 
 class KundeMessageIn(BaseModel):
     content: str
-    token: str
+    #: Der Weg des QR-Portals, das man ohne Konto betritt. Im **angemeldeten**
+    #: Portal fehlt er — dort steht der Betrieb am Konto, und einen Schluessel
+    #: in die Adresszeile zu legen hiesse, ihn in Verlaufslisten,
+    #: Serverprotokollen und Bildschirmfotos zu verteilen.
+    token: str | None = None
 
 
 # ── Hilfsfunktion ─────────────────────────────────────────────────────────────
 
 def _email_wrapper(content: str, company_name: str) -> str:
+    """Der Rahmen um eine Nachricht an den Kunden.
+
+    **Der Hinweis nennt nur Wege, die es gibt (27.08.2026).** Hier stand
+    „antworten Sie direkt auf diese E-Mail", waehrend jede Mail von
+    `noreply@` kam und keinen `Reply-To` trug. Ein Kunde, der dem Satz
+    folgte, schrieb ins Leere — und wir hielten sein Schweigen fuer
+    Zufriedenheit.
+    """
+    from services.antwortadresse import ist_eingerichtet
+
+    antwort_moeglich = ("<br>Oder antworten Sie direkt auf diese E-Mail."
+                        if ist_eingerichtet() else "")
     return f"""
 <h3>Nachricht von KOMPAGNON</h3>
 <p>{content}</p>
 <hr>
 <p style="color:gray;font-size:12px">
-  Um zu antworten, besuchen Sie Ihr Kundenportal oder
-  antworten Sie direkt auf diese E-Mail.
+  Um zu antworten, besuchen Sie Ihr Kundenportal.{antwort_moeglich}
 </p>
 """
+
+
+def _zugang_pruefen(lead, token: str | None, current_user) -> None:
+    """Darf dieser Aufrufer den Verlauf dieses Betriebs sehen und beschreiben?
+
+    **Zwei Wege, eine Pruefung (26.08.2026).** Der Token gehoert dem
+    QR-Portal, die Anmeldung dem Kundenportal. Beide fuehren zum selben
+    Verlauf, deshalb steht die Entscheidung an **einer** Stelle — zwei
+    getrennte Endpunkte waeren zwei Stellen, die auseinanderlaufen koennen.
+
+    Reihenfolge mit Absicht: Ist ein Token mitgeschickt, **muss** er stimmen.
+    Sonst koennte ein angemeldeter Kunde mit einem geratenen Token eines
+    fremden Betriebs sein Glueck versuchen und faende die Anmeldung als
+    Rueckfall vor.
+    """
+    if not lead:
+        raise HTTPException(status_code=404, detail="Betrieb nicht gefunden")
+
+    if token is not None:
+        if lead.customer_token and token == lead.customer_token:
+            return
+        raise HTTPException(status_code=403, detail="Ungültiger Token")
+
+    if current_user is None:
+        raise HTTPException(status_code=403,
+                            detail="Anmeldung oder Zugangslink nötig")
+
+    from services.rechte import gehoert_zum_innendienst
+    if (gehoert_zum_innendienst(current_user.role)
+            or current_user.lead_id == lead.id):
+        return
+
+    raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
 
 
 def _msg_dict(m: Message) -> dict:
@@ -167,8 +216,16 @@ def send_message_admin(
     lead_id: int,
     body: AdminMessageIn,
     db: Session = Depends(get_db),
-    user=Depends(require_admin),
+    user=Depends(require_innendienst),
 ):
+    """Der Innendienst schreibt einem Betrieb.
+
+    **Stand bis zum 27.08.2026 auf `require_admin`**, waehrend das `GET`
+    daneben `require_innendienst` trug. Ein Mitarbeiter konnte den Verlauf
+    also **lesen und nicht beantworten** — und die Oberflaeche zeigte ihm das
+    Eingabefeld trotzdem. Mit der Zusammenlegung der Rollen waere das die
+    Regel geworden statt die Ausnahme.
+    """
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -196,6 +253,15 @@ def send_message_admin(
         )
         if not ok:
             logger.warning(f"E-Mail an {lead.email} konnte nicht gesendet werden")
+    elif body.channel != "email":
+        # Der Weg `in_app` legte bisher eine Nachricht ab und erreichte
+        # niemanden: Die Glocke meldet nur nach innen, und der Kunde erfuhr
+        # es erst, wenn er von sich aus das Portal oeffnete (27.08.2026).
+        # Der Hinweis traegt den Text **nicht** mit — wer `in_app` waehlt,
+        # hat sich gegen den Mailweg entschieden.
+        from services.kundenmeldung import hinweisen
+
+        hinweisen(db, lead)
 
     return {"id": msg.id, "created_at": msg.created_at.isoformat(), "success": True}
 
@@ -207,10 +273,12 @@ def send_message_kunde(
     lead_id: int,
     body: KundeMessageIn,
     db: Session = Depends(get_db),
+    current_user=Depends(optional_auth),
 ):
+    """Der Kunde schreibt — aus dem QR-Portal per Token, aus dem
+    angemeldeten Portal per Anmeldung."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead or lead.customer_token != body.token:
-        raise HTTPException(status_code=403, detail="Ungültiger Token")
+    _zugang_pruefen(lead, body.token, current_user)
 
     msg = Message(
         lead_id=lead_id,
@@ -225,8 +293,22 @@ def send_message_kunde(
     db.commit()
     db.refresh(msg)
 
-    # Admin-Benachrichtigung per E-Mail
-    if SMTP_USER:
+    # Im Werkzeug sichtbar machen — nicht nur per Mail an eine feste
+    # Adresse aus der Umgebung (L-18). Wer im Werkzeug arbeitet, soll dort
+    # sehen, dass etwas hereingekommen ist.
+    from services.benachrichtigungen import melden_leise
+    melden_leise(db, art="chat",
+                 titel=f"Nachricht von {lead.company_name or 'Kunde'}",
+                 hinweis=body.content[:200],
+                 ziel=f"/app/betriebe/{lead_id}",
+                 lead_id=lead_id)
+
+    # Admin-Benachrichtigung per E-Mail — seit dem 26.08.2026 abschaltbar.
+    # Die Glocke meldet diese Nachricht ohnehin; die Mail ist der zweite Weg
+    # zur selben Sache, und ob man ihn will, ist eine Vorliebe. Die Vorgabe
+    # ist „an" — das Verhalten von vorher.
+    from services.meldungsvorlieben import soll_melden_leise
+    if SMTP_USER and soll_melden_leise(db, "chat_mail"):
         from services.email import send_email
         ok = send_email(
             to_email=SMTP_USER,
@@ -244,12 +326,13 @@ def send_message_kunde(
 @router.get("/{lead_id}/kunde")
 def get_messages_kunde(
     lead_id: int,
-    token: str = Query(...),
+    token: str | None = Query(None),
     db: Session = Depends(get_db),
+    current_user=Depends(optional_auth),
 ):
+    """Der Verlauf, aus Sicht des Kunden."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead or lead.customer_token != token:
-        raise HTTPException(status_code=403, detail="Ungültiger Token")
+    _zugang_pruefen(lead, token, current_user)
 
     messages = (
         db.query(Message)

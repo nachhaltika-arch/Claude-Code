@@ -41,6 +41,89 @@ SOURCE_LABELS = {
 }
 
 
+ABSTUFUNGSARTEN: Tuple[str, ...] = ("SCHWELLE", "JA_NEIN", "SUMME", "ANTEIL", "KI")
+
+
+@dataclass(frozen=True)
+class Stufe:
+    """Eine Zeile der Punktabstufung eines Kriteriums.
+
+    `grenze` ist der Zahlenwert, ab dem (bzw. bis zu dem) diese Punktzahl gilt.
+    `None` heisst: Diese Stufe haengt an einer Bedingung, die sich nicht als
+    Zahl ausdruecken laesst — sie steht dann ausschliesslich in `bedingung`.
+
+    `bedingung` ist der Satz, der im Bericht UND im Buch erscheint. Beide lesen
+    ihn von hier, damit sie nicht auseinanderlaufen koennen. Deshalb steht dort
+    Fachsprache und kein Programmierkuerzel: nicht `perf >= 90`, sondern
+    „Mobiler Gesamtwert 90 oder hoeher".
+    """
+
+    punkte: int
+    grenze: Optional[float]
+    bedingung: str
+
+
+@dataclass(frozen=True)
+class Abstufung:
+    """Wie ein Kriterium seine Punkte vergibt — als Daten statt als Bedingung.
+
+    Bis zum 25.08.2026 standen die Abstufungen in `audit_scoring.py` in zwei
+    Formen nebeneinander: als lesbare Liste (`_tier`) und als Rechenanweisung
+    mitten im Programmtext (`3 if perf >= 90 else ...`). Fuer einen Menschen
+    sieht beides gleich aus, fuer ein Ausleseprogramm nicht — die zweite Form
+    laesst sich nur verstehen, indem man sie ausfuehrt. Deshalb konnte das Buch
+    seine Punktetabellen nicht aus dem Code beziehen und hat sie **plausibel
+    konstruiert**. Ob sie stimmten, wusste niemand.
+
+    Die fuenf Arten:
+
+    | `SCHWELLE` | Grenzwerte, in der Reihenfolge der Stufen geprueft |
+    | `JA_NEIN`  | erfuellt oder nicht                                |
+    | `SUMME`    | mehrere Teilpruefungen, die sich addieren          |
+    | `ANTEIL`   | ein Anteilswert wird auf die Punktzahl skaliert    |
+    | `KI`       | Einschaetzung nach dem Rubric, keine Schwelle      |
+
+    `richtung` gilt nur bei `SCHWELLE`: „ab" heisst, groesser ist besser
+    (Mobilwert), „bis" heisst, kleiner ist besser (Ladezeit). Wer das
+    verwechselt, druckt die Tabelle im Buch verkehrt herum und macht aus dem
+    besten Wert den schlechtesten.
+    """
+
+    art: str
+    richtung: str = "ab"
+    stufen: Tuple[Stufe, ...] = ()
+
+    @property
+    def berechenbar(self) -> bool:
+        """Laesst sich die Punktzahl allein aus einem Zahlenwert ableiten?
+
+        Nur dann darf die Bewertung diese Abstufung ausrechnen. `si_ssl` etwa
+        ist eine Staffel aus Bedingungen ohne Zahl („gueltig, laeuft aber bald
+        ab") — sie steht hier als Daten fuer das Buch, gerechnet wird sie
+        weiterhin im Programm.
+        """
+        if self.art != "SCHWELLE" or not self.stufen:
+            return False
+        return (all(s.grenze is not None for s in self.stufen[:-1])
+                and self.stufen[-1].grenze is None)
+
+    def punkte_fuer(self, wert: float) -> int:
+        """Die Punktzahl fuer einen gemessenen Wert."""
+        if not self.berechenbar:
+            raise ValueError(
+                "Diese Abstufung ist nicht aus einem Zahlenwert berechenbar; "
+                "sie ist als Daten fuer das Buch hinterlegt."
+            )
+        for stufe in self.stufen:
+            if stufe.grenze is None:
+                return stufe.punkte
+            if self.richtung == "ab" and wert >= stufe.grenze:
+                return stufe.punkte
+            if self.richtung == "bis" and wert < stufe.grenze:
+                return stufe.punkte
+        return 0
+
+
 @dataclass(frozen=True)
 class Criterion:
     """Ein einzelnes Prüfkriterium."""
@@ -50,6 +133,70 @@ class Criterion:
     max_points: int
     source: Source          # geplante Erhebungsart im Bestfall
     hint: str = ""          # was konkret geprüft wird — erscheint im Report
+    # **Die zweite Erhebungsart, falls es eine gibt (S2.2, 24.08.2026).**
+    #
+    # `rc_cookie` wird auf zwei Wegen erhoben: **gemessen**, wenn ein
+    # Consent-Werkzeug erkannt wird — **abgeleitet**, wenn aus „keine
+    # einwilligungspflichtigen Dienste" auf „kein Banner nötig" geschlossen
+    # wird. Der Katalog nannte nur den ersten.
+    #
+    # Das ist kein Schönheitsfehler: Kapitel 3 verspricht dem Leser, dass jede
+    # Erhebungsart gekennzeichnet ist und er einer **Einschätzung**
+    # widersprechen kann. Wer im Bericht „abgeleitet" liest und im Katalog
+    # „gemessen", kann sich auf keines von beidem verlassen.
+    #
+    # Die tatsächliche Erhebungsart je Lauf steht weiterhin im Bericht
+    # (`sheet.sources`); dieses Feld sagt nur, was vorkommen **darf**.
+    alt_source: Optional["Source"] = None
+    # ── Was das Buch braucht (S5.5, S5.6, 24.08.2026) ───────────────────
+    #
+    # **Die Kennung.** Das Buch führt Kriterien als `L1`, `S3`, `E7` — und
+    # nichts im Repo verband sie bisher mit einem Kriterium. Wer im Buch „E5"
+    # liest und im Katalog nachsehen will, hatte keinen Weg dorthin.
+    #
+    # **Gespeichert und nicht abgeleitet.** Aus der Position ließe sie sich
+    # errechnen (drittes Kriterium der Rechtskategorie = `L3`). Das wäre
+    # bequem und gefährlich: Wer zwei Kriterien vertauscht, verschiebt
+    # stillschweigend jede Buchreferenz. `tests/test_buch_kennungen.py` hält
+    # fest, dass Kennung und Position zusammenpassen — wird umsortiert, wird
+    # der Test rot und jemand entscheidet bewusst.
+    buch_code: str = ""
+    # **Die Bezeichnung fürs Buch**, wo der Katalog Fachjargon führt. „LCP
+    # (Ladezeit Hauptinhalt)" ist ein Feldname, keine Überschrift. Leer heißt:
+    # `label` genügt auch im Buch.
+    buch_label: str = ""
+    # **Das ausformulierte Punkterubric (A8, S8.2, 25.08.2026).**
+    #
+    # Nur die eingeschaetzten Kriterien haben eines. Bis heute bekam das
+    # Modell je Kriterium **eine Zeile** aus Bezeichnung und Kurzhinweis —
+    # „Wirkt das Layout zeitgemaess oder veraltet?" fuer drei Punkte. Was zwei
+    # Punkte von einem unterscheidet, stand nirgends; das Modell entschied es
+    # jedes Mal neu. Genau daran haengt A9: Ohne Rubric ist Wiederholbarkeit
+    # nicht herstellbar, nur hoffbar.
+    #
+    # **Warum im Katalog und nicht im Prompt.** Kapitel 10 druckt die
+    # Merkmale mit dem ausdruecklichen Vorbehalt, sie seien „meine
+    # Zusammenstellung, nicht aus dem Code extrahiert". Steht das Rubric hier,
+    # faellt der Vorbehalt weg: Das Buch druckt dann, was tatsaechlich
+    # bewertet wird.
+    #
+    # **Die Zeile „Nicht Teil dieses Kriteriums" ist kein Beiwerk.**
+    # BEFUND-C3 fuehrt vier Verdachtsfaelle auf Doppelwertung, die
+    # unpruefbar blieben, weil die eingeschaetzten Kriterien keine Feldliste
+    # hatten. Mit der Abgrenzung sind sie pruefbar.
+    rubric: str = ""
+    # **Die Punktabstufung als Daten (BUCH-F1, 25.08.2026).**
+    #
+    # Sie steht hier und nicht in `audit_scoring.py`, weil das Buch sie drucken
+    # muss und ein Ausleseprogramm eine Rechenanweisung nicht lesen kann. Wo sie
+    # berechenbar ist, holt die Bewertung sie sich von hier — damit stehen die
+    # Zahlen nur noch an einer Stelle.
+    abstufung: Optional["Abstufung"] = None
+
+    @property
+    def buch_name(self) -> str:
+        """Was im Buch steht — die eigene Bezeichnung oder ersatzweise `label`."""
+        return self.buch_label or self.label
     # Zwei Voraussetzungen, an denen die Anwendbarkeit je Branchenklasse hängt
     # (Bewertungslogik 2026.2, § 2.4). Sie stehen am Kriterium und nicht in
     # einer Klassentabelle, weil es Eigenschaften des Kriteriums sind: Eine
@@ -77,6 +224,18 @@ class Category:
     key: str
     label: str
     criteria: Tuple[Criterion, ...]
+    # ── Was das Buch braucht (S5.5, 24.08.2026) ─────────────────────────
+    #
+    # Dieselbe Begründung wie beim Kriterium: `standard-export-prototyp.py`
+    # führte `BUCHTITEL` und `KAPITEL` als eigene Tabellen und vermerkte
+    # selbst, dass sie dort eine **zweite Wahrheit** sind. Jetzt stehen sie
+    # am Gegenstand.
+    buch_label: str = ""      # deutsche Überschrift im Buch
+    buch_kapitel: int = 0     # in welchem Kapitel die Kategorie steht
+
+    @property
+    def buch_name(self) -> str:
+        return self.buch_label or self.label
 
     @property
     def max_points(self) -> int:
@@ -92,87 +251,238 @@ class Category:
 # ═══════════════════════════════════════════════════════════════════
 # Katalog
 # ═══════════════════════════════════════════════════════════════════
+#
+# **Jeder `hint` sagt, was tatsächlich geprüft wird — nicht mehr (S3).**
+#
+# Am 24.08.2026 versprachen zwölf Hinweise Prüfungen, die die Bewertung nicht
+# durchführt. Der Hinweis erscheint im Kundenbericht; wer dort „Tap-Targets
+# groß genug" liest und dafür einen Punkt verliert, sucht an der falschen
+# Stelle. Gekürzt wurde, was nicht eingelöst wird:
+#
+#   rc_formular_dsgvo  der Link zur Datenschutzerklärung wird nicht geprüft
+#   si_ssl             Domain-Übereinstimmung fließt in `valid` ein
+#   si_drittanbieter   Karten werden nicht geprüft
+#   tp_bilder          Dateigröße und Größenangaben sind **eine** Prüfung
+#   bf_alt             geprüft wird das Vorhandensein, nicht die Güte
+#   se_index           noindex hängt an der robots.txt, keine eigene Prüfung
+#   se_schema          es genügt **ein** passender Zusatztyp
+#   se_lokal           von den NAP-Angaben nur die Telefonnummer
+#   dg_mobil           Tap-Targets werden nicht geprüft
+#   ih_aktualitaet     `und` → `oder`; das Kriterium ist milder als beschrieben
+#   cv_cta             gezählt wird die Anzahl, nicht die Formulierung
+#   ih_textqualitaet   „Worthülsen" gestrichen — `audit_ai.py:72` untersagt dem
+#                      Modell genau dieses Wort in der Ausgabe. Ein Hinweis,
+#                      der es führt, verlangt, was der Prompt verbietet.
+#
+# **Keine Punktänderung.** Gekürzt wurde die Beschreibung, nicht der Maßstab;
+# die Katalogsumme bleibt 103 (Entscheidung aus C4, Szenario B).
 
 CATALOGUE: Tuple[Category, ...] = (
     Category(
         key="recht_compliance",
         label="Recht & Compliance",
+        buch_label="Recht und Compliance",
+        buch_kapitel=5,
         criteria=(
             Criterion("rc_impressum", "Impressum (§ 5 DDG)", 6, Source.MEASURED,
-                      "Unterseite erreichbar und Pflichtangaben vollständig"),
+                      "Unterseite erreichbar und Pflichtangaben vollständig", buch_code="L1", buch_label="Impressum",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(3, None, "Die Impressumsseite ist erreichbar"),
+                          Stufe(3, None, "Die geprüften Pflichtangaben sind vollständig — zählt nur, wenn die Seite erreichbar ist"),
+                      ))),
             Criterion("rc_datenschutz", "Datenschutzerklärung (DSGVO)", 6, Source.MEASURED,
-                      "Unterseite erreichbar und Pflichtinhalte vorhanden"),
+                      "Unterseite erreichbar und Pflichtinhalte vorhanden", buch_code="L2", buch_label="Datenschutzerklärung",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(3, None, "Die Datenschutzerklärung ist erreichbar"),
+                          Stufe(3, None, "Die geprüften Pflichtinhalte sind vorhanden — zählt nur, wenn die Seite erreichbar ist"),
+                      ))),
+            # **Zwei Erhebungsarten (S2.2).** Gemessen, wenn ein
+            # Consent-Werkzeug erkannt wird; abgeleitet, wenn aus „keine
+            # einwilligungspflichtigen Dienste" auf „kein Banner noetig"
+            # geschlossen wird. Beides kommt vor, beides gehoert deklariert.
             Criterion("rc_cookie", "Cookie-Consent (TDDDG)", 4, Source.MEASURED,
-                      "Consent-Tool erkannt, nicht bloß das Wort 'Cookie'"),
+                      "Consent-Tool erkannt, nicht bloß das Wort 'Cookie' — "
+                      "oder kein einwilligungspflichtiger Dienst vorhanden",
+                      alt_source=Source.DERIVED, buch_code="L3", buch_label="Einwilligung für Cookies und Tracking",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(4, None, "Ein Einwilligungswerkzeug ist erkannt — oder es ist kein einwilligungspflichtiger Dienst eingebunden"),
+                          Stufe(0, None, "Einwilligungspflichtige Dienste laden, ohne dass ein Einwilligungswerkzeug erkannt wurde"),
+                      ))),
             Criterion("rc_bfsg", "Barrierefreiheitserklärung (BFSG)", 2, Source.MEASURED,
-                      "Erklärung zur Barrierefreiheit verlinkt"),
+                      "Erklärung zur Barrierefreiheit verlinkt", buch_code="L4", buch_label="Barrierefreiheitserklärung",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(2, None, "Eine Erklärung zur Barrierefreiheit ist verlinkt"),
+                          Stufe(0, None, "Es ist keine Erklärung zur Barrierefreiheit verlinkt"),
+                      ))),
             Criterion("rc_formular_dsgvo", "Formular DSGVO-konform", 2, Source.MEASURED,
-                      "Einwilligungs-Checkbox und Link zur Datenschutzerklärung"),
+                      "Einwilligungs-Checkbox am Formular", buch_code="L5", buch_label="Kontaktformular",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(2, None, "Jedes gefundene Formular hat ein Einwilligungsfeld"),
+                          Stufe(1, None, "Mindestens ein Formular hat ein Einwilligungsfeld, aber nicht jedes"),
+                          Stufe(0, None, "Kein Formular hat ein Einwilligungsfeld"),
+                      ))),
         ),
     ),
     Category(
         key="sicherheit",
         label="Sicherheit & Datenschutz",
+        buch_label="Sicherheit und Datenschutz",
+        buch_kapitel=6,
         criteria=(
             Criterion("si_ssl", "TLS-Zertifikat gültig", 3, Source.MEASURED,
-                      "echter Handshake, Gültigkeit und Domain-Übereinstimmung"),
+                      "echter Handshake und gültiges Zertifikat, Abzug bei baldigem Ablauf", buch_code="S1", buch_label="Verschlüsselungszertifikat",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(3, None, "Das Zertifikat ist gültig und hat eine Restlaufzeit von 30 Tagen oder mehr"),
+                          Stufe(2, None, "Das Zertifikat ist gültig, die Restlaufzeit liegt aber unter 30 Tagen"),
+                          Stufe(0, None, "Es gibt kein gültiges Zertifikat"),
+                      ))),
             Criterion("si_redirect", "HTTP→HTTPS erzwungen", 2, Source.MEASURED,
-                      "Redirect-Test auf der http-Variante"),
+                      "Redirect-Test auf der http-Variante", buch_code="S2", buch_label="Erzwungene Weiterleitung auf HTTPS",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(2, None, "Der Aufruf über http wird auf https weitergeleitet"),
+                          Stufe(0, None, "Der Aufruf über http wird nicht weitergeleitet"),
+                      ))),
             Criterion("si_header", "Security-Header", 3, Source.MEASURED,
-                      "HSTS, CSP, X-Frame-Options, X-Content-Type-Options"),
+                      "HSTS, CSP, X-Frame-Options, X-Content-Type-Options", buch_code="S3", buch_label="Sicherheitsheader",
+                      abstufung=Abstufung("ANTEIL")),
             Criterion("si_drittanbieter", "Drittanbieter ohne Einwilligung", 2, Source.MEASURED,
-                      "externe Fonts, Karten und Tracking vor dem Consent"),
+                      "externe Fonts, Tracking vor dem Consent", buch_code="S4", buch_label="Fremde Dienste ohne Einwilligung",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Es sind keine Schriften von fremden Servern eingebunden"),
+                          Stufe(1, None, "Es läuft kein Trackingdienst ohne erkanntes Consent-Werkzeug"),
+                      ))),
         ),
     ),
     Category(
         key="performance",
         label="Performance & Core Web Vitals",
+        buch_label="Ladezeit und Stabilität",
+        buch_kapitel=7,
         criteria=(
             Criterion("tp_lcp", "LCP (Ladezeit Hauptinhalt)", 4, Source.MEASURED,
-                      "PageSpeed Insights"),
+                      "PageSpeed Insights", buch_code="P1", buch_label="Ladezeit des Hauptinhalts",
+                      abstufung=Abstufung("SCHWELLE", "bis", (
+                          Stufe(4, 2.5, "Der Hauptinhalt steht in weniger als 2,5 Sekunden"),
+                          Stufe(2, 4.0, "Der Hauptinhalt steht in 2,5 bis unter 4,0 Sekunden"),
+                          Stufe(0, None, "Der Hauptinhalt braucht 4,0 Sekunden oder länger"),
+                      ))),
             Criterion("tp_cls", "CLS (Layout-Stabilität)", 3, Source.MEASURED,
-                      "PageSpeed Insights"),
+                      "PageSpeed Insights", buch_code="P2", buch_label="Layoutstabilität",
+                      abstufung=Abstufung("SCHWELLE", "bis", (
+                          Stufe(3, 0.1, "Der Layoutverschiebungswert liegt unter 0,1"),
+                          Stufe(1, 0.25, "Der Layoutverschiebungswert liegt bei 0,1 bis unter 0,25"),
+                          Stufe(0, None, "Der Layoutverschiebungswert liegt bei 0,25 oder darüber"),
+                      ))),
             Criterion("tp_inp", "INP (Interaktionszeit)", 2, Source.MEASURED,
-                      "CrUX-Felddaten — im Labor nicht messbar"),
+                      "CrUX-Felddaten — im Labor nicht messbar", buch_code="P3", buch_label="Reaktionszeit auf Eingaben",
+                      abstufung=Abstufung("SCHWELLE", "bis", (
+                          Stufe(2, 200, "Die Reaktionszeit liegt unter 200 Millisekunden"),
+                          Stufe(1, 500, "Die Reaktionszeit liegt bei 200 bis unter 500 Millisekunden"),
+                          Stufe(0, None, "Die Reaktionszeit liegt bei 500 Millisekunden oder darüber"),
+                      ))),
             Criterion("tp_mobile", "Mobile-Performance", 3, Source.MEASURED,
-                      "eigener PageSpeed-Lauf mit Strategie 'mobile'"),
+                      "eigener PageSpeed-Lauf mit Strategie 'mobile'", buch_code="P4", buch_label="Mobiler Gesamtwert",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(3, 90, "Mobiler Gesamtwert 90 oder höher"),
+                          Stufe(2, 70, "Mobiler Gesamtwert 70 bis 89"),
+                          Stufe(1, 50, "Mobiler Gesamtwert 50 bis 69"),
+                          Stufe(0, None, "Mobiler Gesamtwert unter 50"),
+                      ))),
             Criterion("tp_bilder", "Bildoptimierung", 3, Source.MEASURED,
-                      "Format, Dateigröße, lazy loading, feste Dimensionen"),
+                      "modernes Format, lazy loading, Größenangaben ohne überdimensionierte Bilder", buch_code="P5", buch_label="Bildoptimierung",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Mindestens die Hälfte der Bilder liegt in einem modernen Format vor"),
+                          Stufe(1, None, "Mindestens die Hälfte der Bilder wird verzögert geladen"),
+                          Stufe(1, None, "Mindestens vier Fünftel der Bilder tragen Größenangaben, und kein Bild ist überdimensioniert"),
+                      ))),
         ),
     ),
     Category(
         key="barrierefreiheit",
         label="Barrierefreiheit (WCAG/BFSG)",
+        buch_label="Barrierefreiheit",
+        buch_kapitel=8,
         criteria=(
             Criterion("bf_lighthouse", "Lighthouse-Accessibility-Score", 3, Source.MEASURED,
-                      "Gesamtwert der Lighthouse-Barrierefreiheitsprüfung"),
+                      "Gesamtwert der Lighthouse-Barrierefreiheitsprüfung", buch_code="B1", buch_label="Gesamtwert der Barrierefreiheitsprüfung",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(3, 90, "Der Barrierefreiheitswert liegt bei 90 oder höher"),
+                          Stufe(2, 75, "Der Barrierefreiheitswert liegt bei 75 bis 89"),
+                          Stufe(1, 50, "Der Barrierefreiheitswert liegt bei 50 bis 74"),
+                          Stufe(0, None, "Der Barrierefreiheitswert liegt unter 50"),
+                      ))),
             Criterion("bf_kontrast", "Farbkontraste (WCAG AA)", 2, Source.MEASURED,
-                      "Lighthouse-Audit 'color-contrast'"),
+                      "Lighthouse-Audit 'color-contrast'", buch_code="B2", buch_label="Farbkontraste",
+                      abstufung=Abstufung("ANTEIL")),
             Criterion("bf_alt", "Alt-Texte der Inhaltsbilder", 2, Source.MEASURED,
-                      "Anteil der Bilder mit sinnvollem Alt-Text"),
-            Criterion("bf_semantik", "Semantik & Struktur", 2, Source.DERIVED,
-                      "genau eine H1, saubere Hierarchie, lang-Attribut, Labels"),
+                      "Anteil der Bilder mit einem Alt-Text", buch_code="B3", buch_label="Alternativtexte für Bilder",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(2, 95, "Mindestens 95 von 100 Inhaltsbildern haben einen Alternativtext"),
+                          Stufe(1, 80, "80 bis unter 95 von 100 Inhaltsbildern haben einen Alternativtext"),
+                          Stufe(0, None, "Weniger als 80 von 100 Inhaltsbildern haben einen Alternativtext"),
+                      ))),
+            # **Gemessen, nicht abgeleitet (S2.1).** Der Katalog fuehrte
+            # `DERIVED`, waehrend die Bewertung `MEASURED` schrieb. Seit dem
+            # Anschluss der Lighthouse-Gruppe (S1.1) ist es zweifelsfrei
+            # gemessen: DOM-Hierarchie plus `html-has-lang` und `label`.
+            Criterion("bf_semantik", "Semantik & Struktur", 2, Source.MEASURED,
+                      "saubere Überschriftenhierarchie, lang-Attribut, Labels", buch_code="B4", buch_label="Semantik und Struktur",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Genau eine Hauptüberschrift und eine Hierarchie ohne Sprünge"),
+                          Stufe(1, None, "Sprachauszeichnung und Formularbeschriftungen sind vollständig"),
+                      ))),
             Criterion("bf_tastatur", "Tastaturbedienung", 1, Source.DERIVED,
-                      "Skip-Link, Fokus-Reihenfolge, keine Tastaturfallen"),
+                      "Skip-Link, Fokus-Reihenfolge, keine Tastaturfallen", buch_code="B5", buch_label="Tastaturbedienung",
+                      abstufung=Abstufung("ANTEIL")),
         ),
     ),
     Category(
         key="seo",
         label="SEO & Auffindbarkeit",
+        buch_label="Auffindbarkeit",
+        buch_kapitel=9,
         criteria=(
             Criterion("se_meta", "Title & Meta-Description", 3, Source.MEASURED,
-                      "vorhanden, sinnvolle Länge, Ort und Leistung enthalten"),
+                      "vorhanden, sinnvolle Länge, Ort und Leistung enthalten", buch_code="E1", buch_label="Seitentitel und Kurzbeschreibung",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Ein Seitentitel ist vorhanden und hat eine sinnvolle Länge"),
+                          Stufe(1, None, "Eine Kurzbeschreibung ist vorhanden und hat eine sinnvolle Länge"),
+                          Stufe(1, None, "Der Titel trägt, was die Branchenklasse erwartet — den Ort, sonst die Leistung"),
+                      ))),
             Criterion("se_struktur", "Überschriften & Content-Tiefe", 2, Source.MEASURED,
-                      "H2-Gliederung und ausreichender Textumfang"),
+                      "H2-Gliederung und ausreichender Textumfang", buch_code="E2", buch_label="Überschriften und Textumfang",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Genau eine Hauptüberschrift und mindestens eine Zwischenüberschrift"),
+                          Stufe(1, None, "Mindestens 300 Wörter Text"),
+                      ))),
             Criterion("se_index", "Indexierbarkeit", 3, Source.MEASURED,
-                      "robots.txt, sitemap.xml, Canonical, kein versehentliches noindex"),
+                      "robots.txt ohne Aussperrung, sitemap.xml, Canonical", buch_code="E3", buch_label="Auffindbarkeit für Suchmaschinen",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Eine robots.txt ist vorhanden und sperrt die Seite nicht aus"),
+                          Stufe(1, None, "Eine sitemap.xml ist vorhanden"),
+                          Stufe(1, None, "Eine Canonical-Angabe ist gesetzt"),
+                      ))),
             Criterion("se_schema", "Strukturierte Daten", 3, Source.MEASURED,
-                      "JSON-LD, LocalBusiness, FAQ, Bewertungen"),
+                      "JSON-LD vorhanden, passender Haupttyp, ein passender Zusatztyp", buch_code="E4", buch_label="Strukturierte Daten",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Strukturierte Daten sind überhaupt vorhanden"),
+                          Stufe(1, None, "Der Haupttyp passt zur Branchenklasse"),
+                          Stufe(1, None, "Mindestens ein passender Zusatztyp ist vorhanden"),
+                      ))),
             Criterion("se_lokal", "Lokale Signale", 3, Source.MEASURED,
-                      "Ort in Title/H1, NAP-Angaben, Kartenverknüpfung",
-                      assumes_local=True),
+                      "Ort in Title oder H1, Telefonnummer als Link, Karte oder LocalBusiness",
+                      assumes_local=True, buch_code="E5", buch_label="Lokale Signale",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Der Ort steht im Seitentitel oder in der Hauptüberschrift"),
+                          Stufe(1, None, "Die Telefonnummer ist als Link hinterlegt"),
+                          Stufe(1, None, "Eine Karte oder eine Betriebsauszeichnung ist vorhanden"),
+                      ))),
             Criterion("se_links", "Keine defekten Links", 1, Source.MEASURED,
-                      "Linkprüfung über die Startseite"),
+                      "Linkprüfung über die Startseite", buch_code="E6", buch_label="Keine defekten Verweise",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(1, None, "Kein Verweis der geprüften Seite läuft ins Leere"),
+                          Stufe(0, None, "Mindestens ein Verweis läuft ins Leere"),
+                      ))),
             # L-58 (a), 2026-08-21. Der Katalog hatte kein einziges Kriterium
             # für KI — kein Treffer auf ChatGPT, Perplexity oder AEO —,
             # während `audit_runner.audit_facts` die Werte seit dem 16.08.
@@ -183,59 +493,167 @@ CATALOGUE: Tuple[Category, ...] = (
             # Frage hin *nennt*, misst hier nichts — das ist L-58 (b), kostet
             # je Lauf Geld und ist ein eigenes Produkt.
             Criterion("se_ki_lesbar", "Lesbarkeit für KI-Systeme", 3, Source.MEASURED,
-                      "KI-Crawler in robots.txt nicht ausgesperrt, llms.txt vorhanden"),
+                      "KI-Crawler in robots.txt nicht ausgesperrt, llms.txt vorhanden", buch_code="E7", buch_label="Lesbarkeit für KI-Systeme",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(2, None, "Kein KI-Crawler ist in der robots.txt ausgesperrt"),
+                          Stufe(1, None, "Eine llms.txt ist vorhanden"),
+                      ))),
         ),
     ),
     Category(
         key="design",
         label="Design & Gestaltung",
+        buch_label="Gestaltung",
+        buch_kapitel=10,
         criteria=(
             Criterion("dg_aktualitaet", "Visuelle Aktualität", 3, Source.AI,
-                      "Wirkt das Layout zeitgemäß oder veraltet?"),
-            Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.AI,
-                      "Schriftgrößen, Zeilenlänge, klare Hierarchie"),
+                      "Wirkt das Layout zeitgemäß oder veraltet?", buch_code="D1", buch_label="Visuelle Aktualität",
+                      rubric="""3 = kein Alterungsmerkmal erkennbar; die Seite koennte diesen Monat entstanden sein.
+2 = ein oder zwei Merkmale, sonst zeitgemaess.
+1 = drei bis vier Merkmale; der Eindruck kippt.
+0 = fuenf oder mehr, oder ein einzelnes so deutlich, dass es alles ueberlagert.
+Die sechs Merkmale: feste Breite mit breiten leeren Raendern · kleine Schrift im
+Fliesstext · Verlaeufe, Schlagschatten, Spiegelungen · Bildergalerien mit Rahmen
+und Blaetterpfeilen · sichtbar veraltete Jahreszahl · gedraengte Anordnung ohne
+Weissraum.
+Nicht Teil dieses Kriteriums: die Aktualitaet der *Inhalte* (das ist I2) und die
+Schriftgroesse als Messwert (das ist D2, gemessen).""",
+                      abstufung=Abstufung("KI")),
+            # **Gemessen statt geschätzt seit dem 24.08.2026 (S1.2).**
+            # Lighthouse liefert `font-size` — die Schriftgröße wurde also
+            # gemessen, während dieses Kriterium sie von einem Sprachmodell
+            # schätzen ließ. Der Hinweis ist auf das gekürzt, was tatsächlich
+            # geprüft wird; „Zeilenlänge" und „klare Hierarchie" versprachen
+            # mehr, als eingelöst wurde (dieselbe Regel wie in S3).
+            Criterion("dg_typografie", "Typografie & Lesbarkeit", 2, Source.MEASURED,
+                      "Lighthouse-Audit 'font-size': lesbare Schriftgröße auf Mobilgeräten", buch_code="D2", buch_label="Typografie und Lesbarkeit",
+                      abstufung=Abstufung("ANTEIL")),
             Criterion("dg_farbsystem", "Farbsystem & Konsistenz", 2, Source.AI,
-                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast"),
+                      "begrenzte Palette, erkennbare CI, ausreichender Kontrast", buch_code="D3", buch_label="Farbsystem und Konsistenz",
+                      rubric="""2 = hoechstens drei tragende Farben, ueber alle Seiten gleich eingesetzt,
+    erkennbare Betriebsfarbe.
+1 = ein System ist erkennbar, wird aber nicht durchgehalten — abweichende
+    Schaltflaechenfarben, wechselnde Flaechen.
+0 = kein erkennbares System; Farben wirken einzeln gewaehlt.
+Nicht Teil dieses Kriteriums: der Kontrastwert. Den misst B2 mit dem
+Pruefwerkzeug.
+Bewerte hier die Konsistenz, nicht die Lesbarkeit — auch dann nicht, wenn dir
+ein Paar zu blass erscheint.""",
+                      abstufung=Abstufung("KI")),
             Criterion("dg_bildqualitaet", "Bildqualität & Authentizität", 2, Source.AI,
-                      "echte Betriebsfotos statt generischem Stockmaterial"),
+                      "echte Betriebsfotos statt generischem Stockmaterial", buch_code="D4", buch_label="Bildqualität und Echtheit",
+                      rubric="""2 = erkennbar eigene Aufnahmen: eigene Leute, eigene Fahrzeuge, eigene
+    Baustellen, eigene Raeume.
+1 = gemischt — eigene Bilder neben deutlich gekauften.
+0 = durchgehend generisches Material, oder gar keine Bilder.
+Anzeichen fuer gekauftes Material: freigestellte laechelnde Personen vor
+weissem Grund, Werkzeug ohne Gebrauchsspuren, Innenraeume ohne jeden Bezug zum
+Gewerk, dieselbe Person in mehreren Rollen.
+Nicht Teil dieses Kriteriums: Dateigroesse, Format und Ladeverhalten. Das ist
+P5 und wird gemessen.""",
+                      abstufung=Abstufung("KI")),
             Criterion("dg_mobil", "Mobile Darstellung", 1, Source.MEASURED,
-                      "Viewport gesetzt, Tap-Targets groß genug"),
+                      "Viewport-Angabe im Kopf der Seite", buch_code="D5", buch_label="Mobile Darstellung",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(1, None, "Die Darstellungsanweisung für mobile Geräte steht im Kopf der Seite"),
+                          Stufe(0, None, "Es steht keine Darstellungsanweisung für mobile Geräte im Kopf der Seite"),
+                      ))),
         ),
     ),
     Category(
         key="conversion",
         label="Conversion & Nutzerführung",
+        buch_label="Nutzerführung und Anfragen",
+        buch_kapitel=11,
         criteria=(
             Criterion("cv_klarheit", "Klarheit above the fold", 3, Source.AI,
                       "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C1", buch_label="Klarheit im ersten Bildschirmausschnitt",
+                      rubric="""3 = Leistung, Zielgruppe und — wo die Klasse es erwartet — das Gebiet stehen
+    im ersten Bildschirmausschnitt und sind in fuenf Sekunden erfasst.
+2 = zwei der drei Angaben stehen da, die dritte muss man suchen.
+1 = nur eine Angabe, oder alle drei erst nach Scrollen.
+0 = der erste Ausschnitt sagt nicht, worum es geht.
+Massstab ist die Klasse: Ein ueberregionaler Anbieter (K4) braucht kein Gebiet,
+ein Publikumsbetrieb (K3) dafuer Oeffnungszeiten oder Standort.
+Nicht Teil dieses Kriteriums: ob ein Handlungsaufruf vorhanden ist (C2) und ob
+das Angebot inhaltlich klar ist (C5).""",
+                      abstufung=Abstufung("KI")),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
-                      "vorhanden, ergebnisorientiert, im Verlauf wiederholt",
-                      assumes_business=True),
+                      "mindestens ein Handlungsaufruf, ab drei die volle Punktzahl",
+                      assumes_business=True, buch_code="C2", buch_label="Die erwartete Hauptreaktion",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(3, 3, "Drei oder mehr Handlungsangebote, die in dieser Branchenklasse zählen"),
+                          Stufe(2, 1, "Ein oder zwei solche Handlungsangebote"),
+                          Stufe(0, None, "Kein Handlungsangebot"),
+                      ))),
             Criterion("cv_kontakt", "Kontaktwege", 3, Source.MEASURED,
                       "Telefon klickbar, Formular schlank, Reaktionszeit benannt",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C3", buch_label="Kontaktwege",
+                      abstufung=Abstufung("SUMME", "ab", (
+                          Stufe(1, None, "Das erste der drei Kontaktmerkmale dieser Branchenklasse ist erfüllt"),
+                          Stufe(1, None, "Das zweite Kontaktmerkmal ist erfüllt"),
+                          Stufe(1, None, "Das dritte Kontaktmerkmal ist erfüllt"),
+                      ))),
             Criterion("cv_vertrauen", "Vertrauenssignale", 3, Source.DERIVED,
                       "Bewertungen, Referenzen, Qualifikations- und "
                       "Zugehörigkeitsnachweise",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C4", buch_label="Vertrauenssignale",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(3, 4, "Vier oder mehr Vertrauenssignale, die in dieser Branchenklasse zählen"),
+                          Stufe(2, 2, "Zwei oder drei solche Vertrauenssignale"),
+                          Stufe(1, 1, "Ein Vertrauenssignal"),
+                          Stufe(0, None, "Kein Vertrauenssignal"),
+                      ))),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
                       "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="C5", buch_label="Klarheit des Angebots",
+                      rubric="""3 = die Leistungen sind einzeln benannt, der Ablauf oder ein Preisrahmen steht
+    da, und es gibt eine Zusage, die das Risiko des Kunden senkt
+    (Festpreis, Garantie, kostenlose Erstbewertung).
+2 = zwei der drei Teile.
+1 = nur die Leistungen, ohne Ablauf, Preis oder Zusage.
+0 = die Leistungen bleiben allgemein („alles rund ums Bad").
+Bei Beratungs- und Gesundheitsberufen (K2) ist die fehlende Preisangabe **kein**
+Mangel — dort zaehlen Ablauf und Zusage. Ziehe dafuer keinen Punkt ab.
+Nicht Teil dieses Kriteriums: eigene Leistungsseiten (I1) und die
+Textqualitaet (I3).""",
+                      abstufung=Abstufung("KI")),
         ),
     ),
     Category(
         key="inhalt",
         label="Inhalt & Substanz",
+        buch_label="Inhalt und Substanz",
+        buch_kapitel=12,
         criteria=(
             Criterion("ih_leistungsseiten", "Eigene Leistungsseiten", 2, Source.MEASURED,
                       "je Hauptleistung eine Seite statt einer Sammelseite",
-                      assumes_business=True),
+                      assumes_business=True, buch_code="I1", buch_label="Eigene Leistungsseiten",
+                      abstufung=Abstufung("SCHWELLE", "ab", (
+                          Stufe(2, 3, "Drei oder mehr eigene Leistungsseiten, die in dieser Branchenklasse zählen"),
+                          Stufe(1, 1, "Eine oder zwei solche Leistungsseiten"),
+                          Stufe(0, None, "Keine eigene Leistungsseite"),
+                      ))),
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
-                      "datierte Inhalte, kein veraltetes Copyright"),
+                      "datierte Inhalte oder aktuelles Copyright", buch_code="I2", buch_label="Aktualität",
+                      abstufung=Abstufung("JA_NEIN", "ab", (
+                          Stufe(1, None, "Das Copyright trägt das laufende Jahr, oder es gibt datierte Inhalte"),
+                          Stufe(0, None, "Weder aktuelles Copyright noch datierte Inhalte"),
+                      ))),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
-                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen",
-                      assumes_business=True),
+                      "Kundennutzen statt Selbstbeschreibung",
+                      assumes_business=True, buch_code="I3", buch_label="Textqualität",
+                      rubric="""2 = die Texte gehen vom Anliegen des Kunden aus, nennen Konkretes (Orte,
+    Fristen, Ablaeufe, Zahlen) und sind ohne Fachjargon verstaendlich.
+1 = teils kundenorientiert, teils Selbstbeschreibung; wenig Konkretes.
+0 = durchgehend ueber den Betrieb statt ueber das Anliegen, austauschbar
+    formuliert.
+Nicht Teil dieses Kriteriums: Textlaenge und Ueberschriftenstruktur (E2,
+gemessen) und die Aktualitaet der Inhalte (I2).
+Zum Ton: Beschreibe, was fehlt. Abwertende Urteile ueber Texte sind untersagt —
+siehe den Abschnitt TON DER TEXTE.""",
+                      abstufung=Abstufung("KI")),
         ),
     ),
 )
@@ -320,6 +738,15 @@ TOTAL_POINTS: int = sum(cat.max_points for cat in CATALOGUE)
 #:   anderswo Gewicht wegzunehmen: Welches Kriterium dafuer leichter wird, ist
 #:   eine Produktentscheidung und gehoert David. Bis dahin wiegt jedes
 #:   bestehende Kriterium rechnerisch 100/103 seines bisherigen Anteils.
+#: 2026-08-24: entschieden — es wird **kein** Gewicht weggenommen. 103
+#:   bleibt. Der angezeigte Score bleibt 0–100, weil normiert wird; 103
+#:   ist die Rohpunktsumme des Katalogs. Der Buchuntertitel wird auf
+#:   „39 Kriterien, 8 Kategorien, 103 Punkte" geaendert, und die
+#:   Praxisfall-Kette in Kap. 2/5/6 auf 88 Rohpunkte nachgezogen — sonst
+#:   faellt Fall A von Gold auf Silber (BUCH-M3).
+#:
+#:   Die Zeile darueber blieb bewusst stehen. Ein Verlauf, aus dem man
+#:   Eintraege entfernt, ist keiner — und der offene Punkt war echt.
 ERWARTETE_GESAMTPUNKTE: int = 103
 
 
@@ -449,6 +876,26 @@ BLOCKING_CRITICAL = frozenset({
 })
 BLOCKING_MAJOR = frozenset({"tracking_ohne_consent", "cookies_ohne_consent"})
 
+#: Deckelregeln, die der Katalog **nennt**, aber niemand **erhebt**.
+#:
+#: **Seit dem 26.08.2026 leer.** Hier stand `cookies_ohne_consent`: Die Regel
+#: verlangt einen „Cookie-Vergleich vor/nach" der Einwilligung, und
+#: `audit_collectors.detect_consent` liest ausschliesslich HTML — es erkennt
+#: ein Consent-Werkzeug an seiner **Signatur**, nicht an seinem Verhalten. Ob
+#: tatsaechlich Cookies gesetzt wurden, sah dabei niemand.
+#:
+#: Die Regel blieb damals trotzdem in `BLOCKING_MAJOR` stehen. Sie zu
+#: entfernen, weil die Messung fehlt, hiesse den Massstab nach der
+#: Erhebungslage zu richten — der Deckel gehoert in den Standard. Jetzt
+#: erhebt sie der Browserlauf (`seitenbrowser`, `_cookies_vor_consent`): Er
+#: klickt kein Banner an, also ist alles, was danach im Kontext steht, ohne
+#: Zustimmung gesetzt.
+#:
+#: Die Menge bleibt bestehen, obwohl sie leer ist. Sie ist die Stelle, an der
+#: die naechste ungemessene Regel eintraegt, wer sie einfuehrt — und
+#: `tests/test_deckelregeln_erhoben.py` meldet jede stille Erweiterung.
+NICHT_ERHOBENE_BLOCKER = frozenset()
+
 BLOCKER_LABELS = {
     "kein_impressum": "Kein erreichbares Impressum (§ 5 DDG)",
     "keine_datenschutzerklaerung": "Keine erreichbare Datenschutzerklärung (Art. 13 DSGVO)",
@@ -485,6 +932,50 @@ def determine_level(total_score: int, blockers: Optional[List[str]] = None) -> s
 # Konsistenzprüfung beim Import
 # ═══════════════════════════════════════════════════════════════════
 
+def _pruefe_abstufung(crit: Criterion) -> None:
+    """Die Abstufung muss zur Punktzahl des Kriteriums passen.
+
+    Ohne diesen Waechter koennte das Buch eine Tabelle drucken, deren beste
+    Zeile eine andere Punktzahl nennt als der Katalog — und niemand saehe es,
+    bis das Buch gedruckt ist. Genau diese Art von Abweichung hat das Projekt
+    schon einmal aufgehalten.
+    """
+    a = crit.abstufung
+    if a is None:
+        raise ValueError(f"{crit.key}: keine Abstufung hinterlegt (BUCH-F1)")
+    if a.art not in ABSTUFUNGSARTEN:
+        raise ValueError(f"{crit.key}: unbekannte Abstufungsart {a.art!r}")
+
+    if a.art in ("ANTEIL", "KI"):
+        # Bei beiden gibt es keine Stufentabelle: Der Anteil wird skaliert, die
+        # Einschaetzung folgt dem Rubric. Wer hier Stufen eintraegt, erfindet
+        # eine Tabelle, die die Bewertung nicht kennt.
+        if a.stufen:
+            raise ValueError(f"{crit.key}: {a.art} hat keine Stufentabelle")
+        return
+
+    if not a.stufen:
+        raise ValueError(f"{crit.key}: {a.art} ohne Stufen")
+
+    punkte = [s.punkte for s in a.stufen]
+    if a.art == "SUMME":
+        if sum(punkte) != crit.max_points:
+            raise ValueError(
+                f"{crit.key}: Teilpruefungen ergeben {sum(punkte)} statt "
+                f"{crit.max_points} Punkte")
+        return
+
+    # SCHWELLE und JA_NEIN: eine Staffel von der vollen Punktzahl auf null.
+    if max(punkte) != crit.max_points or min(punkte) != 0:
+        raise ValueError(
+            f"{crit.key}: Staffel laeuft von {max(punkte)} bis {min(punkte)}, "
+            f"das Kriterium hat {crit.max_points} Punkte")
+    if punkte != sorted(punkte, reverse=True):
+        raise ValueError(f"{crit.key}: Stufen stehen nicht absteigend")
+    if a.richtung not in ("ab", "bis"):
+        raise ValueError(f"{crit.key}: unbekannte Richtung {a.richtung!r}")
+
+
 def _validate() -> None:
     keys = item_keys()
     duplicates = {k for k in keys if keys.count(k) > 1}
@@ -494,6 +985,7 @@ def _validate() -> None:
     for crit in all_criteria():
         if crit.max_points <= 0:
             raise ValueError(f"Bewertetes Kriterium ohne Punkte: {crit.key}")
+        _pruefe_abstufung(crit)
 
     if TOTAL_POINTS != ERWARTETE_GESAMTPUNKTE:
         raise ValueError(

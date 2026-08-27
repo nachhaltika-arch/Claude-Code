@@ -201,6 +201,22 @@ async def _send_monitoring_report(project_reports: list, summary: dict):
         logger.warning("GEO Monitoring: ADMIN_EMAIL nicht gesetzt — kein Report")
         return
 
+    # **Abschaltbar seit dem 26.08.2026.** Einer von genau zwei Wegen, auf
+    # denen KOMPAGNON in Davids eigenes Postfach schreibt; der andere ist die
+    # Chatnachricht. Eigene Sitzung, weil dieser Lauf aus dem Scheduler kommt
+    # und keine mitbringt — und sie wird wieder geschlossen, sonst haelt ein
+    # Monatsjob eine Verbindung bis zum naechsten.
+    from database import SessionLocal
+    from services.meldungsvorlieben import soll_melden_leise
+
+    sitzung = SessionLocal()
+    try:
+        if not soll_melden_leise(sitzung, "geo_bericht"):
+            logger.info("GEO Monitoring: Bericht per Einstellung abgeschaltet")
+            return
+    finally:
+        sitzung.close()
+
     rows_html = ""
     for p in project_reports:
         change_str = f"+{p['change']}" if p['change'] > 0 else str(p['change'])

@@ -19,6 +19,12 @@ Betrieb nicht" gezaehlt.
     Perplexity   POST https://api.perplexity.ai/v1/agent  (Agent API)
                  Die alte Sonar-Chat-Completions-Form wird **bis zum
                  27.09.2026** unterstuetzt und danach abgeschaltet.
+    Google AI    POST https://generativelanguage.googleapis.com/v1beta/interactions
+                 Schluessel im Kopf `x-goog-api-key`, Werkzeug
+                 `{"type": "google_search"}`, Modell `gemini-3.7-flash`.
+                 Nachgeschlagen am 25.08.2026. Die Quellen stehen als
+                 `url_citation` im Textblock, nicht in `groundingMetadata` —
+                 die aeltere `generateContent`-Form wird trotzdem gelesen.
 
 **Was daran ungeprueft ist, und das ehrlich:** Fuer ChatGPT und Perplexity
 liegt hier kein Schluessel. Die Anfrageform stammt aus der Herstellerdoku, die
@@ -132,7 +138,68 @@ def lies_perplexity_antwort(roh: dict) -> Tuple[str, List[str]]:
     return text, list(dict.fromkeys(belege))
 
 
-# ── Die drei Anbindungen ─────────────────────────────────────────────
+def lies_gemini_antwort(roh: dict) -> Tuple[str, List[str]]:
+    """Text und Quellen aus einer Antwort der Interactions API.
+
+    **Nachgeschlagen am 25.08.2026**, nicht erinnert: Die Antwort ist eine
+    Folge von `steps`. Der Schritt `model_output` traegt den `content`, und
+    die Quellen stehen als `annotations` vom Typ `url_citation` **im
+    Textblock** — nicht in einem eigenen `groundingMetadata`, wie es die
+    aeltere `generateContent`-Form tat.
+
+    **Die alte Form wird trotzdem gelesen.** Ein Schluessel, der heute angelegt
+    wird, kann auf einen Endpunkt zeigen, der noch `candidates` liefert. Wie
+    bei Perplexity stehen beide Formen nebeneinander, statt dass ein
+    Formwechsel als „kennt den Betrieb nicht" durchgeht.
+    """
+    if not isinstance(roh, dict):
+        return "", []
+
+    text_teile: List[str] = []
+    belege: List[str] = []
+
+    def _bloecke(inhalt):
+        """`content` ist mal eine Zeichenkette, mal eine Liste von Bloecken."""
+        if isinstance(inhalt, str):
+            return [{"text": inhalt}]
+        if isinstance(inhalt, list):
+            return [b for b in inhalt if isinstance(b, dict)]
+        if isinstance(inhalt, dict):
+            return [inhalt]
+        return []
+
+    # Neue Form: steps → model_output → content → annotations
+    for schritt in roh.get("steps") or []:
+        if not isinstance(schritt, dict):
+            continue
+        if schritt.get("type") != "model_output":
+            continue
+        for block in _bloecke(schritt.get("content")):
+            stueck = block.get("text")
+            if isinstance(stueck, str) and stueck.strip():
+                text_teile.append(stueck.strip())
+            for anmerkung in block.get("annotations") or []:
+                if isinstance(anmerkung, dict) and anmerkung.get("url"):
+                    belege.append(anmerkung["url"])
+
+    # Aeltere Form: candidates → content.parts[].text, Quellen im Grounding
+    for kandidat in roh.get("candidates") or []:
+        if not isinstance(kandidat, dict):
+            continue
+        for teil in (kandidat.get("content") or {}).get("parts") or []:
+            stueck = (teil or {}).get("text")
+            if isinstance(stueck, str) and stueck.strip():
+                text_teile.append(stueck.strip())
+        grounding = kandidat.get("groundingMetadata") or {}
+        for stueckchen in grounding.get("groundingChunks") or []:
+            netz = (stueckchen or {}).get("web") or {}
+            if netz.get("uri"):
+                belege.append(netz["uri"])
+
+    return "\n".join(text_teile), list(dict.fromkeys(belege))
+
+
+# ── Die vier Anbindungen ─────────────────────────────────────────────
 
 async def _frage_claude(frage: str) -> Tuple[str, List[str]]:
     """Claude mit dem serverseitigen Websuche-Werkzeug.
@@ -203,6 +270,26 @@ async def _frage_perplexity(frage: str) -> Tuple[str, List[str]]:
         return lies_perplexity_antwort(antwort.json())
 
 
+async def _frage_gemini(frage: str) -> Tuple[str, List[str]]:
+    """Google AI ueber die Interactions API mit eingeschalteter Suche.
+
+    Der Schluessel geht in den Kopf (`x-goog-api-key`) und nicht in die
+    Adresse: Eine Adresse mit Schluessel landet in Protokollen, im Verlauf und
+    in jeder Fehlermeldung.
+    """
+    async with httpx.AsyncClient(timeout=ZEITGRENZE) as client:
+        antwort = await client.post(
+            "https://generativelanguage.googleapis.com/v1beta/interactions",
+            headers={"x-goog-api-key": _schluessel("GEMINI_API_KEY"),
+                     "Content-Type": "application/json"},
+            json={"model": "gemini-3.7-flash",
+                  "tools": [{"type": "google_search"}],
+                  "input": frage},
+        )
+        antwort.raise_for_status()
+        return lies_gemini_antwort(antwort.json())
+
+
 # ── Das Register ─────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -230,6 +317,11 @@ ANBIETER: Tuple[Anbieter, ...] = (
     Anbieter("perplexity", "Perplexity", "PERPLEXITY_API_KEY", "sonar (Agent API)",
              _frage_perplexity),
     Anbieter("claude", "Claude", "ANTHROPIC_API_KEY", "claude-opus-5", _frage_claude),
+    # Vierter Anbieter seit dem 25.08.2026. Ohne ihn misst der Standard drei
+    # Systeme, waehrend der Markt vier nennt — und die Luecke waere ein
+    # Verkaufsargument des Wettbewerbs, kein Ergebnis.
+    Anbieter("gemini", "Google AI", "GEMINI_API_KEY", "gemini-3.7-flash",
+             _frage_gemini),
 )
 
 

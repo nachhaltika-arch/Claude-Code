@@ -4,6 +4,18 @@ from .fehler import router as fehler_router
 from .usercards import router as usercards_router
 from .usercards import kunden_router as usercards_kunden_router
 from .leads import router as leads_router
+# **Vor `projects` — und das ist keine Kosmetik.** Aus `projects.py` ist am
+# 23.08.2026 das Entfernen eines Projekts ausgezogen (L-25). Es traegt feste
+# Pfade wie `/loeschvorschau`; `projects.py` traegt den Platzhalter
+# `/{project_id}`. FastAPI nimmt die **zuerst registrierte** Route, also
+# verdeckt der Platzhalter jede feste, die nach ihm kommt.
+#
+# Beim ersten Anlauf stand dieser Import unten bei den uebrigen, und
+# `GET /api/projects/loeschvorschau` war nicht mehr erreichbar — gefunden von
+# `test_keine_route_wird_von_einem_platzhalter_verdeckt`, nicht beim Lesen.
+# Die Datenformate (`projects_modelle.py`) brauchen keinen Eintrag hier: Sie
+# haengen an keinem Router, `projects.py` holt sie sich selbst.
+from . import projects_loeschen  # noqa: F401
 from .projects import router as projects_router
 # Nur wegen der Nebenwirkung: Der Import haengt die Netlify-Routen an
 # denselben Router. Ohne ihn waeren sie nicht registriert (L-25).
@@ -16,10 +28,17 @@ from . import projects_sichtbarkeit  # noqa: F401
 # diesen Import fehlten drei Routen, und die Endpunktzaehlung fiel von
 # 391 auf 388. Genau dafuer wird nach jedem Schnitt gezaehlt.
 from . import projects_werkstatt  # noqa: F401
+# Weiter geteilt am 23.08.2026 (L-25), `projects_content.py` von 1.017 auf 456
+# Zeilen: die drei KI-Entwuerfe (312 Zeilen, der teuerste Teil der Kette) und
+# der QA-Scanner samt Checkliste. Beide haengen am selben Router — derselbe
+# Grund wie oben, dieselbe Falle: ohne diesen Import fehlen sie lautlos.
+from . import projects_versionen  # noqa: F401
+from . import projects_qa  # noqa: F401
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router
 from .audit import router as audit_router
+from .buch import router as buch_router
 from .diagnostics import router as diagnostics_router
 from .widget import router as widget_router
 from .acquisition import router as acquisition_router

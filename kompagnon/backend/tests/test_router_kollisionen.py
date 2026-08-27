@@ -154,25 +154,41 @@ def test_keine_tabelle_hat_zwei_modelle():
 # Aufgeloest durch Umbenennen statt Loeschen: `/{id}/scrape-pages` sagt, was
 # geschieht, und `/{id}/scrape` bleibt beim Branddesign.
 
-def test_der_mehrseitige_lauf_hat_einen_eigenen_namen():
-    from routers import content_scraper_router, projects
+def test_die_kollision_ist_aufgeloest_weil_eine_seite_weg_ist():
+    """**Am 26.08.2026 anders aufgeloest als am 22.08.**
 
-    inhalt = {r.path for r in content_scraper_router.router.routes}
+    Damals hiess die Loesung: umbenennen statt loeschen — `/{id}/scrape-pages`
+    fuer den Inhaltslauf, `/{id}/scrape` bleibt beim Branddesign. Das war
+    richtig, solange beide gebraucht wurden.
+
+    Inzwischen ist entschieden (David): „der crawler ist der richtige, den
+    anderen weg." Der mehrseitige Inhaltslauf ist damit fort — samt seinem
+    Router. Uebrig bleibt der Branddesign-Lauf, und eine Kollision kann es
+    nicht mehr geben, wo nur noch einer steht.
+
+    **Der Test von damals ist nicht geloescht, sondern umgedreht.** Er hielt
+    fest, dass zwei Bedeutungen nicht denselben Namen tragen; jetzt haelt er
+    fest, dass die zweite Bedeutung weg ist und die erste noch da.
+    """
+    from main import app as anwendung
+    from routers import projects
+
+    pfade = set(anwendung.openapi()["paths"])
     marke = {r.path for r in projects.router.routes}
 
-    assert "/api/projects/{project_id}/scrape-pages" in inhalt
-    assert "/api/projects/{project_id}/scrape" not in inhalt
+    assert "/api/projects/{project_id}/scrape-pages" not in pfade
     assert "/api/projects/{project_id}/scrape" in marke
 
 
-def test_und_er_ist_erreichbar(client, auth_headers):
-    """Vorher war er tot. Eine tote Route ist eine ungepruefte Route (L-68) —
-    deshalb wird sie hier einmal wirklich angefasst.
+def test_der_branddesign_lauf_ist_noch_erreichbar(client, auth_headers):
+    """Gegenprobe. Ohne sie waere der Test oben auch gruen, wenn beim
+    Aufraeumen **beide** Seiten verschwunden waeren — und niemand haette es
+    gemerkt, weil die Kollision dann ja auch weg ist.
 
     404 fuer ein Projekt, das es nicht gibt, beweist: durch die Sperre,
     durch die Adressaufloesung, bis zur Datenbank.
     """
-    antwort = client.post("/api/projects/999999/scrape-pages", headers=auth_headers)
+    antwort = client.post("/api/projects/999999/scrape", headers=auth_headers)
     assert antwort.status_code == 404, antwort.text[:200]
 
 

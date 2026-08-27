@@ -24,7 +24,7 @@ git remote -v
 git branch --show-current
 ```
 
-Erwartet: `nachhaltika-arch/Claude-Code` · `claude/kompagnon-automation-system-FapM9`
+Erwartet: `nachhaltika-arch/Claude-Code` · `staging`
 Abweichung → **STOPP**.
 
 ---
@@ -35,7 +35,7 @@ Abweichung → **STOPP**.
 
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
-Erwartet: origin = nachhaltika-arch/Claude-Code, branch = claude/kompagnon-automation-system-FapM9
+Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 SCHRITT 1
@@ -123,7 +123,7 @@ ls -R buch/
 SCHRITT 7
 git add -A
 git commit -m "Add book manuscript structure and Homepage Standard single source of truth"
-git push origin claude/kompagnon-automation-system-FapM9
+git push origin staging
 ```
 
 ---

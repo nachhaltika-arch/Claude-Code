@@ -26,7 +26,13 @@
   /* Die Zahl ist der Anteil, nicht die Deckkraft — je kleiner, desto
      leiser. Gemessen am 17.08.2026 gegen beide Flaechen (WCAG 2.1 AA,
      Schwelle 4.5 fuer Text). `src/utils/kontrast.test.js` haelt das fest. */
-  --text:    #000000;  /* 20.4 auf --surface */
+  /* Die Zahl stand hier als 20.4 und war es nie: gerechnet sind es 18.96
+     auf --surface (auf --paper waeren es 20.12). Sie stammt aus einer
+     frueheren Fassung der Tokens und ist beim Umfaerben nicht
+     mitgewandert — bestanden hat die Farbe immer, nur die Zahl war
+     Fiktion. `tokenKontrast.test.js` rechnet diese Kommentare seit dem
+     23.08.2026 nach, damit das nicht noch einmal unbemerkt bleibt. */
+  --text:    #000000;  /* 18.96 auf --surface */
   --text-60: #4A5A5C;  /*  6.5 auf --surface */
   /* Der leiseste Ton, der noch Text sein darf: 4.63 auf --surface.
      Er ersetzt --text-30 ueberall dort, wo Woerter stehen. */

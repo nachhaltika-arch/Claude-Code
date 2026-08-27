@@ -112,7 +112,7 @@ git branch --show-current
 
 Erwartet:
 - `origin` → `https://github.com/nachhaltika-arch/Claude-Code`
-- Branch → `claude/kompagnon-automation-system-FapM9`
+- Branch → `staging`
 
 Stimmt eines nicht: **STOPP**, nichts ausführen, melden.
 

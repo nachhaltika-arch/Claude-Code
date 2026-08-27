@@ -65,7 +65,7 @@ function AuditHistorySection({ customerId, customer, headers }) {
       setAudits(Array.isArray(data) ? data : []);
       setError(null);
     } catch (e) {
-      console.error('[AuditHistory] fetchAudits failed:', e);
+      console.error('[CustomerDetail] fetchAudits failed:', e);
       setError(`Audit-Historie konnte nicht geladen werden: ${e.message}`);
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ function AuditHistorySection({ customerId, customer, headers }) {
           fetchAudits();
         }
       } catch (e) {
-        console.error('[AuditHistory] polling error:', e);
+        console.error('[CustomerDetail] polling error:', e);
         stopPolling();
       }
     }, 3000);
@@ -133,7 +133,7 @@ function AuditHistorySection({ customerId, customer, headers }) {
         startPolling(data.id);
       }
     } catch (e) {
-      console.error('[AuditHistory] startAudit failed:', e);
+      console.error('[CustomerDetail] startAudit failed:', e);
       setStartError(`Verbindungsfehler: ${e.message}`);
     }
     setStarting(false);

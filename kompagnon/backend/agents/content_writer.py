@@ -6,6 +6,12 @@ import json
 import os
 from typing import Dict, Optional
 
+from agents.conversion_spec import (
+    PFLICHT_FELDER,
+    spec_regeln,
+    verbotene_formulierungen,
+)
+
 try:
     from anthropic import Anthropic
 except ImportError:
@@ -21,6 +27,59 @@ class ContentWriterAgent:
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.client = Anthropic(api_key=self.api_key)
         self.model = "claude-sonnet-5"
+
+    @staticmethod
+    def antwort_geruest() -> str:
+        """Das JSON-Gerüst, das der Texter zurückgeben soll.
+
+        Eigene Methode, weil die Spec (§ 6) vier Felder verlangt, die es
+        vorher nicht gab — und weil ein Gerüst mitten in einem f-String
+        weder lesbar noch prüfbar ist. `tests/test_conversion_spec_im_texter`
+        hält fest, dass jedes Pflichtfeld darin vorkommt.
+        """
+        return """{
+    "hero_headline": "<max. 8 Woerter, Outcome statt Leistung>",
+    "hero_subline": "<1 Satz: Ergebnis + Zeit bis dahin + Aufwand fuer den Kunden>",
+    "about_text": "<150 Woerter>",
+    "service_texts": {
+        "Service 1": "<80 Woerter, als Ergebnis-Versprechen mit Zeitangabe>",
+        "Service 2": "<80 Woerter>"
+    },
+    "wertebox": {
+        "titel": "<Offer-Naming: Anlass + Zielgruppe + Ziel + Zeit + Gefaess>",
+        "positionen": [
+            {"leistung": "<Position>", "wert_eur": 0}
+        ],
+        "ankerwert_eur": 0,
+        "aktionspreis_eur": 0,
+        "anker_beleg": "<woher der Ankerwert stammt — nur marktbelegbar>"
+    },
+    "garantien": [
+        {"versprechen": "<beziffert und nachpruefbar>", "bezug": "<worauf es sich bezieht>"}
+    ],
+    "einwand_faq": [
+        {"einwand": "<Einwand der Zielgruppe>", "antwort": "<mit konkreter Zahl>"}
+    ],
+    "faq_items": [
+        {"question": "Frage 1?", "answer": "<kurze Antwort>"}
+    ],
+    "cta_varianten": [
+        "<Verb + konkretes Ergebnis + Aufwands-Abbau>"
+    ],
+    "meta_titles": {
+        "homepage": "<max 60 Zeichen>",
+        "about": "<max 60 Zeichen>",
+        "services": "<max 60 Zeichen>",
+        "contact": "<max 60 Zeichen>"
+    },
+    "meta_descriptions": {
+        "homepage": "<max 160 Zeichen>",
+        "about": "<max 160 Zeichen>",
+        "services": "<max 160 Zeichen>",
+        "contact": "<max 160 Zeichen>"
+    },
+    "local_cta": "<CTA mit Ortsnamen>"
+}"""
 
     def write_content(self, briefing_data: Dict) -> Dict:
         """
@@ -122,7 +181,20 @@ WICHTIG:
 - meta_titles: max. 60 Zeichen, enthält Ziel-Keyword wenn vorhanden
 - meta_descriptions: max. 160 Zeichen
 - local_cta: nutze den angegebenen CTA-Text wenn vorhanden, sonst regionaler CTA mit Ortsnamen
-- Bereits freigegebene Texte IMMER unverändert in das Ergebnis übernehmen"""
+- Bereits freigegebene Texte IMMER unverändert in das Ergebnis übernehmen
+
+VERBINDLICHE CONVERSION-REGELN (docs/conversion-spec-shk.md, § 1-5):
+""" + spec_regeln() + """
+
+WAS DU NICHT SCHREIBEN DARFST — der Grund steht dabei, damit du auch die
+Varianten erkennst, die hier nicht aufgezählt sind. Mehrere dieser Punkte
+sind in Deutschland abmahnfähig, nicht bloß Geschmackssache:
+""" + verbotene_formulierungen() + """
+
+Wenn eine Angabe fehlt, um eine Regel zu erfüllen — etwa ein Preis für die
+Wertebox oder eine Zahl für eine Garantie —, dann erfinde sie NICHT. Lass das
+Feld leer und nenne im Feld daneben, was fehlt. Eine erfundene Zahl in einer
+Garantie ist genau der Fall, den die Verbotsliste oben meint."""
 
             user_message = f"""
 Erstelle Website-Texte für diesen Betrieb:
@@ -138,32 +210,7 @@ Betrieb seit: {briefing_data.get('years_in_business', 0)} Jahren
 Zertifikate: {', '.join(briefing_data.get('awards_or_certifications', []) or [])}{page_context}{content_slots_text}
 
 Liefere das Ergebnis als JSON:
-{{
-    "hero_headline": "<max. 8 Wörter>",
-    "hero_subline": "<1 Satz>",
-    "about_text": "<150 Wörter>",
-    "service_texts": {{
-        "Service 1": "<80 Wörter>",
-        "Service 2": "<80 Wörter>"
-    }},
-    "faq_items": [
-        {{"question": "Frage 1?", "answer": "<kurze Antwort>"}},
-        {{"question": "Frage 2?", "answer": "<kurze Antwort>"}}
-    ],
-    "meta_titles": {{
-        "homepage": "<max 60 Zeichen>",
-        "about": "<max 60 Zeichen>",
-        "services": "<max 60 Zeichen>",
-        "contact": "<max 60 Zeichen>"
-    }},
-    "meta_descriptions": {{
-        "homepage": "<max 160 Zeichen>",
-        "about": "<max 160 Zeichen>",
-        "services": "<max 160 Zeichen>",
-        "contact": "<max 160 Zeichen>"
-    }},
-    "local_cta": "<CTA mit Ortsnamen>"
-}}"""
+{self.antwort_geruest()}"""
 
             message = self.client.messages.create(
                 model=self.model, thinking={"type": "disabled"},

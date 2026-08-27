@@ -211,7 +211,12 @@ ERWARTETE_KATEGORIEN = {
     "recht_compliance": (20, 20),
     "sicherheit": (8, 8),
     "performance": (0, 3),
-    "barrierefreiheit": (4, 4),
+    # 4 -> 2 (S1.2, 24.08.2026): `bf_semantik` liest seit dem Anschluss auch
+    # `html-has-lang` und `label` aus Lighthouse. Dieser Test laeuft **ohne**
+    # PageSpeed, also ist das Kriterium nur halb pruefbar — und gilt damit als
+    # nicht erhoben, statt die DOM-Haelfte voll zu werten. Genau der stille
+    # Abzug, den der fruehere Kommentar an der Bewertungsstelle benannte.
+    "barrierefreiheit": (2, 2),
     "seo": (15, 18),
     "design": (1, 1),
     "conversion": (8, 9),
@@ -222,7 +227,11 @@ ERWARTETE_KATEGORIEN = {
 # vorher war die Eigenschaft erhoben und wurde nicht bewertet.
 ERWARTETE_PUNKTZAHL = 88
 # 63 -> 64: ein Kriterium mehr, und es ist an dieser Seite erhoben.
-ERWARTETE_ABDECKUNG = 64
+# 64 -> 62 (S1.2, 24.08.2026): `bf_semantik` braucht jetzt Lighthouse, und
+# dieser Test laeuft ohne PageSpeed. Die **Punktzahl** bleibt 88 — das
+# Kriterium war voll erfuellt, faellt mit Punkt und Maximum heraus und
+# verschiebt die Normierung nicht.
+ERWARTETE_ABDECKUNG = 62
 
 
 def test_die_referenzseite_erreicht_ihre_bekannte_punktzahl(bewertung):

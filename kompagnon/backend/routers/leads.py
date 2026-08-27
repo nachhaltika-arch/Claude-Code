@@ -13,7 +13,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import (
-    INNENDIENST, require_admin, require_any_auth, require_innendienst,
+    require_admin, require_any_auth, require_innendienst,
     verlangt_recht,
     get_current_user,
 )
@@ -22,7 +22,6 @@ from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
 from services.pdf_generator import branche_fuer_protokoll
-from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
 import httpx
@@ -66,6 +65,11 @@ class LeadCreate(BaseModel):
     website_url: str = None
     city: str = ""
     trade: str = ""
+    # Anschrift und Oeffnungszeiten (L-15, L-99). Ohne sie ist der SEO-Agent
+    # nicht anzuschliessen und `schema.org/LocalBusiness` nicht zu erzeugen.
+    street: str = ""
+    postal_code: str = ""
+    opening_hours: str = ""
     lead_source: str = None
     notes: str = None
 
@@ -79,6 +83,11 @@ class LeadUpdate(BaseModel):
     website_url: Optional[str] = None
     city: Optional[str] = None
     trade: Optional[str] = None
+    # Nur die Oeffnungszeiten sind neu (L-15/L-99) — `street`, `house_number`
+    # und `postal_code` stehen weiter unten in diesem Modell und standen dort
+    # schon vorher. Der erste Anlauf am 24.08.2026 haette sie ein zweites Mal
+    # eingetragen; bei Pydantic gewinnt dann stillschweigend die spaetere.
+    opening_hours: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     lead_source: Optional[str] = None
@@ -120,6 +129,11 @@ class LeadResponse(BaseModel):
     website_url: Optional[str] = None
     city: Optional[str] = None
     trade: Optional[str] = None
+    # Nur die Oeffnungszeiten sind neu (L-15/L-99) — `street`, `house_number`
+    # und `postal_code` stehen weiter unten in diesem Modell und standen dort
+    # schon vorher. Der erste Anlauf am 24.08.2026 haette sie ein zweites Mal
+    # eingetragen; bei Pydantic gewinnt dann stillschweigend die spaetere.
+    opening_hours: Optional[str] = None
     industry: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
@@ -144,11 +158,13 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             INSERT INTO leads (
                 company_name, contact_name, phone, email,
                 website_url, city, trade, lead_source, notes,
+                street, postal_code, opening_hours,
                 status, analysis_score, geo_score,
                 created_at, updated_at
             ) VALUES (
                 :company_name, :contact_name, :phone, :email,
                 :website_url, :city, :trade, :lead_source, :notes,
+                :street, :postal_code, :opening_hours,
                 'new', 0, 0,
                 NOW(), NOW()
             ) RETURNING id, company_name, contact_name, phone, email,
@@ -164,39 +180,29 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             'trade': lead.trade or '',
             'lead_source': lead.lead_source or '',
             'notes': lead.notes or '',
+            # **Angenommen und verworfen waere schlimmer als gar nicht
+            # angenommen.** `LeadCreate` nimmt diese drei seit dem 24.08.2026
+            # entgegen (L-15/L-99); ohne diese Zeilen landeten sie nirgends,
+            # und die Oberflaeche haette gemeldet, alles sei gespeichert.
+            'street': lead.street or '',
+            'postal_code': lead.postal_code or '',
+            'opening_hours': lead.opening_hours or '',
         })
         db.commit()
         row = result.fetchone()
         lead_id = row[0]
 
-        AUTO_SEQUENCE_SOURCES = {
-            "stripe_checkout",
-            "landing_audit",
-            "landing_page",
-            "llm_landing",
-            "postkarte",
-            "webhook_facebook",
-            "webhook_linkedin",
-            "webhook_google",
-        }
-
-        if lead.email and (lead.lead_source or '') in AUTO_SEQUENCE_SOURCES:
-            try:
-                from services.sequence_runner import start_sequence_for_lead
-                import threading
-                threading.Thread(
-                    target=start_sequence_for_lead,
-                    args=(lead_id,),
-                    daemon=True,
-                ).start()
-                import logging as _log
-                _log.getLogger('leads').info(
-                    f"Auto-Sequenz gestartet für Lead {lead_id} "
-                    f"(Quelle: {lead.lead_source})"
-                )
-            except Exception as e:
-                import logging as _log
-                _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
+        # Wer eine automatische Mailstrecke bekommt, entscheidet **eine**
+        # Stelle (L-62). Hier stand bis zum 24.08.2026 eine eigene Liste mit
+        # acht Werten, von denen fuenf nirgends geschrieben wurden — und die
+        # Webhooks liefen mit rohem SQL ohnehin daran vorbei. Zwei Listen
+        # driften auseinander, und das Ausbleiben einer Mail meldet niemand.
+        try:
+            from services.sequence_runner import strecke_anstossen_wenn_erlaubt
+            strecke_anstossen_wenn_erlaubt(lead_id)
+        except Exception as e:
+            import logging as _log
+            _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
 
         if lead.website_url:
             from services.lead_enrichment import enrich_lead_sync
@@ -394,7 +400,13 @@ def get_customers(db: Session = Depends(get_db)):
             AuditResult.lead_id == lead.id, AuditResult.status == "completed"
         ).order_by(AuditResult.created_at.desc()).first()
         project = db.query(Project).filter(Project.lead_id == lead.id).order_by(Project.created_at.desc()).first()
-        user = db.query(User).filter(User.lead_id == lead.id).first()
+        # Seit dem 25.08.2026 kann ein Betrieb mehrere Zugaenge haben.
+        # `has_account` allein verschwiege den zweiten; die Kartei zeigt
+        # deshalb die Zahl, und `user_id` bleibt der aelteste — daran
+        # haengen die vorhandenen Bildschirme.
+        konten = (db.query(User).filter(User.lead_id == lead.id)
+                  .order_by(User.id).all())
+        user = konten[0] if konten else None
         result.append({
             "id": lead.id, "company_name": lead.company_name, "contact_name": lead.contact_name,
             "email": lead.email, "phone": lead.phone, "website_url": lead.website_url,
@@ -408,6 +420,7 @@ def get_customers(db: Session = Depends(get_db)):
             "project_status": project.status if project else None,
             "project_id": project.id if project else None,
             "has_account": user is not None, "user_id": user.id if user else None,
+            "zugaenge": len(konten),
             'gbp_claimed':       getattr(lead, 'gbp_claimed', False) or False,
             'gbp_rating':        getattr(lead, 'gbp_rating', None),
             'gbp_ratings_total': getattr(lead, 'gbp_ratings_total', None),
@@ -678,342 +691,6 @@ def convert_lead(
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
 
 
-# ===== IMPORT ENDPOINTS =====
-
-
-
-
-
-
-
-@router.post("/{lead_id}/enrich")
-async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Manually trigger enrichment for a single lead."""
-    from services.lead_enrichment import enrich_lead
-    result = await enrich_lead(lead_id, db)
-    return result
-
-
-@router.get("/{lead_id}/latest-screenshot")
-def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
-    """Get the latest audit screenshot for a lead, saving it to the lead if found."""
-    latest = (
-        db.query(AuditResult)
-        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed", AuditResult.screenshot_base64 != "", AuditResult.screenshot_base64 != None)
-        .order_by(AuditResult.created_at.desc())
-        .first()
-    )
-    if not latest or not latest.screenshot_base64:
-        return {"screenshot_url": None}
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if lead and not lead.website_screenshot:
-        lead.website_screenshot = latest.screenshot_base64
-        db.commit()
-    return {
-        "screenshot_url": f"data:image/jpeg;base64,{latest.screenshot_base64}",
-        "audit_date": latest.created_at.strftime("%d.%m.%Y") if latest.created_at else "",
-        "audit_score": latest.total_score,
-    }
-
-
-@router.post("/{lead_id}/screenshot")
-async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
-    """Capture website screenshot and return it immediately."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Lead nicht gefunden")
-    if not lead.website_url:
-        raise HTTPException(400, "Keine Website-URL hinterlegt")
-
-    url = lead.website_url
-    if not url.startswith("http"):
-        url = "https://" + url
-
-    try:
-        from services.screenshot import capture_screenshot
-        screenshot_b64 = await capture_screenshot(url)
-        if screenshot_b64:
-            lead.website_screenshot = screenshot_b64
-            db.commit()
-            return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}"}
-        else:
-            raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Screenshot Fehler: {str(e)}")
-
-
-@router.get("/{lead_id}/profile")
-def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
-    """Full lead profile with audits, projects, and score history."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-
-    audits = (
-        db.query(AuditResult)
-        .filter(AuditResult.lead_id == lead_id)
-        .order_by(AuditResult.created_at.desc())
-        .all()
-    )
-
-    projects = db.query(Project).filter(Project.lead_id == lead_id).all()
-
-    latest_audit = audits[0] if audits else None
-
-    score_history = [
-        {
-            "date": a.created_at.strftime("%d.%m.%Y") if a.created_at else "",
-            "score": a.total_score,
-            "level": a.level,
-        }
-        for a in reversed(audits)
-    ]
-
-    def _audit_dict(a):
-        d = {
-            "id": a.id,
-            "created_at": a.created_at.strftime("%d.%m.%Y %H:%M") if a.created_at else "",
-            "total_score": a.total_score,
-            "level": a.level,
-            "status": a.status,
-            "website_url": a.website_url,
-            "company_name": a.company_name,
-            "trade": a.trade,
-            "city": a.city,
-            "ai_summary": a.ai_summary,
-            "ssl_ok": a.ssl_ok,
-            "mobile_score": a.mobile_score,
-            "lcp_value": a.lcp_value,
-            "cls_value": a.cls_value,
-            "inp_value": a.inp_value,
-            "rc_score": a.rc_score, "tp_score": a.tp_score,
-            "bf_score": a.bf_score, "si_score": a.si_score,
-            "se_score": a.se_score, "ux_score": a.ux_score,
-        }
-        # Item-level scores
-        for key in [
-            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
-            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
-            "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
-            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
-            "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
-            "se_seo", "se_schema", "se_lokal",
-            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-        ]:
-            d[key] = getattr(a, key, 0) or 0
-        # GEO / KI-Sichtbarkeit fields
-        d["llms_txt"] = getattr(a, "llms_txt", False) or False
-        d["robots_ai_friendly"] = getattr(a, "robots_ai_friendly", False) or False
-        d["structured_data"] = getattr(a, "structured_data", False) or False
-        d["ai_mentions"] = getattr(a, "ai_mentions", 0) or 0
-        # JSON fields
-        try:
-            d["top_issues"] = json.loads(a.top_issues) if a.top_issues else []
-        except (json.JSONDecodeError, TypeError):
-            d["top_issues"] = []
-        try:
-            d["recommendations"] = json.loads(a.recommendations) if a.recommendations else []
-        except (json.JSONDecodeError, TypeError):
-            d["recommendations"] = []
-        return d
-
-    return {
-        "lead": {
-            "id": lead.id,
-            "company_name": lead.company_name,
-            "contact_name": lead.contact_name,
-            "phone": lead.phone,
-            "mobile": getattr(lead, 'mobile', '') or '',
-            "email": lead.email,
-            "website_url": lead.website_url,
-            "city": lead.city,
-            "trade": lead.trade,
-            "status": lead.status,
-            "lead_source": lead.lead_source,
-            # Woher der Betrieb kam und unter welcher Rechtsgrundlage wir ihn
-            # fuehren — abgeleitet aus derselben gespeicherten Quelle, damit
-            # es keine zweite Wahrheit gibt (L-59).
-            "datenherkunft": lead_quellen.herkunft_fuer(lead.lead_source),
-            "rechtsgrundlage": lead_quellen.rechtsgrundlage_fuer(lead.lead_source),
-            "quelle_gefuehrt": lead_quellen.quelle_bekannt(lead.lead_source),
-            "notes": lead.notes,
-            "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
-            "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,
-            "street": getattr(lead, 'street', '') or '',
-            "house_number": getattr(lead, 'house_number', '') or '',
-            "postal_code": getattr(lead, 'postal_code', '') or '',
-            "legal_form": getattr(lead, 'legal_form', '') or '',
-            "vat_id": getattr(lead, 'vat_id', '') or '',
-            "register_number": getattr(lead, 'register_number', '') or '',
-            "register_court": getattr(lead, 'register_court', '') or '',
-            "ceo_first_name": getattr(lead, 'ceo_first_name', '') or '',
-            "ceo_last_name": getattr(lead, 'ceo_last_name', '') or '',
-            "geschaeftsfuehrer": getattr(lead, 'geschaeftsfuehrer', '') or '',
-            "display_name": getattr(lead, 'display_name', '') or '',
-        },
-        # Befunde der Anreicherung. Bewusst ohne `or False`: `None` heißt
-        # „noch nicht geprüft" und darf nicht als „fehlt" durchgehen (UX-06).
-        "anreicherung": {
-            "has_ssl": getattr(lead, 'has_ssl', None),
-            "has_impressum": getattr(lead, 'has_impressum', None),
-            "pagespeed_mobile": getattr(lead, 'pagespeed_mobile_score', None),
-            "geprueft_am": (lead.enriched_at.strftime("%d.%m.%Y")
-                            if getattr(lead, 'enriched_at', None) else None),
-        },
-        "current_score": latest_audit.total_score if latest_audit else None,
-        "current_level": latest_audit.level if latest_audit else None,
-        "score_history": score_history,
-        "total_audits": len(audits),
-        "audits": [_audit_dict(a) for a in audits],
-        "projects": [
-            {
-                "id": p.id,
-                "status": p.status,
-                "start_date": p.start_date.strftime("%d.%m.%Y") if p.start_date else "",
-                "target_go_live": p.target_go_live.strftime("%d.%m.%Y") if p.target_go_live else "",
-                "margin_percent": p.margin_percent,
-            }
-            for p in projects
-        ],
-        "project_id": projects[0].id if projects else None,
-    }
-
-
-@router.get("/{lead_id}/audits")
-def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
-    """Get all audits linked to a lead, newest first."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
-
-    audits = (
-        db.query(AuditResult)
-        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed")
-        .order_by(AuditResult.created_at.desc())
-        .all()
-    )
-
-    results = []
-    for a in audits:
-        try:
-            top_issues = json.loads(a.top_issues) if a.top_issues else []
-        except (json.JSONDecodeError, TypeError):
-            top_issues = []
-        results.append({
-            "id": a.id,
-            "created_at": a.created_at.isoformat() if a.created_at else None,
-            "total_score": a.total_score,
-            "level": a.level,
-            "website_url": a.website_url,
-            "top_issues": top_issues,
-            "ai_summary": a.ai_summary,
-        })
-    return results
-
-
-
-
-
-
-@router.post("/befunde-nachtragen")
-def befunde_nachtragen(
-    db: Session = Depends(get_db),
-    _: object = Depends(require_admin),
-):
-    """Holt SSL, Impressum und PageSpeed aus der alten Notizzeile in die Spalten.
-
-    Seit dem 17.08.2026 stehen diese Befunde in eigenen Spalten. Für den
-    Bestand hieß das: Spalten leer, Oberfläche sagt „nicht geprüft" — und
-    darunter behauptet die alte Notiz „SSL: OK". Beides stimmt für sich,
-    zusammen widersprechen sie sich auf einem Bildschirm.
-
-    Übernommen wird nur, was noch leer ist: Was die neue Anreicherung
-    geschrieben hat, ist jünger als die Notiz. Ein Zeitpunkt wird nicht
-    erfunden — die Zeile trug keinen.
-    """
-    from services import anreicherungsnotiz
-
-    betroffen = db.query(Lead).filter(
-        Lead.notes.ilike(f"%{anreicherungsnotiz.MARKE}%")).all()
-
-    bericht = []
-    for lead in betroffen:
-        befunde = anreicherungsnotiz.befunde_aus_notiz(lead.notes)
-        uebernommen = []
-        for feld, wert in befunde.items():
-            if getattr(lead, feld, None) is None:
-                setattr(lead, feld, wert)
-                uebernommen.append(feld)
-
-        lead.notes = anreicherungsnotiz.notiz_ohne_maschinenzeilen(lead.notes)
-        bericht.append({
-            "id": lead.id,
-            "betrieb": lead.company_name,
-            "uebernommen": uebernommen,
-            "notiz_bleibt": bool(lead.notes),
-        })
-
-    if bericht:
-        db.commit()
-
-    return {"betroffen": len(betroffen), "betriebe": bericht}
-
-
-
-
-@router.get("/{lead_id}/qr-code")
-def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
-    """Get or create QR code for customer portal access."""
-    from services.qr_service import generate_token, generate_qr_code, get_portal_url
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Nicht gefunden")
-
-    if not lead.customer_token:
-        lead.customer_token = generate_token()
-        lead.customer_token_created_at = datetime.utcnow()
-        db.commit()
-        db.refresh(lead)
-
-    portal_url = get_portal_url(lead.customer_token)
-    qr_b64 = generate_qr_code(portal_url)
-
-    return {
-        'token': lead.customer_token,
-        'portal_url': portal_url,
-        'qr_code_base64': qr_b64,
-        'created_at': str(lead.customer_token_created_at)[:10] if lead.customer_token_created_at else '',
-    }
-
-
-@router.post("/{lead_id}/qr-code/refresh")
-def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
-    """Generate a new QR code token, invalidating the old one."""
-    from services.qr_service import generate_token, generate_qr_code, get_portal_url
-
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Nicht gefunden")
-
-    lead.customer_token = generate_token()
-    lead.customer_token_created_at = datetime.utcnow()
-    db.commit()
-    db.refresh(lead)
-
-    portal_url = get_portal_url(lead.customer_token)
-    qr_b64 = generate_qr_code(portal_url)
-
-    return {
-        'token': lead.customer_token,
-        'portal_url': portal_url,
-        'qr_code_base64': qr_b64,
-        'created_at': str(lead.customer_token_created_at)[:10],
-    }
-
-
 
 
 
@@ -1058,48 +735,6 @@ def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_d
 
 
 
-# ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
-
-@router.post("/{lead_id}/sequence/start", dependencies=[Depends(require_any_auth)])
-def sequence_start(lead_id: int, db: Session = Depends(get_db)):
-    from services.sequence_runner import start_sequence_for_lead
-    ok = start_sequence_for_lead(lead_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Lead not found or no email")
-    return {"success": ok}
-
-
-@router.post("/{lead_id}/sequence/pause", dependencies=[Depends(require_any_auth)])
-def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
-    lead.sequence_paused = True
-    db.commit()
-    return {"success": True}
-
-
-@router.post("/{lead_id}/sequence/stop", dependencies=[Depends(require_any_auth)])
-def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
-    lead.sequence_active = False
-    lead.sequence_paused = False
-    lead.sequence_step = 0
-    db.commit()
-    return {"success": True}
-
-
-@router.get("/{lead_id}/email-logs", dependencies=[Depends(require_any_auth)])
-def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
-    rows = db.execute(
-        text("SELECT * FROM email_logs WHERE lead_id=:id ORDER BY sent_at DESC LIMIT 50"),
-        {"id": lead_id},
-    ).mappings().all()
-    return [dict(r) for r in rows]
-
-
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 @router.post("/{lead_id}/briefing-prefill")
 async def briefing_prefill_from_lead(
@@ -1108,7 +743,9 @@ async def briefing_prefill_from_lead(
     _=Depends(require_any_auth),
 ):
     """Briefing-Vorschlaege aus gecrawltem Website-Content via lead_id."""
-    import json
+    # `json` steht bereits oben — die lokale Wiederholung fiel erst auf, als
+    # der Rest der Datei am 23.08. ausgezogen ist und der Modulimport sonst
+    # ungenutzt blieb (L-25).
     from urllib.parse import urlparse
 
     rows = db.execute(
@@ -1150,24 +787,6 @@ async def briefing_prefill_from_lead(
         "usp":           '',
         "zielgruppe":    '',
         "source":        "heuristic",
-    }
-
-
-# ── Admin: manueller Performance-Report Trigger ──────────────────────────────
-
-@router.post("/admin/trigger-performance-reports")
-async def trigger_performance_reports(
-    _=Depends(require_any_auth),
-):
-    """Manueller Trigger für den monatlichen Performance-Report (Admin-Test)."""
-    from automations.scheduler import job_monthly_performance_report
-
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, job_monthly_performance_report)
-
-    return {
-        "message": "Performance-Report Job gestartet — prüfe Render-Logs",
-        "note": "Läuft im Hintergrund, dauert 1-3 Min. je nach Anzahl Kunden",
     }
 
 

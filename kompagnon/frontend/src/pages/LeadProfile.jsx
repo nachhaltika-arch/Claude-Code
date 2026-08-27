@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAudit } from '../hooks/useAudit';
 import { parseApiError } from '../utils/apiError';
+import { oeffnungszeitenAlsJson, oeffnungszeitenAlsText } from '../utils/oeffnungszeiten';
 import { loadJson, saveJson } from '../utils/apiRequest';
 import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
@@ -35,6 +36,9 @@ import { naechsterSchritt } from '../utils/naechsterSchritt';
 import { aufteilung } from '../utils/betriebReiter';
 import { aufTaste } from '../utils/tastaturBedienung';
 import CrawlerReiter from '../components/betrieb/CrawlerReiter';
+import Zugaenge from '../components/betrieb/Zugaenge';
+import Zeiterfassung from '../components/betrieb/Zeiterfassung';
+import CredentialsSafe from '../components/CredentialsSafe';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -264,6 +268,32 @@ export default function LeadProfile() {
     const data = await loadJson(`${API_BASE_URL}/api/messages/${leadId}`, { headers: h }, { context: 'Nachrichten' });
     if (data) setMessages(data);
     setMsgLoading(false);
+  };
+
+  /**
+   * Den Newsletter-Entwurf wirklich ablegen.
+   *
+   * Vorher meldete `onSave` nur „Entwurf gespeichert" — der Designer reichte
+   * das fertige HTML herueber und es endete in einer Erfolgsmeldung. Wer den
+   * Kasten danach schloss, hatte seine Arbeit verloren und es grün bestaetigt
+   * bekommen. Der Ablageort gab es die ganze Zeit:
+   * `POST /api/newsletter/campaigns` legt mit `status='draft'` an.
+   */
+  const entwurfSpeichern = async (html) => {
+    const titel = `Entwurf ${profile?.company_name || `Betrieb ${leadId}`}`;
+    const gespeichert = await saveJson(
+      `${API_BASE_URL}/api/newsletter/campaigns`,
+      {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          title: titel,
+          subject: titel,
+          html_content: html || '',
+        }),
+      },
+      { context: 'Newsletter-Entwurf speichern' }
+    );
+    if (gespeichert) toast.success('Entwurf gespeichert');
   };
 
   const sendMessage = async () => {
@@ -1105,10 +1135,22 @@ export default function LeadProfile() {
         );
 
         return (
-          <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {haupt.map(tab => reiterKnopf(tab))}
+          /* **Zwei Kaesten, nicht einer — und das hat einen Grund (25.08.2026).**
+           * Vorher trug diese eine Leiste `kc-tab-nav` **und** das Klappmenue.
+           * `overflow-x: auto` macht `overflow-y` zur `auto` — die Leiste ist
+           * 47 px hoch, das Menue haengt darunter, und der Scroll-Container
+           * schnitt es vollstaendig ab. Der Knopf reagierte, `mehrOffen` kippte,
+           * das Menue stand im DOM — und niemand sah es. Damit waren **vier**
+           * Reiter unerreichbar: Deals, Akademie, Zugang, E-Mails.
+           * Seit dem Wischen auf dem Handy (6d7bdb7, 22.08.) war das so.
+           * Jetzt scrollt nur die Reiterreihe; das Menue haengt an einem Kasten
+           * ohne `overflow` und kann heraushaengen. */
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4 }}>
+            <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, flex: 1, minWidth: 0 }}>
+              {haupt.map(tab => reiterKnopf(tab))}
+            </div>
 
-            <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : 1, flexShrink: 0 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setMehrOffen(o => !o)}
                 aria-expanded={mehrOffen}
@@ -1290,7 +1332,7 @@ export default function LeadProfile() {
               setShowNewsletter(false);
               toast.success('Newsletter gesendet');
             }}
-            onSave={() => toast.success('Entwurf gespeichert')}
+            onSave={entwurfSpeichern}
           />
         </div>
       )}
@@ -1347,7 +1389,7 @@ export default function LeadProfile() {
                   {lead.website_url || 'Keine Website'}
                 </div>
                 {lead.website_url && (
-                  <a href={lead.website_url.startsWith('http') ? lead.website_url : 'https://' + lead.website_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>↗</a>
+                  <a href={lead.website_url.startsWith('http') ? lead.website_url : 'https://' + lead.website_url} target="_blank" rel="noopener noreferrer" aria-label="Website des Betriebs in neuem Tab oeffnen" style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>↗</a>
                 )}
                 <button onClick={createScreenshot} disabled={screenshotLoading} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: screenshotLoading ? 'wait' : 'pointer', fontSize: 12, padding: '1px 4px', flexShrink: 0 }} title="Screenshot aktualisieren">
                   {screenshotLoading ? '⏳' : '🔄'}
@@ -1684,6 +1726,18 @@ export default function LeadProfile() {
               </Card>
             )}
 
+            {/* Zeiterfassung (26.08.2026, Entscheidung David). Ohne sie
+              * bleibt die Marge dauerhaft „unbekannt" — `actual_hours` war an
+              * jedem Projekt 0, `time_tracking` leer, und `POST
+              * /api/projects/{id}/time` hatte keinen Aufrufer (L-105).
+              * Sie steht neben dem Projektkasten, weil sie zum Projekt
+              * gehoert und nicht zum Betrieb. */}
+            {projectId && (
+              <Zeiterfassung projectId={projectId}
+                phase={projectData?.status ? Number(String(projectData.status).replace('phase_', '')) || null : null}
+                token={token} />
+            )}
+
             {(lead.vat_id || lead.register_number || lead.register_court) && (
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>Rechtliches</div>
@@ -1730,7 +1784,7 @@ export default function LeadProfile() {
                       </button>
                       {lead.email && (
                         <a href={`mailto:${lead.email}?subject=Ihr persönlicher Zugang&body=Ihr Zugangslink:%0D%0A${qrData.portal_url}`}
-                          style={{ padding: '5px 10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: 11, textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                          aria-label="Zugangslink per E-Mail senden" style={{ padding: '5px 10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: 11, textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                           ✉️
                         </a>
                       )}
@@ -1862,6 +1916,28 @@ export default function LeadProfile() {
                       onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
+                </div>
+
+                {/* Oeffnungszeiten (L-15, L-99). `schema.org/LocalBusiness`
+                    verlangt sie, und ohne sie antwortet der SEO-Agent mit 400.
+                    Gespeichert wird JSON, eingegeben werden Zeilen — sieben
+                    Spalten waeren sieben Migrationen beim ersten Sonderfall
+                    wie „Sa nach Vereinbarung". */}
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Öffnungszeiten</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: -4, marginBottom: 8 }}>
+                    Je Zeile ein Eintrag: <code>Mo-Fr 08:00-17:00</code>. Wird für
+                    die schema.org-Auszeichnung und den SEO-Agenten gebraucht.
+                  </div>
+                  <textarea
+                    aria-label="Öffnungszeiten, je Zeile ein Eintrag"
+                    value={oeffnungszeitenAlsText(editData.opening_hours)}
+                    onChange={e => setEditData(p => ({ ...p, opening_hours: oeffnungszeitenAlsJson(e.target.value) }))}
+                    placeholder={'Mo-Do 08:00-17:00\nFr 08:00-13:00'}
+                    rows={4}
+                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-mono, monospace)', lineHeight: 1.6 }}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
@@ -2089,7 +2165,59 @@ export default function LeadProfile() {
       )}
 
       {/* DATEIEN TAB */}
-      {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
+      {activeTab === 'dateien' && (
+        <>
+          <ProjectFilesSection leadId={lead.id} />
+
+          {/* Die fertigen Seiten als ZIP (26.08.2026, L-105).
+            * `GET /api/projects/{id}/export-zip` packt jede gespeicherte
+            * Seite als HTML mit eingebettetem CSS — und hatte **keinen
+            * Aufrufer**. Wer eine Sicherung wollte oder einem Kunden seine
+            * Seiten mitgeben, hatte keinen Weg.
+            *
+            * (Beim Nachsehen hielt ich den Endpunkt kurz fuer ungeschuetzt:
+            * Die Funktion nennt keine Anmeldung. Die Sperre haengt am
+            * **Router** — `require_innendienst`, dieselbe Bauart wie in
+            * `files.py`. Der Verdacht war falsch.) */}
+          {projectId && (
+            <Card padding="md">
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Website als ZIP
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Alle gespeicherten Seiten des Projekts, je eine HTML-Datei mit
+                eingebettetem CSS. Nützlich als Sicherung und bei der Übergabe.
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_BASE_URL}/api/projects/${projectId}/export-zip`,
+                      { headers: { Authorization: `Bearer ${token}` } });
+                    if (r.status === 404) {
+                      const d = await r.json().catch(() => ({}));
+                      toast.error(d.detail || 'Es gibt noch keine gespeicherten Seiten.');
+                      return;
+                    }
+                    if (!r.ok) throw new Error(`Status ${r.status}`);
+                    const blob = await r.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `website-projekt-${projectId}.zip`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    toast.error(`Export fehlgeschlagen: ${e.message}`);
+                  }
+                }}
+                style={{ padding: '8px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                ZIP herunterladen
+              </button>
+            </Card>
+          )}
+        </>
+      )}
 
       {/* PAGESPEED TAB */}
       {activeTab === 'pagespeed' && <PageSpeedSection leadId={lead.id} />}
@@ -2224,7 +2352,59 @@ export default function LeadProfile() {
 
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (
-        <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
+        <>
+          <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
+
+          {/* Die Auftragsbestaetigung (26.08.2026, L-105).
+            * `GET /api/projects/{id}/auftragsbestaetigung` gibt es seit dem
+            * Bau des Bestellwegs und hatte **keinen Aufrufer**. Das PDF
+            * entsteht bei der Stripe-Zahlung und liegt am Projekt — nur
+            * herankommen konnte niemand.
+            *
+            * Beim selben Vorgang hing heute Morgen der groessere Fund: Die
+            * Mail, die es dem Kunden mitschickt, ging wegen eines falschen
+            * Schluesselworts **gar nicht** raus. Deshalb ist dieser Knopf
+            * mehr als Bequemlichkeit — er ist der Weg, das Dokument
+            * nachzureichen.
+            *
+            * Kein Vorabpruefen, ob es das PDF gibt: Das waere ein zweiter
+            * Aufruf fuer jede Betriebsansicht. Fehlt es, sagt der Server 404,
+            * und der Knopf sagt es weiter. */}
+          {projectId && (
+            <Card padding="md">
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Auftragsbestätigung
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Entsteht automatisch bei der Zahlung. Falls sie beim Kunden
+                nie angekommen ist, können Sie sie hier herunterladen und
+                nachreichen.
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_BASE_URL}/api/projects/${projectId}/auftragsbestaetigung`,
+                      { headers: { Authorization: `Bearer ${token}` } });
+                    if (r.status === 404) { toast.error('Für dieses Projekt liegt keine Auftragsbestätigung vor.'); return; }
+                    if (!r.ok) throw new Error(`Status ${r.status}`);
+                    const blob = await r.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'KOMPAGNON-Auftragsbestaetigung.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    toast.error(`Download fehlgeschlagen: ${e.message}`);
+                  }
+                }}
+                style={{ padding: '8px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                PDF herunterladen
+              </button>
+            </Card>
+          )}
+        </>
       )}
 
       {/* QR-CODE TAB */}
@@ -2305,6 +2485,30 @@ export default function LeadProfile() {
                   </a>
                 )}
               </Card>
+              {/* Die Konten dieses Betriebs — seit dem 25.08.2026 koennen es
+                * mehrere sein. Der Reiter hiess schon „Zugang"; er zeigte
+                * bis dahin nur den QR-Einmallink, nicht die Menschen. */}
+              <Zugaenge leadId={leadId} token={token} />
+
+              {/* Der Safe fuer Hosting-, CMS- und Domainzugaenge (26.08.2026,
+                * L-95). `CredentialsSafe.jsx` lag seit jeher im Quellbaum und
+                * war von niemandem importiert — die Routen dahinter gibt es,
+                * verschluesselt, samt `CREDENTIALS_KEY` in der
+                * Wiederherstellungspruefung; nur keinen Bildschirm.
+                *
+                * **Warum hier und nicht im Projektbildschirm:** Dieser Reiter
+                * sammelt, was mit Zugang zu tun hat — der Einmallink fuer den
+                * Kunden, die Menschen mit Konto, und jetzt die Zugaenge zu
+                * fremden Systemen. Drei Richtungen desselben Themas an einer
+                * Stelle statt an dreien.
+                *
+                * Der Safe haengt am **Projekt**; ohne Projekt gibt es nichts
+                * zu hinterlegen. */}
+              {projectId && (
+                <Card>
+                  <CredentialsSafe projectId={projectId} token={token} />
+                </Card>
+              )}
             </div>
           </div>
         );

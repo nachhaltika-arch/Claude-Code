@@ -35,7 +35,43 @@ class UnsafeUrlError(ValueError):
     """Die URL zeigt auf ein nicht öffentlich erreichbares Ziel."""
 
 
+#: NAT64 nach RFC 6052 — das allgemeine Praefix und das netzeigene.
+#: In einem Netz ohne IPv4 verpackt der Aufloeser die echte IPv4 in die
+#: letzten 32 Bit einer IPv6-Adresse.
+NAT64_PRAEFIXE = (
+    ipaddress.ip_network("64:ff9b::/96"),
+    ipaddress.ip_network("64:ff9b:1::/48"),
+)
+
+
+def _hinter_nat64(ip):
+    """Die IPv4, die in einer NAT64-Adresse steckt — oder `None`.
+
+    **Warum das noetig ist (26.08.2026).** `ganz-neu.de` loeste auf diesem
+    Rechner auf `64:ff9b::88f3:515c` auf: `88f3:515c` ist `136.243.81.92`,
+    ein gewoehnlicher Server. Python fuehrt das Praefix als `is_reserved`,
+    und der Schutz lehnte deshalb ab — mit der Begruendung „zeigt auf eine
+    interne Adresse", also dem Gegenteil dessen, was zutraf.
+
+    In einem Netz mit DNS64 (Mobilfunk, viele Firmennetze) haette die
+    Analyse damit **jede** Kundenwebsite abgelehnt. Der Schutz urteilte
+    ueber die Huelle statt ueber das Ziel.
+
+    Ausgepackt wird nur; beurteilt wird danach nach denselben Regeln.
+    `64:ff9b::7f00:1` traegt `127.0.0.1` und bleibt gesperrt.
+    """
+    if not isinstance(ip, ipaddress.IPv6Address):
+        return None
+    if not any(ip in netz for netz in NAT64_PRAEFIXE):
+        return None
+    return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+
+
 def _is_public_ip(ip: ipaddress._BaseAddress) -> bool:
+    innen = _hinter_nat64(ip)
+    if innen is not None:
+        return _is_public_ip(innen)
+
     return not (
         ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast
         or ip.is_reserved or ip.is_unspecified

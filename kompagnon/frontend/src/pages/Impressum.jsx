@@ -93,8 +93,15 @@ export default function Impressum() {
 
           <Section title="Haftung für Inhalte">
             <p>
-              Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.
-              Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen
+              {/* **DDG statt TMG, 25.08.2026.** Das Telemediengesetz ist am
+                  14.05.2024 durch das Digitale-Dienste-Gesetz abgelöst worden;
+                  die Haftungsregeln der §§ 7 bis 10 TMG stehen seither in den
+                  §§ 7 bis 10 DDG. Ein Impressum, das ein aufgehobenes Gesetz
+                  zitiert, ist genau der Befund, den unser eigener Standard bei
+                  Kundenseiten benennt (Kapitel 5.4). **Zur anwaltlichen
+                  Bestätigung vorgemerkt — siehe B2 in OFFENE-PUNKTE-BUCH.** */}
+              Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.
+              Nach §§ 8 bis 10 DDG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen
               oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
             </p>
             <p>

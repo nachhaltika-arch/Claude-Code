@@ -52,7 +52,9 @@ def superadmin_headers(client, app):
         db.execute(text("DELETE FROM users WHERE email = 'super-l19@example.com'"))
         db.commit()
         db.add(User(email="super-l19@example.com", password_hash=hash_password("egal"),
-                    role="superadmin", is_active=True))
+                    role="superadmin", is_active=True,
+                    # Der Bestaetigungsriegel (27.08.2026) liest dieses Feld.
+                    is_verified=True))
         db.commit()
     finally:
         db.close()

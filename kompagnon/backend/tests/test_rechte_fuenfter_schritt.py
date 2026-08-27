@@ -136,7 +136,11 @@ class TestRechtepflege:
             db.commit()
             db.add(User(email="super-l05@example.com",
                         password_hash=hash_password("egal"),
-                        role="superadmin", is_active=True))
+                        role="superadmin", is_active=True,
+                        # Seit dem 27.08.2026 liest die Anmeldung dieses
+                        # Feld (Bestaetigungsriegel). Ein Testkonto steht
+                        # fuer einen eingerichteten Zugang.
+                        is_verified=True))
             db.commit()
         finally:
             db.close()

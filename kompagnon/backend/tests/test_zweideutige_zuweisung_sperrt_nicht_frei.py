@@ -55,7 +55,7 @@ def zweideutige_lage(app):
         # Der Fremde: Sein Konto bekommt irgendeine Nummer.
         fremder = User(email="fremder-l54@example.com",
                        password_hash=hash_password("egal"), role="kunde",
-                       is_active=True)
+                       is_active=True, is_verified=True)
         db.add(fremder)
         db.commit()
         db.refresh(kurs)
@@ -71,7 +71,7 @@ def zweideutige_lage(app):
         # Dem Betrieb gehoert ein anderes Konto.
         eigner = User(email="eigner-l54@example.com",
                       password_hash=hash_password("egal"), role="kunde",
-                      lead_id=fremder.id, is_active=True)
+                      lead_id=fremder.id, is_active=True, is_verified=True)
         db.add(eigner)
         db.commit()
 
@@ -148,7 +148,7 @@ def test_eine_eindeutige_zuweisung_wirkt_weiterhin(client, app):
                              is_published=True)
         nutzer = User(email="sauber-l54@example.com",
                       password_hash=hash_password("egal"), role="kunde",
-                      is_active=True)
+                      is_active=True, is_verified=True)
         db.add_all([kurs, nutzer])
         db.commit()
         db.refresh(kurs)

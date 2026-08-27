@@ -76,7 +76,14 @@ ERLAUBTE_BEREICHE = {
 #: 26.08.2026, Posteingang: 51 — `POST /api/posteingang/brevo/{secret}`.
 #: Brevo signiert eingehende Mails nicht; das Geheimnis steht im Pfad, wie
 #: beim `mail-events`-Webhook, von dem dieser Weg die Absicherung uebernimmt.
-OFFEN_ERWARTET = 51
+#: 27.08.2026: 52 — `POST /api/auth/resend-verification`. Sie **muss** offen
+#:   sein: Wer sie braucht, kommt gerade nicht durch die Anmeldung (der
+#:   Bestaetigungsriegel haelt ihn auf). Eine Anmeldepruefung davor waere die
+#:   verschlossene Tuer, hinter der der Schluessel liegt. Abgesichert ist sie
+#:   anders — gedrosselt je Herkunft, und ihre Antwort ist fuer „gibt es
+#:   nicht", „schon bestaetigt" und „gesendet" **dieselbe**, damit sie kein
+#:   Adressverzeichnis wird.
+OFFEN_ERWARTET = 52
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

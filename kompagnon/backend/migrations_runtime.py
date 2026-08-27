@@ -1330,6 +1330,22 @@ def run_migrations():
         # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
         # Sinn der Zusammenlegung und keine Nebenwirkung.
         "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
+        # ── 27.08.2026: der Bestaetigungsriegel bekommt einen Altbestand ──
+        # Ab heute sperrt die Anmeldung Konten ohne bestaetigte Adresse aus
+        # (Entscheidung David). Ohne diese Zeile waere jedes bestehende
+        # selbstregistrierte **und jedes eingeladene** Konto (L-127) ab dem
+        # naechsten Deploy draussen — beide entstehen mit
+        # `is_verified = false`.
+        #
+        # **Der Stichtag steht fest und ist keine Rechnung.** Ein gleitendes
+        # „alles aelter als 30 Tage" wuerde bei jedem Start neue Konten
+        # mitnehmen; die Migration liefe dem Riegel hinterher und haette ihn
+        # nach einem Monat lautlos abgeschafft. Deshalb ein Datum, und
+        # deshalb dasselbe Datum wie in `services/rollen.RIEGEL_STICHTAG` —
+        # `tests/test_riegel_unbestaetigt.py` haelt beide zusammen.
+        """UPDATE users SET is_verified = true
+            WHERE is_verified = false
+              AND created_at < TIMESTAMP '2026-08-28 00:00:00'""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

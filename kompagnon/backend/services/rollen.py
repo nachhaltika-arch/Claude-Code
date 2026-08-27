@@ -84,6 +84,20 @@ VORGABE = "mitarbeiter"
 #: dass diese hier **nie** zum Innendienst gehört.
 SELBSTREGISTRIERUNG = "kunde"
 
+#: Der Stichtag des Bestaetigungsriegels (Entscheidung David, 27.08.2026).
+#:
+#: Ab diesem Tag sperrt `POST /api/auth/login` Konten ohne bestaetigte
+#: E-Mail-Adresse aus. Alles, was **vorher** entstanden ist, hebt eine
+#: Migration einmalig auf `is_verified = true` — sonst haette der Riegel
+#: jedes bestehende selbstregistrierte und jedes eingeladene Konto
+#: ausgesperrt, und wie viele das sind, laesst sich von hier aus nicht
+#: messen (die Produktivdatenbank ist nicht abfragbar).
+#:
+#: **Fest und nicht gleitend.** Ein „alles aelter als 30 Tage" wuerde bei
+#: jedem Serverstart neue Konten mitnehmen — die Migration liefe dem Riegel
+#: hinterher und haette ihn nach einem Monat lautlos abgeschafft.
+RIEGEL_STICHTAG = "2026-08-28"
+
 
 def rolle_normalisieren(rolle: str | None) -> str | None:
     """Einen Rollennamen auf den heutigen Stand bringen.

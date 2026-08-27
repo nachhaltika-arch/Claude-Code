@@ -312,6 +312,64 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
     }
 
 
+class ResendVerification(BaseModel):
+    email: str
+
+
+@router.post("/resend-verification")
+def resend_verification(req: ResendVerification, request: Request,
+                        db: Session = Depends(get_db)):
+    """Die Bestaetigungsmail noch einmal.
+
+    **Ein Riegel ohne Ersatzschluessel ist keine Sicherheitsmassnahme,
+    sondern ein Ausfall mit Ankuendigung.** Wer seine Mail geloescht hat oder
+    sie nie bekam, kaeme sonst nie wieder herein.
+
+    **Die Antwort ist immer dieselbe** — fuer „gibt es nicht", „schon
+    bestaetigt" und „gesendet". Sonst ist dieser Endpunkt ein Verzeichnis:
+    Wer eine Adresse durchprobiert, liest an der Antwort ab, ob sie bei uns
+    liegt.
+
+    **Und er ist gedrosselt**, sonst ist er ein Knopf, mit dem jeder ein
+    fremdes Postfach flutet.
+    """
+    from services.registrierungsschutz import (herkunft_aus, vermerken,
+                                               zu_viele)
+
+    herkunft = herkunft_aus(request)
+    if zu_viele(herkunft):
+        raise HTTPException(
+            429, "Zu viele Anfragen von dieser Verbindung. "
+                 "Bitte spaeter erneut versuchen.")
+    vermerken(herkunft)
+
+    immergleich = {"message": "Falls ein unbestaetigtes Konto zu dieser "
+                              "Adresse gehoert, ist die Mail unterwegs."}
+
+    user = db.query(User).filter(
+        User.email == req.email.lower().strip()).first()
+    if not user or user.is_verified:
+        return immergleich
+
+    if not user.email_verify_token:
+        user.email_verify_token = generate_reset_token()
+        db.commit()
+
+    from services.email import send_verify_email
+
+    try:
+        send_verify_email(user.email, user.email_verify_token,
+                          " ".join(filter(None, [user.first_name,
+                                                 user.last_name])))
+    except Exception as fehler:            # noqa: BLE001
+        # Der Fehler gehoert ins Protokoll, nicht in die Antwort — die
+        # verraet sonst doch, dass es die Adresse gibt.
+        logger.warning("Erneute Bestaetigungsmail an %s fehlgeschlagen: %s",
+                       user.email, fehler)
+
+    return immergleich
+
+
 @router.post("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email_verify_token == token).first()
@@ -336,6 +394,26 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, "E-Mail oder Passwort falsch")
     if not user.is_active:
         raise HTTPException(403, "Konto deaktiviert")
+
+    # **Der Bestaetigungsriegel** (Entscheidung David, 27.08.2026). Bis dahin
+    # war `is_verified` eine Auskunft, auf die sich nichts stuetzte — ein Feld
+    # ohne Wirkung.
+    #
+    # **Er steht hier und nicht weiter oben, und das ist keine Kosmetik.**
+    # Vor der Passwortpruefung unterschiede sich die Antwort auf eine
+    # unbekannte Adresse (401) von der auf eine bekannte, unbestaetigte (403)
+    # — und wer das ausnutzt, probiert Adressen durch und liest ab, welche
+    # bei uns liegen. Wer bis hierher kommt, kennt das Passwort ohnehin.
+    #
+    # Wen er **nicht** aussperrt, steht in `tests/test_riegel_unbestaetigt.py`:
+    # den Altbestand (Migration mit festem Stichtag) und jeden, der einen Link
+    # aus seinem Postfach eingeloest hat (`reset-password` setzt
+    # `is_verified`) — das rettet die Einladung aus L-127.
+    if not user.is_verified:
+        raise HTTPException(
+            403, "Bitte bestaetigen Sie zuerst Ihre E-Mail-Adresse. "
+                 "Den Link finden Sie in Ihrem Postfach — oder fordern Sie "
+                 "ihn ueber „Bestaetigungsmail erneut senden“ neu an.")
 
     # 2FA check
     if user.totp_enabled:
@@ -457,6 +535,12 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     user.password_hash = hash_password(req.new_password)
     user.password_reset_token = None
     user.password_reset_expires = None
+    # **Wer einen Link aus seinem Postfach einloest, hat bewiesen, dass ihm
+    # das Postfach gehoert** — genau das prueft eine Bestaetigungsmail auch
+    # (27.08.2026). Ohne diese Zeile sperrte der Riegel jeden eingeladenen
+    # Kollegen aus: Der entsteht ohne Passwort und mit `is_verified = false`
+    # und kommt **nur** ueber diesen Weg herein (L-127).
+    user.is_verified = True
     db.commit()
     return {"message": "Passwort erfolgreich geaendert"}
 

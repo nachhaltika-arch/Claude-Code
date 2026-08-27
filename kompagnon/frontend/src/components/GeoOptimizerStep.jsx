@@ -61,6 +61,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
   const [nennungLaeuft, setNennungLaeuft] = useState(false);
   const [nennungFehler, setNennungFehler] = useState('');
   const [verlauf, setVerlauf] = useState(null);
+  const [wirkung, setWirkung] = useState(null);
 
   // ── Das laufende Abo (26.08.2026, L-105) ──────────────────────────
   // `POST /api/geo-payments/{id}/cancel` gibt es seit dem Bau des Add-ons
@@ -155,6 +156,26 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       if (resp.ok) setVerlauf(await resp.json());
     } catch (err) {
       console.error('Verlauf der Nennungen nicht ladbar:', err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, token]);
+
+  // **Der Wirkungsbericht nach 60 Tagen (GEO-01, Position 7).** Er war seit
+  // dem 25.08.2026 gebaut und hatte bis zum 27.08. **keinen Aufrufer** — der
+  // vierte Fund derselben Art in dieser Datei-Familie. Er rechnet nur auf
+  // vorhandenen Daten, kostet also nichts und darf beim Oeffnen des Reiters
+  // geladen werden; die Nennungsmessung darunter kostet Geld und bleibt am
+  // Knopf.
+  const ladeWirkung = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/wirkungsbericht`, { headers });
+      // 404 heisst „fuer dieses Projekt gibt es keine GEO-Analyse" — kein
+      // Fehler, sondern eine Auskunft. Der Abschnitt bleibt dann einfach weg.
+      if (resp.ok) setWirkung(await resp.json());
+    } catch (err) {
+      console.error('Wirkungsbericht nicht ladbar:', err);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token]);
@@ -430,6 +451,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={() => {
               setActiveTab(tab.id);
               if (tab.id === 'monitoring' && !monitoring) loadMonitoring();
+              if (tab.id === 'monitoring' && !wirkung) ladeWirkung();
               if (tab.id === 'nennung' && !verlauf) ladeVerlauf();
             }}
             style={{
@@ -681,6 +703,81 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
 
       {activeTab === 'monitoring' && (
         <div>
+          {/* **Der Wirkungsbericht nach 60 Tagen.** Er steht ueber dem
+              Monatsverlauf, weil er die Frage beantwortet, die der Kunde
+              stellt — „hat es etwas gebracht" —, waehrend der Verlauf
+              darunter die Rohdaten zeigt.
+
+              Ist er noch nicht faellig, steht **der Grund** da und nicht
+              nichts: Eine leere Stelle liest sich wie ein Fehler, und wer
+              den Bericht sucht, sucht dann im Werkzeug statt im Kalender. */}
+          {wirkung && (
+            <div style={{ border: '1px solid #E5E7EB', borderRadius: 8,
+                          padding: 14, marginBottom: 16,
+                          background: wirkung.faellig ? 'var(--bg-surface)' : 'transparent' }}>
+              <h4 style={{ fontSize: 14, margin: '0 0 8px' }}>
+                Wirkungsbericht (60 Tage)
+              </h4>
+
+              {!wirkung.faellig ? (
+                <p style={{ color: '#6B7280', fontSize: 13, margin: 0, lineHeight: 1.6 }}>
+                  {wirkung.grund}.
+                </p>
+              ) : (
+                <>
+                  {wirkung.klartext && (
+                    <p style={{ fontSize: 13, margin: '0 0 10px', lineHeight: 1.7 }}>
+                      {wirkung.klartext}
+                    </p>
+                  )}
+                  <div style={{ display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                gap: 10 }}>
+                    {/* Zwei Groessen, zwei Kaesten — bewusst nicht zu einer Zahl
+                        verrechnet. Den GEO-Wert stellen wir her; ob ein
+                        Assistent den Betrieb nennt, entscheidet dessen
+                        Anbieter. Eine gemeinsame Zahl verkaufte eine Wirkung,
+                        die niemand zusichern kann. */}
+                    {[
+                      { titel: 'GEO-Wert', daten: wirkung.geo_wert,
+                        grund: wirkung.geo_wert_grund,
+                        fuss: 'unser Werk' },
+                      { titel: 'Nennungen', daten: wirkung.nennungen,
+                        grund: wirkung.nennungen_grund,
+                        fuss: 'entscheiden die Anbieter' },
+                    ].map(({ titel, daten, grund, fuss }) => (
+                      <div key={titel} style={{ border: '1px solid #F3F4F6',
+                                                borderRadius: 6, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, textTransform: 'uppercase',
+                                      letterSpacing: '.07em', color: '#6B7280',
+                                      fontWeight: 700 }}>{titel}</div>
+                        {daten ? (
+                          <div style={{ marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>
+                            <span style={{ fontSize: 20, fontWeight: 800 }}>
+                              {daten.vorher} → {daten.heute}
+                            </span>
+                            <span style={{ fontSize: 13, marginLeft: 8,
+                                           color: daten.veraenderung > 0 ? 'var(--status-success-text)'
+                                                : daten.veraenderung < 0 ? 'var(--status-danger-text)'
+                                                : '#6B7280' }}>
+                              {daten.veraenderung > 0 ? '+' : ''}{daten.veraenderung}
+                            </span>
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: 12, color: '#6B7280', margin: '6px 0 0',
+                                      lineHeight: 1.6 }}>
+                            {grund || 'Noch keine Vergleichsdaten.'}
+                          </p>
+                        )}
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>{fuss}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {!monitoring ? (
             <p style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>Wird geladen...</p>
           ) : monitoring.history.length === 0 ? (

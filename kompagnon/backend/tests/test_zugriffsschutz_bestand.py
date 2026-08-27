@@ -83,7 +83,11 @@ ERLAUBTE_BEREICHE = {
 #:   anders — gedrosselt je Herkunft, und ihre Antwort ist fuer „gibt es
 #:   nicht", „schon bestaetigt" und „gesendet" **dieselbe**, damit sie kein
 #:   Adressverzeichnis wird.
-OFFEN_ERWARTET = 52
+#: 27.08.2026, spaet: 51 — `GET /api/audit/analysen/anzahl` entfernt. Er
+#:   speiste den Werbesatz „Ueber X Handwerksbetriebe analysiert" im Widget;
+#:   der Satz kam am 24.08. weg (L-65/L-95), der Hook dazu am 27.08. Damit
+#:   war der Endpunkt oeffentlich, ungerufen und ohne Zweck.
+OFFEN_ERWARTET = 51
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

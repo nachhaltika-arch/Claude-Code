@@ -33,6 +33,7 @@ import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
 import EmailBestaetigen from './pages/EmailBestaetigen';
 import Shop from './pages/Shop';
+import ShopDanke from './pages/ShopDanke';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -196,6 +197,7 @@ function App() {
               Angemeldete auf das Dashboard um — hier waere das falsch.
               Wer schon Kunde ist, darf ein Workbook kaufen. */}
           <Route path="/shop" element={<Shop />} />
+          <Route path="/shop/danke" element={<ShopDanke />} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
           <Route path="/portal/login"  element={<PortalLogin />} />

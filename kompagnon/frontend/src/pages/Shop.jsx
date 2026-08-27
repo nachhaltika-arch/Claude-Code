@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
+import KaufFormular from '../components/KaufFormular';
 
 /**
  * Die öffentliche Verkaufsseite für die digitalen Produkte (L-100, ORDERS_02).
@@ -39,6 +40,8 @@ const euro = (wert) =>
 export default function Shop() {
   const [produkte, setProdukte] = useState(null);
   const [fehler, setFehler] = useState('');
+  //: Welches Produkt gerade gekauft wird — `null` heisst: keins.
+  const [kauft, setKauft] = useState(null);
 
   useEffect(() => {
     let abgemeldet = false;
@@ -86,6 +89,19 @@ export default function Shop() {
       </header>
 
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px 64px' }}>
+        {/* Stripe leitet bei Abbruch hierher zurueck. Ohne diesen Hinweis
+            landet der Kaeufer wortlos wieder am Anfang und weiss nicht, ob
+            etwas passiert ist. */}
+        {new URLSearchParams(window.location.search).get('abgebrochen') && (
+          <div style={{
+            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+            borderRadius: 8, padding: '12px 14px', fontSize: 14, marginBottom: 16,
+            color: 'var(--text-secondary)',
+          }}>
+            Der Bezahlvorgang wurde abgebrochen — es wurde nichts berechnet.
+          </div>
+        )}
+
         {fehler && (
           <div role="alert" style={{
             background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
@@ -159,22 +175,22 @@ export default function Shop() {
                   ein Verkauf an Verbraucher ohne Widerrufsbelehrung ein
                   Rechtsverstoß ist und die Widerrufsfrist dann nicht abläuft. */}
               <div style={{ marginTop: 'auto', paddingTop: 12 }}>
-                <button
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  style={{
-                    width: '100%', border: 'none', borderRadius: 8, padding: '12px 20px',
-                    fontSize: 15, fontWeight: 700, minHeight: 48,
-                    background: 'var(--bg-app)', color: 'var(--text-tertiary)',
-                    cursor: 'not-allowed',
-                  }}
-                >
-                  Kaufen
-                </button>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0', textAlign: 'center' }}>
-                  In Kürze verfügbar
-                </p>
+                {kauft === p.slug ? (
+                  <KaufFormular produkt={p} onAbbrechen={() => setKauft(null)} />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setKauft(p.slug)}
+                    style={{
+                      width: '100%', border: 'none', borderRadius: 8, padding: '12px 20px',
+                      fontSize: 15, fontWeight: 700, minHeight: 48,
+                      background: DARK, color: 'var(--text-inverse)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Kaufen
+                  </button>
+                )}
               </div>
             </article>
           ))}

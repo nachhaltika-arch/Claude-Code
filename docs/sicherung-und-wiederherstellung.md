@@ -254,3 +254,22 @@ erste Mal startet.
 - `CMS_ENCRYPTION_KEY` ist **produktiv weiterhin nicht gesetzt** (Protokoll
   27.08., 10:07). Folgenlos, solange `customers` produktiv 0 Zeilen hat — aber
   die Zeile in § 5 bleibt offen.
+
+### Nachtrag: Staging wieder geleert — und was dabei auffiel
+
+Die Probe hinterließ echte Kundendaten in Staging, dazu zwei neu erzeugte
+Demo-Konten. Weil `admin@kompagnon.de` **aus den Produktivdaten** stammte,
+öffneten Produktiv-Zugangsdaten damit eine schwächer geschützte Umgebung.
+Deshalb am selben Tag geleert: `DROP SCHEMA`, Neustart, Migrationen und
+Saatgut laufen von selbst. Danach **70 Tabellen, 209 Zeilen**, ausschließlich
+Saatgut — `support_tickets` 2.351 → 0, `crawl_results` 1.552 → 0,
+`audit_results` 150 → 0.
+
+**Merksatz für die nächste Probe:** Sie ist erst zu Ende, wenn die Testumgebung
+wieder leer ist. Der Auszug wurde an allen drei Orten gelöscht (Produktiv-Dienst,
+Arbeitsplatz, Staging-Dienst).
+
+**Und der Wiederaufbau gab einen Befund her**, den kein Nachdenken gefunden
+hätte: Produktiv hat **73** Tabellen, ein frisch aufgebautes Staging **70**.
+Die Differenz — `revoked_tokens`, `seo_analyses`, `schema_migrations` — hat im
+Backend-Quelltext **null Verweise**. Steht als L-146 im Lagebild.

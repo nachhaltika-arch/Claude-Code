@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { aufTaste } from '../utils/tastaturBedienung';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+// Die API-Basis kommt aus `config.js` und wird hier **nicht** noch einmal
+// aus der Umgebung gelesen (L-145). Bis zum 28.08.2026 stand hier
+// `process.env.REACT_APP_API_URL || ""` — und `""` heisst relative Adresse,
+// also die eigene Herkunft. Fehlt die Variable, haetten die fuenf Aufrufe
+// dieser Komponente an die Static Site gefragt und HTML statt JSON bekommen:
+// genau der Produktivausfall vom selben Tag, nur dauerhaft und still.
+import API_BASE_URL from '../config';
 
 export default function NewProjectModal({ onClose, onProjectCreated }) {
   const token = localStorage.getItem("kompagnon_token");

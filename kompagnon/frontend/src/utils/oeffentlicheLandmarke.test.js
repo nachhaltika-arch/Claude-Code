@@ -113,3 +113,21 @@ describe('tabindex, accesskeys, meta-refresh', () => {
     expect(dateien.length).toBeGreaterThan(50);
   });
 });
+
+describe('meta-viewport — Zoomen bleibt erlaubt', () => {
+  const html = fs.readFileSync(
+    path.join(WURZEL, '..', 'public', 'index.html'), 'utf8');
+
+  test('es gibt überhaupt ein viewport-meta', () => {
+    expect(html).toMatch(/<meta\s+name="viewport"/);
+  });
+
+  test('das Zoomen ist nicht gesperrt', () => {
+    // `user-scalable=no` und `maximum-scale=1` sind die beiden Wege, einer
+    // Sehbehinderung das Vergrössern zu verbieten. Beide sind schnell
+    // eingefügt, weil sie auf dem Telefon „ordentlicher" aussehen — und
+    // genau deshalb steht hier ein Test und kein Kommentar.
+    expect(html).not.toMatch(/user-scalable\s*=\s*no/i);
+    expect(html).not.toMatch(/maximum-scale\s*=\s*1\b/i);
+  });
+});

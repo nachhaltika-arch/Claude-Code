@@ -214,7 +214,8 @@
     --brand-primary:        var(--kc-mid);
     --text-on-brand:        #0f1c20;
     --brand-primary-light:  #1a3d4a;
-    --brand-primary-mid:    #2a5a6a;
+    /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
+    --brand-primary-mid:    #3f9fb2;
     --brand-primary-dark:   #30a0b8;
     --brand-primary-deeper: #208898;
 
@@ -262,7 +263,8 @@
   --brand-primary:        var(--kc-mid);
   --text-on-brand:        #0f1c20;
   --brand-primary-light:  #1a3d4a;
-  --brand-primary-mid:    #2a5a6a;
+  /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
+  --brand-primary-mid:    #3f9fb2;
   --brand-primary-dark:   #30a0b8;
   --brand-primary-deeper: #208898;
 

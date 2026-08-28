@@ -61,19 +61,65 @@ def browser_erwuenscht() -> bool:
             in ("1", "true", "yes", "on", "ja"))
 
 
+def _browserdatei_vorhanden() -> bool:
+    """Liegt die ausführbare Browserdatei da — nicht nur das Python-Paket?
+
+    **Warum das getrennt geprüft wird (L-147, 28.08.2026).** Bis heute prüfte
+    `browser_verfuegbar()` allein, ob sich `playwright.async_api` importieren
+    lässt. Das Paket lag auf beiden Diensten vor, der **Browser** nicht:
+    `/opt/render/.cache/ms-playwright/` existierte gar nicht. `/health` meldete
+    trotzdem `bereit: true`, während jeder Browserlauf mit „Executable doesn't
+    exist" scheiterte — und mit ihm der Bildschirmabzug und die drei
+    Design-Kriterien, die daran hängen.
+
+    Geprüft wird die Datei und **kein** Probestart: Ein Browserstart in
+    `/health` kostet Sekunden und liefe in einem Endpunkt, den ein
+    Überwachungsdienst im Minutentakt abruft.
+    """
+    import glob
+    from pathlib import Path
+
+    pfad = os.getenv("PLAYWRIGHT_BROWSERS_PATH", "").strip()
+    if pfad == "0":
+        # `0` heißt: neben das Paket, damit die Dateien den Build überleben.
+        try:
+            import playwright
+            wurzeln = [Path(playwright.__file__).parent /
+                       "driver" / "package" / ".local-browsers"]
+        except Exception:           # noqa: BLE001
+            return False
+    elif pfad:
+        wurzeln = [Path(pfad)]
+    else:
+        wurzeln = [Path.home() / ".cache" / "ms-playwright",
+                   Path("/opt/render/.cache/ms-playwright")]
+
+    for wurzel in wurzeln:
+        if not wurzel.is_dir():
+            continue
+        for muster in ("chromium*/chrome-linux*/headless_shell",
+                       "chromium*/chrome-linux*/chrome",
+                       "chromium*/chrome-mac*/**/Chromium",
+                       "chromium*/chrome-win/chrome.exe"):
+            if glob.glob(str(wurzel / muster), recursive=True):
+                return True
+    return False
+
+
 def browser_verfuegbar() -> bool:
-    """Liegt Playwright überhaupt vor?
+    """Liegt Playwright vor — Paket **und** Browserdatei?
 
     Getrennt von `browser_erwuenscht`, damit die Auskunft zwei verschiedene
     Fragen beantworten kann: „nicht eingeschaltet" und „eingeschaltet, aber
     nicht installiert" sind verschiedene Zustände, und der zweite ist ein
-    Einrichtungsfehler, der auffallen soll.
+    Einrichtungsfehler, der auffallen soll. **Bis zum 28.08.2026 fiel er
+    trotzdem nicht auf**, weil hier nur der Import geprüft wurde.
     """
     try:
         import playwright.async_api  # noqa: F401
     except Exception:               # noqa: BLE001
         return False
-    return True
+    return _browserdatei_vorhanden()
 
 
 def _ziel_ist_oeffentlich(url: str) -> bool:

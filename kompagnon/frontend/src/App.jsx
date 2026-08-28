@@ -1,4 +1,5 @@
 import React from 'react';
+import OeffentlicheSeite from './components/ui/OeffentlicheSeite';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -184,25 +185,25 @@ function App() {
        <VersandProvider>
         <Routes>
           {/* ── Auth-Seiten — kein Marketing mehr ── */}
-          <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          <Route path="/login"          element={<PublicRoute><OeffentlicheSeite><Login /></OeffentlicheSeite></PublicRoute>} />
+          <Route path="/register"       element={<PublicRoute><OeffentlicheSeite><Register /></OeffentlicheSeite></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><OeffentlicheSeite><ResetPassword /></OeffentlicheSeite></PublicRoute>} />
           {/* Das Ziel des Links aus der Bestaetigungsmail. Der Endpunkt
               dahinter gab es seit jeher, mit keinem einzigen Aufrufer
               (27.08.2026). Nicht `PublicRoute`: Wer angemeldet ist und den
               Link aus seinem Postfach oeffnet, wuerde sonst weggeleitet,
               ohne dass seine Adresse je bestaetigt wird. */}
-          <Route path="/e-mail-bestaetigen" element={<EmailBestaetigen />} />
+          <Route path="/e-mail-bestaetigen" element={<OeffentlicheSeite><EmailBestaetigen /></OeffentlicheSeite>} />
           {/* Die oeffentliche Verkaufsseite fuer die digitalen Produkte
               (L-100, ORDERS_02). **Ohne `PublicRoute`**: Die leitet
               Angemeldete auf das Dashboard um — hier waere das falsch.
               Wer schon Kunde ist, darf ein Workbook kaufen. */}
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/shop/danke" element={<ShopDanke />} />
+          <Route path="/shop" element={<OeffentlicheSeite><Shop /></OeffentlicheSeite>} />
+          <Route path="/shop/danke" element={<OeffentlicheSeite><ShopDanke /></OeffentlicheSeite>} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
-          <Route path="/portal/login"  element={<PortalLogin />} />
-          <Route path="/kundenportal"  element={<PortalLogin />} />
+          <Route path="/portal/login"  element={<OeffentlicheSeite><PortalLogin /></OeffentlicheSeite>} />
+          <Route path="/kundenportal"  element={<OeffentlicheSeite><PortalLogin /></OeffentlicheSeite>} />
 
           {/* ── Rechtliches ──
             * Beide Seiten lagen seit jeher in `pages/`, hingen aber an keiner
@@ -210,10 +211,10 @@ function App() {
             * des Kundenportals zeigte stattdessen auf `kompagnon.eu` — eine
             * dritte Domain neben der, auf der der Kunde gerade stand
             * (UX-19, 18.08.2026). */}
-          <Route path="/impressum"        element={<Impressum />} />
-          <Route path="/datenschutz"      element={<Datenschutz />} />
-          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
-          <Route path="/portal/:token" element={<CustomerPortal />} />
+          <Route path="/impressum"        element={<OeffentlicheSeite><Impressum /></OeffentlicheSeite>} />
+          <Route path="/datenschutz"      element={<OeffentlicheSeite><Datenschutz /></OeffentlicheSeite>} />
+          <Route path="/barrierefreiheit" element={<OeffentlicheSeite><Barrierefreiheit /></OeffentlicheSeite>} />
+          <Route path="/portal/:token" element={<OeffentlicheSeite><CustomerPortal /></OeffentlicheSeite>} />
 
           {/* ── Der Bestellweg ──────────────────────────────────────────────
             * Bis zum 21.08.2026 gab es diese vier Routen **nicht** (L-64).
@@ -234,11 +235,11 @@ function App() {
               ohne Anmeldung erreichbar war. Der Slug wird als
               `utm_source`/`utm_campaign` mitgeschickt, wenn die Adresse
               keine eigenen UTM-Parameter traegt. */}
-          <Route path="/kampagne/:slug"    element={<KampagneLandingPage />} />
-          <Route path="/paket/:slug"       element={<PaketSeite />} />
-          <Route path="/checkout"          element={<Checkout />} />
-          <Route path="/checkout/success"  element={<CheckoutSuccess />} />
-          <Route path="/checkout/:package" element={<Checkout />} />
+          <Route path="/kampagne/:slug"    element={<OeffentlicheSeite><KampagneLandingPage /></OeffentlicheSeite>} />
+          <Route path="/paket/:slug"       element={<OeffentlicheSeite><PaketSeite /></OeffentlicheSeite>} />
+          <Route path="/checkout"          element={<OeffentlicheSeite><Checkout /></OeffentlicheSeite>} />
+          <Route path="/checkout/success"  element={<OeffentlicheSeite><CheckoutSuccess /></OeffentlicheSeite>} />
+          <Route path="/checkout/:package" element={<OeffentlicheSeite><Checkout /></OeffentlicheSeite>} />
 
           {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──
             * `/abnahme/:projectId` stand hier, war aber nicht token-basiert:
@@ -248,7 +249,7 @@ function App() {
             * Seite. Entfernt am 17.08.2026. Die Abnahme wird im Innendienst
             * unter Projekt → Abnahme eingetragen. */}
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
-          <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
+          <Route path="/academy/certificate/:code" element={<OeffentlicheSeite><AcademyCertificate /></OeffentlicheSeite>} />
 
           {/* ── Der Projekt-Editor ────────────────────────────────────────
             * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.

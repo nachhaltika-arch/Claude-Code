@@ -3,6 +3,8 @@ Netlify-Anbindung für KOMPAGNON
 Funktionen: Site erstellen, HTML deployen, Domain setzen, Status, Löschen
 """
 import httpx
+
+from services.einwilligung import einwilligungs_block
 import os
 import zipfile
 import io
@@ -37,6 +39,7 @@ def _build_full_html(
     meta_description: str = "",
     company_name: str = "",
     jsonld: str = "",
+    tracking_skripte=None,
 ) -> str:
     """
     Builds a complete HTML document from a GrapesJS body fragment.
@@ -65,6 +68,16 @@ def _build_full_html(
         if jsonld and jsonld.strip() else ""
     )
 
+    # Einwilligung (L-144). Ohne Tracking-Skript liefert das Modul die leere
+    # Zeichenkette — eine Seite, die nichts verfolgt, braucht kein Banner, und
+    # ein Banner ohne Anlass trainiert Wegklicken.
+    #
+    # **Der Parameter ist der einzige Eingang fuer Tracking.** Wer Umami
+    # einbaut (L-142), kommt an der Sperre nicht vorbei: Das Skript wird als
+    # `type="text/plain"` ausgeliefert und erst nach der Zustimmung zu einem
+    # echten Skript-Element. Ein zweiter Weg waere ein zweites Versaeumnis.
+    einwilligung = einwilligungs_block(tracking_skripte)
+
     return f"""<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -80,6 +93,7 @@ def _build_full_html(
 </head>
 <body>
 {html}
+{einwilligung}
 </body>
 </html>"""
 

@@ -141,13 +141,13 @@ Preis dafür, es einmal wirklich zu wissen.
 | Datenbank liegt in Frankfurt, `Basic-256mb`, 1 GB, 18,7 % belegt | belegt, 16.08. |
 | Datenträger 1 GB auf `/var/data`, am Dienst nachgewiesen | belegt, 18.08. |
 | Am 18.08. null Dateien auf dem Datenträger | belegt |
-| `pg_dump` über die Render-Shell funktioniert ohne offene Inbound-Regel | plausibel, **nicht durchgeführt** |
+| `pg_dump` über die Render-Shell funktioniert ohne offene Inbound-Regel | **belegt, 28.08.** — 6 s, 28 MB |
 | Aufbewahrung der Wiederherstellungspunkte: **7 Tage** | belegt, 27.08. |
 | Logische Sicherungen laufen **nicht** automatisch | belegt, 27.08. |
 | Inbound-Regel der Produktiv-DB ist zu (`ipAllowList: null`) | belegt, 27.08. |
 | Keine Hochverfügbarkeit, keine Lesekopie | belegt, 27.08. |
 | `CMS_ENCRYPTION_KEY` produktiv gesetzt | **offen** — bei David |
-| Eine Wiederherstellung wurde je durchgeführt | **nein** |
+| Eine Wiederherstellung wurde je durchgeführt | **ja, 28.08.2026** — Weg B, 8 min 56 s, siehe § 7 |
 
 ## 6. Was am 27.08.2026 dazugekommen ist
 
@@ -173,3 +173,84 @@ liegt. Der Scheduler läuft und führt vierzehn Jobs; ein fünfzehnter wäre
 technisch der kleinste Teil. Die Frage ist nicht, ob es geht, sondern wohin
 der Auszug soll — und das ist eine Entscheidung über Ort, Kosten und
 Zugriffsrechte.
+
+---
+
+## 7. Die Probe ist gelaufen — 28.08.2026
+
+Sie war seit dem 19.08. der letzte offene Punkt aus L-11. Jetzt ist sie
+durchgeführt, und der Satz „eine Sicherung, die nie zurückgespielt wurde, ist
+eine Vermutung" gilt für diese Sicherung nicht mehr.
+
+### Die Zahlen
+
+| Schritt | Dauer | Beleg |
+|---|---|---|
+| `pg_dump` produktiv, `-Fc` | **6 s** | 28.010.097 Bytes, 73 Tabellen |
+| Auszug herunterladen | 35 s | — |
+| Auszug nach Staging hochladen | 51 s | Bytezahl unverändert |
+| `DROP SCHEMA public CASCADE` | 1 s | — |
+| `pg_restore` | **39 s** | **0 Fehlerzeilen** |
+| Backend neu bauen bis `live` | 89 s | `dep-da8lic3tqb8s73aipe40` |
+| **Gesamt bis `/health` grün** | **8 min 56 s** | 09:40:01 → 09:48:57 UTC |
+
+**Die ehrliche Zahl ist kleiner.** Die 86 Sekunden Übertragung entstanden nur,
+weil der Auszug über einen Arbeitsplatzrechner geleitet wurde — es gibt keine
+direkte Verbindung zwischen zwei Render-Diensten. Wer im Ernstfall innerhalb
+von Render zurückspielt, spart sie: **rund sieben Minuten**.
+
+### Was tatsächlich belegt ist
+
+Nicht „es lief durch", sondern der Inhalt: Vor dem Zurückspielen wurden die
+Zeilenzahlen **aller 73 Tabellen** auf beiden Seiten erhoben, danach erneut.
+
+- Staging vorher: 70 Tabellen, 1.014 Zeilen
+- Produktiv beim Auszug: 73 Tabellen, 5.089 Zeilen
+- Staging nachher: 73 Tabellen, 5.089 Zeilen — **keine einzige Abweichung**
+
+Der Unterschied vorher/nachher ist der Grund, warum das etwas heißt. Ein
+Vergleich, der auch bei misslungener Wiederherstellung gleich ausgesehen
+hätte, wäre kein Beleg gewesen.
+
+Danach: `/health` mit `startup_complete: true` und `startup_missing: []`, im
+Werkzeug angemeldet, Betriebsliste und Audits sichtbar — dieselben Werte wie
+produktiv.
+
+### Der Fund, den die Probe hergegeben hat
+
+**Eine Wiederherstellung ist nicht der letzte Zustand.** Nach dem Neustart war
+die Datenbank nicht mehr zeilengleich mit der Produktion:
+
+| Tabelle | nach `pg_restore` | nach dem Neustart |
+|---|---|---|
+| `leads` | 65 | 66 |
+| `products` | 9 | 12 |
+| `project_checklists` | 0 | 67 |
+| `projects` | 0 | 7 |
+| `users` | 8 | **10** |
+
+Das ist kein Fehler, sondern `main.py::_create_default_admin()`: Demo-Konten,
+ein Demo-Betrieb („Mustermann Sanitär GmbH") und die Checklisten werden beim
+Start angelegt. **Zwei zusätzliche Benutzerkonten** — das ist der Teil, der
+bei einer Wiederherstellung zählt.
+
+**Produktiv kann das nicht passieren, und auch das ist gemessen** statt
+angenommen: Die Funktion läuft nur bei `ENVIRONMENT` in
+`{development, dev, local, staging}`, und das Produktiv-Protokoll sagt
+wörtlich `⏭ Demo-User-Erstellung übersprungen (ENVIRONMENT=production)`.
+
+Der Vorgabewert der Variablen ist allerdings `"development"`. Wäre
+`ENVIRONMENT` produktiv **nicht** gesetzt, legte ein Neustart dort Demo-Konten
+an. Sie ist gesetzt — geprüft am 28.08. Wer eine Wiederherstellung in eine
+**neue** Instanz fährt, muss sie dort zuerst setzen, bevor das Backend das
+erste Mal startet.
+
+### Was die Probe nicht belegt
+
+- **Weg A** (Renders Wiederherstellungspunkt) wurde weiterhin nicht angeklickt.
+  Belegt ist Weg B, der eigene Auszug — die wertvollere Hälfte.
+- **Weg C**, der Datenträger, war nicht Teil der Probe. Seit L-141 liegen dort
+  Auftragsbestätigungen; für sie gibt es weiterhin keinen Wiederherstellungspunkt.
+- `CMS_ENCRYPTION_KEY` ist **produktiv weiterhin nicht gesetzt** (Protokoll
+  27.08., 10:07). Folgenlos, solange `customers` produktiv 0 Zeilen hat — aber
+  die Zeile in § 5 bleibt offen.

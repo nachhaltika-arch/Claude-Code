@@ -196,7 +196,10 @@ jobs:
 
       - name: Install backend
         working-directory: kompagnon/backend
-        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt
+        # `requirements-dev.txt` kommt seit dem 28.08. mit: Dieser Job fuehrt
+        # seit L-144 auch einen pytest-Lauf (die Consent-Sperre im Browser),
+        # und ohne die Entwicklungsabhaengigkeiten gibt es hier kein pytest.
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt -r requirements-dev.txt
 
       # Der Editor gibt nur den naechsten Schritt nach der letzten lueckenlosen
       # Kette frei. Ohne dieses Seed sind Sitemap, Wireframe und Style Guide

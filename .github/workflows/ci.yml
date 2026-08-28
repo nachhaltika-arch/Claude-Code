@@ -263,6 +263,23 @@ jobs:
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install chromium
 
+      # Die Einwilligungs-Sperre erzeugter Kundenseiten (L-144) laesst sich nur
+      # in einem Browser belegen: Ob eine Adresse **nicht abgerufen** wird,
+      # sagt kein Markup-Test. Sie haengt hier und nicht im pytest-Job, weil
+      # dort kein Chromium liegt — der erste Lauf nach dem Bauen zeigte
+      # `5 skipped` statt `1`, die Tests liefen also nie.
+      #
+      # `BROWSERTESTS_PFLICHT=1` verbietet ihnen genau hier das Ueberspringen:
+      # Fehlt der Browser an der Stelle, die ihn eigens installiert, ist das
+      # ein Fehler und keine Randnotiz.
+      - name: Consent-Sperre im Browser (L-144)
+        working-directory: kompagnon/backend
+        env:
+          BROWSERTESTS_PFLICHT: "1"
+        run: |
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" python -m playwright install chromium
+          python -m pytest tests/test_einwilligung_im_browser.py -q -p no:warnings
+
       - name: Run browser tests
         working-directory: kompagnon/e2e
         env:

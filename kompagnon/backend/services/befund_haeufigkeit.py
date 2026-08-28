@@ -150,3 +150,56 @@ def haeufigkeit(pruefungen: list) -> list:
             "vorbehalt": befund.vorbehalt,
         })
     return ergebnis
+
+
+# ── Grundgesamtheit: gezaehlt ist nicht auswertbar (L-126, 28.08.2026) ──────
+#
+# **Der Anlass.** Auf dem Produktivbestand standen 116 Zeilen auf `completed`,
+# und die Auswertung darunter rechnete mit Nennern von 4 bis 8. Beides stimmte
+# — es waren zwei verschiedene Dinge: 108 dieser Zeilen tragen **keine**
+# Kriterien, es sind Huellen aus der Zeit vor der heutigen Erhebung (Maerz bis
+# Juli 2026). Auswertbar sind acht, alle vom 16.08. bis 26.08.
+#
+# **Warum das kein Schoenheitsfehler ist.** Diese Zahlen gehen in den
+# Methodenteil eines Buchs. Drei Angaben waren betroffen, alle aus derselben
+# Ursache: die Grundgesamtheit, der Erhebungszeitraum und die Warnung vor
+# gemischten Fassungen — deren „ohne Vermerk" kam allein von den Huellen.
+#
+# Die verworfenen Zeilen werden **benannt**. Eine Grundgesamtheit, die
+# stillschweigend schrumpft, ist so wenig nachvollziehbar wie eine zu grosse.
+
+
+def aufteilen(zeilen: list) -> tuple:
+    """Trennt auswertbare Pruefungen von leeren Huellen.
+
+    `zeilen` ist eine Liste aus ``(item_scores, item_sources, created_at,
+    standard_version)``. Auswertbar ist, was ueberhaupt Kriterien traegt —
+    ohne sie gibt es weder Zaehler noch Nenner.
+    """
+    auswertbar, verworfen = [], []
+    for zeile in zeilen:
+        (auswertbar if zeile[0] else verworfen).append(zeile)
+    return auswertbar, verworfen
+
+
+def kopfzeilen(auswertbar: list, verworfen: list) -> str:
+    """Die Angaben, die Kapitel 14 verlangt — aus den auswertbaren Zeilen."""
+    zeilen = [f"Grundgesamtheit: {len(auswertbar)} auswertbare Pruefungen"]
+
+    if verworfen:
+        zeilen.append(
+            f"  ({len(verworfen)} weitere stehen auf „abgeschlossen\", tragen "
+            f"aber keine Kriterien — sie zaehlen nicht mit.)")
+
+    zeitpunkte = sorted(z[2] for z in auswertbar if z[2])
+    if zeitpunkte:
+        zeilen.append(f"Erhebungszeitraum: {zeitpunkte[0]:%d.%m.%Y} bis "
+                      f"{zeitpunkte[-1]:%d.%m.%Y}")
+
+    fassungen = sorted({(z[3] or "ohne Vermerk") for z in auswertbar})
+    zeilen.append(f"Fassungen des Standards: {', '.join(fassungen) or '—'}")
+    if len(fassungen) > 1:
+        zeilen.append("  ⚠ Mehrere Fassungen. Die Kriterien haben sich "
+                      "dazwischen geaendert; die Anteile mischen zwei "
+                      "Massstaebe.")
+    return "\n".join(zeilen)

@@ -5,6 +5,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { VERZICHTSTEXT } from '../inhalte/rechtstexte';
 
 
 const A = '#D4A017';
@@ -19,7 +20,10 @@ export default function Checkout() {
   const [packages, setPackages] = useState([]);
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(pkgParam || searchParams.get('package') || 'kompagnon');
-  const [form, setForm] = useState({ name: '', company: '', website: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ name: '', company: '', website: '', email: '', phone: '', message: '',
+    // Widerrufsverzicht (BUCH-12, FIX-4). Nicht vorbelegt —
+    // vorangekreuzte Zustimmungen sind unwirksam.
+    withdrawal_waived: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,6 +54,17 @@ export default function Checkout() {
   const handleCheckout = async () => {
     if (!form.email || !form.name || !form.company) { setError('Bitte alle Pflichtfelder ausfuellen'); return; }
     if (!form.website.trim()) { setError('Bitte Website / Domain eingeben'); return; }
+    // **Ohne Verzicht kein sofortiger Leistungsbeginn** (§ 356 Abs. 4 BGB,
+    // BUCH-12 FIX-4). Ein Websprint beginnt innerhalb der Widerrufsfrist;
+    // ohne diese Zustimmung gaebe es bei einem Widerruf **keinen Wertersatz**
+    // fuer bereits geleistete Arbeit. Die Sperre steht hier im Absendeweg und
+    // nicht nur als deaktivierter Knopf — ein `disabled` ist keine Pruefung.
+    if (!form.withdrawal_waived) {
+      setError('Bitte bestätigen Sie den sofortigen Leistungsbeginn — '
+               + 'ohne diese Zustimmung dürfen wir nicht vor Ablauf der '
+               + 'Widerrufsfrist mit der Arbeit beginnen.');
+      return;
+    }
     const websiteUrl = form.website.trim().startsWith('http') ? form.website.trim() : `https://${form.website.trim()}`;
     setLoading(true);
     setError('');
@@ -181,6 +196,23 @@ export default function Checkout() {
                 <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Einmaliger Festpreis</div></div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{pkg.price} Euro</div>
               </div>
+
+              {/* Widerrufsverzicht (BUCH-12, FIX-4). Der Wortlaut kommt aus
+                  `inhalte/rechtstexte.js` und ist bis zur anwaltlichen
+                  Fassung eine sichtbare Markierung — derselbe Grundsatz wie
+                  im Shop-Formular: Ein plausibler Rechtssatz wird nie
+                  geprueft, weil er geprueft aussieht. */}
+              <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                <input type="checkbox" data-testid="checkout-verzicht"
+                       checked={form.withdrawal_waived}
+                       onChange={e => setForm({ ...form, withdrawal_waived: e.target.checked })} />
+                <span>{VERZICHTSTEXT}</span>
+              </label>
+              <p style={{ fontSize: 12, marginBottom: 16 }}>
+                <a href="/widerruf" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', fontWeight: 700 }}>Widerrufsbelehrung</a>
+                {' '}und{' '}
+                <a href="/agb" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>AGB</a>
+              </p>
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setStep(1)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>

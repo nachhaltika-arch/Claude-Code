@@ -710,7 +710,7 @@ export default function AuditReport({ auditData, onClose }) {
         const color = notOk ? '#9A3412' : '#1E40AF';
         const icon  = notOk ? '⚠️' : 'ℹ️';
         const text  = notOk
-          ? 'Handlungsbedarf: Diese Website erfüllt den Homepage Standard 2025 nicht. Die wichtigsten Probleme sind unten aufgeführt.'
+          ? `Handlungsbedarf: Diese Website erfüllt den Homepage Standard ${fassungText(r.standard_version)} nicht. Die wichtigsten Probleme sind unten aufgeführt.`
           : 'Gutes Fundament — gezielte Optimierungen bringen Sie auf Gold-Niveau.';
         return (
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 18px' }}>

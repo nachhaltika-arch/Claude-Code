@@ -5,6 +5,15 @@ import { saveJson } from '../utils/apiRequest';
 import { parseApiError } from '../utils/apiError';
 import { aufTaste } from '../utils/tastaturBedienung';
 
+//: Die drei in Deutschland gueltigen Saetze (BUCH-12, FIX-1). Ein freies
+//: Zahlenfeld nimmt auch 5 oder 20 entgegen; beides gibt es nicht.
+const STEUERSAETZE = [
+  { wert: 19, label: 'Regelsatz' },
+  { wert: 7, label: 'ermäßigt (Anlage 2 UStG)' },
+  { wert: 0, label: 'steuerfrei' },
+];
+
+
 const FRONTEND_URL = 'https://kompagnon-frontend.onrender.com';
 
 // Deutschen Namen in URL-sicheren Slug umwandeln
@@ -274,7 +283,29 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}><label style={LBL}>Brutto-Preis (€) *</label><input aria-label="Brutto-Preis (€)" type="number" step="0.01" min={0} value={product.price_brutto ?? ''} onChange={e => onChange('price_brutto', parseFloat(e.target.value) || 0)} placeholder="0.00" style={INP} /></div>
         <div style={FIELD}><label style={LBL}>Netto-Preis (berechnet)</label><input aria-label="Netto-Preis (berechnet)" value={product.price_netto ? `${product.price_netto} €` : '—'} disabled style={{ ...INP, opacity: 0.6 }} /></div>
-        <div style={FIELD}><label style={LBL}>MwSt. %</label><input aria-label="MwSt. %" type="number" step="1" min={0} max={100} value={product.tax_rate ?? 19} onChange={e => onChange('tax_rate', parseInt(e.target.value) || 0)} style={INP} /></div>
+        <div style={FIELD}>
+          <label style={LBL} htmlFor="pe-steuersatz">MwSt. %</label>
+          {/* **Auswahl statt freiem Feld** (BUCH-12, FIX-1). Hier stand
+              `product.tax_rate ?? 19`: Wer ein Buchprodukt anlegte und das
+              Feld nicht bewusst aenderte, verkaufte mit falschem
+              Steuerausweis — und es fiel nicht auf, weil alles
+              funktionierte, nur die Buchhaltung nicht stimmte.
+              Kein Vorgabewert: Der Satz ist eine Entscheidung. */}
+          <select id="pe-steuersatz" aria-label="MwSt. %" style={INP}
+                  value={product.tax_rate ?? ''}
+                  onChange={e => onChange('tax_rate', e.target.value === '' ? null : parseInt(e.target.value, 10))}>
+            <option value="">— bitte wählen —</option>
+            {STEUERSAETZE.map(s => (
+              <option key={s.wert} value={s.wert}>{s.wert} % — {s.label}</option>
+            ))}
+          </select>
+          {product.tax_rate === 7 && (
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              Ermäßigt nach Anlage 2 UStG — Bücher und elektronische
+              Publikationen. Für Dienst- und Prüfleistungen gelten 19 %.
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -459,7 +490,7 @@ export default function ProductEditor() {
     setSelected('__new__');
     setProduct({
       slug: '', name: '', short_desc: '', long_desc: '',
-      price_brutto: 0, price_netto: 0, tax_rate: 19,
+      price_brutto: 0, price_netto: 0, tax_rate: null,
       payment_type: 'once', delivery_days: 14,
       highlighted: false, highlight_label: 'Empfehlung',
       features: [],

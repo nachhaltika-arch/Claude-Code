@@ -43,7 +43,8 @@ export function abzugsposition(anrechnung) {
   };
 }
 
-export default function AnrechnungsHinweis({ email, kopfzeilen, onUebernehmen }) {
+export default function AnrechnungsHinweis({ email, kopfzeilen, dealId,
+                                            onUebernehmen }) {
   const [offen, setOffen] = useState([]);
   const [summe, setSumme] = useState(0);
 
@@ -60,8 +61,12 @@ export default function AnrechnungsHinweis({ email, kopfzeilen, onUebernehmen })
     // des vorigen Kunden.
     let abgebrochen = false;
 
+    // `fuer_deal` nimmt die eigene Vormerkung wieder herein: Wer ein Angebot
+    // erneut öffnet, muss die Anrechnung sehen, die schon darin liegt — sonst
+    // verschwindet die Abzugsposition und jemand legt sie ein zweites Mal an.
     fetch(`${API_BASE_URL}/api/shop/credit-check`
-          + `?email=${encodeURIComponent(adresse)}`,
+          + `?email=${encodeURIComponent(adresse)}`
+          + (dealId ? `&fuer_deal=${dealId}` : ''),
           { headers: kopfzeilen })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -74,7 +79,7 @@ export default function AnrechnungsHinweis({ email, kopfzeilen, onUebernehmen })
       });
 
     return () => { abgebrochen = true; };
-  }, [email, kopfzeilen]);
+  }, [email, kopfzeilen, dealId]);
 
   if (!offen.length) return null;
 
@@ -106,10 +111,12 @@ export default function AnrechnungsHinweis({ email, kopfzeilen, onUebernehmen })
             {typeof a.tage_uebrig === 'number'
               ? ` (noch ${a.tage_uebrig} Tage)`
               : ''}
+            {a.vorgemerkt ? ' — liegt bereits in diesem Angebot' : ''}
           </li>
         ))}
       </ul>
 
+      {offen.every((a) => a.vorgemerkt) ? null : (
       <button
         type="button"
         onClick={() => onUebernehmen(offen)}
@@ -121,6 +128,7 @@ export default function AnrechnungsHinweis({ email, kopfzeilen, onUebernehmen })
       >
         Im Angebot berücksichtigen
       </button>
+      )}
     </div>
   );
 }

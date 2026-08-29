@@ -23,6 +23,7 @@ Endpunkt tun muss: entgegennehmen, weiterreichen, antworten.
 """
 import logging
 import os
+from typing import Optional
 
 import anyio
 import stripe
@@ -482,17 +483,23 @@ class Einloesung(BaseModel):
 
 
 @router.get("/credit-check")
-def anrechnung_pruefen(email: str, _=Depends(require_innendienst)):
+def anrechnung_pruefen(email: str, fuer_deal: Optional[int] = None,
+                       _=Depends(require_innendienst)):
     """Welche Anrechnungen fuer diese Adresse offen sind.
 
     **Alle, nicht die erste.** Jemand kann Workbook und Check PLUS gekauft
     haben — zusammen 398 EUR. Welche gezogen wird, entscheidet ein Mensch.
+
+    **`fuer_deal` nimmt die eigene Vormerkung wieder hinein.** Wer ein Angebot
+    erneut oeffnet, muss die Anrechnung sehen, die schon darin liegt — sonst
+    verschwindet die Abzugsposition aus der Ansicht und jemand legt sie ein
+    zweites Mal an. Fuer alle anderen Angebote bleibt sie unsichtbar.
     """
     from services import anrechnung
 
     db = SessionLocal()
     try:
-        offene = anrechnung.offene(db, email)
+        offene = anrechnung.offene(db, email, fuer_deal=fuer_deal)
     finally:
         db.close()
 

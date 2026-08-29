@@ -188,3 +188,60 @@ describe('Die Darstellung von Beträgen', () => {
     expect(euro(null)).toBe('0,00 €');
   });
 });
+
+describe('Die Vormerkung im eigenen Angebot', () => {
+  test('eine schon übernommene Anrechnung wird als solche gezeigt', async () => {
+    // Sonst sieht sie aus wie eine zweite, und jemand legt den Abzug erneut an.
+    // Arrange
+    antworte([{ ...WORKBOOK, vorgemerkt: true }]);
+
+    // Act
+    render(<AnrechnungsHinweis email="kunde@example.com" dealId={42}
+                               onUebernehmen={() => {}} />);
+
+    // Assert
+    const kasten = await screen.findByTestId('anrechnung-hinweis');
+    expect(kasten.textContent).toMatch(/liegt bereits in diesem Angebot/);
+    expect(screen.queryByRole('button',
+      { name: /Im Angebot berücksichtigen/i })).toBeNull();
+  });
+
+  test('bei einer offenen daneben bleibt der Knopf da', async () => {
+    // Arrange
+    antworte([{ ...WORKBOOK, vorgemerkt: true }, CHECK_PLUS]);
+
+    // Act
+    render(<AnrechnungsHinweis email="kunde@example.com" dealId={42}
+                               onUebernehmen={() => {}} />);
+
+    // Assert
+    await screen.findByTestId('anrechnung-hinweis');
+    expect(screen.getByRole('button',
+      { name: /Im Angebot berücksichtigen/i })).toBeInTheDocument();
+  });
+
+  test('die Deal-Nummer geht an die Prüfroute mit', async () => {
+    // Ohne sie sähe das eigene Angebot seine eigene Vormerkung nicht.
+    // Arrange
+    antworte([WORKBOOK]);
+
+    // Act
+    render(<AnrechnungsHinweis email="kunde@example.com" dealId={42}
+                               onUebernehmen={() => {}} />);
+
+    // Assert
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(global.fetch.mock.calls[0][0]).toMatch(/fuer_deal=42/);
+  });
+
+  test('ohne Deal-Nummer wird sie nicht mitgeschickt', async () => {
+    // Ein neuer Deal hat noch keine Nummer.
+    antworte([WORKBOOK]);
+
+    render(<AnrechnungsHinweis email="kunde@example.com"
+                               onUebernehmen={() => {}} />);
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(global.fetch.mock.calls[0][0]).not.toMatch(/fuer_deal/);
+  });
+});

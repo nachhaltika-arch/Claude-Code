@@ -376,6 +376,10 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         company_id: form.company_id || null,
         status: form.status || 'neu',
         notes: form.notes || '',
+        // Welche Anrechnungen in diesem Angebot liegen (ORDERS_08). Das
+        // Backend merkt sie vor und loest sie **bei Annahme** ein; ein
+        // verlorener Deal gibt sie wieder frei.
+        credit_order_numbers: form.credit_order_numbers || [],
         items: form.items
           .filter(i => i.position?.trim())
           .map(i => ({
@@ -517,6 +521,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
             <AnrechnungsHinweis
               email={(companies.find(c => c.id === form.company_id) || {}).email || ''}
               kopfzeilen={h}
+              dealId={deal?.id}
               onUebernehmen={(offene) => {
                 setForm(vorher => ({
                   ...vorher,
@@ -529,6 +534,13 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
                         i => (i.position || '').includes(a.order_number)))
                       .map(abzugsposition),
                   ],
+                  // **Die Bestellnummern getrennt vom Positionstext**
+                  // (ORDERS_08). Der Text laesst sich umbenennen; die
+                  // Vormerkung darf davon nicht abhaengen.
+                  credit_order_numbers: Array.from(new Set([
+                    ...(vorher.credit_order_numbers || []),
+                    ...offene.map(a => a.order_number),
+                  ])),
                 }));
                 toast.success(offene.length === 1
                   ? 'Anrechnung als Abzugsposition übernommen'

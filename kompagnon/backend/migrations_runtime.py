@@ -1541,6 +1541,12 @@ def run_migrations():
         # oder einen Check PLUS gekauft hat, bekommt den Betrag binnen
         # sechs Monaten auf einen Websprint angerechnet. Ohne Vermerk am
         # Deal liesse sich derselbe Betrag mehrfach abziehen.
+        # Vormerkung zwischen Angebot und Annahme (ORDERS_08,
+        # Entscheidung David 29.08.2026: eingeloest wird bei Annahme).
+        # Ohne sie laege dieselbe Anrechnung in zwei offenen Angeboten.
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_reserved_deal_id INTEGER",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_reserved_at TIMESTAMP",
+        "CREATE INDEX IF NOT EXISTS idx_book_orders_credit_reserved ON book_orders(credit_reserved_deal_id)",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_deal_id INTEGER",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_at TIMESTAMP",
         "CREATE INDEX IF NOT EXISTS idx_book_orders_credit_deal ON book_orders(credit_redeemed_deal_id)",

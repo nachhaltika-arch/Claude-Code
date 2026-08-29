@@ -109,6 +109,18 @@ class BookOrder(Base):
     is_business = Column(Boolean, nullable=False, default=False)
     buyer_vat_id = Column(String(50), default="")
 
+    #: **Vorgemerkt** fuer ein Angebot, aber noch nicht verbraucht
+    #: (L-100, ORDERS_08; Entscheidung David 29.08.2026: eingeloest wird bei
+    #: **Annahme**). Zwischen Angebot und Annahme liegen Wochen — ohne diese
+    #: Vormerkung liesse sich dieselbe Anrechnung einem zweiten Angebot
+    #: beilegen und bei Annahme beider zweimal abziehen.
+    #:
+    #: Der Rueckweg gehoert dazu: Ein **verlorener** Deal gibt sie frei.
+    #: Sonst haette „bei Annahme" genau die Wirkung, die sie vermeiden soll —
+    #: die Anrechnung waere fuer immer blockiert statt sofort verbraucht.
+    credit_reserved_deal_id = Column(Integer, nullable=True, index=True)
+    credit_reserved_at = Column(DateTime, nullable=True)
+
     #: Auf welchen Deal der Betrag angerechnet wurde (L-100, ORDERS_08).
     #: **Die Einloesung ist endgueltig.** Eine Ruecknahme erfolgt nur von Hand
     #: mit Protokolleintrag — sonst entstuende ein Weg, denselben Betrag

@@ -46,6 +46,9 @@ class DealCreate(BaseModel):
     status: str = "neu"
     notes: Optional[str] = None
     items: List[DealItem] = []
+    #: Siehe `DealUpdate`. Beim Anlegen gibt es noch keine Deal-Nummer,
+    #: deshalb wird erst nach dem Einfuegen vorgemerkt.
+    credit_order_numbers: Optional[List[str]] = None
 
 
 class DealUpdate(BaseModel):
@@ -54,6 +57,12 @@ class DealUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
     items: Optional[List[DealItem]] = None
+    #: Welche Anrechnungen in diesem Angebot liegen (L-100, ORDERS_08).
+    #: **Als Liste von Bestellnummern und nicht aus dem Positionstext
+    #: gelesen:** Ein Text laesst sich umbenennen, und dann zeigt die
+    #: Anrechnung ins Leere. `None` heisst „nicht angefasst", `[]` heisst
+    #: „keine mehr" — ein Titel-Update darf die Vormerkung nicht abraeumen.
+    credit_order_numbers: Optional[List[str]] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -212,6 +221,14 @@ def create_deal(
         })
 
     db.commit()
+
+    # Anrechnung erst jetzt: Vor dem Einfuegen gibt es keine Deal-Nummer,
+    # gegen die vorgemerkt werden koennte (L-100, ORDERS_08).
+    _anrechnung_nachfuehren(db, deal_id, data.credit_order_numbers)
+    if data.status == "gewonnen":
+        # Ein Deal, der schon gewonnen angelegt wird, ist angenommen.
+        _anrechnung_bei_annahme(db, deal_id)
+
     return get_deal(deal_id, db, current_user)
 
 
@@ -278,7 +295,77 @@ def update_deal(
             updates,
         )
     db.commit()
+
+    # ── Anrechnung (L-100, ORDERS_08) ────────────────────────────────
+    #
+    # **Entscheidung David, 29.08.2026: eingeloest wird bei Annahme.** Hier
+    # stehen die drei Uebergaenge, und zwar in dieser Reihenfolge: erst die
+    # Vormerkung nachfuehren, dann der Statuswechsel. Wer im selben Aufruf
+    # eine Anrechnung hinzufuegt **und** den Deal gewinnt, soll sie
+    # eingeloest bekommen.
+    #
+    # Die Regeln stehen in `services/anrechnung.py`; hier nur die Ausloeser.
+    _anrechnung_nachfuehren(db, deal_id, data.credit_order_numbers)
+
+    if data.status == "gewonnen" and deal.status != "gewonnen":
+        _anrechnung_bei_annahme(db, deal_id)
+    elif data.status == "verloren" and deal.status != "verloren":
+        # **Der Rueckweg.** Ohne ihn waere die Anrechnung fuer immer
+        # blockiert statt sofort verbraucht — genau das, was „bei Annahme"
+        # vermeiden sollte.
+        _anrechnung_freigeben(db, deal_id)
+
     return get_deal(deal_id, db, current_user)
+
+
+def _anrechnung_nachfuehren(db, deal_id: int, nummern) -> None:
+    """Vormerkungen an das Angebot angleichen. Wirft nie.
+
+    `None` heisst „nicht angefasst", `[]` heisst „keine mehr". Ein
+    Titel-Update darf die Vormerkung nicht abraeumen.
+
+    **Eine gescheiterte Vormerkung nimmt das Speichern nicht mit.** Der Deal
+    ist die Hauptsache; steht die Anrechnung schon in einem anderen Angebot,
+    gehoert das ins Protokoll und nicht in einen Abbruch, der die Arbeit des
+    Innendienstes verwirft.
+    """
+    if nummern is None:
+        return
+
+    from services import anrechnung
+
+    try:
+        anrechnung.freigeben(db, deal_id, ausser=nummern)
+        for nummer in nummern:
+            _, code, meldung = anrechnung.vormerken(db, nummer, deal_id)
+            if code != 200:
+                logger.warning("Deal %s: Anrechnung %s nicht vorgemerkt — %s",
+                               deal_id, nummer, meldung)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Deal %s: Anrechnungen nicht nachgefuehrt: %s",
+                         deal_id, fehler)
+
+
+def _anrechnung_bei_annahme(db, deal_id: int) -> None:
+    """Bei Annahme buchen. Wirft nie — die Annahme selbst steht schon."""
+    from services import anrechnung
+
+    try:
+        anrechnung.einloesen_fuer_deal(db, deal_id)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Deal %s angenommen, Anrechnung nicht gebucht: %s",
+                         deal_id, fehler)
+
+
+def _anrechnung_freigeben(db, deal_id: int) -> None:
+    """Bei verloren freigeben. Wirft nie."""
+    from services import anrechnung
+
+    try:
+        anrechnung.freigeben(db, deal_id)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Deal %s verloren, Anrechnung nicht freigegeben: %s",
+                         deal_id, fehler)
 
 
 @router.delete("/{deal_id}")

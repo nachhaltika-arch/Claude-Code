@@ -74,6 +74,21 @@ async def kasse(anfrage: Kaufanfrage):
     finally:
         db.close()
 
+    # **Die AGB-Fassung vor dem Stripe-Schluessel** (ORDERS_05, 29.08.2026).
+    # `anlegen` verlangt sie ohnehin — aber erst weiter unten, und bis dahin
+    # haette der Stripe-Riegel schon „Der Verkauf ist noch nicht eingerichtet"
+    # geantwortet. Dieselbe Meldung fuer zwei verschiedene Ursachen schickt
+    # jemanden auf die Suche nach einem Schluessel, der laengst da ist.
+    #
+    # **Hier und nicht weiter oben:** Erst die Eingabe, dann die eigene
+    # Einrichtung — die Regel des Kopftextes gilt auch fuer das Produkt. Ein
+    # Entwurf ist nicht bestellbar (404), und diese Auskunft gehoert dem
+    # Aufrufer, nicht unsere Einrichtungsfrage. Beide Reihenfolgen hat jeweils
+    # eine vorhandene Zusicherung erzwungen, keine Ueberlegung.
+    from services import agb
+
+    agb.verlangen()
+
     if not (os.getenv("STRIPE_SECRET_KEY", "").strip()):
         # 503, nicht 500: Das ist ein Einrichtungszustand, kein Fehler — und
         # die Meldung sagt es, statt „Interner Serverfehler" zu behaupten.

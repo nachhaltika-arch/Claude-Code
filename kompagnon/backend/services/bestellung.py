@@ -150,9 +150,17 @@ def _betraege(produkt) -> tuple:
 
 
 def anlegen(db, daten: dict, produkt):
-    """Die Bestellung mit Status `created`. Gibt den Eintrag zurueck."""
+    """Die Bestellung mit Status `created`. Gibt den Eintrag zurueck.
+
+    **Die AGB-Fassung wird verlangt, bevor irgendetwas entsteht** (ORDERS_05).
+    Eine angelegte Bestellung ohne Fassung waere genau der Nachweis, der im
+    Streitfall fehlt — und ein Feld, das NULL sein darf, wird NULL sein.
+    """
     from modelle_buch import BookOrder
 
+    from services import agb
+
+    agb_fassung = agb.verlangen()
     brutto_cents, steuer = _betraege(produkt)
 
     gueltig_bis = frist_bis(produkt)
@@ -186,6 +194,10 @@ def anlegen(db, daten: dict, produkt):
         waiver_accepted=bool(daten.get("withdrawal_waived")),
         waiver_accepted_at=(datetime.utcnow()
                             if daten.get("withdrawal_waived") else None),
+        # **Die Fassung, nicht nur das Haeckchen** (ORDERS_05). Siehe
+        # `services/agb.py`: Ohne sie belegt die Zustimmung nichts.
+        terms_version=agb_fassung,
+        terms_accepted_at=datetime.utcnow(),
     )
     db.add(eintrag)
     db.commit()

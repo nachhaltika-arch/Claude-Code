@@ -128,11 +128,20 @@ def test_ein_erfundenes_produkt_gibt_404(app, client):
 
 # ── Der Preis kommt aus dem Katalog ───────────────────────────────────
 
-def test_der_betrag_aus_der_anfrage_wird_ignoriert(app, verkaufbares_produkt):
+def test_der_betrag_aus_der_anfrage_wird_ignoriert(app, verkaufbares_produkt,
+                                                   monkeypatch):
     """**Sicherheitskritisch.** Am Dienst gemessen, nicht am Endpunkt: Ohne
     Stripe-Schluessel kommt der Aufruf nicht bis zur Anlage, also wird die
-    Regel dort geprueft, wo sie steht."""
+    Regel dort geprueft, wo sie steht.
+
+    Seit ORDERS_05 (29.08.2026) verlangt `anlegen` eine hinterlegte
+    AGB-Fassung — ohne sie entsteht **keine** Bestellung, und damit auch
+    keine, an der sich der Preis pruefen liesse. Die Fassung ist hier
+    Voraussetzung, nicht Gegenstand; `test_shop_nachweis.py` prueft sie.
+    """
     from sqlalchemy import text
+
+    monkeypatch.setenv("AGB_FASSUNG", "pytest-fassung")
 
     from database import SessionLocal
     from services import bestellung as best

@@ -1506,6 +1506,19 @@ def run_migrations():
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT false",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS buyer_vat_id VARCHAR(50) DEFAULT ''",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_valid_until DATE",
+        # ── Nachweis der AGB-Zustimmung (L-100, ORDERS_05, 29.08.2026) ──
+        #
+        # Ohne die **Fassung** ist die Zustimmung im Streitfall wertlos:
+        # Sie belegt dann nur, dass jemand irgendwann irgendetwas angehakt
+        # hat. Der Zeitstempel steht daneben, aus demselben Grund wie beim
+        # Widerrufsverzicht — es zaehlt, **wann** zugestimmt wurde.
+        #
+        # Kein Vorgabewert und keine Nachfuellung fuer Altzeilen: Eine
+        # erfundene Fassung waere schlimmer als eine leere Spalte, weil sie
+        # beantwortet aussieht. Bestellungen von vor dieser Aenderung gibt
+        # es ohnehin nicht — die Katalogprodukte stehen auf `draft`.
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS terms_version VARCHAR(20) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMP",
         "CREATE INDEX IF NOT EXISTS ix_book_orders_product_slug ON book_orders (product_slug)",
         # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
         # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."

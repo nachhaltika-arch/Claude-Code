@@ -76,6 +76,16 @@ class BookOrder(Base):
     waiver_accepted = Column(Boolean, nullable=False, default=False)
     waiver_accepted_at = Column(DateTime, nullable=True)
 
+    #: **Welche AGB-Fassung akzeptiert wurde** (L-100, ORDERS_05). Der Punkt,
+    #: den ORDERS_05 „den Punkt, den fast alle vergessen" nennt: Aendern sich
+    #: die AGB, ist ohne diese Angabe im Streitfall nicht mehr feststellbar,
+    #: welchen Bedingungen der Kaeufer zugestimmt hat. Die Zustimmung allein
+    #: belegt dann nur, dass jemand irgendwann irgendetwas angehakt hat.
+    terms_version = Column(String(20), default="")
+    #: Wann zugestimmt wurde. Wie beim Verzicht ist der Zeitstempel der
+    #: Nachweis, nicht das Haeckchen allein.
+    terms_accepted_at = Column(DateTime, nullable=True)
+
     # ── Auslieferung der PDF-Fassung ─────────────────────────────────
     download_token = Column(String(64), unique=True, index=True)
     download_expires_at = Column(DateTime, nullable=True)

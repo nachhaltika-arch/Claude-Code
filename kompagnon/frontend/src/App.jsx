@@ -64,6 +64,8 @@ import PortalLogin from './pages/PortalLogin';
 import Fehlerprotokoll from './pages/Fehlerprotokoll';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
+import AGB from './pages/AGB';
+import Widerrufsbelehrung from './pages/Widerrufsbelehrung';
 import Barrierefreiheit from './pages/Barrierefreiheit';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
@@ -214,6 +216,13 @@ function App() {
           <Route path="/impressum"        element={<OeffentlicheSeite><Impressum /></OeffentlicheSeite>} />
           <Route path="/datenschutz"      element={<OeffentlicheSeite><Datenschutz /></OeffentlicheSeite>} />
           <Route path="/barrierefreiheit" element={<OeffentlicheSeite><Barrierefreiheit /></OeffentlicheSeite>} />
+          {/* AGB und Widerrufsbelehrung (ORDERS_05, 29.08.2026). Vor dem
+            * Bestellformular gebaut, weil das Haeckchen daneben auf eine
+            * Adresse zeigen muss — ein Verweis ins Leere ist keine
+            * Einbeziehung. Der Text selbst kommt von der Kanzlei;
+            * `inhalte/rechtstexte.js` traegt bis dahin die Gliederung. */}
+          <Route path="/agb"              element={<OeffentlicheSeite><AGB /></OeffentlicheSeite>} />
+          <Route path="/widerruf"         element={<OeffentlicheSeite><Widerrufsbelehrung /></OeffentlicheSeite>} />
           <Route path="/portal/:token" element={<OeffentlicheSeite><CustomerPortal /></OeffentlicheSeite>} />
 
           {/* ── Der Bestellweg ──────────────────────────────────────────────

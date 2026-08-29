@@ -52,7 +52,13 @@ function seiten() {
       // war laut L-17 von **null** Seiten benutzt und ist am 26.08.2026
       // entfernt; eine Alternative, die es nicht gibt, macht die Pruefung
       // nur unschaerfer.
-      hatTitelBaustein: text.includes('<SeitenTitel>'),
+      // `<Rechtstext` kam am 29.08.2026 dazu (ORDERS_05): AGB und
+      // Widerrufsbelehrung teilen sich eine Huelle, die das h1 und das
+      // Warnband fuer ausstehende Texte traegt. Zwei Kopien derselben
+      // Darstellung driften auseinander, und die dritte Rechtsseite
+      // vergisst das Band — dieselbe Ueberlegung wie bei `Feld.jsx`.
+      hatTitelBaustein: text.includes('<SeitenTitel>')
+        || text.includes('<Rechtstext'),
     };
   });
 }

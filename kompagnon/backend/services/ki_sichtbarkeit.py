@@ -32,6 +32,7 @@ import re
 from typing import List, Optional
 
 from services.ki_anbieter import ANBIETER, konfigurierte_anbieter
+from services.ki_wettbewerb import fuer_verlauf, mitbewerber_ermitteln
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +198,7 @@ async def pruefe_ki_sichtbarkeit(
         return {"collected": False, "hinweis": HINWEIS, "anbieter": befunde,
                 "grund": f"Kein KI-Zugang konfiguriert. Erwartet: {fehlend}"}
 
-    return {
+    befund = {
         "collected": True,
         "hinweis": HINWEIS,
         "fragen_gestellt": len(fragen),
@@ -205,6 +206,11 @@ async def pruefe_ki_sichtbarkeit(
         "erhoben_bei": len(erhoben),
         "genannt_bei": sum(1 for b in erhoben if b.get("genannt_bei", 0) > 0),
     }
+    # Wer wird stattdessen genannt (L-85, zweite Haelfte). Hier und nicht
+    # beim Aufrufer: Sonst muesste jede Stelle, die misst, daran denken —
+    # und die naechste vergisst es. Rein rechnerisch, kein weiterer Aufruf.
+    befund["wettbewerb"] = mitbewerber_ermitteln(befund, domain)
+    return befund
 
 
 #: Wie viele Laeufe der Verlauf haelt. Ein Verlauf, der unbegrenzt waechst,
@@ -217,8 +223,9 @@ VERLAUF_MAX = 50
 def verlaufseintrag(befund: dict, am: str) -> dict:
     """Ein Lauf, auf das eingedampft, was ihn vergleichbar macht.
 
-    **Was hineingeht:** je System die Trefferzahl. **Was nicht:** die
-    Antworttexte und die Belege. Die stehen im aktuellen Befund; im Verlauf
+    **Was hineingeht:** je System die Trefferzahl und die drei haeufigsten
+    Mitbewerber (nur Adresse und Zahl). **Was nicht:** die Antworttexte und
+    die Belege. Die stehen im aktuellen Befund; im Verlauf
     machten sie die Spalte in einem Jahr unlesbar und beantworten die Frage
     nicht, die der Verlauf stellt — „mehr oder weniger als beim letzten Mal?"
 
@@ -238,7 +245,8 @@ def verlaufseintrag(befund: dict, am: str) -> dict:
             "quote": block.get("quote"),
         }
 
-    return {"am": am, "anbieter": gemessen, "nicht_erhoben": sorted(offen)}
+    return {"am": am, "anbieter": gemessen, "nicht_erhoben": sorted(offen),
+            "mitbewerber": fuer_verlauf(befund.get("wettbewerb"))}
 
 
 def verlauf_fortschreiben(bestand, befund: dict, am: str) -> list:

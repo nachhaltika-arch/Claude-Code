@@ -19,16 +19,25 @@ Falls das Repo nicht stimmt:
 | Branch  | Zweck            | Wer pusht                        | Auto-Deploy           |
 |---------|------------------|----------------------------------|-----------------------|
 | main    | Produktiv / Live | Nur via Pull Request aus staging | Render Produktiv      |
-| staging | Test / Stage     | Direkter Push erlaubt            | Render Staging-Server |
+| staging | Test / Stage     | Direkt, aber nur auf Ansage      | Render Staging-Server |
 
 - Claude Code arbeitet IMMER auf: `staging`
 - NIE direkt auf `main` pushen — Branch-Protection blockt es ohnehin
 - KEINE zusätzlichen langlebigen Branches erstellen (`claude/*`, `feature/*` etc. sind verworfen)
-- Nach jedem Commit sofort: `git push origin staging`
+- **Nicht nach jedem Commit pushen.** Committen ja, sammeln — `git push origin
+  staging` erst auf ausdrückliche Ansage des Nutzers (Entscheidung David,
+  2026-08-29). Grund: Jeder Push löst einen CI-Lauf **und** einen
+  Render-Deploy auf den Staging-Server aus. Wer in kleinen Schritten pusht,
+  hält beides in Dauerbetrieb und macht Staging während der Arbeit für einen
+  ruhigen Test unbrauchbar. Ein gesammelter Push ergibt **einen** Lauf über
+  einen fertigen Stand.
+- Am Ende eines Arbeitsblocks melden, **wie viele Commits lokal warten** —
+  die Entscheidung zu pushen gehört dem Nutzer.
 
 ## Workflow
 
-1. Arbeit auf `staging`: Code ändern → committen → pushen.
+1. Arbeit auf `staging`: Code ändern → committen. **Pushen erst auf Ansage**
+   (siehe Branch-Regeln); bis dahin sammeln sich die Commits lokal.
 2. Render deployt automatisch auf den **Staging-Server** — dort testen.
 3. Wenn Test grün ist: GitHub-PR `staging → main` öffnen, CI grün abwarten.
 4. **Nutzer merged manuell** in `main`. Claude Code merged NIE selbst.

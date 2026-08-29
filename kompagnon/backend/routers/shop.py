@@ -287,6 +287,12 @@ def _bestaetigung_senden(eintrag) -> bool:
         html += (f"<p><small>Ihre Erklärung zur sofortigen Bereitstellung: "
                  f"{agb.verzichtstext()}</small></p>")
 
+    # Die Rechnung haengt am selben Token wie die Datei (ORDERS_07 Schritt 4).
+    rechnungslink = (f"{os.getenv('BACKEND_URL', '').strip().rstrip('/') or basis}"
+                     f"/api/shop/orders/{eintrag.order_number}/invoice"
+                     f"?token={eintrag.download_token}")
+    html += (f'<p><a href="{rechnungslink}">Ihre Rechnung als PDF</a></p>')
+
     return _mail_versenden(eintrag.email,
                            f"Ihre Bestellung {eintrag.order_number}", html)
 
@@ -330,6 +336,12 @@ def _auslieferung_anstossen(order_number: str) -> None:
     finally:
         db.close()
 
+    # **Die Rechnung vor der Mail** (ORDERS_07): Sie gehoert in die
+    # Bestaetigung, und eine Bestaetigung ohne sie muesste nachgereicht
+    # werden. Scheitert sie, geht die Mail trotzdem — der Kaeufer kommt an
+    # seine Datei, und die Rechnung holt der Innendienst nach.
+    _rechnung_erzeugen(order_number)
+
     try:
         if not _bestaetigung_senden(eintrag):
             logger.error("Bestaetigung fuer %s nicht versendet — der Abruf-Link "
@@ -337,6 +349,29 @@ def _auslieferung_anstossen(order_number: str) -> None:
     except Exception as fehler:                          # noqa: BLE001
         logger.exception("Bestaetigung fuer %s gescheitert: %s",
                          order_number, fehler)
+
+
+def _rechnung_erzeugen(order_number: str) -> None:
+    """Die Rechnung zur bezahlten Bestellung. Wirft nie.
+
+    Eigene Sitzung und eigener Abschluss: Der Nummernkreis haelt eine Sperre
+    auf seine Zeile, bis die Transaktion schliesst (siehe
+    `services/rechnungsnummer`). Sie ueber den Mailversand offen zu halten
+    hiesse, den ganzen Kreis fuer die Dauer eines Brevo-Aufrufs zu blockieren.
+    """
+    from services import rechnung
+
+    db = SessionLocal()
+    try:
+        _, grund = rechnung.fuer_bestellung(db, order_number)
+        if grund:
+            logger.error("Rechnung fuer %s nicht erzeugt: %s",
+                         order_number, grund)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Rechnung fuer %s gescheitert: %s",
+                         order_number, fehler)
+    finally:
+        db.close()
 
 
 @router.get("/download/{token}")
@@ -534,3 +569,45 @@ def anrechnung_einloesen(anfrage: Einloesung, _=Depends(require_innendienst)):
         }
     finally:
         db.close()
+
+
+@router.get("/orders/{order_number}/invoice")
+def rechnung_abrufen(order_number: str, token: str):
+    """Die Rechnung — an demselben Token wie die gekaufte Datei.
+
+    **Nicht an der Bestellnummer allein.** Die Rechnung traegt Name und
+    Anschrift des Kaeufers; die Bestellnummer steht im Browserverlauf und in
+    E-Mails. Sie herauszugeben, wer die Nummer kennt, waere eine
+    Datenschutzluecke in einer oeffentlichen Route.
+    """
+    from sqlalchemy import text as sql_text
+
+    from modelle_buch import BookOrder
+    from services import produktablage, rechnung
+
+    db = SessionLocal()
+    try:
+        eintrag = db.query(BookOrder).filter(
+            BookOrder.order_number == order_number,
+            BookOrder.download_token == token).first()
+        if not eintrag or eintrag.payment_status not in ("paid", "delivered"):
+            raise HTTPException(404, "Rechnung nicht gefunden")
+
+        zeile = db.execute(sql_text(
+            "SELECT invoice_number, created_at FROM invoices "
+            "WHERE line_item LIKE :m ORDER BY id DESC LIMIT 1"
+        ), {"m": f"%{order_number}%"}).fetchone()
+        if not zeile:
+            raise HTTPException(
+                404, "Zu dieser Bestellung gibt es noch keine Rechnung")
+
+        jahr = zeile[1].year if zeile[1] else None
+        adresse = produktablage.signierte_adresse(
+            rechnung.pfad_zu(zeile[0], jahr))
+    finally:
+        db.close()
+
+    if not adresse:
+        raise HTTPException(
+            503, "Die Rechnung kann gerade nicht bereitgestellt werden.")
+    return RedirectResponse(adresse, status_code=307)

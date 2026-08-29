@@ -117,7 +117,16 @@ ERLAUBTE_BEREICHE = {
 #:   abgelaufener bekommt 410 mit eigener Auskunft. Die Datei selbst laeuft
 #:   nicht durch uns: Es wird auf eine signierte R2-Adresse weitergeleitet,
 #:   die Minuten lebt. Zwoelf Zusicherungen in `tests/test_shop_auslieferung.py`.
-OFFEN_ERWARTET = 55
+#: 29.08.2026, ORDERS_07: 56 — `GET /api/shop/orders/{nr}/invoice`. Zwingend
+#:   offen aus demselben Grund wie der Abruf: Der Kaeufer hat kein Konto.
+#:   **Abgesichert ist sie schaerfer als der Abruf**, weil die Rechnung Name
+#:   und Anschrift traegt: Sie verlangt die Bestellnummer **und** denselben
+#:   Token wie die Datei, und beide muessen zur selben Bestellung gehoeren.
+#:   Die Bestellnummer allein genuegt nicht — sie steht im Browserverlauf und
+#:   in E-Mails, und wer sie kennt, bekaeme sonst einen Datensatz. Ein
+#:   falscher Token ist 404, nicht 403: Auch die Auskunft „diese Bestellung
+#:   gibt es" gehoert nicht heraus.
+OFFEN_ERWARTET = 56
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

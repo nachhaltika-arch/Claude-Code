@@ -96,6 +96,38 @@ def _klient():
     )
 
 
+def ablegen(schluessel: str, daten: bytes,
+            art: str = "application/pdf") -> bool:
+    """Eine Datei in den Objektspeicher schreiben.
+
+    **Gebraucht wird das für Rechnungen** (ORDERS_07): Sie sind **zehn Jahre**
+    aufbewahrungspflichtig und dürfen deshalb nicht auf dem flüchtigen
+    Dateisystem von Render liegen — dort sind sie nach dem nächsten Deploy weg.
+
+    Gibt `False` statt zu werfen: Der Aufrufer entscheidet, was das heißt.
+    Bei einer Rechnung heißt es, dass **auch keine Nummer** vergeben werden
+    darf — eine vergebene Nummer ohne Dokument ist eine Lücke im Kreis, die
+    niemand erklären kann.
+    """
+    if not schluessel or not str(schluessel).strip():
+        return False
+
+    fehlt = was_fehlt()
+    if fehlt:
+        logger.error("Ablage nicht eingerichtet — es fehlt: %s",
+                     ", ".join(fehlt))
+        return False
+
+    try:
+        _klient().put_object(Bucket=_wert("R2_BUCKET"),
+                             Key=str(schluessel).strip(),
+                             Body=daten, ContentType=art)
+        return True
+    except Exception as fehler:                          # noqa: BLE001
+        logger.error("Datei %r nicht abgelegt: %s", schluessel, fehler)
+        return False
+
+
 def signierte_adresse(schluessel: Optional[str],
                       sekunden: int = ABLAUF_VORGABE) -> Optional[str]:
     """Eine Adresse, unter der die Datei kurz abrufbar ist — oder `None`.

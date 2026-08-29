@@ -28,11 +28,12 @@ import anyio
 import stripe
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from database import SessionLocal
+from routers.auth_router import require_innendienst
 from services import bestellung as best
 
 logger = logging.getLogger(__name__)
@@ -458,6 +459,71 @@ def bestellstatus(order_number: str):
             "order_number": eintrag.order_number,
             "status": eintrag.payment_status,
             "product_code": eintrag.product_slug or "",
+        }
+    finally:
+        db.close()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Anrechnung auf einen Websprint (ORDERS_08)
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Die einzige Verbindung zwischen Bestellbereich und Projekten.** Alles
+# andere bleibt getrennt. Die Regeln stehen in `services/anrechnung.py`; hier
+# steht nur, wer fragen darf und wie die Antwort aussieht.
+#
+# **Beide Routen hinter der Anmeldung.** Sie beantworten, was eine bestimmte
+# Adresse gekauft hat — das ist eine Kundenauskunft, keine oeffentliche.
+
+
+class Einloesung(BaseModel):
+    order_number: str
+    deal_id: int
+
+
+@router.get("/credit-check")
+def anrechnung_pruefen(email: str, _=Depends(require_innendienst)):
+    """Welche Anrechnungen fuer diese Adresse offen sind.
+
+    **Alle, nicht die erste.** Jemand kann Workbook und Check PLUS gekauft
+    haben — zusammen 398 EUR. Welche gezogen wird, entscheidet ein Mensch.
+    """
+    from services import anrechnung
+
+    db = SessionLocal()
+    try:
+        offene = anrechnung.offene(db, email)
+    finally:
+        db.close()
+
+    return {
+        "email": anrechnung.normalisiert(email),
+        "anrechnungen": offene,
+        "summe_cents": sum(e["betrag_cents"] for e in offene),
+    }
+
+
+@router.post("/credit-redeem")
+def anrechnung_einloesen(anfrage: Einloesung, _=Depends(require_innendienst)):
+    """Eine Anrechnung endgueltig auf einen Deal buchen.
+
+    **Endgueltig ist woertlich gemeint.** Eine Ruecknahme erfolgt nur von Hand
+    mit Protokolleintrag; ein Weg zurueck im Code waere ein Weg, denselben
+    Betrag zweimal anzurechnen.
+    """
+    from services import anrechnung
+
+    db = SessionLocal()
+    try:
+        eintrag, code, meldung = anrechnung.einloesen(
+            db, anfrage.order_number, anfrage.deal_id)
+        if code != 200:
+            raise HTTPException(code, meldung)
+        return {
+            "order_number": eintrag.order_number,
+            "deal_id": eintrag.credit_redeemed_deal_id,
+            "betrag_cents": int(eintrag.price_gross_cents or 0),
+            "gebucht_am": eintrag.credit_redeemed_at.isoformat(),
         }
     finally:
         db.close()

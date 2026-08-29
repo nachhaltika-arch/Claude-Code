@@ -118,6 +118,24 @@ def job_hwk_scrape_weekly():
 
 
 
+def job_anrechnung_ablaufwarnung():
+    """Erinnert an Anrechnungen, die in dreissig Tagen verfallen (ORDERS_08).
+
+    **Ein Verkaufsinstrument, kein Serviceschreiben** — und ein zulaessiges:
+    Der Empfaenger hat gekauft, die Anrechnung ist ihm zugesagt, der Anlass
+    ist sachlich. Genau dafuer wurde sie konstruiert.
+
+    Der Dienst oeffnet seine eigene Sitzung und schliesst sie, **bevor** Brevo
+    gerufen wird; siehe `services/anrechnung.ablaufwarnung`.
+    """
+    from services.anrechnung import ablaufwarnung
+
+    gesendet = ablaufwarnung()
+    if gesendet:
+        logger.info(f"Anrechnung: {gesendet} Ablaufwarnungen versendet")
+    return gesendet
+
+
 def job_fehlerprotokoll_aufraeumen():
     """Raeumt Eintraege weg, die dreissig Tage lang nicht mehr auftraten."""
     from services.fehlerprotokoll import alte_aufraeumen
@@ -306,6 +324,18 @@ class CompagnonScheduler:
             "cron",
             hour=4, minute=30,
             id="fehlerprotokoll_aufraeumen",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # Taeglich frueh, vor dem Arbeitstag: Wer die Mail morgens liest,
+        # kann noch am selben Tag anrufen. Der Dienst meldet nur Fristen, die
+        # **genau** in dreissig Tagen enden — sonst bekaeme derselbe Kaeufer
+        # die Erinnerung an dreissig Tagen hintereinander (ORDERS_08).
+        self.scheduler.add_job(
+            job_anrechnung_ablaufwarnung,
+            "cron",
+            hour=7, minute=15,
+            id="anrechnung_ablaufwarnung",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

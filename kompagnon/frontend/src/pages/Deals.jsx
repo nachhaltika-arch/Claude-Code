@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import AnrechnungsHinweis, { abzugsposition } from '../components/AnrechnungsHinweis';
 import toast from 'react-hot-toast';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -501,6 +502,39 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               <option value="">— Kein Unternehmen —</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.company_name || `Lead #${c.id}`}</option>)}
             </select>
+
+            {/* Anrechnung auf einen Websprint (L-100, ORDERS_08, 29.08.2026).
+                **Nur eine Ergaenzung, kein Umbau** — die Deal-Logik bleibt,
+                wie sie ist; hier kommt eine Pruefung dazu. Sie haengt an der
+                gewaehlten Firma, weil dieses Formular keine E-Mail-Adresse
+                kennt: Der Deal zeigt auf einen Betrieb, und dessen Adresse
+                ist die, unter der gekauft wurde.
+
+                **Warum das ueberhaupt sichtbar sein muss:** Eine Anrechnung,
+                an die jemand denken muss, wird vergessen. Der Kunde erinnert
+                sich immer, und ein vergessener Abzug im Angebot kostet mehr
+                als die 149 EUR. */}
+            <AnrechnungsHinweis
+              email={(companies.find(c => c.id === form.company_id) || {}).email || ''}
+              kopfzeilen={h}
+              onUebernehmen={(offene) => {
+                setForm(vorher => ({
+                  ...vorher,
+                  // Nur, was noch nicht drinsteht: Zweimal auf denselben
+                  // Knopf zu tippen darf den Abzug nicht verdoppeln.
+                  items: [
+                    ...vorher.items,
+                    ...offene
+                      .filter(a => !vorher.items.some(
+                        i => (i.position || '').includes(a.order_number)))
+                      .map(abzugsposition),
+                  ],
+                }));
+                toast.success(offene.length === 1
+                  ? 'Anrechnung als Abzugsposition übernommen'
+                  : `${offene.length} Anrechnungen übernommen`);
+              }}
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>

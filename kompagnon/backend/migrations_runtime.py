@@ -1537,6 +1537,13 @@ def run_migrations():
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT false",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS buyer_vat_id VARCHAR(50) DEFAULT ''",
         "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_valid_until DATE",
+        # Anrechnung G5 (L-100, ORDERS_08, 29.08.2026). Wer ein Workbook
+        # oder einen Check PLUS gekauft hat, bekommt den Betrag binnen
+        # sechs Monaten auf einen Websprint angerechnet. Ohne Vermerk am
+        # Deal liesse sich derselbe Betrag mehrfach abziehen.
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_deal_id INTEGER",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_at TIMESTAMP",
+        "CREATE INDEX IF NOT EXISTS idx_book_orders_credit_deal ON book_orders(credit_redeemed_deal_id)",
         # ── Nachweis der AGB-Zustimmung (L-100, ORDERS_05, 29.08.2026) ──
         #
         # Ohne die **Fassung** ist die Zustimmung im Streitfall wertlos:

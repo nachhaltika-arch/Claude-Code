@@ -109,6 +109,13 @@ class BookOrder(Base):
     is_business = Column(Boolean, nullable=False, default=False)
     buyer_vat_id = Column(String(50), default="")
 
+    #: Auf welchen Deal der Betrag angerechnet wurde (L-100, ORDERS_08).
+    #: **Die Einloesung ist endgueltig.** Eine Ruecknahme erfolgt nur von Hand
+    #: mit Protokolleintrag — sonst entstuende ein Weg, denselben Betrag
+    #: mehrfach anzurechnen.
+    credit_redeemed_deal_id = Column(Integer, nullable=True, index=True)
+    credit_redeemed_at = Column(DateTime, nullable=True)
+
     #: Bis wann sich der Betrag auf einen Websprint anrechnen laesst
     #: (Garantie G5). Errechnet beim Kauf aus `products.credit_months` —
     #: **nicht** spaeter aus dem heutigen Stand des Katalogs: Wer im Mai

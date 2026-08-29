@@ -27,12 +27,27 @@ router = APIRouter(tags=["retainer"])
 
 
 def _next_invoice_number(db):
-    year = date.today().year
-    row = db.execute(text(
-        "SELECT COUNT(*) as c FROM invoices WHERE created_at >= :y"
-    ), {"y": f"{year}-01-01"}).fetchone()
-    num = (row.c if row else 0) + 1
-    return f"KAS-{year}-{num:04d}"
+    """Die naechste Rechnungsnummer aus dem gemeinsamen Kreis.
+
+    **Hier stand bis zum 29.08.2026 `COUNT(*) + 1`.** ORDERS_07 warnt vor
+    `MAX(...) + 1` als unsicher bei gleichzeitigen Vorgaengen; `COUNT(*)` ist
+    schlechter: Wird eine Rechnung geloescht, **sinkt** die Zahl, und die
+    naechste Vergabe wiederholt eine bereits vergebene Nummer. Die GoBD
+    verlangen lueckenlos **und** fortlaufend — COUNT-basiert ist keines von
+    beidem.
+
+    Aufgefallen beim Lesen von ORDERS_07, das genau dieses Muster zu melden
+    verlangt: „unabhaengig vom Shop ein Mangel".
+
+    Der Zaehler steht jetzt in `invoice_counters` und wird mit einer Sperre auf
+    die Zeile vergeben; das Format wechselt dabei von `KAS-2026-0001` auf
+    `KAS-26-0001` (Entscheidung David). Der Kreis setzt auf dem Bestand auf,
+    liest also die alten Nummern mit — sonst begaenne er bei eins und vergaebe
+    Nummern, die es schon gibt.
+    """
+    from services.rechnungsnummer import naechste
+
+    return naechste(db)
 
 
 @router.get("/api/retainer", dependencies=[Depends(verlangt_recht("view_billing"))])

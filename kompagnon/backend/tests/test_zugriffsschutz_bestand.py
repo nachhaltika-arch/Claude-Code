@@ -107,7 +107,17 @@ ERLAUBTE_BEREICHE = {
 #:   Browserverlauf und in E-Mails und ist deshalb kein Geheimnis, aus dem
 #:   sich ein Datensatz ableiten darf. Zwei Zusicherungen in
 #:   `tests/test_shop_webhook.py` halten das fest.
-OFFEN_ERWARTET = 54
+#: 29.08.2026, ORDERS_06: 55 — `GET /api/shop/download/{token}`. Zwingend
+#:   offen: Der Kaeufer hat kein Konto, und eines anzulegen, nur um eine
+#:   gekaufte Datei abzuholen, waere eine Huerde nach der Zahlung.
+#:   **Der Token ist das Geheimnis**, nicht die Anmeldung — 32 Byte aus
+#:   `secrets.token_urlsafe`, eindeutig indiziert, dreissig Tage gueltig.
+#:   Ein unbekannter und ein unbezahlter Abruf antworten **gleich** (404),
+#:   damit der Unterschied nicht verraet, welche Bestellungen es gibt; ein
+#:   abgelaufener bekommt 410 mit eigener Auskunft. Die Datei selbst laeuft
+#:   nicht durch uns: Es wird auf eine signierte R2-Adresse weitergeleitet,
+#:   die Minuten lebt. Zwoelf Zusicherungen in `tests/test_shop_auslieferung.py`.
+OFFEN_ERWARTET = 55
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

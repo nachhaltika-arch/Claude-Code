@@ -26,7 +26,10 @@ import os
 
 import anyio
 import stripe
+from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from database import SessionLocal
@@ -233,15 +236,171 @@ def _verbuchen(sitzung: dict) -> None:
     _auslieferung_anstossen(nummer)
 
 
-def _auslieferung_anstossen(order_number: str) -> None:
-    """Stumpf für ORDERS_06 — mit Protokolleintrag, nicht leer.
+#: Wie lange ein Abruf-Link gilt. Dieselbe Frist wie beim Buch — zwei
+#: verschiedene Fristen fuer denselben Vorgang muesste jemand erklaeren.
+ABRUF_TAGE = 30
 
-    Genau hier ist in diesem Projekt fünfmal etwas gebaut und nie
-    angeschlossen worden. Ein sichtbarer Eintrag zeigt beim ersten echten Kauf,
-    dass die Stelle erreicht wird — und dass sie noch nichts tut.
+
+def _mail_versenden(an: str, betreff: str, html: str) -> bool:
+    """Der vorhandene Weg, kein dritter.
+
+    ORDERS_06 warnt ausdruecklich davor: Es gibt bereits zwei parallele
+    Mailwege. `services/email.send_email` ist der zentrale — Brevo zuerst,
+    SMTP als zweiter. Eigene Funktion nur, damit die Pruefungen sie ersetzen
+    koennen, ohne eine Mail zu verschicken.
     """
-    logger.info("Auslieferung für %s steht aus — ORDERS_06 ist noch nicht "
-                "gebaut", order_number)
+    from services.email import send_email
+
+    return send_email(an, betreff, html)
+
+
+def _bestaetigung_senden(eintrag) -> bool:
+    """Die Bestellbestaetigung mit Abruf-Link.
+
+    **Sie wiederholt die akzeptierten Erklaerungen** (ORDERS_05 Schritt 4):
+    Fassung der AGB und der Wortlaut des Widerrufsverzichts. Im Streitfall
+    zaehlt, was der Kaeufer bestaetigt bekommen hat — nicht, was in einer
+    Datenbankspalte steht.
+
+    **Der Link zeigt auf uns, nicht auf den Speicher.** Eine signierte
+    R2-Adresse laege sonst monatelang im Postfach und in jedem Mailarchiv;
+    dieser Link gilt dreissig Tage, die signierte Adresse entsteht erst beim
+    Klick und lebt Minuten.
+    """
+    from services import agb
+
+    basis = _frontend_adresse()
+    abruf = f"{os.getenv('BACKEND_URL', '').strip().rstrip('/') or basis}" \
+            f"/api/shop/download/{eintrag.download_token}"
+
+    fassung = eintrag.terms_version or agb.fassung() or "—"
+    html = (
+        f"<p>Vielen Dank für Ihre Bestellung {eintrag.order_number}.</p>"
+        f"<p><a href=\"{abruf}\">Hier können Sie Ihre Datei abrufen</a> — "
+        f"der Link gilt {ABRUF_TAGE} Tage.</p>"
+        f"<hr><p><small>Sie haben den AGB in der Fassung {fassung} "
+        f"zugestimmt.</small></p>"
+    )
+    if eintrag.waiver_accepted:
+        html += (f"<p><small>Ihre Erklärung zur sofortigen Bereitstellung: "
+                 f"{agb.verzichtstext()}</small></p>")
+
+    return _mail_versenden(eintrag.email,
+                           f"Ihre Bestellung {eintrag.order_number}", html)
+
+
+def _auslieferung_anstossen(order_number: str) -> None:
+    """Abruf-Link vergeben und die Bestaetigung senden. Wirft nie.
+
+    **Der Token wird nur einmal vergeben.** Stripe stellt bei Zweifeln erneut
+    zu; ein zweiter Token machte den Link aus der ersten Mail still ungueltig,
+    und der Kaeufer haette einen Link, der gestern noch ging.
+
+    **Eine gescheiterte Mail nimmt die Auslieferung nicht mit.** Am 26.08.
+    riss ein Fehler im Mailanhang den ganzen Versand mit; die Zahlung ist die
+    Hauptsache, die Mail das Beiwerk. Der Token steht dann trotzdem, und der
+    Innendienst kann den Link nachreichen.
+    """
+    import secrets
+    from datetime import timedelta
+
+    from modelle_buch import BookOrder
+
+    db = SessionLocal()
+    try:
+        eintrag = db.query(BookOrder).filter(
+            BookOrder.order_number == order_number).first()
+        if not eintrag:
+            logger.error("Auslieferung ohne Bestellung: %r", order_number)
+            return
+
+        if not eintrag.download_token:
+            eintrag.download_token = secrets.token_urlsafe(32)[:64]
+            eintrag.download_expires_at = (datetime.utcnow()
+                                           + timedelta(days=ABRUF_TAGE))
+        eintrag.delivered_at = eintrag.delivered_at or datetime.utcnow()
+        db.commit()
+        db.refresh(eintrag)
+        db.expunge(eintrag)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Auslieferung %s gescheitert: %s", order_number, fehler)
+        return
+    finally:
+        db.close()
+
+    try:
+        if not _bestaetigung_senden(eintrag):
+            logger.error("Bestaetigung fuer %s nicht versendet — der Abruf-Link "
+                         "steht, die Mail fehlt", order_number)
+    except Exception as fehler:                          # noqa: BLE001
+        logger.exception("Bestaetigung fuer %s gescheitert: %s",
+                         order_number, fehler)
+
+
+@router.get("/download/{token}")
+def abruf(token: str):
+    """Die gekaufte Datei — als Weiterleitung auf eine kurz gueltige Adresse.
+
+    **Unbekannt und unbezahlt sehen gleich aus.** Beide 404. Wer den
+    Unterschied sehen kann, kann Bestellnummern durchprobieren und erfaehrt,
+    welche es gibt.
+
+    **Abgelaufen bekommt eine eigene Auskunft** (410): Sonst schreibt ein
+    Kaeufer, dessen Frist um ist, eine Beschwerde ueber einen Link, der
+    „nicht funktioniert".
+
+    **Die Datei laeuft nicht durch uns.** R2 liefert selbst aus; ein 20-MB-PDF
+    durch die Ereignisschleife zu reichen waere genau die Blockade, die am
+    18.08. an zwoelf Stellen behoben wurde.
+    """
+    from sqlalchemy import text as sql_text
+
+    from modelle_buch import BookOrder
+    from services import produktablage
+
+    db = SessionLocal()
+    try:
+        eintrag = db.query(BookOrder).filter(
+            BookOrder.download_token == token).first()
+        if not eintrag or eintrag.payment_status not in ("paid", "delivered"):
+            raise HTTPException(404, "Abruf-Link unbekannt")
+
+        if (eintrag.download_expires_at
+                and eintrag.download_expires_at < datetime.utcnow()):
+            raise HTTPException(
+                410, "Dieser Abruf-Link ist abgelaufen. Bitte melden Sie sich "
+                     "bei uns, wir stellen Ihnen einen neuen aus.")
+
+        schluessel = db.execute(sql_text(
+            "SELECT delivery_key FROM products WHERE slug = :s"),
+            {"s": eintrag.product_slug}).scalar()
+
+        fehlt = produktablage.was_fehlt()
+        if fehlt or not (schluessel or "").strip():
+            grund = (f"Dateiablage nicht eingerichtet: {', '.join(fehlt)}"
+                     if fehlt else
+                     f"Am Produkt {eintrag.product_slug!r} ist keine Datei "
+                     f"hinterlegt")
+            logger.error("Abruf %s nicht moeglich — %s",
+                         eintrag.order_number, grund)
+            raise HTTPException(
+                503, "Die Datei kann gerade nicht bereitgestellt werden. "
+                     "Wir kuemmern uns darum — Ihr Kauf bleibt bestehen.")
+
+        adresse = produktablage.signierte_adresse(schluessel)
+        if not adresse:
+            raise HTTPException(
+                503, "Die Datei kann gerade nicht bereitgestellt werden. "
+                     "Wir kuemmern uns darum — Ihr Kauf bleibt bestehen.")
+
+        # Erst zaehlen, wenn wirklich ausgeliefert wird: Ein abgelaufener oder
+        # gescheiterter Versuch ist kein Abruf.
+        eintrag.download_count = (eintrag.download_count or 0) + 1
+        db.commit()
+    finally:
+        db.close()
+
+    return RedirectResponse(adresse, status_code=307)
 
 
 @router.post("/webhook")

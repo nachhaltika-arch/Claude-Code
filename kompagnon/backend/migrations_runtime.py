@@ -1361,6 +1361,37 @@ def run_migrations():
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_creditable BOOLEAN DEFAULT false",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS credit_months INTEGER DEFAULT 0",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_type VARCHAR(30) DEFAULT 'none'",
+        # Welche Datei im Objektspeicher zu diesem Produkt gehoert
+        # (L-100, ORDERS_06, 29.08.2026). Ein Schluessel wie
+        # `produkte/workbook-2026-1.pdf`, **nicht** eine Adresse: Der
+        # Bucket steht in der Umgebung, und eine Adresse in der
+        # Datenbank waere beim Wechsel des Speichers in jeder Zeile
+        # falsch. Leer heisst „keine Datei hinterlegt" — der Abruf
+        # antwortet dann 503 und nicht mit einer Adresse auf den
+        # Wurzelpfad des Buckets.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_key VARCHAR(300) DEFAULT ''",
+        # ── Rechnungsnummernkreis (L-100, ORDERS_07, 29.08.2026) ───────────
+        #
+        # **Der Mangel ist aelter als der Shop.** `routers/retainer.py` vergab
+        # die Nummer als `COUNT(*) + 1` ueber `invoices`. Wird eine Rechnung
+        # geloescht, sinkt die Zahl und die naechste Vergabe wiederholt eine
+        # bereits vergebene Nummer; zwei gleichzeitige Aufrufe zaehlen dieselbe
+        # Menge. Die GoBD verlangen lueckenlos **und** fortlaufend.
+        #
+        # Ein Zaehler ist ein eigener Sachverhalt: Aus dem Bestand abgeleitet
+        # aendert sich die naechste Nummer rueckwirkend, sobald jemand
+        # storniert oder ein Auszug eingespielt wird.
+        #
+        # Entscheidung David: **ein gemeinsamer Kreis** fuer Projekte und Shop,
+        # Format `KAS-YY-0000`. Der Schluessel (prefix, year) traegt die
+        # Sperre, mit der `SELECT ... FOR UPDATE` arbeitet.
+        """CREATE TABLE IF NOT EXISTS invoice_counters (
+            prefix      VARCHAR(10) NOT NULL,
+            year        INTEGER     NOT NULL,
+            last_number INTEGER     NOT NULL DEFAULT 0,
+            updated_at  TIMESTAMP   DEFAULT NOW(),
+            PRIMARY KEY (prefix, year)
+        )""",
         # Die zwei digitalen Produkte sind anrechenbar, sechs Monate lang.
         # Eng gehalten wie oben: nur solange niemand es von Hand geaendert hat.
         """UPDATE products

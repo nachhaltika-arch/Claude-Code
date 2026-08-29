@@ -74,6 +74,10 @@ sniffio==1.3.1
 soupsieve==2.9.2
 starlette==1.4.1
 stripe==15.4.0
+# Objektspeicher fuer verkaufte Dateien (L-100, ORDERS_06). Cloudflare
+# R2 ist S3-kompatibel; boto3 erzeugt die signierten Adressen. Das
+# Dateisystem auf Render ist fluechtig — siehe services/dateiablage.py.
+boto3==1.43.83
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzlocal==5.4.4

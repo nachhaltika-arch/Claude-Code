@@ -29,6 +29,11 @@ nur in Prosa sagt: **vor ORDERS_05 geht nichts live.**
 import os
 from typing import Optional
 
+#: Die unübersehbare Markierung aus ORDERS_05. Gleichlautend mit
+#: `frontend/src/inhalte/rechtstexte.js` — eine Suche danach soll beide
+#: Seiten finden.
+AUSSTEHEND = "[[RECHTSTEXT AUSSTEHEND]]"
+
 
 def fassung() -> Optional[str]:
     """Die geltende AGB-Fassung — oder `None`, wenn keine hinterlegt ist.
@@ -41,6 +46,22 @@ def fassung() -> Optional[str]:
     Fassung namens `" "`, und der Riegel wäre offen, ohne dass es auffiele.
     """
     return (os.getenv("AGB_FASSUNG", "").strip() or None)
+
+
+def verzichtstext() -> str:
+    """Der Wortlaut, dem der Käufer beim Verzicht zugestimmt hat.
+
+    **Er steht an drei Stellen und muss dreimal gleich lauten:** im
+    Bestellformular neben dem Häkchen, in der Widerrufsbelehrung und in der
+    Bestellbestätigung (ORDERS_05 Schritt 4). Zwei davon sind im Frontend
+    (`inhalte/rechtstexte.js`), diese ist im Backend — deshalb kommt sie aus
+    derselben Umgebung wie die Fassung und nicht aus einem zweiten Quelltext.
+
+    Solange nichts gesetzt ist, steht hier die Markierung aus ORDERS_05 und
+    kein plausibler Satz: Eine Bestätigung, die eine Erklärung wiedergibt, die
+    so nie abgegeben wurde, ist schlechter als eine, die die Lücke zeigt.
+    """
+    return os.getenv("AGB_VERZICHTSTEXT", "").strip() or AUSSTEHEND
 
 
 def verlangen() -> str:

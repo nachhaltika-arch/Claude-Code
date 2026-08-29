@@ -1,17 +1,1 @@
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/scripts/push-wenn-ruhig.sh\"",
-            "statusMessage": "Push auf staging, wenn die Bahn frei ist…",
-            "async": true
-          }
-        ]
-      }
-    ]
-  }
-}
+{}

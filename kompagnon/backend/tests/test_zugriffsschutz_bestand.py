@@ -92,7 +92,22 @@ ERLAUBTE_BEREICHE = {
 #:   entstuende erst mit dem Kauf. Abgesichert ist sie anders — der Preis
 #:   kommt aus dem Katalog und nie aus der Anfrage, ein Entwurf ist nicht
 #:   bestellbar, und ein Verbraucher ohne Widerrufsverzicht wird abgelehnt.
-OFFEN_ERWARTET = 52
+#: 29.08.2026, ORDERS_04: 54 — zwei Routen, beide zwingend offen.
+#:   `POST /api/shop/webhook` ruft **Stripe** auf, nicht ein angemeldeter
+#:   Mensch. Eine Anmeldepruefung waere hier keine Sicherung, sondern ein
+#:   Ausfall: Stripe kann sich nicht anmelden und wiederholte die Meldung
+#:   tagelang. Abgesichert ist sie staerker als durch eine Anmeldung — jede
+#:   Anfrage muss eine gueltige Signatur mit **eigenem** Geheimnis tragen
+#:   (`SHOP_STRIPE_WEBHOOK_SECRET`, L-138), sonst 400. Ohne eingerichtetes
+#:   Geheimnis nimmt sie **gar nichts** an.
+#:   `GET /api/shop/orders/{order_number}/status` fragt die Danke-Seite ab,
+#:   waehrend die Zahlung bestaetigt wird — der Kaeufer hat kein Konto. Sie
+#:   gibt genau drei Felder heraus: Bestellnummer, Status, Produktkennung.
+#:   **Keine Mail, kein Betrag, keine Anschrift** — die Bestellnummer steht im
+#:   Browserverlauf und in E-Mails und ist deshalb kein Geheimnis, aus dem
+#:   sich ein Datensatz ableiten darf. Zwei Zusicherungen in
+#:   `tests/test_shop_webhook.py` halten das fest.
+OFFEN_ERWARTET = 54
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

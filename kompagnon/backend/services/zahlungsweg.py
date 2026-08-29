@@ -21,8 +21,21 @@ bekommen, das er nie bestellt hat.
 Kasse mitgeben:
 
     addon_type = "geo"      routers/geo_payments.py
-    order_number = "B-…"    routers/shop.py und routers/buch.py
+    product_code = "…"      routers/shop.py
+    order_number = "…"      routers/buch.py
     package = "starter"     routers/payments.py
+
+**Der vierte Weg kam am 29.08.2026 dazu, und er war ein Fehler.** Bis dahin
+galt „Bestellnummer heißt Buch". Seit ORDERS_03 trägt aber auch die
+Shop-Kasse eine Bestellnummer — ein gekauftes Workbook wäre im Buch-Pfad
+gelandet, dort auf `paid` gesetzt und dann durch `ist_digital` gefallen:
+`variant` ist bei Katalogprodukten `"katalog"`, nicht `"pdf"` oder
+`"bundle"`. **Bezahlt, kein Abruf-Token, keine Auslieferung.** Aufgefallen ist
+es beim Bauen von ORDERS_04, nicht im Betrieb — die drei Katalogprodukte
+stehen bis ORDERS_05 auf `draft`, der Fehler lag bereit, nicht offen.
+
+Unterschieden wird an `product_code`: Den setzt nur die Shop-Kasse, das Buch
+setzt `variant` und `book_version`.
 
 **Warum der Websprint der Rückfall ist und nicht ein vierter Marker.** Er ist
 der älteste Weg, und es kann in Stripe Sitzungen von vor dieser Änderung
@@ -35,8 +48,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-#: Die drei Wege.
+#: Die vier Wege.
 GEO = "geo"
+SHOP = "shop"
 BUCH = "buch"
 WEBSPRINT = "websprint"
 
@@ -44,14 +58,17 @@ WEBSPRINT = "websprint"
 def weg_der_sitzung(metadaten) -> str:
     """Der Weg, zu dem diese Kasse gehört — nie leer.
 
-    Die Reihenfolge ist Absicht: `addon_type` ist der engste Marker, dann die
-    Bestellnummer, dann der Rückfall. Ein GEO-Abo trägt keine Bestellnummer
-    und ein Buch kein `addon_type`; die Reihenfolge entscheidet also heute
-    nichts — sie hält nur fest, was gälte, wenn ein Weg beide trüge.
+    Die Reihenfolge ist Absicht und seit dem 29.08.2026 nicht mehr folgenlos:
+    `addon_type` ist der engste Marker, dann `product_code`, dann die
+    Bestellnummer, dann der Rückfall. **`product_code` muss vor
+    `order_number` stehen** — die Shop-Kasse setzt beide, und in der alten
+    Reihenfolge hieße jede Shop-Sitzung „Buch".
     """
     metadaten = metadaten or {}
     if str(metadaten.get("addon_type") or "").strip() == GEO:
         return GEO
+    if str(metadaten.get("product_code") or "").strip():
+        return SHOP
     if str(metadaten.get("order_number") or "").strip():
         return BUCH
     return WEBSPRINT

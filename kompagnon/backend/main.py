@@ -9,23 +9,14 @@ import asyncio
 import os
 import json
 import logging
-import secrets
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
-from datetime import datetime
-from sqlalchemy import text
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
-
-# Was der Start geschafft hat. `/health` gibt es aus, damit ein unvollstaendiger
-# Start von aussen sichtbar ist — produktiv fielen sieben von acht Phasen aus,
-# und ohne Blick ins Log war das nirgends zu sehen.
-_STARTZUSTAND = {"vollstaendig": None, "ausgefallen": [], "fehler": ""}
-
 
 # Custom JSONResponse that does NOT escape Unicode (ä, ö, ü, ß, €)
 class UnicodeJSONResponse(JSONResponse):
@@ -72,9 +63,17 @@ from routers import (
     versand_router,
 )
 
+# Gesundheit, Scheduler-Steuerung und `/info` — eigener Router seit dem
+# 30.08.2026 (L-25). `start_melden` traegt das Ergebnis der Startphasen dorthin,
+# wo `/health` es ausgibt.
+from routers.betriebszustand import (
+    router as betriebszustand_router,
+    start_melden,
+    startfehler_melden,
+)
+
 # Import scheduler
-from automations import start_scheduler, stop_scheduler, get_scheduler
-from automations.scheduler import scheduler_ist_eingeschaltet
+from automations import start_scheduler, stop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -95,342 +94,15 @@ from services.protokoll_schwaerzung import Schwaerzung  # noqa: E402
 for _wurzel_handler in logging.getLogger().handlers:
     _wurzel_handler.addFilter(Schwaerzung())
 
-
-def _kurse_zusammenfuehren():
-    """Startphase: die alte Kurstabelle in die Akademie überführen."""
-    from services.kurse_zusammenfuehren import zusammenfuehren_beim_start
-
-    zusammenfuehren_beim_start()
-
-
-def _zuweisungs_kennungen_nachziehen():
-    """Startphase: Altzeilen der Akademie-Zuweisung auf die Benutzer-ID ziehen."""
-    from services.zuweisung_kennung import nachziehen_beim_start
-
-    nachziehen_beim_start()
-
-
-def _lebenszyklus_phasen_nachtragen():
-    """Startphase: Lebenszyklus-Phase fuer Bestandsbetriebe nachtragen."""
-    from services.lebenszyklus_nachtrag import nachtragen_beim_start
-
-    nachtragen_beim_start()
-
-
-def _create_default_admin():
-    """Create demo users for all 4 roles — only in explicit non-production environments.
-
-    Whitelist: laeuft nur bei ENVIRONMENT in {development, dev, local, staging}.
-    Passwoerter kommen ausschliesslich aus ENV-Vars; fehlen sie, wird ein
-    Zufallspasswort generiert und einmalig geloggt.
-    """
-    env = os.getenv("ENVIRONMENT", "development").lower()
-    if env not in ("development", "dev", "local", "staging"):
-        logger.info(f"⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT={env})")
-        return
-
-    from database import SessionLocal, User
-    from auth import hash_password
-    db = SessionLocal()
-    try:
-        demo_users = [
-            {"email": os.getenv("ADMIN_EMAIL",   "admin@kompagnon.de"),   "password": os.getenv("ADMIN_PASSWORD",   ""), "first_name": "Admin",  "last_name": "KOMPAGNON",  "role": "admin"},
-            # Aus zwei Demo-Konten (auditor, nutzer) ist am 27.08.2026 eines
-            # geworden — wie aus den zwei Rollen. `MITARBEITER_*` sind die
-            # neuen Variablennamen; die alten werden weiter gelesen, damit
-            # eine Umgebung, die sie gesetzt hat, nicht ploetzlich ein
-            # Zufallspasswort bekommt.
-            {"email": os.getenv("MITARBEITER_EMAIL") or os.getenv("AUDITOR_EMAIL", "mitarbeiter@kompagnon.de"),
-             "password": os.getenv("MITARBEITER_PASSWORD") or os.getenv("AUDITOR_PASSWORD", ""),
-             "first_name": "Max", "last_name": "Mitarbeiter",
-             "role": "mitarbeiter", "position": "Mitarbeiter KOMPAGNON"},
-            {"email": os.getenv("KUNDE_EMAIL",   "kunde@kompagnon.de"),   "password": os.getenv("KUNDE_PASSWORD",   ""), "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
-        ]
-        created = 0
-        for ud in demo_users:
-            if not db.query(User).filter(User.email == ud["email"]).first():
-                pw = ud.pop("password")
-                if not pw:
-                    pw = secrets.token_urlsafe(12)
-                    logger.warning(
-                        f"⚠ Demo-User {ud['email']}: kein Passwort in ENV gesetzt, "
-                        f"generiertes Dev-Passwort: {pw}  (NUR einmalig beim Anlegen)"
-                    )
-                pos = ud.pop("position", "")
-                user = User(**ud, password_hash=hash_password(pw), position=pos, is_active=True, is_verified=True)
-                db.add(user)
-                created += 1
-                logger.info(f"✓ Demo-User angelegt: {ud['email']} ({ud['role']})")
-        if created:
-            db.commit()
-        else:
-            logger.info("Alle Demo-User bereits vorhanden")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Demo-User Fehler: {e}")
-    finally:
-        db.close()
-
-    # ── Demo-Kunde vollständig aufbauen ──────────────────────
-    try:
-        from database import Lead, Project, AuditResult
-        from seed_checklists import create_project_checklists
-
-        _db2 = SessionLocal()
-
-        # 1. Demo-Kunde User holen
-        demo_kunde = _db2.query(User).filter(
-            User.email == "kunde@kompagnon.de"
-        ).first()
-        if not demo_kunde:
-            _db2.close()
-            return
-
-        # 2. Prüfen ob bereits vollständig eingerichtet
-        if demo_kunde.lead_id:
-            _db2.close()
-            logger.info("Demo-Kunde bereits vollständig eingerichtet")
-            return
-
-        # 3. Portal-Token erzeugen (qr_service oder uuid-Fallback)
-        try:
-            from services.qr_service import generate_token
-            _token = generate_token()
-        except Exception:
-            import uuid as _uuid
-            _token = _uuid.uuid4().hex
-
-        # 4. Demo-Lead anlegen
-        demo_lead = Lead(
-            company_name         = "Mustermann Sanitär GmbH",
-            contact_name         = "Thomas Mustermann",
-            email                = "kunde@kompagnon.de",
-            phone                = "+49 261 987654",
-            website_url          = "https://mustermann-sanitaer.de",
-            city                 = "Koblenz",
-            trade                = "Sanitär",
-            lead_source          = "stripe_checkout",
-            status               = "won",
-            notes                = "Demo-Kunde | Paket: KOMPAGNON | 2.000 EUR",
-            customer_token       = _token,
-            onboarding_completed = False,
-        )
-        _db2.add(demo_lead)
-        _db2.flush()
-
-        # 5. User mit Lead verknüpfen + Passwort sicherstellen
-        demo_kunde.lead_id      = demo_lead.id
-        demo_kunde.first_name   = "Thomas"
-        demo_kunde.last_name    = "Mustermann"
-        demo_kunde.is_active    = True
-        demo_kunde.is_verified  = True
-        from auth import hash_password
-        demo_kunde.password_hash = hash_password("Kunde2025!")
-
-        # 6. Projekt in Phase 1 anlegen
-        demo_project = Project(
-            lead_id       = demo_lead.id,
-            status        = "phase_1",
-            start_date    = datetime.utcnow(),
-            fixed_price   = 2000.0,
-            hourly_rate   = 45.0,
-            ai_tool_costs = 50.0,
-        )
-        _db2.add(demo_project)
-        _db2.flush()
-
-        # 7. Alle Checklisten-Einträge anlegen
-        create_project_checklists(_db2, demo_project.id)
-
-        _db2.commit()
-
-        logger.info(
-            f"✓ Demo-Kunde vollständig angelegt: "
-            f"Lead {demo_lead.id} | Projekt {demo_project.id} | "
-            f"Portal-Token: {demo_lead.customer_token}"
-        )
-
-    except Exception as e:
-        logger.warning(f"Demo-Kunde Setup Fehler: {e}")
-    finally:
-        try:
-            _db2.close()
-        except Exception:
-            pass
-
-    # ── Produkte seeden (nur wenn Tabelle leer) ──────────────
-    try:
-        from database import SessionLocal
-        from sqlalchemy import text as _t
-        _db3 = SessionLocal()
-        count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
-        if count == 0:
-            # Der Katalog einer frischen Datenbank. Bis zum 23.08.2026
-            # standen hier Starter/KOMPAGNON/Premium zu 1.500/2.000/2.800 EUR
-            # brutto, waehrend die Angebote Websprints zu 3.500/7.900/12.900
-            # EUR **netto** fuehrten — zwei Produktlinien nebeneinander, und
-            # aus dieser Zeile zieht die Stripe-Sitzung ihren Betrag (L-97).
-            #
-            # Die Bestandsprodukte werden nicht geloescht, sondern in der
-            # Migration auf `archived` gesetzt: Ein Projekt aus dem Fruehjahr
-            # traegt `package_type='kompagnon'`, und die Kundenmail liest den
-            # Preis aus genau dieser Zeile. Wer sie entfernt, deutet eine
-            # bezahlte Rechnung nachtraeglich um.
-            #
-            # Preise sind **netto** angegeben (B2B, Handwerksbetriebe sind
-            # vorsteuerabzugsberechtigt); `price_brutto` ist der Betrag, den
-            # Stripe abbucht, und muss dazu passen — `test_produktkatalog`
-            # rechnet es nach.
-            SEED = [
-                {
-                    "slug": "websprint_relaunch", "name": "Websprint Relaunch",
-                    "sort_order": 1,
-                    "short_desc": "Bestehende Website auf den Homepage-Standard heben",
-                    "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "live",
-                    # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
-                    # docs/produkte/ws-rel-01.md. Das Blatt nannte als
-                    # Freigabebedingung „nach Behebung L2 und L3" — beides ist
-                    # am 23.08. am laufenden System widerlegt worden (der
-                    # PageSpeed-Schluessel arbeitet, die Score-Schwellen sind
-                    # beidseitig gleich). Damit ist das Paket verkaufbar.
-                    "features": [
-                        "Eingangsaudit nach Homepage-Standard, 100 Punkte",
-                        "Strukturabgleich und Seitenplan",
-                        "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
-                        "Redaktionelle Ueberarbeitung der vorhandenen Texte",
-                        "Bildaufbereitung, bis 30 Bilder",
-                        "Kontaktformular mit Spam-Schutz",
-                        "Grundlagen der Barrierefreiheit",
-                        "Technische Grundoptimierung",
-                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
-                        "Eine Korrekturschleife",
-                        "Abnahmeaudit mit schriftlichem Protokoll",
-                        "Einweisung, 30 Minuten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-                {
-                    "slug": "websprint_neubau", "name": "Websprint Neubau",
-                    "sort_order": 2,
-                    "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
-                    "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 28, "status": "live",
-                    "highlighted": True, "highlight_label": "Empfehlung",
-                    "features": ["Positionierungsgespraech, 90 Minuten",
-                        "Bauplan als Freigabedokument, eine Ueberarbeitung",
-                        "Texterstellung fuer bis zu 12 Seiten",
-                        "Bildkonzept und Fotobriefing",
-                        "Aufbau im KOMPAGNON-Komponentensystem, responsiv",
-                        "Technische Optimierung und strukturierte Auszeichnung",
-                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
-                        "Zwei Korrekturschleifen",
-                        "Abnahmeaudit mit schriftlichem Protokoll",
-                        "Einweisung, 60 Minuten",
-                        "Pflege Basic fuer 3 Monate",
-                        "Re-Audit nach 3 Monaten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-                {
-                    "slug": "websprint_system", "name": "Websprint System",
-                    "sort_order": 3,
-                    "short_desc": "Neubau mit GEO/GAIO, Karriereseite und Messgrundlage",
-                    "price_brutto": 15351.00, "price_netto": 12900.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 42, "status": "draft",
-                    # `draft`, nicht `live`: Die Kernleistung dieses Pakets —
-                    # Auslieferung von llms.txt, schema.org und Ground Page an
-                    # die Kundenseite — ist nicht implementiert (L-99). Das
-                    # Datenblatt WS-SYS-01 fuehrt es selbst als 🔴 gesperrt.
-                    "features": ["Alles aus dem Websprint Neubau",
-                        "Erweiterter Seitenumfang, bis 20 Seiten",
-                        "Karriereseite mit Bewerbungsformular",
-                        "GEO/GAIO-Layer: llms.txt, schema.org, Ground Page",
-                        "Messgrundlage mit Consent-Layer und EU-Datenhaltung",
-                        "Auftragsverarbeitungsvertrag",
-                        "Pflege Pro fuer 12 Monate",
-                        "Quartalsweises Re-Audit mit Massnahmenliste",
-                        "Jahresgespraech, 90 Minuten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-            ]
-            import json as _j
-            for p in SEED:
-                _db3.execute(_t("""
-                    INSERT INTO products
-                    (slug, name, short_desc, price_brutto, price_netto,
-                     tax_rate, payment_type, delivery_days, status,
-                     highlighted, highlight_label, features,
-                     checkout_fields, webhook_actions, sort_order)
-                    VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
-                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
-                """), {
-                    "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
-                    "pb": p["price_brutto"], "pn": p["price_netto"],
-                    "tr": p["tax_rate"], "pt": p["payment_type"],
-                    "dd": p["delivery_days"], "status": p["status"],
-                    "hl": p.get("highlighted", False),
-                    "hll": p.get("highlight_label", ""),
-                    "feat": _j.dumps(p["features"]),
-                    "cf":   _j.dumps(p["checkout_fields"]),
-                    "wa":   _j.dumps(p["webhook_actions"]),
-                    "so":   p["sort_order"],
-                })
-            _db3.commit()
-            logger.info("✓ 3 Produkte geseedet")
-        _db3.close()
-    except Exception as e:
-        logger.warning(f"Produkt-Seed Fehler: {e}")
-
-    # Der Block „Produkte seeden" stand hier bis zum 22.08.2026 ein
-    # **zweites** Mal, wortgleich bis auf Zeilenumbrueche (L-29). Er war
-    # wirkungslos — `count == 0` trifft nicht mehr zu, wenn der Block
-    # darueber gerade geseedet hat. Die Falle lag im Aendern: Wer einen
-    # Preis in der zweiten Vorlage anpasste, aenderte nichts, und nichts
-    # sagte es ihm. `tests/test_produktvorlage.py` haelt es bei einer.
-
-
-def _disable_demo_accounts_in_production():
-    """Deaktiviert Demo-Konten wenn ENVIRONMENT=production gesetzt ist."""
-    if os.getenv("ENVIRONMENT", "development").lower() != "production":
-        return
-
-    # Die alten beiden Adressen bleiben stehen, obwohl sie niemand mehr
-    # anlegt: Wer sie in einer Umgebung schon hat, soll sie auch abgeschaltet
-    # bekommen. Eine Liste, die einen Namen nicht mehr kennt, den der Bestand
-    # noch traegt, laesst genau die Konten offen, die sie schliessen soll.
-    DEMO_EMAILS = [
-        "admin@kompagnon.de",
-        "mitarbeiter@kompagnon.de",
-        "auditor@kompagnon.de",
-        "nutzer@kompagnon.de",
-        "kunde@kompagnon.de",
-    ]
-
-    from database import SessionLocal, User
-    db = SessionLocal()
-    try:
-        deactivated = 0
-        for email in DEMO_EMAILS:
-            user = db.query(User).filter(User.email == email).first()
-            if user and user.is_active:
-                user.is_active = False
-                deactivated += 1
-                logger.warning(f"🔒 Demo-Konto deaktiviert: {email}")
-        if deactivated:
-            db.commit()
-            logger.warning(f"🔒 {deactivated} Demo-Konten in Produktion deaktiviert")
-        else:
-            logger.info("✓ Keine aktiven Demo-Konten gefunden")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Demo-Deaktivierung fehlgeschlagen: {e}")
-    finally:
-        db.close()
+# Die Startphasen, die einmal beim Hochfahren laufen. Sie standen bis zum
+# 30.08.2026 hier in dieser Datei — 335 ihrer damals 1.221 Zeilen (L-25).
+from startphase import (  # noqa: E402
+    _create_default_admin,
+    _disable_demo_accounts_in_production,
+    _kurse_zusammenfuehren,
+    _lebenszyklus_phasen_nachtragen,
+    _zuweisungs_kennungen_nachziehen,
+)
 
 
 @asynccontextmanager
@@ -554,7 +226,7 @@ async def lifespan(app: FastAPI):
         db_bereit = await _warte_auf_db()
         if not db_bereit:
             logger.error("❌ DB-Verbindung fehlgeschlagen — Server läuft ohne DB")
-            _STARTZUSTAND["fehler"] = "Keine Datenbankverbindung"
+            startfehler_melden("Keine Datenbankverbindung")
             return
 
         phasen = [
@@ -586,8 +258,8 @@ async def lifespan(app: FastAPI):
         ]
         ergebnis = await fuehre_phasen_aus(phasen)
 
-        _STARTZUSTAND["vollstaendig"] = ergebnis.vollstaendig
-        _STARTZUSTAND["ausgefallen"] = ergebnis.ausgefallen + ergebnis.gescheitert
+        start_melden(ergebnis.vollstaendig,
+                     ergebnis.ausgefallen + ergebnis.gescheitert)
 
         if ergebnis.vollstaendig:
             logger.info(f"✅ {ergebnis.bericht()}")
@@ -944,6 +616,10 @@ app.include_router(posteingang_router)
 from routers.shop import router as shop_router
 app.include_router(shop_router)
 
+# Gesundheit, Scheduler und Auskunft. Sie standen bis zum 30.08.2026 als
+# `@app.get` unten in dieser Datei — 239 ihrer damals 1.221 Zeilen (L-25).
+app.include_router(betriebszustand_router)
+
 
 # Was der Server nicht verarbeiten konnte — ins Log **und** in die Tabelle.
 #
@@ -977,236 +653,6 @@ async def global_exception_handler(request, exc):
         status_code=500,
         content={'detail': 'Interner Serverfehler', 'type': type(exc).__name__},
     )
-
-
-# Health check endpoint
-@app.get("/api/health")
-async def api_health():
-    """Lightweight keepalive — no DB call, responds instantly."""
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat(), "service": "kompagnon-backend"}
-
-@app.get("/api/ping")
-async def api_ping():
-    """Ultra-lightweight keepalive alias."""
-    return "pong"
-
-def _ablage_zustand() -> dict:
-    """Zustand der Dateiablage fuer die Gesundheitspruefung."""
-    try:
-        from services.dateiablage import ablage_zustand
-        return ablage_zustand()
-    except Exception as fehler:
-        return {"grund": f"{type(fehler).__name__}: {fehler}"}
-
-
-def _browser_zustand() -> dict:
-    """Zwei Fragen, nicht eine.
-
-    „Nicht eingeschaltet" und „eingeschaltet, aber Playwright fehlt" sind
-    verschiedene Zustaende, und der zweite ist ein Einrichtungsfehler, der
-    auffallen soll. Ein einzelnes `browser: false` wuerde beide zu derselben
-    Achselzucken-Antwort verschmelzen.
-    """
-    try:
-        from services.seitenbrowser import browser_erwuenscht, browser_verfuegbar
-
-        an = bool(browser_erwuenscht())
-        da = bool(browser_verfuegbar())
-    except Exception:                       # noqa: BLE001
-        # `/health` selbst darf daran nicht scheitern — es ist die Auskunft,
-        # die man liest, wenn sonst nichts mehr geht.
-        return {"eingeschaltet": False, "verfuegbar": False, "bereit": False}
-    return {"eingeschaltet": an, "verfuegbar": da, "bereit": an and da}
-
-
-#: Die Umgebungswerte, ohne die kein Geld ankommt — und wozu jeder gehoert.
-_ZAHLUNGSWERTE = {
-    "STRIPE_SECRET_KEY": "Kasse eroeffnen",
-    "STRIPE_WEBHOOK_SECRET": "/api/payments/webhook",
-    "STRIPE_WEBHOOK_SECRET_BUCH": "/api/book/webhook",
-    "STRIPE_WEBHOOK_SECRET_GEO": "/api/geo-payments/webhook",
-}
-
-
-def _zahlungszustand() -> dict:
-    """Ob die Zahlungskette eingerichtet ist — von aussen abfragbar.
-
-    **Der Anlass (27.08.2026).** Beim Einrichten der drei Stripe-Adressen ging
-    eine Stunde damit verloren, herauszufinden, **ob** die Geheimnisse im
-    laufenden Prozess ankommen. Das Render-Dashboard zeigt eine Zeile mit
-    leerem Wert genauso an wie eine mit Inhalt — beide als Punkte. Die
-    Protokolle sagten „nicht gesetzt", der Bildschirm sagte „steht da", und
-    zwischen beiden gab es keine Instanz, die man haette fragen koennen.
-
-    Dieselbe Fehlerfamilie wie die Uploads am 16.08. und der Browserlauf am
-    27.08. (L-136): Ein Zustand, der **nicht im Quelltext** steht, sondern in
-    der Umgebung, und den man deshalb im Dashboard „ablesen" muss statt am
-    Gegenstand zu messen. Ein Dashboard zeigt die **Einstellung**. Hier steht,
-    was der Prozess tatsaechlich hat.
-
-    **Es wird die Laenge gemeldet, nicht der Wert** — und das ist die ganze
-    Absicht: Sie unterscheidet „leer", „aus Versehen abgeschnitten" und
-    „vollstaendig", ohne dass ein Geheimnis ueber eine offene Auskunft geht.
-    Ein `whsec_` ist um die 38 Zeichen lang; steht dort 3, hat jemand beim
-    Einfuegen etwas verloren.
-
-    Gemeldet wird ausserdem der **Praefix**, aber nur, ob er stimmt: Wer den
-    API-Schluessel und das Signaturgeheimnis vertauscht, sieht sonst zwei
-    gesetzte Werte und einen Fehler ohne Ursache.
-    """
-    zustand = {}
-    for name, wofuer in _ZAHLUNGSWERTE.items():
-        wert = (os.getenv(name) or "").strip()
-        eintrag = {"gesetzt": bool(wert), "laenge": len(wert), "wofuer": wofuer}
-        if wert:
-            erwartet = "whsec_" if "WEBHOOK" in name else ("sk_", "rk_")
-            eintrag["praefix_stimmt"] = wert.startswith(erwartet)
-        zustand[name] = eintrag
-    zustand["bereit"] = all(e.get("gesetzt") and e.get("praefix_stimmt", True)
-                            for k, e in zustand.items() if k in _ZAHLUNGSWERTE)
-    return zustand
-
-
-@app.get("/health")
-def health_check():
-    """Check if backend and database are running."""
-    from database import SessionLocal
-    db_status = "unknown"
-    try:
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)[:80]}"
-
-    try:
-        scheduler = get_scheduler()
-        return {
-            "status": "ok" if db_status == "connected" else "degraded",
-            "service": "KOMPAGNON Backend",
-            "database": db_status,
-            "scheduler_running": scheduler.scheduler.running,
-            # **Abgeschaltet ist nicht abgestuerzt.** Waehrend des Umzugs
-            # (L-34) faehrt der Dienst ohne Verkehr `SCHEDULER_ENABLED=false`,
-            # damit nicht zwei Scheduler auf derselben Jobtabelle arbeiten.
-            # Ohne dieses Feld sieht das von aussen aus wie ein Ausfall — und
-            # der naechste, der hinsieht, „repariert" einen gewollten Zustand.
-            "scheduler_enabled": scheduler_ist_eingeschaltet(),
-            # Ob der Start durchlief. Ohne diese Auskunft blieb produktiv
-            # monatelang unbemerkt, dass sieben von acht Startphasen ausfielen.
-            "startup_complete": _STARTZUSTAND["vollstaendig"],
-            "startup_missing": _STARTZUSTAND["ausgefallen"],
-            # Ob hochgeladene Dateien den naechsten Deploy ueberleben. Ohne
-            # eingehaengten Datentraeger schreibt der Dienst munter weiter —
-            # und beim Deploy ist alles weg (16.08.2026). Von aussen abfragbar,
-            # damit man es nicht im Dashboard nachsehen muss.
-            "uploads": _ablage_zustand(),
-            # Ob der Browserlauf der Erhebung wirklich laufen kann. Er haengt
-            # an zwei Dingen, die **nicht im Quelltext** stehen, sondern in
-            # Render: dem Buildbefehl (`playwright install chromium`) und
-            # `AUDIT_BROWSER=true`. Fehlt eines, misst die Erhebung eine
-            # React-Seite als leer — und das steht dann als Befund im
-            # Kundenbericht (L-107). Am Gegenstand fragen statt im Dashboard
-            # ablesen, wie schon bei den Uploads.
-            "browser": _browser_zustand(),
-            # Ob Geld ankommen kann. Vier Werte, die nur in Render stehen —
-            # und ein Dashboard zeigt die Einstellung, nicht den Zustand des
-            # Prozesses. Gemeldet werden Laenge und Praefix, nie der Wert.
-            "zahlungen": _zahlungszustand(),
-            "timestamp": os.popen("date").read().strip(),
-        }
-    except Exception as e:
-        return {"status": "degraded", "database": db_status, "detail": str(e)}
-
-
-# Der Scheduler verrät die interne Jobliste und lässt sich neu starten.
-# Beides stand bis zum 19.08.2026 ohne Anmeldung offen; der Neustart
-# antwortete beim Nachmessen mit 200 und startete tatsächlich neu.
-from routers.auth_router import require_innendienst
-
-@app.get("/api/scheduler/status", dependencies=[Depends(require_innendienst)])
-def scheduler_status():
-    """Check if scheduler is running and list active jobs."""
-    try:
-        scheduler = get_scheduler()
-        return {
-            "running": scheduler.scheduler.running,
-            "jobs": [
-                {
-                    "id": job.id,
-                    "next_run": str(job.next_run_time) if job.next_run_time else None,
-                }
-                for job in scheduler.scheduler.get_jobs()
-            ],
-        }
-    except Exception as e:
-        return {"running": False, "error": str(e)}
-
-
-@app.post("/api/scheduler/restart", dependencies=[Depends(require_innendienst)])
-def scheduler_restart():
-    """Manually (re)start the scheduler — useful if background_init failed."""
-    try:
-        start_scheduler()
-        scheduler = get_scheduler()
-        return {
-            "status": "ok",
-            "running": scheduler.scheduler.running,
-            "job_count": len(scheduler.scheduler.get_jobs()),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Scheduler-Neustart fehlgeschlagen: {e}")
-
-
-@app.get("/robots.txt", response_class=PlainTextResponse)
-def robots_txt():
-    return "User-agent: *\nAllow: /\n"
-
-
-@app.get("/")
-@app.head("/")
-def root():
-    """API root with documentation link."""
-    return {
-        "message": "🚀 KOMPAGNON Automation System",
-        "docs": "/docs",
-        "health": "/health",
-        "version": "1.0.0",
-        "features": [
-            "Lead Management Pipeline",
-            "7-Phase Project Workflow",
-            "KI-powered Content Generation",
-            "Real-time Margin Tracking",
-            "Automated Post-Launch Sequences",
-            "Local SEO Schema Generation",
-            "QA Automation & Testing",
-            "Customer Relationship Management",
-        ],
-    }
-
-
-# (Der zweite, gleichnamige Handler stand hier und ueberschrieb den oberen.
-#  Entfernt am 18.08.2026 — siehe dort.)
-
-
-# Info endpoint for deployment
-@app.get("/info")
-def get_info():
-    """Auskunft darüber, was eingerichtet ist — nie darüber, womit.
-
-    Bis 2026-08-15 gab dieser Endpunkt `DATABASE_URL` unverändert aus, also
-    Benutzer, Passwort und Host der Postgres-Instanz, ohne Anmeldung, auf dem
-    Produktivserver ebenso wie auf Staging. Alle übrigen Felder waren schon
-    immer boolesch; die Datenbank war die Ausnahme.
-    """
-    return {
-        "environment": os.getenv("ENVIRONMENT", "development"),
-        "database_configured": bool(os.getenv("DATABASE_URL")),
-        "api_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
-        "smtp_configured": bool(os.getenv("SMTP_HOST")),
-        "debug": os.getenv("DEBUG", "false").lower() == "true",
-    }
 
 
 if __name__ == "__main__":

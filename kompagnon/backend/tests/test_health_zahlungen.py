@@ -29,14 +29,19 @@ _SK = "sk" + "_test_"
 
 
 def _zustand(monkeypatch, **werte):
-    """Der Zustand bei genau dieser Umgebung."""
-    import main
+    """Der Zustand bei genau dieser Umgebung.
 
-    for name in main._ZAHLUNGSWERTE:
+    Seit dem 30.08.2026 in `routers/betriebszustand.py` statt in `main.py`
+    (L-25) — `/health` und seine drei Zustandsfunktionen sind ein Router
+    geworden.
+    """
+    from routers import betriebszustand
+
+    for name in betriebszustand._ZAHLUNGSWERTE:
         monkeypatch.delenv(name, raising=False)
     for name, wert in werte.items():
         monkeypatch.setenv(name, wert)
-    return main._zahlungszustand()
+    return betriebszustand._zahlungszustand()
 
 
 # ── Was gemeldet wird ─────────────────────────────────────────────────

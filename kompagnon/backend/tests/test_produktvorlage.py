@@ -23,7 +23,8 @@ WURZEL = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _seed_listen():
-    baum = ast.parse((WURZEL / "main.py").read_text(encoding="utf-8"))
+    # Seit dem 30.08.2026 in `startphase.py` statt in `main.py` (L-25).
+    baum = ast.parse((WURZEL / "startphase.py").read_text(encoding="utf-8"))
     return [ast.literal_eval(knoten.value)
             for knoten in ast.walk(baum)
             if isinstance(knoten, ast.Assign)
@@ -35,7 +36,7 @@ def test_die_produktvorlage_steht_genau_einmal():
     listen = _seed_listen()
 
     assert len(listen) == 1, (
-        f"{len(listen)} Produktvorlagen in main.py — die zweite ist "
+        f"{len(listen)} Produktvorlagen in startphase.py — die zweite ist "
         f"wirkungslos, und wer sie aendert, merkt nichts davon.")
 
 

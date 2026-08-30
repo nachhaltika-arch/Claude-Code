@@ -43,8 +43,14 @@ WURZEL = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _vorlage():
-    """Die SEED-Liste aus `main.py` — die Quelle für eine frische Datenbank."""
-    baum = ast.parse((WURZEL / "main.py").read_text(encoding="utf-8"))
+    """Die SEED-Liste — die Quelle für eine frische Datenbank.
+
+    Sie stand bis zum 30.08.2026 in `main.py` und liegt seither in
+    `startphase.py` (L-25, Schnitt nach Zuständigkeit). Dieser Test hat den
+    Umzug gemeldet, statt ihn stillschweigend mitzumachen: Er fand keine
+    Vorlage mehr und wurde rot. Genau das soll er.
+    """
+    baum = ast.parse((WURZEL / "startphase.py").read_text(encoding="utf-8"))
     listen = [ast.literal_eval(k.value)
               for k in ast.walk(baum)
               if isinstance(k, ast.Assign)

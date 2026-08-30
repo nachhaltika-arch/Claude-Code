@@ -99,6 +99,11 @@ describe('Die drei Quellen sagen dasselbe', () => {
     // Fünf Dateien führen Farben je Stufenname. Wird eine Stufe umbenannt,
     // verliert sie dort still ihre Farbe — die Tabelle greift dann ins Leere.
     const dateien = [
+      // Seit dem 30.08.2026 steht `LEVEL_STYLES` in `audit/auditDaten.jsx`:
+      // Der Bericht ist geteilt (L-25). Die Berichtsdatei bleibt in der Liste,
+      // damit eine Farbtabelle, die dorthin zurueckwandert, wieder mitgeprueft
+      // wird.
+      'components/audit/auditDaten.jsx',
       'components/AuditReport.jsx',
       'pages/AuditTool.jsx',
       'pages/LeadProfile.jsx',
@@ -123,8 +128,12 @@ describe('Die drei Quellen sagen dasselbe', () => {
     // Die Gegenprobe: Ohne sie bliebe die Prüfung oben auch dann grün, wenn
     // eine **neue** Stufe nirgends eingetragen wurde — sie sähe dann überall
     // farblos aus, und niemand merkte es.
+    // **Am 30.08.2026 nachgezogen.** Hier stand `components/AuditReport.jsx`,
+    // und dieser Test wurde rot, als die Stufentabelle beim Teilen des
+    // Berichts nach `audit/auditDaten.jsx` zog (L-25) — richtig so: Er sucht
+    // die Tabelle, nicht die Datei, und sagt es, wenn sie nicht mehr da ist.
     const text = fs.readFileSync(
-      path.join(__dirname, '..', 'components/AuditReport.jsx'), 'utf8');
+      path.join(__dirname, '..', 'components/audit/auditDaten.jsx'), 'utf8');
 
     STUFEN.filter((s) => s.ab > 0).forEach((stufe) => {
       expect(text).toContain(`'${stufe.name}'`);

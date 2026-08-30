@@ -69,6 +69,11 @@ const GEPRUEFTE_AUSNAHMEN = [
   // mitgegangen — dieselbe Ausnahme, nur an ihrem neuen Ort. Der Test hat
   // den Umzug gemeldet, statt ihn stillschweigend mitzumachen.
   'components/wizard/leistungsseitenSchritte.jsx',
+  // Dasselbe fuer den Briefing-Assistenten: Seine sechs Schritte samt
+  // `Select` stehen seit dem 30.08.2026 in `briefing2/briefingSchritte.jsx`
+  // (L-25). Die Ausnahme wandert mit — sonst deckt sie eine Datei, die die
+  // Sache nicht mehr enthaelt, und die Sache waere ungedeckt.
+  'components/briefing2/briefingSchritte.jsx',
   // `function Input(props) { return <input {...props} …/> }` — reicht alle
   // Eigenschaften durch, also auch den Namen, den der Aufrufer setzt.
   'pages/AuditTool.jsx',

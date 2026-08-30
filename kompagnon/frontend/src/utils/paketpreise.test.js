@@ -124,8 +124,10 @@ const WURZEL = path.join(__dirname, '..');
  */
 const GEPRUEFTE_AUSNAHMEN = [
   // Platzhalter-Beispiel für die Preisangabe **des Kunden** auf seiner
-  // eigenen Leistungsseite — nicht unser Paketpreis.
-  'components/LeistungsseitenWizard.jsx',
+  // eigenen Leistungsseite — nicht unser Paketpreis. Seit dem 30.08.2026 in
+  // `wizard/leistungsseitenSchritte.jsx`: Die fünf Schritte sind aus dem
+  // Assistenten ausgezogen (L-25), und der Platzhalter steht in Schritt 4.
+  'components/wizard/leistungsseitenSchritte.jsx',
   // Die drei Paketseiten standen hier, solange /paket/… keine Route hatte.
   // Seit dem 21.08.2026 sind sie erreichbar (L-64) und holen ihre Preise
   // über `usePakete` — die Ausnahme ist damit hinfällig.

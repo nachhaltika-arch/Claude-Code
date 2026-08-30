@@ -372,7 +372,16 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                   {GOOGLE_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer',
+                  {/* **Mit der Tastatur bedienbar (30.08.2026, L-17).** Dieselbe
+                      Bauart wie die Farbfelder aus `all_colors` drei Zeilen
+                      tiefer — die hatten sie von Anfang an, diese beiden nicht.
+                      `aria-expanded` sagt dazu, ob die Auswahl offen ist;
+                      sonst hoert ein Screenreader nur „Schaltflaeche". */}
+                  <div role="button" tabIndex={0}
+                    aria-label={`Farbe ${colorKey} waehlen`}
+                    aria-expanded={activeToken === colorKey}
+                    onKeyDown={aufTaste(() => setActiveToken(activeToken === colorKey ? null : colorKey))}
+                    style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer',
                                 border: activeToken === colorKey ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
                     onClick={() => setActiveToken(activeToken === colorKey ? null : colorKey)} />
                   {activeToken === colorKey && (
@@ -392,7 +401,10 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       </div>
                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                         {['#FFFFFF', '#000000', 'var(--kc-yellow)', primary, secondary, accent].map((c, i) => (
-                          <div key={i} onClick={() => setColor(c)}
+                          <div key={i} role="button" tabIndex={0}
+                            aria-label={`Farbe ${c} uebernehmen`}
+                            onKeyDown={aufTaste(() => setColor(c))}
+                            onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}

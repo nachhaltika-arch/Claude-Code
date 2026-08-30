@@ -61,7 +61,12 @@ const WURZEL = path.join(__dirname, '..');
 // `backend/config.py`). Eine davon trug eine nur-mit-Maus-Stelle.
 // Wieder gilt: geloeschter Code hat keine Barrieren — es hat niemand eine
 // Tastaturbedienung nachgeruestet, es ist nur eine Stelle weniger da.
-const VERBLEIBEND = 44;
+// 30.08.2026: 44 → 42. Zwei Farbfelder im `BrandDesignEditor` haben die
+// Tastaturbedienung bekommen, die ihre Nachbarn aus `all_colors` drei Zeilen
+// tiefer von Anfang an hatten. Hier ist `role="button"` das **richtige**
+// Mittel: Es sind Schaltflaechen, sie enthalten nichts, und die eine sagt mit
+// `aria-expanded` dazu, ob die Auswahl offen ist.
+const VERBLEIBEND = 42;
 
 function tagEnde(text, start) {
   let tiefe = 0;

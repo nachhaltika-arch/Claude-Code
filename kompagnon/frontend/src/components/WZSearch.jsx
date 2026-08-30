@@ -52,6 +52,11 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
         background: 'var(--bg-app)',
         cursor: 'text',
       }} onClick={() => !value && setOpen(true)}>
+        {/* **Kein `role="button"` hier (30.08.2026, L-17).** Diese Flaeche
+            umschliesst ein Eingabefeld; sie als Schaltflaeche auszugeben waere
+            ein Bedienelement im Bedienelement. Der Tastaturweg fuehrt in das
+            Feld selbst — und das oeffnet die Liste jetzt beim Fokus, so wie
+            der Klick auf die Flaeche sie fuer die Maus oeffnet. */}
         <span style={{ fontSize: 14, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔍</span>
         {value ? (
           <>

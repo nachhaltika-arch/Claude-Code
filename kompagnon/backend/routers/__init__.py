@@ -32,6 +32,10 @@ from . import projects_werkstatt  # noqa: F401
 # Zeilen: die drei KI-Entwuerfe (312 Zeilen, der teuerste Teil der Kette) und
 # der QA-Scanner samt Checkliste. Beide haengen am selben Router — derselbe
 # Grund wie oben, dieselbe Falle: ohne diesen Import fehlen sie lautlos.
+# Zeiterfassung, Marge und Checkliste, herausgeloest am 30.08.2026 (L-25):
+# `projects.py` war mit 887 Zeilen wieder ueber der Grenze. Auch diese haengen
+# am selben Router — ohne den Import fehlten fuenf Routen lautlos.
+from . import projects_fortschritt  # noqa: F401
 from . import projects_versionen  # noqa: F401
 from . import projects_qa  # noqa: F401
 from .agents import router as agents_router

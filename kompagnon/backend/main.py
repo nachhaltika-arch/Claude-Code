@@ -363,6 +363,10 @@ app.include_router(leads_anreicherung.router)
 # dieselbe Innendienst-Sperre am Router.
 from routers import leads_nachfassen, leads_profil
 app.include_router(leads_profil.router)
+# Die Briefing-Bruecke, herausgeloest am 30.08.2026 (L-25). Eigener Router mit
+# demselben Praefix — ohne diese Zeile fehlt die Route lautlos.
+from routers import leads_briefing
+app.include_router(leads_briefing.router)
 app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router

@@ -8,6 +8,8 @@ behoben bleibt.
 """
 import json
 
+import pathlib
+
 import pytest
 
 from services.audit_criteria import CATALOGUE, Source, all_criteria
@@ -176,33 +178,85 @@ def test_statusspalte_nennt_den_status_im_klartext():
         assert len(zeichen) > 1, f"{zeichen!r} ist wieder ein Einzelzeichen"
 
 
-def test_pdf_traegt_die_ci_und_nicht_die_alte_palette():
-    """Geprüft wird der Code, nicht die Kommentare.
+#: Die vierte Palette, die es einmal gab — Flat-UI-Toene, die weder in
+#: `brand.py` noch in `tokens.css` stehen.
+ERFUNDENE_FARBEN = ("#2c3e50", "#f39c12", "#e74c3c", "#27ae60", "#7f8c8d",
+                    "#95a5a6", "#64748b")
 
-    Die alten Werte stehen bewusst noch in Kommentaren und Docstrings, damit
-    nachvollziehbar bleibt, was ersetzt wurde. Ein simpler Textvergleich würde
-    genau daran hängenbleiben, deshalb werden Kommentare und Zeichenketten
-    vorher herausgeschnitten.
+
+def _werte_ohne_doku(pfad):
+    """Alle Zeichenketten einer Datei, die **Werte** sind — keine Doku.
+
+    **Warum das am 30.08.2026 neu geschrieben wurde.** Hier stand ein
+    Tokenizer-Lauf, der `COMMENT` **und** `STRING` wegwarf, mit der
+    Begruendung: „Die alten Werte stehen bewusst noch in Kommentaren."
+
+    Eine Hexfarbe in Python **ist** aber immer eine Zeichenkette. Der Test
+    warf damit genau die Tokenart weg, in der das Gesuchte ausschliesslich
+    vorkommen kann — er konnte nie anschlagen. Der Beweis lag im Bestand:
+    `#27ae60` und `#e74c3c` standen in der GEO-Statustabelle des Berichts,
+    und der Test war gruen.
+
+    Unterschieden wird jetzt zwischen **Doku** und **Wert**: Ein Docstring ist
+    der erste Ausdruck eines Moduls, einer Klasse oder einer Funktion; alles
+    andere ist Code. Kommentare sieht `ast` ohnehin nicht.
     """
-    import io
-    import tokenize
+    import ast
 
+    baum = ast.parse(pathlib.Path(pfad).read_text(encoding="utf-8"))
+    doku = set()
+    for knoten in ast.walk(baum):
+        if not isinstance(knoten, (ast.Module, ast.ClassDef,
+                                   ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        erster = (knoten.body or [None])[0]
+        if (isinstance(erster, ast.Expr)
+                and isinstance(erster.value, ast.Constant)
+                and isinstance(erster.value.value, str)):
+            doku.add(id(erster.value))
+
+    return [k.value for k in ast.walk(baum)
+            if isinstance(k, ast.Constant) and isinstance(k.value, str)
+            and id(k) not in doku]
+
+
+def test_pdf_traegt_die_ci_und_nicht_die_alte_palette():
+    """Keine der sieben erfundenen Farben steht als **Wert** im Bericht.
+
+    Geprueft werden alle drei Dateien des Berichts. Vor dem 30.08.2026 war es
+    nur `pdf_generator.py`; seit der Aufteilung (L-25) liegen die Farben
+    ueberwiegend woanders, und ein Waechter, der nach einem Schnitt zwei
+    Drittel seines Gegenstands nicht mehr sieht, ist so gut wie keiner.
+    """
     from services import brand
-    from services import pdf_generator
+    from services import pdf_bausteine, pdf_bericht_seiten, pdf_generator
 
     assert pdf_generator.KC_DARK.hexval()[2:].upper() == brand.DARK[1:]
 
-    quelle = open(pdf_generator.__file__, encoding="utf-8").read()
-    code = []
-    for tok in tokenize.generate_tokens(io.StringIO(quelle).readline):
-        if tok.type in (tokenize.COMMENT, tokenize.STRING):
-            continue
-        code.append(tok.string)
-    code = " ".join(code)
+    gefunden = []
+    for modul in (pdf_generator, pdf_bausteine, pdf_bericht_seiten):
+        for wert in _werte_ohne_doku(modul.__file__):
+            for erfunden in ERFUNDENE_FARBEN:
+                if erfunden.lower() in wert.lower():
+                    gefunden.append(f"{pathlib.Path(modul.__file__).name}: {erfunden}")
 
-    for erfunden in ("#2c3e50", "#f39c12", "#e74c3c", "#27ae60", "#7f8c8d",
-                     "#95a5a6", "#64748b"):
-        assert erfunden not in code, f"{erfunden} steht wieder im Code"
+    assert gefunden == [], f"erfundene Palette wieder im Code: {gefunden}"
+
+
+def test_und_der_waechter_wuerde_es_auch_merken():
+    """Die positive Gegenprobe — sonst prueft er den Suchbereich, nicht die Sache.
+
+    Ein Test, der eine Abwesenheit zusichert, ist auch dann gruen, wenn er
+    nichts liest. Genau so war der Vorgaenger gruen. Diese Zeile stellt
+    sicher, dass `_werte_ohne_doku` **Werte findet und Doku auslaesst**.
+    """
+    from services import pdf_bausteine
+
+    werte = _werte_ohne_doku(pdf_bausteine.__file__)
+    assert len(werte) > 50, "es werden gar keine Zeichenketten gelesen"
+    # Der Modul-Docstring nennt drei der erfundenen Farben — absichtlich, als
+    # Herkunftsnachweis. Er darf den Test nicht rot machen.
+    assert not any("Flat-UI" in w for w in werte), "Docstrings zaehlen mit"
 
 
 def test_die_fusszeile_datiert_sich_nach_dem_audit():

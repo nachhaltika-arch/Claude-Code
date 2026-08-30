@@ -542,9 +542,16 @@ def seite_geo(*,
     # 574-Zeilen-Funktion faellt das niemandem auf, in einer Datei mit neun
     # Funktionen meldet es `ruff` sofort (F811). Der Schnitt hat es sichtbar
     # gemacht, nicht verursacht.
+    # **Aus der Marke, nicht aus der alten Flat-UI-Palette (30.08.2026).**
+    # Hier standen `#27ae60` und `#e74c3c` — zwei der sieben Toene, die
+    # `test_pdf_report` seit langem verbietet, damit Widget, Mail,
+    # Berichtsseite und PDF nicht nach vier Absendern aussehen. Sie haben es
+    # ueberlebt, weil der Waechter `STRING`-Token wegwarf und eine Hexfarbe
+    # in Python **immer** eine Zeichenkette ist: Er konnte nie anschlagen.
+    # Die dritte Zeile hat es von Anfang an richtig gemacht.
     GEO_STATUS_FARBEN = {
-        STATUS_ERFUELLT: "#27ae60",
-        STATUS_OFFEN: "#e74c3c",
+        STATUS_ERFUELLT: KC_SUCCESS.hexval(),
+        STATUS_OFFEN: KC_DANGER.hexval(),
         STATUS_UNBEKANNT: KC_TEXT_60.hexval(),
     }
 

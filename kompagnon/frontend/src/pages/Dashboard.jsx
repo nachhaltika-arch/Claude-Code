@@ -349,7 +349,7 @@ export default function Dashboard() {
             </span>
             <button
               onClick={() => navigate('/app/deals')}
-              style={{ fontSize: 11, color: 'var(--kc-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
+              style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
               Alle →
             </button>

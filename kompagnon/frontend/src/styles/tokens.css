@@ -97,7 +97,14 @@
   --text-tertiary:    var(--text-45);
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
-  --text-brand:       var(--kc-mid);
+  /* **Zeigt seit dem 30.08.2026 auf `--brand-primary-mid`, nicht auf
+     `--kc-mid` (L-17).** Der Token heisst „text" und wird auch so benutzt —
+     als Linkfarbe im Fehlerprotokoll und auf der Portal-Anmeldung. Mit
+     #008EAA erreichte er auf hellem Grund 3.69 und fiel damit durch die
+     AA-Schwelle, ohne dass es jemandem auffiel: Er stand nicht in der
+     Paarliste des Waechters. Steht er jetzt.
+     Im Dunkelmodus bleibt `var(--kc-mid)` richtig — dort ist das #40c4df. */
+  --text-brand:       var(--brand-primary-mid);
   /* Schrift auf einer Flaeche in Markenfarbe (Knopf, Kopfband).
      Nicht dasselbe wie --text-inverse: Im dunklen Modus ist
      --brand-primary das helle Tuerkis, und Weiss darauf erreicht 2.06 —
@@ -115,7 +122,28 @@
      --kc-mid für Lesbarkeit gegen dunklen Background. */
   --brand-primary:        var(--kc-dark);
   --brand-primary-light:  var(--info-bg);
-  --brand-primary-mid:    var(--kc-mid);
+  /* **Nicht `var(--kc-mid)`, seit dem 30.08.2026 (L-17).** Als Schriftfarbe
+     erreicht Mid Teal #008EAA auf `--paper` 3.69 und auf `--surface` 3.48 —
+     beides unter der AA-Schwelle von 4.5. Gemessen an zwei Stellen, die
+     einander nicht kennen: im Browser an der Domainzeile der Betriebsliste
+     (`tools/bedienbarkeit_messen.py`) und im Paar-Waechter, nachdem der
+     gelernt hat, Verweise aufzuloesen — vorher uebersprang er dieses Paar
+     stillschweigend und war deshalb gruen.
+
+     #00778F ist **derselbe Farbton und dieselbe Saettigung** (190°, 100 %),
+     nur dunkler: 4.99 auf `--paper`, 4.70 auf `--surface`. Es ist der
+     hellste Wert dieser Reihe, der beide Gruende besteht — die Farbe wird
+     also so wenig veraendert wie noetig.
+
+     **`--kc-mid` bleibt unangetastet.** Pantone 3135 ist die Markenfarbe
+     fuer Flaechen, Raender und Fuellungen; dort gilt die Textschwelle nicht.
+     Geaendert ist nur die Rolle „mittlere Schriftfarbe auf hellem Grund".
+
+     Der Hellblock weiter unten setzt denselben Wert noch einmal: Er muss
+     jeden Ton zuruecknehmen, den der Dunkelblock ueberschreibt — sonst
+     bekommt ein Rechner mit dunklem System und der Wahl „hell" eine dritte
+     Welt. `tokens.test.js` haelt das fest. */
+  --brand-primary-mid:    #00778F;
   --brand-primary-dark:   var(--kc-dark);
   --brand-primary-deeper: #003840;
 
@@ -347,11 +375,13 @@
      auf dem Anmeldeknopf des Kundenportals. `tokens.test.js` haelt fest,
      dass der Hellblock jeden Ton des Dunkelblocks zuruecknimmt. */
   --bg-active:  #e0f4f8;
-  --text-brand: var(--kc-mid);
+  /* Hell wie in `:root` — siehe die Begruendung dort (L-17). */
+  --text-brand: var(--brand-primary-mid);
 
   --brand-primary:        var(--kc-dark);
   --brand-primary-light:  var(--info-bg);
-  --brand-primary-mid:    var(--kc-mid);
+  /* Derselbe Wert wie in `:root` — siehe die Begruendung dort (L-17). */
+  --brand-primary-mid:    #00778F;
   --brand-primary-dark:   var(--kc-dark);
   --brand-primary-deeper: #003840;
 

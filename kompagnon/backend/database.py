@@ -490,98 +490,6 @@ class TimeTracking(Base):
     project = relationship("Project", back_populates="time_trackings")
 
 
-class User(Base):
-    """User accounts with roles and 2FA support."""
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=True)
-
-    # Profile
-    first_name = Column(String(100), default="")
-    last_name = Column(String(100), default="")
-    phone = Column(String(30), default="")
-    avatar_url = Column(String(500), default="")
-
-    # Role: superadmin | admin | mitarbeiter | kunde — siehe
-    # `services/rollen.py`, dort steht die Liste einmal.
-    role = Column(String(20), default="mitarbeiter")
-
-    # Fuer den Pruefer im Audit-Bericht (Innendienst)
-    position = Column(String(100), default="")
-    signature_data = Column(Text, default="")
-
-    # Customer link
-    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
-
-    # 2FA
-    totp_secret = Column(String(64), nullable=True)
-    totp_enabled = Column(Boolean, default=False)
-    backup_codes = Column(Text, default="")
-
-    # OAuth
-    google_id = Column(String(255), nullable=True)
-    apple_id = Column(String(255), nullable=True)
-    oauth_provider = Column(String(50), nullable=True)
-
-    # Status
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    email_verify_token = Column(String(100), nullable=True)
-    password_reset_token = Column(String(100), nullable=True)
-    password_reset_expires = Column(DateTime, nullable=True)
-
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_login = Column(DateTime, nullable=True)
-    created_by = Column(Integer, nullable=True)
-
-
-class UserSession(Base):
-    """Active login sessions."""
-    __tablename__ = "user_sessions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    token = Column(String(500), unique=True)
-    ip_address = Column(String(50), default="")
-    user_agent = Column(String(500), default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime)
-    is_valid = Column(Boolean, default=True)
-
-
-class SystemSettings(Base):
-    """Key-value system settings."""
-    __tablename__ = "system_settings"
-
-    id = Column(Integer, primary_key=True, index=True)
-    key = Column(String(100), unique=True, nullable=False)
-    value = Column(Text, default="")
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_by = Column(Integer, nullable=True)
-
-
-class RolePermission(Base):
-    """Permission assignments per role."""
-    __tablename__ = "role_permissions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    role = Column(String(20), nullable=False)
-    permission = Column(String(50), nullable=False)
-    is_allowed = Column(Boolean, default=True)
-
-    # Ein Recht je Rolle, genau einmal. `services/rechte.hat_recht` liest mit
-    # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
-    # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
-    # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
-    # Der Bestand wird in `migrations_runtime.py::run_migrations` zusammengefuehrt.
-    __table_args__ = (
-        UniqueConstraint("role", "permission", name="uq_role_permission"),
-    )
-
-
 class UserCard(Base):
     """Unified contact card — merges leads + customer management (Part 1/3)."""
     __tablename__ = "usercards"
@@ -666,71 +574,6 @@ class UserCard(Base):
 
 
 
-
-
-class Message(Base):
-    __tablename__ = "messages"
-    id          = Column(Integer, primary_key=True)
-    lead_id     = Column(Integer, ForeignKey("leads.id"), nullable=False)
-    sender_role = Column(String, nullable=False)   # "admin" | "kunde"
-    sender_name = Column(String)                   # z.B. "David" oder Firmenname
-    channel     = Column(String, default="in_app") # "in_app" | "email"
-    subject     = Column(String)                   # nur bei channel="email"
-    content     = Column(Text, nullable=False)
-    is_read     = Column(Boolean, default=False)
-    read_at     = Column(DateTime, nullable=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
-
-
-class Benachrichtigung(Base):
-    """Was vom Kunden hereinkommt — Ticket, Chatnachricht, spaeter E-Mail.
-
-    **Warum eine eigene Tabelle und nicht „die ungelesenen zusammenzaehlen"
-    (26.08.2026, L-18).** Ein Ticket, eine Chatnachricht und eine Mail liegen
-    in drei Tabellen mit drei Formen. Sie beim Anzeigen zusammenzurechnen
-    hiesse, an jeder Stelle alle drei zu kennen — und die vierte, die
-    dazukommt, wird vergessen.
-
-    Eine Meldung ist ein eigener Vorgang: Sie entsteht einmal, sie wird einmal
-    gelesen, und sie traegt ein **Ziel**, das man anklicken kann. Eine Meldung
-    ohne Weg dorthin verlangt vom Leser, selbst zu suchen.
-    """
-
-    __tablename__ = "benachrichtigungen"
-
-    id         = Column(Integer, primary_key=True)
-    #: "ticket" | "chat" | "mail". Bewusst eine Zeichenkette und kein Enum —
-    #: eine vierte Quelle soll eine Zeile kosten, keine Migration.
-    art        = Column(String(20), nullable=False)
-    lead_id    = Column(Integer, ForeignKey("leads.id"), nullable=True)
-    titel      = Column(String(300), nullable=False)
-    hinweis    = Column(Text)
-    #: Wohin der Klick fuehrt, als Pfad im Werkzeug.
-    ziel       = Column(String(300))
-    erstellt_am = Column(DateTime, default=datetime.utcnow)
-    gelesen_am  = Column(DateTime, nullable=True)
-
-
-class Meldungsvorliebe(Base):
-    """Ob ein Ereignis zusaetzlich per Mail gemeldet wird.
-
-    **Warum eine Zeile je Ereignis und kein Feld je Benutzer
-    (26.08.2026).** KOMPAGNON wird von einer Person bedient; ein
-    Vorlieben-Satz je Konto waere eine Verallgemeinerung auf Vorrat. Kommt
-    ein zweiter Innendienst dazu, kostet die Erweiterung eine Spalte — heute
-    kostet sie Bedienoberflaeche, die niemand braucht.
-
-    **Kein Eintrag heisst nicht „aus".** Fehlt die Zeile, gilt die Vorgabe
-    aus `services/meldungsvorlieben.EREIGNISSE` — und die ist fuer jedes
-    Ereignis genau das Verhalten von heute. Ein leerer Bestand darf keinen
-    Versand heimlich abschalten.
-    """
-
-    __tablename__ = "meldungsvorlieben"
-
-    schluessel  = Column(String(40), primary_key=True)
-    aktiv       = Column(Boolean, nullable=False, default=True)
-    geaendert_am = Column(DateTime, default=datetime.utcnow)
 
 
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
@@ -836,6 +679,8 @@ def _phase_beim_anlegen(mapper, verbindung, ziel):
 # Die `relationship()`-Aufrufe nennen ihre Gegenseite als Zeichenkette,
 # und SQLAlchemy loest den Namen erst beim ersten Zugriff auf. Fehlt eine
 # Datei, faellt das nicht beim Start auf, sondern bei irgendeiner Abfrage.
+from modelle_konten import *        # noqa: E402,F401,F403
+from modelle_meldungen import *     # noqa: E402,F401,F403
 from modelle_akademie import *      # noqa: E402,F401,F403
 from modelle_audit import *         # noqa: E402,F401,F403
 from modelle_briefing import *      # noqa: E402,F401,F403

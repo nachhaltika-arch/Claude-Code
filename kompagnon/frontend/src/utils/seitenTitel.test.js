@@ -40,13 +40,59 @@ function seitenEinsammeln(verzeichnis, treffer = []) {
   return treffer;
 }
 
+const WURZEL = path.join(__dirname, '..');
+
+/**
+ * Der Quelltext einer Seite **samt der Bausteine, die sie einbindet**.
+ *
+ * **Warum das am 30.08.2026 dazukam.** `LeadProfile` ist geteilt worden
+ * (L-25): Der Reiter „Übersicht" liegt seither in
+ * `components/betriebsblatt/ReiterUebersicht.jsx` — und mit ihm das `h2`,
+ * das zwischen dem `h1` der Seite und den `h3` der Abschnitte steht. Dieser
+ * Test meldete daraufhin `h1 → h3`.
+ *
+ * **Er hatte recht über die Datei und unrecht über die Seite.** Gerendert
+ * steht die Folge unverändert da; nur liest sie sich nicht mehr aus einer
+ * Datei ab. Eine Überschriftenhierarchie ist eine Eigenschaft der
+ * **Seite**, nicht der Datei — also folgt die Prüfung jetzt den Importen,
+ * eine Ebene tief. Tiefer nicht: Zwei Ebenen brächten Bausteine mit, die auf
+ * anderen Seiten anders eingebettet sind, und dann misst man wieder etwas
+ * anderes als das Gemeinte.
+ */
+function mitBausteinen(datei, text) {
+  const roh = fs.readFileSync(datei, 'utf8');
+  const teile = [text];
+  for (const m of roh.matchAll(/from '(\.\.?\/[^']+)'/g)) {
+    const ziel = path.resolve(path.dirname(datei), m[1]);
+    for (const endung of ['.jsx', '.js', '/index.jsx', '/index.js']) {
+      if (!fs.existsSync(ziel + endung)) continue;
+      // Nur Bausteine aus dem eigenen Baum, keine Bibliotheken.
+      if (!(ziel + endung).startsWith(WURZEL)) break;
+      teile.push(ohneZeichenketten(fs.readFileSync(ziel + endung, 'utf8')));
+      break;
+    }
+  }
+  return teile.join('\n');
+}
+
 function seiten() {
   return seitenEinsammeln(SEITEN).map((datei) => {
     const text = ohneZeichenketten(fs.readFileSync(datei, 'utf8'));
+    const volltext = mitBausteinen(datei, text);
+    // **Die Reihenfolge kommt aus der Seite, die Verfuegbarkeit aus den
+    // Bausteinen.** Aneinandergehaengte Dateien haben keine Renderreihenfolge
+    // — der erste Anlauf am 30.08.2026 las die Stufen aus dem Volltext und
+    // meldete daraufhin drei Seiten als Springer, darunter eine ungeteilte.
+    // Was ein Baustein beitraegt, ist deshalb kein Platz in der Folge,
+    // sondern nur die Antwort auf „gibt es diese Stufe ueberhaupt".
     const stufen = [...text.matchAll(/<h([1-6])[\s>]/g)].map((m) => Number(m[1]));
+    const ausBausteinen = new Set(
+      [...volltext.matchAll(/<h([1-6])[\s>]/g)].map((m) => Number(m[1])),
+    );
     return {
       name: path.relative(SEITEN, datei).split(path.sep).join('/'),
       stufen,
+      ausBausteinen,
       // Beide Bausteine erzeugen ein h1 — im Quelltext der Seite steht keines.
       // `<PageHeader` stand hier als zweite erlaubte Form. Die Komponente
       // war laut L-17 von **null** Seiten benutzt und ist am 26.08.2026
@@ -57,8 +103,8 @@ function seiten() {
       // Warnband fuer ausstehende Texte traegt. Zwei Kopien derselben
       // Darstellung driften auseinander, und die dritte Rechtsseite
       // vergisst das Band — dieselbe Ueberlegung wie bei `Feld.jsx`.
-      hatTitelBaustein: text.includes('<SeitenTitel>')
-        || text.includes('<Rechtstext'),
+      hatTitelBaustein: volltext.includes('<SeitenTitel>')
+        || volltext.includes('<Rechtstext'),
     };
   });
 }
@@ -89,7 +135,14 @@ test('keine Seite überspringt eine Überschriftenstufe', () => {
     const stufen = seite.hatTitelBaustein ? [1, ...seite.stufen] : seite.stufen;
     let vorher = 0;
     for (const stufe of stufen) {
-      if (vorher && stufe > vorher + 1) {
+      // Eine uebersprungene Stufe ist nur dann ein Befund, wenn sie **auch
+      // in keinem eingebundenen Baustein** vorkommt: Seit dem 30.08.2026
+      // liegen Reiter in eigenen Dateien (L-25), und das `h2` steht dort.
+      const fehlt = [];
+      for (let n = vorher + 1; n < stufe; n += 1) {
+        if (!seite.ausBausteinen.has(n)) fehlt.push(n);
+      }
+      if (vorher && fehlt.length) {
         springer.push(`${seite.name}: h${vorher} → h${stufe}`);
         break;
       }

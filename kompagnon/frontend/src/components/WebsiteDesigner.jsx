@@ -1,4 +1,5 @@
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import '@grapesjs/studio-sdk/style';
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -59,6 +60,11 @@ export default function WebsiteDesigner({
   // Clipboard paste is now handled by useGrapesAssetManager hook
 
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  useEscapeKey(() => setShowImportModal(false), showImportModal);
   const [importing, setImporting]   = useState(false);
   const [importMsg, setImportMsg]   = useState('');
   const [importError, setImportError] = useState('');

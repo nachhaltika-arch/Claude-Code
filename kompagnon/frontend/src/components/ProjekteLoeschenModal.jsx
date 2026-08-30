@@ -9,6 +9,7 @@
 // einer Annahme im Frontend: Was wirklich am Projekt haengt, weiss nur die
 // Datenbank.
 import { useEffect, useState } from "react";
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from "react-dom";
 
 import API_BASE_URL from "../config";
@@ -24,6 +25,12 @@ export default function ProjekteLoeschenModal({ ids, namen, token, onClose, onGe
   const [laedt, setLaedt] = useState(true);
   const [loescht, setLoescht] = useState(false);
   const [fehler, setFehler] = useState("");
+
+  // **Escape schliesst — solange nicht geloescht wird (30.08.2026, L-17).**
+  // Dieselbe Bedingung wie beim Hintergrundklick eine Ebene tiefer: Waehrend
+  // der Loeschlauf laeuft, gibt es keinen Rueckweg, und ein Tastendruck darf
+  // daran nichts aendern.
+  useEscapeKey(onClose, !loescht);
 
   useEffect(() => {
     let abgebrochen = false;

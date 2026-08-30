@@ -16,6 +16,7 @@
  * gar nicht gemessen werden konnte.
  */
 import { useState, useEffect } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
@@ -28,6 +29,11 @@ export default function CredentialsSafe({ projectId, token }) {
   const [visiblePw, setVisiblePw] = useState({});
   /** Gesetzt, wenn der Safe nicht aufgeht — dann wird nichts über den Bestand behauptet. */
   const [sperre, setSperre] = useState('');
+
+  // **Escape schliesst das Anlegen-Modal (30.08.2026, L-17).** Nur wenn es
+  // offen ist — sonst faengt diese Komponente eine Taste ab, die auf der
+  // Projektseite jemand anderem gehoert.
+  useEscapeKey(() => setShowAdd(false), showAdd);
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 

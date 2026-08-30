@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,16 @@ export default function AcademyAdmin() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [deleteId, setDeleteId] = useState(null);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setDeleteId(null), Boolean(deleteId));
 
   // Drag-and-drop state
   const dragIdx  = useRef(null);

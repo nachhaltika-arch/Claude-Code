@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,15 @@ import API_BASE_URL from '../config';
 import NewsletterAnalytics from '../components/newsletter/NewsletterAnalytics';
 
 export default function Newsletter() {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // Die Versandabfrage schliesst **abbrechend** — sie fragt nach einer
+  // Handlung, die sich nicht zurueckholen laesst, und Abbrechen ist die
+  // sichere Antwort. Nicht waehrend der Versand laeuft.
+  useEscapeKey(() => { setShowNewList(false); setShowImport(false);
+                       if (!versandLaeuft) setVersand(null); });
+
   const navigate = useNavigate();
   const { token } = useAuth();
   const fetchedRef = useRef(false);

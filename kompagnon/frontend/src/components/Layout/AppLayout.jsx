@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useEscapeKey } from '../../hooks/useKeyboardShortcuts';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useVersand } from '../../context/VersandContext';
@@ -216,6 +217,11 @@ function SidebarNav({ badges }) {
   const { user, logout, hasRole } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // **Escape schliesst das Menue — WCAG 2.1.1 (30.08.2026, L-17).** Die
+  // Ueberlagerung darunter nimmt einen Klick; mit der Tastatur fuehrte aus
+  // dem geoeffneten Menue kein Weg zurueck.
+  useEscapeKey(() => setMenuOpen(false), menuOpen);
 
   /* Welche Gruppe offen steht, folgt der Adresse — abgeleitet aus den
      Menueeintraegen selbst. Vorher stand die Pfadliste hier ein zweites Mal;
@@ -684,6 +690,11 @@ function BottomNav() {
   const { user } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
+  // **Escape schliesst das Menue — WCAG 2.1.1 (30.08.2026, L-17).** Die
+  // Ueberlagerung darunter nimmt einen Klick; mit der Tastatur fuehrte aus
+  // dem geoeffneten Menue kein Weg zurueck.
+  useEscapeKey(() => setMoreOpen(false), moreOpen);
+
   const role = user?.role || 'mitarbeiter';
   const tabs = getMobileTabs(role, user?.lead_id);
   const moreItems = (role === 'admin' || role === 'superadmin') ? MORE_ITEMS_ADMIN : MORE_ITEMS;
@@ -864,6 +875,11 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // **Escape schliesst das Menue — WCAG 2.1.1 (30.08.2026, L-17).** Die
+  // Ueberlagerung darunter nimmt einen Klick; mit der Tastatur fuehrte aus
+  // dem geoeffneten Menue kein Weg zurueck.
+  useEscapeKey(() => setMobileMenuOpen(false), mobileMenuOpen);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -61,6 +62,15 @@ function QuizEditor({ questions, setQuestions }) {
   const openEdit = (idx) => setModal({ idx, data: JSON.parse(JSON.stringify(questions[idx])) });
 
   const closeModal = () => setModal(null);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(closeModal, Boolean(modal));
 
   const saveModal = () => {
     if (!modal) return;

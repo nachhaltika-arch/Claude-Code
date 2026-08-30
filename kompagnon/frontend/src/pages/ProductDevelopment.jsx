@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { useScreenSize } from '../utils/responsive';
@@ -27,6 +28,15 @@ export default function ProductDevelopment() {
   const { isMobile } = useScreenSize();
   const [items, setItems] = useState(load);
   const [showForm, setShowForm] = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setShowForm(false), showForm);
   const [editItem, setEditItem] = useState(null);
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);

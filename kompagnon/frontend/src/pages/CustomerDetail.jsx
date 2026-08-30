@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -1163,6 +1164,19 @@ export default function CustomerDetail() {
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAcademy, setLoadingAcademy] = useState(true);
   const [showModal, setShowModal]   = useState(false);
+
+  // **Escape schliesst die beiden Modale — WCAG 2.1.1 (30.08.2026, L-17).**
+  // Mit der Tastatur gab es aus ihnen keinen Weg heraus ausser dem Suchen des
+  // Abbrechen-Knopfes.
+  //
+  // **Der Aufruf steht hinter beiden `useState`-Zeilen, und das ist der
+  // Punkt.** Erst stand er unter der Signatur, dann hinter `editPageModal`
+  // (Z. 1147) — und las trotzdem `showModal`, das erst hier entsteht:
+  // „Cannot access 'showModal' before initialization", die Seite rendert
+  // **gar nicht**. Keiner der 558 Tests rendert `CustomerDetail`; gefunden
+  // hat es erst der Aufruf der Seite im Browser.
+  useEscapeKey(() => { setEditPageModal(null); setShowModal(false); },
+               Boolean(editPageModal) || showModal);
   const [assigning, setAssigning]   = useState(null);
   const [removing, setRemoving]     = useState(null);
   const [isDesignerOpen, setIsDesignerOpen] = useState(false);

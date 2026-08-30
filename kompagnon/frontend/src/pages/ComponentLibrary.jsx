@@ -8,6 +8,7 @@
  * Backend: GET/POST/PUT/DELETE auf /api/components.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
@@ -718,6 +719,12 @@ export default function ComponentLibrary() {
 // ── AI-Generator-Modal ───────────────────────────────────────────────────────
 
 function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, onUseResult, onClose, presets = [] }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  useEscapeKey(onClose);
+
   const previewHtml = useMemo(() => {
     if (!result?.html_template) return '';
     const defaults = (result.slots || []).reduce((acc, s) => {

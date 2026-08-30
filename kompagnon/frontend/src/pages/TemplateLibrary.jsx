@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -150,6 +151,11 @@ const CATEGORY_COLORS = {
 };
 
 export default function TemplateLibrary() {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  useEscapeKey(() => { setShowZipModal(false); setShowUrlModal(false); });
+
   const { token } = useAuth();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const [apiTemplates, setApiTemplates] = useState([]);

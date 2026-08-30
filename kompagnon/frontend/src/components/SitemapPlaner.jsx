@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -297,6 +298,12 @@ function AddPageForm({ contentPages, leadId, onAdded, onCancel }) {
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 
 function EditModal({ page, contentPages, onSaved, onClose }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  useEscapeKey(onClose);
+
   const isPflicht = !!page.ist_pflichtseite;
 
   const [form, setForm] = useState({

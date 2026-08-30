@@ -5,6 +5,7 @@
 // Liste zeigt und der Dialog das Anlegen macht.
 
 import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -32,6 +33,12 @@ function adresseVervollstaendigen(eingabe) {
 }
 
 export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // dieses Modals reagiert auf einen Klick; mit der Tastatur gab es keinen
+  // Weg heraus ausser dem Suchen des Abbrechen-Knopfes. `role="button"` waere
+  // hier falsch: Eine Ueberlagerung ist keine Schaltflaeche.
+  useEscapeKey(onClose);
+
   const [form, setForm] = useState(LEER);
   const [speichert, setSpeichert] = useState(false);
 

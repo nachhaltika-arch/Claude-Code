@@ -3,6 +3,7 @@
  * Props: { leadId, leadName, token, onClose }
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -419,6 +420,13 @@ function PageContent({ page, token, onPageUpdated }) {
 
 // ── Haupt-Komponente ──────────────────────────────────────────────────────────
 export default function ContentManager({ leadId, leadName, token, onClose }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // Hier gibt es **gar keinen** Hintergrundklick: Das Fenster fuellt den
+  // Bildschirm, und der einzige Ausgang war bisher das Kreuz oben rechts.
+  useEscapeKey(onClose);
+
   const [pages, setPages] = useState([]);
   const [activePage, setActivePage] = useState(null);
   const [loading, setLoading] = useState(true);

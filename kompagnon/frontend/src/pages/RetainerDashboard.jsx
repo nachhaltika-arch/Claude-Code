@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
 export default function RetainerDashboard() {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  useEscapeKey(() => { setShowNewRetainer(false); setShowNewInvoice(false); });
+
   const { token } = useAuth();
   const fetchedRef = useRef(false);
 

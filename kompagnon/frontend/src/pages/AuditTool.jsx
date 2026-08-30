@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -389,6 +390,12 @@ const LEVEL_STYLES = {
 };
 
 function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  useEscapeKey(onClose);
+
   const { isMobile } = useScreenSize();
   const [saving, setSaving] = useState(false);
   const [leadForm, setLeadForm] = useState({

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
@@ -55,6 +56,16 @@ export default function AcademyCourse() {
   const [completing,     setCompleting]     = useState(false);
   const [openModules,    setOpenModules]    = useState({});
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setSidebarOpen(false), sidebarOpen);
 
   // Quiz — step-by-step
   const [quizQuestions, setQuizQuestions] = useState([]);

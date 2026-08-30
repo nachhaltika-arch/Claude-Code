@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from "react-dom";
 import { aufTaste } from '../utils/tastaturBedienung';
 // Die API-Basis kommt aus `config.js` und wird hier **nicht** noch einmal
@@ -10,6 +11,12 @@ import { aufTaste } from '../utils/tastaturBedienung';
 import API_BASE_URL from '../config';
 
 export default function NewProjectModal({ onClose, onProjectCreated }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // dieses Modals reagiert auf einen Klick; mit der Tastatur gab es keinen
+  // Weg heraus ausser dem Suchen des Abbrechen-Knopfes. `role="button"` waere
+  // hier falsch: Eine Ueberlagerung ist keine Schaltflaeche.
+  useEscapeKey(onClose);
+
   const token = localStorage.getItem("kompagnon_token");
   const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 

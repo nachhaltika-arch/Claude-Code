@@ -1,6 +1,6 @@
 import { stufeKurz, stufeFuerScore, stufeAnzeige } from './homepageStandard';
 
-// Die Schwellen des Backends (services/audit_criteria.py::LEVELS). Weicht das
+// Die Schwellen des Backends (services/audit_katalog.py::LEVELS). Weicht das
 // Frontend ab, zeigt derselbe Score im Widget eine andere Stufe als im Bericht.
 describe('stufeFuerScore', () => {
   test.each([

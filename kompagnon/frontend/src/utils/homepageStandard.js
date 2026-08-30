@@ -2,13 +2,13 @@
  * Die Stufen des Homepage Standards — eine Quelle für das ganze Frontend.
  *
  * Die Schwellen standen doppelt im Haus: das Backend staffelte 95/85/70/50
- * (`services/audit_criteria.py::LEVELS`), Widget und Akquise-Haken staffelten
+ * (`services/audit_katalog.py::LEVELS`), Widget und Akquise-Haken staffelten
  * 85/70/50/30. Derselbe Score hiess damit im Bericht „Silber" und im Widget
  * „Gold" — ein stiller Fehler mit direkter Aussenwirkung, weil beides beim
  * selben Empfaenger ankommt.
  *
  * Die Werte hier folgen dem Backend. Aendert sich der Standard, aendert sich
- * `audit_criteria.py` zuerst und diese Datei mit.
+ * `audit_katalog.py` zuerst und diese Datei mit.
  */
 
 // Absteigend geprueft: die erste erreichte Schwelle gilt.

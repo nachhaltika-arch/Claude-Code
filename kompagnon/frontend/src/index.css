@@ -57,6 +57,28 @@ input, select, textarea { font-family: inherit; }
   outline-offset: 2px;
 }
 
+/* Sprunglink — WCAG 2.4.1 „Bypass Blocks" (L-17, 30.08.2026).
+   Nicht `display: none` und nicht `visibility: hidden`: Beides nimmt das
+   Element aus der Tabulatorreihenfolge, und dann ist der Link genau fuer
+   die Leute unerreichbar, fuer die er gebaut ist. Er steht deshalb
+   ausserhalb des sichtbaren Bereichs und kommt beim Fokus zurueck. */
+.kc-sprunglink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10000;
+  padding: 10px 16px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-md) 0;
+  text-decoration: none;
+}
+.kc-sprunglink:focus {
+  left: 0;
+}
+
 /* kc-* SCALE TOKENS — typography sizes, tracking, spacing, radius, transitions.
    Color/text/border/font aliases retired 2026-05-09 (commit follows); usages
    migrated to canonical brand/text/bg/status tokens from tokens.css. */

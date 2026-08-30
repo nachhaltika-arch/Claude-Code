@@ -996,6 +996,17 @@ export default function AppLayout() {
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
+      {/* Sprunglink — WCAG 2.4.1 „Bypass Blocks", Stufe A.
+          Gemessen am 30.08.2026 (L-17, `tools/bedienbarkeit_messen.py`): Auf
+          /app/betriebe liegen **38 Tabstopps** vor dem Inhalt, fast alle in
+          der Seitenleiste, und sie stehen auf jeder Seite wieder da. Wer mit
+          der Tastatur arbeitet, tabbt sich durch die Navigation, bevor er
+          etwas tun kann.
+          Er ist unsichtbar, bis er den Fokus bekommt — dann steht er oben
+          links. Er muss das **erste** Element im Baum sein, sonst führt er
+          hinter das, was er überspringen soll. */}
+      <a href="#inhalt" className="kc-sprunglink">Zum Inhalt springen</a>
+
       {/* Sidebar — desktop only, hidden on project process route */}
       {!isMobile && user && !hideSidebar && <SidebarNav badges={badges} />}
 
@@ -1120,6 +1131,14 @@ export default function AppLayout() {
 
         {/* Content */}
         <main
+          id="inhalt"
+          // **`tabIndex={-1}` gehoert zum Sprunglink.** Ohne ihn scrollt der
+          // Browser zwar zum Ziel, setzt den Fokus aber nicht hinein: Der
+          // naechste Tabulator fuehrt zurueck an den Anfang, und der Link
+          // haette nichts bewirkt. `-1` heisst „per Programm fokussierbar,
+          // nicht in der Tabulatorreihenfolge" — `<main>` selbst soll kein
+          // Tabstopp werden.
+          tabIndex={-1}
           ref={mainRef}
           style={isMobile ? {
             position: 'fixed',

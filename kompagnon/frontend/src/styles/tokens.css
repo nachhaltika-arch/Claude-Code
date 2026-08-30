@@ -5,13 +5,32 @@
   --kc-yellow: #FAE600;   /* Pantone 3945 — Akzent/CTA */
   --kc-black:  #000000;
 
-  /* ── Mid Teal alpha helpers (consolidated 2026-05-09) ───────── */
-  --kc-mid-a-08: var(--kc-mid-a-08);
-  --kc-mid-a-12: var(--kc-mid-a-12);
-  --kc-mid-a-20: var(--kc-mid-a-20);
-  --kc-mid-a-25: var(--kc-mid-a-25);
-  --kc-mid-a-30: var(--kc-mid-a-30);
-  --kc-mid-a-50: var(--kc-mid-a-50);
+  /* ── Mid Teal alpha helpers (consolidated 2026-05-09) ─────────
+     **Sechs Token definierten sich selbst** — `--kc-mid-a-12:
+     var(--kc-mid-a-12);` und fuenf gleichartige. Ein Ringschluss ist nach
+     CSS „invalid at computed-value time": Das Token loest zu **nichts** auf,
+     und jede Deklaration, die es benutzt, faellt ersatzlos weg.
+
+     Gemessen am 2026-08-30 im Browser: alle sechs ergaben `""`. Betroffen
+     waren 41 Verwendungen in 17 Dateien — darunter
+     `input:focus { box-shadow: 0 0 0 3px var(--kc-mid-a-12) }`, also die
+     **einzige** Fokusmarke aller Eingabefelder, denn dieselbe Regel setzt
+     `outline: none` (L-17, WCAG 2.4.7).
+
+     Warum es niemandem auffiel: Ein wegfallender Schatten sieht aus wie
+     „kein Schatten vorgesehen". Nichts wird rot, nichts bricht — die
+     Oberflaeche ist nur stiller, als sie sein sollte.
+
+     Die Werte sind `--kc-mid` (#008EAA = 0,142,170) mit der Deckkraft, die
+     der Name nennt. Sie stehen hier als Zahlen, weil dies die Datei ist, in
+     der Werte stehen duerfen; `tokenSelbstbezug.test.js` verhindert, dass
+     ein Token wieder auf sich selbst zeigt. */
+  --kc-mid-a-08: rgba(0, 142, 170, 0.08);
+  --kc-mid-a-12: rgba(0, 142, 170, 0.12);
+  --kc-mid-a-20: rgba(0, 142, 170, 0.20);
+  --kc-mid-a-25: rgba(0, 142, 170, 0.25);
+  --kc-mid-a-30: rgba(0, 142, 170, 0.30);
+  --kc-mid-a-50: rgba(0, 142, 170, 0.50);
 
   /* ── iOS Safe Area ──────────────────────────────────────────── */
   --safe-area-top:    env(safe-area-inset-top, 0px);

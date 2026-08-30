@@ -8,7 +8,9 @@
  *
  * **Die drei Orte, am 29.08.2026 nachgemessen:**
  *
- *     backend/services/audit_criteria.py   LEVELS          — die Quelle
+ *     backend/services/audit_katalog.py    LEVELS          — die Quelle
+ *       (bis 30.08.2026 in `audit_criteria.py`; der Katalog ist seither
+ *        nach Form, Inhalt und Rechnung geteilt — L-25)
  *     frontend/src/utils/homepageStandard  STUFEN          — fürs Werkzeug
  *     frontend/public/embed/audit-widget.html              — fürs Widget
  *
@@ -37,7 +39,7 @@ import path from 'path';
 import { STUFEN } from './homepageStandard';
 
 const WURZEL = path.join(__dirname, '..', '..', '..');
-const KATALOG = path.join(WURZEL, 'backend', 'services', 'audit_criteria.py');
+const KATALOG = path.join(WURZEL, 'backend', 'services', 'audit_katalog.py');
 const WIDGET = path.join(WURZEL, 'frontend', 'public', 'embed',
                          'audit-widget.html');
 
@@ -45,7 +47,7 @@ const WIDGET = path.join(WURZEL, 'frontend', 'public', 'embed',
 function ausKatalog() {
   const text = fs.readFileSync(KATALOG, 'utf8');
   const block = text.match(/LEVELS[^=]*=\s*\(([\s\S]*?)\n\)/);
-  if (!block) throw new Error('LEVELS in audit_criteria.py nicht gefunden');
+  if (!block) throw new Error('LEVELS in audit_katalog.py nicht gefunden');
   return [...block[1].matchAll(/\(\s*(\d+)\s*,\s*"([^"]+)"\s*\)/g)]
     .map((m) => [Number(m[1]), m[2]]);
 }

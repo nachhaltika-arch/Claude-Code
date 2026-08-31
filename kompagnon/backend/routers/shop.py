@@ -242,6 +242,18 @@ def _verbuchen(sitzung: dict) -> None:
 #: verschiedene Fristen fuer denselben Vorgang muesste jemand erklaeren.
 ABRUF_TAGE = 30
 
+#: Wie oft dieselbe Bestellung ihre Datei holen darf (BUCH-06, Punkt 1).
+#:
+#: **Der Zaehler war da und niemand las ihn** (gefunden am 31.08.2026, L-105):
+#: `download_count` wurde bei jedem Abruf erhoeht und nirgends geprueft. Eine
+#: Zahl, die mitlaeuft und nichts bewirkt, sieht im Datensatz aus wie eine
+#: Begrenzung — und wer sie sieht, haelt die Auslieferung fuer begrenzt.
+#:
+#: **Fuenf und nicht eins:** Ein Kaeufer wechselt das Geraet, verliert die
+#: Datei, laedt sie im Buero noch einmal. Die Grenze soll die Weitergabe an
+#: Dritte unattraktiv machen, nicht den ehrlichen Fall bestrafen.
+ABRUFE_HOECHSTENS = 5
+
 
 def _mail_versenden(an: str, betreff: str, html: str) -> bool:
     """Der vorhandene Weg, kein dritter.
@@ -279,7 +291,7 @@ def _bestaetigung_senden(eintrag) -> bool:
     html = (
         f"<p>Vielen Dank für Ihre Bestellung {eintrag.order_number}.</p>"
         f"<p><a href=\"{abruf}\">Hier können Sie Ihre Datei abrufen</a> — "
-        f"der Link gilt {ABRUF_TAGE} Tage.</p>"
+        f"der Link gilt {ABRUF_TAGE} Tage und {ABRUFE_HOECHSTENS} Abrufe.</p>"
         f"<hr><p><small>Sie haben den AGB in der Fassung {fassung} "
         f"zugestimmt.</small></p>"
     )
@@ -407,6 +419,16 @@ def abruf(token: str):
             raise HTTPException(
                 410, "Dieser Abruf-Link ist abgelaufen. Bitte melden Sie sich "
                      "bei uns, wir stellen Ihnen einen neuen aus.")
+
+        # **Aufgebraucht bekommt dieselbe Auskunft wie abgelaufen** (410, nicht
+        # 403): Fuer den Kaeufer ist beides derselbe Fall — der Link geht nicht
+        # mehr, und er soll sich melden. Ein „verboten" wuerde ihn wie einen
+        # Eindringling behandeln, obwohl er bezahlt hat.
+        if (eintrag.download_count or 0) >= ABRUFE_HOECHSTENS:
+            raise HTTPException(
+                410, f"Dieser Abruf-Link wurde bereits {ABRUFE_HOECHSTENS} Mal "
+                     f"benutzt. Bitte melden Sie sich bei uns, wir stellen "
+                     f"Ihnen einen neuen aus.")
 
         schluessel = db.execute(sql_text(
             "SELECT delivery_key FROM products WHERE slug = :s"),

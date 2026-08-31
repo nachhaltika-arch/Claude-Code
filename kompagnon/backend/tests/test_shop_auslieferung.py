@@ -59,7 +59,7 @@ def produkt_mit_datei(app):
 
 
 def _bestellung(slug, *, status="paid", token="tok-pytest-1",
-                ablauf_tage=30, nummer="B-2026-8001"):
+                ablauf_tage=30, nummer="B-2026-8001", abrufe=0):
     from database import SessionLocal
     from modelle_buch import BookOrder
 
@@ -71,6 +71,7 @@ def _bestellung(slug, *, status="paid", token="tok-pytest-1",
             first_name="Erika", last_name="M",
             price_gross_cents=10000, tax_rate=7, shipping_cents=0,
             payment_status=status, download_token=token,
+            download_count=abrufe,
             download_expires_at=datetime.utcnow() + timedelta(days=ablauf_tage))
         db.add(eintrag)
         db.commit()
@@ -131,6 +132,65 @@ class TestAbruf:
 
         # Assert
         assert _lies(nummer).download_count == 2
+
+    def test_der_zaehler_begrenzt_auch(self, client, produkt_mit_datei, ablage):
+        """**Ein Zaehler ohne Grenze ist eine Zahl, keine Begrenzung.**
+
+        Gefunden am 31.08.2026 (L-105): `download_count` lief seit dem Bau der
+        Auslieferung mit und wurde **nirgends geprueft**. Im Datensatz sah das
+        aus wie eine Beschraenkung; in Wirklichkeit liess sich dieselbe Datei
+        beliebig oft holen — auch von jedem, der den Link weitergereicht bekam.
+        BUCH-06 verlangt hoechstens fuenf.
+        """
+        from routers.shop import ABRUFE_HOECHSTENS
+
+        # Arrange — die Grenze ist erreicht
+        _bestellung(produkt_mit_datei, token="tok-voll", abrufe=ABRUFE_HOECHSTENS)
+
+        # Act
+        antwort = client.get("/api/shop/download/tok-voll",
+                             follow_redirects=False)
+
+        # Assert
+        assert antwort.status_code == 410
+        assert str(ABRUFE_HOECHSTENS) in antwort.json()["detail"]
+
+    def test_der_letzte_erlaubte_abruf_geht_noch_durch(
+            self, client, produkt_mit_datei, ablage):
+        """Die Gegenprobe zur Grenze.
+
+        Ohne sie waere der Test darueber auch dann gruen, wenn die Grenze bei
+        null laege und **kein** Kaeufer je seine Datei bekaeme.
+        """
+        from routers.shop import ABRUFE_HOECHSTENS
+
+        # Arrange — einer ist noch frei
+        _bestellung(produkt_mit_datei, token="tok-letzter",
+                    abrufe=ABRUFE_HOECHSTENS - 1)
+
+        # Act
+        antwort = client.get("/api/shop/download/tok-letzter",
+                             follow_redirects=False)
+
+        # Assert
+        assert antwort.status_code == 307
+
+    def test_ein_abgewiesener_abruf_zaehlt_nicht_weiter(
+            self, client, produkt_mit_datei, ablage):
+        """Sonst waechst der Zaehler bei jedem Versuch, und die Auskunft
+        „bereits 5 Mal benutzt" wuerde bei 40 Versuchen zur Luege."""
+        from routers.shop import ABRUFE_HOECHSTENS
+
+        # Arrange
+        nummer = _bestellung(produkt_mit_datei, token="tok-nachzaehlen",
+                             abrufe=ABRUFE_HOECHSTENS)
+
+        # Act
+        client.get("/api/shop/download/tok-nachzaehlen", follow_redirects=False)
+        client.get("/api/shop/download/tok-nachzaehlen", follow_redirects=False)
+
+        # Assert
+        assert _lies(nummer).download_count == ABRUFE_HOECHSTENS
 
     def test_unbekannter_abruf_ist_404(self, client, ablage):
         # Act

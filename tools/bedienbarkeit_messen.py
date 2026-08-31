@@ -32,6 +32,18 @@ eine Zahl, die das Falsche misst.
    darunter, springt der Fokus für einen sehenden Tastaturbenutzer hin und
    her (WCAG 2.4.3). Gezählt wird jeder **Rücksprung** nach oben, der nicht
    durch einen Zeilenwechsel erklärt ist.
+
+   **Ein Rücksprung je Seite ist der Boden, nicht ein Rest** (gemessen am
+   31.08.2026). Eine Seitenleiste über die volle Höhe erzwingt ihn: Wer ihr
+   letztes Element verlässt, landet zwangsläufig weiter oben — vor der
+   Umstellung bei der Glocke in der Kopfzeile (846 px), danach beim ersten
+   Inhaltselement (785 px). Die Zahl ändert sich dadurch nicht, die
+   **Reihenfolge** schon: Sie lautet jetzt Sprunglink → Kopfzeile →
+   Navigation → Inhalt statt Navigation → Kopfzeile → Inhalt.
+
+   Wer diese Zahl auf null bringen will, muss die Seitenleiste aufgeben, nicht
+   den Quelltext umsortieren. Sechs Seiten, sechs Sprünge heisst also
+   „sauber", nicht „sechs Mängel".
 2. **Sieht man ihn überhaupt?** WCAG 2.4.7 verlangt eine sichtbare Marke.
    Geprüft wird, ob sich beim Fokussieren **irgendetwas** an `outline`,
    `box-shadow`, `border` oder `background` ändert. Ein Element, das sich

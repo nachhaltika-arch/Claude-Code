@@ -292,9 +292,6 @@ export default function AppLayout() {
           hinter das, was er überspringen soll. */}
       <a href="#inhalt" className="kc-sprunglink">Zum Inhalt springen</a>
 
-      {/* Sidebar — desktop only, hidden on project process route */}
-      {!isMobile && user && !hideSidebar && <SidebarNav badges={badges} />}
-
       {/* Main area */}
       <div style={{
         flex: 1,
@@ -311,6 +308,24 @@ export default function AppLayout() {
             ctaAction={cta?.action}
           />
         )}
+
+        {/* Seitenleiste — Bild links, im Baum aber **hinter** der Kopfzeile
+          * (L-17, 31.08.2026).
+          *
+          * **Der Befund.** Auf allen sechs gemessenen Seiten sprang der Fokus
+          * nach dem letzten Knopf der Seitenleiste **846 px nach oben** zur
+          * Glocke. Der Grund war die Reihenfolge im Baum: erst die
+          * Navigation, dann die Kopfzeile — sichtbar ist es andersherum.
+          *
+          * **Der Umzug kostet nichts.** `SidebarNav` ist `position: fixed`;
+          * wo sie im Baum steht, ändert am Bild nichts, solange kein Vorfahre
+          * einen eigenen Bezugsrahmen aufspannt (`transform`, `filter`,
+          * `will-change`) — im Layout gibt es keinen, nachgesehen.
+          *
+          * Damit lautet die Reihenfolge jetzt Sprunglink → Kopfzeile →
+          * Navigation → Inhalt, also die übliche: erst wo bin ich, dann
+          * wohin kann ich, dann was steht hier. */}
+        {!isMobile && user && !hideSidebar && <SidebarNav badges={badges} />}
 
         {/* Mobile header */}
         {isMobile && (

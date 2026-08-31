@@ -61,6 +61,20 @@ _MUSTER = re.compile(
 #: **Die Liste ist eng gehalten**, aus demselben Grund wie oben: Wer jeden
 #: Pfad schwaerzt, macht das Protokoll unlesbar und schaltet es beim ersten
 #: Zwischenfall ab.
+#:
+#: **Was diese Schwaerzung nicht erreicht, und das gehoert dazugesagt:**
+#: Render fuehrt neben unserem Anwendungsprotokoll ein **eigenes**
+#: Anfrageprotokoll (`type: request`), und dort steht der volle Pfad als
+#: Merkmal — am 31.08.2026 nachgesehen, nachdem unseres sauber war. Kein
+#: Filter im Prozess kann das aendern; es entsteht ausserhalb.
+#:
+#: Der Gewinn bleibt trotzdem: Anwendungsprotokolle werden kopiert, in
+#: Fehlermeldungen eingefuegt und an Protokollsenken weitergereicht. Der
+#: eigentliche Riegel waere, das Geheimnis gar nicht in den Pfad zu legen —
+#: das geht hier nicht, weil Brevo nicht signiert und der Pfad die einzige
+#: Stelle ist, die unveraendert ankommt. **Deshalb bleibt eine Handlung offen,
+#: und sie gehoert David:** `BREVO_INBOUND_SECRET` wechseln, denn es stand
+#: seit dem 28.08. im Klartext im Produktivprotokoll.
 GEHEIME_PFADE = (
     "/api/posteingang/brevo/",
     "/api/mail-events/brevo/",

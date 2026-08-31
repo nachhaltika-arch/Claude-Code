@@ -120,14 +120,33 @@ def ist_genannt(antwort: str, belege, domain: str, name: str) -> bool:
     return bool(teile) and all(t in text for t in teile)
 
 
+def _fehlertext(fehler: Exception) -> str:
+    """Ein Fehler muss sagen, welcher er war — auch wenn er selbst schweigt.
+
+    **Gemessen am 31.08.2026:** `str(httpx.ReadTimeout())` ist die **leere**
+    Zeichenkette. Im Bericht stand dann „✗ Fehler: " ohne Text — und ein
+    Befund ohne Inhalt ist schlimmer als keiner, weil er nach einem aussieht.
+    Perplexity braucht fuer eine Frage gemessene 15 bis 24 Sekunden; eine
+    Zeitueberschreitung ist hier also der wahrscheinlichste Fall und
+    ausgerechnet der stumme.
+
+    Der Name der Ausnahme steht deshalb immer davor. Er ist die Angabe, die
+    ohne Zutun stimmt.
+    """
+    art = type(fehler).__name__
+    text = str(fehler).strip()
+    return f"{art}: {text}"[:200] if text else art
+
+
 async def _eine_frage(anbieter, frage: str, domain: str, name: str) -> dict:
     """Eine Frage an einen Anbieter. Wirft nie."""
     try:
         text, belege = await anbieter.frage_stellen(frage)
     except Exception as fehler:  # noqa: BLE001
+        beschreibung = _fehlertext(fehler)
         logger.warning("KI-Sichtbarkeit %s: Frage gescheitert (%s)",
-                       anbieter.schluessel, fehler)
-        return {"frage": frage, "genannt": None, "fehler": str(fehler)[:200],
+                       anbieter.schluessel, beschreibung)
+        return {"frage": frage, "genannt": None, "fehler": beschreibung,
                 "belege": []}
 
     return {

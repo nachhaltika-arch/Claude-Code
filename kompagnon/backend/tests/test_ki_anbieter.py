@@ -117,7 +117,79 @@ class TestOpenAiAntwort:
 
 
 class TestPerplexityAntwort:
-    def test_agent_api_form(self):
+    """**Am 31.08.2026 am lebenden Dienst nachgestellt — und der Test darunter
+    war der Grund, warum der Fehler zwei Wochen lag.**
+
+    `test_einfache_form_wird_weiter_gelesen` hiess bis heute
+    `test_agent_api_form` und prueft eine Form, die die Agent API **nie**
+    geliefert hat: `output_text` und `search_results` ganz oben. Beides war
+    aus der Herstellerdoku abgeleitet. Der Test war gruen, der Leser falsch,
+    und der Aufruf lief mit Status 200 durch — er lieferte nur nichts.
+
+    Ein Test, der die eigene Annahme prueft statt des Dienstes, sichert
+    nichts. Deshalb steht die **gemessene** Form jetzt daneben.
+    """
+
+    #: Die echte Antwort der Agent API, auf ihre tragenden Felder gekuerzt.
+    #: Abgeschrieben von einem Lauf am 31.08.2026, nicht erfunden:
+    #: `output` ist eine Liste, der Text steckt in einem `message`-Teil, die
+    #: Quellen stehen in eigenen Teilen vom Typ `search_results`.
+    ECHTE_AGENT_ANTWORT = {
+        "id": "resp_83215a42-49ab-4185-8b1d-1668a8c90883",
+        "object": "response",
+        "status": "completed",
+        "model": "openai/gpt-5.6-luna",
+        "output": [
+            {"type": "search_results",
+             "queries": ["Zimmerei Koblenz Betriebe"],
+             "results": [
+                 {"id": 1, "title": "Zimmerer - Handwerkskammer Koblenz",
+                  "url": "https://service-center.hwk-koblenz.de/gewerke/zimmerer",
+                  "snippet": "Zimmerer (26 Betriebe)"},
+                 {"id": 2, "title": "Zimmerer Rheinland-Pfalz Koblenz",
+                  "url": "https://www.zimmerer-portal.de/Koblenz",
+                  "snippet": "..."},
+             ]},
+            {"type": "message", "role": "assistant", "status": "completed",
+             "content": [{"type": "output_text",
+                          "text": "In Koblenz bieten unter anderem folgende "
+                                  "Betriebe Zimmererarbeiten an: Zimmerei Marx.",
+                          "annotations": []}]},
+        ],
+    }
+
+    def test_die_gemessene_agent_form_wird_gelesen(self):
+        """Der Test, den es am 22.08. haette geben muessen.
+
+        Ohne ihn meldete der Bericht „kennt den Betrieb nicht" fuer einen
+        Dienst, der geantwortet hatte.
+        """
+        text, belege = lies_perplexity_antwort(self.ECHTE_AGENT_ANTWORT)
+
+        assert "Zimmerei Marx" in text
+        assert belege == ["https://service-center.hwk-koblenz.de/gewerke/zimmerer",
+                          "https://www.zimmerer-portal.de/Koblenz"]
+
+    def test_zitate_am_textblock_werden_auch_genommen(self):
+        """Im gemessenen Lauf war `annotations` leer — die Responses-Form
+        sieht sie aber vor, und ein Beleg, den niemand liest, fehlt spaeter
+        im Bericht."""
+        roh = {"output": [{"type": "message", "content": [{
+            "type": "output_text", "text": "Zimmerei Marx",
+            "annotations": [{"type": "url_citation",
+                             "url": "https://zimmerei-marx.de/"}]}]}]}
+
+        text, belege = lies_perplexity_antwort(roh)
+
+        assert belege == ["https://zimmerei-marx.de/"]
+
+    def test_einfache_form_wird_weiter_gelesen(self):
+        """Hiess `test_agent_api_form` und war die falsche Annahme.
+
+        Die Form bleibt gelesen — sie kostet nichts und ein Schluessel kann
+        auf einen anderen Endpunkt zeigen —, sie heisst nur nicht mehr nach
+        einer Schnittstelle, die so nie geantwortet hat.
+        """
         roh = {
             "output_text": "In Kassel arbeitet Mustermann Heizung.",
             "search_results": [{"url": "https://mustermann-heizung.de/"}],

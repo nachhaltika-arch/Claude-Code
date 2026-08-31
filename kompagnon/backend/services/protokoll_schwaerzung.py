@@ -43,14 +43,44 @@ _MUSTER = re.compile(
     re.IGNORECASE,
 )
 
+#: Pfade, deren **naechstes Segment** ein Geheimnis ist.
+#:
+#: **Der Befund vom 31.08.2026.** Diese Schwaerzung kannte nur
+#: Abfrageparameter — und beide Brevo-Webhooks tragen ihr Geheimnis im
+#: **Pfad**, weil Brevo nicht signiert und der Pfad die einzige Stelle ist,
+#: die Brevo unveraendert weitergibt. Uvicorn schreibt jede Anfragezeile mit
+#: vollem Pfad ins Protokoll; damit stand
+#: `POST /api/posteingang/brevo/<Geheimnis> 200 OK` im Klartext im
+#: Produktivprotokoll, sichtbar fuer jeden mit Render-Zugang.
+#:
+#: Gefunden nicht beim Suchen danach, sondern beim **Nachlesen des
+#: Protokolls** waehrend des Beweislaufs fuer L-18 — dieselbe Art wie L-98,
+#: nur eine Ebene weiter: Dort stand der Schluessel in der Abfrage, hier im
+#: Weg.
+#:
+#: **Die Liste ist eng gehalten**, aus demselben Grund wie oben: Wer jeden
+#: Pfad schwaerzt, macht das Protokoll unlesbar und schaltet es beim ersten
+#: Zwischenfall ab.
+GEHEIME_PFADE = (
+    "/api/posteingang/brevo/",
+    "/api/mail-events/brevo/",
+)
+
+_PFADMUSTER = re.compile(
+    r"(" + "|".join(re.escape(p) for p in GEHEIME_PFADE) + r")([^\s?\"'<>]+)",
+    re.IGNORECASE,
+)
+
 
 def schwaerzen(text: str) -> str:
-    """Ersetzt die Werte geheimer Abfrageparameter — der Name bleibt stehen.
+    """Ersetzt Werte geheimer Abfrageparameter **und Pfadsegmente**.
 
-    Der Name bleibt sichtbar, weil er beim Suchen hilft („welcher Aufruf war
-    ohne Schlüssel?“) und selbst nichts verrät.
+    Der Name beziehungsweise der Weg bleibt sichtbar, weil er beim Suchen
+    hilft („welcher Aufruf war ohne Schlüssel?“) und selbst nichts verrät.
+    Ersetzt wird nur, was danach kommt.
     """
-    return _MUSTER.sub(lambda t: t.group(1) + ERSATZ, text)
+    text = _MUSTER.sub(lambda t: t.group(1) + ERSATZ, text)
+    return _PFADMUSTER.sub(lambda t: t.group(1) + ERSATZ, text)
 
 
 class Schwaerzung(logging.Filter):

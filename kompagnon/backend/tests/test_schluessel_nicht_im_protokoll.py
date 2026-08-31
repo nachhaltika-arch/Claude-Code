@@ -67,6 +67,44 @@ class TestSchwaerzung:
     def test_schwaerzt_geheime_abfrageparameter(self, roh, erwartet):
         assert schwaerzen(roh) == erwartet
 
+    @pytest.mark.parametrize("pfad", [
+        "/api/posteingang/brevo/",
+        "/api/mail-events/brevo/",
+    ])
+    def test_schwaerzt_auch_geheimnisse_im_pfad(self, pfad):
+        """**Der Fund vom 31.08.2026 — eine Ebene weiter als L-98.**
+
+        Beide Brevo-Webhooks tragen ihr Geheimnis im **Pfad**, weil Brevo
+        nicht signiert und der Pfad die einzige Stelle ist, die unveraendert
+        ankommt. Uvicorn schreibt jede Anfragezeile mit vollem Pfad ins
+        Protokoll — damit stand
+        `POST /api/posteingang/brevo/<Geheimnis> 200 OK` im Klartext im
+        Produktivprotokoll.
+
+        Gefunden nicht beim Suchen danach, sondern beim **Nachlesen des
+        Protokolls** waehrend des Beweislaufs fuer L-18.
+        """
+        roh = f'INFO: 1.2.3.4:0 - "POST {pfad}geheim-nur-im-test HTTP/1.1" 200 OK'
+
+        geschwaerzt = schwaerzen(roh)
+
+        assert "geheim-nur-im-test" not in geschwaerzt
+        # Der Weg bleibt lesbar — sonst laesst sich nicht mehr sehen, **dass**
+        # der Webhook gerufen wurde.
+        assert pfad in geschwaerzt
+        assert "***geschwaerzt***" in geschwaerzt
+        assert "200 OK" in geschwaerzt
+
+    def test_laesst_gewoehnliche_pfade_stehen(self):
+        """Die Gegenprobe zur Pfadschwaerzung.
+
+        Ohne sie waere der Test darueber auch dann gruen, wenn **jeder** Pfad
+        geschwaerzt wuerde — und dann waere das Protokoll unbrauchbar.
+        """
+        roh = 'INFO: 1.2.3.4:0 - "GET /api/leads/12/audits HTTP/1.1" 200 OK'
+
+        assert schwaerzen(roh) == roh
+
     def test_laesst_harmlose_parameter_stehen(self):
         # Arrange
         roh = "GET https://x?url=https://kunde.de&strategy=mobile&category=performance"

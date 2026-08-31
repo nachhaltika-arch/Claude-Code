@@ -99,7 +99,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
       {/* Score Context */}
       {currentScore !== null && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `${scoreColor(currentScore)}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `color-mix(in srgb, ${scoreColor(currentScore)} 9%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: 18, fontWeight: 700, color: scoreColor(currentScore) }}>{currentScore}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>

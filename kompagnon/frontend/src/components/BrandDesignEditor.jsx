@@ -424,7 +424,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                               border: '0.5px solid var(--kc-mid-a-20)', borderRadius: 6,
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-mid)', marginBottom: 2 }}>🤖 {suggested.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-brand)', marginBottom: 2 }}>🤖 {suggested.name}</div>
                     <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
                   </div>
                   <button onClick={() => setter(suggested.name)}

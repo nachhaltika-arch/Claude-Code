@@ -8,10 +8,10 @@ import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
 
 const TYPE_LABELS = {
-  landing:       { label: 'Landing',     color: 'var(--kc-mid)', bg: '#e0f4f8' },
+  landing:       { label: 'Landing',     color: 'var(--text-brand)', bg: '#e0f4f8' },
   paket:         { label: 'Paket',       color: '#7c3aed', bg: '#ede9fe' },
   auth:          { label: 'Auth',        color: '#1d9e75', bg: '#d1fae5' },
-  transaktional: { label: 'Transaktion', color: '#d97706', bg: '#fef3c7' },
+  transaktional: { label: 'Transaktion', color: 'var(--warn)', bg: '#fef3c7' },
   legal:         { label: 'Legal',       color: '#6b7280', bg: '#f3f4f6' },
   portal:        { label: 'Portal',      color: '#b9227d', bg: '#fce7f3' },
   custom:        { label: 'Custom',      color: '#374151', bg: '#e5e7eb' },

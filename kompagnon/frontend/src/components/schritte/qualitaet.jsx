@@ -316,7 +316,7 @@ export function WebsiteVergleichEmbed({ project, headers }) {
           {screenshots.before?.date && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.before.date)}</div>}
         </div>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#059669', marginBottom: 8 }}>NACHHER</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)', marginBottom: 8 }}>NACHHER</div>
           {screenshots.after?.data
             ? <img src={screenshots.after.data} alt="Nachher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
             : <Placeholder text="Noch kein Screenshot" />}

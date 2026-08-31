@@ -7,10 +7,10 @@ import { aufTaste } from '../utils/tastaturBedienung';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TYPE_META = {
-  startseite:  { label: 'Startseite',      color: 'var(--kc-mid)', icon: '🏠' },
+  startseite:  { label: 'Startseite',      color: 'var(--text-brand)', icon: '🏠' },
   leistung:    { label: 'Leistungsseite',  color: '#2563EB', icon: '🔧' },
-  info:        { label: 'Info-Seite',      color: '#059669', icon: 'ℹ️' },
-  vertrauen:   { label: 'Vertrauensseite', color: '#D97706', icon: '⭐' },
+  info:        { label: 'Info-Seite',      color: 'var(--success)', icon: 'ℹ️' },
+  vertrauen:   { label: 'Vertrauensseite', color: 'var(--warn)', icon: '⭐' },
   conversion:  { label: 'Kontakt',         color: '#DC2626', icon: '📞' },
   rechtlich:   { label: 'Rechtlich',       color: '#6B7280', icon: '⚖️' },
   sonstige:    { label: 'Sonstige',        color: '#8B5CF6', icon: '📄' },

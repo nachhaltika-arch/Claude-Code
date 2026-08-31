@@ -85,10 +85,22 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
         />
       )}
 
-      {/* Avatar */}
+      {/* Avatar — Tönung statt Vollton (L-17, 31.08.2026).
+        *
+        * Vorher stand hier weisse Schrift auf der vollen Phasenfarbe: 3,85 auf
+        * dem Teal, 3,19 auf dem Orange. Es waren die letzten zwei Zeichen der
+        * Browsermessung, und sie fielen nur hier an — dieselben Initialen
+        * stehen auf Betriebe, Kunden und der Übersicht längst als dunkle
+        * Schrift auf heller Tönung. Es war also keine Farbfrage, sondern eine
+        * Abweichung.
+        *
+        * **Die Phasenfarbe bleibt, weil sie Information ist** — sie sagt auf
+        * einen Blick, wo das Projekt steht. Getönt wird der Grund, verdunkelt
+        * der Buchstabe; der Farbton bleibt in beidem derselbe. */}
       <div style={{
         width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-        background: ph?.color || '#185FA5', color: '#fff',
+        background: `color-mix(in srgb, ${ph?.color || '#185FA5'} 18%, var(--surface))`,
+        color: `color-mix(in srgb, ${ph?.color || '#185FA5'} 72%, var(--text))`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 13, fontWeight: 700,
       }}>

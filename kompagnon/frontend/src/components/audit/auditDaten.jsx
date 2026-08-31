@@ -120,8 +120,8 @@ export const CATEGORY_META = {
   recht_compliance:  { color: '#B02418', shortLabel: 'Recht' },
   sicherheit:        { color: '#7C3AED', shortLabel: 'Sicherheit' },
   performance:       { color: '#2563EB', shortLabel: 'Performance' },
-  barrierefreiheit:  { color: '#0891B2', shortLabel: 'Barrierefrei' },
-  seo:               { color: '#16A34A', shortLabel: 'SEO' },
+  barrierefreiheit:  { color: 'var(--info)', shortLabel: 'Barrierefrei' },
+  seo:               { color: 'var(--success)', shortLabel: 'SEO' },
   design:            { color: '#DB2777', shortLabel: 'Design' },
   conversion:        { color: '#EA580C', shortLabel: 'Conversion' },
   inhalt:            { color: '#65A30D', shortLabel: 'Inhalt' },
@@ -144,7 +144,7 @@ export const COLLECTION_REASONS = {
 
 // Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.
 export const SOURCE_BADGES = {
-  gemessen:       { icon: '●', color: '#16A34A', title: 'Technisch gemessen' },
+  gemessen:       { icon: '●', color: 'var(--success)', title: 'Technisch gemessen' },
   abgeleitet:     { icon: '◐', color: '#2563EB', title: 'Aus Messwerten abgeleitet' },
   einschaetzung:  { icon: '◇', color: '#7C3AED', title: 'KI-Einschätzung' },
   nicht_erhoben:  { icon: '○', color: '#9CA3AF', title: 'Nicht erhoben — zählt nicht in den Score' },

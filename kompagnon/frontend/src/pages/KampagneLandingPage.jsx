@@ -168,7 +168,7 @@ export default function KampagneLandingPage() {
                   disabled={loading}
                 />
                 {domain && (
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#16a34a' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--success)' }}>
                     ✓ Automatisch erkannt – Sie können die Adresse anpassen.
                   </p>
                 )}

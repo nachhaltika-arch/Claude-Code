@@ -252,7 +252,13 @@ export default function Projektpipeline() {
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {ph.icon} {ph.label}
                   </span>
-                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: ph.color, fontWeight: 600 }}>{colCards.length}</span>
+                  {/* **Fläche und Ziffer bekommen nicht dieselbe Farbe** (L-17,
+                    * 31.08.2026). Die Tönung darf die Phasenfarbe tragen, die
+                    * Ziffer darin muss lesbar sein: `#dc7226` auf hellem Grund
+                    * hat 2,93 — das war die orange „0" aus der Browsermessung.
+                    * `color-mix` verdunkelt die Phasenfarbe genau so weit, dass
+                    * sie AA besteht, ohne den Farbton zu wechseln. */}
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: `color-mix(in srgb, ${ph.color} 72%, var(--text))`, fontWeight: 600 }}>{colCards.length}</span>
                 </div>
                 <div style={{ height: 2, background: ph.color, margin: '6px 4px', borderRadius: 2 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

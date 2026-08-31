@@ -273,7 +273,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                       </div>
                       {st !== 'done' && (
                         <div style={{
-                          fontSize: 12, color: 'var(--kc-mid)',
+                          fontSize: 12, color: 'var(--text-brand)',
                           fontWeight: 600, flexShrink: 0,
                         }}>
                           Auswählen

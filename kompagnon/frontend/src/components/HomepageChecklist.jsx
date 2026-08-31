@@ -52,8 +52,8 @@ function getStatus(score, maxScore) {
 }
 
 const S = {
-  ok: { icon: '✓', color: '#059669', bg: 'var(--status-success-bg)', label: 'Vorhanden' },
-  partial: { icon: '~', color: '#d97706', bg: 'var(--status-warning-bg)', label: 'Unvollstaendig' },
+  ok: { icon: '✓', color: 'var(--success)', bg: 'var(--status-success-bg)', label: 'Vorhanden' },
+  partial: { icon: '~', color: 'var(--warn)', bg: 'var(--status-warning-bg)', label: 'Unvollstaendig' },
   missing: { icon: '✗', color: '#dc2626', bg: 'var(--status-danger-bg)', label: 'Fehlt' },
   unknown: { icon: '?', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)', label: 'Nicht geprueft' },
 };
@@ -82,7 +82,7 @@ export default function HomepageChecklist({ auditData }) {
             </span>
           )}
           {auditData && (
-            <span style={{ background: okItems === totalItems ? 'var(--status-success-bg)' : 'var(--status-neutral-bg)', color: okItems === totalItems ? '#059669' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
+            <span style={{ background: okItems === totalItems ? 'var(--status-success-bg)' : 'var(--status-neutral-bg)', color: okItems === totalItems ? 'var(--success)' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
               {Math.round((okItems / totalItems) * 100)}% erfuellt
             </span>
           )}

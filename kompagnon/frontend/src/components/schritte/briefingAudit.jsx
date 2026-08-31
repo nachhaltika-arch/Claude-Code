@@ -76,8 +76,8 @@ export function BriefingUnternehmenEmbed({ lead, localBriefing, reloadBriefing }
       </div>
       {(b.logo_vorhanden || b.fotos_vorhanden) && (
         <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-          {b.logo_vorhanden && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: '#059669', fontWeight: 600 }}>Logo vorhanden</span>}
-          {b.fotos_vorhanden && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: '#059669', fontWeight: 600 }}>Fotos vorhanden</span>}
+          {b.logo_vorhanden && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: 'var(--success)', fontWeight: 600 }}>Logo vorhanden</span>}
+          {b.fotos_vorhanden && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: 'var(--success)', fontWeight: 600 }}>Fotos vorhanden</span>}
         </div>
       )}
     </div>

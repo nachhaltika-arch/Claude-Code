@@ -59,6 +59,28 @@ const PAARE = [
   // #008EAA erreichte er 3.69.
   ['--text-brand', '--surface'],
   ['--text-brand', '--paper'],
+  // Am 31.08.2026 dazugekommen (L-17) — und wieder aus demselben Grund wie
+  // `--text-brand` einen Tag zuvor: Die vier Statusfarben werden als
+  // Schriftfarbe benutzt und standen trotzdem nicht in dieser Liste.
+  //
+  // Anlass war die Browsermessung: acht Zeichen unter AA, und es waren
+  // **Ziffern** — `{score}/{cat.max}` im Kundendashboard, gefaerbt von
+  // derselben Funktion, die auch den Balken daneben faerbt. Der Balken darf
+  // kraeftig sein, die Ziffern muessen lesbar sein; seither sind es zwei
+  // Funktionen.
+  //
+  // Die Token selbst waren immer in Ordnung (4,69 bis 9,12 in beiden Modi).
+  // Falsch war, dass die Oberflaeche sie an 89 Stellen gar nicht benutzt hat,
+  // sondern feste Hex-Werte — und ein fester Wert kann sich im Dunkelmodus
+  // nicht umstellen.
+  ['--success', '--surface'],
+  ['--success', '--paper'],
+  ['--warn', '--surface'],
+  ['--warn', '--paper'],
+  ['--error', '--surface'],
+  ['--error', '--paper'],
+  ['--info', '--surface'],
+  ['--info', '--paper'],
 ];
 
 /**

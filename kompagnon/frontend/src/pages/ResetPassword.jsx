@@ -97,7 +97,7 @@ export default function ResetPassword() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Passwort bestaetigen</label>
                   <input aria-label="Passwort bestaetigen" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Passwort wiederholen" required
                     style={{ ...inp, borderColor: confirm && confirm !== password ? '#fca5a5' : confirm && confirm === password ? '#86efac' : '#d4d8e8' }} />
-                  {confirm && confirm === password && <div style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>Passwoerter stimmen ueberein</div>}
+                  {confirm && confirm === password && <div style={{ fontSize: 12, color: 'var(--success)', marginTop: 4 }}>Passwoerter stimmen ueberein</div>}
                 </div>
                 <button type="submit" disabled={loading} style={{ width: '100%', padding: 13, background: loading ? '#64748b' : 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48 }}>
                   {loading ? 'Wird gespeichert...' : 'Passwort speichern'}

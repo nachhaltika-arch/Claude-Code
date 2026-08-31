@@ -201,7 +201,7 @@ export function PageCard({
           : '1px solid var(--border-light)',
         borderRadius: 10,
         boxShadow: isActive
-          ? `0 4px 16px ${KC_MID}33`
+          ? `0 4px 16px color-mix(in srgb, ${KC_MID} 20%, transparent)`
           : '0 1px 3px rgba(0,0,0,0.04)',
         cursor: 'pointer',
         overflow: 'visible',

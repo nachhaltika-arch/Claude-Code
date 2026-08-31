@@ -206,7 +206,7 @@ export default function KasWebsite() {
         {site?.configured ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{
-              background: '#dcfce7', color: '#16a34a',
+              background: '#dcfce7', color: 'var(--success)',
               padding: '3px 12px', borderRadius: 20,
               fontSize: 12, fontWeight: 700, width: 'fit-content',
             }}>
@@ -310,7 +310,7 @@ export default function KasWebsite() {
                       <span style={{
                         padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                         background: page.status === 'live' ? '#dcfce7' : 'var(--bg-elevated)',
-                        color:      page.status === 'live' ? '#16a34a' : 'var(--text-tertiary)',
+                        color:      page.status === 'live' ? 'var(--success)' : 'var(--text-tertiary)',
                       }}>
                         {page.status === 'live' ? 'Live' : 'Entwurf'}
                       </span>
@@ -389,12 +389,12 @@ export default function KasWebsite() {
             background: '#dcfce7', borderRadius: 'var(--radius-md)',
             border: '1px solid #bbf7d0',
           }}>
-            <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 8, fontSize: 13 }}>
+            <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: 8, fontSize: 13 }}>
               ✓ {deployResult.pages_deployed.length} Seiten deployed
             </div>
             {deployResult.deploy_url && (
               <a href={deployResult.deploy_url} target="_blank" rel="noopener noreferrer"
-                 style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>
+                 style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, textDecoration: 'none' }}>
                 {deployResult.deploy_url} →
               </a>
             )}

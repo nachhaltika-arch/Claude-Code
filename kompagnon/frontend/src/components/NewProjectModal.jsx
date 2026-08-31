@@ -163,7 +163,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.company_name}</div>
-                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "#f59e0b" }}>
+                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "var(--warn)" }}>
                         {lead.website_url || "⚠ Keine Domain hinterlegt"}
                       </div>
                     </div>
@@ -175,7 +175,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {suche.length >= 2 && !sucheLoading && sucheErgebnisse.length === 0 && (
               <p style={{ color: "#888", fontSize: 13, margin: "8px 0 0" }}>
                 Kein Unternehmen gefunden.{" "}
-                <button onClick={() => setStufe("create")} style={{ color: "var(--kc-mid)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
+                <button onClick={() => setStufe("create")} style={{ color: "var(--text-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
               </p>
             )}
           </div>

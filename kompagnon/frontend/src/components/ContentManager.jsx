@@ -137,7 +137,7 @@ function SectionCard({ section, token, onUpdated }) {
 
         {/* Vom Kunden */}
         <div style={{ background: '#FFFBEB', padding: 12, borderRight: '1px solid var(--border-light)' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#D97706', marginBottom: 6 }}>Vom Kunden</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', marginBottom: 6 }}>Vom Kunden</div>
           <textarea aria-label="Hier den Text des Kunden eintragen..."
             value={kunde}
             onChange={e => { setKunde(e.target.value); saveKunde(e.target.value); }}

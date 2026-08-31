@@ -62,7 +62,7 @@ export default function PackageStarter() {
         .fade4 { animation: fadeUp 0.5s 0.3s ease both; }
         .cta-btn:hover { background: #006880 !important; transform: translateY(-1px); box-shadow: 0 8px 24px var(--kc-mid-a-50) !important; }
         .cta-btn { transition: all 0.2s ease !important; }
-        input:focus { border-color: var(--kc-mid) !important; box-shadow: 0 0 0 3px var(--kc-mid-a-12) !important; outline: none !important; }
+        input:focus { border-color: var(--text-brand) !important; box-shadow: 0 0 0 3px var(--kc-mid-a-12) !important; outline: none !important; }
       `}</style>
 
       <nav style={{ background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>

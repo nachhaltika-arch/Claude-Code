@@ -144,8 +144,8 @@ export default function DomainImport() {
           {[
             { step: '1', icon: '📂', title: 'Domains laden', desc: 'CSV hochladen oder direkt eingeben', color: 'var(--brand-primary)' },
             { step: '2', icon: '🔎', title: 'Duplikat-Check', desc: 'Vorhandene Domains erkennen', color: '#7c3aed' },
-            { step: '3', icon: '🔍', title: 'Audit läuft', desc: 'Jede Domain wird automatisch geprüft', color: '#d97706' },
-            { step: '4', icon: '📋', title: 'Impressum', desc: 'Kontaktdaten werden ausgelesen', color: '#059669' },
+            { step: '3', icon: '🔍', title: 'Audit läuft', desc: 'Jede Domain wird automatisch geprüft', color: 'var(--warn)' },
+            { step: '4', icon: '📋', title: 'Impressum', desc: 'Kontaktdaten werden ausgelesen', color: 'var(--success)' },
           ].map(s => (
             <div key={s.step} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', borderTop: `3px solid ${s.color}`, padding: '12px 14px' }}>
               <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>

@@ -20,7 +20,7 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
   );
   if (s.value) return (
     <div style={{ marginTop: 8, background: '#E8F7FA', border: '1px solid #A8DDE8', borderRadius: 8, padding: '10px 12px' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--kc-mid)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Vorschlag aus Website-Content</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-brand)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Vorschlag aus Website-Content</div>
       <div style={{ fontSize: 12, color: '#1a2e35', lineHeight: 1.6, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.value}</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => { set(field, s.value); onApply(field); }}
@@ -28,7 +28,7 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
           Uebernehmen
         </button>
         <button type="button" onClick={() => { set(field, (currentValue ? currentValue + '\n' : '') + s.value); onApply(field); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--kc-mid)', background: 'transparent', color: 'var(--kc-mid)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--kc-mid)', background: 'transparent', color: 'var(--text-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           + Ergaenzen
         </button>
         <button type="button" onClick={() => onApply(field)}
@@ -41,7 +41,7 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
   if (s.error) return <div style={{ marginTop: 6, fontSize: 12, color: '#C0392B' }}>{s.error}</div>;
   return (
     <button type="button" onClick={() => onSuggest(field)}
-      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px dashed #A8DDE8', background: 'transparent', color: 'var(--kc-mid)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px dashed #A8DDE8', background: 'transparent', color: 'var(--text-brand)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
       Aus Website vorschlagen
     </button>
   );

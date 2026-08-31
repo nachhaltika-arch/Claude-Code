@@ -453,7 +453,7 @@ export default function Dashboard() {
                 }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: 'var(--radius-sm)',
-                    background: `${levelColor}18`, color: levelColor,
+                    background: `color-mix(in srgb, ${levelColor} 9%, transparent)`, color: levelColor,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 10, fontWeight: 700, flexShrink: 0,
                   }}>

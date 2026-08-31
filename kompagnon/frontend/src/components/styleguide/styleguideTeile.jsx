@@ -316,7 +316,7 @@ export function TypoCard({ label, font, weight }) {
           Google
         </span>
         <span style={{ color: 'var(--border-medium)' }}>|</span>
-        <span style={{ color: '#16a34a', fontWeight: 700 }}>Free</span>
+        <span style={{ color: 'var(--success)', fontWeight: 700 }}>Free</span>
       </div>
     </div>
   );

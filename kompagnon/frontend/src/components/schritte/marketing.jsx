@@ -190,7 +190,7 @@ export function GbpQrEmbed({ project, headers }) {
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Google Bewertung</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706' }}>⭐ {project.gbp_rating}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--warn)' }}>⭐ {project.gbp_rating}</div>
           </div>
           <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Anzahl Bewertungen</div>

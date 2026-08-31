@@ -36,8 +36,8 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     { value: 'geplant',      label: 'Geplant',       color: 'var(--text-tertiary)',       bg: 'var(--bg-elevated)' },
     { value: 'in_arbeit',    label: 'In Arbeit',     color: '#854D0E',                    bg: '#FEF9C3' },
     { value: 'entwurf',      label: 'Entwurf',       color: '#7c3aed',                    bg: '#f3e8ff' },
-    { value: 'review',       label: 'Zur Pruefung',  color: 'var(--kc-mid)',                    bg: '#E6F6FA' },
-    { value: 'freigegeben',  label: 'Freigegeben',   color: '#059669',                    bg: '#dcfce7' },
+    { value: 'review',       label: 'Zur Pruefung',  color: 'var(--text-brand)',                    bg: '#E6F6FA' },
+    { value: 'freigegeben',  label: 'Freigegeben',   color: 'var(--success)',                    bg: '#dcfce7' },
   ];
 
   const makeSlug = (name) => name.toLowerCase().replace(/[äa]/g,'ae').replace(/[öo]/g,'oe').replace(/[üu]/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -384,7 +384,7 @@ export function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasE
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Der Kunde hat das Briefing noch nicht freigegeben. Sobald die Freigabe erteilt wurde, kann die KI-Sitemap erstellt werden.</div>
       </div>
       <button onClick={generate} disabled={loading}
-        style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(217,119,6,.4)', background: 'transparent', color: '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+        style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(217,119,6,.4)', background: 'transparent', color: 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
         Erneut prüfen
       </button>
     </div>

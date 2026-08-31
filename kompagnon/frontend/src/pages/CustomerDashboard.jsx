@@ -31,10 +31,25 @@ const LEVEL_COLOR = {
   'Nicht konform':            '#dc2626',
 };
 
-function scoreBarColor(pct) {
+/**
+ * Zwei Farben fuer denselben Wert — und das ist kein Versehen (L-17, 31.08.2026).
+ *
+ * Bis heute lieferte **eine** Funktion die Farbe fuer den Balken **und** fuer
+ * die Ziffern daneben. Ein Balken ist eine Flaeche und darf kraeftig sein; die
+ * Ziffern sind Text und muessen lesbar sein. `#16a34a` auf hellem Grund hat
+ * 2,98 — die Zahl, die in der Browsermessung als „unter AA" auftauchte. Es
+ * waren genau diese acht Zeichen.
+ */
+function balkenFarbe(pct) {
   if (pct >= 0.7) return '#16a34a';
   if (pct >= 0.45) return '#f59e0b';
   return '#dc2626';
+}
+
+function zifferFarbe(pct) {
+  if (pct >= 0.7) return 'var(--success)';
+  if (pct >= 0.45) return 'var(--warn)';
+  return 'var(--error)';
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -173,15 +188,16 @@ export default function CustomerDashboard() {
               {CATEGORIES.map(cat => {
                 const score = latestAudit[cat.key] ?? 0;
                 const pct   = cat.max > 0 ? score / cat.max : 0;
-                const color = scoreBarColor(pct);
+                const balken = balkenFarbe(pct);
+                const ziffern = zifferFarbe(pct);
                 return (
                   <div key={cat.key}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>{cat.label}</span>
-                      <span style={{ fontWeight: 600, color }}>{score}/{cat.max}</span>
+                      <span style={{ fontWeight: 600, color: ziffern }}>{score}/{cat.max}</span>
                     </div>
                     <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 3, transition: 'width 0.8s ease' }} />
+                      <div style={{ height: '100%', width: `${pct * 100}%`, background: balken, borderRadius: 3, transition: 'width 0.8s ease' }} />
                     </div>
                   </div>
                 );
@@ -256,13 +272,13 @@ export default function CustomerDashboard() {
                     </div>
                     {/* Label */}
                     <div style={{ fontSize: 12, marginTop: 6, textAlign: 'center', whiteSpace: 'nowrap',
-                      color: done ? '#16a34a' : active ? '#f59e0b' : 'var(--text-tertiary)',
+                      color: done ? 'var(--success)' : active ? 'var(--warn)' : 'var(--text-tertiary)',
                       fontWeight: active ? 600 : 400,
                     }}>
                       {phase.label}
                     </div>
                     {active && (
-                      <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, marginTop: 2 }}>Aktuelle Phase</div>
+                      <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 600, marginTop: 2 }}>Aktuelle Phase</div>
                     )}
                   </div>
                   {/* Connector */}
@@ -330,7 +346,7 @@ export default function CustomerDashboard() {
         <a
           href={lead.email ? `mailto:${lead.email}` : 'mailto:info@kompagnon.eu'}
           style={{
-            background: 'white', color: '#16a34a', borderRadius: 'var(--radius-md)',
+            background: 'white', color: 'var(--success)', borderRadius: 'var(--radius-md)',
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
             textDecoration: 'none', flexShrink: 0, display: 'inline-block',
           }}

@@ -230,7 +230,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
               }}
             >
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{t.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--kc-mid)', marginBottom: 4, fontStyle: 'italic' }}>{t.example}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-brand)', marginBottom: 4, fontStyle: 'italic' }}>{t.example}</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{t.desc}</div>
             </button>
           ))}

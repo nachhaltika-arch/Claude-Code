@@ -101,12 +101,30 @@ class CampaignUpdate(BaseModel):
 
 # ── Endpoints ───────────────────────────────────────────────────────
 
+# ── Gewonnen heisst `lifecycle_phase = 'kunde'`, nicht `status = 'won'` ──
+#
+# **Der Rest von L-26, gefunden am 31.08.2026.** Am 19.08. wurde diese
+# Rechnung in `automations.py` umgestellt, mit dem Satz: „Ein Betrieb, den
+# jemand im Bildschirm auf ‚Kunde' gesetzt hat, fehlte in der Zahl. Niemand
+# merkt eine Kennzahl, die um eins zu klein ist."
+#
+# Drei Stellen in dieser Datei sind damals stehengeblieben — und eine davon
+# speist den Block „Betriebe nach Herkunft" auf dem Dashboard. Die
+# Gewinnquote dort war seither zu niedrig, und zwar genau um die Betriebe,
+# die von Hand auf Kunde gesetzt wurden.
+#
+# Gefunden nicht beim Lesen, sondern beim Durchgehen der Endpunkte ohne
+# Aufrufer (L-105): `GET /api/leads/quellen/wirkung` beantwortet dieselbe
+# Frage mit der richtigen Spalte und wird von niemandem gerufen. Der Vergleich
+# der beiden Rechnungen zeigte den Rest.
+
+
 @router.get("/")
 def list_campaigns(db: Session = Depends(get_db), _=Depends(get_current_user)):
     rows = db.execute(text("""
         SELECT c.*,
           COUNT(l.id) AS lead_count,
-          SUM(CASE WHEN l.status='won' THEN 1 ELSE 0 END) AS won_count
+          COUNT(*) FILTER (WHERE l.lifecycle_phase = 'kunde') AS won_count
         FROM campaigns c
         LEFT JOIN leads l ON l.kampagne_id = c.id
         WHERE c.archived_at IS NULL
@@ -123,7 +141,7 @@ def campaign_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
         SELECT
           COALESCE(l.utm_source, l.kampagne_quelle, 'direkt') AS source,
           COUNT(*) AS lead_count,
-          SUM(CASE WHEN l.status='won' THEN 1 ELSE 0 END) AS won_count
+          COUNT(*) FILTER (WHERE l.lifecycle_phase = 'kunde') AS won_count
         FROM leads l
         GROUP BY COALESCE(l.utm_source, l.kampagne_quelle, 'direkt')
         ORDER BY lead_count DESC
@@ -179,7 +197,7 @@ def get_campaign(
     row = db.execute(text("""
         SELECT c.*,
           COUNT(l.id) AS lead_count,
-          SUM(CASE WHEN l.status='won' THEN 1 ELSE 0 END) AS won_count
+          COUNT(*) FILTER (WHERE l.lifecycle_phase = 'kunde') AS won_count
         FROM campaigns c
         LEFT JOIN leads l ON l.kampagne_id = c.id
         WHERE c.id = :id

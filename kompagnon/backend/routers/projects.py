@@ -93,7 +93,14 @@ def debug_projects(db: Session = Depends(get_db)):
     try:
         project_count = db.execute(text("SELECT COUNT(*) FROM projects")).scalar()
         lead_count = db.execute(text("SELECT COUNT(*) FROM leads")).scalar()
-        won_count = db.execute(text("SELECT COUNT(*) FROM leads WHERE status = 'won'")).scalar()
+        # Ueber die Phase, nicht ueber den Status (L-26, nachgezogen am
+        # 31.08.2026): Ein Betrieb, den jemand im Bildschirm auf „Kunde"
+        # gesetzt hat, traegt `lifecycle_phase='kunde'`, aber nicht
+        # `status='won'`. Auch eine Diagnoseauskunft darf nicht anders
+        # rechnen als der Rest — sonst sucht der naechste den Fehler dort,
+        # wo keiner ist.
+        won_count = db.execute(text(
+            "SELECT COUNT(*) FROM leads WHERE lifecycle_phase = 'kunde'")).scalar()
         table_exists = db.execute(
             text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'projects')")
         ).scalar()

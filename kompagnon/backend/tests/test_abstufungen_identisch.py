@@ -152,3 +152,102 @@ def test_eine_nicht_berechenbare_abstufung_rechnet_nicht_heimlich():
     """Lieber ein Fehler als eine erfundene Punktzahl."""
     with pytest.raises(ValueError):
         find_criterion("si_ssl").abstufung.punkte_fuer(3)
+
+
+# ── Verschluckte Stufen bei Anteilswerten (L-114, 31.08.2026) ─────────
+
+#: Anteils-Skalierungen mit **abzaehlbarem** Nenner — `sheet.scale(key, n/N)`.
+#:
+#: Nur diese Form kann eine Stufe verschlucken. Die drei uebrigen
+#: `scale`-Aufrufe (`bf_kontrast`, `bf_tastatur`, `dg_typografie`) reichen
+#: einen stetigen Lighthouse-Wert durch; dort gibt es keinen Schritt, der
+#: ausfallen koennte.
+ANTEIL_MIT_NENNER = {"si_header": 4}
+
+#: Wo eine Stufe heute ausfaellt — je mit dem Schritt, der nichts bringt.
+#:
+#: **Nicht zu beheben, sondern zu terminieren.** Jede Aenderung hier
+#: verschiebt die Katalogsumme und gehoert deshalb in die Fassung 2027.1
+#: (L-114). Bis dahin haelt dieser Eintrag den Befund fest, damit er weder
+#: still verschwindet noch sich unbemerkt vermehrt.
+VERSCHLUCKT = {"si_header": [3]}
+
+
+def _punkte_je_stufe(key: str, nenner: int) -> list:
+    """Was das Kriterium bei 0, 1, … `nenner` erfuellten Teilpruefungen gibt.
+
+    Gerechnet wie `_Sheet.scale` — `round(anteil * max_points)`; nachgebaut
+    statt aufgerufen waere hier falsch, denn geprueft werden soll genau diese
+    Rundung.
+    """
+    hoechstens = find_criterion(key).max_points
+    blatt = _Sheet()
+    punkte = []
+    for erfuellt in range(nenner + 1):
+        blatt.scale(key, erfuellt / nenner, Source.MEASURED)
+        punkte.append(blatt.items[key])
+    return punkte
+
+
+@pytest.mark.parametrize("key,nenner", sorted(ANTEIL_MIT_NENNER.items()))
+def test_verschluckte_stufen_sind_die_bekannten(key, nenner):
+    """Ein Anteil auf weniger Punkte als Teilpruefungen laesst Schritte ausfallen.
+
+    `si_header` skaliert **vier** Header auf **drei** Punkte. Am Gegenstand
+    gerechnet: 0→0, 1→1, 2→2, 3→2, 4→3. Wer den dritten Header nachruestet,
+    bekommt dafuer **nichts** — und im Bericht steht trotzdem, dass er zaehlt.
+
+    Der Test verbietet den Zustand nicht, er **beziffert** ihn. Kommt ein
+    Schritt dazu oder faellt einer weg, wird er rot und verlangt eine
+    Entscheidung statt einer stillen Verschiebung.
+    """
+    punkte = _punkte_je_stufe(key, nenner)
+    ohne_wirkung = [n for n in range(1, nenner + 1) if punkte[n] == punkte[n - 1]]
+
+    assert ohne_wirkung == VERSCHLUCKT.get(key, []), (
+        f"{key}: {punkte} — Schritte ohne Wirkung {ohne_wirkung}, "
+        f"erwartet {VERSCHLUCKT.get(key, [])}"
+    )
+
+
+def test_die_zusicherung_greift_ueberhaupt():
+    """Die positive Gegenprobe.
+
+    Ohne sie waere der Test darueber auch dann gruen, wenn `_punkte_je_stufe`
+    immer dieselbe Zahl laeferte — und dann meldete er jeden Schritt als
+    verschluckt, statt keinen. Genau so war der Kontrast-Waechter am 30.08.
+    gruen: Er las eine Form, die es nicht mehr gab, und uebersprang alles.
+    """
+    punkte = _punkte_je_stufe("si_header", 4)
+
+    assert punkte == [0, 1, 2, 2, 3], punkte
+    assert punkte[-1] == find_criterion("si_header").max_points
+
+
+def _nenner_aus_dem_bewertungslauf() -> dict:
+    """Die abzaehlbaren Nenner, wie sie im Quelltext stehen.
+
+    Gelesen wird der Bewertungslauf, nicht der Katalog: Der Nenner steht
+    **dort** (`present / 4`) und nicht am Kriterium. Wer ihn nur in der
+    Tabelle oben pflegt, prueft seine eigene Annahme statt des Programms.
+    """
+    import pathlib
+    import re
+
+    quelle = pathlib.Path(__file__).resolve().parents[1] / "services" / "audit_scoring.py"
+    aufrufe = re.findall(r'sheet\.scale\(\s*"(\w+)",\s*([^,]+),',
+                         quelle.read_text(encoding="utf-8"))
+    assert aufrufe, "keine scale-Aufrufe gefunden — der Ausdruck trifft nicht mehr"
+
+    gefunden = {}
+    for key, wert in aufrufe:
+        geteilt = re.search(r"/\s*(\d+)\s*$", wert.strip())
+        if geteilt:
+            gefunden[key] = int(geteilt.group(1))
+    return gefunden
+
+
+def test_die_nenner_stehen_im_programm_und_nicht_nur_in_dieser_tabelle():
+    """Sonst waechst die Klasse, ohne dass jemand hinsieht — und der Test
+    oben rechnete mit einem Nenner, den das Programm gar nicht benutzt."""
+    assert _nenner_aus_dem_bewertungslauf() == ANTEIL_MIT_NENNER

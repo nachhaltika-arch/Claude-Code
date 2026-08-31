@@ -19,9 +19,17 @@ Gemeinsame Infrastruktur (eine Umami-Instanz, eine DB), aber zwei UI-Sichten und
 - **Umami:** Node.js + Next.js, MIT-Lizenz, offizielles Docker-Image
 - **Render Web Service** (eigenständig neben Backend/Frontend), Region **Frankfurt** (DSGVO)
 - **Eigene Postgres-Instanz** (NICHT Schema-Mix mit KAS-DB — Umami verwaltet eigene Migrations, Updates wären sonst zu fragil)
-- **Subdomain:** `analytics.kompagnon.eu` (Tracker + Admin) ODER getrennt:
-  - `track.kompagnon.eu` (öffentliches Tracking-Skript)
-  - `analytics.kompagnon.eu` (Admin, intern + per Reverse-Proxy gegated)
+- **Subdomain:** `analytics.kompagnon.group` (Tracker + Admin) ODER getrennt:
+  - `track.kompagnon.group` (öffentliches Tracking-Skript)
+  - `analytics.kompagnon.group` (Admin, intern + per Reverse-Proxy gegated)
+
+> **Korrigiert am 2026-08-31 (L-142, L-135).** Hier stand durchgängig
+> `…kompagnon.eu`. Das stammt aus der Zeit vor dem Domainwechsel: **`.eu` ist
+> heute die Agenturseite**, das Werkzeug liegt unter `.group`
+> (`kas.kompagnon.group`, `api.kompagnon.group`). Eine Analytics-Subdomain
+> unter `.eu` hinge am falschen Auftritt — und die Ähnlichkeit der beiden
+> Namen ist genau der Grund, warum das niemandem auffällt. Alle Vorkommen
+> unten sind mitgezogen.
 - **Tracking-Skript:** Standard Umami `script.js` (~2 KB), per Auto-Deploy in Kundensites injiziert
 
 **Render-Setup:**
@@ -114,7 +122,26 @@ ALTER TABLE leads
   ADD COLUMN IF NOT EXISTS umami_session_id UUID;
 ```
 
-Migrations werden in `kompagnon/backend/migrations.py` ergänzt (bestehendes Muster).
+> **Am 2026-08-31 am Modell nachgemessen — die Hälfte davon gibt es schon.**
+> `utm_source`, `utm_medium` und `utm_campaign` stehen bereits an `Lead`.
+> Wirklich neu sind **drei**: `first_visit_at`, `visit_count` und
+> `umami_session_id`. (Der Lückeneintrag nannte am 27.08. noch `utm_medium`
+> als fehlend; es ist seither dazugekommen.) `IF NOT EXISTS` macht den Block
+> zwar harmlos — aber ein Plan, der mehr ankündigt als er ändert, lässt jeden
+> Leser den Aufwand falsch schätzen.
+
+> **Korrigiert am 2026-08-31 (L-142).** Hier stand: „Migrations werden in
+> `kompagnon/backend/migrations.py` ergänzt (bestehendes Muster)." Das ist die
+> gefährlichste Zeile des Plans. **Diese Datei wird beim Start nicht
+> ausgeführt.** Nur `main.py::_run_migrations` läuft; Änderungen am Schema
+> gehören nach `kompagnon/backend/migrations_runtime.py`. Wer dem Plan wörtlich
+> folgt, legt Tabellen an, die nie entstehen — und merkt es erst, wenn die
+> erste Abfrage produktiv ins Leere greift. Das Projekt hat diese Falle schon
+> einmal bezahlt.
+>
+> `create_all` hilft nicht: Es legt **fehlende Tabellen** an, rüstet aber
+> **keine Spalten** an bestehenden nach. Der `ALTER TABLE leads` oben braucht
+> also ohnehin `migrations_runtime.py`.
 
 ## 5. Backend-Komponenten
 
@@ -215,7 +242,16 @@ Neue Komponente `kompagnon/frontend/src/pages/CustomerAnalytics.jsx`:
 
 ## 7. Stripe-Add-On „Analytics & Ad-Performance"
 
-Vorlage 1:1 von `kompagnon/backend/routers/geo_payments.py`. Neue Datei:
+Vorlage von `kompagnon/backend/routers/geo_payments.py`. Neue Datei:
+
+> **Nicht 1:1 — die Vorlage trägt zwei Fehler, gefunden am 2026-08-27.**
+> Wer sie kopiert, kopiert beide mit:
+>
+> * **L-138:** Ein neuer Webhook braucht ein **eigenes** Signaturgeheimnis.
+>   Das Geheimnis des bestehenden Webhooks prüft die Signatur des neuen nicht.
+> * **L-140:** Das Ereignis muss durch `services/stripe_ereignis.gegenstand`.
+>   Ein `StripeObject` ist **kein** `dict`; wer es wie eines liest, bekommt
+>   keinen Fehler, sondern die falschen Felder.
 
 ### 7.1 Router — `kompagnon/backend/routers/analytics_payments.py`
 
@@ -238,11 +274,11 @@ Prefix `/api/analytics-payments`. Endpoints:
 ### 7.3 Env-Variablen (Render)
 
 ```
-UMAMI_BASE_URL=https://analytics.kompagnon.eu
+UMAMI_BASE_URL=https://analytics.kompagnon.group
 UMAMI_API_TOKEN=...
 UMAMI_TEAM_ID=...
 STRIPE_WEBHOOK_SECRET_ANALYTICS=whsec_...
-ANALYTICS_TRACKER_SCRIPT_URL=https://track.kompagnon.eu/script.js
+ANALYTICS_TRACKER_SCRIPT_URL=https://track.kompagnon.group/script.js
 ```
 
 Bestehende Variablen (`STRIPE_SECRET_KEY`, `FRONTEND_URL`) werden wiederverwendet.
@@ -280,7 +316,7 @@ Bestehender Flow (`kompagnon/docs/netlify-prozess.md` Schritt 2 — `POST /api/p
 
 ```html
 <script async defer
-        src="https://track.kompagnon.eu/script.js"
+        src="https://track.kompagnon.group/script.js"
         data-website-id="{umami_website_id}"></script>
 ```
 
@@ -326,14 +362,14 @@ Optionaler Zusatz (Phase 7), verwendet bestehende Brevo-Pipeline:
 2. **Render-Postgres-Kosten** bei vielen Kundensites — Starter-Plan reicht für ~50 Sites, dann Upgrade. Snapshot-Tabelle hält Reports auch bei Postgres-Wechsel.
 3. **DSGVO-Einwilligung beim Pre-Sales-Tracking** (Punkt 8.3) — braucht juristisch sauberen Einwilligungstext. Klären mit Datenschutzbeauftragten BEVOR Phase 7 startet.
 4. **Stripe-Pricing** — 29 €/Monat ist Vorschlag, finale Festlegung mit dir notwendig (auch: Trial-Periode? gestaffelte Tiers nach Pageview-Volumen?).
-5. **Bestehende Domain/Subdomain-Strategie** — `analytics.kompagnon.eu` vs. `track.kompagnon.eu` muss mit DNS-Verantwortlichem koordiniert werden.
+5. **Bestehende Domain/Subdomain-Strategie** — `analytics.kompagnon.group` vs. `track.kompagnon.group` muss mit DNS-Verantwortlichem koordiniert werden.
 6. **Umami-Updates** — Self-host bedeutet Update-Pflicht. Vorschlag: Render Auto-Deploy bei Image-Tag-Änderung (`umami/umami:postgresql-latest` → ggf. auf festen Tag pinnen, kontrolliert updaten).
 
 ## 14. Akzeptanzkriterien
 
 Phase 1–5 ist abgeschlossen, wenn:
 
-- [ ] Umami-Instanz unter `analytics.kompagnon.eu` erreichbar, SSL aktiv
+- [ ] Umami-Instanz unter `analytics.kompagnon.group` erreichbar, SSL aktiv
 - [ ] KAS-Admin kann interne Site anlegen → Tracking funktioniert in Browser-Test
 - [ ] KAS-Admin kann Lead-Site anlegen, Lead-Aktivität ist im Lead-Detail sichtbar
 - [ ] Kunde mit aktiver Add-On-Subscription sieht im Portal: Visitors, Pageviews, UTM-Kampagnen-Tabelle, Top-Pages

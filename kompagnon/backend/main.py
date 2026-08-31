@@ -89,10 +89,25 @@ logging.basicConfig(
 # Eine Bibliothek, die morgen dazukommt, soll nicht erst wieder auffallen
 # muessen. Wo der Schluessel gar nicht in die URL muss, steht der bessere
 # Riegel eine Ebene tiefer (services.audit_pagespeed.auth_headers).
+#
+# **Und an `uvicorn.access` eigens — die Wurzel genuegt dort nicht.**
+# Gefunden am 31.08.2026, indem der laufende Dienst gefragt wurde statt der
+# Code gelesen: Ein Aufruf auf `/api/posteingang/brevo/pruefwert…` stand
+# danach **unveraendert** im Staging-Protokoll. Uvicorn setzt fuer seine
+# beiden Logger eigene Handler und `propagate = False`; ein Filter an der
+# Wurzel sieht ihre Saetze nie. Ausgerechnet die Anfragezeile traegt aber den
+# Pfad — und damit das Geheimnis der beiden Brevo-Webhooks.
+#
+# **Am Logger, nicht am Handler:** Uvicorn haengt seine Handler beim Start
+# selbst ein, teils nach diesem Modul. Ein Filter am Logger gilt fuer alles,
+# was dort durchgeht, unabhaengig davon, wann welcher Handler dazukommt.
 from services.protokoll_schwaerzung import Schwaerzung  # noqa: E402
 
 for _wurzel_handler in logging.getLogger().handlers:
     _wurzel_handler.addFilter(Schwaerzung())
+
+for _name in ("uvicorn.access", "uvicorn.error", "uvicorn"):
+    logging.getLogger(_name).addFilter(Schwaerzung())
 
 # Die Startphasen, die einmal beim Hochfahren laufen. Sie standen bis zum
 # 30.08.2026 hier in dieser Datei — 335 ihrer damals 1.221 Zeilen (L-25).

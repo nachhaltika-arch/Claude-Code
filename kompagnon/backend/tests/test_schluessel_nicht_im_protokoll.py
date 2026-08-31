@@ -95,6 +95,28 @@ class TestSchwaerzung:
         assert "***geschwaerzt***" in geschwaerzt
         assert "200 OK" in geschwaerzt
 
+    def test_der_filter_haengt_am_zugriffsprotokoll_von_uvicorn(self):
+        """**Die Schwaerzung muss dort haengen, wo der Pfad hingeschrieben wird.**
+
+        Am 31.08.2026 am laufenden Dienst gemessen statt im Code gelesen: Ein
+        Aufruf auf `/api/posteingang/brevo/pruefwert…` stand danach
+        **unveraendert** im Staging-Protokoll. Der Filter hing nur an den
+        Handlern der Wurzel — und uvicorn setzt fuer `uvicorn.access` eigene
+        Handler mit `propagate = False`. Ausgerechnet die Anfragezeile traegt
+        aber den Pfad.
+
+        Eine Schwaerzung, die die eine Zeile nicht sieht, in der das
+        Geheimnis wirklich steht, ist keine.
+        """
+        import logging
+
+        import main  # noqa: F401  — haengt die Filter beim Import ein
+
+        for name in ("uvicorn.access", "uvicorn.error"):
+            arten = [type(f).__name__ for f in logging.getLogger(name).filters]
+            assert "Schwaerzung" in arten, (
+                f"{name} hat keine Schwaerzung — der Pfad steht dort im Klartext")
+
     def test_laesst_gewoehnliche_pfade_stehen(self):
         """Die Gegenprobe zur Pfadschwaerzung.
 

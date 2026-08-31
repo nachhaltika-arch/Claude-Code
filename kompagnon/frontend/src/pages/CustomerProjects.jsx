@@ -101,7 +101,7 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
           {lead?.company_name || project.company_name || `Projekt #${project.id}`}
         </div>
         {domain && (
-          <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}
           </div>
         )}
@@ -109,7 +109,7 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
 
       {/* Phase + progress */}
       <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>
           {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
         </div>
         <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
@@ -120,12 +120,12 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
       {/* Badges */}
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
         {scStyle && scM !== null && scM !== undefined && (
-          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
             📱 {scM}
           </span>
         )}
         {certSt && (
-          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
             🏅 {project.audit_level}
           </span>
         )}
@@ -224,7 +224,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
     background: 'var(--bg-surface)', color: 'var(--text-primary)',
     fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
   };
-  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
+  const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
 
   return createPortal(
     <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())} onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -266,7 +266,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           <div>
             <label style={lbl}>Website / Domain *</label>
             <input aria-label="Website / Domain" value={form.website_url} onChange={set('website_url')} placeholder="z.B. mueller-haustechnik.de" style={inp} autoComplete="url" />
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
           </div>
 
           {/* Ansprechpartner + Telefon */}
@@ -378,7 +378,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
   };
 
   const inp = { width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' };
-  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
+  const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
   const numInp = { ...inp, width: '100%' };
 
   return createPortal(
@@ -395,7 +395,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Kontaktdaten */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Kontaktdaten</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Kontaktdaten</div>
 
           <div>
             <label style={lbl}>Unternehmensname *</label>
@@ -405,7 +405,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
           <div>
             <label style={lbl}>Website / Domain *</label>
             <input aria-label="Website / Domain" value={form.website_url} onChange={set('website_url')} placeholder="mustermann-gmbh.de" style={inp} autoComplete="url" />
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Für Audit und Website-Erstellung erforderlich.</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Für Audit und Website-Erstellung erforderlich.</div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
@@ -426,7 +426,7 @@ function ImpulsModal({ token, onClose, onCreated }) {
 
           {/* ISB-Förderdaten */}
           <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>ISB-Förderdaten</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>ISB-Förderdaten</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={lbl}>Antragsdatum</label>

@@ -155,7 +155,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
       )}
 
       {daten?.eintraege?.length === 0 && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
           Noch nichts erfasst. Solange hier nichts steht, zeigt die
           Projektpipeline „Marge: keine Zeiten" — und das ist richtig so.
         </div>
@@ -163,7 +163,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
 
       {fehler && (
         <div role="alert" style={{
-          fontSize: 11, padding: '7px 10px', borderRadius: 'var(--radius-md)',
+          fontSize: 12, padding: '7px 10px', borderRadius: 'var(--radius-md)',
           background: 'var(--status-error-bg)', color: 'var(--status-error-text)',
         }}>
           {fehler}

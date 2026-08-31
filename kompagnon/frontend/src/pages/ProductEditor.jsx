@@ -46,7 +46,7 @@ const TABS = [
 
 // ── Shared style helpers ─────────────────────────────────────────────────────
 const LBL = {
-  display: 'block', fontSize: 11, fontWeight: 600,
+  display: 'block', fontSize: 12, fontWeight: 600,
   color: 'var(--text-tertiary)', textTransform: 'uppercase',
   letterSpacing: '.06em', marginBottom: 5,
 };
@@ -102,7 +102,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
           style={{
             padding: '4px 10px', borderRadius: 6, border: 'none',
             background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
-            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}
         >
           + Neu
@@ -154,7 +154,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{p.name}</span>
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
                   {p.price_brutto ? `${parseFloat(p.price_brutto).toFixed(2)} €` : '—'} · {dot.label}
                 </div>
               </div>
@@ -221,7 +221,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
               >Auto</button>
             )}
           </div>
-          <div style={{ fontSize: 11, color: validationErrors?.has('slug') ? 'var(--status-danger-text)' : 'var(--text-tertiary)', marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: validationErrors?.has('slug') ? 'var(--status-danger-text)' : 'var(--text-tertiary)', marginTop: 4 }}>
             {validationErrors?.has('slug') ? 'Pflichtfeld — nur Kleinbuchstaben, Zahlen und Bindestriche' : 'URL: /paket/' + (product.slug || '...')}
           </div>
         </div>
@@ -300,7 +300,7 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
             ))}
           </select>
           {product.tax_rate === 7 && (
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               Ermäßigt nach Anlage 2 UStG — Bücher und elektronische
               Publikationen. Für Dienst- und Prüfleistungen gelten 19 %.
             </div>
@@ -318,7 +318,7 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
           </button>
         </div>
         {syncMsg && <div style={{ fontSize: 12, color: syncMsg.startsWith('✓') ? '#1D9E75' : '#E24B4A', fontWeight: 500 }}>{syncMsg}</div>}
-        {selected === '__new__' && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Produkt zuerst speichern, dann Stripe synchronisieren.</div>}
+        {selected === '__new__' && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Produkt zuerst speichern, dann Stripe synchronisieren.</div>}
       </div>
     </div>
   );
@@ -383,7 +383,7 @@ function TabAssets({ product }) {
         {urlRows.map(row => (
           <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', marginBottom: 6, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 9 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{row.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>{row.label}</div>
               <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{row.url}</div>
             </div>
             <button onClick={() => copyToClipboard(row.url, row.key)} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border-light)', background: copied === row.key ? '#dcfce7' : 'var(--bg-app)', color: copied === row.key ? '#166534' : 'var(--text-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -439,7 +439,7 @@ function TabCheckliste({ product, onChange, selected, onGoLive }) {
       <button onClick={onGoLive} disabled={doneCount < 5 || product.status === 'live'} style={{ padding: '10px 24px', borderRadius: 9, border: 'none', background: 'var(--success)', opacity: doneCount >= 5 && product.status !== 'live' ? 1 : 0.5, color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 600, cursor: doneCount >= 5 && product.status !== 'live' ? 'pointer' : 'not-allowed' }}>
         {product.status === 'live' ? '✓ Bereits Live' : '🚀 Produkt live schalten'}
       </button>
-      {doneCount < 5 && <div style={{ marginTop: 8, fontSize: 11, color: '#94a3b8' }}>Mindestens 5 Punkte müssen erledigt sein</div>}
+      {doneCount < 5 && <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8' }}>Mindestens 5 Punkte müssen erledigt sein</div>}
     </div>
   );
 }
@@ -658,7 +658,7 @@ export default function ProductEditor() {
             {product.name || 'Neues Produkt'}
           </h1>
           <span style={{
-            padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600,
+            padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
             background: statusDot.bg + '22', color: statusDot.bg,
             border: `1px solid ${statusDot.bg}55`,
           }}>

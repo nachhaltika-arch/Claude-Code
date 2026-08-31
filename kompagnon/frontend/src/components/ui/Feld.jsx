@@ -73,12 +73,12 @@ export default function Feld({
       </label>
       {inhalt}
       {hint && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
           {hint}
         </div>
       )}
       {error && (
-        <div role="alert" style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 4 }}>
+        <div role="alert" style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 4 }}>
           {error}
         </div>
       )}

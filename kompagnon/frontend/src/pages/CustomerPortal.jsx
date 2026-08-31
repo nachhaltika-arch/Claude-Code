@@ -197,7 +197,7 @@ export default function CustomerPortal() {
             </button>
           </form>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
       </div>
     </div>
   );
@@ -335,7 +335,7 @@ export default function CustomerPortal() {
                   }}>
                     <div style={{ fontSize: 28, marginBottom: 6 }}>{icon}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{text}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{text}</div>
                   </div>
                 ))}
               </div>
@@ -401,7 +401,7 @@ export default function CustomerPortal() {
           <div style={{ maxWidth: 700, margin: '16px auto 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '12px 20px', textAlign: 'center', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' }}>
               <div style={{ fontSize: 'clamp(28px, 8vw, 36px)', fontWeight: 700, color: 'var(--text-on-brand)', lineHeight: 1 }}>{data.current_score}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-on-brand)', opacity: 0.6, marginTop: 2 }}>von 100</div>
+              <div style={{ fontSize: 12, color: 'var(--text-on-brand)', opacity: 0.6, marginTop: 2 }}>von 100</div>
             </div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-on-brand)' }}>{data.current_level}</div>
@@ -441,7 +441,7 @@ export default function CustomerPortal() {
                   Ihr Projektstatus
                 </div>
                 {data.go_live_date && (
-                  <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 500, background: 'var(--status-success-bg)', padding: '3px 8px', borderRadius: 20 }}>
+                  <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 500, background: 'var(--status-success-bg)', padding: '3px 8px', borderRadius: 20 }}>
                     Go-Live: {datumKurz(data.go_live_date, 'noch offen')}
                   </div>
                 )}
@@ -481,7 +481,7 @@ export default function CustomerPortal() {
                           )}
                         </div>
                         {(istAktiv || istAbgeschlossen) && (
-                          <div style={{ fontSize: 11, color: istAktiv ? 'var(--status-success-text)' : 'var(--text-tertiary)', marginTop: 1 }}>
+                          <div style={{ fontSize: 12, color: istAktiv ? 'var(--status-success-text)' : 'var(--text-tertiary)', marginTop: 1 }}>
                             {phase.beschreibung}
                           </div>
                         )}
@@ -494,7 +494,7 @@ export default function CustomerPortal() {
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>
                   <span>Gesamtfortschritt</span>
                   <span>{data.current_phase ? `Phase ${data.current_phase} von 7` : 'Noch nicht gestartet'}</span>
                 </div>
@@ -616,7 +616,7 @@ export default function CustomerPortal() {
                 )}
                 {grouped.map((item, i) => {
                   if (item.type === 'sep') return (
-                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 12 }}>
                       <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />
                       {item.day}
                       <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />

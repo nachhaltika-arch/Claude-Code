@@ -138,7 +138,7 @@ export function BlockCard({
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 10px',
           background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
-          fontSize: 11,
+          fontSize: 12,
         }}
       >
         <span
@@ -153,7 +153,7 @@ export function BlockCard({
         }}>{category}</span>
         <span style={{
           flex: 1, minWidth: 0,
-          fontSize: 11, fontWeight: 700, color: KC_DARK,
+          fontSize: 12, fontWeight: 700, color: KC_DARK,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
         {eigeneFassung && (
@@ -213,7 +213,7 @@ export function BlockCard({
           style={{
             background: 'transparent', color: '#dc2626',
             border: '1px solid #fca5a5', borderRadius: 4,
-            padding: '2px 8px', fontSize: 11, fontWeight: 700,
+            padding: '2px 8px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >✕</button>
@@ -306,7 +306,7 @@ export function LibraryCard({ item, onPick, compact = false }) {
         </div>
       )}
       <div style={{ padding: compact ? '6px 8px' : 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{item.name}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{item.name}</div>
         <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
       </div>
     </button>

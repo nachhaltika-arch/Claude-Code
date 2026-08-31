@@ -109,7 +109,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
   const statusOf = (s) => STATUSES.find(st => st.value === s) || STATUSES[0];
   const inputStyle = { width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' };
-  const btnSm = { padding: '4px 8px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+  const btnSm = { padding: '4px 8px', fontSize: 12, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
 
   return (
     <div style={{ display: 'flex', minHeight: 480 }}>
@@ -174,7 +174,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',
                   background: selectedId === p.id ? 'var(--bg-app)' : 'transparent', opacity: 0.7,
                 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
                 </div>
               ))}
@@ -205,7 +205,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 {STATUSES.map(st => (
                   <button key={st.value} onClick={() => savePage(selected.id, { status: st.value })}
                     style={{
-                      padding: '6px 14px', borderRadius: 99, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                      padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                       background: selected.status === st.value ? st.color : st.bg,
                       color: selected.status === st.value ? '#fff' : st.color,
                       border: `1px solid ${st.color}`, transition: 'all .15s',
@@ -303,7 +303,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
               {selected.mockup_html ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 11, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>✓</span> Template vorhanden ({Math.round(selected.mockup_html.length / 1024)} KB)
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -427,7 +427,7 @@ export function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasE
               : 'Claude analysiert Briefing, USP, Zielgruppe und gecrawlte Seiten'
           }
         </div>
-        {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
       </div>
       {!done && (
         <button

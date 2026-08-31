@@ -371,9 +371,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', color: TEAL, textTransform: 'uppercase' }}>Schritt {step + 1} von {STEPS.length}</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>{STEPS[step]}</div>
             {leadData?.gewerk ? (
-              <div style={{ fontSize: 11, color: '#1D9E75', marginTop: 2 }}>Bestehendes Briefing wird bearbeitet</div>
+              <div style={{ fontSize: 12, color: '#1D9E75', marginTop: 2 }}>Bestehendes Briefing wird bearbeitet</div>
             ) : (
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Neues Briefing anlegen</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Neues Briefing anlegen</div>
             )}
           </div>
         </div>
@@ -469,7 +469,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
         }}>
           <div>
             <div style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 600,
               letterSpacing: '0.08em',
               color: TEAL,
@@ -537,7 +537,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
           </div>
           {isCompact ? (
             <div style={{
-              fontSize: 11,
+              fontSize: 12,
               color: 'var(--text-tertiary)',
               display: 'flex',
               gap: 6,
@@ -600,7 +600,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
             <span>Entwurf {draftBanner} wiederhergestellt{existingDraft?.step > 0 ? ` — Schritt ${existingDraft.step + 1}` : ''}</span>
             <button
               onClick={() => { clearDraft(leadId); setDraftBanner(null); setData(defaultData); setStep(0); }}
-              style={{ background: 'none', border: 'none', fontSize: 11, fontWeight: 600, color: 'var(--status-warning-text)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'var(--font-sans)' }}
+              style={{ background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: 'var(--status-warning-text)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'var(--font-sans)' }}
             >Verwerfen</button>
           </div>
         )}

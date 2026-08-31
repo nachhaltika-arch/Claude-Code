@@ -289,7 +289,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChec
                 </span>
               </div>
               <span style={{
-                fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 10,
+                fontSize: 12, fontWeight: 600, padding: '2px 9px', borderRadius: 10,
                 background: katDone ? '#97C459' : 'var(--border-light)',
                 color:      katDone ? '#27500A' : 'var(--text-secondary)',
               }}>
@@ -357,7 +357,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChec
                       rel="noreferrer"
                       onClick={e => e.stopPropagation()}
                       style={{
-                        fontSize: 11, color: 'var(--kc-mid)',
+                        fontSize: 12, color: 'var(--kc-mid)',
                         textDecoration: 'none', flexShrink: 0,
                         padding: '2px 8px', borderRadius: 6,
                         border: '0.5px solid var(--kc-mid)',
@@ -373,7 +373,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChec
         );
       })}
 
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
         Änderungen werden automatisch gespeichert.
         PageSpeed-Punkte werden automatisch gesetzt wenn Werte vorhanden.
       </div>

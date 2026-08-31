@@ -276,13 +276,13 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{selectedPage.page_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{selectedPage.page_type}{selectedPage.ziel_keyword ? ` · ${selectedPage.ziel_keyword}` : ''}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{selectedPage.page_type}{selectedPage.ziel_keyword ? ` · ${selectedPage.ziel_keyword}` : ''}</div>
                 </div>
                 <button onClick={() => generateContent(selectedPage)} disabled={generating}
                   style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : pageContent[selectedPage.id] ? 'Neu generieren' : 'KI generieren'}
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, minWidth: 90 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 90 }}>
                   {saveStatus === 'saving' && (<><span style={{ width: 10, height: 10, border: '1.5px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} /><span style={{ color: 'var(--text-tertiary)' }}>Speichert...</span></>)}
                   {saveStatus === 'saved' && <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>Gespeichert</span>}
                   {saveStatus === 'error' && <span style={{ color: 'var(--status-danger-text)' }}>Speicherfehler</span>}
@@ -454,9 +454,9 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               <div key={page.id} style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{page.page_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: farbe[0], color: farbe[1] }}>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: farbe[0], color: farbe[1] }}>
                   {stand.text}
                 </span>
                 {stand.anfragbar && (
@@ -465,7 +465,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     onKeyDown={aufTaste(() => freigabeAnfragen(page))}
                     disabled={laeuft}
                     aria-label={`Freigabe f\u00fcr ${page.page_name} beim Kunden anfragen`}
-                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 600, cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 600, cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                     {laeuft ? 'Sendet\u2026' : stand.zustand === 'abgelehnt' ? 'Erneut anfragen' : 'Freigabe anfordern'}
                   </button>
                 )}

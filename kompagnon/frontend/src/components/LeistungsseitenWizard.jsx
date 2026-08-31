@@ -287,7 +287,7 @@ export default function LeistungsseitenWizard({
         }}>
           <div>
             <div style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+              fontSize: 12, fontWeight: 600, letterSpacing: '0.08em',
               color: TEAL, textTransform: 'uppercase', marginBottom: 4,
             }}>
               Leistungsseite · Projekt #{projectId}{leadId ? ` · Lead #${leadId}` : ''}
@@ -381,7 +381,7 @@ export default function LeistungsseitenWizard({
                 setStep(0);
               }}
               style={{
-                background: 'none', border: 'none', fontSize: 11, fontWeight: 600,
+                background: 'none', border: 'none', fontSize: 12, fontWeight: 600,
                 color: 'var(--status-warning-text)', cursor: 'pointer',
                 textDecoration: 'underline', padding: 0, fontFamily: 'var(--font-sans)',
               }}
@@ -565,7 +565,7 @@ export function LeistungsseitenStep({
       {localList.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.07em',
+            fontSize: 12, fontWeight: 700, letterSpacing: '0.07em',
             color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 8,
           }}>
             Bereits angelegt ({localList.length})
@@ -588,7 +588,7 @@ export function LeistungsseitenStep({
                   {entry.leistung || `Leistungsseite ${i + 1}`}
                 </span>
                 {entry.gebiet && (
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                     {entry.gebiet}
                   </span>
                 )}

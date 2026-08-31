@@ -38,7 +38,7 @@ function CrawledImagesGallery({ leadId, headers }) {
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginTop: 8 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{images.length} Bilder von der Website gecrawlt</span>
-        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
+        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
         {visible.map((img, i) => (
@@ -47,7 +47,7 @@ function CrawledImagesGallery({ leadId, headers }) {
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Diese Bilder sind im GrapesJS-Editor unter „Website: ..." verfügbar.</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 10 }}>Diese Bilder sind im GrapesJS-Editor unter „Website: ..." verfügbar.</div>
     </div>
   );
 }
@@ -130,7 +130,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
         const totalForBar = Object.values(statusGroups).reduce((a, b) => a + b, 0) || 1;
 
         const ThSort = ({ col, label }) => (
-          <th onClick={() => setCrawlSort(p => ({ col, asc: p.col === col ? !p.asc : true }))} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+          <th onClick={() => setCrawlSort(p => ({ col, asc: p.col === col ? !p.asc : true }))} style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', userSelect: 'none', whiteSpace: 'nowrap' }}>
             {label} {crawlSort.col === col ? (crawlSort.asc ? '↑' : '↓') : ''}
           </th>
         );
@@ -177,13 +177,13 @@ export default function CrawlerReiter({ leadId, lead, token }) {
                     <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${Math.min(95, (elapsed / 44) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width 1s linear' }} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 5 }}>
                       <span>{found > 0 ? `${found} URLs gefunden` : 'Suche läuft…'}</span>
                       <span>{elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`}</span>
                     </div>
                   </div>
                   {elapsed > 35 && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
                       Große Websites dauern bis zu 60 Sekunden. Die Analyse läuft im Hintergrund — kein erneuter Klick nötig.
                     </div>
                   )}
@@ -218,7 +218,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
                   {statusGroups['3xx'] > 0 && <div style={{ flex: statusGroups['3xx'], background: '#f59e0b', minWidth: 2 }} title={`${statusGroups['3xx']} × 3xx`} />}
                   {statusGroups['4xx+'] > 0 && <div style={{ flex: statusGroups['4xx+'], background: '#dc2626', minWidth: 2 }} title={`${statusGroups['4xx+']} × 4xx+`} />}
                 </div>
-                <div style={{ display: 'flex', gap: 20, fontSize: 11, color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#16a34a', display: 'inline-block' }} />{statusGroups['2xx']} OK</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} />{statusGroups['3xx']} Redirect</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#dc2626', display: 'inline-block' }} />{statusGroups['4xx+']} Fehler</span>
@@ -290,7 +290,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
                             </td>
                             <td style={{ padding: '7px 12px', maxWidth: 400 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
+                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none', fontSize: 12, wordBreak: 'break-all' }}>{r.url}</a>
                                 <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
                               </div>
                             </td>
@@ -332,7 +332,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
               <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
                 <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.3 }}>🕷️</div>
                 <div style={{ fontSize: 13 }}>Noch kein Crawl durchgeführt</div>
-                <div style={{ fontSize: 11, marginTop: 4 }}>Klicke auf "Crawler starten" um die Website zu analysieren.</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>Klicke auf "Crawler starten" um die Website zu analysieren.</div>
               </div>
             )}
           </div>

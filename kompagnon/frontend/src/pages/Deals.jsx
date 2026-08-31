@@ -135,7 +135,7 @@ export default function Deals() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {stage.label}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {stage.count} · {fmtEUR(stage.total)}
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function Deals() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {stage.deals.length === 0 ? (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>
                     Keine Deals
                   </div>
                 ) : stage.deals.map(deal => (
@@ -163,7 +163,7 @@ export default function Deals() {
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
                   >
                     {deal.company_name && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 3 }}>
                         {deal.company_name}
                       </div>
                     )}
@@ -435,7 +435,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
     background: 'var(--bg-app)', color: 'var(--text-primary)',
     fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
   };
-  const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
 
   return createPortal(
     <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
@@ -475,7 +475,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         {/* Header */}
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               {isEdit ? 'Deal bearbeiten' : 'Neuer Deal'}
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -558,7 +558,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           <div style={{ marginTop: 20, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <label style={labelStyle}>Positionen</label>
-              <button onClick={addItem} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
+              <button onClick={addItem} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
             </div>
 
             <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)' }}>

@@ -146,7 +146,7 @@ export default function ProjekteLoeschenModal({ ids, namen, token, onClose, onGe
 function Abschnitt({ titel, farbe, zeilen, leerText, hinweis }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: farbe, marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: farbe, marginBottom: 6 }}>
         {titel}
       </div>
       {zeilen.length === 0 && leerText && (

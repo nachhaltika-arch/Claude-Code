@@ -141,7 +141,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                     key={name}
                     onClick={() => toggleTool(name)}
                     style={{
-                      padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'var(--font-sans)',
                       border: active ? '1.5px solid #00875A' : '1px solid var(--border-light)',
                       background: active ? '#E3F6EF' : 'var(--bg-app)',
@@ -160,7 +160,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
       </div>
 
       <div style={{ marginTop: 16, marginBottom: 16 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                         textTransform: 'uppercase', letterSpacing: '.06em',
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Funktionen

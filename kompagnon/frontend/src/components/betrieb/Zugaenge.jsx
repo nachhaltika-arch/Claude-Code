@@ -149,16 +149,16 @@ export default function Zugaenge({ leadId, token }) {
       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
         Zugänge dieses Betriebs
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 16 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 16 }}>
         Jeder Mensch im Betrieb bekommt ein eigenes Konto — kein geteiltes
         Passwort. Freigeschaltete Kurse gelten dem Betrieb und gelten damit
         für jeden Zugang, auch für später hinzugekommene.
       </div>
 
       {zugaenge === null ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Wird geladen …</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Wird geladen …</div>
       ) : zugaenge.length === 0 ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
           Noch kein Zugang. Der erste entsteht beim Kauf — oder hier.
         </div>
       ) : (
@@ -211,7 +211,7 @@ export default function Zugaenge({ leadId, token }) {
         * Screenreader je nach Browser gar nicht als Name angesagt — das Feld
         * hiesse dann „Eingabefeld". `feldName.test.js` wacht darueber. */}
       <form onSubmit={einladen} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
           Weiteren Zugang einladen
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -284,5 +284,5 @@ const knopfLeise = {
 
 const meldung = {
   marginTop: 12, padding: '8px 10px', borderRadius: 'var(--radius-md)',
-  fontSize: 11, lineHeight: 1.5,
+  fontSize: 12, lineHeight: 1.5,
 };

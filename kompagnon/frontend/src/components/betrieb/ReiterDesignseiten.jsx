@@ -141,20 +141,20 @@ export default function ReiterDesignseiten({
               <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
                 <div>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.version_name}</span>
-                  <span style={{ color: 'var(--text-tertiary)', marginLeft: 10, fontSize: 11 }}>{v.created_at}</span>
+                  <span style={{ color: 'var(--text-tertiary)', marginLeft: 10, fontSize: 12 }}>{v.created_at}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={async () => {
                     const res = await fetch(`${API_BASE_URL}/api/designs/version/${v.id}`, { headers: h });
                     if (res.ok) { const d = await res.json(); setDesignResult(d.html_content); }
-                  }} style={{ padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid var(--border-medium)', background: 'var(--bg-surface)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  }} style={{ padding: '4px 10px', fontSize: 12, borderRadius: 5, border: '1px solid var(--border-medium)', background: 'var(--bg-surface)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     👁 Laden
                   </button>
                   <button onClick={async () => {
                     if (!window.confirm('Version löschen?')) return;
                     await fetch(`${API_BASE_URL}/api/designs/version/${v.id}`, { method: 'DELETE', headers: h });
                     setPageVersions(prev => ({ ...prev, [activeDesignPage.id]: prev[activeDesignPage.id].filter(x => x.id !== v.id) }));
-                  }} style={{ padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid var(--status-danger-text)', background: 'transparent', color: 'var(--status-danger-text)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  }} style={{ padding: '4px 10px', fontSize: 12, borderRadius: 5, border: '1px solid var(--status-danger-text)', background: 'transparent', color: 'var(--status-danger-text)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     🗑
                   </button>
                 </div>

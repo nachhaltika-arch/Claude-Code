@@ -86,7 +86,7 @@ export default function ReiterUebersicht({
             {rechtsgrundlageLabel(lead.rechtsgrundlage)}
           </Badge>
           {(lead.utm_campaign || lead.kampagne_quelle) && (
-            <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+            <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
               · {lead.utm_campaign || lead.kampagne_quelle}
             </span>
           )}
@@ -121,7 +121,7 @@ export default function ReiterUebersicht({
                 {screenshotLoading ? (
                   <div style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', gap: 10 }}>
                     <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Screenshot wird erstellt...</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Screenshot wird erstellt...</span>
                   </div>
                 ) : lead.website_screenshot ? (
                   <>
@@ -147,7 +147,7 @@ export default function ReiterUebersicht({
             {/* Score Verlauf */}
             {score_history.length >= 2 && (
               <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Score-Verlauf</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Score-Verlauf</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {score_history.map((s, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -165,7 +165,7 @@ export default function ReiterUebersicht({
             {/* Kategorie Scores */}
             {latestAudit && (
               <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Kategorien</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Kategorien</div>
                 {[
                   ['Compliance', latestAudit.rc_score, 25],
                   ['Performance', latestAudit.tp_score, 15],
@@ -178,7 +178,7 @@ export default function ReiterUebersicht({
                   const col = pct >= 70 ? 'var(--status-success-text)' : pct >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
                   return (
                     <div key={label} style={{ marginBottom: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                         <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
                         <span style={{ fontWeight: 500, color: col }}>{score || 0}/{max}</span>
                       </div>
@@ -198,7 +198,7 @@ export default function ReiterUebersicht({
             <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kontaktdaten</span>
-                <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Bearbeiten →</button>
+                <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Bearbeiten →</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr', gap: '0 16px' }}>
                 {fieldRow('👤', lead.contact_name, 'Ansprechpartner')}
@@ -231,7 +231,7 @@ export default function ReiterUebersicht({
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {befundZeilen(profile.anreicherung).map(({ schluessel, beschriftung, wert, art }) => (
                     <span key={schluessel} style={{
-                      fontSize: 11, padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                      fontSize: 12, padding: '3px 8px', borderRadius: 'var(--radius-sm)',
                       background: art === 'gut' ? 'var(--status-success-bg)'
                         : art === 'fehlt' ? 'var(--status-danger-bg)' : 'var(--bg-app)',
                       color: art === 'gut' ? 'var(--status-success-text)'
@@ -391,7 +391,7 @@ export default function ReiterUebersicht({
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Letzter Audit</span>
-                  <button onClick={() => setActiveTab('audits')} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Alle anzeigen →</button>
+                  <button onClick={() => setActiveTab('audits')} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Alle anzeigen →</button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `${levelColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -399,7 +399,7 @@ export default function ReiterUebersicht({
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{current_level}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{datumKurz(latestAudit.created_at, 'Datum unbekannt')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{datumKurz(latestAudit.created_at, 'Datum unbekannt')}</div>
                   </div>
                 </div>
                 {latestAudit.ai_summary && (
@@ -424,7 +424,7 @@ export default function ReiterUebersicht({
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Projekt</span>
-                  <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     Öffnen →
                   </button>
                 </div>
@@ -468,7 +468,7 @@ export default function ReiterUebersicht({
             <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kunden-Zugang</span>
-                <button onClick={() => setActiveTab('qrcode')} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Details →</button>
+                <button onClick={() => setActiveTab('qrcode')} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Details →</button>
               </div>
               {qrLoading ? (
                 <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -483,7 +483,7 @@ export default function ReiterUebersicht({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {lead.email && (
-                      <div style={{ background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 'var(--radius-sm)', padding: '3px 8px', fontSize: 11, fontWeight: 500, marginBottom: 8, display: 'inline-block' }}>
+                      <div style={{ background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 'var(--radius-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 500, marginBottom: 8, display: 'inline-block' }}>
                         🔐 @{lead.email.split('@')[1]}
                       </div>
                     )}
@@ -492,16 +492,16 @@ export default function ReiterUebersicht({
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        style={{ padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                         ⬇ PNG
                       </button>
                       <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
-                        style={{ padding: '5px 10px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        style={{ padding: '5px 10px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                         📋 Link
                       </button>
                       {lead.email && (
                         <a href={`mailto:${lead.email}?subject=Ihr persönlicher Zugang&body=Ihr Zugangslink:%0D%0A${qrData.portal_url}`}
-                          aria-label="Zugangslink per E-Mail senden" style={{ padding: '5px 10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: 11, textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                          aria-label="Zugangslink per E-Mail senden" style={{ padding: '5px 10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: 12, textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                           ✉️
                         </a>
                       )}

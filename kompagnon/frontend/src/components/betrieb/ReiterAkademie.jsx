@@ -35,7 +35,7 @@ export default function ReiterAkademie({
         <span style={{ fontSize: 16 }}>🎓</span>
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademie</span>
         {!loadingAcademy && assigned.length > 0 && (
-          <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+          <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 8px' }}>
             {assigned.length}
           </span>
         )}
@@ -74,7 +74,7 @@ export default function ReiterAkademie({
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
             minWidth: 520, gap: 12, padding: '8px 20px',
-            fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '0.06em',
             borderBottom: '1px solid var(--border-light)',
           }}>
@@ -97,7 +97,7 @@ export default function ReiterAkademie({
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>
                 {row.course_title}
                 {row.assigned_at && (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Zugewiesen: {row.assigned_at}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Zugewiesen: {row.assigned_at}</div>
                 )}
               </div>
 
@@ -127,7 +127,7 @@ export default function ReiterAkademie({
                       padding: '3px 10px',
                       background: 'var(--status-success-bg)',
                       color: 'var(--status-success-text)',
-                      borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700,
+                      borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 700,
                       textDecoration: 'none',
                     }}
                   >🏆 Zertifikat</a>

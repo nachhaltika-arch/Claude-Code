@@ -68,7 +68,7 @@ export default function ReiterNachrichten({
         )}
         {grouped.map((item, i) => {
           if (item.type === 'sep') return (
-            <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+            <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 12 }}>
               <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
               {item.day}
               <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />

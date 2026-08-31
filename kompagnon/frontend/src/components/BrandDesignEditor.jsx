@@ -247,7 +247,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
               fontFamily: 'var(--font-sans)', opacity: t.setter ? 1 : 0.5,
             }}>
             <div style={{ width: 14, height: 14, borderRadius: 3, background: t.color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
             {!t.setter && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>auto</span>}
             {t.setter && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>&#9998;</span>}
           </button>
@@ -259,7 +259,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         const t = tokens.find(x => x.id === activeToken);
         return (
           <div style={{ border: '1.5px solid var(--brand-primary)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--bg-surface)' }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
               {t.label} bearbeiten
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -338,7 +338,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             color: colorBody, setColor: setColorBody, colorKey: 'body_color',
             detected: brandData?.font_body, suggested: fontSuggestions?.body },
           { role: 'akzent', label: 'Akzent (Buttons·CTA)',      icon: 'A', value: fontAkzent, setter: setFontAkzent,
-            sample: 'JETZT ANFRAGEN', sampleStyle: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
+            sample: 'JETZT ANFRAGEN', sampleStyle: { fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
             color: colorAkzent, setColor: setColorAkzent, colorKey: 'akzent_color',
             detected: brandData?.font_accent, suggested: fontSuggestions?.accent },
         ].map(({ role, label, icon, value, setter, sample, sampleStyle, color, setColor, colorKey, detected, suggested }) => (
@@ -349,7 +349,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
               <div style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--brand-primary)',
                             color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
               {detected && detected !== value && (
                 <button onClick={() => setter(detected)} title={`Von Website: ${detected}`}
                   style={{ fontSize: 9, padding: '2px 7px', background: 'var(--surface)',
@@ -392,7 +392,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 4, background: color, flexShrink: 0 }} />
                         <input aria-label="Farbwert als Hex-Code" value={color} onChange={e => setColor(e.target.value)}
-                          style={{ flex: 1, padding: '4px 7px', fontSize: 11, fontFamily: 'monospace',
+                          style={{ flex: 1, padding: '4px 7px', fontSize: 12, fontFamily: 'monospace',
                                    border: '0.5px solid var(--border-light)', borderRadius: 4,
                                    background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
                         <input aria-label="Farbe waehlen" type="color" value={color?.length === 7 ? color : '#ffffff'}
@@ -441,7 +441,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
         {fontSuggestions?.pairing_note && (
           <div style={{ padding: '8px 12px', borderRadius: 7, background: 'var(--surface)',
-                        fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                        fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
             💡 {fontSuggestions.pairing_note}
           </div>
         )}

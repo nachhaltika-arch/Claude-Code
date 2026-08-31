@@ -163,7 +163,7 @@ export default function CommandPalette({ open, onClose }) {
           borderTop: '1px solid var(--border-light)',
           padding: '8px 18px',
           display: 'flex', gap: 16,
-          fontSize: 11, color: 'var(--text-tertiary)',
+          fontSize: 12, color: 'var(--text-tertiary)',
         }}>
           <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>↑↓</kbd> navigieren</span>
           <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>↵</kbd> öffnen</span>

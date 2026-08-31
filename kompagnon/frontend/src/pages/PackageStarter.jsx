@@ -91,7 +91,7 @@ export default function PackageStarter() {
 
       <div style={{ background: 'linear-gradient(135deg, #004d5e 0%, #006880 100%)', padding: '60px 24px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', maxWidth: 640, margin: '0 auto' }}>
-          <div className="fade1" style={{ display: 'inline-block', background: 'var(--kc-mid-a-25)', border: '1px solid var(--kc-mid-a-50)', color: '#b3e0ea', borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div className="fade1" style={{ display: 'inline-block', background: 'var(--kc-mid-a-25)', border: '1px solid var(--kc-mid-a-50)', color: '#b3e0ea', borderRadius: 20, padding: '4px 14px', fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
             🚀 Starter-Paket
           </div>
           <h1 className="fade2" style={{ fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 700, color: 'white', margin: '0 0 16px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
@@ -127,13 +127,13 @@ export default function PackageStarter() {
             ) : (
             <form onSubmit={handleCheckout}>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
                 <input aria-label="Ihre geschäftliche E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: 'var(--brand-primary)', opacity: loading ? 0.5 : 1, color: 'var(--text-on-brand)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 12, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>
             </form>
             )}
             <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>

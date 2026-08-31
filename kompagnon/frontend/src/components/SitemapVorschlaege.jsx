@@ -68,7 +68,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
           }}>
             KI-Empfehlung für {empfehlungen?.company || 'diesen Kunden'}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.6)', marginTop: 2 }}>
             Claude analysiert Gewerk, USP und Zielgruppe und empfiehlt individuelle Seiten
           </div>
         </div>
@@ -106,7 +106,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }}>
                   {page.page_name}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.65)', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.65)', lineHeight: 1.5 }}>
                   {page.ki_begruendung || page.zweck}
                 </div>
               </div>
@@ -117,7 +117,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
                   background: 'rgba(255,255,255,.15)',
                   color: '#fff', border: '1px solid rgba(255,255,255,.3)',
                   borderRadius: 6, padding: '6px 14px',
-                  fontSize: 11, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   cursor: adding[page.page_name] ? 'not-allowed' : 'pointer',
                   flexShrink: 0,
                   fontFamily: 'var(--font-sans)',
@@ -219,7 +219,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
           {page.page_name}
         </div>
         <div style={{
-          fontSize: 11, color: 'var(--text-tertiary)',
+          fontSize: 12, color: 'var(--text-tertiary)',
           marginTop: 2, lineHeight: 1.5,
         }}>
           {page.zweck}
@@ -232,7 +232,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
           background: isPflicht ? 'var(--warn)' : 'var(--brand-primary, var(--brand-primary))',
           color: 'var(--kc-black)', border: 'none',
           borderRadius: 6, padding: '6px 14px',
-          fontSize: 11, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           cursor: adding[page.page_name] ? 'not-allowed' : 'pointer',
           flexShrink: 0, marginLeft: 12,
           fontFamily: 'var(--font-sans)',

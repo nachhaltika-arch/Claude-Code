@@ -84,7 +84,7 @@ export default function MassExport() {
 
       {/* Weitere Exporte */}
       <div style={{ marginTop: 32 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
           Weitere Exporte
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
@@ -99,7 +99,7 @@ export default function MassExport() {
                 )}
                 <div style={{ fontSize: 28, marginBottom: 10 }}>{item.icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 5 }}>{item.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
               </>
             );
             const flaeche = {

@@ -274,7 +274,7 @@ export default function Academy() {
                     background: AUDIENCE_BADGE[aud]?.bg || T.primary,
                     color: AUDIENCE_BADGE[aud]?.color || '#fff',
                     borderRadius: T.radiusFull,
-                    fontSize: 11, fontWeight: 600,
+                    fontSize: 12, fontWeight: 600,
                     padding: '3px 10px',
                     fontFamily: T.font,
                     letterSpacing: '0.02em',
@@ -288,7 +288,7 @@ export default function Academy() {
                       position: 'absolute', top: 10, right: 10,
                       background: T.certBg, color: T.certText,
                       borderRadius: T.radiusFull,
-                      fontSize: 11, fontWeight: 600, padding: '3px 10px',
+                      fontSize: 12, fontWeight: 600, padding: '3px 10px',
                       fontFamily: T.font,
                     }}>🏆 Zertifikat</div>
                   )}
@@ -297,7 +297,7 @@ export default function Academy() {
                       position: 'absolute', top: 10, right: 10,
                       background: 'rgba(0,0,0,0.5)', color: '#fff',
                       borderRadius: T.radiusFull,
-                      fontSize: 11, fontWeight: 500, padding: '3px 10px',
+                      fontSize: 12, fontWeight: 500, padding: '3px 10px',
                       fontFamily: T.font,
                     }}>{pct}% erledigt</div>
                   )}
@@ -337,7 +337,7 @@ export default function Academy() {
                       mitgefuehrt: Die alte Kurstabelle fuehrte sie als Zaehler,
                       die niemand nachrechnete. */}
                   {(course.module_count > 0 || course.lesson_count > 0) && (
-                    <div style={{ fontSize: 11, color: T.textMuted, fontFamily: T.font, marginTop: -4 }}>
+                    <div style={{ fontSize: 12, color: T.textMuted, fontFamily: T.font, marginTop: -4 }}>
                       {course.module_count} {course.module_count === 1 ? 'Modul' : 'Module'}
                       {' · '}{course.lesson_count} {course.lesson_count === 1 ? 'Lektion' : 'Lektionen'}
                       {course.duration_minutes > 0 && ` · ${course.duration_minutes} Min.`}

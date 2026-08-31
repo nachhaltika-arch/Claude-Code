@@ -357,7 +357,7 @@ export default function AcademyAdminCourse() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Module & Lektionen</span>
                 {modules.length > 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                     {modules.length} {modules.length === 1 ? 'Modul' : 'Module'} · {lessonCount} {lessonCount === 1 ? 'Lektion' : 'Lektionen'}
                   </span>
                 )}
@@ -463,7 +463,7 @@ export default function AcademyAdminCourse() {
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
                 {form.is_published ? 'Veröffentlicht' : 'Entwurf'}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 {form.is_published ? 'Für Nutzer sichtbar' : 'Nicht öffentlich'}
               </div>
             </div>

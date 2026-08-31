@@ -79,7 +79,7 @@ export default function CheckoutSuccess() {
                 backdropFilter: 'blur(12px)', borderRadius: 16, padding: '20px 24px',
                 marginBottom: 24, textAlign: 'left',
               }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                   Ihre Bestellung
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -99,7 +99,7 @@ export default function CheckoutSuccess() {
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 16, padding: '20px 24px', marginBottom: 28, textAlign: 'left',
               }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
                   Wie geht es weiter?
                 </div>
                 {[

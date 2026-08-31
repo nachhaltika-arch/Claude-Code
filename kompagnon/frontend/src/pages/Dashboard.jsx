@@ -225,18 +225,18 @@ export default function Dashboard() {
           minWidth: 0, width: '100%',
         }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               💰 Heute gewonnen
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.won_today > 0 ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>
               {Number(dealStats.won_today).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {dealStats.deals_won_today} Deal{dealStats.deals_won_today !== 1 ? 's' : ''}
             </div>
           </div>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               📅 Diesen Monat
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.won_this_month > 0 ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>
@@ -244,13 +244,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               💼 Pipeline offen
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: dealStats.pipeline_value > 0 ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>
               {Number(dealStats.pipeline_value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {dealStats.deals_open} offene Deal{dealStats.deals_open !== 1 ? 's' : ''}
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function Dashboard() {
                   {/* Das Häkchen stand für die fehlende Überschrift ein. Jetzt
                     * gibt es die Überschrift, also kann es weg. */}
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: pct > 30 ? 'var(--status-success-text)' : 'var(--text-tertiary)',
                     minWidth: 64, textAlign: 'right', flexShrink: 0, fontWeight: 600,
                   }}>
@@ -349,7 +349,7 @@ export default function Dashboard() {
             </span>
             <button
               onClick={() => navigate('/app/deals')}
-              style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
+              style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
               Alle →
             </button>
@@ -386,7 +386,7 @@ export default function Dashboard() {
                   width: 32, height: 32, borderRadius: '50%',
                   background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 600, flexShrink: 0,
+                  fontSize: 12, fontWeight: 600, flexShrink: 0,
                 }}>
                   {lead.company_name?.[0] || '?'}
                 </div>
@@ -399,7 +399,7 @@ export default function Dashboard() {
                     {lead.company_name}
                   </div>
                   <div style={{
-                    fontSize: 11, color: 'var(--text-tertiary)',
+                    fontSize: 12, color: 'var(--text-tertiary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {lead.city}{lead.city && lead.trade ? ' · ' : ''}{lead.trade}

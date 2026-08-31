@@ -607,14 +607,14 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
             fontSize: 18, fontWeight: 900, color: KC_DARK, margin: 0,
             textTransform: 'uppercase', letterSpacing: '-0.02em',
           }}>Style Guide</h1>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
             Farben, Typografie, UI — links wählen, rechts Live-Preview.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {approved && (
             <span style={{
-              fontSize: 11, fontWeight: 700, color: '#1D9E75', background: '#D1FAE5',
+              fontSize: 12, fontWeight: 700, color: '#1D9E75', background: '#D1FAE5',
               padding: '4px 10px', borderRadius: 12, textTransform: 'uppercase',
             }}>✓ Vom Kunden freigegeben</span>
           )}

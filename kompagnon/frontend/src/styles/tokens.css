@@ -209,7 +209,7 @@
   --font-mono:    'DM Mono', ui-monospace, monospace;
   /* Legacy alias kept for compatibility */
   --font-family-base: var(--font-sans);
-  --text-xs:   11px;
+  --text-xs:   12px;
   --text-sm:   13px;
   --text-base: 15px;
   --text-lg:   17px;

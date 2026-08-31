@@ -242,14 +242,14 @@ export default function Checklists() {
                           Abnahmeprotokoll zählen — nicht als Farbe allein:
                           Wer Farben nicht unterscheidet, liest das Wort. */}
                       {p.is_critical && (
-                        <strong style={{ marginLeft: 8, fontSize: 11, color: 'var(--status-danger-text)',
+                        <strong style={{ marginLeft: 8, fontSize: 12, color: 'var(--status-danger-text)',
                                          textTransform: 'uppercase', letterSpacing: '.06em' }}>
                           Pflicht
                         </strong>
                       )}
                     </span>
                     {p.is_completed && p.completed_by && (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                         {p.completed_by}
                       </span>
                     )}

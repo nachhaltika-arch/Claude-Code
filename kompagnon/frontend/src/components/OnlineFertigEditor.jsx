@@ -560,17 +560,17 @@ export default function OnlineFertigEditor() {
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {generateStatus === 'running' && (
-              <span style={{ fontSize: 11, color: KC_MID, fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: KC_MID, fontWeight: 700 }}>
                 ⚙️ KI-Wireframe wird erstellt…
               </span>
             )}
             {generateStatus === 'done' && (
-              <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: '#1D9E75', fontWeight: 700 }}>
                 ✓ Wireframe fertig
               </span>
             )}
             {generateStatus?.error && (
-              <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 700 }}>
                 ✗ {generateStatus.error.slice(0, 60)}
               </span>
             )}
@@ -587,7 +587,7 @@ export default function OnlineFertigEditor() {
                   border: 'none',
                   borderRadius: 6,
                   padding: '6px 14px',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 800,
                   cursor: 'pointer',
                   textTransform: 'uppercase',

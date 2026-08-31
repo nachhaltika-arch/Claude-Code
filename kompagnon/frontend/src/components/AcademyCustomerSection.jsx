@@ -137,7 +137,7 @@ export default function AcademyCustomerSection({ leadId }) {
             <span style={{ fontSize: 16 }}>🎓</span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademie</span>
             {!loading && assigned.length > 0 && (
-              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{assigned.length}</span>
+              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 8px' }}>{assigned.length}</span>
             )}
           </div>
           <button onClick={() => setShowModal(true)} style={{ padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, ...(isMobile ? { width: '100%' } : {}) }}>
@@ -159,14 +159,14 @@ export default function AcademyCustomerSection({ leadId }) {
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px', minWidth: 520, gap: 12, padding: '8px 20px', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px', minWidth: 520, gap: 12, padding: '8px 20px', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
                 <span>Kurs</span><span>Fortschritt</span><span>Zertifikat</span><span />
               </div>
               {assigned.map(row => (
                 <div key={row.course_id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px', minWidth: 520, gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: '1px solid var(--border-light)', transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>
                     {row.course_title}
-                    {row.assigned_at && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Zugewiesen: {row.assigned_at}</div>}
+                    {row.assigned_at && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Zugewiesen: {row.assigned_at}</div>}
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -179,7 +179,7 @@ export default function AcademyCustomerSection({ leadId }) {
                   </div>
                   <div>
                     {row.certificate_code ? (
-                      <a href={`/academy/certificate/${row.certificate_code}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>🏆 Zertifikat</a>
+                      <a href={`/academy/certificate/${row.certificate_code}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>🏆 Zertifikat</a>
                     ) : (
                       <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>
                     )}
@@ -202,7 +202,7 @@ export default function AcademyCustomerSection({ leadId }) {
                 {module.length > 0 && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}> · {module.length}</span>}
               </span>
               {offeneModule.length > 0 && (
-                <button onClick={() => setModulModal(true)} style={{ padding: '5px 12px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                <button onClick={() => setModulModal(true)} style={{ padding: '5px 12px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
                   + Modul freischalten
                 </button>
               )}
@@ -215,7 +215,7 @@ export default function AcademyCustomerSection({ leadId }) {
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {module.map(m => (
-                  <span key={m.module_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                  <span key={m.module_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', fontSize: 12, color: 'var(--text-secondary)' }}>
                     {m.module_title}
                     {m.course_title && <span style={{ color: 'var(--text-tertiary)' }}>· {m.course_title}</span>}
                     <button onClick={() => modulEntziehen(m.module_id)} disabled={modulLaeuft === m.module_id} title="Freischaltung entziehen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
@@ -250,7 +250,7 @@ export default function AcademyCustomerSection({ leadId }) {
                 <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)' }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{m.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {m.course_title}{m.description ? ` · ${m.description}` : ''}
                     </div>
                   </div>
@@ -290,7 +290,7 @@ export default function AcademyCustomerSection({ leadId }) {
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)' }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{c.title}</div>
-                      {c.description && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.description}</div>}
+                      {c.description && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.description}</div>}
                     </div>
                     <button onClick={() => handleAssign(c.id)} disabled={assigning === c.id} style={{ padding: '6px 14px', background: assigning === c.id ? 'var(--bg-elevated)' : 'var(--brand-primary)', color: assigning === c.id ? 'var(--text-tertiary)' : 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: assigning === c.id ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, marginLeft: 12 }}>
                       {assigning === c.id ? '…' : 'Zuweisen'}

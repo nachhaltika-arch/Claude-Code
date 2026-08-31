@@ -50,7 +50,7 @@ export default function Editor({
             <button
               type="button" onClick={onDelete} disabled={deleting || saving}
               style={{
-                padding: '6px 12px', fontSize: 11, fontWeight: 700,
+                padding: '6px 12px', fontSize: 12, fontWeight: 700,
                 background: '#fff', color: '#dc2626',
                 border: '1px solid #fca5a5', borderRadius: 6,
                 cursor: deleting ? 'wait' : 'pointer', fontFamily: 'inherit',
@@ -60,7 +60,7 @@ export default function Editor({
           <button
             type="button" onClick={onSave} disabled={saving || (!dirty && !isNew)}
             style={{
-              padding: '6px 14px', fontSize: 11, fontWeight: 700,
+              padding: '6px 14px', fontSize: 12, fontWeight: 700,
               background: KC_DARK, opacity: saving || (!dirty && !isNew) ? 0.5 : 1,
               color: '#fff', border: 'none', borderRadius: 6,
               cursor: saving ? 'wait' : 'pointer', fontFamily: 'inherit',
@@ -114,7 +114,7 @@ export default function Editor({
                 <span key={t} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   background: '#e2e8f0', color: '#334155',
-                  padding: '2px 8px', borderRadius: 12, fontSize: 11,
+                  padding: '2px 8px', borderRadius: 12, fontSize: 12,
                 }}>
                   {t}
                   <button type="button" onClick={() => removeTag(t)}
@@ -131,7 +131,7 @@ export default function Editor({
                 style={{ ...inputStyle(false), flex: 1 }}
               />
               <button aria-label="Hinzufügen" type="button" onClick={addTag}
-                style={{ padding: '6px 10px', fontSize: 11, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}>+</button>
+                style={{ padding: '6px 10px', fontSize: 12, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}>+</button>
             </div>
           </Field>
 
@@ -145,10 +145,10 @@ export default function Editor({
                   <input
                     type="text" placeholder="key"
                     value={s.key || ''} onChange={(e) => updateSlot(idx, { key: e.target.value })}
-                    style={{ ...inputStyle(false), flex: 1, fontFamily: 'ui-monospace, monospace', fontSize: 11 }}
+                    style={{ ...inputStyle(false), flex: 1, fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
                   />
                   <button type="button" onClick={() => removeSlot(idx)}
-                    style={{ padding: '4px 8px', fontSize: 11, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 4, cursor: 'pointer' }}>×</button>
+                    style={{ padding: '4px 8px', fontSize: 12, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 4, cursor: 'pointer' }}>×</button>
                 </div>
                 <input
                   type="text" placeholder="Label"
@@ -163,7 +163,7 @@ export default function Editor({
               </div>
             ))}
             <button type="button" onClick={addSlot}
-              style={{ padding: '6px 10px', fontSize: 11, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 6, cursor: 'pointer', width: '100%' }}>
+              style={{ padding: '6px 10px', fontSize: 12, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 6, cursor: 'pointer', width: '100%' }}>
               + Slot hinzufuegen
             </button>
           </Field>
@@ -176,7 +176,7 @@ export default function Editor({
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: 8, border: '1px solid #cbd5e1', borderRadius: 6,
-                fontSize: 11, fontFamily: 'ui-monospace, monospace', resize: 'vertical',
+                fontSize: 12, fontFamily: 'ui-monospace, monospace', resize: 'vertical',
               }}
             />
           </Field>

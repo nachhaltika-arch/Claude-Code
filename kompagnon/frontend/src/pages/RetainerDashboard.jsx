@@ -73,7 +73,7 @@ export default function RetainerDashboard() {
 
   const statusBadge = (status, map) => {
     const s = map[status] || map._default || { label: status, bg: 'var(--bg-app)', color: 'var(--text-secondary)' };
-    return <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 500, background: s.bg, color: s.color }}>{s.label}</span>;
+    return <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: s.bg, color: s.color }}>{s.label}</span>;
   };
 
   const retainerStatusMap = {
@@ -120,7 +120,7 @@ export default function RetainerDashboard() {
             <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 100px 100px 120px 80px', gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: idx < retainers.length - 1 ? '1px solid var(--border-light)' : 'none', transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{r.customer_name || '-'}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{r.customer_email}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{r.customer_email}</div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{r.package_name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>{fmtCurrency(r.price_net)}</div>
@@ -148,13 +148,13 @@ export default function RetainerDashboard() {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)' }}>{inv.invoice_number}</div>
               <div>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{inv.customer_name || '-'}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{inv.customer_email}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{inv.customer_email}</div>
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{fmtCurrency(inv.amount_gross)}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{fmtDate(inv.due_date)}</div>
               <div>{statusBadge(inv.status, invoiceStatusMap)}</div>
               <div>
-                <button onClick={() => downloadPdf(inv.id, inv.invoice_number)} style={{ ...btnSecondary, padding: '4px 10px', fontSize: 11 }} title="PDF herunterladen">
+                <button onClick={() => downloadPdf(inv.id, inv.invoice_number)} style={{ ...btnSecondary, padding: '4px 10px', fontSize: 12 }} title="PDF herunterladen">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h8M8 2v8M5 7l3 3 3-3"/></svg>
                 </button>
               </div>

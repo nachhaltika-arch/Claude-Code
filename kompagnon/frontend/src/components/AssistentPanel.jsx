@@ -222,7 +222,7 @@ export default function AssistentPanel({
               color: n.rolle === 'nutzer' ? '#fff'
                 : n.rolle === 'system' ? '#166534' : '#3b0764',
               border: n.rolle === 'assistent' ? `1px solid ${LILA_RAND}` : 'none',
-              borderRadius: 10, padding: '8px 10px', fontSize: 12.5, lineHeight: 1.5,
+              borderRadius: 10, padding: '8px 10px', fontSize: 12, lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
             }}
           >{n.inhalt}</div>
@@ -239,7 +239,7 @@ export default function AssistentPanel({
           <div style={{
             alignSelf: 'flex-start', maxWidth: '92%', background: '#fff',
             border: `1px solid ${LILA_RAND}`, borderLeft: `3px solid ${LILA}`,
-            borderRadius: 10, padding: '8px 10px', fontSize: 12.5,
+            borderRadius: 10, padding: '8px 10px', fontSize: 12,
             lineHeight: 1.5, color: '#3b0764', whiteSpace: 'pre-wrap',
           }}>{vorschlag.text}</div>
         )}
@@ -253,7 +253,7 @@ export default function AssistentPanel({
                           textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Vorschlag für „{vorschlag.feld || feld}"
             </div>
-            <div style={{ fontSize: 12.5, color: '#3b0764', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#3b0764', lineHeight: 1.5 }}>
               {vorschlag.text}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -262,7 +262,7 @@ export default function AssistentPanel({
                 onClick={() => { onUebernehmen(vorschlag.text, vorschlag.feld); setVorschlag(null); }}
                 style={{
                   flex: 1, padding: '7px 10px', background: 'var(--success)', color: 'var(--text-on-brand)',
-                  border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 700,
+                  border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >✓ Übernehmen</button>
@@ -270,7 +270,7 @@ export default function AssistentPanel({
                 type="button" onClick={() => setVorschlag(null)}
                 style={{
                   padding: '7px 10px', background: '#fff', border: '1px solid #cbd5e1',
-                  borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                  borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
               >Verwerfen</button>
@@ -279,7 +279,7 @@ export default function AssistentPanel({
         )}
 
         {hinweis && (
-          <div style={{ fontSize: 11, color: '#92400e' }}>{hinweis}</div>
+          <div style={{ fontSize: 12, color: '#92400e' }}>{hinweis}</div>
         )}
         {fehler && (
           <div style={{
@@ -301,7 +301,7 @@ export default function AssistentPanel({
             aria-label="Frage an den Assistenten"
             style={{
               flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 6,
-              border: `1px solid ${LILA_RAND}`, fontSize: 12.5, fontFamily: 'inherit',
+              border: `1px solid ${LILA_RAND}`, fontSize: 12, fontFamily: 'inherit',
               outline: 'none',
             }}
           />
@@ -320,7 +320,7 @@ export default function AssistentPanel({
           type="button" onClick={anTeam} disabled={!gespraech || eskaliert}
           style={{
             background: 'none', border: 'none', padding: 0, textAlign: 'left',
-            fontSize: 11, fontFamily: 'inherit',
+            fontSize: 12, fontFamily: 'inherit',
             color: !gespraech || eskaliert ? '#a78bfa' : '#6b21a8',
             textDecoration: 'underline',
             cursor: !gespraech || eskaliert ? 'default' : 'pointer',

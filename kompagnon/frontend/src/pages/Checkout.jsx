@@ -104,7 +104,7 @@ export default function Checkout() {
               {i > 0 && <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.3)' }} />}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{
-                  width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700, color: 'var(--text-on-brand)',
+                  width: 24, height: 24, borderRadius: '50%', fontSize: 12, fontWeight: 700, color: 'var(--text-on-brand)',
                   background: step > i + 1 ? 'var(--success)' : step === i + 1 ? A : 'rgba(255,255,255,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
@@ -138,7 +138,7 @@ export default function Checkout() {
                   boxShadow: selected === p.id ? '0 4px 20px rgba(15,30,58,0.15)' : '0 2px 8px rgba(0,0,0,0.06)',
                   transition: 'all 0.2s',
                 }}>
-                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
+                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: 'var(--text-primary)', fontSize: 12, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{p.name}</div>
@@ -182,7 +182,7 @@ export default function Checkout() {
               <div style={{ marginBottom: 16 }}>
                 <label style={lbl}>Website / Domain *</label>
                 <input aria-label="Website / Domain" style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
               </div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input aria-label="E-Mail" style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input aria-label="Telefon" style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
@@ -223,7 +223,7 @@ export default function Checkout() {
                   {loading ? 'Wird vorbereitet...' : 'Weiter zur Zahlung'}
                 </button>
               </div>
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
             </div>
           </div>
         )}

@@ -35,7 +35,7 @@ export function CategorySection({ category }) {
           <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
             {catScore}/{category.max}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {expanded ? '▲' : '▼'}
           </span>
         </div>
@@ -68,13 +68,13 @@ export function CategorySection({ category }) {
               >
                 <span
                   title={badge ? badge.title : ''}
-                  style={{ fontSize: '11px', color: badge ? badge.color : 'transparent' }}
+                  style={{ fontSize: 12, color: badge ? badge.color : 'transparent' }}
                 >
                   {badge ? badge.icon : ''}
                 </span>
                 <span
                   title={item.hint || ''}
-                  style={{ fontSize: '11px', color: 'var(--text-secondary)' }}
+                  style={{ fontSize: 12, color: 'var(--text-secondary)' }}
                 >
                   {item.label}
                 </span>
@@ -86,10 +86,10 @@ export function CategorySection({ category }) {
                     }} />
                   )}
                 </div>
-                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
                   {notCollected ? '–' : `${score}/${item.max}`}
                 </span>
-                <span style={{ fontSize: '11px', color: icolor, fontWeight: 700, textAlign: 'center' }}>
+                <span style={{ fontSize: 12, color: icolor, fontWeight: 700, textAlign: 'center' }}>
                   {notCollected ? '○' : scoreIcon(score, item.max)}
                 </span>
               </div>
@@ -134,7 +134,7 @@ export function EChartsRadar({ auditData: r, getCatScore }) {
       radar: {
         indicator: RADAR_INDICATORS,
         splitNumber: 5,
-        axisName: { color: '#374151', fontSize: 11 },
+        axisName: { color: '#374151', fontSize: 12 },
         splitLine: { lineStyle: { color: '#E5E7EB' } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: '#E5E7EB' } },
@@ -177,13 +177,13 @@ export function MetricCard({ label, value, hint, ok, warn }) {
       border: '1px solid var(--border-light)',
       textAlign: 'center',
     }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </div>
       <div style={{ fontSize: '18px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
         {value}
       </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: '4px' }}>
         {hint}
       </div>
     </div>

@@ -40,7 +40,7 @@ export default function ReiterKontakt({
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
                 Automatisch aus Impressum befüllen
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
                 Liest Firmenname, Adresse, Handelsregister u.v.m. direkt aus dem Impressum von <strong>{lead.website_url.replace(/^https?:\/\//, '')}</strong>
               </div>
 

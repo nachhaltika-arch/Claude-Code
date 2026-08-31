@@ -35,7 +35,7 @@ export function ShufflePin({ shortcut, onClick }) {
       style={{
         background: '#fff', color: 'var(--text-secondary)',
         border: '1px solid var(--border-light)', borderRadius: 6,
-        padding: '4px 8px', fontSize: 11, fontWeight: 700,
+        padding: '4px 8px', fontSize: 12, fontWeight: 700,
         cursor: 'pointer', fontFamily: 'inherit',
         display: 'inline-flex', alignItems: 'center', gap: 6,
       }}>
@@ -264,7 +264,7 @@ export function TypographySection({ typoPairing, fontScale, onScaleChange, onShu
             style={{
               padding: '5px 10px',
               border: '1px solid var(--border-light)', borderRadius: 6,
-              fontSize: 11, fontFamily: 'inherit', color: 'var(--text-secondary)',
+              fontSize: 12, fontFamily: 'inherit', color: 'var(--text-secondary)',
               background: '#fff', cursor: 'pointer', outline: 'none', fontWeight: 600,
             }}
           >
@@ -295,7 +295,7 @@ export function TypoCard({ label, font, weight }) {
       minHeight: 130,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
     }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
       <div style={{
@@ -303,7 +303,7 @@ export function TypoCard({ label, font, weight }) {
         fontSize: 28, color: KC_DARK, letterSpacing: '-0.01em',
         margin: '16px 0 12px',
       }}>{font}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
           fontWeight: 700, color: KC_DARK,
@@ -361,7 +361,7 @@ export function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }
         minHeight: 200,
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         Buttons & Forms
       </div>
 
@@ -392,7 +392,7 @@ export function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }
           Label
         </div>
         <div style={{
-          padding: '8px 10px', fontSize: 11,
+          padding: '8px 10px', fontSize: 12,
           color: forms.placeholder,
           background: forms.style === 'filled' ? 'var(--bg-app)' : 'transparent',
           border: forms.style === 'underlined' ? 'none' : `1px solid ${forms.style === 'outlined' ? 'var(--border-medium)' : 'transparent'}`,
@@ -418,7 +418,7 @@ export function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants
         minHeight: 200,
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         Cards & Images
       </div>
 
@@ -578,12 +578,12 @@ export function LivePreview({ palette, typo, ui, spacing, variants, semantic, fo
           <span style={{
             background: 'transparent', color: palette.text_primary,
             border: `${ui.border_width} solid ${palette.border}`, borderRadius: ui.button_radius,
-            padding: '5px 11px', fontSize: 11, fontWeight: 700,
+            padding: '5px 11px', fontSize: 12, fontWeight: 700,
           }}>Kontakt</span>
           <span style={{
             background: primary.bg, color: primary.fg,
             border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
-            padding: '5px 11px', fontSize: 11, fontWeight: 700, boxShadow: primary.shadow,
+            padding: '5px 11px', fontSize: 12, fontWeight: 700, boxShadow: primary.shadow,
           }}>{isCompact ? 'Menü' : 'Menü'}</span>
         </div>
       </div>
@@ -596,7 +596,7 @@ export function LivePreview({ palette, typo, ui, spacing, variants, semantic, fo
         fontFamily: `'${typo.body}', system-ui`,
       }}>
         <div style={{
-          fontSize: 11, color: palette.text_muted,
+          fontSize: 12, color: palette.text_muted,
           fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
           marginBottom: 8,
         }}>Wallbox-Installation</div>
@@ -674,7 +674,7 @@ export function LivePreview({ palette, typo, ui, spacing, variants, semantic, fo
         borderTop: `1px solid ${palette.border}`,
         display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
         fontFamily: `'${typo.body}', system-ui`, color: palette.text_muted,
-        fontSize: 11, fontWeight: 600,
+        fontSize: 12, fontWeight: 600,
       }}>
         <span>✓ Innungsmeisterbetrieb</span>
         <span>·</span><span>✓ THG-Quote inklusive</span>

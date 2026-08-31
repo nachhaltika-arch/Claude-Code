@@ -142,7 +142,7 @@ export default function Projektfreigaben({ leadId, token }) {
                 </span>
 
                 {erteilt ? (
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>
                     {stand[eintrag.key].datum}
                     {stand[eintrag.key].uhrzeit ? ` · ${stand[eintrag.key].uhrzeit}` : ''}
                     <br />

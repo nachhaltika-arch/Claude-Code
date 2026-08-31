@@ -15,11 +15,11 @@ export const scoreColor = (s) =>
 
 
 export const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
-  if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
+  if (loading) return <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
   const date = checkedAt ? datumKurz(checkedAt, '') : '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
         {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
       </span>
       {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
@@ -49,7 +49,7 @@ export const GbpBadge = ({ lead }) => {
     return (
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        padding: '3px 10px', borderRadius: 12, fontSize: 12,
         fontWeight: 500, background: '#F1EFE8', color: '#5F5E5A',
         border: '0.5px solid #D3D1C7',
       }}>
@@ -64,7 +64,7 @@ export const GbpBadge = ({ lead }) => {
         title="Kein Google Business Profil gefunden — starkes Verkaufsargument!"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '3px 10px', borderRadius: 12, fontSize: 11,
+          padding: '3px 10px', borderRadius: 12, fontSize: 12,
           fontWeight: 600, background: '#FCEBEB', color: '#A32D2D',
           border: '0.5px solid #F09595', cursor: 'default',
         }}
@@ -82,7 +82,7 @@ export const GbpBadge = ({ lead }) => {
       title={`Google Place ID: ${lead.gbp_place_id || '—'}`}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        padding: '3px 10px', borderRadius: 12, fontSize: 12,
         fontWeight: 600, background: '#EAF3DE', color: '#27500A',
         border: '0.5px solid #97C459', cursor: 'default',
       }}

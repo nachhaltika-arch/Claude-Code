@@ -94,7 +94,7 @@ export default function BetriebAnlegenModal({ token, onClose, onCreated }) {
     fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
   };
   const lbl = {
-    display: 'block', fontSize: 11, fontWeight: 600,
+    display: 'block', fontSize: 12, fontWeight: 600,
     color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 4,
   };

@@ -91,7 +91,7 @@ export default function ReiterMarkendesign({
 
   const primaryBtn = { padding: '9px 16px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
   const secondaryBtn = { padding: '9px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 };
-  const sectionLabel = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 };
+  const sectionLabel = { fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -301,7 +301,7 @@ export default function ReiterMarkendesign({
           <span style={{ fontSize: 20 }}>📄</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 500 }}>{brandData.pdf_filename}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Branddesign-Dokument</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Branddesign-Dokument</div>
           </div>
           <button onClick={downloadPdf} style={{ fontSize: 12, padding: '5px 10px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
             ⬇ Download

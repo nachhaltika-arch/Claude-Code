@@ -126,7 +126,7 @@ export default function AuditHistorySection({ customerId, customer, headers }) {
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         background: s.bg, color: s.color,
-        borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px',
+        borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 8px',
       }}>
         {(status === 'pending' || status === 'running') && (
           <span style={{ width: 7, height: 7, borderRadius: '50%', border: '1.5px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} />
@@ -153,7 +153,7 @@ export default function AuditHistorySection({ customerId, customer, headers }) {
           <span style={{ fontSize: 16 }}>🔍</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Audit-Historie</span>
           {!loading && audits.length > 0 && (
-            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 8px' }}>
               {audits.length}
             </span>
           )}
@@ -211,7 +211,7 @@ export default function AuditHistorySection({ customerId, customer, headers }) {
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 100px 90px 120px',
               minWidth: 460, gap: 12, padding: '8px 20px',
-              fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+              fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
               borderBottom: '1px solid var(--border-light)',
             }}>
@@ -235,7 +235,7 @@ export default function AuditHistorySection({ customerId, customer, headers }) {
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {audit.website_url}
                     {audit.company_name && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{audit.company_name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>{audit.company_name}</div>
                     )}
                   </div>
                   <div>
@@ -248,7 +248,7 @@ export default function AuditHistorySection({ customerId, customer, headers }) {
                     )}
                   </div>
                   <div>{statusBadge(audit.status, audit.id)}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtTs(audit.created_at)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{fmtTs(audit.created_at)}</div>
                 </div>
               );
             })}

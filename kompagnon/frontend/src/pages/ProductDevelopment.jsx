@@ -88,7 +88,7 @@ export default function ProductDevelopment() {
         {[{ l: 'Gesamt', v: stats.total, c: '#2563eb', i: '📦' }, { l: 'In Entwicklung', v: stats.wip, c: '#d97706', i: '⚙️' }, { l: 'Abgeschlossen', v: stats.done, c: '#059669', i: '✅' }, { l: 'Hohe Prio', v: stats.high, c: '#dc2626', i: '🔴' }].map((k) => (
           <div key={k.l} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}><span style={{ fontSize: 20 }}>{k.i}</span><span style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</span></div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.l}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.l}</div>
           </div>
         ))}
       </div>
@@ -123,7 +123,7 @@ export default function ProductDevelopment() {
                     <span style={{ fontSize: 14 }}>{stage.icon}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stage.label}</span>
                   </div>
-                  <span style={{ background: stage.color + '20', color: stage.color, borderRadius: 20, padding: '2px 7px', fontSize: 11, fontWeight: 700 }}>{si.length}</span>
+                  <span style={{ background: stage.color + '20', color: stage.color, borderRadius: 20, padding: '2px 7px', fontSize: 12, fontWeight: 700 }}>{si.length}</span>
                 </div>
                 <div style={{ height: 3, background: stage.color, margin: '8px 14px', borderRadius: 2 }} />
                 <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -180,7 +180,7 @@ function ItemCard({ item, onEdit, onDelete, onDragStart }) {
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: prio?.color || '#64748b', flexShrink: 0 }} title={prio?.label} />
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, lineHeight: 1.3 }}>{item.title}</div>
-      {item.description && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</div>}
+      {item.description && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</div>}
       {item.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>{item.tags.map((t) => <span key={t} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>#{t}</span>)}</div>}
       {item.ticket_ref && <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', marginBottom: 6 }}>🎫 {item.ticket_ref}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-light)' }}>
@@ -194,4 +194,4 @@ function ItemCard({ item, onEdit, onDelete, onDragStart }) {
   );
 }
 
-function Lbl({ children }) { return <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>; }
+function Lbl({ children }) { return <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>; }

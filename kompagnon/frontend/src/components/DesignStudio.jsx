@@ -120,12 +120,12 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 width: 24, height: 24, borderRadius: '50%',
                 background: step >= s.n ? 'var(--brand-primary)' : 'var(--bg-elevated)',
                 color: step >= s.n ? '#fff' : 'var(--text-tertiary)',
-                fontSize: 11, fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {step > s.n ? '\u2713' : s.n}
               </div>
-              <span style={{ fontSize: 11, fontWeight: step === s.n ? 700 : 400, color: step >= s.n ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12, fontWeight: step === s.n ? 700 : 400, color: step >= s.n ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                 {s.label}
               </span>
             </div>
@@ -140,7 +140,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Template waehlen</div>
 
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Stil-Vorlagen</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Stil-Vorlagen</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
               {TEMPLATE_PRESETS.map(t => (
                 <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { setSelectedTemplate(t); setStep(2); })}
@@ -165,7 +165,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
 
             {dbTemplates.length > 0 && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Gespeicherte Templates</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Gespeicherte Templates</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                   {dbTemplates.map(t => (
                     <div role="button" tabIndex={0} onKeyDown={aufTaste(() => { setSelectedTemplate(t); setStep(2); })} key={t.id} onClick={() => { setSelectedTemplate(t); setStep(2); }}
@@ -195,7 +195,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
               {/* Brand-Daten */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Erkannte Brand-Daten</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Erkannte Brand-Daten</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   {[primaryColor, secondaryColor].filter(Boolean).map((c, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -211,7 +211,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   </div>
                 )}
                 {!brandData?.primary_color && (
-                  <div style={{ fontSize: 11, color: 'var(--status-warning-text)', background: 'var(--status-warning-bg)', padding: '8px 10px', borderRadius: 6, marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--status-warning-text)', background: 'var(--status-warning-bg)', padding: '8px 10px', borderRadius: 6, marginTop: 8 }}>
                     Noch kein Brand-Scan — Standardfarben werden verwendet.
                   </div>
                 )}
@@ -224,8 +224,8 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   <div style={{ fontSize: 16, fontWeight: 700, color: primaryColor, marginBottom: 6 }}>
                     {project?.company_name || 'Ihr Unternehmen'}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>{selectedTemplate.desc}</div>
-                  <div style={{ display: 'inline-block', padding: '6px 14px', background: primaryColor, color: '#fff', borderRadius: selectedTemplate.style?.borderRadius || 6, fontSize: 11, fontWeight: 600 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>{selectedTemplate.desc}</div>
+                  <div style={{ display: 'inline-block', padding: '6px 14px', background: primaryColor, color: '#fff', borderRadius: selectedTemplate.style?.borderRadius || 6, fontSize: 12, fontWeight: 600 }}>
                     Kontakt aufnehmen
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 </div>
                 {kiInjected && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'var(--kc-mid-a-12)', border: '1px solid var(--kc-mid-a-25)' }}>
-                    <span style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
+                    <span style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
                   </div>
                 )}
               </div>
@@ -345,7 +345,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                       <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginRight: 6 }}>{link.tag}</span>{link.text || '(kein Text)'}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.href || '\u2014'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.href || '\u2014'}</div>
                       <div>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                           background: link.status === 'ok' ? 'var(--status-success-bg)' : link.status === 'auto_fixed' ? 'var(--kc-mid-a-12)' : 'var(--status-warning-bg)',

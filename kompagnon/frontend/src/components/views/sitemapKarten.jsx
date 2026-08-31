@@ -235,7 +235,7 @@ export function PageCard({
           </span>
         )}
         {page.ist_pflichtseite && (
-          <span title="Pflichtseite" style={{ fontSize: 11 }}>🔒</span>
+          <span title="Pflichtseite" style={{ fontSize: 12 }}>🔒</span>
         )}
         <button
           type="button" data-noselect
@@ -276,7 +276,7 @@ export function PageCard({
         {sections.length === 0 ? (
           <div data-noselect style={{
             padding: '20px 8px', textAlign: 'center',
-            color: 'var(--text-tertiary)', fontSize: 11, fontStyle: 'italic',
+            color: 'var(--text-tertiary)', fontSize: 12, fontStyle: 'italic',
           }}>
             <button
               type="button"
@@ -302,7 +302,7 @@ export function PageCard({
               style={{
                 marginTop: 6, padding: '8px 12px',
                 background: 'transparent', border: 'none',
-                fontSize: 11, color: '#7c3aed', fontWeight: 700,
+                fontSize: 12, color: '#7c3aed', fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
@@ -347,7 +347,7 @@ export function PageCard({
               style={{
                 marginTop: 4, padding: '6px 10px',
                 background: 'transparent', border: '1px dashed var(--border-medium)',
-                borderRadius: 6, fontSize: 11, fontWeight: 600,
+                borderRadius: 6, fontSize: 12, fontWeight: 600,
                 color: KC_MID, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
@@ -578,7 +578,7 @@ export function SectionRow({
         padding: '8px 10px',
         background: hover ? 'var(--bg-app)' : '#fff',
         border: '1px solid var(--border-light)', borderRadius: 6,
-        fontSize: 11,
+        fontSize: 12,
         cursor: 'grab',
         opacity: isBeingDragged ? 0.4 : 1,
         transition: 'opacity 0.1s',
@@ -650,7 +650,7 @@ export function InheritedSectionRow({ sectionKey, idx }) {
       padding: '8px 10px',
       background: 'var(--bg-app)',
       border: '1px dashed var(--border-medium)', borderRadius: 6,
-      fontSize: 11,
+      fontSize: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
         <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>

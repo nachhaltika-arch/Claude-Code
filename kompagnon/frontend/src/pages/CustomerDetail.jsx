@@ -673,7 +673,7 @@ export default function CustomerDetail() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{course.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{course.description}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{course.description}</div>
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 600, flexShrink: 0 }}>
                     {assigning === course.id ? '…' : '+ Zuweisen'}

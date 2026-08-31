@@ -46,7 +46,7 @@ export default function ShortcutHelp({ open, onClose }) {
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {s.keys.map((k, j) => (
                   <kbd key={j} style={{
-                    fontSize: 11, padding: '2px 7px', borderRadius: 5,
+                    fontSize: 12, padding: '2px 7px', borderRadius: 5,
                     background: 'var(--bg-app)',
                     border: '1px solid var(--border-medium)',
                     color: 'var(--text-primary)',
@@ -58,7 +58,7 @@ export default function ShortcutHelp({ open, onClose }) {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 20, fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+        <div style={{ marginTop: 20, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
           <kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>Esc</kbd> oder klicke außerhalb zum Schließen
         </div>
       </div>

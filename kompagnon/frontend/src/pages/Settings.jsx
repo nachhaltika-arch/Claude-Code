@@ -334,7 +334,7 @@ function SubscriptionTab() {
     <>
       <Card title="Aktueller Plan" icon="💳">
         <div style={{ background: '#f0f4ff', borderRadius: 10, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Professional</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>99 Euro / Monat</div>
         </div>

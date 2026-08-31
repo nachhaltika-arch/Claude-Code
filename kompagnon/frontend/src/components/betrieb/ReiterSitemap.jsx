@@ -84,17 +84,17 @@ export default function ReiterSitemap({
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Neue Seite anlegen</div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname *</label>
+              <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname *</label>
               <input aria-label="Seitenname" value={addPageForm.page_name} onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))} placeholder="z.B. Leistungen" style={inp} />
             </div>
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+              <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
               <select aria-label="Typ" value={addPageForm.page_type} onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))} style={inp}>
                 {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Übergeordnete Seite</label>
+              <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Übergeordnete Seite</label>
               <select aria-label="Übergeordnete Seite" value={addPageForm.parent_id} onChange={e => setAddPageForm(f => ({ ...f, parent_id: e.target.value }))} style={inp}>
                 <option value="">– Keine –</option>
                 {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
@@ -134,9 +134,9 @@ export default function ReiterSitemap({
                   <span style={{ fontSize: 17, flexShrink: 0 }}>{TI[page.page_type] || '📄'}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</div>
-                    {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
+                    {page.ziel_keyword && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
                   {/* Action buttons */}
                   {(() => {
                     const aBtn = (bg, color) => ({
@@ -193,11 +193,11 @@ export default function ReiterSitemap({
                   <span style={{ fontSize: 15, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔒</span>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{page.page_name}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F3F4F6', color: '#6B7280' }}>⚖️ Pflicht</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text }}>{st.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text }}>{st.label}</span>
                 </div>
               );
             })}
-            <div style={{ padding: '8px 14px', fontSize: 11, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
+            <div style={{ padding: '8px 14px', fontSize: 12, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
               4 Pflichtseiten werden von KOMPAGNON rechtskonform befüllt.
             </div>
           </>
@@ -221,7 +221,7 @@ export default function ReiterSitemap({
               { k: 'cta_text', label: 'CTA-Text', type: 'text' },
             ].map(f => (
               <div key={f.k} style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>{f.label}</label>
                 {f.type === 'textarea'
                   ? <textarea aria-label={f.label} value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} rows={3} style={{ ...inp, resize: 'vertical' }} />
                   : <input aria-label={f.label} type="text" value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} style={inp} />
@@ -229,13 +229,13 @@ export default function ReiterSitemap({
               </div>
             ))}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+              <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
               <select aria-label="Typ" value={editPageForm.page_type || 'info'} onChange={e => setEditPageForm(p => ({ ...p, page_type: e.target.value }))} style={inp}>
                 {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
               </select>
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
+              <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
               <select aria-label="Status" value={editPageForm.status || 'geplant'} onChange={e => setEditPageForm(p => ({ ...p, status: e.target.value }))} style={inp}>
                 <option value="geplant">Geplant</option>
                 <option value="in_bearbeitung">In Bearbeitung</option>

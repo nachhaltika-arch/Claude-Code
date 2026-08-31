@@ -108,7 +108,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-active)'}
               onMouseLeave={e => e.currentTarget.style.background = ''}
             >
-              <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 52 }}>
+              <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 52 }}>
                 {entry.code}
               </span>
               <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>

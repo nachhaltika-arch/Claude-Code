@@ -12,7 +12,7 @@ export default function Badge({ variant = 'neutral', children, style }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       padding: '1px 8px', borderRadius: 10,
-      fontSize: 11, fontWeight: 600, lineHeight: '18px',
+      fontSize: 12, fontWeight: 600, lineHeight: '18px',
       whiteSpace: 'nowrap',
       ...v, ...style,
     }}>

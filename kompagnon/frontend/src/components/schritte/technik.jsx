@@ -85,7 +85,7 @@ export function ZugangsdatenEmbed({ project, headers }) {
                 </div>
                 {c.username && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.username}</div>}
                 {c.url && <a href={c.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', display: 'block' }}>{c.url}</a>}
-                {c.notes && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{c.notes}</div>}
+                {c.notes && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{c.notes}</div>}
               </div>
               <button onClick={() => del(c.id)} style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>X</button>
             </div>
@@ -211,8 +211,8 @@ export function NetlifyEmbed({ project, headers }) {
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>2. HTML deployen</div>
           <textarea aria-label={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} value={deployHtml} onChange={e => setDeployHtml(e.target.value)}
             placeholder={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} rows={5}
-            style={{ ...inputStyle, resize:'vertical', fontFamily:'monospace', fontSize:11 }} />
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            style={{ ...inputStyle, resize:'vertical', fontFamily:'monospace', fontSize:12 }} />
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             Nur den Body-Inhalt aus GrapesJS einfügen. DOCTYPE, head und CSS-Link
             werden automatisch vom System ergänzt.
           </div>
@@ -239,7 +239,7 @@ export function NetlifyEmbed({ project, headers }) {
       {siteId && (
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3b. Alle Seiten deployen</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             Deployt alle Seiten aus dem Seitenmanager auf einmal — jede Seite als eigene URL.
             Voraussetzung: Seiten im GrapesJS-Editor gespeichert.
           </div>
@@ -262,7 +262,7 @@ export function NetlifyEmbed({ project, headers }) {
             {deploying ? (<><span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', display:'inline-block' }} />Deploy laeuft...</>) : 'Alle Seiten deployen'}
           </button>
           {deployResult?.pages_deployed && (
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               <strong>{deployResult.pages_deployed.length} Seiten deployed:</strong>{' '}
               {deployResult.pages_deployed.join(' · ')}
             </div>
@@ -321,7 +321,7 @@ export function DNSEmbed({ project, lead, headers }) {
       </div>
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:16 }}>
-        <div style={{ fontSize:11, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Netlify-URL (CNAME-Ziel)</div>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Netlify-URL (CNAME-Ziel)</div>
         <div style={{ fontFamily:'monospace', fontSize:14, color:'var(--text-primary)', padding:'8px 12px', background:'var(--bg-app)', borderRadius:6 }}>
           {netlifyUrl || '— Erst Schritt 10 (Netlify deploy) abschliessen —'}
         </div>
@@ -338,7 +338,7 @@ export function DNSEmbed({ project, lead, headers }) {
             </tbody>
           </table>
           <div style={{ marginTop:14 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Domain des Kunden</div>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Domain des Kunden</div>
             <input aria-label="www.kundenwebsite.de" value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de"
               style={{ width:'100%', padding:'8px 12px', fontSize:13, border:'1px solid var(--border-light)', borderRadius:6, background:'var(--bg-app)', color:'var(--text-primary)', fontFamily:'var(--font-sans)', boxSizing:'border-box' }} />
           </div>

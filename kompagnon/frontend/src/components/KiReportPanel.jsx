@@ -112,7 +112,7 @@ export default function KiReportPanel({ projectId, leadId, token }) {
           {/* Zusammenfassung */}
           {report.summary && (
             <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: '16px 20px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 10 }}>Zusammenfassung</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 10 }}>Zusammenfassung</div>
               <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{report.summary}</div>
             </div>
           )}
@@ -120,7 +120,7 @@ export default function KiReportPanel({ projectId, leadId, token }) {
           {/* Vorhandene Daten */}
           {report.available_data && report.available_data.length > 0 && (
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 20px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#16a34a', marginBottom: 10 }}>Vorhandene Daten</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#16a34a', marginBottom: 10 }}>Vorhandene Daten</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {report.available_data.map((item, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#15803d' }}>
@@ -135,14 +135,14 @@ export default function KiReportPanel({ projectId, leadId, token }) {
           {/* Lücken */}
           {report.gaps && report.gaps.length > 0 && (
             <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '16px 20px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#d97706', marginBottom: 10 }}>Fehlende Informationen (Lücken)</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#d97706', marginBottom: 10 }}>Fehlende Informationen (Lücken)</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {report.gaps.map((gap, i) => (
                   <div key={i} style={{ background: 'white', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 14px' }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>{gap.field}</div>
                     <div style={{ fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>{gap.impact}</div>
                     {gap.action && (
-                      <div style={{ fontSize: 11, color: '#d97706', marginTop: 4, fontStyle: 'italic' }}>{gap.action}</div>
+                      <div style={{ fontSize: 12, color: '#d97706', marginTop: 4, fontStyle: 'italic' }}>{gap.action}</div>
                     )}
                   </div>
                 ))}
@@ -153,7 +153,7 @@ export default function KiReportPanel({ projectId, leadId, token }) {
           {/* Empfehlung */}
           {report.recommendation && (
             <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: '16px 20px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Empfehlung</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Empfehlung</div>
               <div style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.65 }}>{report.recommendation}</div>
             </div>
           )}

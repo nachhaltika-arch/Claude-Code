@@ -106,7 +106,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
               Aktueller Score: <strong style={{ color: scoreColor(currentScore) }}>{currentScore}/100</strong> — {currentLevel}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Empfehlung basierend auf Audit-Ergebnis</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Empfehlung basierend auf Audit-Ergebnis</div>
           </div>
           <div style={{ background: `${pkg.accentColor}15`, border: `1px solid ${pkg.accentColor}40`, borderRadius: 'var(--radius-md)', padding: '6px 12px', fontSize: 12, fontWeight: 600, color: pkg.accentColor, flexShrink: 0 }}>
             → {pkg.name} empfohlen
@@ -133,7 +133,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{p.name}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: isSelected ? p.accentColor : 'var(--text-primary)', marginBottom: 4, transition: 'color 0.15s' }}>{p.preisBekannt ? `${p.preisLabel} €` : PREIS_UNBEKANNT}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.delivery}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.delivery}</div>
             </div>
           );
         })}
@@ -150,7 +150,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
             </div>
             <div style={{ background: `${pkg.accentColor}30`, border: `1px solid ${pkg.accentColor}60`, borderRadius: 'var(--radius-lg)', padding: '14px 20px', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
               <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: pkg.accentColor === '#d4a017' ? '#f0c040' : 'white', lineHeight: 1 }}>{pkg.preisBekannt ? pkg.preisLabel : PREIS_UNBEKANNT}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>einmalig · Endpreis</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>einmalig · Endpreis</div>
             </div>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>Festpreis — Endpreis</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: pkg.accentColor }}>{pkg.preisBekannt ? `${pkg.preisLabel} € Gesamtpreis` : PREIS_UNBEKANNT}</div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -187,7 +187,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               ↗ Buchungsseite
             </button>
           </div>
-          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
             💡 Nicht enthalten: Hosting, Domain, Fotografie. Optionales Pflegepaket ab 99 €/Monat verfügbar.
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
 
       {/* Comparison Table */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        <div style={{ background: '#0f1e3a', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, fontSize: 11 }}>
+        <div style={{ background: '#0f1e3a', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, fontSize: 12 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Leistung</div>
           {PACKAGES.map(p => (
             <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 10 }}>{p.name}</div>
@@ -203,12 +203,12 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
         </div>
         {COMPARE_MIT_PREIS.map((row, i) => (
           <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: i < COMPARE_MIT_PREIS.length - 1 ? '1px solid var(--border-light)' : 'none', background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-app)', alignItems: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>{row.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{row.label}</div>
             {row.values.map((val, j) => {
               const p = PACKAGES[j];
               const isSel = selectedPkg === p.id;
               return (
-                <div key={j} style={{ textAlign: 'center', fontSize: 11, fontWeight: isSel ? 600 : 400, color: val === '–' ? 'var(--text-tertiary)' : isSel ? p.accentColor : val === '✓' ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>{val}</div>
+                <div key={j} style={{ textAlign: 'center', fontSize: 12, fontWeight: isSel ? 600 : 400, color: val === '–' ? 'var(--text-tertiary)' : isSel ? p.accentColor : val === '✓' ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>{val}</div>
               );
             })}
           </div>

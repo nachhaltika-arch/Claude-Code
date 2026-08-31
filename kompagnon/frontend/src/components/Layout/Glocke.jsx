@@ -163,7 +163,7 @@ export default function Glocke() {
               {anzahl > 0 && (
                 <button type="button" onClick={alleGelesen} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 11, color: 'var(--text-tertiary)',
+                  fontSize: 12, color: 'var(--text-tertiary)',
                   fontFamily: 'var(--font-sans)',
                 }}>
                   Alle gelesen
@@ -199,7 +199,7 @@ export default function Glocke() {
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{
-                    display: 'block', fontSize: 12.5,
+                    display: 'block', fontSize: 12,
                     fontWeight: eintrag.gelesen ? 400 : 700,
                     color: eintrag.gelesen ? 'var(--text-tertiary)' : 'var(--text-primary)',
                   }}>
@@ -207,7 +207,7 @@ export default function Glocke() {
                   </span>
                   {eintrag.hinweis && (
                     <span style={{
-                      display: 'block', fontSize: 11, color: 'var(--text-tertiary)',
+                      display: 'block', fontSize: 12, color: 'var(--text-tertiary)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {eintrag.hinweis}

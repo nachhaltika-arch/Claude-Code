@@ -209,11 +209,11 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
           }}>
             {libraryEntry?.name || block.slug}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
             {block.slug}
           </div>
           {libraryEntry?.preview_note && (
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
               {libraryEntry.preview_note}
             </div>
           )}
@@ -235,13 +235,13 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
           <div style={{ ...lblStyle, color: '#6b21a8', marginBottom: 0 }}>
             Für diesen Kunden umschreiben
           </div>
-          <p style={{ fontSize: 11, color: '#6b21a8', margin: 0, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 12, color: '#6b21a8', margin: 0, lineHeight: 1.4 }}>
             Claude baut die Section anders auf — passend zu Gewerk, Leistungen
             und Einzugsgebiet aus dem Briefing. Slots und Block bleiben
             dieselben, nur das Layout ändert sich.
           </p>
           {eigeneFassung && (
-            <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700 }}>
+            <div style={{ fontSize: 12, color: '#6b21a8', fontWeight: 700 }}>
               Dieser Block hat bereits eine eigene Fassung.
             </div>
           )}
@@ -250,7 +250,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
             onChange={(e) => setVariantenWunsch(e.target.value)}
             rows={2}
             placeholder="Optional: was soll anders sein? z.B. „Notdienst nach oben, Bild links"
-            style={{ ...inpStyle, padding: '6px 8px', fontSize: 11, resize: 'vertical' }}
+            style={{ ...inpStyle, padding: '6px 8px', fontSize: 12, resize: 'vertical' }}
             disabled={variante.status === 'laeuft'}
           />
           <button
@@ -260,7 +260,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
               padding: '7px 10px',
               background: '#7c3aed', opacity: variante.status === 'laeuft' ? 0.5 : 1,
               color: '#fff', border: 'none', borderRadius: 6,
-              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+              fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
               cursor: variante.status === 'laeuft' ? 'wait' : 'pointer',
             }}
           >
@@ -272,21 +272,21 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
           {variante.status === 'fehler' && (
             <div style={{
               padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
-              borderRadius: 4, color: '#991b1b', fontSize: 11,
+              borderRadius: 4, color: '#991b1b', fontSize: 12,
             }}>{variante.fehler}</div>
           )}
 
           {variante.status === 'fertig' && variante.ergebnis && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {variante.ergebnis.begruendung && (
-                <div style={{ fontSize: 11, color: '#4c1d95', fontStyle: 'italic' }}>
+                <div style={{ fontSize: 12, color: '#4c1d95', fontStyle: 'italic' }}>
                   „{variante.ergebnis.begruendung}"
                 </div>
               )}
               {!variante.ergebnis.contract?.konform && (
                 <div style={{
                   padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
-                  borderRadius: 4, color: '#991b1b', fontSize: 11,
+                  borderRadius: 4, color: '#991b1b', fontSize: 12,
                 }}>
                   <strong>Der Vertrag ist verletzt — Übernehmen wird abgelehnt:</strong>
                   <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
@@ -314,7 +314,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                     flex: 1, padding: '6px 10px',
                     background: variante.ergebnis.contract?.konform ? 'var(--success)' : 'var(--text-tertiary)',
                     color: 'var(--text-on-brand)', border: 'none', borderRadius: 4,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                     cursor: variante.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
                   }}
                 >✓ Übernehmen</button>
@@ -324,7 +324,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                   style={{
                     padding: '6px 10px', background: '#fff',
                     border: '1px solid var(--border-medium)', borderRadius: 4,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                     cursor: 'pointer',
                   }}
                 >Verwerfen</button>
@@ -338,7 +338,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
               style={{
                 padding: '6px 10px', background: '#fff', color: '#6b21a8',
                 border: '1px solid #d8b4fe', borderRadius: 4,
-                fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                 cursor: 'pointer',
               }}
             >↩︎ Zurück zur Bibliotheksvorlage</button>
@@ -405,7 +405,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
               <div style={{
                 marginTop: 8, padding: '6px 8px',
                 background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 4,
-                fontSize: 11, color: '#991B1B',
+                fontSize: 12, color: '#991B1B',
               }}>
                 {generateError}
               </div>
@@ -437,7 +437,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
           </div>
         ) : (
           <div style={{
-            padding: 10, fontSize: 11, color: '#92400e',
+            padding: 10, fontSize: 12, color: '#92400e',
             background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
           }}>
             Diese Section hat keine definierten Slots. Nutze „HTML direkt bearbeiten" unten für volle Kontrolle.
@@ -451,7 +451,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
             onClick={() => setShowAdvanced((v) => !v)}
             style={{
               background: 'none', border: 'none',
-              color: KC_MID, fontSize: 11, fontWeight: 700,
+              color: KC_MID, fontSize: 12, fontWeight: 700,
               cursor: 'pointer', padding: 0, fontFamily: 'inherit',
             }}
           >
@@ -464,7 +464,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                 type="button" onClick={() => setShowRawHtml((v) => !v)}
                 style={{
                   background: '#fff', border: '1px solid var(--border-medium)',
-                  color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600,
+                  color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
                   padding: '6px 10px', borderRadius: 6,
                   cursor: 'pointer', fontFamily: 'inherit',
                   textAlign: 'left',
@@ -478,7 +478,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                     value={rawHtml}
                     onChange={(e) => setRawHtml(e.target.value)}
                     rows={12}
-                    style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace', fontSize: 11, resize: 'vertical' }}
+                    style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12, resize: 'vertical' }}
                   />
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
                     Wird nur sichtbar wenn du als Custom-Section speicherst.
@@ -490,7 +490,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                 type="button" onClick={() => setShowCustomForm((v) => !v)}
                 style={{
                   background: '#fff', border: `1px solid ${KC_MID}`,
-                  color: KC_MID, fontSize: 11, fontWeight: 700,
+                  color: KC_MID, fontSize: 12, fontWeight: 700,
                   padding: '6px 10px', borderRadius: 6,
                   cursor: 'pointer', fontFamily: 'inherit',
                   textAlign: 'left',
@@ -521,7 +521,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                       padding: '6px 10px', marginTop: 2,
                       background: KC_MID, opacity: saving ? 0.5 : 1, color: '#fff',
                       border: 'none', borderRadius: 4,
-                      fontSize: 11, fontWeight: 700,
+                      fontSize: 12, fontWeight: 700,
                       cursor: saving ? 'wait' : 'pointer',
                       fontFamily: 'inherit',
                     }}
@@ -531,7 +531,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                   {customError && (
                     <div style={{
                       padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
-                      borderRadius: 4, color: '#991b1b', fontSize: 11,
+                      borderRadius: 4, color: '#991b1b', fontSize: 12,
                     }}>{customError}</div>
                   )}
                 </div>

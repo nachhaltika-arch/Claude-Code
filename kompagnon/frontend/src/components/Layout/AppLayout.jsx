@@ -335,7 +335,7 @@ export default function AppLayout() {
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
                   background: 'var(--brand-primary)',
-                  border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
+                  border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-sans)', color: 'var(--text-on-brand)',
                 }}
@@ -358,7 +358,7 @@ export default function AppLayout() {
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
                         {user?.first_name} {user?.last_name}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>
                         {user?.role}
                       </div>
                     </div>

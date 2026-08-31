@@ -272,7 +272,7 @@ export default function BriefingTab({ lead, isMobile }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Briefing-Fragenkatalog</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{lead.display_name || lead.company_name} · {freigabenCount}/{FREIGABEN.length} Freigaben</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{lead.display_name || lead.company_name} · {freigabenCount}/{FREIGABEN.length} Freigaben</div>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: progress >= 80 ? 'var(--status-success-text)' : progress >= 40 ? 'var(--status-warning-text)' : 'var(--text-tertiary)' }}>{progress}%</div>
         </div>
@@ -404,7 +404,7 @@ export default function BriefingTab({ lead, isMobile }) {
               {/* AI Zielgruppenanalyse */}
               {activeSection === 'zielgruppe' && (
                 <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
                     KI-Analyse basierend auf Branche "{lead.trade || '—'}" und Standort "{lead.city || '—'}"
                   </div>
                   <button onClick={runZielgruppenanalyse} disabled={loadingZielgruppe} style={{
@@ -430,7 +430,7 @@ export default function BriefingTab({ lead, isMobile }) {
               {/* AI Wettbewerbsanalyse */}
               {activeSection === 'wettbewerb' && (
                 <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
                     Wettbewerbsanalyse für Region "{lead.city || '—'}" + 50 km Umkreis
                   </div>
                   <button onClick={runWettbewerbsanalyse} disabled={loadingWettbewerb} style={{
@@ -461,7 +461,7 @@ export default function BriefingTab({ lead, isMobile }) {
                   return (
                     <div key={field.key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>{field.label}</label>
-                      {field.hint && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>{field.hint}</div>}
+                      {field.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>{field.hint}</div>}
                       {field.type === 'checkboxes' && field.options ? (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => {
@@ -487,7 +487,7 @@ export default function BriefingTab({ lead, isMobile }) {
                                 fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
                                 display: 'flex', alignItems: 'center', gap: 5,
                               }}>
-                                <span style={{ fontSize: 11 }}>{isChecked ? '\u2713' : ''}</span>
+                                <span style={{ fontSize: 12 }}>{isChecked ? '\u2713' : ''}</span>
                                 {opt}
                               </button>
                             );

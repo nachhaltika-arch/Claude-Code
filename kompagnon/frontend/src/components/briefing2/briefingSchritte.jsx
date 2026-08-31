@@ -15,7 +15,7 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
   if (s.loading) return (
     <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
       <span style={{ width: 10, height: 10, border: '1.5px solid #DDE4E8', borderTopColor: 'var(--kc-mid)', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block' }} />
-      <span style={{ fontSize: 11, color: '#8A9BA8' }}>Website wird analysiert...</span>
+      <span style={{ fontSize: 12, color: '#8A9BA8' }}>Website wird analysiert...</span>
     </div>
   );
   if (s.value) return (
@@ -24,24 +24,24 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
       <div style={{ fontSize: 12, color: '#1a2e35', lineHeight: 1.6, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.value}</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => { set(field, s.value); onApply(field); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           Uebernehmen
         </button>
         <button type="button" onClick={() => { set(field, (currentValue ? currentValue + '\n' : '') + s.value); onApply(field); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--kc-mid)', background: 'transparent', color: 'var(--kc-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--kc-mid)', background: 'transparent', color: 'var(--kc-mid)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           + Ergaenzen
         </button>
         <button type="button" onClick={() => onApply(field)}
-          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'transparent', color: '#8A9BA8', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'transparent', color: '#8A9BA8', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           Ablehnen
         </button>
       </div>
     </div>
   );
-  if (s.error) return <div style={{ marginTop: 6, fontSize: 11, color: '#C0392B' }}>{s.error}</div>;
+  if (s.error) return <div style={{ marginTop: 6, fontSize: 12, color: '#C0392B' }}>{s.error}</div>;
   return (
     <button type="button" onClick={() => onSuggest(field)}
-      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px dashed #A8DDE8', background: 'transparent', color: 'var(--kc-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px dashed #A8DDE8', background: 'transparent', color: 'var(--kc-mid)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
       Aus Website vorschlagen
     </button>
   );
@@ -123,7 +123,7 @@ export function formatDraftAge(isoString) {
 export function FieldLabel({ children, required, hasError }) {
   return (
     <label style={{
-      display: 'block', fontSize: 11, fontWeight: 700,
+      display: 'block', fontSize: 12, fontWeight: 700,
       color: hasError ? 'var(--status-danger-text)' : 'var(--text-secondary)',
       textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: 6, transition: 'color 0.15s',
@@ -135,7 +135,7 @@ export function FieldLabel({ children, required, hasError }) {
 
 export function FieldHint({ children }) {
   return (
-    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
+    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
       {children}
     </div>
   );
@@ -227,7 +227,7 @@ export function Field({ label, required, hint, error, charInfo, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <label htmlFor={id} style={{
-        display: 'block', fontSize: 11, fontWeight: 700,
+        display: 'block', fontSize: 12, fontWeight: 700,
         color: error ? 'var(--status-danger-text)' : 'var(--text-secondary)',
         textTransform: 'uppercase', letterSpacing: '0.07em',
         marginBottom: 6, cursor: 'pointer', transition: 'color 0.15s',
@@ -236,15 +236,15 @@ export function Field({ label, required, hint, error, charInfo, children }) {
       </label>
       {childWithId}
       {error ? (
-        <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4 }}>
           <span style={{ fontSize: 12 }}>⚠</span>{error}
         </div>
       ) : hint ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
           {hint}{charInfo && <span style={{ color: 'var(--brand-primary-mid)', marginLeft: 6 }}> · {charInfo}</span>}
         </div>
       ) : charInfo ? (
-        <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', marginTop: 4 }}>{charInfo}</div>
+        <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', marginTop: 4 }}>{charInfo}</div>
       ) : null}
     </div>
   );
@@ -444,7 +444,7 @@ export function Step4({ data, set, firstRef, touch, fieldError, showErrors, sugg
       <Field label="Stil *" required hint="Welcher Designstil soll Ihre Website praegen?" error={fieldError('stil')}>
         <Select value={data.stil} onChange={v => set('stil', v)} onBlur={() => touch('stil')} hasError={!!fieldError('stil')} options={STIL_OPTIONS} />
         {showErrors && !data.stil && (
-          <div style={{ fontSize: 11, color: '#C0392B', marginTop: 4, fontWeight: 600 }}>Bitte einen Stil auswaehlen um fortzufahren</div>
+          <div style={{ fontSize: 12, color: '#C0392B', marginTop: 4, fontWeight: 600 }}>Bitte einen Stil auswaehlen um fortzufahren</div>
         )}
         <SuggestButton field="stil" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.stil} />
       </Field>

@@ -192,7 +192,7 @@ export default function Betriebe() {
       </div>
 
       {amDeckel && (
-        <div style={{ fontSize: 11, color: 'var(--status-warning-text)' }}>
+        <div style={{ fontSize: 12, color: 'var(--status-warning-text)' }}>
           Es werden höchstens {MAX_BETRIEBE} Betriebe geladen — diese Liste ist
           vollständig gefüllt und zeigt womöglich nicht alle.
         </div>
@@ -271,7 +271,7 @@ export default function Betriebe() {
                 border: `1px solid ${aktiv ? 'var(--border-medium)' : 'var(--border-light)'}`,
                 background: aktiv ? 'var(--bg-active)' : 'transparent',
                 color: aktiv ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-                fontSize: 11, fontWeight: aktiv ? 500 : 400, cursor: 'pointer',
+                fontSize: 12, fontWeight: aktiv ? 500 : 400, cursor: 'pointer',
                 fontFamily: 'var(--font-sans)', transition: 'all 0.1s', whiteSpace: 'nowrap',
               }}
             >
@@ -296,7 +296,7 @@ export default function Betriebe() {
                 border: `1px solid ${aktiv ? 'var(--border-medium)' : 'var(--border-light)'}`,
                 background: aktiv ? 'var(--bg-active)' : 'transparent',
                 color: aktiv ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-                fontSize: 11, fontWeight: aktiv ? 500 : 400, cursor: 'pointer',
+                fontSize: 12, fontWeight: aktiv ? 500 : 400, cursor: 'pointer',
                 fontFamily: 'var(--font-sans)', transition: 'all 0.1s', whiteSpace: 'nowrap',
               }}
             >
@@ -308,7 +308,7 @@ export default function Betriebe() {
       </div>
 
       {/* Was gerade gezeigt wird — und warum es weniger sein kann */}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>
           {gefiltertWird
             ? `${gefiltert.length} von ${betriebe.length} Betrieben`
@@ -322,7 +322,7 @@ export default function Betriebe() {
             type="button" onClick={filterZuruecksetzen}
             style={{
               background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-              fontSize: 11, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)',
+              fontSize: 12, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)',
               textDecoration: 'underline',
             }}
           >
@@ -413,7 +413,7 @@ export default function Betriebe() {
                       {name}
                     </div>
                     <div style={{
-                      fontSize: 11, color: 'var(--text-tertiary)',
+                      fontSize: 12, color: 'var(--text-tertiary)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {betrieb.trade || ''}
@@ -430,7 +430,7 @@ export default function Betriebe() {
 
                 {/* Status */}
                 <div style={isMobile ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : {}}>
-                  {isMobile && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{betrieb.city}</span>}
+                  {isMobile && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{betrieb.city}</span>}
                   <Badge variant={leadStatusVariant(betrieb.status)}>
                     {leadStatusLabel(betrieb.status)}
                   </Badge>
@@ -460,7 +460,7 @@ export default function Betriebe() {
                       </span>
                     </div>
                   ) : (
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Kein Audit</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Audit</span>
                   )}
                 </div>
 

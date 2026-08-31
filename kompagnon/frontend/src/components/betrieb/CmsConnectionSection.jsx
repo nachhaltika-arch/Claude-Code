@@ -60,7 +60,7 @@ export default function CmsConnectionSection({ customerId, headers }) {
     border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
     background: 'var(--bg-app)', color: 'var(--text-primary)', boxSizing: 'border-box',
   };
-  const lbl = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
+  const lbl = { fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
@@ -127,7 +127,7 @@ export default function CmsConnectionSection({ customerId, headers }) {
                 background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-tertiary)',
               }}>{showPw ? '🙈' : '👁'}</button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {isWebflow
                 ? 'Unter Webflow → Account → Integrations → API Access'
                 : 'In WordPress unter Benutzer → Profil → Anwendungspasswörter generieren'}

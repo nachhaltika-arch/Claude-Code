@@ -111,7 +111,7 @@ export default function CustomerDashboard() {
 
       {/* ── 1. HEADER ── */}
       <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: '24px 28px', color: 'var(--text-on-brand)' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
           Willkommen zurück
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: 0 }}>
@@ -166,7 +166,7 @@ export default function CustomerDashboard() {
 
           {/* Left — category score bars */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
               Kategorie-Scores
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -191,7 +191,7 @@ export default function CustomerDashboard() {
 
           {/* Right — recommendations */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
               Top-Empfehlungen
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -226,7 +226,7 @@ export default function CustomerDashboard() {
       {/* ── 4. PROJECT PHASES ── */}
       {(project || true) && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20 }}>
             Projektstatus
           </div>
 
@@ -255,7 +255,7 @@ export default function CustomerDashboard() {
                       {done ? '✓' : idx + 1}
                     </div>
                     {/* Label */}
-                    <div style={{ fontSize: 11, marginTop: 6, textAlign: 'center', whiteSpace: 'nowrap',
+                    <div style={{ fontSize: 12, marginTop: 6, textAlign: 'center', whiteSpace: 'nowrap',
                       color: done ? '#16a34a' : active ? '#f59e0b' : 'var(--text-tertiary)',
                       fontWeight: active ? 600 : 400,
                     }}>
@@ -353,14 +353,14 @@ function KpiCard({ icon, label, value, sub, accent }) {
       borderTop: `3px solid ${accent}`,
     }}>
       <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
         {label}
       </div>
       <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{sub}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );

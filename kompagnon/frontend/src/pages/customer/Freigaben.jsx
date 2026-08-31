@@ -198,7 +198,7 @@ export default function Freigaben() {
                   {item.topic || item.label || `Seite ${seiteId}`}
                 </div>
                 <span style={{
-                  padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                  padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                   background: item.status === 'freigegeben' ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
                   color: item.status === 'freigegeben' ? 'var(--status-success-text)' : 'var(--status-danger-text)',
                 }}>
@@ -206,7 +206,7 @@ export default function Freigaben() {
                 </span>
               </div>
               {item.freigegeben_am && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                   am {item.freigegeben_am}
                 </div>
               )}

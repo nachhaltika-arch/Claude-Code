@@ -241,7 +241,7 @@ export default function PageManager() {
     badge: (config) => ({
       display: 'inline-flex', alignItems: 'center',
       padding: '2px 8px', borderRadius: 4,
-      fontSize: 11, fontWeight: 700,
+      fontSize: 12, fontWeight: 700,
       color: config.color, background: config.bg,
     }),
     btn: (primary) => ({
@@ -326,7 +326,7 @@ export default function PageManager() {
               gap: 12, padding: '10px 16px',
               background: 'var(--bg-app)',
               borderBottom: '1px solid var(--border-light)',
-              fontSize: 11, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
               color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '.06em',
             }}>
@@ -364,7 +364,7 @@ export default function PageManager() {
                     {page.name}
                   </div>
                   {page.updated_at && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                       {datumKurz(page.updated_at)}
                     </div>
                   )}
@@ -454,7 +454,7 @@ export default function PageManager() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
                       {tpl.name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
                       {tpl.category}
                       {tpl.is_builtin && (
                         <span style={{ marginLeft: 6, ...S.badge({ color: '#374151', bg: '#e5e7eb' }) }}>
@@ -469,7 +469,7 @@ export default function PageManager() {
                         title={tpl.is_builtin ? 'Eingebaute Templates sind schreibgeschützt' : 'Template im GrapesJS-Editor bearbeiten'}
                         style={{
                           ...S.btn(true),
-                          padding: '5px 10px', fontSize: 11, flex: 1,
+                          padding: '5px 10px', fontSize: 12, flex: 1,
                           opacity: tpl.is_builtin ? 0.5 : 1,
                           cursor: tpl.is_builtin ? 'not-allowed' : 'pointer',
                         }}>
@@ -478,7 +478,7 @@ export default function PageManager() {
                       {!tpl.is_builtin && (
                         <button
                           onClick={() => handleDeleteTemplate(tpl.id)}
-                          style={{ ...S.btn(false), padding: '5px 10px', fontSize: 11 }}>
+                          style={{ ...S.btn(false), padding: '5px 10px', fontSize: 12 }}>
                           🗑
                         </button>
                       )}
@@ -510,7 +510,7 @@ export default function PageManager() {
                 User den Slug nicht selbst editiert hat. */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name (intern)</label>
@@ -533,7 +533,7 @@ export default function PageManager() {
             {/* Slug — sobald angefasst, kein Auto-Override mehr */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>URL-Pfad (slug)</label>
@@ -551,12 +551,12 @@ export default function PageManager() {
                 }}
               />
               {newPage.slug && validateSlug(newPage.slug) && (
-                <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
                   {validateSlug(newPage.slug)}
                 </div>
               )}
               {!slugManuallyEdited && newPage.name && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                   Wird automatisch aus dem Namen erzeugt — beim Tippen übernimmst du.
                 </div>
               )}
@@ -565,7 +565,7 @@ export default function PageManager() {
             {/* Beschreibung */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Beschreibung (optional)</label>
@@ -578,7 +578,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>
@@ -700,7 +700,7 @@ export default function PageManager() {
             </h2>
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name</label>
@@ -711,7 +711,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Kategorie</label>
@@ -725,7 +725,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>

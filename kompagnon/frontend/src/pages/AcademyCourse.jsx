@@ -257,10 +257,10 @@ export default function AcademyCourse() {
 
             {/* Overall progress bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: T.textMuted, fontFamily: T.font }}>
+              <span style={{ fontSize: 12, color: T.textMuted, fontFamily: T.font }}>
                 {completedCount} / {allLessons.length} Lektionen
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: overallPct === 100 ? T.successText : T.primary, fontFamily: T.font }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: overallPct === 100 ? T.successText : T.primary, fontFamily: T.font }}>
                 {overallPct}%
               </span>
             </div>
@@ -304,7 +304,7 @@ export default function AcademyCourse() {
                         {mod.title}
                       </span>
                       {mod.description ? (
-                        <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: T.textMuted, lineHeight: 1.35, fontFamily: T.font }}>
+                        <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: T.textMuted, lineHeight: 1.35, fontFamily: T.font }}>
                           {mod.description}
                         </span>
                       ) : null}
@@ -418,7 +418,7 @@ export default function AcademyCourse() {
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   background: badge.bg, color: badge.color,
                   borderRadius: T.radiusFull, padding: '4px 12px',
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
                   fontFamily: T.font, marginBottom: 10,
                 }}>
                   {badge.icon} {badge.label}

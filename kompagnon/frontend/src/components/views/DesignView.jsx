@@ -244,7 +244,7 @@ ${blocksHtml}
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         padding: '10px 18px',
         background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
-        fontSize: 11,
+        fontSize: 12,
       }}>
         <SourceBadge label="Sitemap" value={`${sitemapPages.length} Page${sitemapPages.length === 1 ? '' : 's'}`} icon="🗺" />
         <SourceBadge label="Wireframe" value={`${totalBlocks} Block${totalBlocks === 1 ? '' : 's'}`} icon="🧱" />
@@ -316,7 +316,7 @@ ${blocksHtml}
             </button>
             {uebernahme.text && (
               <div style={{
-                fontSize: 11, lineHeight: 1.4, padding: '6px 8px', borderRadius: 6,
+                fontSize: 12, lineHeight: 1.4, padding: '6px 8px', borderRadius: 6,
                 background: uebernahme.status === 'fehler' ? '#fef2f2' : '#f0fdf4',
                 color: uebernahme.status === 'fehler' ? '#991b1b' : '#166534',
                 border: `1px solid ${uebernahme.status === 'fehler' ? '#fca5a5' : '#86efac'}`,
@@ -342,7 +342,7 @@ ${blocksHtml}
             <div style={{
               padding: '10px 18px',
               background: '#fff', borderBottom: '1px solid var(--border-light)',
-              fontSize: 11, color: 'var(--text-secondary)',
+              fontSize: 12, color: 'var(--text-secondary)',
               display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
             }}>
               <Breadcrumb page={activeSitemapPage} sitemapPages={sitemapPages} />
@@ -396,7 +396,7 @@ function SourceBadge({ label, value, icon }) {
       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: KC_DARK }}>{value}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>{value}</span>
     </div>
   );
 }

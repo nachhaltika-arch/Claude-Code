@@ -136,7 +136,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
           <div style={{ fontSize: 12, fontWeight: 700, color: brand?.scraped_at ? '#00875A' : 'var(--text-secondary)' }}>
             {brand?.scraped_at ? `✓ Automatisch gescannt` : 'Noch kein Brand-Scan'}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {brand?.scraped_at
               ? 'Farben und Schriften von der alten Website erkannt. Prüfe und passe an.'
               : 'Website scannen um Farben, Schriften und Logo automatisch zu erkennen.'}
@@ -144,7 +144,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
         </div>
         <button onClick={scanBrand} disabled={scanning} style={{
           background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 7,
-          padding: '8px 16px', fontSize: 11, fontWeight: 700,
+          padding: '8px 16px', fontSize: 12, fontWeight: 700,
           cursor: scanning ? 'not-allowed' : 'pointer',
           flexShrink: 0, fontFamily: 'var(--font-sans)', opacity: scanning ? 0.7 : 1,
         }}>
@@ -168,8 +168,8 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
               <input aria-label={`${label} waehlen`} type="color" value={value} onChange={e => set(e.target.value)}
                 style={{ width: 40, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-tertiary)' }}>{value}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-tertiary)' }}>{value}</div>
               </div>
             </div>
           ))}

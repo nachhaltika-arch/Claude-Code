@@ -215,7 +215,7 @@ export default function AuditReport({ auditData, onClose }) {
           niemand. Ein Ergebnis ohne Massstab ist keine Aussage — und zwei
           Ergebnisse aus zwei Fassungen sind nicht dasselbe Ergebnis. */}
       <div style={{
-        fontSize: 11, color: 'var(--text-tertiary)',
+        fontSize: 12, color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-mono)', textAlign: 'right',
       }}>
         Homepage Standard · {fassungText(r.standard_version)}
@@ -269,7 +269,7 @@ export default function AuditReport({ auditData, onClose }) {
               <PolarGrid stroke="var(--border-light)" />
               <PolarAngleAxis
                 dataKey="subject"
-                tick={{ fontSize: 11, fill: '#555' }}
+                tick={{ fontSize: 12, fill: '#555' }}
               />
               <Radar
                 name="Score %"
@@ -300,7 +300,7 @@ export default function AuditReport({ auditData, onClose }) {
               return (
                 <div key={cat.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                       {cat.label}
                       {partial && (
                         <span
@@ -311,7 +311,7 @@ export default function AuditReport({ auditData, onClose }) {
                         </span>
                       )}
                     </span>
-                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
                       {catScore}/{cat.max}
                     </span>
                   </div>
@@ -361,7 +361,7 @@ export default function AuditReport({ auditData, onClose }) {
         {coverage != null && (
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center',
-            marginBottom: '12px', fontSize: '11px', color: 'var(--text-tertiary)',
+            marginBottom: '12px', fontSize: 12, color: 'var(--text-tertiary)',
           }}>
             <span>{coverage}% der Kriterien konnten geprüft werden.</span>
             {seitenGeprueft > 1 && (
@@ -414,7 +414,7 @@ export default function AuditReport({ auditData, onClose }) {
                     borderRadius: 'var(--radius-md)',
                     background: ok ? '#e8f5e9' : '#fdecea',
                     border: `1px solid ${ok ? 'var(--status-success-text)' : 'var(--brand-primary)'}`,
-                    fontSize: '11px', fontWeight: 600,
+                    fontSize: 12, fontWeight: 600,
                     color: ok ? 'var(--status-success-text)' : 'var(--brand-primary)',
                   }}
                 >
@@ -614,7 +614,7 @@ export default function AuditReport({ auditData, onClose }) {
                 <div key={ph.label} style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${ph.border}` }}>
                   <div style={{ background: ph.headerBg, padding: '10px 14px' }}>
                     <div style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{ph.label} — {ph.title}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>{ph.period}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{ph.period}</div>
                   </div>
                   <div style={{ background: ph.bg, padding: '12px 14px' }}>
                     <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -644,7 +644,7 @@ export default function AuditReport({ auditData, onClose }) {
             den Anforderungen des <strong>{r.level}</strong> entspricht
             und eine Gesamtbewertung von <strong>{r.total_score} / 100 Punkten</strong> erzielt hat.
           </p>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', marginTop: '16px' }}>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: 12, marginTop: '16px' }}>
             Auditor: KOMPAGNON Communications
           </p>
         </div>

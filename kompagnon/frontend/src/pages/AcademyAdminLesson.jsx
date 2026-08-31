@@ -103,7 +103,7 @@ function QuizEditor({ questions, setQuestions }) {
       <div style={S.card}>
         <div style={{ ...S.cardHeader, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Quiz-Fragen</span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>
             {questions.length} {questions.length === 1 ? 'Frage' : 'Fragen'}
           </span>
         </div>
@@ -135,7 +135,7 @@ function QuizEditor({ questions, setQuestions }) {
                         <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                           {a.is_correct
                             ? <span style={{ color: 'var(--status-success-text)', fontSize: 13 }}>✓</span>
-                            : <span style={{ color: 'var(--border-medium)', fontSize: 11 }}>○</span>}
+                            : <span style={{ color: 'var(--border-medium)', fontSize: 12 }}>○</span>}
                           <span style={{ color: a.is_correct ? 'var(--status-success-text)' : 'var(--text-secondary)', fontWeight: a.is_correct ? 600 : 400 }}>
                             {a.text || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Leer</span>}
                           </span>
@@ -149,7 +149,7 @@ function QuizEditor({ questions, setQuestions }) {
                       style={{
                         padding: '4px 9px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
                         border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)',
-                        fontSize: 11, cursor: 'pointer',
+                        fontSize: 12, cursor: 'pointer',
                       }}
                     >✏️ Bearbeiten</button>
                     <button
@@ -157,7 +157,7 @@ function QuizEditor({ questions, setQuestions }) {
                       style={{
                         padding: '4px 9px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
                         border: 'none', borderRadius: 'var(--radius-sm)',
-                        fontSize: 11, cursor: 'pointer',
+                        fontSize: 12, cursor: 'pointer',
                       }}
                     >🗑 Löschen</button>
                   </div>

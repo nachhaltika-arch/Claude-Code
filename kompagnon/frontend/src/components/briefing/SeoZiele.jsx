@@ -112,7 +112,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
       {/* KEYWORDS */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                           textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Top-Suchbegriffe für Google
           </label>
@@ -165,7 +165,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
       {/* GOOGLE BUSINESS */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                           textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Google Business Profil
           </label>
@@ -205,7 +205,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
       {/* SOCIAL MEDIA */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                           textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Social Media (aktiv)
           </label>
@@ -222,7 +222,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
               key={s}
               onClick={() => toggleSocial(s)}
               style={{
-                padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
                 background: social.includes(s) ? 'var(--brand-primary)' : 'var(--bg-surface)',
                 color:      social.includes(s) ? '#fff'    : 'var(--text-secondary)',
@@ -238,7 +238,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
       {/* GA Analytics — read-only info */}
       {ki?.ga_analytics?.status && ki.ga_analytics.status !== 'unbekannt' && (
         <div style={{ padding: '8px 12px', borderRadius: 7, background: '#E0F4F8',
-                      fontSize: 11, color: 'var(--brand-primary)', marginBottom: 14 }}>
+                      fontSize: 12, color: 'var(--brand-primary)', marginBottom: 14 }}>
           📊 Google Analytics: {ki.ga_analytics.type} · {ki.ga_analytics.status}
           <span style={{ opacity: 0.6, marginLeft: 6 }}>(aus Analyse-Zentrale)</span>
         </div>

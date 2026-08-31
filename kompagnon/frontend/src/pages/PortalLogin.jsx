@@ -72,7 +72,7 @@ export default function PortalLogin() {
     marginBottom: 16,
   };
   const lbl = {
-    display: 'block', fontSize: 11, fontWeight: 600,
+    display: 'block', fontSize: 12, fontWeight: 600,
     color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 6,
   };

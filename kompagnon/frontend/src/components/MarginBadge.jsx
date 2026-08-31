@@ -49,7 +49,7 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
           color: 'var(--text-tertiary)',
           border: '1px dashed var(--border-light)',
           fontFamily: 'var(--font-sans)',
-          fontSize: '11px', fontWeight: 600,
+          fontSize: 12, fontWeight: 600,
           padding: '3px 10px', borderRadius: 'var(--kc-radius-sm)',
         }}
       >
@@ -78,7 +78,7 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
         <span
           style={{
             marginLeft: '8px',
-            fontSize: '11px',
+            fontSize: 12,
             textTransform: 'uppercase',
             letterSpacing: 'var(--kc-tracking-wide)',
           }}

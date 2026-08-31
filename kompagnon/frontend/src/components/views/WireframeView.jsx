@@ -451,7 +451,7 @@ export default function WireframeView({
             </p>
             {saveFehler && (
               <p style={{
-                fontSize: 11, color: '#991b1b', background: '#fef2f2',
+                fontSize: 12, color: '#991b1b', background: '#fef2f2',
                 border: '1px solid #fca5a5', borderRadius: 6,
                 padding: '6px 8px', marginTop: 6, maxWidth: 620, lineHeight: 1.4,
               }}>{saveFehler}</p>
@@ -572,7 +572,7 @@ export default function WireframeView({
             {!komposition.ergebnis.contract?.konform && (
               <div style={{
                 padding: 8, marginBottom: 10, background: '#fef2f2',
-                border: '1px solid #fca5a5', borderRadius: 6, color: '#991b1b', fontSize: 11,
+                border: '1px solid #fca5a5', borderRadius: 6, color: '#991b1b', fontSize: 12,
               }}>
                 <strong>Die Abfolge hat offene Punkte — Übernehmen ist gesperrt:</strong>
                 <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
@@ -590,7 +590,7 @@ export default function WireframeView({
                   padding: '7px 14px',
                   background: komposition.ergebnis.contract?.konform ? 'var(--success)' : 'var(--text-tertiary)',
                   color: 'var(--text-on-brand)', border: 'none', borderRadius: 6,
-                  fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                  fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                   cursor: komposition.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
                 }}
               >✓ Abfolge übernehmen</button>
@@ -599,11 +599,11 @@ export default function WireframeView({
                 onClick={() => setKomposition({ status: 'idle', ergebnis: null, fehler: '' })}
                 style={{
                   padding: '7px 14px', background: '#fff', border: '1px solid var(--border-medium)',
-                  borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                  borderRadius: 6, fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                   cursor: 'pointer',
                 }}
               >Verwerfen</button>
-              <span style={{ fontSize: 11, color: '#6b21a8' }}>
+              <span style={{ fontSize: 12, color: '#6b21a8' }}>
                 Ersetzt die {activeBlocks.length} Block{activeBlocks.length === 1 ? '' : 's'} dieser
                 Seite. Slot-Texte gehen dabei verloren; das Markup je Section
                 schreibst du danach je Block über „Für diesen Kunden umschreiben".

@@ -45,7 +45,7 @@ export default function ReiterMails({
                   : 'Inaktiv'}
               </span>
               {seqStatus?.last_sent && (
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>
                   Letzter Versand: {new Date(seqStatus.last_sent).toLocaleDateString('de-DE')}
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function ReiterMails({
                   }}>
                     {log.subject}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
                     {log.template_key} ·{' '}
                     {log.sent_at
                       ? new Date(log.sent_at).toLocaleDateString('de-DE', {

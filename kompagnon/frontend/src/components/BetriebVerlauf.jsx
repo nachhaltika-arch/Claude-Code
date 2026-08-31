@@ -78,7 +78,7 @@ export default function BetriebVerlauf({ leadId, token }) {
       }}
     >
       <h3 style={{
-        margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+        margin: 0, fontSize: 12, fontWeight: 600, letterSpacing: '0.06em',
         textTransform: 'uppercase', color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-sans)',
       }}>
@@ -108,7 +108,7 @@ export default function BetriebVerlauf({ leadId, token }) {
               style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}
             >
               <span aria-hidden="true" style={{
-                color: 'var(--brand-primary-mid)', fontSize: 11, lineHeight: '16px',
+                color: 'var(--brand-primary-mid)', fontSize: 12, lineHeight: '16px',
                 width: 12, textAlign: 'center', flexShrink: 0,
               }}>
                 {ZEICHEN[e.art] || '•'}

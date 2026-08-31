@@ -62,7 +62,7 @@ export default function ReiterMonitoring({
                 ].map(({ titel, daten, grund, fuss }) => (
                   <div key={titel} style={{ border: '1px solid #F3F4F6',
                                             borderRadius: 6, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, textTransform: 'uppercase',
+                    <div style={{ fontSize: 12, textTransform: 'uppercase',
                                   letterSpacing: '.07em', color: '#6B7280',
                                   fontWeight: 700 }}>{titel}</div>
                     {daten ? (
@@ -83,7 +83,7 @@ export default function ReiterMonitoring({
                         {grund || 'Noch keine Vergleichsdaten.'}
                       </p>
                     )}
-                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>{fuss}</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>{fuss}</div>
                   </div>
                 ))}
               </div>

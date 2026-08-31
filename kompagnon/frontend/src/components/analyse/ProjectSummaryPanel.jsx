@@ -57,7 +57,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
             })}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Noch nicht gemessen</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Noch nicht gemessen</div>
         )}
       </div>
 
@@ -65,11 +65,11 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
       <div>
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Google Analytics</div>
         {gaResult != null ? (
-          <div style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6, background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC', color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC', color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00' }}>
             {gaResult.ga_found ? 'GA4 erkannt' : 'Kein GA4 gefunden'}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Analyse ausstehend</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Analyse ausstehend</div>
         )}
       </div>
 
@@ -164,7 +164,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
             {brand.font_primary && <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 4 }}>{brand.font_primary}</span>}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Brand-Scan starten</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Brand-Scan starten</div>
         )}
       </div>
     </div>

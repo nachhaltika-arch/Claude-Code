@@ -60,7 +60,7 @@ export default function Tickets() {
               <span style={{ fontSize: 20 }}>{k.i}</span>
               <span style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</span>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.l}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.l}</div>
           </div>
         ))}
       </div>
@@ -99,9 +99,9 @@ export default function Tickets() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>{t.ticket_number}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: tc.color, background: tc.bg, padding: '2px 7px', borderRadius: 4 }}>{tc.icon} {tc.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: pc.color, background: pc.bg, padding: '2px 7px', borderRadius: 4 }}>{pc.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)' }}>{t.ticket_number}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: tc.color, background: tc.bg, padding: '2px 7px', borderRadius: 4 }}>{tc.icon} {tc.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: pc.color, background: pc.bg, padding: '2px 7px', borderRadius: 4 }}>{pc.label}</span>
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
@@ -109,7 +109,7 @@ export default function Tickets() {
                       <span>{String(t.created_at || '').slice(0, 10)}</span>
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: sc.color, background: sc.bg, padding: '4px 10px', borderRadius: 6, flexShrink: 0 }}>{sc.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: sc.color, background: sc.bg, padding: '4px 10px', borderRadius: 6, flexShrink: 0 }}>{sc.label}</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 6, borderTop: '1px solid var(--border-light)' }}>{t.description}</div>
               </div>
@@ -122,7 +122,7 @@ export default function Tickets() {
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', position: isMobile ? 'fixed' : 'sticky', top: isMobile ? 0 : 20, left: isMobile ? 0 : 'auto', right: isMobile ? 0 : 'auto', bottom: isMobile ? 0 : 'auto', zIndex: isMobile ? 200 : 1, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto', minWidth: 0 }}>
             <div style={{ background: 'var(--brand-primary)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginBottom: 2 }}>{selected.ticket_number}</div>
+                <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 2 }}>{selected.ticket_number}</div>
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Ticket bearbeiten</div>
               </div>
               <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
@@ -141,7 +141,7 @@ export default function Tickets() {
               </div>
               <Lbl>Beschreibung</Lbl>
               <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '12px 14px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 16, whiteSpace: 'pre-wrap' }}>{selected.description}</div>
-              {selected.browser_info && (<><Lbl>Browser</Lbl><div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, wordBreak: 'break-all' }}>{selected.browser_info}</div></>)}
+              {selected.browser_info && (<><Lbl>Browser</Lbl><div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, wordBreak: 'break-all' }}>{selected.browser_info}</div></>)}
               <Lbl>Status</Lbl>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
                 {Object.entries(SC).map(([id, c]) => (
@@ -165,4 +165,4 @@ export default function Tickets() {
   );
 }
 
-function Lbl({ children }) { return <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>; }
+function Lbl({ children }) { return <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>; }

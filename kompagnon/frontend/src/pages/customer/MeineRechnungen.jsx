@@ -22,7 +22,7 @@ export default function MeineRechnungen() {
     border: '1px solid var(--border-light)', padding: '16px 20px', marginBottom: 10,
   };
   const badgeStyle = (type) => ({
-    display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+    display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
     background: type === 'bezahlt' || type === 'paid' ? 'var(--status-success-bg)' : type === 'overdue' ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
     color: type === 'bezahlt' || type === 'paid' ? 'var(--status-success-text)' : type === 'overdue' ? 'var(--status-danger-text)' : 'var(--status-warning-text)',
   });
@@ -46,7 +46,7 @@ export default function MeineRechnungen() {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
               {inv.line_item || inv.invoice_number || `Rechnung #${inv.id}`}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
               {inv.invoice_number} · {inv.created_at ? new Date(inv.created_at).toLocaleDateString('de-DE') : ''}
               {inv.due_date && ` · Fällig: ${new Date(inv.due_date).toLocaleDateString('de-DE')}`}
             </div>

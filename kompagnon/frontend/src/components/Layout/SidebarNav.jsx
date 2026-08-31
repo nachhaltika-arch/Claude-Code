@@ -268,7 +268,7 @@ export default function SidebarNav({ badges }) {
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
         <span style={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '.1em',

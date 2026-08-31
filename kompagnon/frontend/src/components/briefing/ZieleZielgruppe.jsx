@@ -158,7 +158,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
       {FIELDS.map(({ key, label, type, placeholder, hint, options, kiKey }) => (
         <div key={key} style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                             textTransform: 'uppercase', letterSpacing: '.06em' }}>
               {label}
             </label>

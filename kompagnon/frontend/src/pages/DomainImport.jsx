@@ -150,7 +150,7 @@ export default function DomainImport() {
             <div key={s.step} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', borderTop: `3px solid ${s.color}`, padding: '12px 14px' }}>
               <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{s.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{s.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{s.desc}</div>
             </div>
           ))}
         </div>
@@ -181,7 +181,7 @@ export default function DomainImport() {
               onMouseLeave={e => { e.currentTarget.style.background = file ? 'var(--bg-active)' : 'var(--bg-app)'; }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>{file ? '✅' : '📂'}</div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{file ? file.name : 'CSV-Datei hier ablegen oder klicken'}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{file ? `${preview.length} Domains erkannt` : 'Alle Spalten werden nach Domains durchsucht'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{file ? `${preview.length} Domains erkannt` : 'Alle Spalten werden nach Domains durchsucht'}</div>
               </div>
               <input aria-label="CSV-Datei auswaehlen" ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} style={{ display: 'none' }} />
             </div>
@@ -189,7 +189,7 @@ export default function DomainImport() {
 
           {mode === 'text' && (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                 Domains eingeben (eine pro Zeile oder kommagetrennt)
               </div>
               <textarea aria-label={'maler-mueller.de\nsanitaer-schmidt.de\nhttps://elektro-weber.de\nwww.dachdecker-klein.de'} value={textInput} onChange={e => handleTextChange(e.target.value)}
@@ -212,7 +212,7 @@ export default function DomainImport() {
               {/* Before check: show check button */}
               {!checkResult && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {preview.length} Domains erkannt
                   </div>
                   <button onClick={checkDomains} disabled={checking} style={{
@@ -258,7 +258,7 @@ export default function DomainImport() {
                           padding: '5px 12px', borderRadius: 'var(--radius-sm)', border: 'none',
                           background: importFilter === f.id ? 'var(--bg-surface)' : 'transparent',
                           color: importFilter === f.id ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-                          fontSize: 11, fontWeight: importFilter === f.id ? 600 : 400, cursor: 'pointer',
+                          fontSize: 12, fontWeight: importFilter === f.id ? 600 : 400, cursor: 'pointer',
                           fontFamily: 'var(--font-sans)', boxShadow: importFilter === f.id ? 'var(--shadow-card)' : 'none', whiteSpace: 'nowrap',
                         }}>{f.label}</button>
                       ))}
@@ -291,7 +291,7 @@ export default function DomainImport() {
                           )}
                         </div>
                         {r.score > 0 && (
-                          <span style={{ fontSize: 11, fontWeight: 600, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>
                             {r.score}/100
                           </span>
                         )}
@@ -305,14 +305,14 @@ export default function DomainImport() {
 
                   <button onClick={() => { setCheckResult(null); setImportFilter('new'); }} style={{
                     marginTop: 8, background: 'none', border: 'none', color: 'var(--text-tertiary)',
-                    fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
+                    fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
                   }}>↺ Erneut prüfen</button>
                 </div>
               )}
 
               {/* Time estimate */}
               {(checkResult ? checkResult.new_count > 0 : preview.length > 0) && (
-                <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warning-bg)', borderRadius: 'var(--radius-sm)', fontSize: 11, color: 'var(--status-warning-text)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warning-bg)', borderRadius: 'var(--radius-sm)', fontSize: 12, color: 'var(--status-warning-text)', lineHeight: 1.5 }}>
                   ⏱️ Verarbeitung dauert ca. <strong>{Math.ceil((checkResult ? (importFilter === 'new' ? checkResult.new_count : checkResult.total) : preview.length) * 0.5)} Minuten</strong> — Import läuft im Hintergrund.
                 </div>
               )}
@@ -349,7 +349,7 @@ export default function DomainImport() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
                   {jobStatus.status === 'done' ? '✅ Import abgeschlossen' : jobStatus.status === 'error' ? '❌ Import fehlgeschlagen' : '⚙️ Import läuft...'}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                   {jobStatus.processed || 0} von {jobStatus.total} Domains{polling && ' · wird aktualisiert...'}
                 </div>
               </div>
@@ -380,7 +380,7 @@ export default function DomainImport() {
 
           {(jobStatus.results || []).length > 0 && (
             <Card padding="sm">
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, padding: '0 4px' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, padding: '0 4px' }}>
                 Verarbeitete Domains
               </div>
               {jobStatus.results.map((r, i) => (
@@ -404,7 +404,7 @@ export default function DomainImport() {
                     <span title="Audit">{statusIcon(r.audit_status)}</span>
                     <span title="Impressum">{statusIcon(r.impressum_status)}</span>
                   </div>
-                  {r.lead_id && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>→</span>}
+                  {r.lead_id && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>→</span>}
                 </div>
               ))}
             </Card>

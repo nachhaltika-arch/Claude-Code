@@ -160,7 +160,7 @@ export default function RoleManagement() {
                 <span style={{ color: 'var(--text-primary)' }}>
                   {label}
                   {!durchgesetzt.includes(perm) && (
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>
                       — beschreibend, wirkt noch nicht
                     </span>
                   )}

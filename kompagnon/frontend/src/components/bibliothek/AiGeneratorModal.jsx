@@ -51,7 +51,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
             <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               ✨ Komponenten-Designer (KI)
             </div>
-            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+            <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>
               Opus 5 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                         background: active ? '#7c3aed' : '#fff',
                         color: active ? '#fff' : '#475569',
                         border: '1px solid ' + (active ? '#7c3aed' : '#cbd5e1'),
-                        borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        borderRadius: 6, fontSize: 12, fontWeight: 700,
                         cursor: status === 'running' ? 'not-allowed' : 'pointer',
                         textTransform: 'uppercase',
                       }}
@@ -149,13 +149,13 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                   disabled={status === 'running'}
                   rows={3}
                   placeholder="Beschreibe die Branche: typische Themen, Vokabular, Trust-Marker, Pain-Points. Z.B.: 'IT-Beratung fuer Mittelstand — Cloud-Migration, Cyber-Security, DSGVO-Compliance, ITIL-Zertifizierung, On-Site + Remote.'"
-                  style={{ ...inputStyle(false), marginTop: 6, resize: 'vertical', fontSize: 11 }}
+                  style={{ ...inputStyle(false), marginTop: 6, resize: 'vertical', fontSize: 12 }}
                 />
               )}
             </Field>
 
             <Field label="Pflicht-Elemente (optional — leer = KI entscheidet)">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px', gap: '4px 8px', fontSize: 11, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px', gap: '4px 8px', fontSize: 12, marginBottom: 8 }}>
                 {COUNT_ELEMENTS.map((el) => (
                   <React.Fragment key={el.key}>
                     <label htmlFor={`el-${el.key}`} style={{ alignSelf: 'center', color: '#475569' }}>{el.label}</label>
@@ -172,7 +172,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                       disabled={status === 'running'}
                       style={{
                         padding: '4px 6px', border: '1px solid #cbd5e1',
-                        borderRadius: 4, fontSize: 11, fontFamily: 'inherit',
+                        borderRadius: 4, fontSize: 12, fontFamily: 'inherit',
                         textAlign: 'center', boxSizing: 'border-box', width: '100%',
                       }}
                     />
@@ -187,7 +187,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                       key={el.key}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontSize: 11, color: '#475569', cursor: 'pointer',
+                        fontSize: 12, color: '#475569', cursor: 'pointer',
                         background: checked ? '#ede9fe' : '#f1f5f9',
                         border: '1px solid ' + (checked ? '#a78bfa' : '#e2e8f0'),
                         padding: '3px 8px', borderRadius: 12,
@@ -249,7 +249,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
               <div style={{ padding: 32, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
                 Opus 5 schreibt deine Komponente…<br/>
-                <div style={{ fontSize: 11, marginTop: 8, color: '#94a3b8' }}>Polling alle 2s · Background-Job</div>
+                <div style={{ fontSize: 12, marginTop: 8, color: '#94a3b8' }}>Polling alle 2s · Background-Job</div>
               </div>
             )}
             {status === 'error' && (
@@ -262,7 +262,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
               <div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{result.name}</div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>{result.preview_note}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{result.preview_note}</div>
                   <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
                     {(result.slots || []).length} Slots · {(result.tags || []).join(' · ')}
                   </div>
@@ -289,7 +289,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                 </div>
                 <div style={{
                   background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6,
-                  padding: 10, fontSize: 11, color: '#475569', marginBottom: 12,
+                  padding: 10, fontSize: 12, color: '#475569', marginBottom: 12,
                 }}>
                   <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', color: '#64748b', marginBottom: 4 }}>
                     KI-Prompt-Hint:

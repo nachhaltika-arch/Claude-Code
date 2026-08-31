@@ -310,7 +310,7 @@ export default function TemplateLibrary() {
                   <div style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{tpl.name}</div>
-                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: badge.bg, color: badge.color, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                      <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: badge.bg, color: badge.color, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
                         {tpl.category}
                       </span>
                     </div>
@@ -360,12 +360,12 @@ export default function TemplateLibrary() {
                 <div key={tpl.id} style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{tpl.name}</div>
-                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, padding: '3px 9px', borderRadius: 10, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
                       {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
                     </span>
                   </div>
                   {tpl.category && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>{tpl.category}</div>}
-                  {tpl.created_at && <div style={{ fontSize: 11, color: '#aaa', marginBottom: 14 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                  {tpl.created_at && <div style={{ fontSize: 12, color: '#aaa', marginBottom: 14 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Link to={`/app/settings/templates/${tpl.id}`} style={{ flex: 1, padding: '8px 12px', background: '#f0f0f0', color: '#333', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 13, textAlign: 'center', textDecoration: 'none', display: 'block' }}>
                       ✏️ Bearbeiten

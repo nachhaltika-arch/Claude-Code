@@ -76,7 +76,7 @@ function Feld({ label, hinweis, ...props }) {
         }}
       />
       {hinweis && (
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{hinweis}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{hinweis}</span>
       )}
     </label>
   );
@@ -105,7 +105,7 @@ function Kennzahl({ wert, label }) {
   return (
     <div>
       <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{wert}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{label}</div>
     </div>
   );
 }
@@ -222,7 +222,7 @@ function Anfragen({ eintraege, limit }) {
     );
   }
 
-  const kopf = { textAlign: 'left', padding: '6px 8px', fontSize: 11, fontWeight: 600,
+  const kopf = { textAlign: 'left', padding: '6px 8px', fontSize: 12, fontWeight: 600,
                  color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-light)' };
   const zelle = { padding: '8px', borderBottom: '1px solid var(--border-light)',
                   verticalAlign: 'top' };
@@ -369,7 +369,7 @@ export default function AkquiseWidget() {
   return (
     <div style={{ padding: 24, maxWidth: 1180 }}>
       <div style={{ marginBottom: 20 }}>
-        <span style={{ fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase',
+        <span style={{ fontSize: 12, letterSpacing: '.1em', textTransform: 'uppercase',
                        color: 'var(--text-tertiary)' }}>Akquise</span>
         <h1 style={{ margin: '4px 0 14px', fontSize: 20, fontWeight: 700 }}>Analyse-Widget</h1>
         <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -399,7 +399,7 @@ export default function AkquiseWidget() {
           >
             <pre style={{
               background: 'var(--bg-app)', border: '1px solid var(--border-light)',
-              borderRadius: 6, padding: 12, fontSize: 11, lineHeight: 1.5,
+              borderRadius: 6, padding: 12, fontSize: 12, lineHeight: 1.5,
               overflowX: 'auto', margin: 0,
             }}>
               {buildEmbedCode(widget.embed_url)}

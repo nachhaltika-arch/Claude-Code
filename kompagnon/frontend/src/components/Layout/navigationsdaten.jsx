@@ -158,7 +158,7 @@ export function VersandHinweis({ onClick }) {
         border: `1px solid ${unbekannt ? 'var(--border-medium)' : 'var(--status-warning-text)'}`,
         background: unbekannt ? 'transparent' : 'var(--status-warning-bg)',
         color: unbekannt ? 'var(--text-tertiary)' : 'var(--status-warning-text)',
-        fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
+        fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600,
         lineHeight: 1.35,
       }}
     >

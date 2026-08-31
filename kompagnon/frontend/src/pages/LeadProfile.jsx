@@ -796,7 +796,7 @@ export default function LeadProfile() {
               </div>
             )}
             {neueste.sending_ip && (
-              <div style={{ marginTop: 4, fontSize: 11, opacity: 0.75 }}>
+              <div style={{ marginTop: 4, fontSize: 12, opacity: 0.75 }}>
                 Versendet über {neueste.sending_ip}
               </div>
             )}
@@ -848,14 +848,14 @@ export default function LeadProfile() {
                 <h1 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 600, color: 'white', margin: 0, letterSpacing: '-0.01em' }}>
                   {lead.display_name || lead.company_name}
                 </h1>
-                <button onClick={() => setEditingName(true)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 'var(--radius-sm)', color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '3px 7px', cursor: 'pointer' }} title="Karteiname ändern">
+                <button onClick={() => setEditingName(true)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 'var(--radius-sm)', color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '3px 7px', cursor: 'pointer' }} title="Karteiname ändern">
                   ✏️
                 </button>
               </div>
             )}
 
             {lead.display_name && lead.display_name !== lead.company_name && (
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{lead.company_name}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{lead.company_name}</div>
             )}
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 10, alignItems: 'center' }}>
@@ -863,7 +863,7 @@ export default function LeadProfile() {
               {lead.city && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>📍 {lead.city}</span>}
               <Badge variant={statusVariant}>{statusLabel}</Badge>
               {improvement !== null && (
-                <span style={{ fontSize: 11, color: improvement >= 0 ? '#86efac' : '#fca5a5', fontWeight: 500 }}>
+                <span style={{ fontSize: 12, color: improvement >= 0 ? '#86efac' : '#fca5a5', fontWeight: 500 }}>
                   {improvement >= 0 ? '↑' : '↓'}{Math.abs(improvement)} Punkte
                 </span>
               )}
@@ -874,7 +874,7 @@ export default function LeadProfile() {
           {current_score !== null && (
             <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', textAlign: 'center', flexShrink: 0, backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)', minWidth: 90 }}>
               <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 600, color: 'white', lineHeight: 1 }}>{current_score}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>/ 100</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>/ 100</div>
               {current_level && (
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 6, fontWeight: 500 }}>
                   {current_level.replace('Homepage Standard ', '')}
@@ -976,12 +976,12 @@ export default function LeadProfile() {
 
         {/* Kaltakquise status messages */}
         {kaltakquiseError && (
-          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-danger-text)', padding: '6px 10px', background: 'var(--status-danger-bg)', borderRadius: 6 }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--status-danger-text)', padding: '6px 10px', background: 'var(--status-danger-bg)', borderRadius: 6 }}>
             {kaltakquiseError}
           </div>
         )}
         {kaltakquiseDone && kaltakquiseResult && (
-          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-success-text)', padding: '6px 10px', background: 'var(--status-success-bg)', borderRadius: 6 }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--status-success-text)', padding: '6px 10px', background: 'var(--status-success-bg)', borderRadius: 6 }}>
             ✓ Gesendet an {kaltakquiseResult.email_sent_to} · Score {kaltakquiseResult.audit_score}/100 ·{kaltakquiseResult.with_pdf ? ' mit PDF-Anhang' : ' ohne PDF'}
           </div>
         )}
@@ -1235,12 +1235,12 @@ export default function LeadProfile() {
                           {audit.level}
                           {i === 0 && <Badge variant="info">Aktuell</Badge>}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
                           {new Date(audit.created_at).toLocaleDateString('de-DE')}
                           {audit.website_url && ` · ${audit.website_url.replace(/^https?:\/\//, '')}`}
                         </div>
                         {audit.ai_summary && (
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380 }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380 }}>
                             {audit.ai_summary.substring(0, 100)}...
                           </div>
                         )}
@@ -1313,7 +1313,7 @@ export default function LeadProfile() {
             }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{deal.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
                   {deal.created_at?.slice(0, 10)}
                 </div>
               </div>
@@ -1357,7 +1357,7 @@ export default function LeadProfile() {
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
                 Website als ZIP
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
                 Alle gespeicherten Seiten des Projekts, je eine HTML-Datei mit
                 eingebettetem CSS. Nützlich als Sicherung und bei der Übergabe.
               </div>
@@ -1419,20 +1419,20 @@ export default function LeadProfile() {
               ) : assignedTemplate ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>📐 {assignedTemplate.name}</span>
-                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                  <button onClick={openTemplateModal} style={{ fontSize: 12, padding: '3px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
                     wechseln
                   </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Template zugewiesen</span>
-                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                  <button onClick={openTemplateModal} style={{ fontSize: 12, padding: '4px 12px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                     Template zuweisen
                   </button>
                 </div>
               )}
               {assignedTemplate && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                   Die KI nutzt dieses Template als Designgrundlage für den Entwurf.
                 </div>
               )}
@@ -1477,7 +1477,7 @@ export default function LeadProfile() {
               ) : (
                 Object.entries(designResult).map(([key, val]) => (
                   <div key={key} style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
                   </div>
                 ))
@@ -1548,7 +1548,7 @@ export default function LeadProfile() {
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
                 Auftragsbestätigung
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
                 Entsteht automatisch bei der Zahlung. Falls sie beim Kunden
                 nie angekommen ist, können Sie sie hier herunterladen und
                 nachreichen.

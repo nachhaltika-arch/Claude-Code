@@ -83,7 +83,7 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
               <div key={c.key} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:8 }}>
                 <span style={{ fontSize:16, flexShrink:0 }}>{passed ? '\u2705' : warn ? '\u26A0\uFE0F' : '\u274C'}</span>
                 <span style={{ fontSize:13, color:'var(--text-primary)', flex:1 }}>{c.label}</span>
-                {result[c.key + '_detail'] && <span style={{ fontSize:11, color:'var(--text-tertiary)' }}>{result[c.key + '_detail']}</span>}
+                {result[c.key + '_detail'] && <span style={{ fontSize:12, color:'var(--text-tertiary)' }}>{result[c.key + '_detail']}</span>}
               </div>
             );
           })}
@@ -98,7 +98,7 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
               style={{ padding:'8px 18px', borderRadius:8, border:'1px solid var(--border-medium)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:12, fontWeight:600, cursor: urteilLaeuft ? 'wait' : 'pointer', fontFamily:'var(--font-sans)' }}>
               {urteilLaeuft ? 'Beurteilung laeuft...' : urteil ? 'Erneut beurteilen' : 'KI-Beurteilung anfordern'}
             </button>
-            <div style={{ fontSize:11, color:'var(--text-tertiary)', marginTop:6 }}>
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginTop:6 }}>
               Liest die Ergebnisse oben und sagt, was davon vor der Abnahme wirklich zaehlt.
             </div>
             {urteilFehler && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6, marginTop:10 }}>{urteilFehler}</div>}
@@ -201,7 +201,7 @@ export function AbnahmeEmbed({ project, lead, headers, netlify }) {
                   {anfrage}
                 </div>
                 <button onClick={() => { navigator.clipboard?.writeText(anfrage); setKopiert(true); }}
-                  style={{ marginTop:8, padding:'6px 14px', borderRadius:6, border:'1px solid var(--border-light)', background:'transparent', color:'var(--text-secondary)', fontSize:11, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                  style={{ marginTop:8, padding:'6px 14px', borderRadius:6, border:'1px solid var(--border-light)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
                   {kopiert ? 'Kopiert' : 'In die Zwischenablage'}
                 </button>
               </div>
@@ -233,7 +233,7 @@ export function AbnahmeEmbed({ project, lead, headers, netlify }) {
           style={{ padding:'14px 0', borderRadius:10, border:'none', background: saving ? 'var(--border-medium)' : 'var(--success)', color: 'var(--text-on-brand)', fontSize:15, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)' }}>
           {saving ? 'Wird gespeichert...' : 'Go Live — Projekt abschliessen'}
         </button>
-        <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'center' }}>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', textAlign:'center' }}>
           Das Projekt wird als Fertig markiert.
         </div>
       </>)}
@@ -303,7 +303,7 @@ export function WebsiteVergleichEmbed({ project, headers }) {
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>📸 Website-Vergleich</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 8 }}>VORHER</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 8 }}>VORHER</div>
           {screenshots.before?.data
             ? <img src={screenshots.before.data} alt="Vorher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
             : <Placeholder text="Noch kein Screenshot" />}
@@ -313,10 +313,10 @@ export function WebsiteVergleichEmbed({ project, headers }) {
               {takingBefore ? 'Erstelle...' : '📷 Screenshot erstellen'}
             </button>
           </div>
-          {screenshots.before?.date && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.before.date)}</div>}
+          {screenshots.before?.date && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.before.date)}</div>}
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', marginBottom: 8 }}>NACHHER</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#059669', marginBottom: 8 }}>NACHHER</div>
           {screenshots.after?.data
             ? <img src={screenshots.after.data} alt="Nachher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
             : <Placeholder text="Noch kein Screenshot" />}
@@ -326,7 +326,7 @@ export function WebsiteVergleichEmbed({ project, headers }) {
               {takingAfter ? 'Erstelle...' : '📷 Screenshot erstellen'}
             </button>
           </div>
-          {screenshots.after?.date && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.after.date)}</div>}
+          {screenshots.after?.date && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.after.date)}</div>}
         </div>
       </div>
     </div>

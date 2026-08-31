@@ -133,7 +133,7 @@ export function FileUploadSection({ token }) {
                   background: done ? 'var(--status-success-bg)' : 'var(--bg-app)',
                   color: done ? 'var(--status-success-text)' : 'var(--text-tertiary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                 }}>
                   {done ? '✓' : '○'}
                 </span>
@@ -185,10 +185,10 @@ export function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 2 }}>{pendingFile.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatSize(pendingFile.size)}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{formatSize(pendingFile.size)}</div>
               <button
                 onClick={(e) => { e.stopPropagation(); setPendingFile(null); fileInputRef.current.value = ''; }}
-                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 11, color: 'var(--text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Andere Datei wählen
               </button>
@@ -197,7 +197,7 @@ export function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📤</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Datei hierher ziehen oder tippen zum Auswählen</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
             </div>
           )}
         </div>
@@ -243,7 +243,7 @@ export function FileUploadSection({ token }) {
         {/* Progress bar */}
         {uploading && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>
               <span>Wird hochgeladen…</span>
               <span>{uploadProgress}%</span>
             </div>
@@ -291,7 +291,7 @@ export function FileUploadSection({ token }) {
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.original_filename}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {datumKurz(f.uploaded_at)} · {formatSize(f.file_size)}
                       {f.note && ` · ${f.note}`}
                     </div>

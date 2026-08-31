@@ -454,7 +454,7 @@ export default function ComponentLibrary() {
                   background: active ? KC_DARK : 'transparent',
                   color: active ? '#fff' : '#475569',
                   border: 'none', cursor: 'pointer',
-                  padding: '6px 10px', fontSize: 11, fontWeight: 700,
+                  padding: '6px 10px', fontSize: 12, fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.04em',
                   fontFamily: 'inherit',
                 }}
@@ -472,7 +472,7 @@ export default function ComponentLibrary() {
                   background: active ? '#92400e' : 'transparent',
                   color: active ? '#fff' : '#475569',
                   border: 'none', cursor: 'pointer',
-                  padding: '6px 10px', fontSize: 11, fontWeight: 700,
+                  padding: '6px 10px', fontSize: 12, fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.04em',
                   fontFamily: 'inherit',
                 }}

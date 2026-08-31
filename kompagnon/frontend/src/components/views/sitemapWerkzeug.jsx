@@ -40,7 +40,7 @@ export function BottomToolbar({ zoom, onZoomIn, onZoomOut, onZoomReset, pageCoun
       </button>
       <ToolbarButton onClick={onZoomIn} disabled={zoom >= 1.5} title="Vergroessern (Strg++)">+</ToolbarButton>
       <div style={{ width: 1, height: 20, background: 'var(--border-light)', margin: '0 4px' }} />
-      <span style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>
+      <span style={{ padding: '6px 10px', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
         {pageCount} {pageCount === 1 ? 'Seite' : 'Seiten'}
       </span>
     </div>
@@ -255,7 +255,7 @@ export function AddSidebar({ pages, activePageId, onAddToActivePage, setDragStat
         {!activePageId && (
           <div style={{
             margin: '0 0 10px',
-            padding: '8px 10px', fontSize: 11, color: '#92400e',
+            padding: '8px 10px', fontSize: 12, color: '#92400e',
             background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
             lineHeight: 1.4,
           }}>
@@ -354,7 +354,7 @@ export function SidebarSectionItem({ sectionKey, count, global = false, onPick, 
         background: global ? '#ecfdf5' : 'transparent',
         border: '1px solid transparent', borderRadius: 6,
         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-        fontSize: 11,
+        fontSize: 12,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = global ? '#d1fae5' : '#eff6ff';

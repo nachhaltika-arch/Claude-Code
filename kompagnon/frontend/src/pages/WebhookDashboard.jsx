@@ -117,7 +117,7 @@ export default function WebhookDashboard() {
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <div>
-                <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 500, background: sourceColor(entry.source) + '18', color: sourceColor(entry.source) }}>
+                <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: sourceColor(entry.source) + '18', color: sourceColor(entry.source) }}>
                   {sourceLabel(entry.source)}
                 </span>
               </div>
@@ -152,7 +152,7 @@ export default function WebhookDashboard() {
                     </div>
                     {s?.label}
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
                 </button>
                 {isOpen && (
                   <div style={{ padding: '0 16px 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>

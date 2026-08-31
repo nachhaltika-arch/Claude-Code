@@ -58,7 +58,7 @@ export function PageDetailPanel({ page, onClose, onSave, onDelete }) {
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {isPflicht && (
-          <div style={{ fontSize: 11, color: '#92400E', background: '#FEF3C7', padding: '6px 8px', borderRadius: 6 }}>
+          <div style={{ fontSize: 12, color: '#92400E', background: '#FEF3C7', padding: '6px 8px', borderRadius: 6 }}>
             🔒 Pflichtseite — Name / Type sind gesperrt.
           </div>
         )}
@@ -164,7 +164,7 @@ export function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
         <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: KC_DARK }}>
           Neue Seite anlegen
         </h3>
-        <p style={{ margin: '0 0 14px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-secondary)' }}>
           {parentId
             ? `Wird als Sub-Seite von „${parentName}" angelegt.`
             : 'Wird als Top-Level-Seite angelegt.'}
@@ -265,7 +265,7 @@ export function AddSectionDialog({ existingSections, onClose, onPick }) {
                   onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-                    <code style={{ color: KC_MID, fontWeight: 700, fontSize: 11 }}>{key}</code>
+                    <code style={{ color: KC_MID, fontWeight: 700, fontSize: 12 }}>{key}</code>
                     <span style={{ flex: 1 }} />
                     {isUsed && (
                       <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--surface)', padding: '1px 6px', borderRadius: 4 }}>
@@ -273,7 +273,7 @@ export function AddSectionDialog({ existingSections, onClose, onPick }) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                     {SECTION_CATALOG[key]}
                   </div>
                 </button>

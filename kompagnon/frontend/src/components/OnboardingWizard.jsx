@@ -18,7 +18,7 @@ const INP = {
 };
 
 const LBL = {
-  display: 'block', fontSize: 11, fontWeight: 600,
+  display: 'block', fontSize: 12, fontWeight: 600,
   color: '#64748b', textTransform: 'uppercase',
   letterSpacing: '0.06em', marginBottom: 6, marginTop: 16,
 };
@@ -133,7 +133,7 @@ export default function OnboardingWizard({ user, onComplete }) {
             ))}
           </div>
           <div style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.55)',
+            fontSize: 12, color: 'rgba(255,255,255,0.55)',
             marginTop: 5,
           }}>
             {step < 4
@@ -171,7 +171,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                 style={INP}
               />
               <p style={{
-                fontSize: 11, color: '#94a3b8',
+                fontSize: 12, color: '#94a3b8',
                 marginTop: -10, marginBottom: 0,
               }}>
                 Haben Sie noch keine Website? Lassen Sie das Feld leer.
@@ -266,14 +266,14 @@ export default function OnboardingWizard({ user, onComplete }) {
                             : label.title}
                         </div>
                         <div style={{
-                          fontSize: 11, color: '#94a3b8', marginTop: 2,
+                          fontSize: 12, color: '#94a3b8', marginTop: 2,
                         }}>
                           {label.hint}
                         </div>
                       </div>
                       {st !== 'done' && (
                         <div style={{
-                          fontSize: 11, color: 'var(--kc-mid)',
+                          fontSize: 12, color: 'var(--kc-mid)',
                           fontWeight: 600, flexShrink: 0,
                         }}>
                           Auswählen
@@ -384,7 +384,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                   Termin anfragen →
                 </a>
                 <div style={{
-                  fontSize: 11, color: '#378ADD', marginTop: 8,
+                  fontSize: 12, color: '#378ADD', marginTop: 8,
                 }}>
                   info@kompagnon.eu · wir antworten innerhalb 24h
                 </div>

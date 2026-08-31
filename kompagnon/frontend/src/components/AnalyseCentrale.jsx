@@ -336,7 +336,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             {/* ── Gesamt-Fortschrittsbalken ── */}
       {(running || doneCount > 0) && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>
             <span>{running ? `Schritt ${doneCount + 1} von ${steps.length}` : `${doneCount} von ${steps.length} Schritten abgeschlossen`}</span>
             <span>{totalPct}%</span>
           </div>
@@ -386,10 +386,10 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 </div>
               )}
 
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{step.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{step.desc}</div>
 
               {isDone && result && (
-                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-success-text)', fontWeight: 600 }}>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--status-success-text)', fontWeight: 600 }}>
                   {step.id === 'url-crawl'      && `${result.urls} URLs gefunden`}
                   {step.id === 'content-scrape'  && `${result.pages} Seiten gescrapt`}
                   {step.id === 'hosting'         && result.provider}
@@ -412,7 +412,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                     border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, var(--kc-mid))',
                     background: isDone ? 'transparent' : 'var(--brand-primary, var(--kc-mid))',
                     color: isDone ? 'var(--status-success-text)' : '#fff',
-                    fontSize: 11, fontWeight: 700, cursor: websiteUrl ? 'pointer' : 'not-allowed',
+                    fontSize: 12, fontWeight: 700, cursor: websiteUrl ? 'pointer' : 'not-allowed',
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
@@ -518,7 +518,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                         onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                       >
                         <div style={{
-                          fontSize: 11, fontWeight: 700,
+                          fontSize: 12, fontWeight: 700,
                           color: isSelected ? 'var(--brand-primary)' : 'var(--text-primary)',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           marginBottom: 3,
@@ -527,7 +527,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                         </div>
                         {(page.title || page.h1) && (
                           <div style={{
-                            fontSize: 11, color: 'var(--text-secondary)',
+                            fontSize: 12, color: 'var(--text-secondary)',
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                             marginBottom: 5,
                           }}>
@@ -616,7 +616,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                           <DetailLabel style={{ marginBottom: 0 }}>Volltext - {sel.word_count || 0} Woerter</DetailLabel>
                           <button
                             onClick={() => setShowFullText(v => !v)}
-                            style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
+                            style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
                           >
                             {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext anzeigen'}
                           </button>
@@ -652,7 +652,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                             );
                           })}
                           {sel.images.length > 12 && (
-                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 700 }}>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 700 }}>
                               +{sel.images.length - 12}
                             </div>
                           )}
@@ -673,7 +673,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
                                 return (
                                   <a key={j} href={link} target="_blank" rel="noreferrer"
-                                    style={{ fontSize: 11, color: 'var(--brand-primary-mid)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
                                     {label}
                                   </a>
                                 );
@@ -693,7 +693,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 try { label = new URL(link).hostname; } catch { /* keep */ }
                                 return (
                                   <a key={j} href={link} target="_blank" rel="noreferrer"
-                                    style={{ fontSize: 11, color: 'var(--text-secondary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    style={{ fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
                                     {label}
                                   </a>
                                 );

@@ -100,13 +100,13 @@ export function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete
       <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {lesson.title || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Ohne Titel</span>}
       </span>
-      {dur && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>{dur}</span>}
+      {dur && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>{dur}</span>}
       <button aria-label="Bearbeiten"
         onClick={onEdit}
         style={{
           padding: '3px 8px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
           border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)',
-          fontSize: 11, cursor: 'pointer', flexShrink: 0,
+          fontSize: 12, cursor: 'pointer', flexShrink: 0,
         }}
       >✏️</button>
       <button aria-label="Löschen"
@@ -114,7 +114,7 @@ export function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete
         style={{
           padding: '3px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
           border: 'none', borderRadius: 'var(--radius-sm)',
-          fontSize: 11, cursor: 'pointer', flexShrink: 0,
+          fontSize: 12, cursor: 'pointer', flexShrink: 0,
         }}
       >🗑</button>
     </div>
@@ -243,7 +243,7 @@ export function ModuleBlock({
             onChange={() => onUpdateFeld(mod.id, 'is_locked', !mod.is_locked)}
             style={{ accentColor: 'var(--brand-primary)', width: 14, height: 14 }}
           />
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Nur Zugewiesene</span>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Nur Zugewiesene</span>
         </label>
 
         <button
@@ -251,7 +251,7 @@ export function ModuleBlock({
           style={{
             padding: '3px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
             border: 'none', borderRadius: 'var(--radius-sm)',
-            fontSize: 11, cursor: 'pointer',
+            fontSize: 12, cursor: 'pointer',
           }}
         >🗑</button>
 
@@ -293,7 +293,7 @@ export function ModuleBlock({
           wert={mod.thumbnail_url}
           platzhalter="Bildadresse"
           onSpeichern={wert => onUpdateFeld(mod.id, 'thumbnail_url', wert)}
-          stil={{ width: 150, fontSize: 11 }}
+          stil={{ width: 150, fontSize: 12 }}
         />
       </div>
 
@@ -377,8 +377,8 @@ export function PreviewCard({ form }) {
         {/* Progress bar mock */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Noch nicht gestartet</span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>0%</span>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Noch nicht gestartet</span>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>0%</span>
           </div>
           <div style={{ height: 5, background: 'var(--brand-primary-light)', borderRadius: 3 }}>
             <div style={{ width: '0%', height: '100%', background: 'var(--brand-primary)', borderRadius: 3 }} />

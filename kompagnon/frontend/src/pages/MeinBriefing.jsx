@@ -134,7 +134,7 @@ export default function MeinBriefing() {
         }}>
           {pdfLaeuft ? 'Wird erstellt \u2026' : 'Briefing als PDF laden'}
         </button>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
           Was Sie eingetragen haben, als Dokument \u2014 zum Ablegen oder Weitergeben.
         </span>
       </div>

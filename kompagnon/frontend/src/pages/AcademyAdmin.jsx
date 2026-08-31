@@ -223,14 +223,14 @@ export default function AcademyAdmin() {
                         background: published ? 'var(--status-success-text)' : 'var(--status-warning-text)',
                         flexShrink: 0,
                       }} />
-                      <span style={{ fontSize: 11, color: published ? 'var(--status-success-text)' : 'var(--status-warning-text)', fontWeight: 500 }}>
+                      <span style={{ fontSize: 12, color: published ? 'var(--status-success-text)' : 'var(--status-warning-text)', fontWeight: 500 }}>
                         {published ? 'Veröffentlicht' : 'Entwurf'}
                       </span>
                     </div>
 
                     {/* Module / lesson count */}
                     {(moduleCount !== null || lessonCount !== null) && (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         {moduleCount !== null && `${moduleCount} ${moduleCount === 1 ? 'Modul' : 'Module'}`}
                         {moduleCount !== null && lessonCount !== null && ' · '}
                         {lessonCount !== null && `${lessonCount} ${lessonCount === 1 ? 'Lektion' : 'Lektionen'}`}

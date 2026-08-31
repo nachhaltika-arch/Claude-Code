@@ -102,7 +102,7 @@ export default function AcademyCertificate() {
               <span style={{ color: '#fff', fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>K</span>
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: T.text, letterSpacing: '0.06em' }}>KOMPAGNON</div>
-            <div style={{ fontSize: 11, color: T.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: T.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
               Akademie
             </div>
           </div>
@@ -180,10 +180,10 @@ export default function AcademyCertificate() {
           padding: '12px 56px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
         }}>
-          <div style={{ fontSize: 11, color: T.textMuted }}>
+          <div style={{ fontSize: 12, color: T.textMuted }}>
             kompagnon.app/academy/certificate/{data.certificate_code}
           </div>
-          <div style={{ fontSize: 11, color: T.textMuted }}>
+          <div style={{ fontSize: 12, color: T.textMuted }}>
             KOMPAGNON Akademie © {new Date().getFullYear()}
           </div>
         </div>

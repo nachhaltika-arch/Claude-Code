@@ -34,7 +34,7 @@ export default function ReiterZugang({
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '320px 1fr' : '1fr', gap: 16, alignItems: 'flex-start' }}>
           <Card padding="md">
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>Kunden-Zugang QR-Code</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
               Der Kunde scannt diesen Code und gelangt direkt zu seinen Daten.
             </div>
             {qrLoading ? (
@@ -52,7 +52,7 @@ export default function ReiterZugang({
                   <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.4 }}>{qrData.portal_url}</div>
                 </div>
                 {lead.email && (
-                  <div style={{ background: 'var(--status-info-bg)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12, fontSize: 11, color: 'var(--status-info-text)', lineHeight: 1.5 }}>
+                  <div style={{ background: 'var(--status-info-bg)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12, fontSize: 12, color: 'var(--status-info-text)', lineHeight: 1.5 }}>
                     🔐 Zugang via Domain <strong>@{lead.email.split('@')[1]}</strong>
                   </div>
                 )}
@@ -88,14 +88,14 @@ export default function ReiterZugang({
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-active)', color: 'var(--brand-primary-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{item.icon}</div>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
                   </div>
                 </div>
               ))}
             </Card>
             <Card padding="md">
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>QR-Code versenden</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 12 }}>
                 Den QR-Code als PNG herunterladen und dem Kunden per E-Mail oder Brief zusenden.
               </div>
               {lead.email && qrData && (

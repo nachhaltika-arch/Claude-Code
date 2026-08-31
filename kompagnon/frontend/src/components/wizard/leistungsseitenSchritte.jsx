@@ -127,7 +127,7 @@ export function Field({ label, required, hint, error, children }) {
       <label
         htmlFor={id}
         style={{
-          display: 'block', fontSize: 11, fontWeight: 700,
+          display: 'block', fontSize: 12, fontWeight: 700,
           color: error ? 'var(--status-danger-text)' : 'var(--text-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.07em',
           marginBottom: 6, cursor: 'pointer', transition: 'color 0.15s',
@@ -140,13 +140,13 @@ export function Field({ label, required, hint, error, children }) {
       {childWithId}
       {error ? (
         <div style={{
-          fontSize: 11, color: 'var(--status-danger-text)', marginTop: 5,
+          fontSize: 12, color: 'var(--status-danger-text)', marginTop: 5,
           display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4,
         }}>
           <span style={{ fontSize: 12 }}>⚠</span>{error}
         </div>
       ) : hint ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
           {hint}
         </div>
       ) : null}

@@ -59,7 +59,7 @@ const inp = {
   fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD', color: '#1A2C32',
 };
 const lbl = {
-  fontSize: 11, fontWeight: 700, color: '#5A7080',
+  fontSize: 12, fontWeight: 700, color: '#5A7080',
   textTransform: 'uppercase', letterSpacing: '0.06em',
   marginBottom: 4, display: 'block',
 };
@@ -85,7 +85,7 @@ function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || STATUS_STYLE.geplant;
   return (
     <span style={{
-      padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+      padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600,
       background: s.bg, color: s.text, whiteSpace: 'nowrap',
     }}>
       {statusLabel(status)}
@@ -117,10 +117,10 @@ function PageCard({ page, isChild, onEdit, onDelete }) {
           {page.page_name}
         </div>
         {page.ziel_keyword && (
-          <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>🔑 {page.ziel_keyword}</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>🔑 {page.ziel_keyword}</div>
         )}
         {page.zweck && (
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>{page.zweck}</div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>{page.zweck}</div>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -663,7 +663,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: '#8A9BA8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
+            <div style={{ fontSize: 12, color: '#8A9BA8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
               Seitenstruktur planen
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#1A2C32', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

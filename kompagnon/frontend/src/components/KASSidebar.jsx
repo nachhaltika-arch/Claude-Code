@@ -342,7 +342,7 @@ export default function KASSidebar({
                 aria-expanded={isOpenPhase}
               >
                 <span aria-hidden style={{ fontSize: 14 }}>{group.icon}</span>
-                <span style={{ flex: 1, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {group.label}
                 </span>
                 <span style={{ fontSize: 10, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>

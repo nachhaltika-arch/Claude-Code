@@ -115,7 +115,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
       />
 
       <div style={{ marginTop: 16, marginBottom: 16 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                         textTransform: 'uppercase', letterSpacing: '.06em',
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Medien

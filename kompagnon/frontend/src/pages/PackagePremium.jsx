@@ -143,7 +143,7 @@ export default function PackagePremium() {
           <div className="fade1" style={{
             display: 'inline-block', background: 'rgba(124,58,237,0.25)',
             border: '1px solid rgba(124,58,237,0.5)', color: '#c4b5fd',
-            borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600,
+            borderRadius: 20, padding: '4px 14px', fontSize: 12, fontWeight: 600,
             letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16,
           }}>
             💎 Premium-Paket
@@ -209,7 +209,7 @@ export default function PackagePremium() {
             ) : (
             <form onSubmit={handleCheckout}>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                   Ihre geschäftliche E-Mail
                 </label>
                 <input aria-label="Ihre geschäftliche E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -223,7 +223,7 @@ export default function PackagePremium() {
               }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 12, color: '#b0c4cc' }}>
                 🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt
               </div>
             </form>
@@ -289,8 +289,8 @@ export default function PackagePremium() {
                 )}
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pkg.name}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: pkg.active ? '#7c3aed' : 'var(--text-primary)' }}>{pkg.price}</div>
-                <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>{pkg.delivery}</div>
-                {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--kc-mid)', fontWeight: 500 }}>Details →</div>}
+                <div style={{ fontSize: 12, color: '#8fa8b0', marginTop: 2 }}>{pkg.delivery}</div>
+                {!pkg.active && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--kc-mid)', fontWeight: 500 }}>Details →</div>}
               </div>
             ))}
           </div>

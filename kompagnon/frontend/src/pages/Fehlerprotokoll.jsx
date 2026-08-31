@@ -88,7 +88,7 @@ export default function Fehlerprotokoll() {
             </span>
             {e.anzahl > 1 && (
               <span style={{
-                fontSize: 11, fontWeight: 700, padding: '1px 8px', borderRadius: 99,
+                fontSize: 12, fontWeight: 700, padding: '1px 8px', borderRadius: 99,
                 background: 'var(--status-warning-bg)', color: 'var(--status-warning-text)',
               }}>{e.anzahl}×</span>
             )}
@@ -98,7 +98,7 @@ export default function Fehlerprotokoll() {
             {e.meldung || '(ohne Meldung)'}
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
             zuletzt {zeit(e.zuletzt)} · zuerst {zeit(e.zuerst)}
           </div>
 
@@ -115,7 +115,7 @@ export default function Fehlerprotokoll() {
             <pre style={{
               marginTop: 8, padding: 12, overflowX: 'auto',
               background: 'var(--bg-app)', border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-md)', fontSize: 11, lineHeight: 1.5,
+              borderRadius: 'var(--radius-md)', fontSize: 12, lineHeight: 1.5,
               color: 'var(--text-secondary)', whiteSpace: 'pre-wrap',
             }}>{offen.spur || '(keine Spur aufbewahrt)'}</pre>
           )}

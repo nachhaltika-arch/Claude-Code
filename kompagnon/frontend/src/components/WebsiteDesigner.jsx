@@ -169,12 +169,12 @@ export default function WebsiteDesigner({
         </button>
 
         {importMsg && (
-          <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: '#1D9E75', fontWeight: 500 }}>
             {importMsg}
           </span>
         )}
         {importError && !showImportModal && (
-          <span style={{ fontSize: 11, color: '#E24B4A', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: '#E24B4A', fontWeight: 500 }}>
             ✗ {importError}
           </span>
         )}
@@ -190,7 +190,7 @@ export default function WebsiteDesigner({
             background: 'none', border: '1px solid rgba(255,255,255,0.2)',
             color: assetsRefreshing ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
             borderRadius: 4, padding: '4px 8px', cursor: assetsRefreshing ? 'not-allowed' : 'pointer',
-            fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
+            fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
           }}
         >
           <span style={{ display: 'inline-block', animation: assetsRefreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>

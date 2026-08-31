@@ -10,6 +10,8 @@ import { SCORE_COLOR } from './geoBausteine';
 
 export default function ReiterMonitoring({
   activeTab,
+  isAdmin,
+  monitoringSchalten,
   monitoring,
   wirkung,
 }) {
@@ -90,11 +92,46 @@ export default function ReiterMonitoring({
         </div>
       )}
 
+      {/* **Der Stand des Schalters, bevor irgendetwas versprochen wird**
+          (L-105, 31.08.2026). `PATCH /monitoring/toggle` war gebaut und
+          ungerufen; der Satz darunter sagte „der erste Report erscheint am
+          1. des naechsten Monats" — auch bei ausgeschaltetem Monitoring, wo
+          nie einer kaeme. */}
+      {monitoring && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, padding: '10px 12px', marginBottom: 12,
+          background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+          borderRadius: 8,
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+            Monatliches Monitoring:{' '}
+            <strong>{monitoring.monitoring_enabled ? 'eingeschaltet' : 'ausgeschaltet'}</strong>
+          </span>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => monitoringSchalten(!monitoring.monitoring_enabled)}
+              style={{
+                border: '1px solid var(--border-medium)', borderRadius: 6,
+                background: 'var(--bg-app)', color: 'var(--text-primary)',
+                padding: '6px 12px', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', minHeight: 32,
+              }}
+            >
+              {monitoring.monitoring_enabled ? 'Ausschalten' : 'Einschalten'}
+            </button>
+          )}
+        </div>
+      )}
+
       {!monitoring ? (
         <p style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>Wird geladen...</p>
       ) : monitoring.history.length === 0 ? (
         <p style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>
-          Noch keine Monitoring-Daten — der erste Report erscheint am 1. des naechsten Monats.
+          {monitoring.monitoring_enabled
+            ? 'Noch keine Monitoring-Daten — der erste Report erscheint am 1. des naechsten Monats.'
+            : 'Noch keine Monitoring-Daten. Solange das Monitoring ausgeschaltet ist, kommt auch keiner.'}
         </p>
       ) : (
         <div>

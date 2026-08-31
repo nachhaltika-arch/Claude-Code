@@ -214,6 +214,33 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     }
   };
 
+  /**
+   * Das Monitoring ein- oder ausschalten (L-105, 31.08.2026).
+   *
+   * **`PATCH /api/geo/{id}/monitoring/toggle` war gebaut und ungerufen.**
+   * Der Verlaufsreiter versprach dabei „der erste Report erscheint am 1. des
+   * naechsten Monats" — auch dann, wenn das Monitoring aus war und nie einer
+   * kaeme. Ein Versprechen, das an einem Schalter haengt, den niemand sieht.
+   */
+  const monitoringSchalten = async (an) => {
+    if (!isAdmin) return;
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/monitoring/toggle`,
+        { method: 'PATCH', headers, body: JSON.stringify({ enabled: an }) },
+      );
+      if (resp.ok) {
+        const daten = await resp.json();
+        // Den bekannten Stand fortschreiben statt neu zu laden: Die Antwort
+        // sagt genau das eine Feld, das sich geaendert hat.
+        setMonitoring(alt => ({ ...(alt || { history: [] }),
+                                monitoring_enabled: daten.monitoring_enabled }));
+      }
+    } catch (err) {
+      console.error('Monitoring-Schalter:', err);
+    }
+  };
+
   const toggleUpsell = async (active, price) => {
     if (!isAdmin) return;
     setUpsellLoading(true);
@@ -577,6 +604,8 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       {activeTab === 'monitoring' && (
         <ReiterMonitoring
           activeTab={activeTab}
+          isAdmin={isAdmin}
+          monitoringSchalten={monitoringSchalten}
           monitoring={monitoring}
           wirkung={wirkung}
         />

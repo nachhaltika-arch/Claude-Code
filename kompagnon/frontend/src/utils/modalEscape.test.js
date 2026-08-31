@@ -73,6 +73,42 @@ function hatEscapeWeg(quelle) {
   return /useEscapeKey|['"]Escape['"]/.test(quelle);
 }
 
+/**
+ * Wer bindet diese Datei ein?
+ *
+ * **Warum das am 31.08.2026 dazukam.** Der Sitemap-Reiter ist aus
+ * `CustomerDetail` ausgezogen (L-25) und hat seine Überlagerung mitgenommen —
+ * der `useEscapeKey`-Aufruf blieb aber in der Seite, wo der Zustand liegt,
+ * den er zurücksetzt. Dieser Test meldete daraufhin eine Überlagerung ohne
+ * Ausweg, und gerendert gab es den Ausweg sehr wohl.
+ *
+ * Er hatte recht über die Datei und unrecht über den Bildschirm — derselbe
+ * Fall wie bei `seitenTitel` am Vortag. Ein Escape-Weg ist eine Eigenschaft
+ * dessen, **was gerendert wird**, nicht einer Datei. Also zählt er jetzt auch,
+ * wenn ihn der Einbinder trägt.
+ *
+ * **Genau eine Ebene, und der Zustand muss zusammenpassen.** Der erste Anlauf
+ * fragte nur, ob der Einbinder *irgendein* `useEscapeKey` hat — und sprach
+ * damit `NewsletterAnalytics` frei, weil `Newsletter.jsx` eines für **andere**
+ * Modale trägt. Ein Escape, das eine fremde Überlagerung schließt, ist für
+ * diese hier keiner. Geprüft wird deshalb, ob der Aufruf einen Setzer nennt,
+ * den auch die eingebundene Datei kennt.
+ */
+function einbinderHabenEscape(rel, alle) {
+  const name = rel.replace(/\.jsx$/, '').split('/').pop();
+  const eigene = alle.find(d => d.rel === rel);
+  return alle.some((d) => {
+    if (d.rel === rel) return false;
+    if (!new RegExp(`from '[^']*/${name}'`).test(d.quelle)) return false;
+    const aufrufe = d.quelle.match(/useEscapeKey\(([\s\S]*?)\);/g) || [];
+    return aufrufe.some((aufruf) => {
+      const setzer = aufruf.match(/set[A-Z]\w*/g) || [];
+      return setzer.some(s => new RegExp(`(?<![.\\w])${s}(?![\\w])`)
+        .test(eigene.quelle));
+    });
+  });
+}
+
 const dateien = jsxDateien(WURZEL).map(d => ({
   rel: path.relative(WURZEL, d).split(path.sep).join('/'),
   quelle: fs.readFileSync(d, 'utf8'),
@@ -91,6 +127,7 @@ describe('Modale lassen sich mit der Tastatur schließen', () => {
   test('jede Überlagerung hat einen Escape-Weg oder eine begründete Ausnahme', () => {
     const ohne = mitUeberlagerung
       .filter(d => !hatEscapeWeg(d.quelle))
+      .filter(d => !einbinderHabenEscape(d.rel, dateien))
       .map(d => d.rel)
       .filter(rel => !(rel in AUSNAHMEN));
 
@@ -107,7 +144,8 @@ describe('Modale lassen sich mit der Tastatur schließen', () => {
       if (!treffer) { veraltet.push(`${rel}: Datei gibt es nicht mehr`); continue; }
       if (!hatUeberlagerung(treffer.quelle)) {
         veraltet.push(`${rel}: hat keine Überlagerung mehr`);
-      } else if (hatEscapeWeg(treffer.quelle)) {
+      } else if (hatEscapeWeg(treffer.quelle)
+                 || einbinderHabenEscape(rel, dateien)) {
         veraltet.push(`${rel}: hat jetzt einen Escape-Weg`);
       }
     }

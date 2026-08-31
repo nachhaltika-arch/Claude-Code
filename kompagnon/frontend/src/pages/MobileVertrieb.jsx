@@ -52,7 +52,7 @@ export default function MobileVertrieb() {
             <span style={{ fontSize: 12, fontWeight: 700, color: k.primary ? 'var(--text-on-brand)' : 'var(--text-primary)', lineHeight: 1.3 }}>
               {k.label}
             </span>
-            <span style={{ fontSize: 10, color: k.primary ? 'var(--text-on-brand)' : 'var(--text-secondary)', opacity: k.primary ? 0.85 : 1, lineHeight: 1.4 }}>
+            <span style={{ fontSize: 12, color: k.primary ? 'var(--text-on-brand)' : 'var(--text-secondary)', opacity: k.primary ? 0.85 : 1, lineHeight: 1.4 }}>
               {k.desc}
             </span>
           </button>

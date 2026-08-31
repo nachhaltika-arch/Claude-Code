@@ -44,7 +44,7 @@ export function ShufflePin({ shortcut, onClick }) {
       <span style={{
         background: 'var(--surface)', color: 'var(--text-secondary)',
         padding: '1px 5px', borderRadius: 3,
-        fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
+        fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
       }}>{shortcut}</span>
     </button>
   );
@@ -447,7 +447,7 @@ export function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants
           padding: '8px 10px',
           fontFamily: `'${typo.body}', system-ui`,
         }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: palette.text_primary, lineHeight: 1.2, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: palette.text_primary, lineHeight: 1.2, marginBottom: 4 }}>
             Medium length section heading
           </div>
           <div style={{ fontSize: 8, color: palette.text_muted, lineHeight: 1.35 }}>
@@ -642,7 +642,7 @@ export function LivePreview({ palette, typo, ui, spacing, variants, semantic, fo
                 <span key={s.key} style={{
                   padding: '4px 10px', background: c.bg, color: c.fg,
                   border: `1px solid ${c.border}`, borderRadius: ui.button_radius,
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                 }}>{s.label}</span>
               );
             })}

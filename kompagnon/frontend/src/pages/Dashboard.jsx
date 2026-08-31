@@ -105,9 +105,9 @@ export default function Dashboard() {
           {value ?? '—'}
         </div>
       )}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
       {delta !== undefined && !loadingKpis && (
-        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>
           {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} diese Woche
         </div>
       )}
@@ -155,7 +155,7 @@ export default function Dashboard() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
             Dashboard
           </h1>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
             {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
@@ -287,10 +287,10 @@ export default function Dashboard() {
               <span style={{ width: 24, flexShrink: 0 }} />
               <span style={{ width: 100, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 50 }} />
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
                 Betriebe
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 64, textAlign: 'right', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 64, textAlign: 'right', flexShrink: 0 }}>
                 Gewinnquote
               </span>
             </div>
@@ -455,7 +455,7 @@ export default function Dashboard() {
                     width: 32, height: 32, borderRadius: 'var(--radius-sm)',
                     background: `color-mix(in srgb, ${levelColor} 9%, transparent)`, color: levelColor,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 700, flexShrink: 0,
+                    fontSize: 12, fontWeight: 700, flexShrink: 0,
                   }}>
                     {level}
                   </div>
@@ -467,7 +467,7 @@ export default function Dashboard() {
                     }}>
                       {audit.company_name || audit.website_url}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {datumKurz(audit.created_at)}
                     </div>
                   </div>
@@ -496,7 +496,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--brand-primary)' }}>
                     {stat.value}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {stat.label}
                   </div>
                 </div>

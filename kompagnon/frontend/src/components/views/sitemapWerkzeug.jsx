@@ -267,7 +267,7 @@ export function AddSidebar({ pages, activePageId, onAddToActivePage, setDragStat
         <div style={{ marginBottom: 12 }}>
           <div style={{
             padding: '4px 6px',
-            fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
+            fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.08em',
           }}>
             Global Sections
@@ -303,14 +303,14 @@ export function AddSidebar({ pages, activePageId, onAddToActivePage, setDragStat
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-app)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 10, flexShrink: 0 }}>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, flexShrink: 0 }}>
                   {isOpen ? '▼' : '▶'}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>
                   {cat.label}
                 </span>
                 <span style={{ flex: 1 }} />
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{items.length}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{items.length}</span>
               </button>
               {isOpen && (
                 <div style={{ paddingLeft: 4 }}>

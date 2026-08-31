@@ -205,8 +205,8 @@ export default function ReiterMarkendesign({
                           }} />
                         </div>
                       )}
-                      {isDone && !isFailed && <div style={{ fontSize: 10, color: '#3B6D11', marginTop: 2 }}>Fertig</div>}
-                      {isFailed && <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 2 }}>Fehlgeschlagen</div>}
+                      {isDone && !isFailed && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 2 }}>Fertig</div>}
+                      {isFailed && <div style={{ fontSize: 12, color: '#e74c3c', marginTop: 2 }}>Fehlgeschlagen</div>}
                     </div>
                   );
                 })}
@@ -233,8 +233,8 @@ export default function ReiterMarkendesign({
                   style={{ width: 52, height: 52, borderRadius: 8, background: color, border: '1px solid var(--border-light)', cursor: 'pointer' }}
                   onClick={() => { navigator.clipboard.writeText(color); toast.success(color + ' kopiert!'); }}
                 />
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{label}</div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)' }}>{color}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{label}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{color}</div>
               </div>
             ))}
           </div>
@@ -259,13 +259,13 @@ export default function ReiterMarkendesign({
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {brandData.font_primary && (
               <div style={{ background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-light)' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4 }}>Primär</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Primär</div>
                 <div style={{ fontSize: 15, fontFamily: brandData.font_primary }}>{brandData.font_primary}</div>
               </div>
             )}
             {brandData.font_secondary && (
               <div style={{ background: 'var(--bg-elevated)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-light)' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4 }}>Sekundär</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Sekundär</div>
                 <div style={{ fontSize: 15, fontFamily: brandData.font_secondary }}>{brandData.font_secondary}</div>
               </div>
             )}

@@ -174,7 +174,7 @@ export default function Deals() {
                       {fmtEUR(deal.total_value)}
                     </div>
                     {deal.created_at && (
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                         {deal.created_at.slice(0, 10)}
                       </div>
                     )}
@@ -562,7 +562,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
             </div>
 
             <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>
                 <div>Position</div>
                 <div style={{ textAlign: 'right' }}>Menge</div>
                 <div style={{ textAlign: 'right' }}>EP €</div>

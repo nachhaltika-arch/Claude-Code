@@ -186,7 +186,7 @@ export default function MeineDaten() {
                     }}
                   />
                   {feld.hinweis && (
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
                       {feld.hinweis}
                     </span>
                   )}

@@ -59,7 +59,7 @@ export default function ShortcutHelp({ open, onClose }) {
           ))}
         </div>
         <div style={{ marginTop: 20, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
-          <kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>Esc</kbd> oder klicke außerhalb zum Schließen
+          <kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>Esc</kbd> oder klicke außerhalb zum Schließen
         </div>
       </div>
     </div>,

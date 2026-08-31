@@ -69,7 +69,7 @@ export default function NewsletterAnalytics({ campaignId, onClose }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {/* Open rate */}
               <div style={card}>
-                <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Oeffnungsrate</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Oeffnungsrate</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)', marginTop: 4 }}>
                   {openPct != null ? `${openPct.toFixed(1)}%` : '-'}
                 </div>
@@ -78,7 +78,7 @@ export default function NewsletterAnalytics({ campaignId, onClose }) {
 
               {/* Click rate */}
               <div style={card}>
-                <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Klickrate</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Klickrate</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)', marginTop: 4 }}>
                   {clickPct != null ? `${clickPct.toFixed(1)}%` : '-'}
                 </div>
@@ -87,7 +87,7 @@ export default function NewsletterAnalytics({ campaignId, onClose }) {
 
               {/* Unsubscriptions */}
               <div style={card}>
-                <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Abmeldungen</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Abmeldungen</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
                   {stats.unsubscriptions ?? '-'}
                 </div>
@@ -95,7 +95,7 @@ export default function NewsletterAnalytics({ campaignId, onClose }) {
 
               {/* Sent count */}
               <div style={card}>
-                <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Versendet an</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Versendet an</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
                   {stats.sentCount ?? '-'}
                 </div>

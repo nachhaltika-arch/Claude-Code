@@ -125,8 +125,8 @@ export default function HomepageChecklist({ auditData }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
-                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
-                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
+                          {item.critical && <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{item.desc}</div>
                       </div>

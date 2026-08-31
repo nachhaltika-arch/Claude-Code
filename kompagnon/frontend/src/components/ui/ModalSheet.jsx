@@ -90,7 +90,7 @@ export default function ModalSheet({
             borderRadius: headerColor ? (isMobile ? '0' : 'var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0') : undefined,
           }}>
             <div>
-              {subtitle && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3, color: headerColor ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}>{subtitle}</div>}
+              {subtitle && <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3, color: headerColor ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}>{subtitle}</div>}
               {title && <div style={{ fontSize: isMobile ? 16 : 17, fontWeight: 700, color: headerColor ? '#fff' : 'var(--text-primary)' }}>{title}</div>}
             </div>
             <button onClick={onClose} aria-label="Schließen" style={{

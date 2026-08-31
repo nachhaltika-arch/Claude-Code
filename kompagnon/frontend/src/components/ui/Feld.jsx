@@ -57,7 +57,7 @@ export default function Feld({
       <label
         htmlFor={anschliessen ? id : undefined}
         style={{
-          display: 'block', fontSize: 10, fontWeight: 700,
+          display: 'block', fontSize: 12, fontWeight: 700,
           color: 'var(--text-tertiary)', textTransform: 'uppercase',
           letterSpacing: '0.05em', marginBottom: 4,
           ...labelStyle,

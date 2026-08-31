@@ -252,7 +252,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
       {bedingte.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{
-            fontSize: 10, fontWeight: 900,
+            fontSize: 12, fontWeight: 900,
             color: '#B8860B',
             textTransform: 'uppercase', letterSpacing: '.1em',
             marginBottom: 8,
@@ -269,7 +269,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
       {optional.length > 0 && (
         <div>
           <div style={{
-            fontSize: 10, fontWeight: 900,
+            fontSize: 12, fontWeight: 900,
             color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '.1em',
             marginBottom: 8,

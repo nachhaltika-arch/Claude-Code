@@ -340,8 +340,8 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
                 {preview.color_palette.map((c, i) => (
                   <div key={i} style={{ textAlign: 'center' }}>
                     <div style={{ width: 52, height: 52, borderRadius: 10, background: c.hex, border: '1px solid rgba(0,0,0,0.1)', marginBottom: 4 }} />
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{c.hex}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>{c.role}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{c.hex}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>{c.role}</div>
                   </div>
                 ))}
               </div>

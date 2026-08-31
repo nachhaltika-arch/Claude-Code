@@ -358,7 +358,7 @@ export default function Betriebe() {
             }}>
               {['Betrieb', 'Ort', 'Status', 'Score', ''].map((kopf, i) => (
                 <span key={i} style={{
-                  fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                  fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
                   letterSpacing: '0.04em', color: 'var(--text-tertiary)',
                 }}>{kopf}</span>
               ))}
@@ -455,7 +455,7 @@ export default function Betriebe() {
                       {/* Welche Farbe welche Stufe bedeutet, stand vorher nur
                         * im `title` — also im Tooltip, den es auf einem
                         * Berührungsgerät gar nicht gibt (UX-28). */}
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                         {stufeKurz(score)}
                       </span>
                     </div>
@@ -521,7 +521,7 @@ function MiniStat({ label, value, color, onClick, active }) {
       }}>
         {value}
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
     </Element>

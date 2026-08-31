@@ -115,7 +115,7 @@ export default function SettingsLayout() {
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-on-brand)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 {user?.first_name} {user?.last_name}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
                 {user?.role || 'Nutzer'}
               </div>
             </div>

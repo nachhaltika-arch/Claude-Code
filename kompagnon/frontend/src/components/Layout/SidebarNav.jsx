@@ -185,7 +185,7 @@ export default function SidebarNav({ badges }) {
                     <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                       {item.label}
                       {item.badgeKey && badges[item.badgeKey] > 0 && (
-                        <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700 }}>
+                        <span style={{ marginLeft: 'auto', fontSize: 12, padding: '1px 6px', borderRadius: 10, background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700 }}>
                           {badges[item.badgeKey]}
                         </span>
                       )}
@@ -326,7 +326,7 @@ export default function SidebarNav({ badges }) {
               <div style={{ fontSize: 12, fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
                 {user.first_name} {user.last_name}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              <div style={{ fontSize: 12, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
                 {user.role}
               </div>
             </div>

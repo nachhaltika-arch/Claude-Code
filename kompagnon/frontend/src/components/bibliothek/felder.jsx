@@ -18,7 +18,7 @@ export function Field({ label, children }) {
 
 export function Hint({ children }) {
   return (
-    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{children}</div>
+    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>{children}</div>
   );
 }
 

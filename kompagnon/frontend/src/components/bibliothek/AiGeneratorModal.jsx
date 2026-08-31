@@ -263,7 +263,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{result.name}</div>
                   <div style={{ fontSize: 12, color: '#64748b' }}>{result.preview_note}</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
                     {(result.slots || []).length} Slots · {(result.tags || []).join(' · ')}
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export default function AiGeneratorModal({ form, setForm, status, result, error,
                   background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6,
                   padding: 10, fontSize: 12, color: '#475569', marginBottom: 12,
                 }}>
-                  <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', color: '#64748b', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', color: '#64748b', marginBottom: 4 }}>
                     KI-Prompt-Hint:
                   </div>
                   {result.ki_prompt_hint || '(leer)'}

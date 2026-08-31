@@ -236,7 +236,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChec
               {pct}%
             </div>
             {saving && (
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Wird gespeichert…
               </div>
             )}
@@ -343,7 +343,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, gbpChec
                   }}>
                     {item.label}
                     {isAuto && (
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 6 }}>
                         (automatisch)
                       </span>
                     )}

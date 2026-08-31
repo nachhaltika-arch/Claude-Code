@@ -309,7 +309,7 @@ export default function AcademyCourse() {
                         </span>
                       ) : null}
                     </span>
-                    <span style={{ fontSize: 10, color: T.textMuted, marginRight: 8, fontFamily: T.font, flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, color: T.textMuted, marginRight: 8, fontFamily: T.font, flexShrink: 0 }}>
                       {mDone}/{mLessons.length}
                     </span>
                     <span style={{
@@ -360,7 +360,7 @@ export default function AcademyCourse() {
                             <span style={{ fontSize: 12, color, fontWeight: weight, lineHeight: 1.35, flex: 1, fontFamily: T.font }}>
                               {lesson.title}
                             </span>
-                            <span style={{ fontSize: 10, color: T.textMuted, flexShrink: 0, opacity: 0.7 }}>
+                            <span style={{ fontSize: 12, color: T.textMuted, flexShrink: 0, opacity: 0.7 }}>
                               {(TYPE_BADGE[lesson.type] || TYPE_BADGE.text).icon}
                             </span>
                           </button>

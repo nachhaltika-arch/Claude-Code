@@ -46,7 +46,7 @@ function PhaseCard({ phase, isLast }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phase {phase.number}</span>
-            {isActive && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
+            {isActive && <span style={{ fontSize: 12, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
           </div>
           {!isLocked && (
             <span style={{ fontSize: 12, fontWeight: 600, color: isDone ? 'var(--status-success-text)' : 'var(--brand-primary)' }}>
@@ -347,7 +347,7 @@ export default function KundenPortal() {
                 Sie haben diese Anleitung auch per E-Mail erhalten.
               </p>
               <div style={{ background: 'var(--bg-surface)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <span>Typ</span><span>Name</span><span>Wert</span>
                 </div>
                 {(project.netlify.guide?.records || []).map((r, i) => (
@@ -382,10 +382,10 @@ export default function KundenPortal() {
               fontSize: 13,
             }}>
               {m.sender_role !== 'kunde' && (
-                <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 3, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Team</div>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Team</div>
               )}
               {m.text}
-              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 3, textAlign: 'right' }}>
+              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 3, textAlign: 'right' }}>
                 {datumUndZeit(m.created_at, '')}
               </div>
             </div>

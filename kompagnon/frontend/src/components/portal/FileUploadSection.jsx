@@ -206,7 +206,7 @@ export function FileUploadSection({ token }) {
         {pendingFile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Dateityp
               </label>
               <select aria-label="Dateityp"
@@ -222,7 +222,7 @@ export function FileUploadSection({ token }) {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Anmerkung (optional)
               </label>
               <input aria-label="Anmerkung (optional)"
@@ -298,7 +298,7 @@ export function FileUploadSection({ token }) {
                   </div>
                   <span style={{
                     flexShrink: 0, background: tc.bg, color: tc.color,
-                    borderRadius: 6, fontSize: 10, fontWeight: 600,
+                    borderRadius: 6, fontSize: 12, fontWeight: 600,
                     padding: '2px 7px',
                   }}>
                     {FILE_TYPE_LABELS[f.file_type] || f.file_type}

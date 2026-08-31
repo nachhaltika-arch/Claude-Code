@@ -529,14 +529,21 @@ button[aria-pressed]:focus-visible {
 /* ══════════════════════════════════════════════════════════════
    TYPOGRAPHY SYSTEM
    Semantische Klassen statt roher px-Werte.
-   Mapping: 10px→micro, 12px→caption/label, 13px→body-sm,
+   Mapping: 12px→micro und caption/label, 13px→body-sm,
             15px→body, 17px→heading, 24px+→display
 
-   Am 31.08.2026 stand hier 11px für caption/label (L-17). Gemessen im
-   Browser trug diese eine Größe **ein Drittel** des sichtbaren Texts im
-   Inhaltsbereich; 12px ist die unterste Größe, die Lighthouse nicht mehr
-   als zu klein wertet. Entscheidung David. 10px→micro bleibt vorerst und
-   wird nach dieser Änderung neu gemessen — micro trägt 21 %.
+   Am 31.08.2026 standen hier nacheinander zwei Größen unter 12px, und
+   beide sind gegangen (L-17, Entscheidung David):
+
+   * **11px** trug ein Drittel des sichtbaren Texts im Inhaltsbereich.
+     Nach dem Anheben: 53,4 % → 20,9 % unter 12px.
+   * **10px** war danach der ganze Rest — 416 von 416 Zeichen. Wieder eine
+     einzige Größe, nicht tausend Stellen.
+
+   12px ist die unterste Größe, die Lighthouse nicht mehr als zu klein
+   wertet. `micro` und `caption/label` fallen damit zusammen; das ist keine
+   Nachlässigkeit, sondern das Ende einer Stufe, die es nicht mehr geben
+   darf.
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Display — große KPI-Zahlen, Hero-Überschriften ──────────── */
@@ -600,7 +607,7 @@ button[aria-pressed]:focus-visible {
 
 /* ── Micro — Badges, Status-Pillen ───────────────────────────── */
 .ty-micro {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   color: inherit;
@@ -806,7 +813,7 @@ button[aria-pressed]:focus-visible {
 }
 
 .kc-page-sub {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -815,7 +822,7 @@ button[aria-pressed]:focus-visible {
 }
 
 .kc-section-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -838,7 +845,7 @@ button[aria-pressed]:focus-visible {
 
 .kc-label {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -906,7 +913,7 @@ button[aria-pressed]:focus-visible {
   line-height: 1;
 }
 .kc-kpi-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -914,7 +921,7 @@ button[aria-pressed]:focus-visible {
   margin-top: 4px;
 }
 .kc-kpi-delta {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   margin-top: 3px;
 }
@@ -933,7 +940,7 @@ button[aria-pressed]:focus-visible {
 }
 .kc-table thead th {
   padding: 9px 14px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
   color: #fff;
   text-transform: uppercase;
@@ -968,7 +975,7 @@ button[aria-pressed]:focus-visible {
   gap: 5px;
   padding: 3px 9px;
   border-radius: var(--r-sm);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;

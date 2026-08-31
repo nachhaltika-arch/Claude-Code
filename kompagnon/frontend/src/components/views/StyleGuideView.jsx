@@ -680,7 +680,7 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
           display: 'flex', flexDirection: 'column',
           position: 'relative',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Live-Preview
           </div>
@@ -727,7 +727,7 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
           <span style={{
             background: 'var(--info-bg)', color: KC_MID,
             padding: '2px 8px', borderRadius: 4,
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
+            fontSize: 12, fontWeight: 800, letterSpacing: '0.04em',
           }}>SPACE</span>
         </button>
       </div>

@@ -22,7 +22,7 @@ export const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
       <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
         {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
       </span>
-      {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
+      {date && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{date}</span>}
       <button onClick={onCheck} title="Jetzt prüfen" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', padding: '0 2px' }}>🔄</button>
     </span>
   );

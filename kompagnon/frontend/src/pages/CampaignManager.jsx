@@ -113,7 +113,7 @@ export default function CampaignManager() {
               <div style={{ padding: '14px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Tracking-URL */}
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                     Tracking-URL
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -145,17 +145,17 @@ export default function CampaignManager() {
                 <div style={{ display: 'flex', gap: 14, padding: '8px 0' }}>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{c.lead_count || 0}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Leads</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Leads</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--status-success-text)' }}>{c.won_count || 0}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Gewonnen</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Gewonnen</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--brand-primary)' }}>
                       {c.lead_count ? Math.round(((c.won_count || 0) / c.lead_count) * 100) : 0}%
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
                   </div>
                 </div>
 

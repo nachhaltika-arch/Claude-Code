@@ -342,7 +342,7 @@ export default function LeistungsseitenWizard({
                   width: 22, height: 22, borderRadius: '50%',
                   background: i <= step ? TEAL : 'var(--border-light)',
                   color: i <= step ? '#fff' : 'var(--text-tertiary)',
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.3s',
                 }}>

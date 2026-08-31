@@ -121,7 +121,7 @@ export default function RoleManagement() {
                         <span
                           title="Diese Angabe beschreibt die Absicht — eine Sperre hängt noch nicht daran."
                           style={{
-                            fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                            fontSize: 12, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
                             background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)',
                           }}
                         >beschreibend</span>

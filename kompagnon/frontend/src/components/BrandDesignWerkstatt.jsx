@@ -196,7 +196,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
               <button onClick={suggestFonts} disabled={suggesting} style={{
                 background: 'transparent', color: 'var(--brand-primary-mid)',
                 border: '1px solid var(--border-light)', borderRadius: 5,
-                padding: '4px 10px', fontSize: 10, fontWeight: 700,
+                padding: '4px 10px', fontSize: 12, fontWeight: 700,
                 cursor: suggesting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
               }}>
                 {suggesting ? '…' : '🤖 KI-Vorschlag'}
@@ -252,7 +252,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                   border: designStyle === s ? 'none' : '0.5px solid var(--border-light)',
                   background: designStyle === s ? 'var(--brand-primary)' : 'transparent',
                   color: designStyle === s ? '#fff' : 'var(--text-secondary)',
-                  fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                 }}>
                   {s}
                 </button>

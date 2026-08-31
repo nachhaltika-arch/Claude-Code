@@ -537,14 +537,14 @@ export default function ComponentLibrary() {
                   }}>{src}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
-                  <span style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'ui-monospace, monospace', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'ui-monospace, monospace', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {it.slug}
                   </span>
                   {entwurf && <StatusBadge status="draft" />}
                   {altlast && (
                     <span
                       title={`Freigegeben, verletzt aber den Vertrag (${anzahlVerstoesse(it.contract)} Punkte)`}
-                      style={{ fontSize: 10, color: '#b45309' }}
+                      style={{ fontSize: 12, color: '#b45309' }}
                     >⚠️</span>
                   )}
                 </div>

@@ -223,7 +223,7 @@ function FnRow({ icon, label, desc, checked, onChange, autoDetected, hint }) {
               </span>
             )}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</div>
         </div>
         <div role="button" tabIndex={0} onKeyDown={aufTaste(() => onChange(!checked))}
           onClick={() => onChange(!checked)}

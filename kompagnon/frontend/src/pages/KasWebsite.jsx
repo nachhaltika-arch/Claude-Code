@@ -288,7 +288,7 @@ export default function KasWebsite() {
                   {['Titel', 'Pfad', 'Status', 'Inhalt', 'Aktionen'].map(h => (
                     <th key={h} style={{
                       textAlign: 'left', padding: '8px 12px',
-                      fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+                      fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)',
                       textTransform: 'uppercase', letterSpacing: '.06em',
                     }}>
                       {h}

@@ -216,7 +216,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
                   position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                   padding: '3px 8px', borderRadius: 5, border: 'none',
                   background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
-                  fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 }}
               >Auto</button>
             )}
@@ -397,7 +397,7 @@ function TabAssets({ product }) {
         {assetGrid.map(a => { const sc = statusColor(a.status); return (
           <div key={a.label} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', background: 'var(--bg-surface)' }}>
             <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{a.label}</div>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: sc.bg, color: sc.color }}>{a.status}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: sc.bg, color: sc.color }}>{a.status}</span>
           </div>
         ); })}
       </div>

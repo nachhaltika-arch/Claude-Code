@@ -278,7 +278,7 @@ export default function CustomerDashboard() {
                       {phase.label}
                     </div>
                     {active && (
-                      <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 600, marginTop: 2 }}>Aktuelle Phase</div>
+                      <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600, marginTop: 2 }}>Aktuelle Phase</div>
                     )}
                   </div>
                   {/* Connector */}
@@ -387,7 +387,7 @@ function RecommendationRow({ text, badge, badgeColor, badgeBg }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <span style={{
-        flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '2px 7px',
+        flexShrink: 0, fontSize: 12, fontWeight: 700, padding: '2px 7px',
         borderRadius: 'var(--radius-sm)', background: badgeBg, color: badgeColor,
         border: `1px solid ${badgeColor}30`, marginTop: 1, whiteSpace: 'nowrap',
       }}>

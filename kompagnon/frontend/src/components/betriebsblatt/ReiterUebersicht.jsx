@@ -103,7 +103,7 @@ export default function ReiterUebersicht({
                 {['#ef4444','#f59e0b','#22c55e'].map(c => (
                   <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
                 ))}
-                <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', padding: '2px 8px', fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: '1px solid var(--border-light)' }}>
+                <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', padding: '2px 8px', fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: '1px solid var(--border-light)' }}>
                   {lead.website_url || 'Keine Website'}
                 </div>
                 {lead.website_url && (
@@ -214,7 +214,7 @@ export default function ReiterUebersicht({
                     <div style={{ fontSize: 13, color: lead.geschaeftsfuehrer ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{lead.geschaeftsfuehrer || '–'}</div>
                     {/* „(auto)" sagte, woher der Wert kommt — das interessiert die
                       * Maschine, nicht den Menschen davor (UX-25). */}
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer</div>
                   </div>
                 </div>
                 {fieldRow('📍', [lead.street && `${lead.street} ${lead.house_number || ''}`.trim(), [lead.postal_code, lead.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), 'Adresse')}
@@ -226,7 +226,7 @@ export default function ReiterUebersicht({
                 * „nicht geprüft" steht ausdrücklich da: Es ist nicht dasselbe
                 * wie „fehlt". */}
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
                   Technische Prüfung
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -242,7 +242,7 @@ export default function ReiterUebersicht({
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 5 }}>
                   {geprueftAmText(profile.anreicherung)}
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function ReiterUebersicht({
                       </a>
                       {d.label && (
                         <span style={{
-                          fontSize: 10, padding: '1px 7px', borderRadius: 'var(--radius-full)',
+                          fontSize: 12, padding: '1px 7px', borderRadius: 'var(--radius-full)',
                           background: 'var(--bg-surface)', color: 'var(--text-tertiary)',
                           border: '1px solid var(--border-light)', flexShrink: 0,
                         }}>
@@ -498,7 +498,7 @@ export default function ReiterUebersicht({
                         🔐 @{lead.email.split('@')[1]}
                       </div>
                     )}
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 10 }}>
                       {qrData.portal_url.replace('https://', '')}
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

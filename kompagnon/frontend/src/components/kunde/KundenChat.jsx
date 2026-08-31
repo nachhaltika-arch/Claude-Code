@@ -133,12 +133,12 @@ export default function KundenChat({ leadId, token }) {
             }}
           >
             {!vomKunden(m) && (
-              <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.7, marginBottom: 3 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7, marginBottom: 3 }}>
                 {m.sender_name || 'KOMPAGNON'}
               </div>
             )}
             {m.content}
-            <div style={{ fontSize: 10, opacity: 0.65, marginTop: 4, textAlign: 'right' }}>
+            <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4, textAlign: 'right' }}>
               {zeitpunkt(m.created_at)}
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function KundenChat({ leadId, token }) {
           }}>
             {sendet ? 'Wird gesendet …' : 'Senden'}
           </button>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {text.length}/{HOECHSTLAENGE}
           </span>
         </div>

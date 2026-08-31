@@ -127,7 +127,7 @@ export default function Glocke() {
             position: 'absolute', top: 0, right: 0,
             minWidth: 16, height: 16, padding: '0 4px',
             borderRadius: 8, background: 'var(--status-error-text)',
-            color: '#fff', fontSize: 10, fontWeight: 700,
+            color: '#fff', fontSize: 12, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--font-sans)',
           }}>
@@ -213,7 +213,7 @@ export default function Glocke() {
                       {eintrag.hinweis}
                     </span>
                   )}
-                  <span style={{ display: 'block', fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {wieLange(eintrag.erstellt_am)}
                   </span>
                 </span>

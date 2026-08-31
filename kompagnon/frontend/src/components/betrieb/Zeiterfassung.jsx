@@ -106,7 +106,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
 
       <form onSubmit={eintragen} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)' }}>Stunden</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)' }}>Stunden</span>
           <input
             value={formular.hours}
             onChange={(e) => setFormular({ ...formular, hours: e.target.value })}
@@ -117,7 +117,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: '1 1 200px' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)' }}>Woran?</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)' }}>Woran?</span>
           <input
             value={formular.activity_description}
             onChange={(e) => setFormular({ ...formular, activity_description: e.target.value })}
@@ -146,7 +146,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {e.activity_description || '—'}
               </span>
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>
                 {e.logged_by} · {zeitpunkt(e.logged_at)}
               </span>
             </li>

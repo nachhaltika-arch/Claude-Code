@@ -157,7 +157,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   <div style={{ height: 80, background: t.preview_gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{t.icon}</div>
                   <div style={{ padding: '10px 12px', background: 'var(--bg-surface)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{t.name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{t.desc}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{t.desc}</div>
                   </div>
                 </div>
               ))}
@@ -257,7 +257,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                     cursor: 'pointer',
                   }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: selectedPage?.id === page.id ? 'var(--brand-primary)' : 'var(--text-primary)', marginBottom: 3 }}>{page.page_name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                 </div>
               ))}
             </div>
@@ -337,17 +337,17 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   )}
                 </div>
                 <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px', gap: 0, padding: '8px 18px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', position: 'sticky', top: 0 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px', gap: 0, padding: '8px 18px', background: 'var(--bg-app)', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', position: 'sticky', top: 0 }}>
                     <div>Link-Text</div><div>Ziel-URL</div><div>Status</div>
                   </div>
                   {linkReport.map((link, i) => (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px', gap: 0, padding: '9px 18px', borderBottom: '1px solid var(--border-light)', background: link.status === 'unresolved' ? 'var(--status-warning-bg)' : 'transparent' }}>
                       <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginRight: 6 }}>{link.tag}</span>{link.text || '(kein Text)'}
+                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginRight: 6 }}>{link.tag}</span>{link.text || '(kein Text)'}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.href || '\u2014'}</div>
                       <div>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                        <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                           background: link.status === 'ok' ? 'var(--status-success-bg)' : link.status === 'auto_fixed' ? 'var(--kc-mid-a-12)' : 'var(--status-warning-bg)',
                           color: link.status === 'ok' ? 'var(--status-success-text)' : link.status === 'auto_fixed' ? 'var(--brand-primary)' : 'var(--status-warning-text)',
                         }}>

@@ -256,7 +256,7 @@ export function PageCard({
         {isInherited && (
           <div style={{
             marginBottom: 4, padding: '4px 8px',
-            fontSize: 10, color: '#0e7490',
+            fontSize: 12, color: '#0e7490',
             background: '#ecfeff', border: '1px solid #a5f3fc',
             borderRadius: 4,
           }}>
@@ -266,7 +266,7 @@ export function PageCard({
         {isGroup && (
           <div style={{
             marginBottom: 4, padding: '4px 8px',
-            fontSize: 10, color: '#0e7490',
+            fontSize: 12, color: '#0e7490',
             background: '#ecfeff', border: '1px solid #a5f3fc',
             borderRadius: 4,
           }}>
@@ -291,7 +291,7 @@ export function PageCard({
             >
               + Section
             </button>
-            <div style={{ fontSize: 10, color: 'var(--border-medium)' }}>oder</div>
+            <div style={{ fontSize: 12, color: 'var(--border-medium)' }}>oder</div>
             <button
               type="button"
               onClick={(e) => {
@@ -364,7 +364,7 @@ export function PageCard({
           padding: '6px 12px',
           borderTop: '1px solid var(--border-light)',
           background: linksOpen ? '#eff6ff' : 'var(--bg-app)',
-          fontSize: 10,
+          fontSize: 12,
           cursor: 'pointer',
         }} onClick={(e) => { e.stopPropagation(); setLinksOpen((v) => !v); }}>
           {internalLinks.length > 0 && (
@@ -400,7 +400,7 @@ export function PageCard({
           padding: '8px 10px',
           background: 'var(--bg-app)',
           borderTop: '1px solid var(--border-light)',
-          fontSize: 10, color: 'var(--text-secondary)',
+          fontSize: 12, color: 'var(--text-secondary)',
           maxHeight: 200, overflowY: 'auto',
         }}>
           {internalLinks.length > 0 && (
@@ -423,7 +423,7 @@ export function PageCard({
                       display: 'flex', alignItems: 'center', gap: 4, width: '100%',
                       padding: '4px 6px', marginBottom: 2,
                       background: '#fff', border: '1px solid #dbeafe', borderRadius: 4,
-                      fontSize: 10, fontFamily: 'inherit', color: '#1e40af',
+                      fontSize: 12, fontFamily: 'inherit', color: '#1e40af',
                       cursor: 'pointer', textAlign: 'left',
                     }}
                   >
@@ -460,7 +460,7 @@ export function PageCard({
                     background: '#fff',
                     border: `1px solid ${l.unresolved ? '#fca5a5' : 'var(--border-light)'}`,
                     borderRadius: 4,
-                    fontSize: 10, color: l.unresolved ? '#991B1B' : 'var(--text-secondary)',
+                    fontSize: 12, color: l.unresolved ? '#991B1B' : 'var(--text-secondary)',
                     textDecoration: 'none',
                     overflow: 'hidden',
                   }}
@@ -588,7 +588,7 @@ export function SectionRow({
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2,
       }}>
         <span aria-hidden style={{ color: 'var(--border-medium)', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
-        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
+        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
           {idx + 1}
         </span>
         <span style={{ fontWeight: 700, color: KC_DARK, flex: 1, minWidth: 0,
@@ -609,7 +609,7 @@ export function SectionRow({
         )}
       </div>
       <div style={{
-        fontSize: 10, color: 'var(--text-secondary)',
+        fontSize: 12, color: 'var(--text-secondary)',
         lineHeight: 1.35,
         display: '-webkit-box',
         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -653,7 +653,7 @@ export function InheritedSectionRow({ sectionKey, idx }) {
       fontSize: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
+        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
           {idx + 1}
         </span>
         <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flex: 1, minWidth: 0,
@@ -662,7 +662,7 @@ export function InheritedSectionRow({ sectionKey, idx }) {
         </span>
       </div>
       <div style={{
-        fontSize: 10, color: 'var(--text-secondary)',
+        fontSize: 12, color: 'var(--text-secondary)',
         lineHeight: 1.35,
         display: '-webkit-box',
         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',

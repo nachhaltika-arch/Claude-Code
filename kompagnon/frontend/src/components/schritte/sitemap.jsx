@@ -159,7 +159,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
                   <span style={{ marginLeft: 'auto', fontSize: 9, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   background: selectedId === p.id ? 'var(--bg-app)' : 'transparent', opacity: 0.7,
                 }}>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
                 </div>
               ))}
             </>
@@ -200,7 +200,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Status */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Status</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Status</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {STATUSES.map(st => (
                   <button key={st.value} onClick={() => savePage(selected.id, { status: st.value })}
@@ -220,7 +220,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
               {/* Seitenname */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
                 {editField?.field === 'page_name' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Seitenname" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
@@ -233,7 +233,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* Seitentyp */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
                 <select aria-label="Typ" value={selected.page_type} onChange={e => savePage(selected.id, { page_type: e.target.value })} disabled={selected.ist_pflichtseite} style={inputStyle}>
                   {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -241,7 +241,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* Keyword */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
                 {editField?.field === 'ziel_keyword' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Ziel-Keyword" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
@@ -254,7 +254,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* CTA */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
                 {editField?.field === 'cta_text' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Text der Handlungsaufforderung" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
@@ -268,7 +268,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Zweck */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
               {editField?.field === 'zweck' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea aria-label="Zweck der Seite" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
@@ -284,7 +284,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Notizen */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
               {editField?.field === 'notizen' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea aria-label="Notizen" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
@@ -300,7 +300,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Template Upload */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
               {selected.mockup_html ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ fontSize: 12, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

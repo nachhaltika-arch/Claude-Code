@@ -74,7 +74,7 @@ export default function ReiterDesignseiten({
               }}>
               {PAGE_ICONS[page.page_type] || '📄'} {page.page_name}
               {(pageVersions[page.id]?.length || 0) > 0 && (
-                <span style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>
+                <span style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 6px', fontSize: 12 }}>
                   {pageVersions[page.id].length}
                 </span>
               )}

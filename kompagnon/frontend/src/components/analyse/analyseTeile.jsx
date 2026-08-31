@@ -9,7 +9,7 @@
 export function DetailLabel({ children, style }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+      fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)',
       textTransform: 'uppercase', letterSpacing: '.08em',
       marginBottom: 8, ...style,
     }}>

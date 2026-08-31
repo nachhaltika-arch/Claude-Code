@@ -685,7 +685,7 @@ export default function LeadProfile() {
   };
 
   const sectionLabel = {
-    fontSize: 10, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
@@ -700,7 +700,7 @@ export default function LeadProfile() {
         </span>
         <div>
           <div style={{ fontSize: isMobile ? 15 : 13, color: 'var(--text-primary)', lineHeight: isMobile ? 1.6 : undefined }}>{value}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{label}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>{label}</div>
         </div>
       </div>
     ) : null;
@@ -815,7 +815,7 @@ export default function LeadProfile() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 16 }}>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
               Betrieb
             </div>
 
@@ -876,7 +876,7 @@ export default function LeadProfile() {
               <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 600, color: 'white', lineHeight: 1 }}>{current_score}</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>/ 100</div>
               {current_level && (
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 6, fontWeight: 500 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 6, fontWeight: 500 }}>
                   {current_level.replace('Homepage Standard ', '')}
                 </div>
               )}
@@ -1032,7 +1032,7 @@ export default function LeadProfile() {
           >
             <span>{tab.icon}</span>{tab.label}
             {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
-              <span style={{ background: 'var(--error)', color: 'var(--text-on-brand)', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
+              <span style={{ background: 'var(--error)', color: 'var(--text-on-brand)', borderRadius: 9999, fontSize: 12, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
                 {lead.unread_messages}
               </span>
             )}
@@ -1319,7 +1319,7 @@ export default function LeadProfile() {
               </div>
               <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
+                  fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
                   background: deal.status === 'gewonnen' ? 'var(--status-success-bg)'
                     : deal.status === 'verloren' ? 'var(--status-danger-bg)' : 'var(--status-info-bg)',
                   color: deal.status === 'gewonnen' ? 'var(--status-success-text)'
@@ -1509,10 +1509,10 @@ export default function LeadProfile() {
                   onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
                 >
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{tpl.name}</div>
-                  <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
                     {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
                   </span>
-                  {tpl.created_at && <div style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                  {tpl.created_at && <div style={{ fontSize: 12, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
                 </div>
               ))}
             </div>

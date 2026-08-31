@@ -111,7 +111,7 @@ export default function OnboardingWizard({ user, onComplete }) {
           padding: '22px 28px 18px',
         }}>
           <div style={{
-            fontSize: 10, color: 'rgba(255,255,255,0.65)',
+            fontSize: 12, color: 'rgba(255,255,255,0.65)',
             fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: '0.1em', marginBottom: 4,
           }}>

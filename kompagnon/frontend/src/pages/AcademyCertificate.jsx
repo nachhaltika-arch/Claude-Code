@@ -154,7 +154,7 @@ export default function AcademyCertificate() {
           {/* ── Date + code ── */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+              <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
                 Ausstellungsdatum
               </div>
               <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 500 }}>{issuedFormatted}</div>
@@ -164,7 +164,7 @@ export default function AcademyCertificate() {
               <span style={{ fontSize: 12, color: '#1a7a3a', fontWeight: 600 }}>Verifiziert</span>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+              <div style={{ fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
                 Zertifikat-Code
               </div>
               <div style={{ fontSize: 12, color: T.textMuted, fontFamily: 'monospace', letterSpacing: '0.1em' }}>

@@ -20,7 +20,7 @@ export function SuggestButton({ field, suggestions, onSuggest, onApply, set, cur
   );
   if (s.value) return (
     <div style={{ marginTop: 8, background: '#E8F7FA', border: '1px solid #A8DDE8', borderRadius: 8, padding: '10px 12px' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-brand)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Vorschlag aus Website-Content</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-brand)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Vorschlag aus Website-Content</div>
       <div style={{ fontSize: 12, color: '#1a2e35', lineHeight: 1.6, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.value}</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => { set(field, s.value); onApply(field); }}
@@ -188,7 +188,7 @@ export function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasEr
         onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : tooLong ? 'var(--status-warning-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
       />
       {(minLength || maxLength) && (
-        <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, fontWeight: 600, color: counterColor, pointerEvents: 'none', userSelect: 'none', transition: 'color 0.2s' }}>
+        <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 12, fontWeight: 600, color: counterColor, pointerEvents: 'none', userSelect: 'none', transition: 'color 0.2s' }}>
           {len}{maxLength ? `/${maxLength}` : ''}{minLength && len < minLength ? ` (min. ${minLength})` : ''}
         </div>
       )}

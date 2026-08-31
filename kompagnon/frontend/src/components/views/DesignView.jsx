@@ -250,7 +250,7 @@ ${blocksHtml}
         <SourceBadge label="Wireframe" value={`${totalBlocks} Block${totalBlocks === 1 ? '' : 's'}`} icon="🧱" />
         <SourceBadge label="Style-Guide" value={styleHasOverrides ? 'Custom' : 'Default'} icon="🎨" />
         <div style={{ flex: 1 }} />
-        <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
           {libraryLoading ? '⟳ Templates werden geladen…' : 'Live-Vorschau aktualisiert sich automatisch'}
         </span>
       </div>
@@ -262,7 +262,7 @@ ${blocksHtml}
           background: 'var(--bg-app)', borderRight: '1px solid var(--border-light)',
           padding: 16, overflowY: 'auto',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Sitemap
           </div>
           {sitemapPages.length === 0 ? (
@@ -292,7 +292,7 @@ ${blocksHtml}
           )}
 
           <div style={{
-            fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
+            fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.1em',
             marginBottom: 8, paddingTop: 16, borderTop: '1px solid var(--border-light)',
           }}>
@@ -350,7 +350,7 @@ ${blocksHtml}
                 <span title="Pflichtseite" style={{ marginLeft: 4 }}>🔒</span>
               )}
               <span style={{ flex: 1 }} />
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, color: 'var(--text-tertiary)' }}>
                 /{slugify(activeSitemapPage.page_name)}
               </span>
             </div>
@@ -458,7 +458,7 @@ function PageButton({ label, isActive, onClick, isPflicht, hasWireframe = true, 
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {label}
       </span>
-      {isPflicht && <span aria-label="Pflichtseite" style={{ fontSize: 10 }}>🔒</span>}
+      {isPflicht && <span aria-label="Pflichtseite" style={{ fontSize: 12 }}>🔒</span>}
       {!hasWireframe && (
         <span title="Kein Wireframe" style={{ fontSize: 9, opacity: 0.7 }}>—</span>
       )}

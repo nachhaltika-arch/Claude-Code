@@ -368,7 +368,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
         {/* Header */}
         <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)', flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', color: TEAL, textTransform: 'uppercase' }}>Schritt {step + 1} von {STEPS.length}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.08em', color: TEAL, textTransform: 'uppercase' }}>Schritt {step + 1} von {STEPS.length}</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>{STEPS[step]}</div>
             {leadData?.gewerk ? (
               <div style={{ fontSize: 12, color: '#1D9E75', marginTop: 2 }}>Bestehendes Briefing wird bearbeitet</div>
@@ -564,7 +564,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
                   borderRadius: '50%',
                   background: i <= step ? TEAL : 'var(--border-light)',
                   color: i <= step ? '#fff' : 'var(--text-tertiary)',
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.3s',
                 }}>

@@ -173,7 +173,7 @@ export default function Zugaenge({ leadId, token }) {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {z.name || z.email}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {z.name ? z.email : ''}
                   {z.zuletzt_angemeldet
                     ? ` · zuletzt angemeldet ${z.zuletzt_angemeldet.slice(0, 10)}`
@@ -235,7 +235,7 @@ export default function Zugaenge({ leadId, token }) {
         }}>
           {laeuft ? 'Wird eingeladen …' : 'Einladung senden'}
         </button>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
           Der Eingeladene setzt sein Passwort über einen Link, der sieben Tage
           gilt. Ein Passwort wird nie verschickt und nirgends angezeigt.
         </div>
@@ -278,7 +278,7 @@ const feld = {
 const knopfLeise = {
   padding: '5px 10px', border: '1px solid var(--border-light)',
   borderRadius: 'var(--radius-md)', background: 'transparent',
-  color: 'var(--text-tertiary)', fontSize: 10, cursor: 'pointer',
+  color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
   whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)',
 };
 

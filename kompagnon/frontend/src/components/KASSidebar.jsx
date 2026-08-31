@@ -345,7 +345,7 @@ export default function KASSidebar({
                 <span style={{ flex: 1, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {group.label}
                 </span>
-                <span style={{ fontSize: 10, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 12, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
                   {stepsCompleted}/{group.steps.length}
                 </span>
                 <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4, transition: 'transform 0.2s', display: 'inline-block', transform: isOpenPhase ? 'rotate(180deg)' : 'rotate(0)' }}>
@@ -385,7 +385,7 @@ export default function KASSidebar({
                             cursor: isLocked ? 'not-allowed' : 'pointer',
                             opacity: isLocked ? 0.55 : 1,
                             textAlign: 'left',
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: isActive ? 700 : 500,
                             transition: 'all 0.12s',
                           }}
@@ -432,7 +432,7 @@ export default function KASSidebar({
       {/* Fortschrittsleiste */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {!collapsed && (
-          <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
+          <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
             <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fortschritt</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#fff' }}>
               {completedCount}/{SCHRITTE.length}

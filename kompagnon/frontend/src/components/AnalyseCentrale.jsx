@@ -399,7 +399,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 </div>
               )}
               {hasError && (
-                <div style={{ marginTop: 6, fontSize: 10, color: 'var(--status-danger-text)' }}>{error}</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--status-danger-text)' }}>{error}</div>
               )}
 
               {/* Einzelner Start-Button pro Schritt */}
@@ -536,13 +536,13 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                         )}
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           {page.word_count > 0 && (
-                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.word_count} W</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.word_count} W</span>
                           )}
                           {imgCount > 0 && (
-                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{imgCount} Img</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{imgCount} Img</span>
                           )}
                           {(Array.isArray(page.h2s) ? page.h2s.length : 0) > 0 && (
-                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>H2: {page.h2s.length}</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>H2: {page.h2s.length}</span>
                           )}
                         </div>
                       </div>
@@ -679,7 +679,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 );
                               })}
                               {sel.links_internal.length > 15 && (
-                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {sel.links_internal.length - 15} weitere</span>
+                                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>+ {sel.links_internal.length - 15} weitere</span>
                               )}
                             </div>
                           </div>
@@ -699,7 +699,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 );
                               })}
                               {sel.links_external.length > 12 && (
-                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {sel.links_external.length - 12} weitere</span>
+                                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>+ {sel.links_external.length - 12} weitere</span>
                               )}
                             </div>
                           </div>

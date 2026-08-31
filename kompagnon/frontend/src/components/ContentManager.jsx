@@ -19,7 +19,7 @@ const STATUS_COLOR = {
 function StatusBadge({ status }) {
   const s = STATUS_COLOR[status] || STATUS_COLOR.ausstehend;
   return (
-    <span style={{ background: s.bg, color: s.text, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10, whiteSpace: 'nowrap' }}>
+    <span style={{ background: s.bg, color: s.text, fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 10, whiteSpace: 'nowrap' }}>
       {s.label}
     </span>
   );
@@ -264,7 +264,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
           >
             <div style={{ fontSize: 28 }}>📤</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Datei hier ablegen oder klicken</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>max. 10 MB · JPG, PNG, WebP, SVG</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>max. 10 MB · JPG, PNG, WebP, SVG</div>
           </div>
           {uploading && (
             <div style={{ height: 4, background: '#E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
@@ -498,7 +498,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                 >
                   <span>{pageIcon(page.page_type)}</span>
                   <span style={{ fontSize: 13, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>{page.page_name}</span>
-                  {total > 0 && <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600 }}>{done}/{total}</span>}
+                  {total > 0 && <span style={{ fontSize: 12, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600 }}>{done}/{total}</span>}
                 </button>
               );
             })}
@@ -511,7 +511,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
           {/* Desktop: Linke Spalte — Seitennavigation */}
           {!isMobile && (
             <div style={{ width: 250, flexShrink: 0, borderRight: '1px solid var(--border-light)', overflowY: 'auto', padding: '12px 0' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
                 Pflichtseiten werden von KOMPAGNON befüllt.
               </div>
               {loading && <div style={{ padding: '20px 14px', color: 'var(--text-tertiary)', fontSize: 12 }}>Lade Seiten…</div>}
@@ -527,7 +527,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                     <span style={{ fontSize: 14 }}>{pageIcon(page.page_type)}</span>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: isActive ? 500 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</span>
                     {total > 0 && (
-                      <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
                         {done}/{total} {done === total ? '✅' : ''}
                       </span>
                     )}

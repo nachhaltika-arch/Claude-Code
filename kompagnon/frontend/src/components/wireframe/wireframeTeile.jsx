@@ -42,7 +42,7 @@ export function PageThumb({ page, library, isActive, onClick }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         background: isActive ? '#004F59' : 'var(--bg-app)',
         color: isActive ? '#fff' : '#334155',
-        fontSize: 10, fontWeight: 700,
+        fontSize: 12, fontWeight: 700,
         whiteSpace: 'nowrap', overflow: 'hidden',
       }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -176,7 +176,7 @@ export function BlockCard({
             }}
           >Fehlt</span>
         )}
-        <span style={{ color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+        <span style={{ color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>
           #{idx + 1}
         </span>
         <button
@@ -185,7 +185,7 @@ export function BlockCard({
           style={{
             background: 'transparent', color: KC_DARK,
             border: `1px solid ${KC_DARK}`, borderRadius: 4,
-            padding: '2px 8px', fontSize: 10, fontWeight: 700,
+            padding: '2px 8px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >✏️ Edit</button>
@@ -195,7 +195,7 @@ export function BlockCard({
           style={{
             background: KC_MID, color: '#fff',
             border: 'none', borderRadius: 4,
-            padding: '3px 8px', fontSize: 10, fontWeight: 700,
+            padding: '3px 8px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >🔄 Variante</button>
@@ -204,7 +204,7 @@ export function BlockCard({
           style={{
             background: 'transparent', color: KC_MID,
             border: `1px solid ${KC_MID}`, borderRadius: 4,
-            padding: '2px 8px', fontSize: 10, fontWeight: 700,
+            padding: '2px 8px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >Tauschen</button>
@@ -300,7 +300,7 @@ export function LibraryCard({ item, onPick, compact = false }) {
         <div style={{
           height: 60, background: 'var(--surface)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--text-tertiary)', fontSize: 10, fontStyle: 'italic',
+          color: 'var(--text-tertiary)', fontSize: 12, fontStyle: 'italic',
         }}>
           Keine Vorschau
         </div>

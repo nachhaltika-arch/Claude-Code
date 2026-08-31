@@ -329,7 +329,7 @@ export default function ScraperControl() {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
                   {['Datum', 'Kammer', 'Gewerk', 'Status', 'Gefunden', 'Gespeichert', 'Fehler'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                       {h}
                     </th>
                   ))}
@@ -346,7 +346,7 @@ export default function ScraperControl() {
                       <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{run.trade || '-'}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{
-                          padding: '3px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
                           background: rCfg.bg, color: rCfg.text,
                         }}>
                           {rCfg.label}

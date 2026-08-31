@@ -356,7 +356,7 @@ export function PreviewCard({ form }) {
         <div style={{
           position: 'absolute', top: 10, left: 10,
           background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
-          borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 600, padding: '2px 9px',
+          borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 9px',
         }}>{AUDIENCE_LABEL[aud] || aud || '—'}</div>
         {!form.thumbnail_url && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, opacity: 0.25 }}>🎓</div>

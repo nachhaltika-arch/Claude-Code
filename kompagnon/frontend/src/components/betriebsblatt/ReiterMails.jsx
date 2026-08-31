@@ -129,7 +129,7 @@ export default function ReiterMails({
                 display: 'flex', alignItems: 'center', gap: 10,
               }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '2px 7px',
+                  fontSize: 12, fontWeight: 600, padding: '2px 7px',
                   borderRadius: 8,
                   background: log.status === 'sent' ? '#EAF3DE' : '#FFF1F1',
                   color: log.status === 'sent' ? '#27500A' : '#A32D2D',

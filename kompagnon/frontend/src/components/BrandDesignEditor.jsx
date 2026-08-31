@@ -230,7 +230,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       </div>
 
       {/* Token-Chips */}
-      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
         Klick auf Token zum Bearbeiten
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -249,7 +249,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             <div style={{ width: 14, height: 14, borderRadius: 3, background: t.color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
             {!t.setter && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>auto</span>}
-            {t.setter && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>&#9998;</span>}
+            {t.setter && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>&#9998;</span>}
           </button>
         ))}
       </div>
@@ -322,7 +322,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             Schriften &amp; Textfarben
           </span>
           <button onClick={loadFontSuggestions} disabled={loadingSuggestions}
-            style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
+            style={{ fontSize: 12, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                      border: 'none', borderRadius: 5, padding: '4px 10px', cursor: 'pointer' }}>
             {loadingSuggestions ? '🤖…' : '🤖 KI-Vorschlag'}
           </button>
@@ -348,7 +348,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                           background: 'var(--bg-surface)', borderBottom: '0.5px solid var(--border-light)' }}>
               <div style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--brand-primary)',
                             color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
+                            fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
               {detected && detected !== value && (
                 <button onClick={() => setter(detected)} title={`Von Website: ${detected}`}
@@ -424,11 +424,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                               border: '0.5px solid var(--kc-mid-a-20)', borderRadius: 6,
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-brand)', marginBottom: 2 }}>🤖 {suggested.name}</div>
-                    <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-brand)', marginBottom: 2 }}>🤖 {suggested.name}</div>
+                    <div style={{ fontSize: 12, color: '#4A5A5C' }}>{suggested.reason}</div>
                   </div>
                   <button onClick={() => setter(suggested.name)}
-                    style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
+                    style={{ fontSize: 12, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                              border: 'none', borderRadius: 5, padding: '5px 10px',
                              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Übernehmen

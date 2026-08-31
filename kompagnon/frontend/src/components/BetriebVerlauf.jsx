@@ -121,7 +121,7 @@ export default function BetriebVerlauf({ leadId, token }) {
                 >
                   {e.titel}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                   {kurzesDatum(e.zeitpunkt)}
                   {e.hinweis ? ` · ${e.hinweis}` : ''}
                 </div>

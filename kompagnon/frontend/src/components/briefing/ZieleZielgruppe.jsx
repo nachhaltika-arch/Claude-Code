@@ -146,7 +146,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           </div>
           <button
             onClick={loadKi}
-            style={{ fontSize: 10, fontWeight: 700, background: 'transparent',
+            style={{ fontSize: 12, fontWeight: 700, background: 'transparent',
                      border: '0.5px solid #00875A44', borderRadius: 5, padding: '3px 9px',
                      cursor: 'pointer', color: '#00875A', fontFamily: 'var(--font-sans)' }}
           >
@@ -198,7 +198,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           )}
 
           {hint && (
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</div>
           )}
         </div>
       ))}

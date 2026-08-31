@@ -68,7 +68,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
             {colors.map(c => (
               <div key={c.role} style={{ textAlign: 'center' }}>
                 <div style={{ width: 52, height: 52, borderRadius: 10, background: c.hex, border: '1px solid var(--border-light)', marginBottom: 4 }} />
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>{c.role}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>{c.role}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c.hex}</div>
               </div>
             ))}

@@ -56,6 +56,57 @@ export default function AssistentPanel({
   const gesehen = useRef(new Set());
   const ende = useRef(null);
 
+  /**
+   * Woran das Gespräch hängt (L-14, 31.08.2026, Entscheidung David).
+   *
+   * **Bis heute war der Verlauf nach einem Neuladen aus der Ansicht weg** —
+   * er lebte in `useState` und sonst nirgends. In der Datenbank stand er
+   * weiter, und `GET /api/assistant/conversations/{id}` gab ihn heraus; nur
+   * rief den Endpunkt niemand.
+   *
+   * **Der Schlüssel enthält den Betrieb und das Feld**, nicht nur den
+   * Betrieb: Zwei Assistenten auf derselben Seite — einer am Briefing-Feld,
+   * einer am Schritt — sind zwei Gespräche, und sie dürfen sich nicht
+   * gegenseitig überschreiben.
+   *
+   * **`sessionStorage`, nicht `localStorage`.** Ein Formularassistent soll
+   * den Tab überleben, nicht das Gerät; und wer sich abmeldet, lässt kein
+   * Gespräch für den Nächsten liegen.
+   */
+  const merkschluessel = `kpg-assistent:${leadId ?? '?'}:${feld || '-'}:${schritt || '-'}`;
+
+  // Beim Aufbau: gibt es ein gemerktes Gespräch, wird es geladen.
+  useEffect(() => {
+    let abgebrochen = false;
+    let gemerkt = null;
+    try { gemerkt = sessionStorage.getItem(merkschluessel); } catch { /* gesperrt */ }
+    if (!gemerkt) return undefined;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/assistant/conversations/${gemerkt}`, { headers });
+        if (!res.ok) {
+          // 403 oder 404: Der Merkzettel zeigt ins Leere oder gehört einem
+          // anderen. Wegwerfen statt eine Fehlermeldung zeigen — der Nutzer
+          // hat nichts falsch gemacht, er fängt einfach neu an.
+          try { sessionStorage.removeItem(merkschluessel); } catch { /* egal */ }
+          return;
+        }
+        const body = await res.json();
+        if (abgebrochen) return;
+        setGespraech(body.conversation_id);
+        setEskaliert(Boolean(body.eskaliert));
+        setVerlauf((body.messages || []).map(m => ({ rolle: m.rolle, inhalt: m.inhalt })));
+      } catch {
+        // Kein Rückfall auf „kein Gespräch": Es wurde nicht gelesen, nicht
+        // festgestellt, dass keines da ist. Der Nutzer schreibt einfach weiter.
+      }
+    })();
+
+    return () => { abgebrochen = true; };
+  }, [merkschluessel, headers]);
+
   useEffect(() => {
     if (ende.current) ende.current.scrollIntoView({ block: 'nearest' });
   }, [verlauf, laeuft]);
@@ -106,6 +157,11 @@ export default function AssistentPanel({
         throw new Error(typeof detail === 'string' ? detail : `Fehler ${res.status}`);
       }
       setGespraech(body.conversation_id);
+      try {
+        if (body.conversation_id) {
+          sessionStorage.setItem(merkschluessel, String(body.conversation_id));
+        }
+      } catch { /* privater Modus: dann eben nur für diese Ansicht */ }
       setVerlauf((v) => [...v, { rolle: 'assistent', inhalt: body.antwort }]);
       setHinweis(body.hinweis || '');
       if (body.vorschlag) setVorschlag({ text: body.vorschlag, feld: body.feld || feld });
@@ -249,7 +305,7 @@ export default function AssistentPanel({
             background: '#fff', border: `1px solid ${LILA_RAND}`, borderRadius: 8,
             padding: 10, display: 'flex', flexDirection: 'column', gap: 8,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#6b21a8',
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#6b21a8',
                           textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Vorschlag für „{vorschlag.feld || feld}"
             </div>

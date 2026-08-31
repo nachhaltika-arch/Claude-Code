@@ -103,7 +103,7 @@ export default function BottomNav() {
                   >
                     <span style={{ fontSize: 22 }}>{item.icon}</span>
                     <span style={{
-                      fontSize: 10, fontWeight: 700,
+                      fontSize: 12, fontWeight: 700,
                       color: active ? 'var(--brand-primary)' : '#4A5A5C',
                       textTransform: 'uppercase',
                       letterSpacing: '.04em',
@@ -178,7 +178,7 @@ export default function BottomNav() {
 
               {/* Label */}
               <span style={{
-                fontSize: 10, fontWeight: active ? 700 : 400,
+                fontSize: 12, fontWeight: active ? 700 : 400,
                 color: active ? 'var(--kc-yellow)' : 'rgba(255,255,255,.4)',
                 textTransform: 'uppercase', letterSpacing: '.04em',
                 fontFamily: 'var(--font-sans)',

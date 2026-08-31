@@ -170,8 +170,8 @@ export default function AcademyCustomerSection({ leadId }) {
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{row.total_lessons > 0 ? `${row.completed}/${row.total_lessons}` : '—'}</span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: row.progress_pct === 100 ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>{row.progress_pct}%</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{row.total_lessons > 0 ? `${row.completed}/${row.total_lessons}` : '—'}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: row.progress_pct === 100 ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>{row.progress_pct}%</span>
                     </div>
                     <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ width: `${row.progress_pct}%`, height: '100%', background: row.progress_pct === 100 ? 'var(--status-success-text)' : 'var(--brand-primary)', borderRadius: 3, transition: 'width 0.4s' }} />

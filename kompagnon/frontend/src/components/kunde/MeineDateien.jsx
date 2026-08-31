@@ -164,7 +164,7 @@ export default function MeineDateien({ leadId, token }) {
               <span style={{ color: 'var(--text-tertiary)' }}>
                 {d.file_type} · {groesse(d.file_size)}
               </span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>
                 {d.uploaded_by_role === 'kunde' ? 'von Ihnen' : 'von KOMPAGNON'}
               </span>
             </li>

@@ -187,7 +187,7 @@ function PflichtseiteRow({ page, onEdit }) {
         <span style={{ fontWeight: 700, fontSize: 13, color: '#6B7280' }}>{page.page_name}</span>
       </div>
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+        fontSize: 12, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
         background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap',
       }}>⚖️ Pflicht</span>
       <StatusBadge status={page.status} />

@@ -94,7 +94,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
                               background: 'var(--bg-app)',
                               border: '0.5px solid var(--border-light)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 10, color: 'var(--text-tertiary)' }}>
+                              fontSize: 12, color: 'var(--text-tertiary)' }}>
                   +{status.fotos.anzahl - 3}
                 </div>
               )}
@@ -173,7 +173,7 @@ function AssetRow({ icon, label, checked, onChange, autoDetected, autoLabel, det
             )}
           </div>
           {!checked && uncheckedHint && (
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{uncheckedHint}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{uncheckedHint}</div>
           )}
           {detail}
         </div>

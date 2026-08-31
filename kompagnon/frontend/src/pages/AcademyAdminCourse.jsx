@@ -428,7 +428,7 @@ export default function AcademyAdminCourse() {
 
           {/* Preview card */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
               Vorschau
             </div>
             <PreviewCard form={form} />

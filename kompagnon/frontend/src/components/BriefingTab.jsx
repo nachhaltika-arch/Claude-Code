@@ -334,9 +334,9 @@ export default function BriefingTab({ lead, isMobile }) {
                     <span style={{ fontSize: 14 }}>{s.icon}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.label}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{filledFields}/{s.fields.length}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{filledFields}/{s.fields.length}</div>
                     </div>
-                    {filledFields === s.fields.length && <span style={{ fontSize: 10, color: 'var(--status-success-text)' }}>✓</span>}
+                    {filledFields === s.fields.length && <span style={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓</span>}
                   </button>
                 );
               })}
@@ -350,7 +350,7 @@ export default function BriefingTab({ lead, isMobile }) {
                 <span style={{ fontSize: 14 }}>⭐</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: activeSection === 'freigaben' ? 600 : 400, color: activeSection === 'freigaben' ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Freigaben</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{freigabenCount}/{FREIGABEN.length}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{freigabenCount}/{FREIGABEN.length}</div>
                 </div>
               </button>
             </div>
@@ -378,9 +378,9 @@ export default function BriefingTab({ lead, isMobile }) {
                     }}>{done ? '✓' : ''}</button>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 500, color: done ? 'var(--status-success-text)' : 'var(--text-primary)' }}>{f.label}</div>
-                      {done && fg.datum && <div style={{ fontSize: 10, color: 'var(--status-success-text)', opacity: 0.8, marginTop: 1 }}>Freigegeben am {fg.datum}</div>}
+                      {done && fg.datum && <div style={{ fontSize: 12, color: 'var(--status-success-text)', opacity: 0.8, marginTop: 1 }}>Freigegeben am {fg.datum}</div>}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>Phase {f.phase}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>Phase {f.phase}</div>
                   </div>
                 );
               })}
@@ -418,7 +418,7 @@ export default function BriefingTab({ lead, isMobile }) {
                   </button>
                   {localData.zielgruppe?.analyse && (
                     <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         KI-Analyse{localData.zielgruppe?.analyse_datum && ` · ${localData.zielgruppe.analyse_datum}`}
                       </div>
                       {localData.zielgruppe.analyse}
@@ -444,7 +444,7 @@ export default function BriefingTab({ lead, isMobile }) {
                   </button>
                   {localData.wettbewerb?.analyse && (
                     <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         KI-Wettbewerbsanalyse{localData.wettbewerb?.region && ` · ${localData.wettbewerb.region}`}{localData.wettbewerb?.analyse_datum && ` · ${localData.wettbewerb.analyse_datum}`}
                       </div>
                       {localData.wettbewerb.analyse}

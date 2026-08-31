@@ -332,7 +332,7 @@ export default function ProjectFilesSection({ customerId, token }) {
             <div style={{
               display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 130px 80px',
               minWidth: 560, gap: 10, padding: '6px 12px',
-              fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
+              fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '0.06em',
               borderBottom: '1px solid var(--border-light)',
             }}>

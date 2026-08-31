@@ -17,7 +17,7 @@ export const S = {
     transition: 'border-color 0.15s',
   },
   label: {
-    display: 'block', fontSize: 10, fontWeight: 600,
+    display: 'block', fontSize: 12, fontWeight: 600,
     color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 5,
   },

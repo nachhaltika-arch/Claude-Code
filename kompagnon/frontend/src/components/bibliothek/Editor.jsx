@@ -43,7 +43,7 @@ export default function Editor({
         <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
           {isNew ? 'Neue Komponente' : form.name || form.slug}
           {!isNew && <StatusBadge status={form.status} />}
-          {dirty && <span style={{ fontSize: 10, color: '#92400e', background: '#FEF3C7', padding: '2px 6px', borderRadius: 4 }}>UNGESPEICHERT</span>}
+          {dirty && <span style={{ fontSize: 12, color: '#92400e', background: '#FEF3C7', padding: '2px 6px', borderRadius: 4 }}>UNGESPEICHERT</span>}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {!isNew && (
@@ -202,7 +202,7 @@ export default function Editor({
 
         {/* Preview column */}
         <div style={{ flex: 1, overflowY: 'auto', background: '#f8fafc', padding: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
             Live-Preview (mit Default-Slots)
           </div>
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', pointerEvents: 'none' }}>

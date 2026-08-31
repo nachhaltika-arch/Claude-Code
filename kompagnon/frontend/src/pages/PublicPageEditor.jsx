@@ -173,7 +173,7 @@ export default function PublicPageEditor() {
             <span style={{ fontWeight: 600, color: '#fff' }}>{pageInfo.name}</span>
             <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{pageInfo.slug}</span>
             <span style={{
-              padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700,
+              padding: '2px 7px', borderRadius: 3, fontSize: 12, fontWeight: 700,
               background: pageInfo.status === 'live' ? '#d1fae5' : '#fef3c7',
               color:      pageInfo.status === 'live' ? '#065f46' : '#92400e',
             }}>

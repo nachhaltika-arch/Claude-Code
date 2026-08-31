@@ -56,7 +56,7 @@ export function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasEr
       />
       {maxLength && (
         <div style={{
-          position: 'absolute', bottom: 8, right: 10, fontSize: 10, fontWeight: 600,
+          position: 'absolute', bottom: 8, right: 10, fontSize: 12, fontWeight: 600,
           color: counterColor, pointerEvents: 'none', userSelect: 'none', transition: 'color 0.2s',
         }}>
           {len}/{maxLength}

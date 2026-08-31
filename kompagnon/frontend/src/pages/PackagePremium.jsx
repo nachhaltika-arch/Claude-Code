@@ -182,7 +182,7 @@ export default function PackagePremium() {
           }}>
             <div style={{
               display: 'inline-block', background: '#7c3aed', color: 'white',
-              fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
+              fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12,
             }}>Premium</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
@@ -244,7 +244,7 @@ export default function PackagePremium() {
               </div>
               {BASE.map(item => (
                 <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--status-success-bg)', color: '#1a7a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>✓</div>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--status-success-bg)', color: '#1a7a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>✓</div>
                   <span style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.4 }}>{item}</span>
                 </div>
               ))}
@@ -259,7 +259,7 @@ export default function PackagePremium() {
               </div>
               {EXTRA.map(item => (
                 <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>+</div>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>+</div>
                   <span style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.4 }}>{item}</span>
                 </div>
               ))}

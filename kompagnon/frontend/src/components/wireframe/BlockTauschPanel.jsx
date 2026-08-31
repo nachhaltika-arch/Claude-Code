@@ -80,7 +80,7 @@ export default function BlockTauschPanel({
               borderRadius: 4,
               background: activeCategory === cat ? KC_DARK : 'transparent',
               color: activeCategory === cat ? '#fff' : 'var(--text-secondary)',
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               cursor: 'pointer',
               textTransform: 'uppercase',
@@ -111,7 +111,7 @@ export default function BlockTauschPanel({
             borderRadius: 8,
           }}>
             <div style={{
-              fontSize: 10, fontWeight: 800, color: '#92400E',
+              fontSize: 12, fontWeight: 800, color: '#92400E',
               textTransform: 'uppercase', letterSpacing: '0.06em',
               marginBottom: 6, padding: '0 2px',
             }}>

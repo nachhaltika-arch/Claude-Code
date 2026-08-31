@@ -291,7 +291,7 @@ export function AddSectionDialog({ existingSections, onClose, onPick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const lblStyle = {
-  display: 'block', fontSize: 10, fontWeight: 700,
+  display: 'block', fontSize: 12, fontWeight: 700,
   color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em',
   marginBottom: 4,
 };

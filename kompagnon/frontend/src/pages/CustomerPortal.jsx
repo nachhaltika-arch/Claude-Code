@@ -181,7 +181,7 @@ export default function CustomerPortal() {
           )}
           <form onSubmit={handleVerify}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input aria-label="Ihre geschäftliche E-Mail" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
                 style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
                 onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
@@ -475,7 +475,7 @@ export default function CustomerPortal() {
                         <div style={{ fontSize: 13, fontWeight: istAktiv ? 600 : 500, color: istAbgeschlossen ? 'var(--success)' : istAktiv ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                           {phase.icon} {phase.label}
                           {istAktiv && (
-                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
+                            <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
                               Aktuell
                             </span>
                           )}
@@ -556,7 +556,7 @@ export default function CustomerPortal() {
                     * Gruen zitieren hier ein Fenster — sie melden keinen
                     * Zustand und folgen deshalb keinem Statuston. */}
                   {['#ef4444', '#f59e0b', '#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
-                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 6 }}>{data.website_url}</div>
+                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 6 }}>{data.website_url}</div>
                 </div>
                 <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
               </div>
@@ -626,7 +626,7 @@ export default function CustomerPortal() {
                   const isAdmin = m.sender_role === 'admin';
                   return (
                     <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-start' : 'flex-end' }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
                         <span style={{ fontWeight: 600 }}>{isAdmin ? 'KOMPAGNON' : 'Sie'}</span>
                         <span>{fmtTime(m.created_at)}</span>
                       </div>

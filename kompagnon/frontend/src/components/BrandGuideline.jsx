@@ -223,7 +223,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
 
               {g.css_variables && (
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>
                     CSS Variables
                   </div>
                   <div style={{
@@ -339,7 +339,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                       <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                         --space-{tk}
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{value}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{value}</div>
                     </div>
                   );
                 })}
@@ -369,7 +369,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Buttons */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Buttons</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Buttons</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {['button_primary', 'button_secondary', 'button_accent'].map(key => {
                     const s = g.components?.[key] || {};
@@ -394,7 +394,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
 
               {/* Card */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Karte</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Karte</div>
                 {(() => {
                   const s = g.components?.card || {};
                   return (
@@ -420,7 +420,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
               {/* Voice & Tone */}
               {g.voice_tone && (
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Voice & Tone</div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Voice & Tone</div>
                   <div style={{ background: 'var(--bg-app)', borderRadius: 8, padding: '12px 14px' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{g.voice_tone.charakter}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Ansprache: <strong>{g.voice_tone.ansprache}</strong></div>
@@ -558,7 +558,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
               </div>
               <pre style={{
                 background: '#1a1a2e', color: '#a8b2d8', borderRadius: 8,
-                padding: '12px 14px', fontFamily: 'monospace', fontSize: 10,
+                padding: '12px 14px', fontFamily: 'monospace', fontSize: 12,
                 lineHeight: 1.7, overflowX: 'auto', maxHeight: 320, margin: 0,
               }}>
                 {JSON.stringify(g, null, 2)}

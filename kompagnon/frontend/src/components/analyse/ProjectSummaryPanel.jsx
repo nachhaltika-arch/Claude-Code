@@ -138,22 +138,22 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
 
             {/* KI Design Brief */}
             {designData.design_brief?.fuer_ki_prompt && (
-              <details style={{ fontSize: 10 }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary-mid)', fontWeight: 600, fontSize: 10 }}>
+              <details style={{ fontSize: 12 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary-mid)', fontWeight: 600, fontSize: 12 }}>
                   KI-Design-Brief
                 </summary>
-                <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid var(--border-light)' }}>
+                <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 6, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid var(--border-light)' }}>
                   {designData.design_brief.fuer_ki_prompt}
                 </div>
                 <button onClick={() => navigator.clipboard?.writeText(designData.design_brief.fuer_ki_prompt)}
-                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>
+                  style={{ marginTop: 4, fontSize: 12, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>
                   Kopieren
                 </button>
               </details>
             )}
 
             {!designData.design_brief && designData.style_beschreibung && (
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontStyle: 'italic' }}>{designData.style_beschreibung}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontStyle: 'italic' }}>{designData.style_beschreibung}</div>
             )}
           </div>
         ) : brand?.primary_color ? (
@@ -161,7 +161,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
             {[brand.primary_color, brand.secondary_color].filter(Boolean).map((c, i) => (
               <div key={i} style={{ width: 20, height: 20, borderRadius: 4, background: c, border: '1px solid var(--border-light)' }} />
             ))}
-            {brand.font_primary && <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 4 }}>{brand.font_primary}</span>}
+            {brand.font_primary && <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 4 }}>{brand.font_primary}</span>}
           </div>
         ) : (
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Brand-Scan starten</div>

@@ -99,9 +99,29 @@ GESPERRT_VERAENDERND = (
 # Routen sperrt, nimmt einem Menschen ohne Konto etwas weg, das er braucht.
 
 OEFFENTLICH_MIT_GRUND = (
+    # **Diese Begründung stimmt seit dem 31.08.2026 nicht mehr, und sie stand
+    # schon vorher auf wackligem Grund.** `websprint-landing.html` lag im Repo
+    # und wurde von **nichts** ausgeliefert — kein Blueprint, kein Bauskript,
+    # keine Route. Sie ist an diesem Tag gelöscht worden (L-20); wiederzufinden
+    # in `f7f2660`.
+    #
+    # **Am selben Tag gemessen, wer die Route wirklich ruft:** Die Live-Seite
+    # `websprint.kompagnon.eu` (1,01 MB) enthält `audit/start` **null Mal**;
+    # sie bettet das Widget als iframe ein, und das Widget spricht
+    # `/api/widget/*`. Im Repo rufen die Route nur `AuditTool`,
+    # `AuditHistorySection` und `useAudit` — alle drei hinter `PrivateRoute`
+    # mit Rollen.
+    #
+    # **Damit hat diese offene Route keinen bekannten öffentlichen Aufrufer.**
+    # Sie bleibt trotzdem offen: Ein alter Einbettungscode auf einer fremden
+    # Seite wäre von hier aus nicht zu sehen, und wer eine öffentliche Route
+    # aufgrund einer Abwesenheit schließt, schließt sie für jemanden, den er
+    # nicht gefragt hat. **Schließen ist Davids Entscheidung** — das
+    # Protokoll des Produktivdienstes beantwortet sie in einer Minute.
     ("post", "/api/audit/start",
-     "Die öffentliche Landingpage (websprint-landing.html) startet damit das "
-     "Gratis-Audit — der Interessent hat kein Konto und soll keines brauchen."),
+     "Das Gratis-Audit der öffentlichen Seite — der Interessent hat kein "
+     "Konto und soll keines brauchen. Kein Aufrufer mehr nachweisbar "
+     "(31.08.2026), offen gelassen bis David es entscheidet."),
     ("post", "/api/leads/public",
      "Dasselbe Formular, derselbe Grund."),
     ("get", "/api/academy/certificates/abc/verify",

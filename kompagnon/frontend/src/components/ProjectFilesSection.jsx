@@ -211,7 +211,7 @@ export default function ProjectFilesSection({ leadId }) {
           <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Dateien hochgeladen.</div>
         ) : (
           <div style={{ overflowX: 'auto', marginTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
               <span>Typ</span><span>Dateiname</span><span>Größe</span><span>Von</span><span>Datum</span><span>Aktionen</span>
             </div>
             {files.map(f => {
@@ -240,7 +240,7 @@ export default function ProjectFilesSection({ leadId }) {
                         </button>
                         {isImageFile(f.original_filename) && (
                           <button onClick={() => handleSendToEditor(f)} title="In GrapesJS-Editor laden" style={{
-                            padding: '3px 7px', fontSize: 10, fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                            padding: '3px 7px', fontSize: 12, fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
                             background: sentToEditorId === f.id ? 'var(--status-success-bg)' : 'var(--brand-primary-light)',
                             border: `1px solid ${sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-mid, var(--border-light))'}`,
                             color: sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-dark)',

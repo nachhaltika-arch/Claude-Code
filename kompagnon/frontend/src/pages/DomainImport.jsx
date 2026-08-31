@@ -242,7 +242,7 @@ export default function DomainImport() {
                       <div key={kpi.label} style={{ background: kpi.bg, borderRadius: 'var(--radius-md)', padding: '10px 12px', textAlign: 'center' }}>
                         <div style={{ fontSize: 16 }}>{kpi.icon}</div>
                         <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color, lineHeight: 1.2 }}>{kpi.value}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
                       </div>
                     ))}
                   </div>
@@ -285,7 +285,7 @@ export default function DomainImport() {
                             {r.domain}
                           </div>
                           {r.exists && r.company_name && (
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>
                               {r.company_name}{r.status && <> · {r.status}</>}
                             </div>
                           )}
@@ -295,7 +295,7 @@ export default function DomainImport() {
                             {r.score}/100
                           </span>
                         )}
-                        {r.exists && r.lead_id && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>öffnen ↗</span>}
+                        {r.exists && r.lead_id && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>öffnen ↗</span>}
                       </div>
                     ))}
                     {checkResult.new_count === 0 && (
@@ -371,7 +371,7 @@ export default function DomainImport() {
                   <div key={kpi.label} style={{ background: kpi.bg, borderRadius: 'var(--radius-md)', padding: '10px 12px', textAlign: 'center' }}>
                     <div style={{ fontSize: 18, marginBottom: 2 }}>{kpi.icon}</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.count}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
                   </div>
                 ))}
               </div>
@@ -395,7 +395,7 @@ export default function DomainImport() {
                     <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.company_name || r.url.replace('https://', '')}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{r.url.replace('https://', '')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{r.url.replace('https://', '')}</div>
                   </div>
                   {r.score !== undefined && (
                     <div style={{ fontSize: 12, fontWeight: 700, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>{r.score}/100</div>

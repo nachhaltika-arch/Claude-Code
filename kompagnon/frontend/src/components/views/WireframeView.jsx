@@ -407,10 +407,10 @@ export default function WireframeView({
         overflowX: 'auto', overflowY: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Pages · {pages.length}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             Klick auf eine Page um sie unten zu bearbeiten
           </div>
         </div>

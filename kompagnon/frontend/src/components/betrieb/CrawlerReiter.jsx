@@ -200,7 +200,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
                 { label: 'URL-Limit', value: 50 },
               ].map(c => (
                 <div key={c.label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{c.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{c.label}</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: c.color || 'var(--text-primary)' }}>{c.value}</div>
                 </div>
               ))}
@@ -291,7 +291,7 @@ export default function CrawlerReiter({ leadId, lead, token }) {
                             <td style={{ padding: '7px 12px', maxWidth: 400 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                                 <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none', fontSize: 12, wordBreak: 'break-all' }}>{r.url}</a>
-                                <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                                <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
                               </div>
                             </td>
                           </tr>

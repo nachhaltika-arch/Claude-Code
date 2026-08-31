@@ -144,7 +144,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
         <div style={{ background: 'linear-gradient(135deg, #0f1e3a 0%, #1a3a5c 100%)', padding: isMobile ? '24px 20px' : '28px 32px', color: 'white' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Persönliches Angebot für</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Persönliches Angebot für</div>
               <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: 4 }}>{lead.display_name || lead.company_name}</div>
               {lead.city && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>📍 {lead.city}{lead.trade && ` · ${lead.trade}`}</div>}
             </div>
@@ -198,7 +198,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
         <div style={{ background: '#0f1e3a', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, fontSize: 12 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Leistung</div>
           {PACKAGES.map(p => (
-            <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 10 }}>{p.name}</div>
+            <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 12 }}>{p.name}</div>
           ))}
         </div>
         {COMPARE_MIT_PREIS.map((row, i) => (

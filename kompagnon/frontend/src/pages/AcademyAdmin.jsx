@@ -156,7 +156,7 @@ export default function AcademyAdmin() {
             display: 'grid', gridTemplateColumns: '28px 44px 1fr auto',
             gap: 12, padding: '8px 16px',
             background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
-            fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '0.06em',
           }}>
             <span />
@@ -240,7 +240,7 @@ export default function AcademyAdmin() {
                     {/* Audience badge */}
                     {aud && (
                       <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px',
+                        fontSize: 12, fontWeight: 600, padding: '2px 8px',
                         borderRadius: 'var(--radius-full)',
                         background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)',
                         letterSpacing: '0.02em',

@@ -266,7 +266,7 @@ export default function Newsletter() {
             borderRadius: '8px 8px 0 0',
           }}>
             {['Betreff', 'Status', 'Erstellt', 'Versendet', 'Aktionen'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
+              <span key={h} style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
             ))}
           </div>
 
@@ -435,7 +435,7 @@ export default function Newsletter() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--brand-primary)' }}>{l.contact_count}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Kontakte</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Kontakte</div>
                   </div>
                 </div>
                 {l.description && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{l.description}</div>}

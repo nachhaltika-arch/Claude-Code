@@ -106,7 +106,7 @@ export default function KiReportPanel({ projectId, leadId, token }) {
               { label: 'Bereit für Content', value: (report.completeness_score ?? 0) >= 60 ? 'Ja' : 'Nein', color: (report.completeness_score ?? 0) >= 60 ? 'var(--success)' : '#dc2626' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontSize: 24, fontWeight: 900, color }}>{value}</div>
               </div>
             ))}

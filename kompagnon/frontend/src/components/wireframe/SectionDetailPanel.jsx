@@ -176,7 +176,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
   };
 
   const lblStyle = {
-    display: 'block', fontSize: 10, fontWeight: 700,
+    display: 'block', fontSize: 12, fontWeight: 700,
     color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em',
     marginBottom: 4,
   };
@@ -416,7 +416,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
         {/* Slots */}
         {hasSlots ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Slots ({slots.length})
             </div>
             {slots.map((s) => (
@@ -480,7 +480,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                     rows={12}
                     style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12, resize: 'vertical' }}
                   />
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                     Wird nur sichtbar wenn du als Custom-Section speicherst.
                   </div>
                 </>

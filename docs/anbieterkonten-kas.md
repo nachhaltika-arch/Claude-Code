@@ -1,7 +1,25 @@
 # Eigene Anbieterkonten für KAS
 
-> Angelegt am 2026-08-31. Entscheidung David: Die KI-Sichtbarkeitsanalyse
-> läuft nicht länger über private Konten.
+> Angelegt am 2026-08-31.
+>
+> **Zurückgestellt am selben Tag — Entscheidung David: „wir lassen die APIs
+> erstmal so wie sie sind."** Die Analyse läuft weiter über die privaten
+> Konten. Dieses Dokument ist damit **kein offener Auftrag**, sondern eine
+> fertige Anleitung, die wartet.
+>
+> **Was das bewusst in Kauf nimmt** — damit es niemand später für ein
+> Versehen hält:
+>
+> * Der OpenAI-Schlüssel steht auf `Owned by: You`. Fällt das private Konto
+>   aus, fällt die KI-Sichtbarkeit mit aus.
+> * Die Rechnungen laufen privat und sind nachträglich nicht umzuschreiben.
+> * Es gibt keine Ausgabengrenze. Bei gemessenen 0,19 $ je Kunde und Monat
+>   ist das bei wenigen Kunden vertretbar — es ist eine Frage der Zahl der
+>   Kunden, nicht des Prinzips.
+>
+> **Wann die Entscheidung neu zu treffen ist:** sobald das Abo verkauft wird
+> und Kunden dafür zahlen. Ab da ist ein Dienst, der an einem privaten Konto
+> hängt, kein Sparen mehr, sondern ein Ausfallrisiko mit Rechnung.
 
 ## Warum das kein Aufräumen ist
 

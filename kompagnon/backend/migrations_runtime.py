@@ -1596,6 +1596,31 @@ def run_migrations():
             WHERE is_verified = false
               AND (created_at IS NULL
                    OR created_at < TIMESTAMP '2026-08-28 00:00:00')""",
+        # ── 31.08.2026: die zweite Achse der Zeiterfassung (L-101) ──
+        # ABO-PRO sagt zwei Stunden **je Monat und Kunde** zu. Gezaehlt wurde
+        # bisher je **Projekt und Bauphase** — eine andere Achse, und ein Abo
+        # hat gar kein Projekt, gegen das gebucht wuerde.
+        #
+        # **`project_id` wird nullable**, sonst braeuchte jede Abo-Zeile ein
+        # erfundenes Projekt. `DROP NOT NULL` ist in Postgres nicht
+        # idempotent-freundlich formulierbar wie `ADD COLUMN IF NOT EXISTS`;
+        # zweimal ausgefuehrt ist es aber folgenlos, und genau das ist hier
+        # die Bedingung.
+        "ALTER TABLE time_tracking ALTER COLUMN project_id DROP NOT NULL",
+        "ALTER TABLE time_tracking ADD COLUMN IF NOT EXISTS lead_id INTEGER",
+        "ALTER TABLE time_tracking ADD COLUMN IF NOT EXISTS abrechnungsmonat VARCHAR(7)",
+        "CREATE INDEX IF NOT EXISTS ix_time_tracking_lead_monat "
+        "ON time_tracking (lead_id, abrechnungsmonat)",
+        # **Genau eine Achse je Zeile — und zwar in der Datenbank.**
+        # Der Dienst prueft es ebenfalls, aber ein SQL-Skript oder eine
+        # spaetere Einspielung geht am Dienst vorbei. Eine Zeile mit beiden
+        # Bezuegen zaehlte doppelt, eine ohne beide gar nicht — und beides
+        # faellt in einer Summe nicht auf.
+        """DO $$ BEGIN
+               ALTER TABLE time_tracking ADD CONSTRAINT ck_time_tracking_eine_achse
+                   CHECK ((project_id IS NULL) <> (lead_id IS NULL));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

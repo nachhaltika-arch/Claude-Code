@@ -16,6 +16,7 @@ import { datumKurz } from '../../utils/datum';
 import { befundZeilen, geprueftAmText } from '../../utils/anreicherung';
 import { aufTaste } from '../../utils/tastaturBedienung';
 import Zeiterfassung from '../betrieb/Zeiterfassung';
+import AboZeiten from '../betrieb/AboZeiten';
 
 export default function ReiterUebersicht({
   isMobile,
@@ -454,6 +455,16 @@ export default function ReiterUebersicht({
                 phase={projectData?.status ? Number(String(projectData.status).replace('phase_', '')) || null : null}
                 token={token} />
             )}
+
+            {/* Pflegestunden (31.08.2026, Entscheidung David — L-101). Die
+              * zweite Achse: je Monat und Betrieb statt je Projekt und
+              * Bauphase. ABO-PRO sagt zwei Stunden im Monat zu; ohne
+              * zaehlbare Stunden ist das eine unbegrenzte Zusage.
+              *
+              * Sie steht **ohne** `projectId`-Bedingung, weil ein Abo gar
+              * kein Projekt hat — genau daran ist der Eintrag haengen
+              * geblieben. */}
+            <AboZeiten leadId={lead.id} token={token} />
 
             {(lead.vat_id || lead.register_number || lead.register_court) && (
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>

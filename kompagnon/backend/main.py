@@ -382,6 +382,11 @@ app.include_router(leads_profil.router)
 # demselben Praefix — ohne diese Zeile fehlt die Route lautlos.
 from routers import leads_briefing
 app.include_router(leads_briefing.router)
+# Die Abo-Achse der Zeiterfassung (L-101, 31.08.2026) — Pflegestunden je Monat
+# und Betrieb. Wieder eigener Router mit demselben Praefix, und wieder gilt:
+# ohne diese Zeile fehlen die zwei Routen lautlos.
+from routers import leads_abo
+app.include_router(leads_abo.router)
 app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router

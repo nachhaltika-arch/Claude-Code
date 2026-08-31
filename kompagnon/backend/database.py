@@ -474,12 +474,41 @@ class Customer(Base):
 
 
 class TimeTracking(Base):
-    """Track hours spent on each project phase."""
+    """Erfasste Stunden — auf zwei Achsen, seit dem 31.08.2026.
+
+    **Die Herstellungsachse** (`project_id`, `phase`) zaehlt, was ein Projekt
+    gekostet hat. Daraus rechnet `MarginCalculator` die Marge.
+
+    **Die Pflegeachse** (`lead_id`, `abrechnungsmonat`) zaehlt, was im Rahmen
+    des Pflege-Abos fuer einen Betrieb geleistet wurde. ABO-PRO sagt zwei
+    Stunden **je Monat und Kunde** zu — das ist eine andere Frage als „was hat
+    dieses Projekt gekostet", und ein Abo hat gar kein Projekt, gegen das
+    gebucht wuerde.
+
+    **Warum eine Tabelle und nicht zwei** (Entscheidung David, 31.08.2026):
+    Es ist derselbe Vorgang — jemand hat gearbeitet und traegt Stunden ein.
+    Zwei Tabellen haetten zwei Eingaben, zwei Auswertungen und irgendwann
+    einen Abgleich gebraucht; genau dieses Muster hat hier schon zweimal Zeit
+    gekostet (`customers` neben `usercards`).
+
+    **Genau eine Achse je Zeile.** `project_id` **oder** `lead_id`, nie beides
+    und nie keines — sonst zaehlte eine Stunde doppelt oder gar nicht.
+    Durchgesetzt von `services/abo_stunden.py` und einer Pruefbedingung in der
+    Datenbank.
+
+    **`abrechnungsmonat` ist gesetzt und nicht gerechnet.** Wer am 2. September
+    Stunden vom August eintraegt, bucht sie auf den August. Aus `logged_at`
+    abgeleitet waeren sie im September gelandet, und das Kontingent des
+    Vormonats waere still verfallen.
+    """
     __tablename__ = "time_tracking"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    # Nullable seit dem 31.08.2026: Eine Abo-Zeile haengt an keinem Projekt.
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     phase = Column(Integer)  # 1-7, or NULL for general project work
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True, index=True)
+    abrechnungsmonat = Column(String(7))  # "2026-08" — nur an Abo-Zeilen
     logged_by = Column(String(100), nullable=False)  # Username or "KI"
     hours = Column(Float, nullable=False)
     activity_description = Column(String(255))

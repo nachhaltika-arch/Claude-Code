@@ -79,6 +79,41 @@ input, select, textarea { font-family: inherit; }
   left: 0;
 }
 
+/* Ablageflaeche mit versteckter Dateieingabe — WCAG 2.1.1 (L-17, 31.08.2026).
+
+   **Der Befund.** Zwei Ablageflaechen — der Dateibereich des Kundenportals und
+   der CSV-Import — oeffneten die Dateiwahl **nur** ueber einen Klick auf die
+   Flaeche. Die Eingabe dahinter stand auf `display: none`, und das nimmt sie
+   aus der Tabulatorreihenfolge: Mit der Tastatur liess sich dort gar nichts
+   hochladen. Bei den beiden anderen Ablageflaechen im Bestand gibt es einen
+   echten Knopf daneben; dort ist die Flaeche eine Bequemlichkeit fuer die
+   Maus und kein Mangel.
+
+   **`display: none` ist der Fehler, nicht das Verstecken.** Die Eingabe wird
+   deshalb aus dem Sichtfeld geschoben statt entfernt — dieselbe Technik wie
+   beim Sprunglink. Sie bleibt fokussierbar, `aria-label` sagt einem
+   Screenreader, worum es geht, und Enter oeffnet den Dateidialog.
+
+   **Und der sehende Tastaturnutzer muss sehen, wo er ist.** Eine Eingabe
+   ausserhalb des Bildes traegt ihren Fokusring dort mit hinaus; deshalb
+   uebernimmt die Flaeche ihn ueber `:focus-within`. */
+.kc-dateieingabe {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.kc-ablageflaeche:focus-within {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
 /* kc-* SCALE TOKENS — typography sizes, tracking, spacing, radius, transitions.
    Color/text/border/font aliases retired 2026-05-09 (commit follows); usages
    migrated to canonical brand/text/bg/status tokens from tokens.css. */

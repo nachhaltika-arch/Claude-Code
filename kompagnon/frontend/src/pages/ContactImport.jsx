@@ -122,6 +122,7 @@ function CsvUploadTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Drop Zone */}
       <div
+        className="kc-ablageflaeche"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
@@ -136,11 +137,15 @@ function CsvUploadTab() {
           transition: 'all var(--kc-transition-fast)',
         }}
       >
+        {/* **Nicht `display: none`** (L-17, 31.08.2026): Das nimmt die
+            Eingabe aus der Tabulatorreihenfolge — und ausser der Flaeche gibt
+            es hier keinen Weg zum Dateidialog. Mit der Tastatur liess sich
+            also gar nichts importieren. */}
         <input aria-label="CSV-Datei auswaehlen"
           ref={fileInputRef}
           type="file"
           accept=".csv"
-          style={{ display: 'none' }}
+          className="kc-dateieingabe"
           onChange={(e) => handleFile(e.target.files[0])}
         />
         <div style={{ fontSize: 'var(--kc-text-3xl)', marginBottom: '8px' }}>

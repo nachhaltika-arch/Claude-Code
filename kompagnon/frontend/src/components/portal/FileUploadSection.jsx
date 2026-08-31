@@ -159,6 +159,7 @@ export function FileUploadSection({ token }) {
 
         {/* Drop zone */}
         <div
+          className="kc-ablageflaeche"
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
@@ -174,7 +175,12 @@ export function FileUploadSection({ token }) {
             marginBottom: 14,
           }}
         >
-          <input aria-label="Datei auswaehlen" ref={fileInputRef} id="portal-file-input" name="portal-file-input" type="file" style={{ display: 'none' }} onChange={handleFileInput} />
+          {/* **Nicht `display: none`** (L-17, 31.08.2026): Das nimmt die
+              Eingabe aus der Tabulatorreihenfolge, und dann liess sich hier
+              mit der Tastatur gar nichts hochladen — im Kundenportal. Sie ist
+              jetzt aus dem Sichtfeld geschoben und bleibt fokussierbar; die
+              Flaeche darum zeigt den Fokus ueber `:focus-within`. */}
+          <input aria-label="Datei auswaehlen" ref={fileInputRef} id="portal-file-input" name="portal-file-input" type="file" className="kc-dateieingabe" onChange={handleFileInput} />
           {pendingFile ? (
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>

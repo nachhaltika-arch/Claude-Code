@@ -312,3 +312,44 @@ def test_eine_falsche_stundenzahl_wird_mit_einem_satz_abgewiesen(
 
     assert antwort.status_code == 400
     assert "größer als 0" in antwort.json()["detail"]
+
+
+def test_die_datenbank_selbst_weist_eine_zweideutige_zeile_ab(db, betrieb, projekt):
+    """**Die Pruefbedingung, nicht der Dienst.**
+
+    Der Dienst prueft es auch — aber ein SQL-Skript, eine Einspielung oder ein
+    kuenftiger Codepfad geht am Dienst vorbei. Deshalb steht die Bedingung in
+    der Datenbank, und deshalb wird sie hier **an der Datenbank** geprueft:
+    Eine Zusicherung, die nur den Weg testet, den man ohnehin gebaut hat,
+    sichert nichts.
+
+    Beide Richtungen: keine Achse und beide Achsen.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    def einfuegen(projekt_id, lead_kennung):
+        db.execute(text(
+            "INSERT INTO time_tracking (project_id, lead_id, logged_by, hours) "
+            "VALUES (:p, :l, 'SQL', 1)"), {"p": projekt_id, "l": lead_kennung})
+        db.commit()
+
+    for projekt_id, lead_kennung in ((None, None), (projekt, betrieb)):
+        with pytest.raises(IntegrityError):
+            einfuegen(projekt_id, lead_kennung)
+        db.rollback()
+
+
+def test_und_eine_eindeutige_zeile_kommt_durch(db, projekt):
+    """Die positive Gegenprobe.
+
+    Ohne sie waere der Test darueber auch dann gruen, wenn die Bedingung
+    **jede** Zeile abwiese — und dann waere die Zeiterfassung kaputt, ohne
+    dass ein Test es sagt.
+    """
+    from sqlalchemy import text
+
+    db.execute(text(
+        "INSERT INTO time_tracking (project_id, lead_id, logged_by, hours) "
+        "VALUES (:p, NULL, 'SQL', 1)"), {"p": projekt})
+    db.commit()

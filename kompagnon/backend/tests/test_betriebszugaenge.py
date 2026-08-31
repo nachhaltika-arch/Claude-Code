@@ -265,7 +265,12 @@ import pathlib
 
 FRONTEND = pathlib.Path(__file__).resolve().parents[3] / "kompagnon" / "frontend" / "src"
 KOMPONENTE = FRONTEND / "components" / "betrieb" / "Zugaenge.jsx"
-BETRIEBSBLATT = FRONTEND / "pages" / "LeadProfile.jsx"
+#: **Seit dem 31.08.2026 der Reiter, nicht die Seite.** `LeadProfile.jsx`
+#: stand mit 2.747 Zeilen ueber der Groessengrenze; die Reiter ziehen einzeln
+#: aus (L-25). Der Zugangsbildschirm ist mitgegangen — dieser Test hat den
+#: Umzug gemeldet: „die Komponente wird nirgends gerendert", und das stimmte
+#: fuer die Datei, in die er sah.
+BETRIEBSBLATT = FRONTEND / "components" / "betriebsblatt" / "ReiterZugang.jsx"
 
 
 def test_die_drei_routen_haben_einen_aufrufer():

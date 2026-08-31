@@ -26,7 +26,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
-import { datumKurz, datumUndZeit } from '../utils/datum';
+import { datumUndZeit } from '../utils/datum';
 import { naechsterSchritt } from '../utils/naechsterSchritt';
 import { aufteilung } from '../utils/betriebReiter';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -38,6 +38,9 @@ import CredentialsSafe from '../components/CredentialsSafe';
 // 2.584 in **einer** Funktion. Die Reiter ziehen einzeln aus.
 import ReiterUebersicht from '../components/betriebsblatt/ReiterUebersicht';
 import ReiterKontakt from '../components/betriebsblatt/ReiterKontakt';
+import ReiterNachrichten from '../components/betriebsblatt/ReiterNachrichten';
+import ReiterZugang from '../components/betriebsblatt/ReiterZugang';
+import ReiterMails from '../components/betriebsblatt/ReiterMails';
 import {
   GbpBadge, LEVEL_COLORS, MAIL_STOERUNGEN, STATUS_MAP,
 } from '../components/betriebsblatt/blattBausteine';
@@ -1103,120 +1106,22 @@ export default function LeadProfile() {
         gap: 16, alignItems: 'start', minWidth: 0,
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-      {activeTab === 'messages' && (() => {
-        const fmtTime = (iso) => {
-          if (!iso) return '';
-          const d = new Date(iso);
-          return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        };
-        const fmtDay = (iso) => {
-          if (!iso) return '';
-          const d = new Date(iso);
-          const today = new Date();
-          const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-          if (d.toDateString() === today.toDateString()) return 'Heute';
-          if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
-          return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        };
-
-        // Group messages by day for separators
-        const grouped = [];
-        let lastDay = null;
-        for (const m of messages) {
-          const day = fmtDay(m.created_at);
-          if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
-          grouped.push({ type: 'msg', msg: m });
-        }
-
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-app)' }}>
-
-            {/* Newsletter Button */}
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowNewsletter(true)}
-                style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
-                         background: 'var(--brand-primary)', color: 'var(--text-on-brand)', cursor: 'pointer',
-                         fontSize: 13, fontWeight: 600 }}>
-                Newsletter erstellen
-              </button>
-            </div>
-
-            {/* Nachrichtenverlauf */}
-            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {msgLoading && messages.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Nachrichten werden geladen…</div>
-              )}
-              {!msgLoading && messages.length === 0 && (
-                <EmptyState icon="💬" title="Noch keine Nachrichten" description="Schreibe die erste Nachricht an den Kunden — sie erscheint direkt im Kundenportal. Nutze das Eingabefeld unten." compact />
-              )}
-              {grouped.map((item, i) => {
-                if (item.type === 'sep') return (
-                  <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
-                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                    {item.day}
-                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                  </div>
-                );
-                const m = item.msg;
-                const isAdmin = m.sender_role === 'admin';
-                return (
-                  <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : lead.company_name)}</span>
-                      <span>{fmtTime(m.created_at)}</span>
-                      {isAdmin && (
-                        <span style={{ background: m.channel === 'email' ? 'var(--status-warning-bg)' : 'var(--status-success-bg)', color: m.channel === 'email' ? 'var(--status-warning-text)' : 'var(--status-success-text)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
-                          {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
-                        </span>
-                      )}
-                      {!isAdmin && !m.is_read && (
-                        <span style={{ color: 'var(--status-info-text)', fontSize: 10 }}>🔵 Ungelesen</span>
-                      )}
-                    </div>
-                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {m.content}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Eingabebereich */}
-            <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {msgChannel === 'email' && (
-                <input aria-label="Betreff der E-Mail…"
-                  value={msgSubject}
-                  onChange={e => setMsgSubject(e.target.value)}
-                  placeholder="Betreff der E-Mail…"
-                  style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
-                />
-              )}
-              <textarea aria-label="Nachricht schreiben… (Ctrl+Enter zum Senden)"
-                value={msgText}
-                onChange={e => setMsgText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMessage(); }}
-                placeholder="Nachricht schreiben… (Ctrl+Enter zum Senden)"
-                rows={3}
-                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[{ id: 'in_app', label: '💬 In-App' }, { id: 'email', label: '✉️ + E-Mail' }].map(ch => (
-                    <button key={ch.id} onClick={() => setMsgChannel(ch.id)}
-                      style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', fontSize: 12, fontWeight: msgChannel === ch.id ? 700 : 400, background: msgChannel === ch.id ? 'var(--brand-primary)' : 'var(--bg-app)', color: msgChannel === ch.id ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      {ch.label}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
-                  {msgSending ? 'Senden…' : 'Senden →'}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {activeTab === 'messages' && (
+        <ReiterNachrichten
+          lead={lead}
+          messages={messages}
+          msgChannel={msgChannel}
+          msgLoading={msgLoading}
+          msgSending={msgSending}
+          msgSubject={msgSubject}
+          msgText={msgText}
+          sendMessage={sendMessage}
+          setMsgChannel={setMsgChannel}
+          setMsgSubject={setMsgSubject}
+          setMsgText={setMsgText}
+          setShowNewsletter={setShowNewsletter}
+        />
+      )}
 
       {showNewsletter && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9998,
@@ -1589,36 +1494,34 @@ export default function LeadProfile() {
       {/* TEMPLATE SELECTION MODAL */}
       {showTemplateModal && createPortal(
         <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && setShowTemplateModal(false))} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
-            {allTemplates.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🗂️</div>
-                <div>Noch keine Templates vorhanden.</div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-                {allTemplates.map(tpl => (
-                  <div role="button" tabIndex={0} onKeyDown={aufTaste(() => assignTemplate(tpl.id))} key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
-                    onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{tpl.name}</div>
-                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
-                      {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
-                    </span>
-                    {tpl.created_at && <div style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setShowTemplateModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
-          </div>
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
+          {allTemplates.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🗂️</div>
+              <div>Noch keine Templates vorhanden.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+              {allTemplates.map(tpl => (
+                <div role="button" tabIndex={0} onKeyDown={aufTaste(() => assignTemplate(tpl.id))} key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
+                  onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{tpl.name}</div>
+                  <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                    {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
+                  </span>
+                  {tpl.created_at && <div style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setShowTemplateModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+        </div>
         </div>,
         document.body
       )}
-
-      {/* ANGEBOT TAB */}
 
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (
@@ -1678,262 +1581,33 @@ export default function LeadProfile() {
       )}
 
       {/* QR-CODE TAB */}
-      {activeTab === 'qrcode' && (() => {
-        if (!qrData && !qrLoading) { loadQrCode(); }
-        return (
-          <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '320px 1fr' : '1fr', gap: 16, alignItems: 'flex-start' }}>
-            <Card padding="md">
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>Kunden-Zugang QR-Code</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
-                Der Kunde scannt diesen Code und gelangt direkt zu seinen Daten.
-              </div>
-              {qrLoading ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
-                </div>
-              ) : qrData ? (
-                <>
-                  <div style={{ background: 'white', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, textAlign: 'center', marginBottom: 12 }}>
-                    <img src={`data:image/png;base64,${qrData.qr_code_base64}`} alt="QR-Code" style={{ width: '100%', maxWidth: 220, height: 'auto', display: 'block', margin: '0 auto' }} />
-                    <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '0.05em' }}>{lead.company_name?.toUpperCase()}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12 }}>
-                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Portal-Link</div>
-                    <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.4 }}>{qrData.portal_url}</div>
-                  </div>
-                  {lead.email && (
-                    <div style={{ background: 'var(--status-info-bg)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12, fontSize: 11, color: 'var(--status-info-text)', lineHeight: 1.5 }}>
-                      🔐 Zugang via Domain <strong>@{lead.email.split('@')[1]}</strong>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button onClick={() => { const a = document.createElement('a'); a.href = `data:image/png;base64,${qrData.qr_code_base64}`; a.download = `qr-${lead.company_name || leadId}.png`; a.click(); }}
-                      style={{ flex: 1, padding: 8, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      ⬇ PNG laden
-                    </button>
-                    <button onClick={() => navigator.clipboard.writeText(qrData.portal_url)}
-                      style={{ flex: 1, padding: 8, background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      📋 Link kopieren
-                    </button>
-                    <button onClick={refreshQrCode} disabled={qrRefreshing}
-                      style={{ padding: '8px 10px', background: 'var(--bg-surface)', color: 'var(--status-danger-text)', border: '1px solid var(--status-danger-bg)', borderRadius: 'var(--radius-md)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
-                      title="Neuen Code generieren">🔄</button>
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-tertiary)', textAlign: 'center' }}>Erstellt: {qrData.created_at}</div>
-                </>
-              ) : (
-                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 12 }}>QR-Code konnte nicht geladen werden</div>
-              )}
-            </Card>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Card padding="md">
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>So funktioniert der Kunden-Zugang</div>
-                {[
-                  { icon: '📲', title: 'QR-Code scannen', desc: 'Kunde scannt den Code mit dem Smartphone — kein Login nötig.' },
-                  { icon: '✉️', title: 'E-Mail-Domain eingeben', desc: `Verifikation über @${lead.email?.split('@')[1] || 'ihredomain.de'}.` },
-                  { icon: '📊', title: 'Zugang zu Daten', desc: 'Audit-Ergebnisse, Scores und Handlungsempfehlungen.' },
-                  { icon: '🔒', title: 'Sicher & eindeutig', desc: 'Jeder Code ist einmalig — bei Bedarf neuen erstellen.' },
-                ].map(item => (
-                  <div key={item.icon} style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-active)', color: 'var(--brand-primary-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{item.icon}</div>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{item.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-              <Card padding="md">
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>QR-Code versenden</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 12 }}>
-                  Den QR-Code als PNG herunterladen und dem Kunden per E-Mail oder Brief zusenden.
-                </div>
-                {lead.email && qrData && (
-                  <a href={`mailto:${lead.email}?subject=Ihr persönlicher Zugang — KOMPAGNON&body=Sehr geehrte Damen und Herren,%0D%0A%0D%0AIhr persönlicher Kundenlink:%0D%0A${qrData.portal_url}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
-                    ✉️ Per E-Mail senden
-                  </a>
-                )}
-              </Card>
-              {/* Die Konten dieses Betriebs — seit dem 25.08.2026 koennen es
-                * mehrere sein. Der Reiter hiess schon „Zugang"; er zeigte
-                * bis dahin nur den QR-Einmallink, nicht die Menschen. */}
-              <Zugaenge leadId={leadId} token={token} />
-
-              {/* Der Safe fuer Hosting-, CMS- und Domainzugaenge (26.08.2026,
-                * L-95). `CredentialsSafe.jsx` lag seit jeher im Quellbaum und
-                * war von niemandem importiert — die Routen dahinter gibt es,
-                * verschluesselt, samt `CREDENTIALS_KEY` in der
-                * Wiederherstellungspruefung; nur keinen Bildschirm.
-                *
-                * **Warum hier und nicht im Projektbildschirm:** Dieser Reiter
-                * sammelt, was mit Zugang zu tun hat — der Einmallink fuer den
-                * Kunden, die Menschen mit Konto, und jetzt die Zugaenge zu
-                * fremden Systemen. Drei Richtungen desselben Themas an einer
-                * Stelle statt an dreien.
-                *
-                * Der Safe haengt am **Projekt**; ohne Projekt gibt es nichts
-                * zu hinterlegen. */}
-              {projectId && (
-                <Card>
-                  <CredentialsSafe projectId={projectId} token={token} />
-                </Card>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      {activeTab === 'qrcode' && (
+        <ReiterZugang
+          lead={lead}
+          leadId={leadId}
+          token={token}
+          isDesktop={isDesktop}
+          loadQrCode={loadQrCode}
+          projectId={projectId}
+          qrData={qrData}
+          qrLoading={qrLoading}
+          qrRefreshing={qrRefreshing}
+          refreshQrCode={refreshQrCode}
+        />
+      )}
       {activeTab === 'crawler' && (
         <CrawlerReiter leadId={leadId} lead={lead} token={token} />
       )}
 
       {/* E-MAILS TAB */}
       {activeTab === 'emails' && (
-        <div style={{ padding: '20px 0' }}>
-
-          {/* SEQUENZ-STEUERUNG */}
-          <div style={{
-            background: 'var(--bg-surface)', borderRadius: 12,
-            border: '0.5px solid var(--border-light)',
-            padding: '16px 20px', marginBottom: 16,
-          }}>
-            <div style={{
-              fontSize: 12, fontWeight: 600, color: '#64748b',
-              textTransform: 'uppercase', letterSpacing: '.06em',
-              marginBottom: 12,
-            }}>
-              E-Mail-Sequenz (Tag 1 · 3 · 7)
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span style={{
-                padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: seqStatus?.active && !seqStatus?.paused
-                  ? '#E1F5EE' : seqStatus?.paused ? '#FAEEDA' : '#F1EFE8',
-                color: seqStatus?.active && !seqStatus?.paused
-                  ? '#085041' : seqStatus?.paused ? '#633806' : '#444441',
-              }}>
-                {seqStatus?.active && !seqStatus?.paused
-                  ? `Aktiv — Schritt ${seqStatus.step} von 3`
-                  : seqStatus?.paused ? 'Pausiert'
-                  : 'Inaktiv'}
-              </span>
-              {seqStatus?.last_sent && (
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                  Letzter Versand: {new Date(seqStatus.last_sent).toLocaleDateString('de-DE')}
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {!seqStatus?.active && (
-                <button
-                  onClick={() => seqAction('start')}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--success)', color: 'var(--text-on-brand)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  }}>
-                  Sequenz starten
-                </button>
-              )}
-              {seqStatus?.active && !seqStatus?.paused && (
-                <button
-                  onClick={() => seqAction('pause')}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8,
-                    border: '1px solid #e2e8f0', background: 'transparent',
-                    color: '#64748b', fontSize: 12, cursor: 'pointer',
-                  }}>
-                  Pausieren
-                </button>
-              )}
-              {seqStatus?.paused && (
-                <button
-                  onClick={() => seqAction('start')}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  }}>
-                  Fortsetzen
-                </button>
-              )}
-              {seqStatus?.active && (
-                <button
-                  onClick={() => seqAction('stop')}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8,
-                    border: '1px solid #FECACA', background: '#FFF1F1',
-                    color: '#A32D2D', fontSize: 12, cursor: 'pointer',
-                  }}>
-                  Stoppen
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* E-MAIL-PROTOKOLL */}
-          <div style={{
-            background: 'var(--bg-surface)', borderRadius: 12,
-            border: '0.5px solid var(--border-light)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '12px 16px',
-              borderBottom: '0.5px solid var(--border-light)',
-              fontSize: 12, fontWeight: 600, color: '#64748b',
-              textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>
-              Gesendete E-Mails ({emailLogs.length})
-            </div>
-
-            {emailLoading ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                Lädt...
-              </div>
-            ) : emailLogs.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                Noch keine E-Mails gesendet.
-              </div>
-            ) : emailLogs.map((log, i) => (
-              <div key={i} style={{
-                padding: '10px 16px',
-                borderBottom: i < emailLogs.length - 1 ? '0.5px solid var(--border-light)' : 'none',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '2px 7px',
-                  borderRadius: 8,
-                  background: log.status === 'sent' ? '#EAF3DE' : '#FFF1F1',
-                  color: log.status === 'sent' ? '#27500A' : '#A32D2D',
-                  flexShrink: 0,
-                }}>
-                  {log.status === 'sent' ? '✓ Gesendet' : '✗ Fehler'}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 13, color: 'var(--text-primary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {log.subject}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-                    {log.template_key} ·{' '}
-                    {log.sent_at
-                      ? new Date(log.sent_at).toLocaleDateString('de-DE', {
-                          day: '2-digit', month: '2-digit', year: 'numeric',
-                          hour: '2-digit', minute: '2-digit',
-                        })
-                      : '—'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ReiterMails
+          emailLoading={emailLoading}
+          emailLogs={emailLogs}
+          seqAction={seqAction}
+          seqStatus={seqStatus}
+        />
       )}
-
       {/* AUDIT DETAIL MODAL */}
       {openAudit && createPortal(
         <>

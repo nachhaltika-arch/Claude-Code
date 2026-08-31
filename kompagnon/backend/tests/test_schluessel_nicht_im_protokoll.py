@@ -131,6 +131,59 @@ class TestSchwaerzung:
         # Der Rest der Zeile bleibt lesbar — sonst taugt das Protokoll nicht.
         assert "403 Forbidden" in ausgabe
 
+    def test_die_satzform_ueberlebt_die_schwaerzung(self):
+        """**Uvicorns Formatierer packt genau fuenf Argumente aus.**
+
+        Der zweite Anlauf am 31.08.2026 hat das Geheimnis entfernt, indem er
+        den Satz ausformulierte und `args = ()` setzte. Damit war das Leck weg
+        und das Zugriffsprotokoll kaputt: `AccessFormatter.formatMessage` liest
+        `client_addr, method, full_path, http_version, status_code` aus
+        `record.args` und warf bei **jeder** Anfrage an die beiden Webhooks
+        `ValueError: not enough values to unpack (expected 5, got 0)` — samt
+        Traceback im Protokoll.
+
+        Ein Leck gegen ein unlesbares Protokoll zu tauschen ist kein
+        Fortschritt. Deshalb wird das **Argument** geschwaerzt, in dem der Pfad
+        steht, und die Form bleibt.
+        """
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "POST",
+                  "/api/posteingang/brevo/geheim-nur-im-test", "1.1",
+                  403, "Forbidden"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        assert isinstance(satz.args, tuple)
+        assert len(satz.args) == 6, (
+            "die Argumente sind weg — uvicorns Formatierer scheitert daran")
+        assert satz.args[2] == "/api/posteingang/brevo/***geschwaerzt***"
+
+    def test_ein_platzhalter_in_der_vorlage_bleibt_stehen(self):
+        """Beim Reparieren der Reparatur einmal kaputtgemacht.
+
+        Wer die **Vorlage** schwaerzt, waehrend Argumente daran haengen,
+        frisst den Platzhalter: Aus `"… key=%s"` wird
+        `"… key=***geschwaerzt***"`, und `msg % args` scheitert danach mit
+        „not all arguments converted". Der Satz muss trotzdem formatierbar
+        bleiben.
+        """
+        satz = logging.LogRecord(
+            name="httpx", level=logging.INFO, pathname=__file__, lineno=1,
+            msg='HTTP Request: GET https://x?key=%s "200 OK"',
+            args=("geheim-nur-im-test",), exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        # Kein Fehler beim Formatieren, und das Geheimnis ist weg.
+        ausgabe = satz.getMessage()
+        assert "geheim-nur-im-test" not in ausgabe
+        assert "***geschwaerzt***" in ausgabe
+
     def test_filter_laesst_gewoehnliche_anfragezeilen_stehen(self):
         """Die Gegenprobe: Ohne sie waere der Test darueber auch dann gruen,
         wenn **jede** Anfragezeile geschwaerzt wuerde."""

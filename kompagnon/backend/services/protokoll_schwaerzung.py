@@ -120,9 +120,48 @@ class Schwaerzung(logging.Filter):
         if not (hat_parameter or hat_pfad):
             return True
 
-        # Ab hier wird ausformuliert: Die Argumente stecken im fertigen Satz,
-        # also ist das die einzige Stelle, an der beide zugleich sichtbar sind.
-        ausformuliert = satz.getMessage()
+        # **Zuerst je Argument — die Form des Satzes bleibt erhalten.**
+        #
+        # Der erste Anlauf am 31.08.2026 hat hier immer ausformuliert und
+        # `args = ()` gesetzt. Das Geheimnis war damit weg und das
+        # Zugriffsprotokoll kaputt: Uvicorns `AccessFormatter` packt genau
+        # fuenf Argumente aus (`client_addr, method, full_path, http_version,
+        # status_code`) und warf danach bei **jeder** Anfrage an die beiden
+        # Webhooks `ValueError: not enough values to unpack (expected 5,
+        # got 0)` — samt Traceback im Protokoll.
+        #
+        # Ein Leck gegen ein unlesbares Protokoll zu tauschen ist kein
+        # Fortschritt. Wer den Pfad schwaerzt, schwaerzt das **Argument**, in
+        # dem er steht, und laesst die Stelle frei.
+        # **Die Vorlage nur anfassen, wenn keine Argumente daran haengen.**
+        # Sonst frisst die Schwaerzung einen Platzhalter: Aus `"… key=%s"`
+        # wird `"… key=***geschwaerzt***"`, und das folgende `msg % args`
+        # scheitert mit „not all arguments converted". Auch das ist am
+        # 31.08.2026 passiert — beim Reparieren der Reparatur.
+        if not satz.args:
+            if isinstance(satz.msg, str):
+                satz.msg = schwaerzen(satz.msg)
+            return True
+
+        if isinstance(satz.args, tuple):
+            satz.args = tuple(schwaerzen(a) if isinstance(a, str) else a
+                              for a in satz.args)
+        elif isinstance(satz.args, dict):
+            satz.args = {k: (schwaerzen(v) if isinstance(v, str) else v)
+                         for k, v in satz.args.items()}
+
+        # **Der Rueckfall fuer den Fall, dass ein Geheimnis erst im fertigen
+        # Satz sichtbar wird** — etwa `msg='… key=%s'` mit dem nackten Wert im
+        # Argument. Dann bleibt nur das Ausformulieren; Saetze dieser Form
+        # kommen aus `httpx` und werden vom gewoehnlichen Formatierer
+        # ausgegeben, dem die Argumente nicht fehlen.
+        #
+        # **Und er darf nie selbst der Fehler sein:** Ein Filter, der eine
+        # Ausnahme wirft, verschluckt die Protokollzeile ganz.
+        try:
+            ausformuliert = satz.getMessage()
+        except Exception:                            # noqa: BLE001
+            return True
         geschwaerzt = schwaerzen(ausformuliert)
         if geschwaerzt != ausformuliert:
             satz.msg = geschwaerzt

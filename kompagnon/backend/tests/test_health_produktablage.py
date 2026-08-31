@@ -70,3 +70,40 @@ def test_die_auskunft_haengt_wirklich_an_health(client):
 
     assert antwort.status_code == 200
     assert "produktablage" in antwort.json()
+
+
+def test_ein_laufender_geheimniswechsel_ist_sichtbar(monkeypatch):
+    """Der letzte Schritt eines Wechsels ist der, den man vergisst.
+
+    Bleibt `BREVO_INBOUND_SECRET_ALT` stehen, gilt das alte — und damit das
+    kompromittierte — Geheimnis weiter, und nichts sagt es. Deshalb steht es
+    in `/health`.
+    """
+    monkeypatch.setenv("BREVO_INBOUND_SECRET", "eins-nur-im-test")
+    monkeypatch.setenv("BREVO_INBOUND_SECRET_ALT", "zwei-nur-im-test")
+
+    zustand = betriebszustand._posteingang_zustand()
+
+    assert zustand["bereit"] is True
+    assert zustand["wechsel_laeuft"] is True
+    assert "BREVO_INBOUND_SECRET_ALT" in zustand["hinweis"]
+
+
+def test_nach_dem_wechsel_ist_es_wieder_still(monkeypatch):
+    """Die Gegenprobe — sonst stuende der Hinweis fuer immer da und niemand
+    laese ihn mehr."""
+    monkeypatch.setenv("BREVO_INBOUND_SECRET", "eins-nur-im-test")
+    monkeypatch.delenv("BREVO_INBOUND_SECRET_ALT", raising=False)
+
+    zustand = betriebszustand._posteingang_zustand()
+
+    assert zustand["wechsel_laeuft"] is False
+    assert zustand["hinweis"] == ""
+
+
+def test_kein_geheimnis_steht_in_der_auskunft_zum_posteingang(monkeypatch):
+    geheim = "posteingang-" + "geheim" * 3
+    monkeypatch.setenv("BREVO_INBOUND_SECRET", geheim)
+    monkeypatch.setenv("BREVO_INBOUND_SECRET_ALT", geheim)
+
+    assert geheim not in repr(betriebszustand._posteingang_zustand())

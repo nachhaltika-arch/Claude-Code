@@ -62,8 +62,35 @@ _TAGS = re.compile(r"<[^>]+>")
 _LEERRAUM = re.compile(r"\n{3,}")
 
 
-def _geheimnis() -> str:
-    return os.getenv("BREVO_INBOUND_SECRET", "").strip()
+def _geheimnisse() -> list:
+    """Die gueltigen Geheimnisse — im Regelfall eines, beim Wechsel zwei.
+
+    **Warum zwei (31.08.2026).** Das Geheimnis steht im Pfad, und der Pfad
+    steht an zwei Stellen: in `BREVO_INBOUND_SECRET` bei Render und in der
+    Ziel-URL der Brevo-Inbound-Route. Beide lassen sich nicht im selben
+    Augenblick aendern. Wer nur eines gelten laesst, hat zwischen den beiden
+    Schritten ein Fenster, in dem jede eingehende Mail **403** bekommt.
+
+    Brevo wiederholt danach zwar — der Endpunkt antwortet sonst absichtlich
+    immer 200, damit es **nicht** dazu kommt —, aber „es wird schon
+    nachgeliefert" ist keine Zusicherung, auf die man die Antwort eines
+    Kunden setzt.
+
+    **Der Ablauf ohne Fenster:**
+
+    1. `BREVO_INBOUND_SECRET_ALT` auf das **neue** Geheimnis setzen. Ab jetzt
+       gelten beide.
+    2. Die Brevo-Route auf den neuen Pfad umstellen.
+    3. `BREVO_INBOUND_SECRET` auf das neue setzen und
+       `BREVO_INBOUND_SECRET_ALT` **leeren**. Ab jetzt gilt nur noch das neue.
+
+    Nach Schritt 3 ist der Zustand wieder derselbe wie vorher: ein Geheimnis.
+    Bleibt `..._ALT` stehen, gilt das alte weiter — deshalb meldet
+    `/health` es (siehe `routers/betriebszustand.py`).
+    """
+    return [w for w in (os.getenv("BREVO_INBOUND_SECRET", "").strip(),
+                        os.getenv("BREVO_INBOUND_SECRET_ALT", "").strip())
+            if w]
 
 
 def _absender(eintrag: dict) -> str:
@@ -174,8 +201,14 @@ async def brevo_posteingang(secret: str, request: Request,
     einem Rumpf, den niemand vorhergesehen hat. Ein Fehlerstatus lässt Brevo
     stundenlang wiederholen, und was dann abgelegt ist, weiß niemand.
     """
-    erwartet = _geheimnis()
-    if not erwartet or not hmac.compare_digest(secret, erwartet):
+    # **`compare_digest` je Kandidat, und keine Abkuerzung bei Treffer.**
+    # `any(...)` mit Generator wuerde beim ersten Treffer aufhoeren und damit
+    # ueber die Laufzeit verraten, ob das erste Geheimnis das richtige war.
+    # Die Liste hat hoechstens zwei Eintraege; der Vergleich beider kostet
+    # nichts.
+    erwartete = _geheimnisse()
+    passt = sum(hmac.compare_digest(secret, e) for e in erwartete)
+    if not erwartete or not passt:
         raise HTTPException(403, "Kein Zugriff")
 
     try:

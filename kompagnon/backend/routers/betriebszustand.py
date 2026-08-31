@@ -165,6 +165,32 @@ def _produktablage_zustand() -> dict:
     return {"bereit": not fehlt, "fehlt": fehlt}
 
 
+def _posteingang_zustand() -> dict:
+    """Ob der Posteingang eingerichtet ist — und ob gerade gewechselt wird.
+
+    **Warum der Wechsel sichtbar sein muss (31.08.2026).** Waehrend eines
+    Geheimniswechsels gelten zwei Werte: das alte und das neue. Der letzte
+    Schritt — das alte leeren — ist der, den man vergisst, weil danach alles
+    schon laeuft. Bleibt er liegen, gilt das kompromittierte Geheimnis
+    weiter, und **nichts** sagt es.
+
+    Dieselbe Ueberlegung wie bei den Zahlungswerten: Ein Dashboard zeigt die
+    Einstellung, hier steht der Zustand des Prozesses. Gemeldet wird, **ob**
+    ein Wert da ist, nie der Wert.
+    """
+    haupt = bool((os.getenv("BREVO_INBOUND_SECRET") or "").strip())
+    zweit = bool((os.getenv("BREVO_INBOUND_SECRET_ALT") or "").strip())
+    return {
+        "bereit": haupt,
+        "wechsel_laeuft": zweit,
+        # Nur waehrend eines Wechsels erwartet — danach gehoert der zweite
+        # Wert geleert, sonst ist der Wechsel keiner.
+        "hinweis": ("Zweites Geheimnis gesetzt — nach dem Umstellen der "
+                    "Brevo-Route BREVO_INBOUND_SECRET_ALT leeren."
+                    if zweit else ""),
+    }
+
+
 @router.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -216,6 +242,9 @@ def health_check():
             # R2 antwortet der Abruf mit 503 — und das faellt sonst erst dem
             # ersten Kaeufer auf.
             "produktablage": _produktablage_zustand(),
+            # Ob eingehende Kundenmails ankommen — und ob gerade ein
+            # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
+            "posteingang": _posteingang_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

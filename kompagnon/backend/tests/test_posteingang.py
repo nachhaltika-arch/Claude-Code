@@ -30,9 +30,76 @@ pytestmark = pytest.mark.usefixtures("app")
 GEHEIMNIS = "pytest-posteingang-geheim"
 
 
+ZWEITES = "pytest-posteingang-das-neue"
+
+
 @pytest.fixture(autouse=True)
 def _geheimnis(monkeypatch):
     monkeypatch.setenv("BREVO_INBOUND_SECRET", GEHEIMNIS)
+    # Der Regelfall ist **ein** Geheimnis. Das zweite gilt nur waehrend eines
+    # Wechsels und wird in den Tests unten eigens gesetzt.
+    monkeypatch.delenv("BREVO_INBOUND_SECRET_ALT", raising=False)
+
+
+class TestWechselOhneFenster:
+    """Waehrend des Wechsels gelten beide Geheimnisse (31.08.2026).
+
+    **Warum das noetig ist.** Der Pfad steht an zwei Stellen — in der
+    Umgebung bei Render und in der Ziel-URL der Brevo-Route. Beide lassen
+    sich nicht im selben Augenblick aendern; wer nur eines gelten laesst, hat
+    dazwischen ein Fenster, in dem jede eingehende Mail 403 bekommt.
+
+    **Der Anlass:** Das Geheimnis stand seit dem 28.08. im Klartext im
+    Produktivprotokoll, weil es im Pfad liegt und uvicorn jede Anfragezeile
+    mit vollem Pfad schreibt. Es muss also gewechselt werden — und ein
+    Wechsel, der Kundenantworten kostet, wird nicht gemacht.
+    """
+
+    def test_das_alte_gilt_weiter(self, client, monkeypatch):
+        monkeypatch.setenv("BREVO_INBOUND_SECRET_ALT", ZWEITES)
+
+        antwort = client.post(f"/api/posteingang/brevo/{GEHEIMNIS}",
+                              json={"items": []})
+
+        assert antwort.status_code == 200
+
+    def test_und_das_neue_gilt_schon(self, client, monkeypatch):
+        monkeypatch.setenv("BREVO_INBOUND_SECRET_ALT", ZWEITES)
+
+        antwort = client.post(f"/api/posteingang/brevo/{ZWEITES}",
+                              json={"items": []})
+
+        assert antwort.status_code == 200
+
+    def test_ein_drittes_gilt_nicht(self, client, monkeypatch):
+        """Die Gegenprobe: Zwei erlaubte Werte sind nicht „alles erlaubt"."""
+        monkeypatch.setenv("BREVO_INBOUND_SECRET_ALT", ZWEITES)
+
+        antwort = client.post("/api/posteingang/brevo/irgendetwas-anderes",
+                              json={"items": []})
+
+        assert antwort.status_code == 403
+
+    def test_nach_dem_wechsel_gilt_das_alte_nicht_mehr(self, client, monkeypatch):
+        """Schritt 3 des Ablaufs — und der Grund, warum er nicht vergessen
+        werden darf: Bleibt das alte stehen, war der Wechsel keiner."""
+        monkeypatch.setenv("BREVO_INBOUND_SECRET", ZWEITES)
+        monkeypatch.delenv("BREVO_INBOUND_SECRET_ALT", raising=False)
+
+        assert client.post(f"/api/posteingang/brevo/{ZWEITES}",
+                           json={"items": []}).status_code == 200
+        assert client.post(f"/api/posteingang/brevo/{GEHEIMNIS}",
+                           json={"items": []}).status_code == 403
+
+    def test_ohne_jedes_geheimnis_kommt_niemand_durch(self, client, monkeypatch):
+        """Ein leerer Wert darf nicht „alles erlaubt" heissen — das waere der
+        gefaehrlichste Ausgang einer misslungenen Umstellung."""
+        monkeypatch.delenv("BREVO_INBOUND_SECRET", raising=False)
+        monkeypatch.delenv("BREVO_INBOUND_SECRET_ALT", raising=False)
+
+        for weg in ("", "irgendetwas"):
+            assert client.post(f"/api/posteingang/brevo/{weg}",
+                               json={"items": []}).status_code in (403, 404)
 
 
 @pytest.fixture

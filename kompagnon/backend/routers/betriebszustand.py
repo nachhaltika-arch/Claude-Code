@@ -140,6 +140,31 @@ def _zahlungszustand() -> dict:
     return zustand
 
 
+def _produktablage_zustand() -> dict:
+    """Ob die gekaufte Datei ausgeliefert werden kann — von aussen abfragbar.
+
+    **Derselbe Grund wie bei `_zahlungszustand` (31.08.2026).** Fuer Stripe
+    gibt es diese Auskunft seit dem 27.08., und sie hat damals eine Stunde
+    Suchen erspart: Ein Dashboard zeigt die **Einstellung**, nicht den
+    Zustand des Prozesses. Fuer die Dateiablage fehlte sie — und ohne sie
+    laesst sich „ist der Shop lieferfaehig?" nur beantworten, indem man etwas
+    kauft.
+
+    **Gemeldet werden nur Namen, nie Werte.** Welche der vier Angaben fehlt,
+    ist die Auskunft; was darin steht, geht ueber eine offene Route nicht
+    hinaus. Dieselbe Sparsamkeit wie bei den Zahlungswerten, wo Laenge und
+    Praefix genuegen.
+    """
+    try:
+        from services import produktablage
+
+        fehlt = produktablage.was_fehlt()
+    except Exception as fehler:                      # noqa: BLE001
+        # `/health` selbst darf daran nicht scheitern.
+        return {"bereit": False, "grund": f"{type(fehler).__name__}: {fehler}"}
+    return {"bereit": not fehlt, "fehlt": fehlt}
+
+
 @router.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -187,6 +212,10 @@ def health_check():
             # und ein Dashboard zeigt die Einstellung, nicht den Zustand des
             # Prozesses. Gemeldet werden Laenge und Praefix, nie der Wert.
             "zahlungen": _zahlungszustand(),
+            # Ob die gekaufte Datei ueberhaupt ausgeliefert werden kann. Ohne
+            # R2 antwortet der Abruf mit 503 — und das faellt sonst erst dem
+            # ersten Kaeufer auf.
+            "produktablage": _produktablage_zustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

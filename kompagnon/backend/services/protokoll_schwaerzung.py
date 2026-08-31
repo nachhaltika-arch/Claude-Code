@@ -90,20 +90,34 @@ class Schwaerzung(logging.Filter):
     — hier immer. Geschwärzt wird der Inhalt, nicht der Satz unterdrückt: Ein
     verschwundener Aufruf wäre beim Suchen schlimmer als ein anonymisierter.
 
-    **Der häufige Fall darf nichts kosten.** Erst wird nur nach einem ``=``
-    plus einem der Parameternamen gesucht; nur wenn beides vorkommt, wird der
-    Satz überhaupt ausformuliert. Sonst bleiben Vorlage und Argumente
-    unangetastet und das Formatieren geschieht wie immer erst beim Ausgeben.
+    **Der häufige Fall darf nichts kosten.** Erst wird billig geprüft, ob der
+    Satz überhaupt eines der beiden Muster tragen *kann*; nur dann wird er
+    ausformuliert. Sonst bleiben Vorlage und Argumente unangetastet und das
+    Formatieren geschieht wie immer erst beim Ausgeben.
+
+    **Die Schranke muss beide Muster kennen — das war der Fehler vom
+    31.08.2026.** Die Pfadschwärzung war eine Stunde zuvor in ``schwaerzen``
+    eingebaut worden, und sie wirkte nicht: Hier stand ``if "=" not in roh:
+    return True``, und die Zeile, um die es geht, hat gar kein ``=``:
+
+        INFO: 1.2.3.4:0 - "POST /api/posteingang/brevo/<Geheimnis>" 403
+
+    Eine erweiterte Funktion hinter einer unveränderten Schranke ist nicht
+    angeschlossen — dieselbe Klasse wie ein Endpunkt ohne Knopf, nur eine
+    Ebene kleiner. Aufgefallen ist es **nur**, weil der laufende Dienst
+    gefragt wurde statt der Code gelesen.
     """
 
     def filter(self, satz: logging.LogRecord) -> bool:
         roh = str(satz.msg)
         if satz.args:
             roh = f"{roh} {satz.args}"
-        if "=" not in roh:
-            return True
         unten = roh.lower()
-        if not any(f"{p}=" in unten for p in GEHEIME_PARAMETER):
+
+        hat_parameter = "=" in roh and any(f"{p}=" in unten
+                                           for p in GEHEIME_PARAMETER)
+        hat_pfad = any(p.lower() in unten for p in GEHEIME_PFADE)
+        if not (hat_parameter or hat_pfad):
             return True
 
         # Ab hier wird ausformuliert: Die Argumente stecken im fertigen Satz,

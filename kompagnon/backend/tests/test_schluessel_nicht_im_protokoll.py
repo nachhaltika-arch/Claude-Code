@@ -95,6 +95,56 @@ class TestSchwaerzung:
         assert "***geschwaerzt***" in geschwaerzt
         assert "200 OK" in geschwaerzt
 
+    @pytest.mark.parametrize("pfad", [
+        "/api/posteingang/brevo/geheim-nur-im-test",
+        "/api/mail-events/brevo/geheim-nur-im-test",
+    ])
+    def test_filter_schwaerzt_die_satzform_von_uvicorn(self, pfad):
+        """**Die Satzform, die uvicorn wirklich erzeugt** — nicht eine gebaute.
+
+        Am 31.08.2026 zweimal danebengegriffen, und beide Male haette dieser
+        Test es gefangen:
+
+        1. Der Filter hing nur an den Handlern der Wurzel; `uvicorn.access`
+           hat eigene und `propagate = False`.
+        2. Danach hing er richtig — und wirkte trotzdem nicht: Die Schranke
+           im Filter stieg aus, wenn kein `=` im Satz vorkam, und die
+           Anfragezeile hat keins. Die Pfadschwaerzung war eingebaut und
+           **nicht angeschlossen**.
+
+        Die vorhandenen Tests pruefen `schwaerzen()` mit einem fertigen Satz.
+        Uvicorn uebergibt den Pfad aber als **Argument** zu einer Vorlage; wer
+        nur die Funktion prueft, sieht die Schranke davor nie.
+        """
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "POST", pfad, "1.1", 403, "Forbidden"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        ausgabe = satz.getMessage()
+        assert "geheim-nur-im-test" not in ausgabe
+        assert "***geschwaerzt***" in ausgabe
+        # Der Rest der Zeile bleibt lesbar — sonst taugt das Protokoll nicht.
+        assert "403 Forbidden" in ausgabe
+
+    def test_filter_laesst_gewoehnliche_anfragezeilen_stehen(self):
+        """Die Gegenprobe: Ohne sie waere der Test darueber auch dann gruen,
+        wenn **jede** Anfragezeile geschwaerzt wuerde."""
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "GET", "/api/leads/12/audits", "1.1", 200, "OK"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        assert satz.getMessage() == '1.2.3.4:0 - "GET /api/leads/12/audits HTTP/1.1" 200 OK'
+
     def test_der_filter_haengt_am_zugriffsprotokoll_von_uvicorn(self):
         """**Die Schwaerzung muss dort haengen, wo der Pfad hingeschrieben wird.**
 

@@ -31,6 +31,14 @@ function zeitpunkt(roh) {
 
 export default function Zeiterfassung({ projectId, phase, token }) {
   const [daten, setDaten] = useState(null);
+  // **Die Marge, die an diesen Stunden haengt** (L-105, 01.09.2026).
+  // `GET /api/projects/{id}/margin` rechnet elf Kennzahlen und wurde von
+  // niemandem gerufen; angezeigt war genau eine — die Prozentzahl als
+  // Abzeichen auf der Projektpipeline, und die kommt aus der gespeicherten
+  // Spalte, nicht von hier. Die interessante Zahl ist eine andere:
+  // `hours_remaining_at_target` sagt, wie viele Stunden bleiben, bevor die
+  // Zielmarge faellt — die Antwort auf „weitermachen oder aufhoeren?".
+  const [marge, setMarge] = useState(null);
   const [formular, setFormular] = useState(LEER);
   const [fehler, setFehler] = useState('');
   const [laeuft, setLaeuft] = useState(false);
@@ -52,7 +60,23 @@ export default function Zeiterfassung({ projectId, phase, token }) {
     }
   }, [projectId, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { laden(); }, [laden]);
+  const margeLaden = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const antwort = await fetch(
+        `${API_BASE_URL}/api/projects/${projectId}/margin`, { headers: kopf });
+      if (!antwort.ok) throw new Error(String(antwort.status));
+      setMarge(await antwort.json());
+    } catch {
+      // **Stillschweigend nichts anzeigen ist hier richtig.** Die Marge ist
+      // Beiwerk; die Zeiterfassung selbst muss laufen, auch wenn die
+      // Rechnung gerade nicht antwortet. Eine Fehlermeldung ueber eine
+      // Nebenzahl verdeckte die Eingabe, um die es geht.
+      setMarge(null);
+    }
+  }, [projectId, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { laden(); margeLaden(); }, [laden, margeLaden]);
 
   async function eintragen(e) {
     e.preventDefault();
@@ -76,6 +100,7 @@ export default function Zeiterfassung({ projectId, phase, token }) {
       if (!antwort.ok) throw new Error(d.detail || `Status ${antwort.status}`);
       setFormular(LEER);
       await laden();
+      await margeLaden();
     } catch (e2) {
       // Die Eingabe bleibt stehen — sie noch einmal abzutippen wäre der
       // zweite Schaden nach dem ersten.
@@ -103,6 +128,29 @@ export default function Zeiterfassung({ projectId, phase, token }) {
           </span>
         )}
       </div>
+
+      {marge && (
+        <div style={{
+          display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'baseline',
+          padding: '8px 10px', borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-app)', fontSize: 12,
+        }}>
+          <span style={{ color: 'var(--text-tertiary)' }}>
+            Marge <b style={{ color: farbeZu(marge.status) }}>
+              {Number(marge.margin_percent).toLocaleString('de-DE')} %
+            </b>
+          </span>
+          <span style={{ color: 'var(--text-tertiary)' }}>
+            {/* Die Zahl, wegen der dieser Kasten hier steht. */}
+            noch <b style={{ color: 'var(--text-primary)' }}>
+              {Number(marge.hours_remaining_at_target).toLocaleString('de-DE')} h
+            </b> bis zur Zielmarge von {Number(marge.target_margin).toLocaleString('de-DE')} %
+          </span>
+          <span style={{ color: 'var(--text-tertiary)' }}>
+            Kosten {euro(marge.total_costs)} · Ertrag {euro(marge.margin_eur)}
+          </span>
+        </div>
+      )}
 
       <form onSubmit={eintragen} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -179,3 +227,18 @@ const feld = {
   background: 'var(--bg-surface)', color: 'var(--text-primary)',
   fontFamily: 'var(--font-sans)', width: '100%', boxSizing: 'border-box',
 };
+
+/** Die Ampel kommt vom Server (`MarginCalculator.status_fuer`) — die
+ *  Schwellen stehen dort und nicht hier. Dieselbe Regel wie in
+ *  `MarginBadge.jsx`: Wer sie zweimal schreibt, hat sie irgendwann zweimal
+ *  verschieden. */
+function farbeZu(status) {
+  if (status === 'red') return 'var(--status-error-text)';
+  if (status === 'yellow') return 'var(--status-warning-text)';
+  return 'var(--status-success-text)';
+}
+
+function euro(betrag) {
+  return Number(betrag || 0).toLocaleString('de-DE',
+    { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}

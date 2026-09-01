@@ -31,6 +31,7 @@ import { SitemapEditorEmbed, SitemapKiVorschlag } from './schritte/sitemap';
 import { AuditEmbed, BriefingUnternehmenEmbed } from './schritte/briefingAudit';
 import { DNSEmbed, LiveDatenEmbed, NetlifyEmbed, ZugangsdatenEmbed } from './schritte/technik';
 import { AbnahmeEmbed, QAEmbed, WebsiteVergleichEmbed } from './schritte/qualitaet';
+import { EntwuerfeEmbed } from './schritte/entwuerfe';
 import QAChecklist from './QAChecklist';
 import { DesignStudioEmbed, GbpQrEmbed, TrustpilotEmbed, UpsellEmbed } from './schritte/marketing';
 import Spinner from './schritte/Spinner';
@@ -183,6 +184,9 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           mode="freigaben"
         />
       );
+
+    case 'Entwuerfe':
+      return <EntwuerfeEmbed project={project} headers={headers} />;
 
     case 'DesignStudio':
       return (

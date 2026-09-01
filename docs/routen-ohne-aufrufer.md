@@ -16,7 +16,8 @@ Gemessen mit `kompagnon/backend/tools/unaufgerufene-routen.py`.
 |---|---:|---:|---:|
 | Ausgangspunkt 01.09. | 96 | 14 | 0 |
 | nach dem Aufräumen der Messung | 84 | 28 | 31 |
-| nach dem `projects`-Block | 84 | 28 | **50** |
+| nach dem `projects`-Block | 84 | 28 | 50 |
+| **nach den Entscheidungen** | **72** | 28 | 50 |
 
 **Die Zahl fiel nicht, weil Routen verschwanden**, sondern weil die Messung
 vorher Webhooks, Mail-Links und Betriebsanzeigen als offene Fragen führte.
@@ -235,6 +236,52 @@ zweite Fassung unter `projects` hat das nicht mitbekommen.
 | `POST /{id}/trigger` | Automatik von Hand auslösen — Werkzeug für die Hand |
 | `GET /{id}/debug`, `POST /seed` | Diagnose und Saat — Werkzeuge für die Hand, gehören erklärt |
 | `GET /api/dashboard/projects-by-phase` | „for kanban view" — die Kanban-Ansicht gibt es, sie rechnet selbst. **Offene Frage** |
+
+---
+
+## Vierter Block — die Entscheidungen ausgeführt (01.09.2026)
+
+Auf Ansage („triff sinnvolle Entscheidungen für mich"). **84 → 72**: fünf
+Routen angeschlossen, sieben gelöscht.
+
+### Angeschlossen — zwei fertige Merkmale gingen in Betrieb
+
+| | |
+|---|---|
+| **Drei Entwürfe** (4 Routen) | Neuer Schritt `Drei Entwürfe` in Phase 3, zwischen Style Guide und finalem Design — dort, wo die Freigabeliste „Design-Entwurf Startseite" als 3.0 führt. Erzeugen, Vorschau, auswählen; der Knopf sagt, dass er Guthaben kostet. |
+| **Reststunden der Marge** (1 Route) | In der Zeiterfassung am Betriebsblatt: Marge, **noch x h bis zur Zielmarge**, Kosten und Ertrag — direkt neben der Eingabe, die sie verändert. |
+
+### Gelöscht — sieben Routen, rund 280 Zeilen
+
+| Route | Grund |
+|---|---|
+| `POST /projects/{id}/briefing-prefill` | Doppelweg zu `/api/leads/{id}/briefing-prefill` |
+| `POST /projects/{id}/scrape` | Doppelweg zu `/api/branddesign/{lead_id}/scrape` |
+| `PATCH /projects/{id}/gbp-checklist` | letzter Schreiber einer bewusst eingefrorenen Spalte |
+| `GET`/`PATCH /projects/{id}/sitemap` | abgelöst durch `/api/sitemap/*` |
+| `POST /projects/{id}/freigabe` | abgelöst durch `briefings.freigaben` |
+| `GET /projects/{id}/sitemap-register` | ohne Aufrufer; der Helfer bleibt, die Linkauflösung braucht ihn |
+
+**Die Spalten bleiben stehen** (`sitemap_json`, `sitemap_freigabe`,
+`gbp_checklist_json`). Sie zu leeren wäre Datenverlust ohne Not; sie haben nur
+keinen Schreiber mehr, und an jeder Stelle steht, warum.
+
+### Und beinahe hätte ich die falsche gelöscht
+
+Der naheliegende Vergleich für `/projects/{id}/scrape` war
+`/api/crawler/scrape-content/{id}` — und der holt **Inhalte**, keine
+Markenfarben. Erst der Blick auf das, was beide *schreiben*, brachte die
+richtige Gegenstelle: `/api/branddesign/{lead_id}/scrape` setzt dieselben
+Lead-Felder **plus** Zweitschrift, Überschrift, Fließtext, Akzent und
+`brand_design_json`. Die gelöschte war die ärmere von zweien.
+
+> **Zwei Routen mit demselben Wort im Namen sind noch lange nicht dieselbe
+> Sache.**
+
+Zwei Wächter hielten dabei fest, was sie sollten: Der Kollisionstest von
+`/scrape` (er bewachte die Auflösung vom 26.08.) ist auf die neue Adresse
+umgezogen statt gelöscht, und die Zugriffsschutz-Liste trägt jetzt den Grund
+statt einer 404, die man für Schutz halten könnte.
 
 ---
 

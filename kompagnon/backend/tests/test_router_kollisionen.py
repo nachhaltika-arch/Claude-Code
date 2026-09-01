@@ -177,18 +177,29 @@ def test_die_kollision_ist_aufgeloest_weil_eine_seite_weg_ist():
     marke = {r.path for r in projects.router.routes}
 
     assert "/api/projects/{project_id}/scrape-pages" not in pfade
-    assert "/api/projects/{project_id}/scrape" in marke
+    # **Am 01.09.2026 ist auch die zweite Seite gegangen** (L-105). Damals
+    # blieb der Branddesign-Lauf unter `/api/projects/{id}/scrape` stehen;
+    # nachgemessen hat ihn nie jemand aufgerufen. Die Markendesign-Werkstatt
+    # ruft `POST /api/branddesign/{lead_id}/scrape` — und **die** Fassung
+    # schreibt dieselben Lead-Felder plus Zweitschrift, Ueberschrift,
+    # Fliesstext, Akzent und `brand_design_json`. Die hier war die aermere
+    # von zweien.
+    assert "/api/projects/{project_id}/scrape" not in marke
+    assert "/api/projects/{project_id}/scrape" not in pfade
 
 
 def test_der_branddesign_lauf_ist_noch_erreichbar(client, auth_headers):
-    """Gegenprobe. Ohne sie waere der Test oben auch gruen, wenn beim
-    Aufraeumen **beide** Seiten verschwunden waeren — und niemand haette es
-    gemerkt, weil die Kollision dann ja auch weg ist.
+    """**Die Gegenprobe, umgezogen statt geloescht.**
 
-    404 fuer ein Projekt, das es nicht gibt, beweist: durch die Sperre,
+    Sie hielt fest, dass beim Aufloesen der Kollision nicht **beide** Seiten
+    verschwinden — sonst waere der Test darueber auch gruen, wenn es gar
+    keinen Branddesign-Lauf mehr gaebe. Genau das ist heute die Frage, nur
+    an einer anderen Adresse: Der Lauf lebt unter `/api/branddesign`.
+
+    404 fuer einen Betrieb, den es nicht gibt, beweist: durch die Sperre,
     durch die Adressaufloesung, bis zur Datenbank.
     """
-    antwort = client.post("/api/projects/999999/scrape", headers=auth_headers)
+    antwort = client.post("/api/branddesign/999999/scrape", headers=auth_headers)
     assert antwort.status_code == 404, antwort.text[:200]
 
 

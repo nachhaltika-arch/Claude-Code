@@ -59,79 +59,23 @@ logger = logging.getLogger(__name__)
 
 # ── Sitemap-Planer ────────────────────────────────────────────────────────────
 
-@router.get("/{project_id}/sitemap")
-def get_sitemap(
-    project_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    import json
-    row = db.execute(
-        text("SELECT sitemap_json, sitemap_freigabe FROM projects WHERE id=:id"),
-        {"id": project_id},
-    ).fetchone()
-    if not row:
-        raise HTTPException(404, "Projekt nicht gefunden")
-    seiten = safe_json_parse(row[0], default=[])
-    return {
-        "seiten":           seiten,
-        "sitemap_freigabe": str(row[1])[:16] if row[1] else None,
-    }
 
 
-@router.patch("/{project_id}/sitemap")
-def save_sitemap(
-    project_id: int,
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    import json
-    seiten = data.get("seiten", [])
-    db.execute(
-        text("UPDATE projects SET sitemap_json=:sj WHERE id=:id"),
-        {"sj": json.dumps(seiten, ensure_ascii=False), "id": project_id},
-    )
-    db.commit()
-    return {"success": True, "count": len(seiten)}
 
 
-@router.post("/{project_id}/freigabe")
-def request_freigabe(
-    project_id: int,
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    import json
-    from datetime import datetime
-
-    typ    = data.get("typ", "")
-    seiten = data.get("seiten", [])
-    now    = datetime.utcnow()
-
-    if typ == "sitemap":
-        db.execute(
-            text("""
-                UPDATE projects SET
-                  sitemap_json=:sj,
-                  sitemap_freigabe=:ts
-                WHERE id=:id
-            """),
-            {
-                "sj": json.dumps(seiten, ensure_ascii=False),
-                "ts": now,
-                "id": project_id,
-            },
-        )
-        db.commit()
-        return {
-            "success":          True,
-            "typ":              "sitemap",
-            "sitemap_freigabe": str(now)[:16],
-        }
-
-    raise HTTPException(400, f"Unbekannter Freigabe-Typ: {typ}")
+# **Hier standen `GET`/`PATCH /{project_id}/sitemap` und
+# `POST /{project_id}/freigabe`** — entfernt am 01.09.2026 (L-105).
+#
+# Sie waren ein **abgeloestes Parallelsystem**: Die gelebte Seitenstruktur
+# liegt unter `/api/sitemap/*` (der Sitemap-Planer), und die gelebten
+# Freigaben stehen in `briefings.freigaben` — dieselbe Bezeichnung
+# `sitemap_freigabe`, ein anderer Speicher. `BriefingTab.jsx` und die
+# Kundenansicht `Projektfreigaben.jsx` lesen beide von dort.
+#
+# **Die Spalten `projects.sitemap_json` und `sitemap_freigabe` bleiben
+# stehen.** Sie zu leeren waere Datenverlust ohne Not; sie haben nur
+# keinen Schreiber mehr. Wer sie eines Tages entfernt, findet hier den
+# Grund.
 
 
 # ── Content-Freigaben ─────────────────────────────────────────────────────────

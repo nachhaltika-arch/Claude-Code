@@ -156,11 +156,9 @@ async def resolve_project_links(
     }
 
 
-@router.get("/{project_id}/sitemap-register")
-def get_sitemap_register(
-    project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth),
-):
-    return _build_sitemap_register(project_id, db)
+# **Hier stand `GET /{project_id}/sitemap-register`** — entfernt am
+# 01.09.2026 (L-105), ohne Aufrufer. Der Helfer `_build_sitemap_register`
+# **bleibt**: Die Linkaufloesung weiter oben braucht ihn.
 
 
 @router.post("/{project_id}/design-json/{page_id}")

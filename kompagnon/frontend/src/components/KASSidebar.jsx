@@ -65,8 +65,15 @@ const SCHRITT_FOLGE = [
   // Sitemap: Welche Leistung eine eigene Seite bekommt, entscheidet sich dort.
   { id: 'leistungsseiten',      phase: 'Sitemap',     name: 'Leistungsseiten',        view: null,         component: 'LeistungsseitenWizard', optional: true },
 
-  // Phase 3 — Style Guide + Design (2, mit Gate)
+  // Phase 3 — Style Guide + Entwuerfe + Design (3, mit Gate)
   { id: 'style-guide',          phase: 'Design',      name: 'Style Guide',            view: 'styleguide', component: null, gate: true },
+  // **Am 01.09.2026 eingefuegt (L-105).** Die Erzeugung der drei Entwuerfe
+  // stand seit Langem im Backend und das Kundenportal war darauf fertig
+  // eingerichtet — nur konnte kein Entwurf entstehen, weil niemand
+  // `POST /generate-versions` aufrief. Der Schritt gehoert hierher: Die
+  // Freigabeliste nennt „Design-Entwurf Startseite freigegeben" als 3.0,
+  // das finale Design als 3.2.
+  { id: 'entwuerfe',            phase: 'Design',      name: 'Drei Entwürfe',          view: null,         component: 'Entwuerfe' },
   { id: 'finales-design',       phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
 
   // Phase 4 — Produktion (2)

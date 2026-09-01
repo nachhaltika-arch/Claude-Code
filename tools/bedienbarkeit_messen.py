@@ -135,10 +135,31 @@ ERHEBUNG_KONTRAST = """
     const t = (s || '').match(/rgba?\\(([^)]+)\\)/);
     if (!t) return null;
     const teile = t[1].split(',').map(x => parseFloat(x.trim()));
-    // Halbdurchsichtiges laesst sich nicht aus zwei Farben rechnen.
+    // Halbdurchsichtiges laesst sich nicht aus zwei Farben rechnen —
+    // fuer den **Hintergrund** heisst das: weitersuchen, bis etwas Deckendes
+    // kommt. Fuer die **Schrift** gilt das nicht mehr, siehe `alsRgba`.
     if (teile.length > 3 && teile[3] < 1) return null;
     return teile.slice(0, 3);
   };
+  // Die Schriftfarbe **mit** ihrer Deckkraft.
+  const alsRgba = (s) => {
+    const t = (s || '').match(/rgba?\\(([^)]+)\\)/);
+    if (!t) return null;
+    const teile = t[1].split(',').map(x => parseFloat(x.trim()));
+    return { rgb: teile.slice(0, 3),
+             a: teile.length > 3 ? teile[3] : 1 };
+  };
+  // **Was der Browser wirklich zeichnet.** Halbdurchsichtige Schrift auf
+  // einem deckenden Grund ergibt eine dritte Farbe — genau die sieht der
+  // Leser, und genau gegen sie ist der Kontrast zu rechnen.
+  //
+  // **Der Befund vom 01.09.2026:** Bis dahin galt jede Schrift mit Alpha < 1
+  // als „unentscheidbar" und fiel in denselben Zaehler wie Text auf Bildern.
+  // Gemessen waren das **alle** 690 Zeichen der 21,5 % — kein einziges stand
+  // auf einem Bild. Der Eintrag L-17 beschrieb damit die falsche Ursache,
+  // und die richtige ist nicht unentscheidbar, sondern eine Zeile Rechnung.
+  const ueberlagern = (vorn, alpha, hint) =>
+    vorn.map((k, i) => Math.round(alpha * k + (1 - alpha) * hint[i]));
   const kontrast = (v, h) => {
     const a = leucht(v), b = leucht(h);
     const [hell, dunkel] = a > b ? [a, b] : [b, a];
@@ -160,6 +181,7 @@ ERHEBUNG_KONTRAST = """
   };
 
   const ergebnis = { bestanden: 0, gefallen: 0, unentscheidbar: 0,
+                     ohneFarbe: 0, aufBildZeichen: 0,
                      faelle: {}, aufBild: [] };
   const lauf = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let knoten;
@@ -180,11 +202,17 @@ ERHEBUNG_KONTRAST = """
     const fett = parseInt(s.fontWeight, 10) >= 700;
     const schwelle = (px >= 24 || (fett && px >= 18.66)) ? 3.0 : 4.5;
 
-    const vorn = alsRgb(s.color);
+    const schrift = alsRgba(s.color);
     const hint = grund(el);
+    // Deckend gezeichnet: die Schriftfarbe ueber ihrem Grund. Bei Alpha 1
+    // ist das die Farbe selbst, sonst die Mischung, die der Leser sieht.
+    const vorn = (schrift && hint !== 'bild')
+      ? (schrift.a >= 1 ? schrift.rgb : ueberlagern(schrift.rgb, schrift.a, hint))
+      : (schrift ? schrift.rgb : null);
     if (!vorn) {
-      // Ohne Vordergrundfarbe ist gar nichts zu rechnen — das ist etwas
-      // anderes als ein Bild dahinter und bleibt unentscheidbar.
+      // Gar keine lesbare Farbangabe — etwa `currentColor` ohne Aufloesung.
+      // Das ist der letzte wirklich unentscheidbare Rest.
+      ergebnis.ohneFarbe += text.length;
       ergebnis.unentscheidbar += text.length;
       continue;
     }
@@ -195,6 +223,7 @@ ERHEBUNG_KONTRAST = """
       // nur eingesammelt; gerechnet wird in Python, nachdem die Seite ein
       // zweites Mal ohne Text abgelichtet wurde.
       const k = el.getBoundingClientRect();
+      ergebnis.aufBildZeichen += text.length;
       ergebnis.aufBild.push({
         x: Math.round(k.left), y: Math.round(k.top),
         w: Math.round(k.width), h: Math.round(k.height),

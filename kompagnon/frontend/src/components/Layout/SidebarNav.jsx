@@ -17,6 +17,25 @@ import KompagnonLogo from '../KompagnonLogo';
 import Logo from '../Logo';
 import { icons, VersandHinweis } from './navigationsdaten';
 
+// **Die gedaempfte Schrift der Seitenleiste — mit Deckkraft, aber ueber AA.**
+//
+// Gemessen am 01.09.2026 am laufenden Werkzeug: Weiss auf `--kc-dark`
+// (`rgb(0,79,89)`) erreicht AA erst ab **0,62** Deckkraft. Vorher standen hier
+// 0,55 (3,97), 0,45 (3,16), 0,30 (2,20) und 0,28 (2,08) — **561 von 3.203
+// Zeichen** auf jeder Seite unter der Schwelle, also die komplette
+// Gruppenbeschriftung der Navigation.
+//
+// **Warum es niemand gesehen hat:** Die Kontrastmessung gab bei einer
+// halbdurchsichtigen Schriftfarbe auf — sie zaehlte diese Zeichen als
+// „unentscheidbar" statt als gefallen. Erst als sie die Farbe ueber ihren
+// Grund legte, wie der Browser es tut, wurde aus 0 % gefallen 21,3 %.
+//
+// Die Abstufung bleibt erhalten, sie beginnt nur hoeher: gedaempft 0,70
+// (5,40), sehr gedaempft 0,62 (4,60). Wer sie senkt, senkt sie unter AA.
+const GEDAEMPFT = 'rgba(255,255,255,0.70)';      // 5,40 auf --kc-dark
+const SEHR_GEDAEMPFT = 'rgba(255,255,255,0.62)'; // 4,60 auf --kc-dark
+
+
 export default function SidebarNav({ badges }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -73,7 +92,7 @@ export default function SidebarNav({ badges }) {
     borderLeft: active ? '3px solid var(--kc-yellow)' : '3px solid transparent',
     cursor: 'pointer', fontSize: 13, textAlign: 'left', fontFamily: 'var(--font-sans)',
     background: active ? 'var(--kc-mid-a-30)' : 'transparent',
-    color: active ? '#ffffff' : 'rgba(255,255,255,0.55)',
+    color: active ? '#ffffff' : GEDAEMPFT,
     fontWeight: active ? 600 : 400,
     borderRadius: 0,
     transition: 'background 150ms, color 150ms',
@@ -87,14 +106,14 @@ export default function SidebarNav({ badges }) {
     borderLeft: active ? '3px solid var(--kc-yellow)' : '3px solid transparent',
     cursor: 'pointer', fontSize: 12, textAlign: 'left', fontFamily: 'var(--font-sans)',
     background: active ? 'var(--kc-mid-a-20)' : 'transparent',
-    color: active ? 'var(--kc-yellow)' : 'rgba(255,255,255,0.55)',
+    color: active ? 'var(--kc-yellow)' : GEDAEMPFT,
     fontWeight: active ? 600 : 400,
     borderRadius: 0,
     transition: 'background 150ms, color 150ms',
   });
 
   const sectionLabelStyle = {
-    fontSize: 12, letterSpacing: '.18em', color: 'rgba(255,255,255,0.28)',
+    fontSize: 12, letterSpacing: '.18em', color: SEHR_GEDAEMPFT,
     textTransform: 'uppercase', padding: '14px 14px 4px', fontWeight: 700,
     fontFamily: 'var(--font-sans)', display: 'block',
   };
@@ -175,11 +194,11 @@ export default function SidebarNav({ badges }) {
                     padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
                     background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
                     fontFamily: 'var(--font-sans)',
-                    color: isOpen ? '#fff' : 'rgba(255,255,255,0.55)',
+                    color: isOpen ? '#fff' : GEDAEMPFT,
                     fontWeight: isOpen ? 600 : 400,
                   }}>
                     <span>{section.label}</span>
-                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: isOpen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+                    <span style={{ fontSize: 14, color: SEHR_GEDAEMPFT, transform: isOpen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
                   </button>
                   {isOpen && visibleItems.map((item) => (
                     <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
@@ -204,11 +223,11 @@ export default function SidebarNav({ badges }) {
               padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
               background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
               fontFamily: 'var(--font-sans)',
-              color: openSections.einstellungen ? '#fff' : 'rgba(255,255,255,0.55)',
+              color: openSections.einstellungen ? '#fff' : GEDAEMPFT,
               fontWeight: openSections.einstellungen ? 600 : 400,
             }}>
               <span>Einstellungen</span>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+              <span style={{ fontSize: 14, color: SEHR_GEDAEMPFT, transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
             </button>
             {openSections.einstellungen
               && MENUE_GRUPPEN.find(g => g.key === 'einstellungen').eintraege
@@ -233,11 +252,11 @@ export default function SidebarNav({ badges }) {
                     padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
                     background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
                     fontFamily: 'var(--font-sans)',
-                    color: openSections.verwaltung ? '#fff' : 'rgba(255,255,255,0.55)',
+                    color: openSections.verwaltung ? '#fff' : GEDAEMPFT,
                     fontWeight: openSections.verwaltung ? 600 : 400,
                   }}>
                     <span>{gruppe.label}</span>
-                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.verwaltung ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+                    <span style={{ fontSize: 14, color: SEHR_GEDAEMPFT, transform: openSections.verwaltung ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
                   </button>
                   {openSections.verwaltung && sichtbar.map(item => (
                     <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
@@ -272,7 +291,7 @@ export default function SidebarNav({ badges }) {
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '.1em',
-          color: 'rgba(255,255,255,0.45)',
+          color: GEDAEMPFT,
           fontFamily: 'var(--font-sans)',
           userSelect: 'none',
         }}>
@@ -334,7 +353,7 @@ export default function SidebarNav({ badges }) {
               onClick={() => setMenuOpen(!menuOpen)}
               style={{
                 background: 'none', border: 'none', padding: 4,
-                color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                color: GEDAEMPFT, cursor: 'pointer',
                 display: 'flex', borderRadius: 'var(--radius-sm)',
               }}
             >

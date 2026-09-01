@@ -42,18 +42,21 @@ export default function Dashboard() {
       .then(data => { if (data) setKpis(data); })
       .finally(() => setLoadingKpis(false));
 
-    // Chain B — Leads: nur 8 werden angezeigt, Fallback auf usercards wenn leer
+    // Chain B — Leads: nur 8 werden angezeigt.
+    //
+    // **Der Rueckfall auf `/api/usercards/` ist am 01.09.2026 entfernt worden
+    // — er konnte nie ausloesen.** Hier stand: ist die Liste leer, hole
+    // stattdessen die Kundenkarten. Die Tabelle `usercards` wird seit dem
+    // Entfernen ihres Kopierschritts nie befuellt; die einzige Stelle, die
+    // eine Zeile anlegt, ist `POST /api/usercards/`, und die ruft keine
+    // Oberflaeche auf (L-105, L-106). Der Zweig holte also zuverlaessig eine
+    // leere Liste — mit einer zweiten Anfrage und dem Anschein, es gaebe eine
+    // zweite Datenquelle. Wer das liest, sucht den fehlenden Betrieb dort.
     fetch(`${API_BASE_URL}/api/leads/?limit=8`, { headers: h })
       .then(r => r.json())
       .catch(() => [])
-      .then(async leadsData => {
-        let rows = Array.isArray(leadsData) ? leadsData : [];
-        if (rows.length === 0) {
-          try {
-            const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
-            if (Array.isArray(uc) && uc.length > 0) rows = uc;
-          } catch (_) {}
-        }
+      .then(leadsData => {
+        const rows = Array.isArray(leadsData) ? leadsData : [];
         setLeads(rows.slice(0, 8));
       })
       .finally(() => setLoadingLeads(false));

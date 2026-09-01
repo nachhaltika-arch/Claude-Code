@@ -390,8 +390,24 @@ def get_customers(db: Session = Depends(get_db)):
     from sqlalchemy import or_
     from database import User, Project
 
+    # **Ueber die Phase, nicht ueber einen einzelnen Statuswert** (L-26, hier
+    # nachgezogen am 01.09.2026). `status == "won"` uebersieht jeden Betrieb,
+    # den jemand im Bildschirm auf „Kunde" (`status='customer'`) gesetzt hat —
+    # beide fuehren zu `lifecycle_phase='kunde'`, und ein Ereignis-Zuhoerer
+    # (`database.py:683`) haelt das synchron.
+    #
+    # **Warum es hier stehen blieb:** Dieselbe Korrektur wurde am 19.08. in
+    # `automations.py` und `projects_anlegen.py` gemacht und am 31.08. in
+    # `projects.py`. Diese Stelle war die vierte — und die einzige, die
+    # **niemand aufruft**. Genau darum geht es bei L-105: Eine ungerufene
+    # Route ist nicht ungefaehrlich, sie ist unbeobachtet, und Reparaturen,
+    # die anderswo ankommen, erreichen sie nicht.
+    from services.lebenszyklus import KUNDE
+
     customers = db.query(Lead).filter(
-        or_(Lead.status == "won", Lead.lead_source == "stripe_checkout", Lead.lead_source == "llm_landing")
+        or_(Lead.lifecycle_phase == KUNDE,
+            Lead.lead_source == "stripe_checkout",
+            Lead.lead_source == "llm_landing")
     ).order_by(Lead.created_at.desc()).all()
 
     result = []

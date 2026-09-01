@@ -1,7 +1,32 @@
-"""
-UserCards API — unified endpoint replacing /api/leads and /api/customers.
-All three prefixes (/api/usercards, /api/leads, /api/customers) are served
-by the same handlers defined here.
+"""Die Kundenkartei — ein Zusammenlegungsversuch, der nie zu Ende ging.
+
+**Die Kopfzeile hier war falsch, und zwar seit Langem** (richtiggestellt am
+01.09.2026 bei L-105). Sie behauptete: „unified endpoint replacing /api/leads
+and /api/customers. All three prefixes are served by the same handlers defined
+here." Keines davon stimmt: Dieses Modul haengt ausschliesslich unter
+`/api/usercards`, `/api/leads` gehoert `routers/leads.py` und `/api/customers`
+gehoert `routers/customers.py`. Wer die Kopfzeile las, suchte Lead-Routen hier
+— eine Beschreibung, die in die Irre fuehrt, kostet mehr als gar keine.
+
+**Wie es wirklich steht** (gemessen am 01.09.2026):
+
+* Die Tabelle `usercards` wird **nie befuellt**. Der Kopierschritt aus `leads`
+  wurde entfernt (`migrations_runtime.py:445`, „caused DB lock on startup"),
+  und die einzige Stelle, die noch eine Zeile anlegt, ist `POST /api/usercards/`
+  weiter unten — die ruft keine Oberflaeche auf.
+* Von den Routen dieses Moduls ruft das Werkzeug genau **eine**:
+  `GET /{card_id}/profile` am `kunden_router`, und die liest seit dem
+  26.08.2026 aus `leads` statt aus `usercards` (siehe `_betrieb_or_404`).
+  Alle uebrigen sieben koennen nur 404 liefern.
+* Zwei Rueckfaelle auf diese Tabelle — im Dashboard und in den Kennzahlen —
+  sind am 01.09. entfernt worden; sie konnten nie ausloesen.
+
+**Was offen ist, ist eine Entscheidung und kein Aufraeumen** (L-106): Wird die
+Tabelle gefuellt, oder verschwindet sie? Ob produktiv Zeilen darin stehen,
+laesst sich von hier aus nicht sagen. Bis das entschieden ist, bleibt dieses
+Modul unangetastet — ein leerer Endpunkt ist eine Frage, kein Ballast.
+
+Die Routen dieses Moduls:
 
 GET    /api/usercards/            list all cards
 POST   /api/usercards/            create a card

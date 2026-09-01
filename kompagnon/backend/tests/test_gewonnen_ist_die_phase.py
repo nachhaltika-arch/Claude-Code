@@ -39,11 +39,14 @@ import re
 BACKEND = pathlib.Path(__file__).resolve().parent.parent
 
 #: Stellen, an denen `status = 'won'` richtig ist — jede nachgesehen.
-AUSNAHMEN = {
-    # Rueckfall auf `usercards`, wenn `leads` leer ist. Die Tabelle hat keine
-    # `lifecycle_phase`; der Zweig laeuft nur in einer leeren Umgebung.
-    "routers/automations.py",
-}
+#:
+#: **Am 01.09.2026 leer geworden.** Hier stand `routers/automations.py`: ein
+#: Rueckfall auf `usercards`, wenn `leads` leer ist — die Tabelle hat keine
+#: `lifecycle_phase`, also war der Status dort richtig. Beim Durchgehen von
+#: L-105 zeigte sich, dass der Zweig **nie** laufen kann: `usercards` wird
+#: seit dem Entfernen ihres Kopierschritts nicht mehr befuellt. Er ist
+#: entfernt, und damit auch diese Ausnahme.
+AUSNAHMEN = set()
 
 #: Eine **Kennzahl** ueber den Status: `COUNT`/`SUM` und `status='won'`
 #: in derselben Zeile. Alles andere — zuordnen, setzen, filtern, seeden —
@@ -94,6 +97,29 @@ def test_und_die_kampagnen_zaehlen_wirklich_ueber_die_phase():
     assert len(treffer) >= 3, (
         f"nur {len(treffer)} der drei Kampagnen-Abfragen zaehlen ueber die Phase"
     )
+
+
+def test_und_die_kundenliste_waehlt_ueber_die_phase():
+    """Die zweite positive Gegenprobe — fuer einen Fall, den das Muster oben
+    **nicht** sieht.
+
+    `GET /api/leads/customers` zaehlt nicht, es **listet**: ein `filter(...)`
+    ohne `COUNT` oder `SUM`. Das Muster verlangt beides in einer Zeile und
+    ging daher darueber hinweg; die Route trug `status == "won"` noch am
+    01.09.2026, waehrend dieselbe Korrektur anderswo dreimal gemacht worden
+    war. Gefunden wurde sie nicht durch diesen Waechter, sondern beim
+    Durchgehen der Endpunkte ohne Aufrufer (L-105).
+
+    **Das Muster zu erweitern waere der falsche Schluss** — der erste Entwurf
+    am 31.08. verbot jedes `status = 'won'` und meldete elf Stellen, von denen
+    keine ein Fehler war. Eine Liste aus Fehlalarmen wird abgeschaltet, nicht
+    gelesen. Stattdessen steht die eine bekannte Stelle hier namentlich.
+    """
+    text = (BACKEND / "routers" / "leads.py").read_text(encoding="utf-8")
+    stelle = text[text.index('def get_customers'):][:1200]
+    assert "lifecycle_phase == KUNDE" in stelle, \
+        "die Kundenliste waehlt wieder ueber den Status statt ueber die Phase"
+    assert 'Lead.status == "won"' not in stelle
 
 
 def test_die_ausnahmen_gelten_noch():

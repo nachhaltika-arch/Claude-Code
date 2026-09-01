@@ -1,11 +1,17 @@
 /**
  * Die Marge eines Projekts als Abzeichen.
  *
- * **„unbekannt" ist kein Randfall, sondern der Normalfall (26.08.2026).**
- * Beim Anschließen dieser Komponente (L-95) zeigte sich: `actual_hours` ist
- * an **jedem** Projekt 0, `time_tracking` ist leer, und keine Oberfläche ruft
- * `POST /api/projects/{id}/time` (L-105). Die Marge rechnet damit den
- * Festpreis minus Werkzeugkosten und kommt überall auf ~97,5 %.
+ * **„unbekannt" war der Normalfall (26.08.2026) — und ist es nicht mehr.**
+ * Beim Anschließen dieser Komponente (L-95) zeigte sich: `actual_hours` war
+ * an **jedem** Projekt 0, `time_tracking` leer, und keine Oberfläche rief
+ * `POST /api/projects/{id}/time` (L-105). Die Marge rechnete damit den
+ * Festpreis minus Werkzeugkosten und kam überall auf ~97,5 %.
+ *
+ * **Nachgetragen am 01.09.2026:** Der zweite Halbsatz stimmt seit dem
+ * 26.08. nicht mehr — `components/betrieb/Zeiterfassung.jsx` ruft `/time` am
+ * Betriebsblatt, und am 31.08. kam mit `AboZeiten.jsx` die zweite Achse dazu.
+ * Ein Satz, der einen behobenen Mangel weiter behauptet, schickt den
+ * nächsten Leser auf die Suche nach einem Knopf, den es gibt.
  *
  * Ein grünes Abzeichen darüber ist schlimmer als keines: Es behauptet einen
  * Deckungsbeitrag, den niemand geprüft hat. Solange keine Zeit erfasst ist,

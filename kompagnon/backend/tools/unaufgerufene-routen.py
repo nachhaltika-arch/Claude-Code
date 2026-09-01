@@ -48,8 +48,12 @@ from tools.adressen import (  # noqa: E402
     weitere_aufrufer,
 )
 
-#: Adressen, die planmäßig nicht aus dem Frontend gerufen werden.
-#: Jede Gruppe braucht einen Grund — sonst wird die Liste zum Ablagefach.
+#: Adressen, die ein Suchlauf im Frontend planmaessig nicht findet — weil sie
+#: von aussen gerufen werden oder weil der Aufrufer die Adresse zur Laufzeit
+#: zusammensetzt. Jede Gruppe braucht einen Grund, und der Grund muss
+#: **nachgemessen** sein: Am 01.09.2026 stand hier eine Ausnahme, deren
+#: Begruendung nicht mehr zutraf (siehe `AUSSERHALB_DES_REPOS`). Sonst wird
+#: die Liste zum Ablagefach, und ein Ablagefach gibt keinen Alarm.
 ERKLAERT = (
     ("/api/webhooks/", "Webhook — wird von aussen gerufen (Stripe, Brevo, Netlify)"),
     # **Zwei weitere Rufe von aussen (26.08.2026).** Beide standen unter
@@ -94,6 +98,17 @@ ERKLAERT = (
     ("/api/shop/download/", "Abruflink aus der Bestellbestaetigung"),
     ("/api/shop/orders/", "Auskunft und Rechnung — Link aus der Mail, Token im Pfad"),
     ("/api/files/portal/", "Kundenportal — haengt am Einmal-Token aus der Mail"),
+    # **Die Basis ist eine Eigenschaft, kein fester Text (01.09.2026).** Das
+    # Werkzeug meldete `/{}/{}/editor` als Aufruf, der auf zwei Routen passt
+    # und ueber keine etwas sagt — und beide Routenpaare standen daneben als
+    # „ruft niemand auf". Nachgesehen: `components/GrapesEditor.jsx` baut
+    # `${endpointBase}/${pageId}/editor`, und `endpointBase` ist ein Parameter
+    # mit der Vorgabe `/api/pages`; `pages/KasWebsite.jsx` uebergibt
+    # `/api/kas/pages`. **Beide Paare werden also wirklich gerufen** — GET zum
+    # Laden, POST zum Speichern. Kein Befund, sondern die Antwort auf die
+    # Frage, die das Werkzeug selbst gestellt hat.
+    ("/api/pages/{page_id}/editor", "GrapesEditor — Basis kommt als Eigenschaft"),
+    ("/api/kas/pages/{page_id}/editor", "GrapesEditor auf der Agenturseite — Basis kommt als Eigenschaft"),
 )
 
 

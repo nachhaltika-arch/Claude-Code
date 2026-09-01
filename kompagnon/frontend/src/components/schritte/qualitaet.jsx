@@ -258,8 +258,21 @@ export function AbnahmeEmbed({ project, lead, headers, netlify }) {
 // statt zurueckgesetzt; `gbp_checklist_json` wird weiterhin gelesen, nur
 // nicht mehr geschrieben.
 //
-// Der Endpunkt `PATCH /api/projects/{id}/gbp-checklist` bleibt bestehen: Er
-// haelt die Altdaten, aus denen die Uebernahme liest.
+// **Hier stand, der Endpunkt `PATCH /api/projects/{id}/gbp-checklist` muesse
+// bestehen bleiben, weil er die Altdaten haelt. Das nennt das falsche
+// Objekt** (nachgesehen am 01.09.2026 beim Durchgehen von L-105): Die Altdaten
+// haelt die **Spalte** `gbp_checklist_json`, und die wird weiter gelesen —
+// `projects.py:246` liefert sie aus, `ProzessFlow.jsx` reicht sie an
+// `QAChecklist` weiter, und dort werden die alten Haken uebernommen.
+//
+// Der **Endpunkt** ist ihr einziger Schreiber, und niemand ruft ihn. Er zu
+// behalten ist genau das Gegenteil der Entscheidung drei Zeilen weiter oben
+// („wird weiterhin gelesen, nur nicht mehr geschrieben"): Wer ihn aufruft,
+// ueberschreibt die Quelle, aus der die Uebernahme liest — welche Haken dann
+// mitwandern, entscheidet sich still neu.
+//
+// Loeschen ist trotzdem eine Entscheidung und kein Aufraeumen; sie steht bei
+// David (L-105).
 
 // ── GBP + QR-Code ─────────────────────────────────────────────────────────────
 

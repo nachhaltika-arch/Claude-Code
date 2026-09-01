@@ -208,7 +208,16 @@ def _bestellung_anlegen(db: Session, bestellung: BuchBestellung,
             payment_status="pending",
             waiver_accepted=bestellung.waiver_accepted,
             waiver_accepted_at=jetzt if bestellung.waiver_accepted else None,
-            fulfillment_status=("queued" if bestellung.variant in ("print", "bundle")
+            # **Nicht `queued`, solange niemand bezahlt hat** (01.09.2026,
+            # BUCH-07). Bis hierher stand an dieser Stelle `queued` — gesetzt
+            # beim **Anlegen**, waehrend `payment_status` noch `pending` ist.
+            # Jede abgebrochene Kasse lag damit in der Druckwarteschlange, und
+            # wer sie bei BoD aufgab, verschickte ein bezahltes Buch an
+            # jemanden, der es nie gekauft hat. Der Webhook hebt den Status,
+            # sobald Stripe die Zahlung bestaetigt — die Zeile dafuer stand
+            # schon immer weiter unten in `_zahlung_verbuchen`.
+            fulfillment_status=("awaiting_payment"
+                                if bestellung.variant in ("print", "bundle")
                                 else "not_applicable"),
             utm_source=bestellung.utm_source[:100],
             utm_campaign=bestellung.utm_campaign[:100],

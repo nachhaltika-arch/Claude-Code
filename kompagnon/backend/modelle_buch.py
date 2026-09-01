@@ -93,6 +93,16 @@ class BookOrder(Base):
     delivered_at = Column(DateTime, nullable=True)
 
     # ── Abwicklung der gedruckten Fassung ────────────────────────────
+    #: `not_applicable` (nichts zu drucken) · `awaiting_payment` (Druck
+    #: bestellt, Stripe hat noch nicht bestaetigt) · `queued` (bezahlt, wartet
+    #: auf den naechsten BoD-Export) · `exported` (in einer CSV aufgegeben) ·
+    #: `shipped` (unterwegs, Sendungsnummer vorhanden).
+    #:
+    #: **`awaiting_payment` kam am 01.09.2026 dazu** (BUCH-07). Vorher sprang
+    #: eine Druckbestellung schon beim Anlegen auf `queued`, also vor der
+    #: Zahlung — die Warteschlange enthielt abgebrochene Kassen, und der
+    #: Export haette Buecher an Nichtkaeufer geschickt. Der Zwischenschritt
+    #: sagt, was wirklich gilt: bestellt, aber noch nicht bezahlt.
     fulfillment_status = Column(String(20), default="not_applicable")
     fulfillment_exported_at = Column(DateTime, nullable=True)
     tracking_number = Column(String(100), default="")

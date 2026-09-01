@@ -426,6 +426,11 @@ app.include_router(cms_connect_router)
 app.include_router(portal_router)
 app.include_router(audit_router)
 app.include_router(buch_router)
+# Die Warteschlange der Druckbestellungen (BUCH-07). Eigenes Modul, weil
+# `routers/buch.py` die Kasse traegt und beides zusammen die Datei ueber
+# die Groessengrenze aus L-25 gehoben haette.
+from routers.buch_versand import router as buch_versand_router
+app.include_router(buch_versand_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
 app.include_router(acquisition_router)

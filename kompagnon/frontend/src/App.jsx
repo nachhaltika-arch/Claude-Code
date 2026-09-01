@@ -62,6 +62,7 @@ import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
 import Fehlerprotokoll from './pages/Fehlerprotokoll';
+import BuchBestellungen from './pages/BuchBestellungen';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import AGB from './pages/AGB';
@@ -419,6 +420,9 @@ function App() {
             {/* Settings with sub-navigation */}
             {/* Was der Server nicht verarbeiten konnte — L-10. */}
             <Route path="fehler" element={<PrivateRoute roles={['admin']}><Fehlerprotokoll /></PrivateRoute>} />
+            {/* Die Druckwarteschlange (BUCH-07). Nur Admin: Die Liste
+                traegt Lieferanschriften. */}
+            <Route path="buchbestellungen" element={<PrivateRoute roles={['admin']}><BuchBestellungen /></PrivateRoute>} />
 
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/app/settings/profile" replace />} />

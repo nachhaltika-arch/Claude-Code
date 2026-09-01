@@ -58,6 +58,10 @@ export const MENUE_GRUPPEN = [
       { label: 'Deals',           path: '/app/deals' },
       { label: 'Betriebe',        path: '/app/betriebe' },
       { label: 'Export',          path: '/app/export' },
+      // Die Druckwarteschlange des Buchs (BUCH-07). Sie steht unter
+      // Vertrieb, weil sie eingehende Bestellungen abarbeitet — nicht
+      // unter „Angebot", wo beschrieben wird, was wir verkaufen.
+      { label: 'Buchbestellungen', path: '/app/buchbestellungen', adminOnly: true },
     ],
   },
   {

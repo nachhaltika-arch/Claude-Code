@@ -12,10 +12,11 @@ Gemessen mit `kompagnon/backend/tools/unaufgerufene-routen.py`.
 
 ## Die Zahl und was sie bedeutet
 
-| Stand | Ungerufen | Erklärt |
-|---|---:|---:|
-| Ausgangspunkt 01.09. | 96 | 14 |
-| nach dem Aufräumen der Messung | 84 | 28 |
+| Stand | Ungerufen | Erklärt | beurteilt |
+|---|---:|---:|---:|
+| Ausgangspunkt 01.09. | 96 | 14 | 0 |
+| nach dem Aufräumen der Messung | 84 | 28 | 31 |
+| nach dem `projects`-Block | 84 | 28 | **50** |
 
 **Die Zahl fiel nicht, weil Routen verschwanden**, sondern weil die Messung
 vorher Webhooks, Mail-Links und Betriebsanzeigen als offene Fragen führte.
@@ -153,13 +154,96 @@ Produktivdatenbank entscheidet, ob die 9 Routen Ballast oder Bestand sind.
 
 ---
 
+## Dritter Block — `projects` (19 Routen, 01.09.2026 abends)
+
+Der größte Cluster. Er zerfällt in **drei Muster**, und keines ist einfach
+Ballast.
+
+### 1 · Ein ganzes Merkmal ohne Auslöser — und der Kunde wartet darauf
+
+| Route | |
+|---|---|
+| `POST /{id}/generate-versions` | 248 Zeilen: erzeugt drei Website-Entwürfe aus Briefing, Inspirationen und Vorlagen |
+| `GET /{id}/versions` | die erzeugten Versionen |
+| `GET /{id}/versions/{vid}/preview` | HTML-Vorschau fürs iframe |
+| `POST /{id}/versions/{vid}/select` | eine auswählen |
+
+**Die Kundenseite ist fertig gebaut und angeschlossen.** Das Kundenportal
+zeigt „🎨 Ihre 3 Website-Entwürfe sind bereit! — Wählen Sie Ihren Favoriten",
+mit Vorschau-iframe je Entwurf, und ruft dafür `/api/portal/versions/{id}/preview`
+und `/select`.
+
+**Nur entstehen kann kein einziger Entwurf.** `POST /generate-versions` ist der
+**einzige** Schreiber von `website_versions` — nachgemessen: Das Wort kommt im
+ganzen Repo nur in seiner eigenen Definition vor. Kein Bildschirm, kein
+Scheduler, kein Test ruft es.
+
+**Warum es niemandem auffiel:** `KundenPortal.jsx` hat den ehrlichen Riegel
+`if (versions.length === 0) return null` — der Abschnitt versteckt sich, wenn
+nichts da ist. Der Kunde sieht also kein leeres Versprechen. Genau deshalb
+merkt auch niemand, dass er es nie sehen wird.
+
+> **Ein gut versteckter Mangel ist schwerer zu finden als ein sichtbarer.**
+
+**Empfehlung: Knopf bauen.** Von vier Routen fehlt genau eine Auslösung; der
+Rest der Kette steht.
+
+### 2 · Ein abgelöstes Parallelsystem, das noch steht
+
+| Route | ersetzt durch |
+|---|---|
+| `GET /{id}/sitemap` | `/api/sitemap/{lead_id}/*` (der Sitemap-Planer) |
+| `PATCH /{id}/sitemap` | ebenso |
+| `POST /{id}/freigabe` | `briefings.freigaben` über `PATCH /api/briefings/{id}` |
+| `GET /{id}/sitemap-register` | — |
+
+Dahinter hängen **zwei tote Spalten**: `projects.sitemap_json` wird nur von den
+beiden ungerufenen Routen geschrieben und gelesen; `projects.sitemap_freigabe`
+setzt ausschließlich `POST /freigabe`.
+
+**Die Freigaben, die man im Werkzeug sieht, kommen woanders her.** Sowohl
+`BriefingTab.jsx` als auch die Kundenansicht `Projektfreigaben.jsx` lesen
+`briefings.freigaben` — dieselbe Bezeichnung `sitemap_freigabe`, ein anderer
+Speicher. Zwei Mechanismen mit demselben Namen, einer davon tot.
+
+**Empfehlung: löschen**, Routen und Spalten. Hier fehlt kein Knopf — der Weg
+ist gegangen worden, nur woanders.
+
+### 3 · Doppelwege — dieselbe Sache, zweimal gebaut
+
+| ungerufen | benutzt wird |
+|---|---|
+| `POST /api/projects/{id}/briefing-prefill` (98 Z.) | `POST /api/leads/{id}/briefing-prefill` |
+| `POST /api/projects/{id}/scrape` (88 Z.) | `POST /api/crawler/scrape-content/{id}` |
+
+Bei `briefing-prefill` ist die Entscheidung sogar schon getroffen und
+aufgeschrieben: Der Kopf von `routers/leads_briefing.py` sagt, die Adresse
+laute `/api/leads/{lead_id}/briefing-prefill` „und sie soll es bleiben". Die
+zweite Fassung unter `projects` hat das nicht mitbekommen.
+
+**Empfehlung: löschen.**
+
+### 4 · Der Rest, einzeln beurteilt
+
+| Route | Urteil |
+|---|---|
+| `GET /{id}/margin` | **Knopf fehlt** — elf Kennzahlen, angezeigt wird eine (siehe zweiter Block) |
+| `PATCH /{id}/gbp-checklist` | **löschen** — letzter Schreiber einer eingefrorenen Spalte (zweiter Block) |
+| `POST /{id}/netlify/add-subdomain` (66 Z.) | erzeugt eine DNS-Anleitung; ohne Aufrufer, ohne Ersatzweg — **offene Frage** |
+| `POST /{id}/go-live-pagespeed` (81 Z.) | die gelebte Messung läuft über `/api/leads/{id}/pagespeed` — **wahrscheinlich Doppelweg**, zu bestätigen |
+| `GET /{id}/qa/result` | die QA-Ansicht holt ihr Ergebnis anders — **offene Frage** |
+| `POST /{id}/trigger` | Automatik von Hand auslösen — Werkzeug für die Hand |
+| `GET /{id}/debug`, `POST /seed` | Diagnose und Saat — Werkzeuge für die Hand, gehören erklärt |
+| `GET /api/dashboard/projects-by-phase` | „for kanban view" — die Kanban-Ansicht gibt es, sie rechnet selbst. **Offene Frage** |
+
+---
+
 ## Noch nicht beurteilt
 
-**53 Routen**, im Wesentlichen:
+**34 Routen**, im Wesentlichen:
 
 | Bereich | Anzahl |
 |---|---:|
-| `projects` | 18 |
 | `leads` | 10 |
 | `templates` | 5 |
 | `sitemap` | 4 |

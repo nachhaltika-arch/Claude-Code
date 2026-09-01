@@ -123,10 +123,35 @@ def test_eine_pruefung_im_quartal_nimmt_die_faelligkeit(db, betrieb):
     assert betrieb not in [f["lead_id"] for f in faellig]
 
 
-def test_eine_pruefung_aus_dem_vorquartal_zaehlt_nicht(db, betrieb):
+def test_bei_pro_zaehlt_eine_pruefung_aus_dem_vorquartal_nicht(db, betrieb):
     """**Der Kern des Termins.** Eine Pruefung vom Juni loest das Re-Audit
     fuer das dritte Quartal nicht ein — sonst waere die Zusage „einmal" statt
-    „vierteljaehrlich"."""
+    „vierteljaehrlich" (Position 10 des Leistungsverzeichnisses)."""
+    from database import AuditResult
+
+    abo_vertrag.anlegen(db, lead_id=betrieb, produkt="ABO-PRO",
+                        start_monat="2026-01")
+    db.add(AuditResult(lead_id=betrieb, status="completed",
+                       website_url="https://quartal.example",
+                       company_name=BETRIEB_NAME,
+                       created_at=datetime(2026, 6, 30)))
+    db.commit()
+
+    faellig = quartals_reaudit.faellige_betriebe(db, datetime(2026, 7, 1))
+
+    assert betrieb in [f["lead_id"] for f in faellig]
+
+
+def test_bei_basic_zaehlt_dieselbe_pruefung_sehr_wohl(db, betrieb):
+    """**Die Gegenprobe, und sie ist die eigentliche Korrektur vom
+    01.09.2026.** Derselbe Fall wie oben, nur mit ABO-BAS: Dort ist das
+    Re-Audit **jaehrlich** zugesagt (Position 7), und eine Pruefung vom Juni
+    loest das Jahr ein.
+
+    Der erste Entwurf meldete beide Abos jedes Quartal. Fuer einen
+    Basic-Kunden waeren das vier Pruefungen im Jahr statt einer — viermal
+    Guthaben und dreimal eine Leistung, fuer die niemand zahlt.
+    """
     from database import AuditResult
 
     abo_vertrag.anlegen(db, lead_id=betrieb, produkt="ABO-BAS",
@@ -138,6 +163,23 @@ def test_eine_pruefung_aus_dem_vorquartal_zaehlt_nicht(db, betrieb):
     db.commit()
 
     faellig = quartals_reaudit.faellige_betriebe(db, datetime(2026, 7, 1))
+
+    assert betrieb not in [f["lead_id"] for f in faellig]
+
+
+def test_bei_basic_wird_nach_einem_jahr_wieder_geprueft(db, betrieb):
+    """Sonst waere „jaehrlich" in der Umsetzung „einmal"."""
+    from database import AuditResult
+
+    abo_vertrag.anlegen(db, lead_id=betrieb, produkt="ABO-BAS",
+                        start_monat="2025-01")
+    db.add(AuditResult(lead_id=betrieb, status="completed",
+                       website_url="https://quartal.example",
+                       company_name=BETRIEB_NAME,
+                       created_at=datetime(2025, 6, 30)))
+    db.commit()
+
+    faellig = quartals_reaudit.faellige_betriebe(db, datetime(2026, 10, 1))
 
     assert betrieb in [f["lead_id"] for f in faellig]
 

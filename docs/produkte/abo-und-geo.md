@@ -18,6 +18,21 @@
 >   bestimmbar, was schon verbraucht war.
 > - Die mit ⚠️ markierten Preisannahmen sind weiterhin offen — in Stripe steht
 >   heute kein Abonnement-Preis, mit dem sich abgleichen ließe.
+> - **Am 01.09.2026 entschieden: die Abrechnung läuft per Rechnung**, nicht
+>   über Stripe-Abonnements und nicht per SEPA-Lastschrift. Damit entfällt
+>   die Einzugsermächtigung — und die Zahlungsbedingung Z4 oben ist
+>   überholt; sie steht durchgestrichen da statt gelöscht, weil ein
+>   Angebot mit Z4 draußen sein könnte.
+> - **Gebaut ist der Aufstellungslauf, nicht der Rechnungsdruck**
+>   (`services/abo_abrechnung.py`, monatlich am Ersten um 05:30): Er sagt,
+>   wer was schuldet; die Rechnungsnummer vergibt ein Mensch, weil sie
+>   fortlaufend ist und sich nicht zurücknehmen lässt.
+> - **Die Leistungszahlen standen im Werkzeug falsch** und sind am
+>   01.09.2026 an diesem Blatt richtiggestellt worden: 30 Minuten für
+>   BAS (nicht null), 90 statt 120 für PRO („statt 30", nicht
+>   „zusätzlich"), und das Re-Audit ist bei BAS **jährlich**, nicht
+>   vierteljährlich. `tests/test_abo_datenblatt.py` liest seither dieses
+>   Blatt und wird rot, wenn Code und Produkt auseinanderlaufen.
 
 ---
 
@@ -28,7 +43,7 @@
 | Artikelnummer | ABO-BAS |
 | Preis | **79 € netto / Monat** ⚠️ Annahme, mit Stripe abgleichen |
 | Umsatzsteuer | 19 % |
-| Zahlungsbedingung | **Z4** (monatlich im Voraus, SEPA) |
+| Zahlungsbedingung | ~~**Z4** (monatlich im Voraus, SEPA)~~ → **monatlich per Rechnung** (Entscheidung David, 01.09.2026) |
 | Laufzeit | 12 Monate, danach monatlich kündbar mit 1 Monat Frist |
 | Freigabestatus | 🟠 Angebotszeitpunkt und Abwicklung unklar |
 

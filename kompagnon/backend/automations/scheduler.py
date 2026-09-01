@@ -187,6 +187,15 @@ def job_update_all_margins():
 # MONTHLY PERFORMANCE REPORT
 # ===================================================================
 
+def _run_abo_abrechnung():
+    """Monatliche Aufstellung der Pflege-Abos (L-101, Abrechnung per Rechnung)."""
+    try:
+        from services.abo_abrechnung import lauf_mit_eigener_sitzung
+        lauf_mit_eigener_sitzung()
+    except Exception as e:                              # noqa: BLE001
+        logger.error(f"Abo-Abrechnung Wrapper Fehler: {e}", exc_info=True)
+
+
 def _run_quartals_reaudit():
     """Termingeber fuer das Quartals-Re-Audit der Pflege-Abos (L-101)."""
     try:
@@ -518,6 +527,28 @@ class CompagnonScheduler:
             name="Quartals-Re-Audit der Pflege-Abos",
         )
         logger.info("✓ Quartals-Re-Audit Job registriert (1.1./1.4./1.7./1.10., 06:00)")
+
+        # Monatliche Abo-Abrechnung — 1. des Monats, 05:30 Uhr (L-101).
+        # **Vor allen anderen Monatsjobs**, weil daran Geld haengt: Wer den
+        # Morgen des Ersten mit einer Liste beginnt, stellt die Rechnungen;
+        # wer sie unter drei Berichten findet, verschiebt sie.
+        #
+        # Der Lauf stellt **keine** Rechnung aus. Eine Rechnungsnummer ist
+        # fortlaufend und laesst sich nicht still zuruecknehmen — sie vergibt
+        # ein Mensch. Entscheidung David, 01.09.2026: per Rechnung, nicht per
+        # Abbuchung.
+        self.scheduler.add_job(
+            _run_abo_abrechnung,
+            "cron",
+            day=1,
+            hour=5,
+            minute=30,
+            id="abo_abrechnung",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+            name="Monatliche Abrechnung der Pflege-Abos",
+        )
+        logger.info("✓ Abo-Abrechnung Job registriert (1. des Monats, 05:30)")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""

@@ -65,7 +65,7 @@ def test_mit_vertrag_steht_die_restzahl_da(db, betrieb):
 
     assert stand["verbraucht"] == 0.5
     assert stand["kontingent_stunden"] == KONTINGENT_ABO_PRO_STUNDEN
-    assert stand["verbleibend_stunden"] == 1.5
+    assert stand["verbleibend_stunden"] == 1.0
     assert stand["ueberzogen"] is False
     assert stand["abo"]["produkt"] == "ABO-PRO"
 
@@ -73,31 +73,38 @@ def test_mit_vertrag_steht_die_restzahl_da(db, betrieb):
 def test_eine_ueberschreitung_wird_gezeigt_und_nicht_auf_null_gekappt(
         db, betrieb):
     """**Auf Null zu begrenzen versteckte genau den Fall, für den das
-    Kontingent gebaut ist.** Wer 3,5 Stunden auf zwei zugesagte bucht, soll
-    −1,5 lesen und nicht 0 — die Null sähe aus wie „gerade aufgebraucht"."""
+    Kontingent gebaut ist.** Wer 3,5 Stunden auf
+    1,5 zugesagte bucht, soll −2,0 lesen und nicht 0 — die Null sähe aus wie
+    „gerade aufgebraucht"."""
     abo_vertrag.anlegen(db, lead_id=betrieb, produkt="ABO-PRO",
                         start_monat="2026-08")
     eintragen(db, lead_id=betrieb, stunden=3.5, wer="Test", monat="2026-08")
 
     stand = monatsstand(db, lead_id=betrieb, monat="2026-08")
 
-    assert stand["verbleibend_stunden"] == -1.5
+    assert stand["verbleibend_stunden"] == -2.0
     assert stand["ueberzogen"] is True
 
 
-def test_abo_bas_hat_ein_kontingent_von_null_und_das_ist_etwas_anderes_als_keins(
-        db, betrieb):
-    """ABO-BAS sagt keine Änderungsstunden zu. Das ist eine **Zusage über
-    Null**, kein fehlender Vertrag — und die Auskunft muss beides
-    unterscheiden können."""
+def test_abo_bas_hat_ein_kleineres_kontingent_und_nicht_gar_keins(db, betrieb):
+    """**Am 01.09.2026 richtiggestellt.** Hier stand, ABO-BAS sage keine
+    Änderungsstunden zu — das kam aus dem Lagebild-Text. Das Datenblatt
+    nennt in Position 5 **30 Minuten je Monat**.
+
+    Der Unterschied ist teuer: Mit einem Kontingent von 0,0 wäre **jede**
+    Minute eines Basic-Kunden eine Überschreitung gewesen, und wir hätten
+    berechnet, was im Preis steht.
+    """
     abo_vertrag.anlegen(db, lead_id=betrieb, produkt="ABO-BAS",
                         start_monat="2026-08")
+    eintragen(db, lead_id=betrieb, stunden=0.25, wer="Test", monat="2026-08")
 
     stand = monatsstand(db, lead_id=betrieb, monat="2026-08")
 
     assert stand["abo"] is not None
-    assert stand["kontingent_stunden"] == 0.0
-    assert stand["verbleibend_stunden"] == 0.0
+    assert stand["kontingent_stunden"] == 0.5
+    assert stand["verbleibend_stunden"] == 0.25
+    assert stand["ueberzogen"] is False, "eine Viertelstunde ist im Preis"
     assert stand["hinweis"] == ""
 
 
@@ -148,8 +155,8 @@ def test_ein_wechsel_beendet_den_alten_und_laesst_die_vergangenheit_stehen(
     august = monatsstand(db, lead_id=betrieb, monat="2026-08")
 
     assert juli["abo"]["produkt"] == "ABO-BAS"
-    assert juli["kontingent_stunden"] == 0.0
-    assert juli["ueberzogen"] is True, "eine Stunde auf ABO-BAS ist eine zu viel"
+    assert juli["kontingent_stunden"] == 0.5
+    assert juli["ueberzogen"] is True, "eine Stunde auf 30 Minuten ist zu viel"
     assert august["abo"]["produkt"] == "ABO-PRO"
     assert august["kontingent_stunden"] == KONTINGENT_ABO_PRO_STUNDEN
 

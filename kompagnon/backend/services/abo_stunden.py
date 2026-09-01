@@ -31,18 +31,40 @@ from sqlalchemy.orm import Session
 
 from database import Lead, TimeTracking
 
-#: Das Kontingent von ABO-PRO, in Stunden je Monat und Kunde.
+#: **Die Quelle ist `docs/produkte/abo-und-geo.md`, nicht das Lagebild.**
 #:
-#: Steht hier als **benannter Wert** und nicht als 2.0 in einer Rechnung —
-#: aber bewusst **ohne** Funktion, die ihn verrechnet: Solange nicht an einem
-#: Betrieb steht, welches Abo gilt, wäre jede Restberechnung geraten. Wer das
-#: Vertragsobjekt baut, findet die Zahl hier.
-KONTINGENT_ABO_PRO_STUNDEN = 2.0
+#: Am 01.09.2026 korrigiert, und der Fehler war teuer in beide Richtungen: Die
+#: Zahlen hier stammten aus dem Fließtext von L-101 („Pro zusätzlich zwei
+#: Stunden", „BAS sagt keine Änderungsstunden zu"). Im Produktdatenblatt steht
+#: etwas anderes — Position 5 und 8 des Leistungsverzeichnisses:
+#:
+#: * ABO-BAS: **Inhaltsänderungen bis 30 Minuten** je Monat → 0,5 h
+#: * ABO-PRO: **Inhaltsänderungen bis 90 Minuten (statt 30)** → 1,5 h
+#:
+#: „statt 30", nicht „zusätzlich" — aus 30 + 90 wurden fälschlich zwei
+#: Stunden. Mit 0,0 für BAS wäre **jede** Minute eines Basic-Kunden als
+#: Überschreitung erschienen, und wir hätten Arbeit berechnet, die im Preis
+#: steht; mit 2,0 für PRO hätten wir jeden Monat eine halbe Stunde
+#: verschenkt.
+#:
+#: **Ein Summentext ist keine Produktdefinition.** Wer die Zahl braucht, liest
+#: das Datenblatt.
+KONTINGENT_ABO_PRO_STUNDEN = 1.5
+KONTINGENT_ABO_BAS_STUNDEN = 0.5
 
-#: ABO-BAS sagt keine Änderungsstunden zu — Inhaltspflege, Sicherungen,
-#: Quartals-Re-Audit. Ausdrücklich genannt, damit „kein Eintrag" nicht mit
-#: „nicht erhoben" verwechselt wird.
-KONTINGENT_ABO_BAS_STUNDEN = 0.0
+#: Der Nettopreis je Monat, in Cent — Quelle wie oben.
+#:
+#: **Beide sind im Datenblatt als „⚠️ Annahme" gekennzeichnet.** Sie stehen
+#: hier trotzdem, weil eine Rechnung eine Zahl braucht; wer sie ändert, ändert
+#: sie an dieser einen Stelle. Solange die Kennzeichnung dort steht, ist jede
+#: Abrechnung damit eine Annahme — und der Abrechnungslauf sagt das auch.
+PREIS_ABO_BAS_NETTO_CENT = 7900
+PREIS_ABO_PRO_NETTO_CENT = 14900
+
+#: 19 %, nicht 7 %. Das Buch ist ermäßigt (Anlage 2 UStG), eine Dienstleistung
+#: nicht — der Produkteditor stellt 19 % voreingestellt richtig ein, und für
+#: das Buch war es ausdrücklich die Ausnahme (BUCH-12).
+STEUERSATZ_ABO = 19.0
 
 _MONAT = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 

@@ -27,6 +27,14 @@ woertlich das, was der Eintrag verlangt.
 **Er meldet einmal je Quartal, nicht einmal je Betrieb.** Es ist eine
 wiederkehrende Aufgabe, kein Ereignis je Kunde; zwanzig Meldungen an einem
 Morgen sind eine, die niemand liest.
+
+**Nicht jedes Abo ist vierteljaehrlich dran** (korrigiert am 01.09.2026 am
+Produktdatenblatt). Der erste Entwurf meldete **beide** Abos jedes Quartal —
+`docs/produkte/abo-und-geo.md` sagt anderes: ABO-BAS bekommt Position 7,
+**jaehrliches** Re-Audit; erst ABO-PRO tauscht das gegen Position 10,
+**quartalsweise**. Vier statt einer Pruefung im Jahr fuer einen
+Basic-Kunden waeren viermal Guthaben und dreimal eine Leistung, fuer die
+niemand zahlt.
 """
 import logging
 from datetime import datetime
@@ -43,11 +51,21 @@ ART = "faellig"
 #: sich die Namen zu merken und selbst zu suchen.
 ZIEL = "/app/betriebe"
 
+#: Wie oft ein Abo geprueft wird — aus `docs/produkte/abo-und-geo.md`,
+#: Position 7 (BAS: jaehrlich) und Position 10 (PRO: quartalsweise).
+TAKT_MONATE = {"ABO-BAS": 12, "ABO-PRO": 3}
+
 
 def quartal_von(zeitpunkt: Optional[datetime] = None) -> str:
     """`2026-Q3` — die Kennung, an der sich Faelligkeit und Meldung messen."""
     z = zeitpunkt or datetime.utcnow()
     return f"{z.year}-Q{(z.month - 1) // 3 + 1}"
+
+
+def _monate_zurueck(datum: datetime, monate: int) -> datetime:
+    """Derselbe Tag, `monate` frueher — ohne Bibliothek und ohne Ueberlauf."""
+    gesamt = (datum.year * 12 + datum.month - 1) - monate
+    return datetime(gesamt // 12, gesamt % 12 + 1, datum.day)
 
 
 def quartalsbeginn(zeitpunkt: Optional[datetime] = None) -> datetime:
@@ -86,10 +104,16 @@ def faellige_betriebe(db, zeitpunkt: Optional[datetime] = None) -> list:
         if gueltig is None or gueltig.id != vertrag.id:
             continue
 
+        # **Der Zeitraum haengt am Abo, nicht am Kalenderquartal.** ABO-BAS
+        # ist einmal im Jahr dran; die Frage lautet dann „gab es in den
+        # letzten zwoelf Monaten eine Pruefung", nicht „in diesem Quartal".
+        takt = TAKT_MONATE.get(gueltig.produkt, 3)
+        seit = beginn if takt <= 3 else _monate_zurueck(beginn, takt - 3)
+
         letzte = (db.query(AuditResult)
                     .filter(AuditResult.lead_id == vertrag.lead_id,
                             AuditResult.status == "completed",
-                            AuditResult.created_at >= beginn)
+                            AuditResult.created_at >= seit)
                     .first())
         if letzte is not None:
             continue

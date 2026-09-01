@@ -230,17 +230,16 @@ def test_ohne_vertrag_bleibt_es_beim_verbrauch(db, betrieb):
 
 
 def test_die_kontingente_stehen_benannt_da_und_rechnen_noch_nicht():
-    """Wer das Vertragsobjekt baut, findet die Zahlen hier — und nur hier.
+    """Die Zahlen kommen aus dem Produktdatenblatt, nicht aus einem Fliesstext.
 
-    ABO-BAS steht ausdruecklich mit **0** dabei, damit „kein Eintrag" nicht
-    mit „nicht erhoben" verwechselt wird; das ist dieselbe Regel wie beim
-    KI-Sichtbarkeits-Abo, wo ein nicht gefragter Anbieter nie als Null zaehlt.
+    **Am 01.09.2026 korrigiert:** Hier standen 2,0 und 0,0 — uebernommen aus
+    dem Lagebild-Eintrag. Das Datenblatt sagt 90 und 30 Minuten. Welche Zahl
+    gilt und warum, haelt `test_abo_datenblatt.py` an der Quelle fest; hier
+    steht nur noch, dass es sie ueberhaupt benannt gibt.
     """
-    assert KONTINGENT_ABO_PRO_STUNDEN == 2.0
-    assert KONTINGENT_ABO_BAS_STUNDEN == 0.0
-
-
-# ── Die zwei Endpunkte ───────────────────────────────────────────────
+    assert KONTINGENT_ABO_PRO_STUNDEN == 1.5
+    assert KONTINGENT_ABO_BAS_STUNDEN == 0.5
+    assert KONTINGENT_ABO_BAS_STUNDEN < KONTINGENT_ABO_PRO_STUNDEN
 
 def test_eintragen_und_nachsehen_ueber_die_schnittstelle(
         client, auth_headers, betrieb):

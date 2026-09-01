@@ -311,32 +311,34 @@ app = FastAPI(
 )
 
 # CORS Middleware — must be before all routers
-# Build allowed origins from environment or use sensible defaults.
-# NOTE: allow_credentials=True requires explicit origins (not "*").
-_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
-_cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] if _cors_origins_env else []
+#
+# **Die Liste steht in `cors_herkuenfte.py`, nicht hier** (BUCH-09,
+# 01.09.2026). Sie hat einen zweiten Leser bekommen — `GET /api/health/cors` —
+# und zwei Stellen, die dieselbe Liste je eigen zusammenbauen, sind zwei
+# Wahrheiten. Ausgerechnet die Diagnose waere dann falsch, wenn man sie
+# braucht.
+#
+# `allow_credentials=True` verlangt ausdrueckliche Herkuenfte, nie "*".
+import cors_herkuenfte
 
-# Always include known origins
-_default_origins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:5173",
-    # Die eigene Domain der Oberfläche, seit 16.08. Sie steht bewusst *auch*
-    # hier und nicht nur in CORS_ALLOWED_ORIGINS: Geht die Variable verloren,
-    # lädt das Tool sonst und scheitert an jeder Anfrage — ohne dass irgendwo
-    # „CORS" stünde.
-    "https://kas.kompagnon.group",
-    "https://kompagnon-frontend.onrender.com",  # alte Adresse, bleibt gültig
-    "https://websprint.kompagnon.eu",  # WebSprint-Landingpage (eingebetteter Website-Check)
-]
-for _o in _default_origins:
-    if _o not in _cors_origins:
-        _cors_origins.append(_o)
+_cors_origins = cors_herkuenfte.herkuenfte()
+
+# **Beim Start ins Protokoll, und zwar in einer Zeile.** CORS ist der einzige
+# Fehler hier, der nirgends ein Protokoll erzeugt: Der Browser haelt die
+# Anfrage an, bevor sie ankommt. Wer nach einem Deploy wissen will, ob die neue
+# Adresse angekommen ist, liest diese Zeile — statt einen Testkauf auszuloesen
+# und im Nichts zu suchen.
+logger.info("CORS erlaubte Origins: %s", _cors_origins)
+for _mangel in cors_herkuenfte.beanstandungen(_cors_origins):
+    # Kein Abbruch: Der Eintrag bleibt in der Liste, damit ihn derjenige
+    # wiederfindet, der ihn gesetzt hat. Gemeldet wird er trotzdem — still
+    # wirkungslos ist genau der Zustand, den BUCH-09 verhindern soll.
+    logger.warning("CORS: %s", _mangel)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_origin_regex=r"https://.*\.netlify\.app",
+    allow_origin_regex=cors_herkuenfte.NETLIFY_MUSTER,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

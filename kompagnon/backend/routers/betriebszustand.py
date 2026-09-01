@@ -16,7 +16,7 @@ import logging
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import text
 
@@ -61,6 +61,40 @@ async def api_health():
 async def api_ping():
     """Ultra-lightweight keepalive alias."""
     return "pong"
+
+
+@router.get("/api/health/cors")
+async def cors_zustand(request: Request):
+    """Steht die Verbindung von dieser Seite aus? (BUCH-09)
+
+    **Warum es diesen Endpunkt gibt.** CORS ist der einzige Fehler in diesem
+    Bestand, der nirgends ein Protokoll erzeugt — der Browser haelt die
+    Anfrage an, bevor sie ankommt. Ohne diese Auskunft bleibt nur der
+    Testkauf: Man loest eine Bestellung aus und sucht danach in vier
+    Protokollen, in denen nichts steht.
+
+    **Ohne Anmeldung, und das ist die Entscheidung.** Ein Diagnoseendpunkt
+    hinter der Anmeldung beantwortet die Frage nicht, die er beantworten soll:
+    Wer wissen will, ob eine **fremde** Landingpage das Backend erreicht, hat
+    dort kein Token. Preisgegeben wird nur, welche Herkuenfte erlaubt sind —
+    keine Daten, keine Schluessel, kein Zustand des Betriebs. Die Liste steht
+    ohnehin in jeder Preflight-Antwort, die der Browser ausliest.
+
+    Der Stand (`backend_version`) beantwortet die zweite Haelfte der Frage:
+    „Ist mein Deploy ueberhaupt draussen?"
+    """
+    import cors_herkuenfte
+
+    herkunft = request.headers.get("origin")
+    liste = cors_herkuenfte.herkuenfte()
+    return {
+        "allowed_origins": liste,
+        "request_origin": herkunft,
+        "origin_allowed": cors_herkuenfte.ist_erlaubt(herkunft, liste),
+        "backend_version": cors_herkuenfte.fassung(),
+        # Was gesetzt ist, aber nicht wirken wird. Leer ist der Normalfall.
+        "beanstandungen": cors_herkuenfte.beanstandungen(liste),
+    }
 
 
 def _ablage_zustand() -> dict:

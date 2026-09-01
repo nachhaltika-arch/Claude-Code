@@ -126,7 +126,17 @@ ERLAUBTE_BEREICHE = {
 #:   in E-Mails, und wer sie kennt, bekaeme sonst einen Datensatz. Ein
 #:   falscher Token ist 404, nicht 403: Auch die Auskunft „diese Bestellung
 #:   gibt es" gehoert nicht heraus.
-OFFEN_ERWARTET = 56
+#: 01.09.2026, BUCH-09: 57 — `GET /api/health/cors`. Die Diagnose fuer die
+#:   Verbindung Browser→Backend. **Offen mit Absicht:** Wer wissen will, ob
+#:   eine *fremde* Landingpage das Backend erreicht, hat dort kein Token; hinter
+#:   der Anmeldung beantwortete der Endpunkt genau die Frage nicht, fuer die er
+#:   gebaut ist. Heraus gehen nur die erlaubten Herkuenfte, die Herkunft des
+#:   Aufrufs, ob sie passt, und der Deploy-Stand — dieselbe Liste, die ohnehin
+#:   in jeder Preflight-Antwort steht. Eine Zusicherung in
+#:   `test_cors_herkuenfte` haelt fest, dass dort nichts weiter hinzukommt;
+#:   der Anlass dafuer ist der 15.08.2026, als Datenbank-Zugangsdaten auf einem
+#:   Auskunftsendpunkt offenlagen.
+OFFEN_ERWARTET = 57
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
@@ -154,7 +164,9 @@ OFFEN_ERWARTET = 56
 #:                           Nummer, Ausgabe, Zahlungsstand und eine
 #:                           **verkuerzte** Adresse heraus — keine Anschrift,
 #:                           kein Abruftoken.
-#: `health`, `ping`          Betriebsanzeigen ohne Inhalt.
+#: `health`, `ping`          Betriebsanzeigen ohne Inhalt — dazu seit dem
+#:                           01.09.2026 `health/cors`, die Verbindungs-
+#:                           diagnose aus BUCH-09.
 #: `shop`                    Der Bezahlvorgang fuer digitale Produkte
 #:                           (L-100, 27.08.2026). Offen aus demselben Grund
 #:                           wie `payments` und `book`: Wer kauft, hat noch

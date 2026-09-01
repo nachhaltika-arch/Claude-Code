@@ -88,3 +88,67 @@ describe('Jeder Schritt kann etwas anzeigen', () => {
     expect(leer).toEqual(['umami', 'heatmap', 'monats-report']);
   });
 });
+
+// ── Kein neuer Schritt darf die Kette abreißen ───────────────────────
+//
+// **Zum zweiten Mal passiert, am 01.09.2026.** Der Kopf dieser Datei
+// beschreibt den Fall vom 21.08. — und beim Einfügen von „Drei Entwürfe"
+// (L-105) ist er trotzdem wieder eingetreten: kein Eintrag in
+// `computeStepStatus`, kein `optional`, und damit war alles dahinter gesperrt,
+// auch die Design-Ansicht.
+//
+// **Gefangen hat es der E2E-Lauf**, also die teuerste und letzte Stelle: Der
+// Browsertest „Entwurf auf die Seite übernehmen" fand den Knopf gesperrt vor.
+// Die Tests hier oben liefen grün, weil sie feste Schritte prüfen — nicht die
+// Regel dahinter.
+//
+// Diese Prüfung ist die frühe Stelle: Sie gilt für **jeden** Schritt, auch für
+// den, den es noch nicht gibt.
+
+describe('Neue Schritte', () => {
+  /** Welche Kennungen `computeStepStatus` **ausdrücklich** zuweist.
+   *
+   * **Gelesen wird der Quelltext, und das ist hier keine Bequemlichkeit.**
+   * Der erste Entwurf nahm `Object.keys(computeStepStatus(...))` — und war
+   * grün, egal was man einfügte: Die Sperrschleife am Ende der Funktion
+   * vergibt **jedem** Schritt einen Status, also steht jede Kennung in den
+   * Schlüsseln. Der Wächter maß seine eigene Schleife statt der Heuristik.
+   *
+   * Aufgefallen ist es nur an der Gegenprobe. Eine Zusicherung ohne sie wäre
+   * hier grün geblieben und hätte den Fehler beim nächsten Mal wieder
+   * durchgelassen.
+   */
+  function mitHeuristik() {
+    const fs = require('fs');
+    const path = require('path');
+    const quelle = fs.readFileSync(
+      path.join(__dirname, 'schrittkette.js'), 'utf8');
+    // Nur die Zuweisungen oberhalb der Sperrschleife zählen.
+    const vorDerSperre = quelle.split('let consecutiveDoneIdx')[0];
+    return new Set(
+      [...vorDerSperre.matchAll(/status\['([a-z-]+)'\]\s*=/g)].map((m) => m[1]),
+    );
+  }
+
+  test('jeder Schritt hat eine Heuristik oder ist als optional gekennzeichnet', () => {
+    const bekannt = mitHeuristik();
+
+    const reisser = SCHRITTE
+      .filter((s) => !bekannt.has(s.id) && !s.optional)
+      .map((s) => s.id);
+
+    expect(reisser).toEqual([]);
+  });
+
+  test('ein Schritt ohne beides würde die Kette wirklich abreißen', () => {
+    // **Die positive Gegenprobe.** Ohne sie wäre der Test oben auch grün,
+    // wenn die Sperrlogik verschwände — dann reißt kein Schritt mehr etwas
+    // ab, weil es nichts mehr abzureißen gibt.
+    const status = computeStepStatus({}, {}, {});
+
+    // `briefing-unternehmen` ist ohne Briefing nicht erledigt und nicht
+    // optional; alles ab dem übernächsten Schritt muss gesperrt sein.
+    expect(status['briefing-unternehmen']).toBe('ready');
+    expect(status['briefing-website']).toBe('locked');
+  });
+});

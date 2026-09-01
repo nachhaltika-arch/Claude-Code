@@ -73,7 +73,17 @@ const SCHRITT_FOLGE = [
   // `POST /generate-versions` aufrief. Der Schritt gehoert hierher: Die
   // Freigabeliste nennt „Design-Entwurf Startseite freigegeben" als 3.0,
   // das finale Design als 3.2.
-  { id: 'entwuerfe',            phase: 'Design',      name: 'Drei Entwürfe',          view: null,         component: 'Entwuerfe' },
+  // **`optional: true` ist hier kein Beiwerk, sondern Pflicht.** Ein Schritt
+  // ohne Heuristik in `computeStepStatus` und ohne diese Kennzeichnung reisst
+  // die Kette: `consecutiveDoneIdx` bleibt an ihm stehen, und alles dahinter
+  // ist gesperrt — auch das finale Design. Genau das ist am 21.08.2026 schon
+  // einmal passiert, steht dort im Kommentar, und ist mir am 01.09. trotzdem
+  // passiert. Der E2E-Lauf hat es gefangen; `schrittkette.test.js` faengt es
+  // jetzt frueher.
+  //
+  // Und es stimmt auch sachlich: Nicht jedes Projekt braucht drei Entwuerfe —
+  // mancher Kunde weiss, was er will.
+  { id: 'entwuerfe',            phase: 'Design',      name: 'Drei Entwürfe',          view: null,         component: 'Entwuerfe', optional: true },
   { id: 'finales-design',       phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
 
   // Phase 4 — Produktion (2)

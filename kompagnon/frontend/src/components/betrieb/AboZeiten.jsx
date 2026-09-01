@@ -10,11 +10,17 @@
  * Projekt hat. Genau daran ist L-101 hängengeblieben: Das Werkzeug war da,
  * die Achse fehlte.
  *
- * **Hier steht „verbraucht" und keine Restzahl** — und das ist kein
- * Versäumnis, sondern der offene Teil von L-101: Welches Abo für diesen
- * Betrieb gilt, ist nirgends hinterlegt. Eine Restzahl wäre auf einer
- * Annahme gerechnet, und der Kunde läse sie als Zusage. Der Server sagt es
- * im Feld `hinweis`; dieser Kasten gibt es weiter, statt es zu verschweigen.
+ * **Die Restzahl kam am 01.09.2026 dazu — unter einer Bedingung.** Bis dahin
+ * stand hier „verbraucht" und sonst nichts, weil nirgends hinterlegt war,
+ * welches Abo gilt; eine Restzahl wäre auf einer Annahme gerechnet gewesen,
+ * und der Kunde läse sie als Zusage. Jetzt steht der Vertrag darüber
+ * (`AboVertrag.jsx`), und **solange einer für den gewählten Monat gilt**,
+ * steht auch die Restzahl da. Ohne Vertrag bleibt es beim Verbrauch samt
+ * Hinweis — die Zurückhaltung ist nicht weggefallen, sie hat einen Ausweg.
+ *
+ * **Eine Überschreitung wird gezeigt, nicht auf null gekappt.** „0 h übrig"
+ * sähe aus wie „gerade aufgebraucht"; −1,5 h ist die Auskunft, für die das
+ * Kontingent gebaut ist.
  *
  * **Der Monat ist wählbar, nicht abgeleitet.** Wer am 2. September
  * Augustarbeit einträgt, bucht sie auf den August — abgeleitet aus dem
@@ -22,6 +28,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import API_BASE_URL from '../../config';
+import AboVertrag from './AboVertrag';
 
 const LEER = { stunden: '', taetigkeit: '' };
 
@@ -124,9 +131,21 @@ export default function AboZeiten({ leadId, token }) {
         {daten && (
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {daten.verbraucht.toLocaleString('de-DE')} h im {monatName(daten.monat)}
+            {daten.abo && (
+              <>
+                {' von '}
+                {daten.kontingent_stunden.toLocaleString('de-DE')} h
+                {' · '}
+                <b style={{ color: daten.ueberzogen ? 'var(--status-error-text)' : 'var(--text-secondary)' }}>
+                  {daten.verbleibend_stunden.toLocaleString('de-DE')} h übrig
+                </b>
+              </>
+            )}
           </span>
         )}
       </div>
+
+      <AboVertrag leadId={leadId} token={token} onAenderung={laden} />
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)' }}>Monat</span>

@@ -1621,6 +1621,39 @@ def run_migrations():
                    CHECK ((project_id IS NULL) <> (lead_id IS NULL));
            EXCEPTION WHEN duplicate_object THEN NULL;
            END $$""",
+        # ── Welches Pflege-Abo gilt (L-101, 01.09.2026) ──────────────
+        """CREATE TABLE IF NOT EXISTS abo_vertraege (
+               id           SERIAL PRIMARY KEY,
+               lead_id      INTEGER NOT NULL REFERENCES leads(id),
+               produkt      VARCHAR(20)  NOT NULL,
+               start_monat  VARCHAR(7)   NOT NULL,
+               end_monat    VARCHAR(7),
+               notiz        VARCHAR(255) DEFAULT '',
+               created_at   TIMESTAMP DEFAULT NOW(),
+               created_by   VARCHAR(120) DEFAULT ''
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_abo_vertraege_lead "
+        "ON abo_vertraege (lead_id, start_monat)",
+        # **Die Form des Monats gehoert in die Datenbank, nicht nur in den
+        # Dienst.** Steht dort einmal `2026-8` statt `2026-08`, vergleicht
+        # jede Abfrage Zeichenketten falsch herum — und die Restzahl eines
+        # Betriebs waere still die eines anderen Monats.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_monatsform
+                   CHECK (start_monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'
+                          AND (end_monat IS NULL
+                               OR end_monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # **Ein Vertrag, der vor seinem Beginn endet, ist keiner.** Der Dienst
+        # faengt es ab; eine spaetere Einspielung geht am Dienst vorbei, und
+        # so eine Zeile gaebe fuer jeden Monat „kein Vertrag" zurueck, ohne
+        # dass irgendwo etwas fehlte.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_ende_nach_start
+                   CHECK (end_monat IS NULL OR end_monat >= start_monat);
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

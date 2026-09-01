@@ -209,21 +209,24 @@ def test_der_stand_eines_anderen_betriebs_bleibt_draussen(db, betrieb):
         db.commit()
 
 
-def test_der_stand_sagt_verbraucht_und_verspricht_keine_restzahl(
-        db, betrieb):
-    """**Der Kern der offenen Haelfte von L-101.**
+def test_ohne_vertrag_bleibt_es_beim_verbrauch(db, betrieb):
+    """**Die Zurueckhaltung von L-101 gilt weiter — nur nicht mehr immer.**
 
-    Welches Abo fuer einen Betrieb gilt, steht nirgends. Eine Restzahl waere
-    deshalb auf einer Annahme gerechnet — und eine Zusage, die niemand
-    gegeben hat. Dieser Test haelt fest, dass die Auskunft das sagt, statt es
-    zu verschweigen.
+    Bis zum 01.09.2026 stand hier fest, dass es **nie** eine Restzahl gibt:
+    Welches Abo gilt, stand nirgends, und eine Restzahl waere auf einer
+    Annahme gerechnet gewesen. Seither gibt es das Vertragsobjekt. Die Regel
+    ist dadurch nicht weggefallen, sie hat eine Bedingung bekommen — **ohne**
+    hinterlegten Vertrag bleibt es bei Verbrauch und Hinweis.
+
+    Dieser Test bewacht genau diese Haelfte. Die andere steht in
+    `test_abo_vertrag.py`.
     """
     stand = monatsstand(db, lead_id=betrieb, monat="2026-08")
 
     assert "verbraucht" in stand
-    assert "verbleibend" not in stand and "rest" not in stand
+    assert "verbleibend_stunden" not in stand and "rest" not in stand
     assert stand["abo"] is None
-    assert "L-101" in stand["hinweis"]
+    assert "kein Pflege-Abo" in stand["hinweis"]
 
 
 def test_die_kontingente_stehen_benannt_da_und_rechnen_noch_nicht():

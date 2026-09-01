@@ -11,12 +11,14 @@ Vorgang — jemand hat gearbeitet und trägt Stunden ein. Zwei Tabellen hätten
 zwei Eingaben, zwei Auswertungen und irgendwann einen Abgleich gebraucht;
 dieses Muster hat hier schon zweimal Zeit gekostet.
 
-**Was dieses Modul ausdrücklich noch nicht kann: sagen, wie viel übrig ist.**
-Dafür müsste am Betrieb stehen, **welches** Abo gilt, und ein solches
-Vertragsobjekt gibt es nicht — es ist der zweite Teil von L-101 und eine
-Entscheidung, keine Programmierarbeit. Bis dahin liefert dieses Modul den
-**Verbrauch** und nennt ihn so. Eine Restzahl auszurechnen, indem man ein Abo
-annimmt, wäre eine Zusage auf einer Vermutung.
+**Die Restzahl kam am 01.09.2026 dazu — sie steht aber weiter unter einer
+Bedingung.** Bis dahin fehlte das Vertragsobjekt: Am Betrieb stand nicht,
+**welches** Abo gilt, und eine Restzahl auszurechnen, indem man eines annimmt,
+wäre eine Zusage auf einer Vermutung gewesen. Jetzt gibt es
+`services/abo_vertrag.py`, und `monatsstand()` nennt die Restzahl — **genau
+dann, wenn für diesen Monat ein Vertrag hinterlegt ist**. Ohne Vertrag bleibt
+es bei Verbrauch und Hinweis; die Zurückhaltung ist nicht weggefallen, sie hat
+nur einen Ausweg bekommen.
 
 Der Satz aus dem Eintrag bleibt gültig, ist aber jetzt eingelöst: **Kein Abo
 verkaufen, bevor die Stunden zählbar sind.** Zählbar sind sie ab hier.
@@ -118,9 +120,22 @@ def monatsstand(db: Session, *, lead_id: int, monat: str) -> dict:
                 .order_by(TimeTracking.logged_at.desc(), TimeTracking.id.desc())
                 .all())
 
+    verbraucht = round(sum(z.hours or 0 for z in zeilen), 2)
+
+    # **Seit dem 01.09.2026 gibt es das Vertragsobjekt** (L-101, zweite
+    # Hälfte). Hier stand vorher fest `"abo": None` mit dem Hinweis, dass
+    # nirgends steht, welches Abo gilt. Jetzt steht es — und wo es das
+    # ausnahmsweise nicht tut, bleibt es bei genau dieser Zurückhaltung:
+    # `abo_vertrag.stand()` gibt dann wieder `None` und einen Hinweis zurück.
+    #
+    # **Der Import steht hier unten und nicht im Kopf**, weil `abo_vertrag`
+    # seinerseits die Kontingente aus diesem Modul liest — im Kopf wäre es ein
+    # Ring, und der bricht beim Laden.
+    from services import abo_vertrag
+
     return {
         "monat": monat,
-        "verbraucht": round(sum(z.hours or 0 for z in zeilen), 2),
+        "verbraucht": verbraucht,
         "eintraege": [{
             "id": z.id,
             "stunden": float(z.hours or 0),
@@ -128,10 +143,6 @@ def monatsstand(db: Session, *, lead_id: int, monat: str) -> dict:
             "taetigkeit": z.activity_description or "",
             "erfasst_am": z.logged_at.isoformat() if z.logged_at else None,
         } for z in zeilen],
-        # Der offene Rest von L-101, als Feld und nicht als Fussnote: Wer
-        # diesen Bildschirm baut, sieht sofort, warum keine Restzahl kommt.
-        "abo": None,
-        "hinweis": ("Welches Abo für diesen Betrieb gilt, ist nirgends "
-                    "hinterlegt — deshalb steht hier der Verbrauch und keine "
-                    "Restzahl (L-101)."),
+        **abo_vertrag.stand(db, lead_id=lead_id, monat=monat,
+                            verbraucht=verbraucht),
     }

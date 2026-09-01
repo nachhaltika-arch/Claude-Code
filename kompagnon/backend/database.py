@@ -718,3 +718,4 @@ from modelle_crawler import *       # noqa: E402,F401,F403
 from modelle_kas import *           # noqa: E402,F401,F403
 from modelle_widget import *        # noqa: E402,F401,F403
 from modelle_buch import *          # noqa: E402,F401,F403
+from modelle_abo import *           # noqa: E402,F401,F403

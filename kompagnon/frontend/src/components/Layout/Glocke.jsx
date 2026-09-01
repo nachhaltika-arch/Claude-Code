@@ -26,7 +26,11 @@ import API_BASE_URL from '../../config';
 import { aufTaste } from '../../utils/tastaturBedienung';
 
 /** Symbol je Quelle — damit man die Art vor dem Lesen erkennt. */
-const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️' };
+// `faellig` kam am 01.09.2026 dazu (L-101): keine Meldung eines Kunden,
+// sondern eine Aufgabe mit Termin — das Quartals-Re-Audit der Pflege-Abos.
+// Ohne eigenes Zeichen faellt sie auf den Punkt zurueck und sieht aus wie
+// etwas, das jemand vergessen hat einzutragen.
+const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️', faellig: '📅' };
 
 function wieLange(roh) {
   if (!roh) return '';

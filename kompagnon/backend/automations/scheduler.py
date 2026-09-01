@@ -187,6 +187,15 @@ def job_update_all_margins():
 # MONTHLY PERFORMANCE REPORT
 # ===================================================================
 
+def _run_quartals_reaudit():
+    """Termingeber fuer das Quartals-Re-Audit der Pflege-Abos (L-101)."""
+    try:
+        from services.quartals_reaudit import lauf_mit_eigener_sitzung
+        lauf_mit_eigener_sitzung()
+    except Exception as e:                              # noqa: BLE001
+        logger.error(f"Quartals-Re-Audit Wrapper Fehler: {e}", exc_info=True)
+
+
 def _run_geo_monitoring_sync():
     """Synchroner Wrapper fuer den asynchronen GEO-Monitor-Job."""
     import asyncio
@@ -486,6 +495,29 @@ class CompagnonScheduler:
             name="Monatlicher GEO-Sichtbarkeits-Check",
         )
         logger.info("✓ Monatlicher GEO-Monitoring Job registriert (1. des Monats, 07:00)")
+
+        # Quartals-Re-Audit der Pflege-Abos — 1. Januar/April/Juli/Oktober,
+        # 06:00 Uhr (L-101). **Vor den Monatsjobs um 07:00 und 08:30**, damit
+        # die Faelligkeitsmeldung oben in der Glocke steht und nicht unter dem
+        # GEO-Bericht.
+        #
+        # Er stellt nur fest, wer dran ist, und meldet es. Die Pruefung selbst
+        # loest ein Mensch aus — sie kostet Guthaben, und die Entscheidung bei
+        # einem gefallenen Wert (G4: Nachbesserung ohne Berechnung) gehoert
+        # nicht in einen Cron-Eintrag.
+        self.scheduler.add_job(
+            _run_quartals_reaudit,
+            "cron",
+            month="1,4,7,10",
+            day=1,
+            hour=6,
+            minute=0,
+            id="quartals_reaudit",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+            name="Quartals-Re-Audit der Pflege-Abos",
+        )
+        logger.info("✓ Quartals-Re-Audit Job registriert (1.1./1.4./1.7./1.10., 06:00)")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""

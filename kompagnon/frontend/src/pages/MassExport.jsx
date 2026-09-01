@@ -93,7 +93,7 @@ export default function MassExport() {
             const inhalt = (
               <>
                 {!vorhanden && (
-                  <div style={{ position: 'absolute', top: 10, right: 10, background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)', borderRadius: 'var(--radius-full)', padding: '2px 8px', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{ position: 'absolute', top: 10, right: 10, background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)', borderRadius: 'var(--radius-full)', padding: '2px 8px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Bald verfügbar
                   </div>
                 )}

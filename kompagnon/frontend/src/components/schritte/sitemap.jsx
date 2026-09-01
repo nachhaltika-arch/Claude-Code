@@ -151,7 +151,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 borderLeft: isSel ? `3px solid ${st.color}` : '3px solid transparent',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  {p.parent_id && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>↳</span>}
+                  {p.parent_id && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>↳</span>}
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.page_name}</span>
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                     <button onClick={e => { e.stopPropagation(); moveUp(idx); }} disabled={idx === 0} style={{ ...btnSm, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↑</button>
@@ -160,7 +160,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 9, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
                 </div>
               </div>
             );
@@ -168,7 +168,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
           {pflichtPages.length > 0 && (
             <>
-              <div style={{ padding: '8px 14px', fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
+              <div style={{ padding: '8px 14px', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
               {pflichtPages.map(p => (
                 <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedId(p.id))} key={p.id} onClick={() => setSelectedId(p.id)} style={{
                   padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',

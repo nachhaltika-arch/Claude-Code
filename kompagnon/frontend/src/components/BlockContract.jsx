@@ -33,7 +33,7 @@ export function StatusBadge({ status, style }) {
   const entwurf = status === 'draft';
   return (
     <span style={{
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: 700,
       padding: '2px 6px',
       borderRadius: 3,

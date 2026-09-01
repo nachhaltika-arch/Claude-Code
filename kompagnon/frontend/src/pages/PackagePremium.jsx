@@ -283,7 +283,7 @@ export default function PackagePremium() {
                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s', position: 'relative',
               }}>
                 {pkg.recommended && !pkg.active && (
-                  <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--warn)', color: 'var(--kc-black)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                  <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--warn)', color: 'var(--kc-black)', fontSize: 12, fontWeight: 700, padding: '2px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                     Empfohlen
                   </div>
                 )}

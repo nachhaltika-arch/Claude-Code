@@ -248,7 +248,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             }}>
             <div style={{ width: 14, height: 14, borderRadius: 3, background: t.color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
-            {!t.setter && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>auto</span>}
+            {!t.setter && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>auto</span>}
             {t.setter && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>&#9998;</span>}
           </button>
         ))}
@@ -272,7 +272,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {brandData?.all_colors?.length > 0 && (
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Von der Website erkannt
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -286,7 +286,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {t.id === 'accent' && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Schnell-Palette
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -300,7 +300,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {(t.id === 'primary' || t.id === 'secondary') && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Varianten
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -318,7 +318,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       {/* 3-Rollen Schriften mit KI-Erkennung */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+          <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Schriften &amp; Textfarben
           </span>
           <button onClick={loadFontSuggestions} disabled={loadingSuggestions}
@@ -352,14 +352,14 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
               {detected && detected !== value && (
                 <button onClick={() => setter(detected)} title={`Von Website: ${detected}`}
-                  style={{ fontSize: 9, padding: '2px 7px', background: 'var(--surface)',
+                  style={{ fontSize: 12, padding: '2px 7px', background: 'var(--surface)',
                            border: '0.5px solid var(--border-light)', borderRadius: 4,
                            cursor: 'pointer', color: 'var(--text-tertiary)' }}>
                   ↺ {detected}
                 </button>
               )}
               {detected && detected === value && (
-                <span style={{ fontSize: 9, padding: '2px 7px', background: '#E3F6EF',
+                <span style={{ fontSize: 12, padding: '2px 7px', background: '#E3F6EF',
                                color: '#00875A', borderRadius: 4, fontWeight: 700 }}>✓ Von Website</span>
               )}
             </div>
@@ -450,7 +450,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       {/* Stil */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Ecken</div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Ecken</div>
           <div style={{ display: 'flex', gap: 5 }}>
             {[{label:'Eckig',v:0},{label:'Rund',v:6},{label:'Weich',v:14},{label:'Pill',v:99}].map(r => (
               <button key={r.v} onClick={() => setRadius(r.v)} style={{
@@ -460,17 +460,17 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}>
                 <div style={{ width: 24, height: 24, border: `2px solid ${radius === r.v ? 'var(--brand-primary)' : 'var(--border-medium)'}`, borderRadius: r.v === 99 ? 12 : r.v, background: radius === r.v ? 'var(--info-bg)' : 'transparent' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, color: radius === r.v ? 'var(--brand-primary)' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{r.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: radius === r.v ? 'var(--brand-primary)' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{r.label}</span>
               </button>
             ))}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Schatten</div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Schatten</div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['ohne', 'leicht', 'mittel', 'stark'].map(s => (
               <button key={s} onClick={() => setShadow(s)} style={{
-                flex: 1, padding: '5px 0', fontSize: 9, fontWeight: shadow === s ? 900 : 400,
+                flex: 1, padding: '5px 0', fontSize: 12, fontWeight: shadow === s ? 900 : 400,
                 border: shadow === s ? '1.5px solid var(--brand-primary)' : '0.5px solid var(--border-light)',
                 borderRadius: 5, background: shadow === s ? 'var(--info-bg)' : 'transparent',
                 color: shadow === s ? 'var(--brand-primary)' : 'var(--text-tertiary)',

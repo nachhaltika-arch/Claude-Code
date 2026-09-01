@@ -48,7 +48,7 @@ export function PageThumb({ page, library, isActive, onClick }) {
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {page.page_name || `#${page.page_id}`}
         </span>
-        <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 4, flexShrink: 0 }}>
+        <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 4, flexShrink: 0 }}>
           {blockCount}
         </span>
       </div>
@@ -62,7 +62,7 @@ export function PageThumb({ page, library, isActive, onClick }) {
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--border-medium)', fontSize: 9, fontStyle: 'italic',
+            color: 'var(--border-medium)', fontSize: 12, fontStyle: 'italic',
           }}>leer</div>
         ) : (
           <div style={{
@@ -147,7 +147,7 @@ export function BlockCard({
         >⠿</span>
         <span style={{
           background: 'var(--border-light)', color: 'var(--text-secondary)',
-          fontSize: 9, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           padding: '2px 6px', borderRadius: 3,
           textTransform: 'uppercase', letterSpacing: '0.05em',
         }}>{category}</span>
@@ -161,7 +161,7 @@ export function BlockCard({
             title="Für diesen Kunden umgeschrieben — die Bibliotheksvorlage wird hier nicht verwendet"
             style={{
               background: '#ede9fe', color: '#5b21b6',
-              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+              fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
               textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
             }}
           >Eigene Fassung</span>
@@ -171,7 +171,7 @@ export function BlockCard({
             title="Nicht in der freigegebenen Bibliothek — wird auf der Kundenseite nicht ausgegeben"
             style={{
               background: '#fee2e2', color: '#991b1b',
-              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+              fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
               textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
             }}
           >Fehlt</span>
@@ -307,7 +307,7 @@ export function LibraryCard({ item, onPick, compact = false }) {
       )}
       <div style={{ padding: compact ? '6px 8px' : 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{item.name}</div>
-        <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
       </div>
     </button>
   );

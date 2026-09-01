@@ -126,7 +126,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               borderRadius: 'var(--radius-lg)', padding: 16, cursor: 'pointer', transition: 'all 0.15s', position: 'relative', overflow: 'hidden',
             }}>
               {isRec && (
-                <div style={{ position: 'absolute', top: 8, right: -20, background: p.accentColor, color: 'white', fontSize: 9, fontWeight: 700, padding: '3px 28px', transform: 'rotate(35deg)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Top</div>
+                <div style={{ position: 'absolute', top: 8, right: -20, background: p.accentColor, color: 'white', fontSize: 12, fontWeight: 700, padding: '3px 28px', transform: 'rotate(35deg)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Top</div>
               )}
               <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? p.accentColor : 'var(--border-medium)'}`, background: isSelected ? p.accentColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, transition: 'all 0.15s' }}>
                 {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--bg-surface)' }} />}
@@ -162,7 +162,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '6px 20px', marginBottom: 20 }}>
             {pkg.features.map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${pkg.accentColor}18`, color: pkg.accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</div>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${pkg.accentColor}18`, color: pkg.accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</div>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{f}</span>
               </div>
             ))}

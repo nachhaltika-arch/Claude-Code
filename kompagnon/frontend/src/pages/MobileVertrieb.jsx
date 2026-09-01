@@ -25,7 +25,7 @@ export default function MobileVertrieb() {
     <div style={{ padding: '14px 14px 20px', background: 'var(--bg-app)', minHeight: '100%' }}>
       <SeitenTitel>Vertrieb unterwegs</SeitenTitel>
       <div style={{
-        fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)',
+        fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)',
         textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12,
       }}>
         Was möchtest du tun?

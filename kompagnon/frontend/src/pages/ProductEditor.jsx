@@ -132,7 +132,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
                   style={{
                     width: 16, height: 14, padding: 0, border: 'none',
                     background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer',
-                    color: idx === 0 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                    color: idx === 0 ? '#d1d5db' : '#94a3b8', fontSize: 12, lineHeight: 1,
                   }}
                 >▲</button>
                 <button
@@ -141,7 +141,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
                   style={{
                     width: 16, height: 14, padding: 0, border: 'none',
                     background: 'transparent', cursor: idx === products.length - 1 ? 'default' : 'pointer',
-                    color: idx === products.length - 1 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                    color: idx === products.length - 1 ? '#d1d5db' : '#94a3b8', fontSize: 12, lineHeight: 1,
                   }}
                 >▼</button>
               </div>

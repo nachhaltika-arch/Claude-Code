@@ -268,7 +268,7 @@ export function AddSectionDialog({ existingSections, onClose, onPick }) {
                     <code style={{ color: KC_MID, fontWeight: 700, fontSize: 12 }}>{key}</code>
                     <span style={{ flex: 1 }} />
                     {isUsed && (
-                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--surface)', padding: '1px 6px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--surface)', padding: '1px 6px', borderRadius: 4 }}>
                         bereits verwendet
                       </span>
                     )}

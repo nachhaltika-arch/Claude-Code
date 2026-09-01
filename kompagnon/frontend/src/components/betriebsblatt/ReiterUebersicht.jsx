@@ -155,7 +155,7 @@ export default function ReiterUebersicht({
                       {i > 0 && <span style={{ color: 'var(--border-medium)', fontSize: 12 }}>→</span>}
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: scoreColor(s.score) }}>{s.score}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>{s.date}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{s.date}</div>
                       </div>
                     </div>
                   ))}

@@ -393,7 +393,7 @@ function SourceBadge({ label, value, icon }) {
       background: '#fff', border: '1px solid var(--border-light)', borderRadius: 6,
     }}>
       <span aria-hidden style={{ fontSize: 12 }}>{icon}</span>
-      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
       <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>{value}</span>
@@ -460,7 +460,7 @@ function PageButton({ label, isActive, onClick, isPflicht, hasWireframe = true, 
       </span>
       {isPflicht && <span aria-label="Pflichtseite" style={{ fontSize: 12 }}>🔒</span>}
       {!hasWireframe && (
-        <span title="Kein Wireframe" style={{ fontSize: 9, opacity: 0.7 }}>—</span>
+        <span title="Kein Wireframe" style={{ fontSize: 12, opacity: 0.7 }}>—</span>
       )}
     </button>
   );

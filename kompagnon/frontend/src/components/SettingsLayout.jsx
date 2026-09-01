@@ -47,7 +47,7 @@ function SettingRow({ icon, bg, label, val, path }) {
 function GroupLabel({ children }) {
   return (
     <div style={{
-      fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)',
+      fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)',
       textTransform: 'uppercase', letterSpacing: '.1em',
       padding: '10px 14px 4px',
     }}>

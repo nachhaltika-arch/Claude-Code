@@ -227,7 +227,7 @@ export function PageCard({
         </div>
         {isGroup && (
           <span style={{
-            fontSize: 9, fontWeight: 800, color: '#fff', background: KC_MID,
+            fontSize: 12, fontWeight: 800, color: '#fff', background: KC_MID,
             padding: '2px 6px', borderRadius: 4,
             textTransform: 'uppercase', letterSpacing: '0.06em',
           }}>
@@ -388,7 +388,7 @@ export function PageCard({
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 9 }}>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
             {linksOpen ? '▲' : '▼'}
           </span>
         </div>
@@ -406,7 +406,7 @@ export function PageCard({
           {internalLinks.length > 0 && (
             <>
               <div style={{
-                fontSize: 9, fontWeight: 700, color: '#1e40af',
+                fontSize: 12, fontWeight: 700, color: '#1e40af',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
                 marginBottom: 4,
               }}>
@@ -432,7 +432,7 @@ export function PageCard({
                     }}>
                       → {target?.page_name || `Page #${l.toPageId}`}
                     </span>
-                    <code style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>
+                    <code style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>
                       {l.slot}
                     </code>
                   </button>
@@ -443,7 +443,7 @@ export function PageCard({
           {externalLinks.length > 0 && (
             <>
               <div style={{
-                fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)',
+                fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
                 marginTop: internalLinks.length > 0 ? 6 : 0, marginBottom: 4,
               }}>
@@ -471,7 +471,7 @@ export function PageCard({
                     {l.unresolved ? '⚠ ' : '↗ '}
                     {l.url}
                   </span>
-                  <code style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace' }}>
+                  <code style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace' }}>
                     {l.slot}
                   </code>
                 </a>

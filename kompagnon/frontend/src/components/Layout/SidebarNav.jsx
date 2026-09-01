@@ -94,7 +94,7 @@ export default function SidebarNav({ badges }) {
   });
 
   const sectionLabelStyle = {
-    fontSize: 9, letterSpacing: '.18em', color: 'rgba(255,255,255,0.28)',
+    fontSize: 12, letterSpacing: '.18em', color: 'rgba(255,255,255,0.28)',
     textTransform: 'uppercase', padding: '14px 14px 4px', fontWeight: 700,
     fontFamily: 'var(--font-sans)', display: 'block',
   };
@@ -299,7 +299,7 @@ export default function SidebarNav({ badges }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 9,
+            fontSize: 12,
           }}>
             {theme === 'dark' ? '☀' : '☾'}
           </div>

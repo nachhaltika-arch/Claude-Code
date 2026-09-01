@@ -21,7 +21,7 @@ export function DetailLabel({ children, style }) {
 export function HeadingRow({ level, text, color, indent }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingLeft: indent }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color, opacity: 0.6, flexShrink: 0, marginTop: 3, letterSpacing: '.04em', minWidth: 20 }}>
+      <span style={{ fontSize: 12, fontWeight: 800, color, opacity: 0.6, flexShrink: 0, marginTop: 3, letterSpacing: '.04em', minWidth: 20 }}>
         {level}
       </span>
       <span style={{ fontSize: 13, color, lineHeight: 1.5 }}>{text}</span>

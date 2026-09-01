@@ -200,7 +200,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   {[primaryColor, secondaryColor].filter(Boolean).map((c, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 6, background: c, border: '1px solid var(--border-light)' }} />
-                      <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c}</div>
                     </div>
                   ))}
                 </div>

@@ -525,14 +525,14 @@ export default function ComponentLibrary() {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
                   <span style={{
                     background: '#e2e8f0', color: '#475569',
-                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
+                    fontSize: 12, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}>{it.category}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {it.name}
                   </span>
                   <span style={{
-                    fontSize: 9, fontWeight: 700, color: '#64748b',
+                    fontSize: 12, fontWeight: 700, color: '#64748b',
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}>{src}</span>
                 </div>

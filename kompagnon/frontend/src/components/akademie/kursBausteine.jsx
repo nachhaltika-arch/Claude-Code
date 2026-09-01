@@ -92,7 +92,7 @@ export function LessonRow({ lesson, dragHandlers, isDragTarget, onEdit, onDelete
     >
       <span style={{ fontSize: 14, color: 'var(--text-tertiary)', opacity: 0.5, cursor: 'grab', flexShrink: 0 }}>⠿</span>
       <span style={{
-        fontSize: 9, fontWeight: 700, padding: '2px 6px',
+        fontSize: 12, fontWeight: 700, padding: '2px 6px',
         borderRadius: 'var(--radius-full)', flexShrink: 0,
         background: badge.bg, color: badge.color,
         letterSpacing: '0.06em',

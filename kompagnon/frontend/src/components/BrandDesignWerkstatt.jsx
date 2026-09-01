@@ -117,7 +117,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
 
   const F = ({ label, children }) => (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>{label}</div>
       {children}
     </div>
   );
@@ -156,7 +156,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
 
         {/* Linke Spalte: Farben */}
         <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: 16 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 14 }}>
             Farbpalette
           </div>
           {[
@@ -175,7 +175,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
           ))}
           {allColors.length > 3 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
                 Weitere erkannte (klick = Primär)
               </div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -192,7 +192,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: 16, flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Schriften</div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Schriften</div>
               <button onClick={suggestFonts} disabled={suggesting} style={{
                 background: 'transparent', color: 'var(--brand-primary-mid)',
                 border: '1px solid var(--border-light)', borderRadius: 5,
@@ -212,7 +212,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
             </F>
             {fontSuggestions.length > 0 && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
                   KI-Empfehlungen (klick = übernehmen)
                 </div>
                 {fontSuggestions.map(f => (
@@ -236,7 +236,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{f.name}</span>
-                    <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', padding: '2px 6px', borderRadius: 3 }}>{f.use}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', padding: '2px 6px', borderRadius: 3 }}>{f.use}</span>
                   </div>
                 ))}
               </div>
@@ -244,7 +244,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
           </div>
 
           <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10 }}>Charakter</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10 }}>Charakter</div>
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
               {STILE.map(s => (
                 <button key={s} onClick={() => setDesignStyle(s)} style={{
@@ -258,7 +258,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Ecken-Radius</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Ecken-Radius</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {RADIEN.map(r => (
                 <button key={r.value} onClick={() => setBorderRadius(r.value)} style={{
@@ -268,7 +268,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
                   background: borderRadius === r.value ? 'var(--brand-primary-light, #E0F4F8)' : '#fff',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center', gap: 3,
-                  fontSize: 9, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   color: borderRadius === r.value ? 'var(--brand-primary)' : 'var(--text-tertiary)',
                   fontFamily: 'var(--font-sans)',
                 }}>
@@ -282,7 +282,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
 
       {/* Live-Vorschau */}
       <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', padding: '10px 16px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', padding: '10px 16px', borderBottom: '0.5px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
           <span>Live-Vorschau</span>
           <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>Aktualisiert automatisch</span>
         </div>

@@ -208,7 +208,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
         }}>
           {isPflicht && (
             <span style={{
-              fontSize: 9, fontWeight: 900,
+              fontSize: 12, fontWeight: 900,
               background: 'var(--warn)', color: 'var(--kc-black)',
               padding: '2px 6px', borderRadius: 3,
               textTransform: 'uppercase', letterSpacing: '.06em',

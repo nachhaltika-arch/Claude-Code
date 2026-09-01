@@ -162,7 +162,7 @@ export function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }
         <div style={{ fontSize: 13, fontWeight: 700, color: fg }}>{label}</div>
         {isMain && (
           <span style={{
-            fontSize: 9, fontWeight: 800, color: fg,
+            fontSize: 12, fontWeight: 800, color: fg,
             background: 'rgba(255,255,255,0.20)',
             border: `1px solid ${fg === '#FFFFFF' ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.18)'}`,
             padding: '2px 8px', borderRadius: 999,
@@ -206,7 +206,7 @@ export function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }
             position: 'absolute', top: 8, right: 8,
             background: 'rgba(255,255,255,0.85)', color: 'var(--text-secondary)',
             border: '1px solid var(--border-light)', borderRadius: 4,
-            padding: '2px 6px', fontSize: 9, fontWeight: 700,
+            padding: '2px 6px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>↻ Reset</button>
       )}
@@ -388,7 +388,7 @@ export function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }
 
       {/* Form-Demo */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
           Label
         </div>
         <div style={{
@@ -450,7 +450,7 @@ export function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants
           <div style={{ fontSize: 12, fontWeight: 800, color: palette.text_primary, lineHeight: 1.2, marginBottom: 4 }}>
             Medium length section heading
           </div>
-          <div style={{ fontSize: 8, color: palette.text_muted, lineHeight: 1.35 }}>
+          <div style={{ fontSize: 12, color: palette.text_muted, lineHeight: 1.35 }}>
             Pick a card style that matches your overall aesthetic.
           </div>
           <div style={{
@@ -458,12 +458,12 @@ export function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants
             background: variants.primary.bg, color: variants.primary.fg,
             border: `1px solid ${variants.primary.border}`,
             borderRadius: ui.button_radius,
-            padding: '3px 8px', fontSize: 8, fontWeight: 700,
+            padding: '3px 8px', fontSize: 12, fontWeight: 700,
           }}>Button</div>
         </div>
       </div>
 
-      <div style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
         {cardVariant.label} · {ui.label}
       </div>
     </div>
@@ -719,7 +719,7 @@ export function LivePreview({ palette, typo, ui, spacing, variants, semantic, fo
                   background: badges[f.status].bg, color: badges[f.status].fg,
                   border: `1px solid ${badges[f.status].border}`,
                   borderRadius: badges[f.status].radius,
-                  fontSize: 9, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>{f.statusLabel}</span>
               )}

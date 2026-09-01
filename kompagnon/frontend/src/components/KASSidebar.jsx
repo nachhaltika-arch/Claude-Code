@@ -201,7 +201,7 @@ export default function KASSidebar({
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>
                 ONLINE-FERTIG
               </div>
-              <div style={{ fontSize: 9, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: 12, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 ProzessFlow v3
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function KASSidebar({
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}>
         {!collapsed && (
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
             Ansicht
           </div>
         )}
@@ -255,7 +255,7 @@ export default function KASSidebar({
                   borderRadius: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
-                  fontSize: 9,
+                  fontSize: 12,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
@@ -301,7 +301,7 @@ export default function KASSidebar({
                   {group.icon}
                 </span>
                 <span style={{
-                  fontSize: 8, fontVariantNumeric: 'tabular-nums',
+                  fontSize: 12, fontVariantNumeric: 'tabular-nums',
                   color: allCompleted ? GREEN : 'rgba(255,255,255,0.55)',
                   fontWeight: 700,
                 }}>
@@ -348,7 +348,7 @@ export default function KASSidebar({
                 <span style={{ fontSize: 12, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
                   {stepsCompleted}/{group.steps.length}
                 </span>
-                <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4, transition: 'transform 0.2s', display: 'inline-block', transform: isOpenPhase ? 'rotate(180deg)' : 'rotate(0)' }}>
+                <span style={{ fontSize: 12, opacity: 0.5, marginLeft: 4, transition: 'transform 0.2s', display: 'inline-block', transform: isOpenPhase ? 'rotate(180deg)' : 'rotate(0)' }}>
                   ▼
                 </span>
               </button>
@@ -405,16 +405,16 @@ export default function KASSidebar({
                             {step.nr}. {step.name}
                           </span>
                           {status === 'completed' && (
-                            <span aria-label="Abgeschlossen" style={{ fontSize: 9, color: GREEN, fontWeight: 700 }}>✓</span>
+                            <span aria-label="Abgeschlossen" style={{ fontSize: 12, color: GREEN, fontWeight: 700 }}>✓</span>
                           )}
                           {isLocked && (
-                            <span aria-label="Gesperrt" style={{ fontSize: 9, opacity: 0.65 }}>🔒</span>
+                            <span aria-label="Gesperrt" style={{ fontSize: 12, opacity: 0.65 }}>🔒</span>
                           )}
                           {step.optional && !isLocked && status !== 'completed' && (
-                            <span style={{ fontSize: 8, opacity: 0.5, fontStyle: 'italic' }}>opt.</span>
+                            <span style={{ fontSize: 12, opacity: 0.5, fontStyle: 'italic' }}>opt.</span>
                           )}
                           {step.gate && !isLocked && status !== 'completed' && (
-                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 9, opacity: 0.55 }}>⚑</span>
+                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 12, opacity: 0.55 }}>⚑</span>
                           )}
                         </button>
                       </li>
@@ -473,7 +473,7 @@ export default function KASSidebar({
             {collapsed ? '»' : '«'}
           </span>
           {!collapsed && (
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Einklappen
             </span>
           )}

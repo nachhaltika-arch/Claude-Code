@@ -181,7 +181,7 @@ export default function Zugaenge({ leadId, token }) {
                 </div>
               </div>
               <span style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
                 textTransform: 'uppercase', padding: '3px 8px',
                 borderRadius: 'var(--radius-sm)',
                 background: !z.aktiv ? 'var(--bg-active)'

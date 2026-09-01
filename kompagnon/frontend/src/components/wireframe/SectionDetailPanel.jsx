@@ -429,7 +429,7 @@ export default function SectionDetailPanel({ block, libraryEntry, headers, proje
                   placeholder={s.default || ''}
                   style={inpStyle}
                 />
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
                   {`{{${s.key}}}`}
                 </div>
               </div>

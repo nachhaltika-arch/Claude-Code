@@ -163,7 +163,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
               {label}
             </label>
             {ki && ki[kiKey] && konfidenz(kiKey) > 0.7 && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                 🤖 KI · {Math.round(konfidenz(kiKey) * 100)}%
               </span>

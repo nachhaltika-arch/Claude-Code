@@ -349,7 +349,7 @@ export default function LeistungsseitenWizard({
                   {i < step ? '✓' : i + 1}
                 </div>
                 <span style={{
-                  fontSize: 9,
+                  fontSize: 12,
                   color: i === step ? TEAL : 'var(--text-tertiary)',
                   fontWeight: i === step ? 600 : 400,
                   whiteSpace: 'nowrap', maxWidth: 80,

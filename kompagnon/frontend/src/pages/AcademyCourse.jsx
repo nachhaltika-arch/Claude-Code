@@ -313,7 +313,7 @@ export default function AcademyCourse() {
                       {mDone}/{mLessons.length}
                     </span>
                     <span style={{
-                      fontSize: 9, color: T.textMuted, flexShrink: 0,
+                      fontSize: 12, color: T.textMuted, flexShrink: 0,
                       transform: open ? 'rotate(180deg)' : 'none',
                       transition: 'transform 0.2s',
                     }}>▼</span>

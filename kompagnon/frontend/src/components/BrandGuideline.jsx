@@ -211,10 +211,10 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                       }}
                       title="Klick = kopieren"
                     />
-                    <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', textAlign: 'center' }}>
                       {tk.replace(/_/g, ' ')}
                     </div>
-                    <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
                       {hex}
                     </div>
                   </div>
@@ -262,7 +262,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                   borderBottom: '0.5px solid var(--border-light)',
                 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 3 }}>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 3 }}>
                       {label}
                     </div>
                     <div style={{ fontFamily: font, fontSize: 15, color: 'var(--text-primary)' }}>{font}</div>
@@ -270,7 +270,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                   {color && (
                     <>
                       <div style={{ width: 22, height: 22, borderRadius: 4, background: color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
-                      <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--text-tertiary)', flexShrink: 0 }}>{color}</div>
+                      <div style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text-tertiary)', flexShrink: 0 }}>{color}</div>
                     </>
                   )}
                 </div>
@@ -287,7 +287,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                       padding: '8px 0', borderBottom: '0.5px solid var(--border-light)',
                     }}>
                       <div style={{
-                        width: 52, flexShrink: 0, fontSize: 9, fontWeight: 900,
+                        width: 52, flexShrink: 0, fontSize: 12, fontWeight: 900,
                         color: 'var(--text-tertiary)', textTransform: 'uppercase',
                         letterSpacing: '.08em', background: 'var(--bg-app)',
                         padding: '2px 6px', borderRadius: 3, textAlign: 'center',
@@ -312,7 +312,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                           : level === 'button' ? 'JETZT ANFRAGEN'
                           : `${level} — Beispieltext`}
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right', flexShrink: 0, fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right', flexShrink: 0, fontFamily: 'monospace' }}>
                         {spec.size}{spec.weight ? ` · ${spec.weight}` : ''}
                       </div>
                     </div>
@@ -336,7 +336,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                         opacity: 0.15 + Math.min(px / 120, 0.75),
                         borderRadius: 4,
                       }} />
-                      <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                         --space-{tk}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{value}</div>
@@ -345,7 +345,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 })}
               </div>
 
-              <div style={{ marginBottom: 8, fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+              <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
                 Border Radius
               </div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -356,8 +356,8 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                       border: '2px solid var(--brand-primary, var(--brand-primary))',
                       borderRadius: value === '9999px' ? '50%' : value,
                     }} />
-                    <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{tk}</div>
-                    <div style={{ fontSize: 8, color: 'var(--text-tertiary)' }}>{value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{tk}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{value}</div>
                   </div>
                 ))}
               </div>
@@ -426,7 +426,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Ansprache: <strong>{g.voice_tone.ansprache}</strong></div>
                     {(g.voice_tone.cta_beispiele || []).length > 0 && (
                       <>
-                        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>CTA-Beispiele</div>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>CTA-Beispiele</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {g.voice_tone.cta_beispiele.map((cta, i) => (
                             <span key={i} style={{

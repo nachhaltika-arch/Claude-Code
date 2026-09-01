@@ -378,7 +378,7 @@ export function SidebarSectionItem({ sectionKey, count, global = false, onPick, 
       </span>
       {count > 0 && (
         <span style={{
-          fontSize: 9, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           padding: '1px 6px', borderRadius: 10,
           background: 'var(--surface)', color: 'var(--text-secondary)',
           flexShrink: 0,

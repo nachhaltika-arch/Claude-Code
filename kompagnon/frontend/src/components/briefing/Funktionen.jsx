@@ -127,7 +127,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Externe Tools</span>
               {toolsAuto.length > 0 && (
-                <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
+                <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px', borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                   🤖 {toolsAuto.length} erkannt
                 </span>
               )}
@@ -149,7 +149,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}
                   >
-                    {auto && <span style={{ fontSize: 8 }}>🤖</span>}
+                    {auto && <span style={{ fontSize: 12 }}>🤖</span>}
                     {name}
                   </button>
                 );
@@ -211,13 +211,13 @@ function FnRow({ icon, label, desc, checked, onChange, autoDetected, hint }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
             {autoDetected && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                 🤖 Crawler erkannt
               </span>
             )}
             {!autoDetected && hint && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#FFF7D6', color: '#B45309' }}>
                 💡 {hint}
               </span>

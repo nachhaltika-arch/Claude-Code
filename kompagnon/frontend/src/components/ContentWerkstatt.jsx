@@ -261,7 +261,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                     {page.page_type === 'ground' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 9, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                         🤖 GEO / KI-Optimierung
                       </div>
                     )}

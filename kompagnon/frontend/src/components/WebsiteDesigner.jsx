@@ -199,7 +199,7 @@ export default function WebsiteDesigner({
 
         {/* Paste hint */}
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 9 }}>⌘V</kbd>
+          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 12 }}>⌘V</kbd>
           Bild
         </span>
 

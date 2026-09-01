@@ -116,7 +116,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
                           textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Top-Suchbegriffe für Google
           </label>
-          <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
+          <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
                          background: '#E3F6EF', color: '#00875A' }}>
             🤖 Automatisch · {ki?.keywords_quelle}
           </span>
@@ -169,7 +169,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
                           textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Google Business Profil
           </label>
-          <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
+          <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
                          background: '#E3F6EF', color: '#00875A' }}>
             🤖 Aus Crawler
           </span>
@@ -210,7 +210,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             Social Media (aktiv)
           </label>
           {ki?.social_media?.auto && (
-            <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
+            <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px', borderRadius: 3,
                            background: '#E3F6EF', color: '#00875A' }}>
               🤖 {ki.social_media.quelle}
             </span>

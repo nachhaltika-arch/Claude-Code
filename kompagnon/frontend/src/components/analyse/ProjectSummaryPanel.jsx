@@ -38,7 +38,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
     }}>
       {/* PageSpeed */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
           PageSpeed
         </div>
         {pagespeed ? (
@@ -51,7 +51,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
               return (
                 <div key={label} style={{ flex: 1, borderRadius: 6, padding: '6px 8px', textAlign: 'center', background: c.bg }}>
                   <div style={{ fontSize: 18, fontWeight: 900, color: c.text, lineHeight: 1 }}>{score ?? '\u2014'}</div>
-                  <div style={{ fontSize: 9, color: c.text, opacity: 0.7, marginTop: 2 }}>{label}</div>
+                  <div style={{ fontSize: 12, color: c.text, opacity: 0.7, marginTop: 2 }}>{label}</div>
                 </div>
               );
             })}
@@ -63,7 +63,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
 
       {/* Google Analytics */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Google Analytics</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Google Analytics</div>
         {gaResult != null ? (
           <div style={{ fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 6, background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC', color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00' }}>
             {gaResult.ga_found ? 'GA4 erkannt' : 'Kein GA4 gefunden'}
@@ -75,7 +75,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
 
       {/* Brand Design Board */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
           Brand Design
           {designData?.style_keyword && (
             <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'none', letterSpacing: 0 }}>
@@ -89,7 +89,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
 
             {/* Farb-Palette */}
             <div>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Farben</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Farben</div>
               <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4 }}>
                 {[
                   { color: designData.colors?.primary,    label: 'P' },
@@ -103,7 +103,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
                 ].filter(e => e.color).map(({ color, label }, i) => (
                   <div role="button" tabIndex={0} onKeyDown={aufTaste(() => navigator.clipboard?.writeText(color))} key={i} title={`${label ? label + ': ' : ''}${color}`} onClick={() => navigator.clipboard?.writeText(color)} style={{ flexShrink: 0, cursor: 'pointer' }}>
                     <div style={{ width: label ? 28 : 20, height: label ? 28 : 20, borderRadius: 4, background: color, border: '1px solid var(--border-light)' }} />
-                    {label && <div style={{ fontSize: 8, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 2 }}>{label}</div>}
+                    {label && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 2 }}>{label}</div>}
                   </div>
                 ))}
               </div>
@@ -112,7 +112,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
             {/* Schrift-Vorschau */}
             {designData.fonts?.length > 0 && (
               <div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Schriften</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Schriften</div>
                 {designData.fonts.slice(0, 2).map((font, i) => (
                   <div key={i} style={{ fontSize: i === 0 ? 13 : 11, fontWeight: i === 0 ? 700 : 400, color: 'var(--text-primary)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
                     {font}
@@ -130,7 +130,7 @@ export function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespe
                 designData.spacing_density && `${designData.spacing_density}`,
                 designData.farb_stimmung && `${designData.farb_stimmung}`,
               ].filter(Boolean).map((chip, i) => (
-                <span key={i} style={{ fontSize: 9, padding: '2px 6px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 4, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                <span key={i} style={{ fontSize: 12, padding: '2px 6px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 4, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                   {chip}
                 </span>
               ))}

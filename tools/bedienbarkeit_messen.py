@@ -20,6 +20,29 @@ tatsächlich übereinander liegt: die berechnete Textfarbe gegen den ersten
 deckenden Hintergrund darüber. Eine Farbe kann als Token bestehen und auf der
 Seite trotzdem auf dem falschen Grund landen.
 
+**Text auf Bild oder Verlauf wird seit dem 01.09.2026 gemessen statt
+gemeldet.** Bis dahin ging die Erhebung den Baum hinauf und suchte den ersten
+deckenden Hintergrund; fand sie ein Bild oder einen Verlauf, gab sie auf —
+**20 % des Textes** standen als „unentscheidbar" da, gemeldet, aber nicht
+gewertet. Aus zwei Farben ist das auch wirklich nicht entscheidbar. Aus den
+**gerenderten Bildpunkten** schon: Die Seite wird ein zweites Mal abgelichtet,
+diesmal mit unsichtbarem Text, und unter dem Kasten steht dann, was der Leser
+hinter den Buchstaben hat.
+
+**Gemessen wird der ungünstigste Punkt, nicht der durchschnittliche.** Ein
+Verlauf ist an einem Ende hell und am anderen dunkel; ein Mittelwert bestünde,
+während die Hälfte der Buchstaben unlesbar ist. Wer die schlechteste Stelle
+besteht, besteht überall — die Aussage ist damit konservativ und nie zu
+freundlich. `tests/test_kontrast_auf_bild.py` hält die Rechnung an selbst
+erzeugten Bildern fest und prüft im Browser, dass Kasten und Bildabzug
+denselben Ursprung haben; ohne das könnte die Rechnung stimmen und trotzdem
+die Farben eines anderen Elements messen.
+
+**„Unentscheidbar" bleibt es nur noch ohne Vordergrundfarbe** — und ein Kasten
+außerhalb des Sichtfelds zählt weder als bestanden noch als gefallen: Was nicht
+abgelichtet wurde, ist nicht gemessen, und eine Vermutung wäre schlimmer als
+eine Lücke.
+
 **Gewichtet nach Textmenge, wie bei den Schriftgrößen.** Ein Verstoß an einer
 Stelle, die dreimal vorkommt, wiegt anders als einer in jeder Tabellenzeile.
 Gezählt werden deshalb Zeichen, nicht Fundstellen — sonst entscheidet man über
@@ -136,7 +159,8 @@ ERHEBUNG_KONTRAST = """
     return [255, 255, 255];
   };
 
-  const ergebnis = { bestanden: 0, gefallen: 0, unentscheidbar: 0, faelle: {} };
+  const ergebnis = { bestanden: 0, gefallen: 0, unentscheidbar: 0,
+                     faelle: {}, aufBild: [] };
   const lauf = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let knoten;
   while ((knoten = lauf.nextNode())) {
@@ -158,8 +182,25 @@ ERHEBUNG_KONTRAST = """
 
     const vorn = alsRgb(s.color);
     const hint = grund(el);
-    if (!vorn || hint === 'bild') {
+    if (!vorn) {
+      // Ohne Vordergrundfarbe ist gar nichts zu rechnen — das ist etwas
+      // anderes als ein Bild dahinter und bleibt unentscheidbar.
       ergebnis.unentscheidbar += text.length;
+      continue;
+    }
+    if (hint === 'bild') {
+      // **Nicht mehr aufgeben, sondern den Kasten melden** (01.09.2026).
+      // Aus zwei Farben ist Text auf einem Bild oder Verlauf wirklich nicht
+      // entscheidbar — aus den **gerenderten Bildpunkten** schon. Hier wird
+      // nur eingesammelt; gerechnet wird in Python, nachdem die Seite ein
+      // zweites Mal ohne Text abgelichtet wurde.
+      const k = el.getBoundingClientRect();
+      ergebnis.aufBild.push({
+        x: Math.round(k.left), y: Math.round(k.top),
+        w: Math.round(k.width), h: Math.round(k.height),
+        farbe: vorn, schwelle: schwelle, laenge: text.length,
+        beispiel: text.slice(0, 48),
+      });
       continue;
     }
 
@@ -254,6 +295,100 @@ ERHEBUNG_FOKUS = """
 """
 
 
+#: Der Stil, der den Text unsichtbar macht, ohne das Layout zu bewegen.
+#: `color: transparent` laesst jede Flaeche, jeden Rand und jedes Bild stehen —
+#: der Kasten des Textes liegt danach genau dort, wo er lag, und darunter ist
+#: zu sehen, was der Leser hinter den Buchstaben hat.
+TEXT_UNSICHTBAR = ("*,*::before,*::after{color:transparent!important;"
+                   "text-shadow:none!important;"
+                   "-webkit-text-fill-color:transparent!important}")
+
+
+def _leuchtdichte(r: int, g: int, b: int) -> float:
+    def kanal(w):
+        w = w / 255.0
+        return w / 12.92 if w <= 0.03928 else ((w + 0.055) / 1.055) ** 2.4
+    return 0.2126 * kanal(r) + 0.7152 * kanal(g) + 0.0722 * kanal(b)
+
+
+def _kontrast(a: tuple, b: tuple) -> float:
+    la, lb = _leuchtdichte(*a[:3]), _leuchtdichte(*b[:3])
+    hell, dunkel = (la, lb) if la > lb else (lb, la)
+    return (hell + 0.05) / (dunkel + 0.05)
+
+
+def _schlechtester_punkt(bild, kasten: dict, breite: int, hoehe: int):
+    """Der Bildpunkt im Kasten, der am wenigsten Kontrast zur Schrift hat.
+
+    **Der ungünstigste und nicht der durchschnittliche.** Ein Verlauf ist an
+    einem Ende hell und am anderen dunkel; ein Mittelwert bestuende, waehrend
+    die Haelfte der Buchstaben unlesbar ist. Wer die schlechteste Stelle
+    besteht, besteht ueberall.
+    """
+    links = max(0, kasten["x"])
+    oben = max(0, kasten["y"])
+    rechts = min(breite, kasten["x"] + kasten["w"])
+    unten = min(hoehe, kasten["y"] + kasten["h"])
+    if rechts <= links or unten <= oben:
+        return None                       # ausserhalb des Sichtfelds
+
+    ausschnitt = bild.crop((links, oben, rechts, unten))
+    # Die Farben zaehlen, nicht die Punkte: Ein Kasten von 400 x 20 hat 8.000
+    # Punkte und meist ein Dutzend Farben.
+    farben = ausschnitt.getcolors(maxcolors=1 << 16)
+    if not farben:
+        # Mehr Farben als die Grenze — ein Foto. Dann verkleinern; fuer den
+        # schlechtesten Punkt genuegt die Naeherung nicht, deshalb wird hier
+        # ohne Verkleinerung Punkt fuer Punkt gegangen.
+        farben = [(1, f) for f in ausschnitt.getdata()]
+
+    schrift = tuple(kasten["farbe"])
+    return min(_kontrast(schrift, f[1]) for f in farben)
+
+
+def _bild_kontraste(seite, kaesten: list) -> dict:
+    """Text auf Bild oder Verlauf — aus den gerenderten Punkten entschieden.
+
+    Gibt `{bestanden, gefallen, faelle}` in Zeichen zurueck, dieselbe Form wie
+    die Erhebung im Browser.
+    """
+    from io import BytesIO
+
+    from PIL import Image
+
+    ergebnis = {"bestanden": 0, "gefallen": 0, "faelle": {}}
+    if not kaesten:
+        return ergebnis
+
+    marke = seite.add_style_tag(content=TEXT_UNSICHTBAR)
+    try:
+        roh = seite.screenshot()
+    finally:
+        # Der Stil muss wieder weg: Dieselbe Seite wird gleich noch fuer die
+        # Fokusmessung benutzt, und unsichtbarer Text verschoebe dort alles.
+        seite.evaluate("(el) => el.remove()", marke)
+
+    bild = Image.open(BytesIO(roh)).convert("RGB")
+    breite, hoehe = bild.size
+
+    for kasten in kaesten:
+        wert = _schlechtester_punkt(bild, kasten, breite, hoehe)
+        if wert is None:
+            continue
+        if wert >= kasten["schwelle"]:
+            ergebnis["bestanden"] += kasten["laenge"]
+            continue
+        ergebnis["gefallen"] += kasten["laenge"]
+        schluessel = (f"rgb({','.join(str(c) for c in kasten['farbe'])}) auf "
+                      f"Bild/Verlauf — {round(wert, 2)} < {kasten['schwelle']}")
+        alt = ergebnis["faelle"].get(schluessel, {"zeichen": 0, "beispiel": ""})
+        ergebnis["faelle"][schluessel] = {
+            "zeichen": alt["zeichen"] + kasten["laenge"],
+            "beispiel": alt["beispiel"] or kasten["beispiel"],
+        }
+    return ergebnis
+
+
 def _anmelden(seite):
     """Anmelden und warten, bis die App steht."""
     seite.goto(f"{BASIS}/login", wait_until="networkidle")
@@ -287,6 +422,15 @@ def messen():
                            timeout=30_000)
                 seite.wait_for_timeout(1200)
                 kontrast = seite.evaluate(ERHEBUNG_KONTRAST)
+                # **Der zweite Blick, bevor der Fokus gemessen wird.** Text auf
+                # Bild oder Verlauf ist aus zwei Farben nicht entscheidbar —
+                # aus den gerenderten Punkten schon. Der Abzug entsteht mit
+                # unsichtbarem Text, damit unter dem Kasten steht, was der
+                # Leser wirklich hinter den Buchstaben hat.
+                aus_bild = _bild_kontraste(seite, kontrast.pop("aufBild", []))
+                kontrast["bestanden"] += aus_bild["bestanden"]
+                kontrast["gefallen"] += aus_bild["gefallen"]
+                kontrast["faelle"].update(aus_bild["faelle"])
                 fokus = seite.evaluate(fokus_skript)
             except Exception as fehler:                  # noqa: BLE001
                 je_seite.append((name, pfad, None, None, str(fehler)[:80]))

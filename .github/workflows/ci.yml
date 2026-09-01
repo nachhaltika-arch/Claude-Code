@@ -275,13 +275,14 @@ jobs:
       # `BROWSERTESTS_PFLICHT=1` verbietet ihnen genau hier das Ueberspringen:
       # Fehlt der Browser an der Stelle, die ihn eigens installiert, ist das
       # ein Fehler und keine Randnotiz.
-      - name: Consent-Sperre im Browser (L-144)
+      - name: Consent-Sperre und Kontrast im Browser (L-144, L-17)
         working-directory: kompagnon/backend
         env:
           BROWSERTESTS_PFLICHT: "1"
         run: |
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" python -m playwright install chromium
-          python -m pytest tests/test_einwilligung_im_browser.py -q -p no:warnings
+          python -m pytest tests/test_einwilligung_im_browser.py \
+                          tests/test_kontrast_auf_bild.py -q -p no:warnings
 
       - name: Run browser tests
         working-directory: kompagnon/e2e

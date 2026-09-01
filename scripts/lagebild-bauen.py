@@ -42,6 +42,27 @@ HANDGESETZT = {
     # (b) ist gebaut, aber nie gegen einen echten Dienst gelaufen. Weder
     # „offen" noch „geschlossen" trifft das.
     "L-58": "teilweise",
+
+    # ── terminiert: entschieden, datiert, von einem Test gehalten ──────
+    #
+    # **Warum es diesen vierten Zustand gibt** (Entscheidung 01.09.2026).
+    # Das Lagebild ist Davids Entscheidungsgrundlage. „Offen" hiess bis hier
+    # zweierlei: *braucht eine Entscheidung* und *ist entschieden, faellig
+    # ist es spaeter*. Beides in einem Topf macht die Liste laenger, als die
+    # Arbeit ist — und der eigentliche Schaden ist, dass die echten offenen
+    # Punkte darin untergehen.
+    #
+    # **Ein Eintrag darf nur hierher, wenn drei Dinge stimmen:** Die
+    # Entscheidung ist gefallen und steht im Eintrag; es gibt ein Datum oder
+    # eine benannte Bedingung; und ein Test wird rot, wenn der Termin
+    # eintritt oder die Annahme faellt. Ohne den dritten Punkt waere
+    # „terminiert" nur ein leiseres Wort fuer vergessen.
+    "L-114": "terminiert",   # Fassung 2027.1; `tests/test_abstufungen_*`
+                             # beziffern den verschluckten Schritt und werden
+                             # rot, wenn einer dazukommt oder wegfaellt.
+    "L-81": "terminiert",    # 27.09.2026; `tests/test_perplexity_altform_termin.py`
+                             # scheitert ab dem Stichtag mit der
+                             # Arbeitsanweisung im Text.
 }
 
 
@@ -263,6 +284,7 @@ def zahlen_block(luecken: list) -> str:
     felder = [
         (p0, "P0 · sofort", True),
         (z["offen"], "offen", False),
+        (z["terminiert"], "terminiert", False),
         (z["teilweise"], "teilweise", False),
         (z["geschlossen"], "geschlossen", False),
         (f'{gruen}<span style="font-size:19px">/11</span>', "Module grün", False),
@@ -381,7 +403,8 @@ def main() -> int:
     z = collections.Counter(e["status"] for e in luecken)
     p0 = sum(1 for e in luecken if e["prio"] == "P0" and e["status"] != "geschlossen")
     print(f"{ZIEL.relative_to(WURZEL)} — {len(luecken)} Lücken: "
-          f"{z['offen']} offen, {z['teilweise']} teilweise, {z['geschlossen']} geschlossen "
+          f"{z['offen']} offen, {z['teilweise']} teilweise, "
+          f"{z['terminiert']} terminiert, {z['geschlossen']} geschlossen "
           f"· P0 offen: {p0} · Module grün: {module_gruen()}/11")
     print("Jetzt als Artifact veröffentlichen (derselbe Pfad hält dieselbe URL).")
     return 0

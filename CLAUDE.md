@@ -66,8 +66,25 @@ Falls das Repo nicht stimmt:
 - NIE in anderen Repos Änderungen machen
 
 ## Commit-Regel
-- Commit-Messages auf Englisch
+- Commit-Messages auf **Deutsch**
 - Conventional-Commit-Style: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `perf:`, `test:`
+- Betrifft eine Änderung eine Lücke aus dem Lagebild, gehört ihre Nummer in den
+  Bereich: `fix(L-105): …`
+- Der Betreff sagt, **was sich ändert**, nicht was angefasst wurde. Was dabei
+  auffiel und nicht gesucht war, gehört in den Rumpf — auch eigene Fehler.
+
+> **Korrigiert am 2026-09-02.** Hier stand „Commit-Messages auf Englisch",
+> während die letzten rund 40 Commits deutsch waren. Die Regel war damit
+> nicht falsch, sondern **wirkungslos** — und eine Anweisungsdatei, die
+> beim Nachsehen widerlegt wird, kostet ihre Glaubwürdigkeit auch an den
+> Stellen, an denen sie recht hat.
+>
+> Nachgezählt statt geschätzt: Commits mit Autor `Claude` (die älteren) sind
+> englisch, Commits mit Autor `David Väth` (die neueren, aus den Sitzungen
+> mit Claude Code) sind deutsch. Die Praxis hat sich verschoben, die Datei
+> nicht. Angepasst wurde die Datei, nicht die Praxis — Deutsch ist die
+> Sprache, in der hier gearbeitet und entschieden wird, und ein Verlauf,
+> den David quer liest, soll in seiner Sprache stehen.
 
 ## Deploy-Info
 - **Staging**: Render deployt auf jeden Push zu `staging`

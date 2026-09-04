@@ -41,6 +41,8 @@ from services.url_guard import _is_public_ip, check_url
 
 logger = logging.getLogger(__name__)
 
+from services import a11y_browser  # noqa: E402  (nach dem Logger, wie die Nachbarn)
+
 #: Wie lange eine Seite bekommen darf, um sich aufzubauen. Grosszuegiger als
 #: der `httpx`-Abruf: Ein Browser laedt Skripte nach, und genau darum geht es.
 AUFBAU_MS = 15000
@@ -286,9 +288,16 @@ async def _laden(url: str) -> dict:
             # seiner Signatur, nicht sein Verhalten.
             cookies = await kontext.cookies()
 
+            # **Barrierefreiheit am gerenderten Dokument (L-153).** Kontrast,
+            # Schriftgroesse und Tastatur sind hier messbar; ohne diesen Lauf
+            # haengen sie an Lighthouse und fallen mit PageSpeed aus. Die
+            # Seite ist offen, der Aufruf kostet einen Rundlauf.
+            a11y = await a11y_browser.messe(seite)
+
             return {
                 "wie": "browser",
                 "html": html,
+                "a11y": a11y,
                 "final_url": seite.url or url,
                 "status_code": antwort.status if antwort else 0,
                 "cookies": [{"name": c.get("name", ""),

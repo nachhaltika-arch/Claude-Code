@@ -398,6 +398,9 @@ async def collect_facts(
         # Wie die Seite geholt wurde. **Ein Bericht, der das nicht sagen kann,
         # ist die Fehlerfamilie, die diesen Bestand am haeufigsten getroffen
         # hat** — eine Zahl, die aussieht wie eine Messung.
+        # Die Barrierefreiheitsmessung des Browserlaufs (L-153). Ohne Lauf
+        # steht `collected: False` — nicht Nullen, die wie ein Befund aussehen.
+        "a11y_browser": browserlauf.get("a11y") or {"collected": False},
         "browserlauf": {"collected": True,
                         "wie": browserlauf.get("wie", "nicht"),
                         "grund": browserlauf.get("grund", "")},

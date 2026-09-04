@@ -22,6 +22,26 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1]
 UMHUELLUNGEN = ("to_thread", "run_in_executor", "run_sync")
 
+#: Fremde **asynchrone** Methoden, deren Name mit einem blockierenden Helfer
+#: kollidiert.
+#:
+#: Der Waechter loest nach Funktionsnamen auf und nimmt Fehlalarme bewusst in
+#: Kauf (siehe `_blockierende_namen`). Am 04.09.2026 traf es
+#: `services/a11y_browser.messe`: Sie ruft `await seite.evaluate(...)` — das
+#: ist Playwrights asynchrone Auswertung im Browser, nicht `audit_ai.evaluate`,
+#: das synchron das Modell fragt.
+#:
+#: Die Ausnahme steht bewusst **eng** und nennt Empfaenger *und* Methode.
+#: Ein blosses „evaluate ist erlaubt" haette den Waechter an der Stelle
+#: entschaerft, an der er gebaut wurde.
+FREMDE_ASYNC_METHODEN = {("seite", "evaluate")}
+
+
+def _ist_fremde_async_methode(knoten) -> bool:
+    f = knoten.func
+    return (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)
+            and (f.value.id, f.attr) in FREMDE_ASYNC_METHODEN)
+
 
 def _dateien():
     for pfad in sorted(BACKEND.rglob("*.py")):
@@ -79,7 +99,7 @@ class _Durchgang(ast.NodeVisitor):
             fn, ist_async = self.stapel[-1]
             if _ist_ki_aufruf(knoten):
                 self.ki_aufrufe.append((knoten.lineno, fn, ist_async, self.tiefe > 0))
-            elif name:
+            elif name and not _ist_fremde_async_methode(knoten):
                 self.aufrufe.append(
                     (knoten.lineno, name, fn, ist_async, self.tiefe > 0)
                 )

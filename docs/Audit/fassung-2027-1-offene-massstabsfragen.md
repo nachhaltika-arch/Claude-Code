@@ -222,6 +222,70 @@ Quelle: `BEFUND-C5-pruefung-gegen-buchbeschreibung.md`.
 
 ---
 
+## 8. Drei Kriterien, drei Urteile über denselben Karteneinbau (L-154, 04.09.2026)
+
+**Aufgenommen aus dem Fremdlauf gegen `neovendo.de`.** Ein Leser meldete, die
+Cookie-Prüfung setze „kein einwilligungspflichtiger Dienst vorhanden" mit
+„kein Consent-Tool vorhanden" gleich. Sie tut es nicht — die Bedingung ist
+gebaut. Sie liest nur die **falsche Größe**.
+
+`detect_third_parties` liefert drei Mengen:
+
+| Feld | Inhalt |
+|---|---|
+| `count` | alle acht erkannten Dienste — **einschließlich Google Maps und YouTube** |
+| `tracking_services` | Analytics, Facebook, Doubleclick, Hotjar, Clarity |
+| `external_fonts` | Google Fonts |
+| `maps_embedded` | Google Maps — **wird erhoben und von keinem Kriterium gelesen** |
+
+Damit bewerten drei Kriterien denselben Einbau verschieden:
+
+| Kriterium | liest | Ergebnis bei eingebundener Karte, ohne Consent-Tool |
+|---|---|---|
+| `rc_cookie` (4 P) | `count > 0` | **0 von 4** |
+| `si_drittanbieter` (2 P) | nur Fonts und Tracking | **2 von 2** ✓ |
+| `se_lokal` (3 P), dritter Teil | `qa.google_maps` als lokales Signal | **+1 Punkt** |
+
+Ein Einbau, ein Bericht, drei Urteile — untereinander auf derselben Seite.
+Der Leser hat daraus geschlossen, die Prüfung sei kaputt.
+
+**Rechtlich liegt `rc_cookie` näher an der Sache.** Ein Maps- oder
+YouTube-Einbau überträgt vor jeder Einwilligung die IP-Adresse an einen
+Drittanbieter; das ist genau der Fall, den § 25 TDDDG meint. Die Frage ist
+nicht, ob das zählt, sondern **wo**.
+
+**Drei Auflösungen, jede verschiebt Punkte:**
+
+| | Weg | Wirkung auf reale Seiten |
+|---|---|---|
+| **A** | `si_drittanbieter` zieht nach: Maps und YouTube kosten dort ebenfalls einen Punkt | Seiten mit Karte verlieren zusätzlich 1 von 2 Punkten |
+| **B** | `rc_cookie` wird enger: nur Tracking und Fonts lösen aus, Maps und YouTube nicht | Seiten mit Karte gewinnen 4 Punkte zurück — **widerspricht der Rechtslage** |
+| **C** | `se_lokal` akzeptiert die Karte nicht mehr als lokales Signal, nur noch die LocalBusiness-Auszeichnung | Seiten mit Karte ohne Auszeichnung verlieren 1 Punkt |
+
+**Empfehlung: A und C gemeinsam.** Beide folgen derselben Linie — ein Einbau,
+der eine Einwilligung braucht, ist kein Gütezeichen. B wäre der bequemste Weg
+und der einzige, der dem Betrieb schadet, weil er ihm bescheinigt, in Ordnung
+zu sein.
+
+**Nicht jetzt.** A und C zusammen kosten eine Seite mit Karte und ohne
+Consent-Tool bis zu 2 weitere Punkte; alle Bestandsberichte wären damit nicht
+mehr vergleichbar. Bis zur Entscheidung hält
+`tests/test_massstabsfragen_2027_1.py` den heutigen Zustand fest — er wird rot,
+wenn eines der drei Kriterien allein wandert.
+
+**Zwei Kleinigkeiten hängen mit dran:**
+
+* `maps_embedded` wird erhoben und von keinem Kriterium gelesen. Es zu löschen
+  wäre falsch, solange A zur Entscheidung steht — dort ist es die Messung, die
+  gebraucht wird.
+* `dg_mobil` (1 P) vergibt seinen Punkt für ein `meta viewport` im Seitenkopf.
+  Das steht in jeder Vorlage der letzten zehn Jahre; das Kriterium misst
+  praktisch nichts. Am gerenderten Dokument wäre prüfbar, was der Name
+  verspricht — ob die Seite bei 375 px ohne Querlauf steht. Der Browserlauf
+  könnte das seit dem 04.09. liefern (L-153).
+
+---
+
 ## Was hier **nicht** hingehört
 
 Ein Befund, der sich ohne Änderung an `max_points` und ohne Änderung der

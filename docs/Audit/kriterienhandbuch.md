@@ -54,11 +54,19 @@ Die sechs KI-Kriterien: `dg_aktualitaet` (3), `dg_farbsystem` (2),
 | `dg_farbsystem`, `dg_bildqualitaet`, `dg_aktualitaet` | **teilweise** | Palettengröße und Bildherkunft sind messbar (Farbanzahl aus dem Screenshot, Stockbild-Signaturen im Dateinamen). „Wirkt zeitgemäß" ist es nicht. |
 | `cv_klarheit`, `cv_angebot`, `ih_textqualitaet` | **nein** | Das sind Texturteile. Sie sind der Grund, warum ein Modell im Spiel ist. |
 
-**Empfehlung:** Die vier Barrierefreiheits- und Typografie-Kriterien vom
-Browserlauf holen statt von Lighthouse. Das nimmt **8 Punkte** aus der
-Fremdabhängigkeit, nutzt einen Dienst, der ohnehin läuft, und behebt zugleich
-den auffälligsten Darstellungsfehler des Berichts. Die Core Web Vitals bleiben
-bei Google — dort gehören sie hin.
+**Umgesetzt am 04.09.2026 — und die Zahl oben war zu hoch.** Kontrast,
+Schriftgröße und Tastatur werden jetzt am gerenderten Dokument gemessen, wenn
+PageSpeed ausfällt; Lighthouse bleibt erste Quelle, damit sich keine Punktzahl
+im Bestand verschiebt.
+
+> **`bf_lighthouse` bleibt außen vor.** Das Kriterium heißt
+> „Lighthouse-Accessibility-Score" und **ist** dieser Wert. Ihn durch eine
+> eigene Zahl zu ersetzen wäre keine andere Messung desselben Dings, sondern
+> ein anderes Kriterium — also eine Änderung am Maßstab. Damit wandern
+> **5 von 20** Punkten in die eigene Messung, nicht 8; die zuerst genannte
+> Zahl zählte `bf_lighthouse` mit.
+
+Die Core Web Vitals bleiben bei Google — dort gehören sie hin.
 
 ---
 
@@ -358,12 +366,13 @@ dann fehlende Belege, dann Maßstabsfragen.**
 | ~~**3**~~ | ✅ **04.09. erledigt** — Kategoriezeile zeigt „x von y Kriterien erhoben" | „0/2" liest sich nicht mehr als Urteil | S | nein |
 | ~~**4**~~ | ✅ **04.09. erledigt** — `alt=""` und Zählpixel zählen nicht mehr (L-152); der Scanner misst jetzt das gerenderte HTML (L-155) | behebt einen belegten Fehlbefund | M | nein |
 | **5** | KI darf keine Aussage über Platzierung machen, solange sie die Seitenstruktur nicht kennt | behebt den zweiten belegten Fehlbefund | M | nein |
-| **6** | Barrierefreiheit vom Browserlauf statt von Lighthouse | 8 Punkte weniger Fremdabhängigkeit, Kategorie fällt nicht mehr komplett aus | L | nein — dieselben Kriterien, andere Quelle |
-| **7** | `maps_embedded` anschließen oder entfernen | ein erhobener Wert ohne Leser | S | ja |
-| **8** | Einigung, was „einwilligungspflichtig" heißt (`rc_cookie` / `si_drittanbieter` / `se_lokal`) | beendet drei Urteile über einen Sachverhalt | M | **ja — Fassung 2027.1** |
-| **9** | `dg_mobil` an der gerenderten Breite messen statt am Viewport-Tag | das Kriterium misst wieder etwas | M | ja |
+| ~~**6**~~ | ✅ **04.09. erledigt** — Barrierefreiheit vom Browserlauf, Lighthouse bleibt erste Quelle | 8 Punkte weniger Fremdabhängigkeit, Kategorie fällt nicht mehr komplett aus | L | nein — dieselben Kriterien, andere Quelle |
+| **7** | `maps_embedded` anschließen oder entfernen — **in 2027.1 § 8 aufgenommen** | ein erhobener Wert ohne Leser | S | ja |
+| **8** | Einigung, was „einwilligungspflichtig" heißt — **entschieden und terminiert**, Empfehlung A+C in 2027.1 § 8 | beendet drei Urteile über einen Sachverhalt | M | **ja — Fassung 2027.1** |
+| **9** | `dg_mobil` an der gerenderten Breite messen — **in 2027.1 § 8 aufgenommen** | das Kriterium misst wieder etwas | M | ja |
 
-**Stand 04.09.2026: 1 bis 4 sind erledigt** — zusammen mit der Korrektur der
+**Stand 04.09.2026: 1 bis 4 und 6 sind erledigt; 7 bis 9 stehen als Abschnitt 8
+im Papier zur Katalogfassung 2027.1 und warten auf eine Entscheidung** — zusammen mit der Korrektur der
 Platzierungsaussage aus § 1.1. Keiner davon hat einen Punktwert im Bestand
 verschoben.
 

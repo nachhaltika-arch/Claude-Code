@@ -16,6 +16,7 @@ from services.audit_criteria import (
     ist_anwendbar,
     score_all,
 )
+from services import a11y_browser
 from services.audit_industry_map import klasse_fuer_branche
 from services.audit_industry_signals import (
     ORT_IM_TITEL_ERWARTET,
@@ -315,14 +316,46 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
     _nach_abstufung(sheet, "bf_lighthouse",
                     psi.get("accessibility_score") if _ok(psi) else None)
 
-    sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED,
-                "Lighthouse-Prüfung der Farbkontraste bestanden"
-                if audits.get("kontrast") else
-                "Lighthouse meldet zu geringe Farbkontraste")
-    sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED,
-                "Lighthouse findet keine Tastaturfalle"
-                if audits.get("tastatur") else
-                "Lighthouse meldet Mängel bei der Tastaturbedienung")
+    # **Lighthouse zuerst, der Browserlauf als Ersatz (L-153).** Faellt
+    # PageSpeed aus, hing dieses Kriterium bisher mit ihm — und der Bericht
+    # zeigte „Barrierefreiheit 0/2", weil von fuenf Kriterien eines uebrig
+    # blieb. Die Reihenfolge ist Absicht: Waere die Eigenmessung erste Quelle,
+    # verschoeben sich Punktzahlen im Bestand, ohne dass sich am Massstab
+    # etwas geaendert haette.
+    a11y = facts.get("a11y_browser") or {}
+    if audits.get("kontrast") is not None:
+        sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED,
+                    "Lighthouse-Prüfung der Farbkontraste bestanden"
+                    if audits.get("kontrast") else
+                    "Lighthouse meldet zu geringe Farbkontraste")
+    else:
+        anteil = a11y_browser.kontrast_anteil(a11y)
+        verstoesse = a11y.get("kontrast_verstoesse") or 0
+        geprueft = a11y.get("kontrast_geprueft") or 0
+        beispiele = ", ".join(a11y.get("kontrast_beispiele") or [])
+        beleg = (f"Am gerenderten Dokument gemessen: {verstoesse} von {geprueft} "
+                 f"Textstellen unter dem geforderten Kontrast")
+        if beispiele:
+            beleg += f" — {beispiele}"
+        if not verstoesse and geprueft:
+            beleg = (f"Am gerenderten Dokument gemessen: alle {geprueft} "
+                     f"Textstellen erreichen den geforderten Kontrast")
+        sheet.scale("bf_kontrast", anteil, Source.MEASURED, beleg)
+    if audits.get("tastatur") is not None:
+        sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED,
+                    "Lighthouse findet keine Tastaturfalle"
+                    if audits.get("tastatur") else
+                    "Lighthouse meldet Mängel bei der Tastaturbedienung")
+    else:
+        # **Was hier nicht gemessen wird, sagt der Beleg.** Eine echte
+        # Tastaturfalle findet man nur, indem man durchtabbt; geprueft sind
+        # das Sprungziel und die erzwungene Reihenfolge.
+        teile = teile_beleg((
+            (a11y.get("skiplink"), "Sprungziel zum Inhalt"),
+            (not a11y.get("positive_tabindex"), "keine erzwungene Tab-Reihenfolge"),
+        ))
+        sheet.scale("bf_tastatur", a11y_browser.tastatur_anteil(a11y), Source.DERIVED,
+                    f"Am gerenderten Dokument geprüft — {teile}" if teile else "")
 
     # **Der Zusatz erklaert den Nenner (L-152).** Dekorative Bilder und
     # Zaehlpixel fallen aus der Zaehlung; ohne diesen Satz wundert sich ein
@@ -541,10 +574,18 @@ def _score_design(sheet: _Sheet, facts: dict) -> None:
     #
     # Die Pruefung ist binaer, also sind es 0 oder 2 Punkte. Dieselbe Bauart
     # wie `bf_kontrast`, das `color-contrast` genauso abbildet.
-    sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED,
-                "Lighthouse-Prüfung der Schriftgröße bestanden"
-                if audits.get("typografie") else
-                "Lighthouse meldet zu kleine Schrift auf Mobilgeräten")
+    if audits.get("typografie") is not None:
+        sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED,
+                    "Lighthouse-Prüfung der Schriftgröße bestanden"
+                    if audits.get("typografie") else
+                    "Lighthouse meldet zu kleine Schrift auf Mobilgeräten")
+    else:
+        a11y = facts.get("a11y_browser") or {}
+        klein = a11y.get("schrift_zu_klein") or 0
+        geprueft = a11y.get("schrift_geprueft") or 0
+        sheet.scale("dg_typografie", a11y_browser.schrift_anteil(a11y), Source.MEASURED,
+                    (f"Am gerenderten Dokument gemessen: {klein} von {geprueft} "
+                     f"Textstellen unter 12 px") if geprueft else "")
 
     # dg_aktualitaet, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
 

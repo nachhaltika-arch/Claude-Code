@@ -61,6 +61,7 @@ HANDGESETZT = {
                              # beziffern den verschluckten Schritt und werden
                              # rot, wenn einer dazukommt oder wegfaellt.
     "L-81": "terminiert",    # 27.09.2026; `tests/test_perplexity_altform_termin.py`
+    "L-154": "terminiert",   # Fassung 2027.1 § 8; `tests/test_massstabsfragen_2027_1.py`
                              # scheitert ab dem Stichtag mit der
                              # Arbeitsanweisung im Text.
 }

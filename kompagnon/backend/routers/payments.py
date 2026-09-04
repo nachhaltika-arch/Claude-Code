@@ -131,11 +131,13 @@ def projekt_festpreis(db, slug: str, bezahlt: float):
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
     from sqlalchemy import text
+    from services.preisangabe import preisangabe
     import json as _j
     rows = db.execute(text(
         "SELECT slug, name, price_brutto, price_netto, tax_rate, "
         "short_desc, delivery_days, highlighted, highlight_label, "
-        "features, payment_type, status "
+        "features, payment_type, status, "
+        "gekoppeltes_abo, abo_mindestlaufzeit "
         "FROM products WHERE status='live' ORDER BY sort_order ASC"
     )).mappings().all()
     result = {}
@@ -157,6 +159,15 @@ def get_packages(db: Session = Depends(get_db)):
             "delivery_days":   r["delivery_days"],
             "highlighted":     r["highlighted"],
             "highlight_label": r["highlight_label"] or "",
+            # Die Pflichtangabe bei gekoppeltem Abo (L-164). Sie steht auch
+            # hier, weil § 4.1 des Datenblatts WS-STA-01 den Gesamtpreis der
+            # Mindestlaufzeit in **jeder** Preisangabe verlangt — und dieser
+            # Endpunkt speist die Verkaufsseiten und das Angebot, nicht nur
+            # die Kasse. Ein Feld, das nur der eine Weg kennt, ist genau die
+            # Luecke, aus der eine falsche Preisangabe entsteht.
+            "preisangabe":     preisangabe(
+                int(round(float(r["price_netto"] or 0) * 100)),
+                r["gekoppeltes_abo"], r["abo_mindestlaufzeit"] or 0),
         }
     return result
 

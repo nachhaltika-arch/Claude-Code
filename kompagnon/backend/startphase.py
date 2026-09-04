@@ -208,6 +208,45 @@ def _create_default_admin():
             # rechnet es nach.
             SEED = [
                 {
+                    # WS-STA-01, aufgenommen am 04.09.2026 (L-164). Steht
+                    # **vor** dem Relaunch: Die Leiter beginnt beim kleinsten
+                    # Paket. `draft`, weil das Datenblatt als Freigabe den
+                    # Meilenstein „Pflege-Abo aktiv, 24.09.2026" nennt — ohne
+                    # laufende Abrechnung verkauft es eine Leistung, die
+                    # niemand in Rechnung stellt.
+                    #
+                    # `gekoppeltes_abo` haelt nur **welches** Abo dazugehoert,
+                    # nicht seinen Preis: Der steht in `services/abo_stunden.py`
+                    # und wird in `services/preisangabe.py` verrechnet. § 4.1
+                    # des Datenblatts verlangt den Gesamtpreis der
+                    # Mindestlaufzeit in **jeder** Preisangabe; eine getippte
+                    # Zahl waere falsch, sobald jemand das Entgelt aendert.
+                    "slug": "websprint_start", "name": "Websprint Start",
+                    "sort_order": 0,
+                    "short_desc": "Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege",
+                    "price_brutto": 1785.00, "price_netto": 1500.00, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 7, "status": "draft",
+                    "gekoppeltes_abo": "ABO-BAS", "abo_mindestlaufzeit": 12,
+                    "features": [
+                        "Audit nach Homepage-Standard, dokumentiert",
+                        "Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten",
+                        "Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv",
+                        "Einpflegen der gelieferten Texte, bis 4.000 Zeichen",
+                        "Bildaufbereitung, bis 10 Bilder",
+                        "Kontaktformular mit Spam-Schutz",
+                        "Grundlagen der Barrierefreiheit",
+                        "Technische Optimierung und strukturierte Auszeichnung",
+                        "Hosting-Einrichtung, SSL, Domainumstellung",
+                        "Eine Korrekturschleife",
+                        "Abnahmeaudit mit schriftlichem Protokoll",
+                        "Einweisungsvideo statt Live-Schulung",
+                        "Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat",
+                        "Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user",
+                        "create_project", "send_welcome_email", "send_pdf"],
+                },
+                {
                     "slug": "websprint_relaunch", "name": "Websprint Relaunch",
                     "sort_order": 1,
                     "short_desc": "Bestehende Website auf den Homepage-Standard heben",
@@ -215,10 +254,17 @@ def _create_default_admin():
                     "payment_type": "once", "delivery_days": 14, "status": "live",
                     # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
                     # docs/produkte/ws-rel-01.md. Das Blatt nannte als
-                    # Freigabebedingung „nach Behebung L2 und L3" — beides ist
-                    # am 23.08. am laufenden System widerlegt worden (der
-                    # PageSpeed-Schluessel arbeitet, die Score-Schwellen sind
-                    # beidseitig gleich). Damit ist das Paket verkaufbar.
+                    # Freigabebedingung „nach Behebung L2 und L3".
+                    #
+                    # **Am 04.09.2026 richtiggestellt.** Hier stand, beides sei
+                    # am 23.08. widerlegt — „der PageSpeed-Schluessel
+                    # arbeitet". Die Haelfte stimmt: Die Score-Schwellen sind
+                    # beidseitig gleich (L3 geschlossen). Der Schluessel
+                    # arbeitet **nicht**: Der Produktivbericht vom 04.09.
+                    # meldet 78 % Abdeckung, elf Kriterien tragen „nicht
+                    # erhoben", darunter alle vier Performance-Werte. Das
+                    # Paket bleibt verkaufbar — die zugesicherten 85 Punkte
+                    # der Standard-Garantie sind es nicht, siehe L-165.
                     "features": [
                         "Eingangsaudit nach Homepage-Standard, 100 Punkte",
                         "Strukturabgleich und Seitenplan",
@@ -290,9 +336,11 @@ def _create_default_admin():
                     (slug, name, short_desc, price_brutto, price_netto,
                      tax_rate, payment_type, delivery_days, status,
                      highlighted, highlight_label, features,
-                     checkout_fields, webhook_actions, sort_order)
+                     checkout_fields, webhook_actions, sort_order,
+                     gekoppeltes_abo, abo_mindestlaufzeit)
                     VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
-                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
+                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so,
+                     :abo, :abomon)
                 """), {
                     "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
                     "pb": p["price_brutto"], "pn": p["price_netto"],
@@ -304,9 +352,11 @@ def _create_default_admin():
                     "cf":   _j.dumps(p["checkout_fields"]),
                     "wa":   _j.dumps(p["webhook_actions"]),
                     "so":   p["sort_order"],
+                    "abo":    p.get("gekoppeltes_abo"),
+                    "abomon": p.get("abo_mindestlaufzeit", 0),
                 })
             _db3.commit()
-            logger.info("✓ 3 Produkte geseedet")
+            logger.info(f"✓ {len(SEED)} Produkte geseedet")
         _db3.close()
     except Exception as e:
         logger.warning(f"Produkt-Seed Fehler: {e}")

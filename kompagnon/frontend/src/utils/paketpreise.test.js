@@ -218,3 +218,61 @@ describe('verkaeuflich — was die Kasse auch annimmt', () => {
     expect(pakete.every((p) => p.verkaeuflich === false)).toBe(true);
   });
 });
+
+describe('Die Angebotsliste und der Katalog (L-164)', () => {
+  /**
+   * `OfferTab.jsx` pflegt seine Pakete von Hand — Reihenfolge, Farben und
+   * Leistungsverzeichnis stehen im Quelltext, weil sie Darstellung sind und
+   * nicht Katalogdaten. Genau deshalb laeuft die Liste dem Katalog hinterher:
+   * Am 04.09.2026 stand `websprint_start` seit zwei Wochen im Datenblatt und
+   * fehlte hier — der Innendienst haette es nicht anbieten koennen.
+   *
+   * Der Katalog selbst steht im Backend (`startphase.py`). Ein Test im
+   * Frontend kann ihn nicht lesen, ohne eine zweite Wahrheit zu bauen. Er
+   * prueft deshalb das, was hier pruefbar ist: **welche Kennungen die
+   * Darstellung fuehrt** — und faellt, sobald jemand eine entfernt oder
+   * umbenennt, ohne diesen Kommentar zu lesen.
+   */
+  const ERWARTETE_PAKETE = [
+    'websprint_start', 'websprint_relaunch', 'websprint_neubau', 'websprint_system',
+  ];
+
+  test('das Angebot fuehrt alle vier Websprint-Pakete in der Leiterreihenfolge', () => {
+    // Arrange
+    const quelle = fs.readFileSync(
+      path.join(WURZEL, 'components', 'OfferTab.jsx'), 'utf8');
+    const block = quelle.slice(quelle.indexOf('const DARSTELLUNG'),
+                               quelle.indexOf('const COMPARE'));
+
+    // Act
+    const gefunden = [...block.matchAll(/id: '([a-z_]+)'/g)].map((m) => m[1]);
+
+    // Assert
+    expect(gefunden).toEqual(ERWARTETE_PAKETE);
+  });
+
+  test('die Pflichtangabe kommt durch die Zusammenfuehrung', () => {
+    // Arrange — der Server rechnet sie, das Frontend reicht sie durch.
+    const darstellung = [{ id: 'websprint_start', name: 'Start' }];
+    const satz = '1.500,00 € netto einmalig zzgl. 79,00 € netto monatlich, '
+               + 'Mindestlaufzeit 12 Monate. Gesamtpreis erstes Jahr: 2.448,00 € netto.';
+    const ausApi = { websprint_start: { name: 'Websprint Start', price_eur: 1785, preisangabe: satz } };
+
+    // Act
+    const pakete = paketeZusammenfuehren(darstellung, ausApi);
+
+    // Assert
+    expect(pakete[0].preisangabe).toBe(satz);
+  });
+
+  test('ein Paket ohne gekoppeltes Abo traegt keine Pflichtangabe', () => {
+    // Arrange — ein leerer Text, damit die Oberflaeche auf Inhalt pruefen kann.
+    const ausApi = { websprint_neubau: { name: 'Neubau', price_eur: 9401 } };
+
+    // Act
+    const pakete = paketeZusammenfuehren([{ id: 'websprint_neubau' }], ausApi);
+
+    // Assert
+    expect(pakete[0].preisangabe).toBe('');
+  });
+});

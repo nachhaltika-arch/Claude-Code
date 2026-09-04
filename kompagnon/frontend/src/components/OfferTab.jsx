@@ -11,11 +11,25 @@ import { aufTaste } from '../utils/tastaturBedienung';
 // fuehrt seither die Websprint-Produkte (L-97); die Merkmale stammen aus den
 // Leistungsverzeichnissen der Datenblaetter WS-NEU-01 und WS-SYS-01.
 //
-// Alle drei Leistungsverzeichnisse stammen aus den Datenblaettern in
-// docs/produkte/. Das System-Paket steht als Entwurf im Katalog, weil seine
-// Kernleistung nicht lieferbar ist (L-99) — es erscheint deshalb ohne Preis
-// und ohne Kaufweg, aber mit seinem Leistungsumfang.
+// Die Leistungsverzeichnisse stammen aus den Datenblaettern in
+// docs/Buch/Websprint Produkte/files/ (die geltende Fassung; docs/produkte/
+// ist die aeltere und kennt WS-STA-01 nicht — L-164). Ein Paket, das im
+// Katalog als Entwurf steht, erscheint hier ohne Preis und ohne Kaufweg,
+// aber mit seinem Leistungsumfang: Websprint System, weil seine Kernleistung
+// nicht lieferbar war (L-99), und Websprint Start bis zum Meilenstein
+// „Pflege-Abo aktiv" am 24.09.2026.
+//
+// **Am 04.09.2026 ergaenzt:** Websprint Start fehlte hier, obwohl das
+// Datenblatt es seit dem 23.08. beschreibt. Diese Liste ist von Hand
+// gepflegt und laeuft dem Katalog deshalb hinterher — wer ein Produkt
+// anlegt, muss auch hier nachtragen, sonst kann der Innendienst es nicht
+// anbieten. `paketpreise.test.js` haelt beide Listen zusammen.
 const DARSTELLUNG = [
+  {
+    id: 'websprint_start', name: 'Websprint Start', delivery: '7 Kalendertage',
+    accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
+    features: ['Audit nach Homepage-Standard, dokumentiert', 'Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Öffnungszeiten', 'Aufbau aus einer festen Vorlage, responsiv', 'Einpflegen der gelieferten Texte, bis 4.000 Zeichen', 'Bildaufbereitung, bis 10 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Hosting-Einrichtung, SSL, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisungsvideo statt Live-Schulung', 'Pflege Basic für 12 Monate, 30 Minuten Änderungen je Monat', 'Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine'],
+  },
   {
     id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: '14 Kalendertage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
@@ -88,7 +102,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
     const link = `${window.location.origin}/paket/${selectedPkg}`;
     const subject = encodeURIComponent(`Ihr persönliches Angebot für ${company}`);
     const body = encodeURIComponent(
-      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n` : ''}✓ Fertigstellung in ${pkg.delivery}\n✓ Festpreis — keine versteckten Kosten\n\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
+      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? (pkg.preisangabe ? `✓ ${pkg.preisangabe}\n` : `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n`) : ''}✓ Fertigstellung in ${pkg.delivery}\n${pkg.preisangabe ? '' : '✓ Festpreis — keine versteckten Kosten\n'}\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
     );
     window.location.href = `mailto:${lead.email || ''}?subject=${subject}&body=${body}`;
   };
@@ -150,7 +164,10 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
             </div>
             <div style={{ background: `${pkg.accentColor}30`, border: `1px solid ${pkg.accentColor}60`, borderRadius: 'var(--radius-lg)', padding: '14px 20px', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
               <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: pkg.accentColor === '#d4a017' ? '#f0c040' : 'white', lineHeight: 1 }}>{pkg.preisBekannt ? pkg.preisLabel : PREIS_UNBEKANNT}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>einmalig · Endpreis</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{pkg.preisangabe ? 'Bauleistung · Endpreis' : 'einmalig · Endpreis'}</div>
+              {pkg.preisangabe && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, lineHeight: 1.5, fontWeight: 700 }}>{pkg.preisangabe}</div>
+              )}
             </div>
           </div>
         </div>
@@ -170,7 +187,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
           <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>Festpreis — Endpreis</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>{pkg.preisangabe ? 'Bauleistung — Endpreis, zzgl. Pflege' : 'Festpreis — Endpreis'}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: pkg.accentColor }}>{pkg.preisBekannt ? `${pkg.preisLabel} € Gesamtpreis` : PREIS_UNBEKANNT}</div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>

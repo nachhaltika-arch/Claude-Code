@@ -1699,6 +1699,63 @@ def run_migrations():
                    CHECK (end_monat IS NULL OR end_monat >= start_monat);
            EXCEPTION WHEN duplicate_object THEN NULL;
            END $$""",
+        # ── 04.09.2026: WS-STA-01 „Websprint Start" kommt in den Katalog (L-164) ──
+        #
+        # Das Datenblatt beschreibt seit dem 23.08. ein viertes Produkt —
+        # verpreist, terminiert, mit eigener Zahlungsbedingung Z7. Im Code kam
+        # `websprint_start` **null Mal** vor. Ein Auftrag dafuer waere still
+        # als `websprint_neubau` gelandet: mit dessen 28 Tagen Bauzeit, dessen
+        # Mitwirkungsliste und dessen Preis. Der Spaltenstandard macht daraus
+        # keinen Fehler, sondern ein falsches Projekt ohne Meldung.
+        #
+        # **Warum eine Migration und nicht nur der Seed in `startphase.py`.**
+        # Der Seed dort laeuft nur, wenn `products` **leer** ist. Produktiv und
+        # Staging sind es nicht — dort haette ein vierter Eintrag in der
+        # Vorlage nichts bewirkt. Genau diese Bauart („gebaut, nicht
+        # angeschlossen") ist hier oft genug vorgekommen, um sie beim Namen zu
+        # nennen. Der Seed wird trotzdem mitgepflegt, damit eine frische
+        # Datenbank denselben Katalog bekommt; `test_produktvorlage.py` haelt
+        # beide zusammen.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS gekoppeltes_abo VARCHAR(20)",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS abo_mindestlaufzeit INTEGER DEFAULT 0",
+        # Die beiden Spalten tragen **nicht** den Abo-Preis. Der steht seit
+        # L-100 in `services/abo_stunden.py` und ist die Grundlage jeder
+        # Abrechnung; eine zweite Zeile mit demselben Betrag waere der zweite
+        # Ort, an dem 79 EUR gepflegt werden muessten. Gespeichert wird nur,
+        # **welches** Abo gekoppelt ist und wie lange — gerechnet wird in
+        # `services/preisangabe.py`.
+        #
+        # `draft`, nicht `live`, und der Grund ist nicht technisch: Das
+        # Datenblatt nennt als Freigabebedingung den Meilenstein „Pflege-Abo
+        # aktiv, 24.09.2026". Solange das monatliche Entgelt nicht abgerechnet
+        # wird, verkauft dieses Paket eine Leistung, die niemand in Rechnung
+        # stellt. Freischalten ist eine Entscheidung, kein Handgriff.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order,
+              gekoppeltes_abo, abo_mindestlaufzeit)
+           VALUES
+             ('websprint_start', 'Websprint Start',
+              'Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege',
+              1785.00, 1500.00, 19, 'once', 7, 'draft', false, 'Empfehlung',
+              '["Audit nach Homepage-Standard, dokumentiert","Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten","Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv","Einpflegen der gelieferten Texte, bis 4.000 Zeichen","Bildaufbereitung, bis 10 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Optimierung und strukturierte Auszeichnung","Hosting-Einrichtung, SSL, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisungsvideo statt Live-Schulung","Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat","Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              0, 'ABO-BAS', 12)
+           ON CONFLICT (slug) DO NOTHING""",
+        # `sort_order = 0`: Start steht **vor** dem Relaunch. Die Leiter
+        # beginnt beim kleinsten Paket, und das Datenblatt begruendet den
+        # Namen genau damit — „Start beschreibt eine Position, keine
+        # Qualitaetsstufe".
+        #
+        # Fuer Datenbanken, in denen die Zeile schon steht, die Kopplung aber
+        # noch nicht: `WHERE gekoppeltes_abo IS NULL` haelt es wiederholbar und
+        # fasst eine von Hand gepflegte Zeile nicht an.
+        """UPDATE products
+              SET gekoppeltes_abo = 'ABO-BAS', abo_mindestlaufzeit = 12
+            WHERE slug = 'websprint_start'
+              AND gekoppeltes_abo IS NULL""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -152,6 +152,20 @@ export default function Shop() {
                   Endpreis · enthält {Number(p.tax_rate)} % MwSt.
                   {p.price_netto ? ` · netto ${euro(p.price_netto)}` : ''}
                 </div>
+                {/* **Pflichtangabe, keine Zusatzinformation** (L-164). Ist ein
+                    Abo zwingender Bestandteil, gehört der Gesamtpreis der
+                    Mindestlaufzeit neben den Preis — nicht ins Kleingedruckte
+                    und nicht in die Merkmalsliste weiter unten. Der Satz kommt
+                    fertig gerechnet vom Server (`services/preisangabe.py`),
+                    damit er nicht davonläuft, wenn sich das Entgelt ändert. */}
+                {p.preisangabe && (
+                  <p style={{ fontSize: 13, lineHeight: 1.55, margin: '10px 0 0',
+                              padding: '10px 12px', borderRadius: 8,
+                              background: 'var(--bg-sunken, rgba(0,0,0,.04))',
+                              color: 'var(--text-primary)', fontWeight: 700 }}>
+                    {p.preisangabe}
+                  </p>
+                )}
               </div>
 
               {Array.isArray(p.features) && p.features.length > 0 && (

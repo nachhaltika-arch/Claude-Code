@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
+from services.preisangabe import preisangabe
 from routers.auth_router import require_admin, get_current_user
 from datetime import datetime
 import json, os, logging, re
@@ -42,6 +43,24 @@ def _row(r):
                 d[f] = json.loads(d[f])
             except Exception:
                 d[f] = []
+    # Die verbindliche Preisangabe eines Pakets mit gekoppeltem Abo (L-164).
+    #
+    # Sie wird hier gerechnet, nicht in der Oberflaeche: § 4.1 des Datenblatts
+    # WS-STA-01 verlangt den Gesamtpreis der Mindestlaufzeit in **jeder**
+    # Preisangabe — Shop, Kasse, Angebot, Auditbericht. Ein Feld in dieser
+    # Antwort erreicht alle vier; eine Funktion im Shop erreicht den Shop.
+    #
+    # Ohne gekoppeltes Abo bleibt das Feld ein leerer Text. Die Oberflaeche
+    # prueft damit auf Inhalt statt auf ein fehlendes Feld — ein Unterschied,
+    # der hier schon einmal einen halben Block unsichtbar gemacht hat.
+    try:
+        d["preisangabe"] = preisangabe(
+            int(round(float(d.get("price_netto") or 0) * 100)),
+            d.get("gekoppeltes_abo"),
+            d.get("abo_mindestlaufzeit") or 0)
+    except Exception:  # noqa: BLE001 — eine Anzeigefrage darf den Katalog nicht kippen
+        logger.warning("Preisangabe nicht bildbar fuer %s", d.get("slug"))
+        d["preisangabe"] = ""
     return d
 
 

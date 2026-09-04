@@ -435,6 +435,18 @@ def _handle_successful_payment(session: dict, db: Session):
 
     logger.info(f"Stripe: Lead {lead.id} angelegt fuer {company}")
 
+    # **Das Zahlungskonto am Betrieb merken** (04.09.2026). Stripe legt bei
+    # jedem Kauf einen Kunden an; ohne diese Zeile faende das Kundenportal ihn
+    # nur ueber einen Umweg — Nachschlagen per Mailadresse — und bei einer
+    # abweichenden Adresse gar nicht.
+    try:
+        from services import zahlungsportal
+
+        zahlungsportal.merke_kennung(db, lead, session.get("customer", "") or "")
+    except Exception as fehler:      # noqa: BLE001
+        logger.warning("Zahlungskonto nicht am Betrieb gemerkt: %s: %s",
+                       type(fehler).__name__, fehler)
+
     # ── 2. USER ANLEGEN ──────────────────────────────────────
     temp_pw = None
     if email and KONTO in schritte:

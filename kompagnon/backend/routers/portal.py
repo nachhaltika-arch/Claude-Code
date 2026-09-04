@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel
 
-from database import get_db, Project, ProjectChecklist, Lead
+from database import get_db, MitwirkungStand, Project, ProjectChecklist, Lead
 from routers.auth_router import get_current_user
 
 router = APIRouter(prefix="/api/portal", tags=["portal"])
@@ -302,3 +302,195 @@ def portal_version_preview(
     css  = row.css or ""
     from services.seiten_huelle import vorschau_huelle
     return HTMLResponse(vorschau_huelle(html, css, f"Vorschau — Version {version_id}"))
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Mitwirkungsleistungen (L-159)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Warum das ins Kundenkonto gehoert und nicht in eine Mahnmail.** Bis heute
+# schickte `job_check_missing_materials` dem Betrieb gestaffelt die Nachricht,
+# dass Materialien fehlen — ohne zu sagen **welche**, und ohne dass er den
+# Stand irgendwo nachsehen konnte. Aus einer Mahnung wird hier eine Liste, die
+# er abarbeiten kann.
+#
+# **Und sie traegt die Frist.** Die Bauzeit beginnt an dem Werktag, an dem alle
+# Fristbeginn-Punkte vorliegen; die beiden Freigaben pausieren sie. Ohne
+# festgehaltenes Eingangsdatum je Punkt ist die Bauzeitgarantie entweder
+# unverbindlich oder ruinoes (Blocker L6).
+
+
+def _merkmale(project) -> set:
+    """Welche bedingten Punkte fuer dieses Projekt gelten.
+
+    Vorerst aus dem Projekt selbst abgeleitet. Sobald der Auftrag die
+    Leistungen einzeln fuehrt, kommt es von dort — die Stelle ist bewusst
+    **eine**, damit die Ableitung nicht an drei Orten auseinanderlaeuft.
+    """
+    merkmale = set()
+    if getattr(project, "migration_noetig", False):
+        merkmale.add("migration")
+    if getattr(project, "karriereseite", False):
+        merkmale.add("karriereseite")
+    return merkmale
+
+
+@router.get("/mitwirkung")
+def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Was wir vom Kunden brauchen — mit Stand und gerechnetem Fristbeginn."""
+    from services import mitwirkung as kat
+
+    project = None
+    if user.lead_id:
+        project = (db.query(Project).filter(Project.lead_id == user.lead_id)
+                   .order_by(Project.created_at.desc()).first())
+    if not project:
+        return {"punkte": [], "offen": 0, "erledigt": 0, "start_moeglich": False}
+
+    staende = {s.kennung: s for s in db.query(MitwirkungStand)
+               .filter(MitwirkungStand.project_id == project.id).all()}
+    punkte = kat.gilt_fuer(_merkmale(project))
+    erledigt = {k for k, s in staende.items() if s.erledigt_am}
+
+    def zeile(p):
+        stand = staende.get(p.kennung)
+        return {
+            "kennung": p.kennung, "titel": p.titel, "warum": p.warum,
+            "wirkung": p.wirkung, "vertragstext": p.vertragstext,
+            "erledigt": bool(stand and stand.erledigt_am),
+            "erledigt_am": stand.erledigt_am.isoformat() if stand and stand.erledigt_am else None,
+            "bestaetigt_von": (stand.bestaetigt_von or "") if stand else "",
+        }
+
+    vor_start = [p for p in punkte if p.wirkung == kat.FRISTBEGINN]
+    spaeter = [p for p in punkte if p.wirkung == kat.FRISTPAUSE]
+    offen = kat.fristbeginn_offen(punkte, erledigt)
+
+    # `Project` traegt keinen eigenen Namen — der Betrieb schon. Dieselbe
+    # Ableitung wie in `/me`; zwei Wege zum selben Namen laufen auseinander.
+    lead = db.query(Lead).filter(Lead.id == project.lead_id).first()
+    return {
+        "projekt": (lead.company_name if lead else "") or "Ihr Projekt",
+        # Getrennt ausgegeben, nicht in einer Liste mit einem Merkmal:
+        # Lieferungen vor dem Start und Freigaben mittendrin sind zwei Dinge,
+        # und gemischt sieht die Aufgabe doppelt so gross aus.
+        "punkte": [zeile(p) for p in vor_start],
+        "spaeter": [zeile(p) for p in spaeter],
+        "offen": len(offen),
+        "erledigt": len([p for p in vor_start if p.kennung in erledigt]),
+        "gesamt": len(vor_start),
+        "start_moeglich": not offen,
+    }
+
+
+class MitwirkungEintrag(BaseModel):
+    notiz: str = ""
+
+
+@router.post("/mitwirkung/{kennung}")
+def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
+                     user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Einen Punkt als erledigt eintragen — mit Datum und Namen.
+
+    Das Datum ist nicht Zierrat: Aus ihm entsteht der Fristbeginn. Und der
+    Name unterscheidet beim spaeteren Streit eine Aussage von einem Nachweis.
+    """
+    from services import mitwirkung as kat
+
+    if kennung not in kat.NACH_KENNUNG:
+        raise HTTPException(404, f"Unbekannter Mitwirkungspunkt: {kennung}")
+
+    project = None
+    if user.lead_id:
+        project = (db.query(Project).filter(Project.lead_id == user.lead_id)
+                   .order_by(Project.created_at.desc()).first())
+    if not project:
+        raise HTTPException(404, "Kein Projekt gefunden")
+
+    stand = (db.query(MitwirkungStand)
+             .filter(MitwirkungStand.project_id == project.id,
+                     MitwirkungStand.kennung == kennung).first())
+    if not stand:
+        stand = MitwirkungStand(project_id=project.id, kennung=kennung)
+        db.add(stand)
+
+    # **Der erste Eingang zaehlt.** Ein zweiter Klick darf das Datum nicht
+    # nach hinten schieben — sonst haette der Fristbeginn zwei Antworten.
+    if not stand.erledigt_am:
+        stand.erledigt_am = datetime.utcnow()
+        stand.bestaetigt_von = user.email or ""
+    if body.notiz:
+        stand.notiz = body.notiz
+    db.commit()
+    return {"ok": True, "kennung": kennung,
+            "erledigt_am": stand.erledigt_am.isoformat()}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Zahlungen: Abo, Rechnungen, Zahlungsart (04.09.2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Drei Dinge an einer Stelle**, weil der Kunde sie als eines denkt: Was zahle
+# ich, womit zahle ich, und was habe ich bezahlt.
+#
+# **Die Zahlungsart aendert er bei Stripe, nicht bei uns.** Ein eigenes
+# Kartenformular hiesse, Kartendaten durch unseren Server zu fuehren. Stripes
+# Billing-Portal ist dafuer da; wir erzeugen eine Sitzung und leiten weiter.
+
+
+@router.get("/zahlungen")
+def get_zahlungen(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Abos, Rechnungen und der Zustand des Zahlungskontos."""
+    from services import abo_vertrag, zahlungsportal
+
+    lead = db.query(Lead).filter(Lead.id == user.lead_id).first() if user.lead_id else None
+    if not lead:
+        return {"abos": [], "rechnungen": [], "zahlungskonto": "kein_betrieb"}
+
+    abos = [{"produkt": v.produkt, "start_monat": v.start_monat,
+             "end_monat": v.end_monat, "notiz": v.notiz or ""}
+            for v in abo_vertrag.vertraege(db, lead.id)]
+
+    # Rechnungen ueber die Mailadresse — derselbe Weg wie `/api/invoices/my`.
+    # Zwei Wege zu denselben Zeilen laufen auseinander.
+    zeilen = db.execute(text(
+        "SELECT invoice_number, amount_gross, status, due_date, paid_at, created_at, "
+        "line_item FROM invoices WHERE customer_email = :mail "
+        "ORDER BY created_at DESC LIMIT 24"), {"mail": user.email}).fetchall()
+    rechnungen = [dict(r._mapping) for r in zeilen]
+
+    # **Der Zustand des Zahlungskontos, nicht ein Ja/Nein.** „Kein Konto" und
+    # „Stripe nicht eingerichtet" sind zwei verschiedene Lagen: die eine
+    # betrifft den Kunden, die andere uns.
+    try:
+        zustand = "vorhanden" if zahlungsportal.kundenkennung(db, lead) else "keins"
+    except zahlungsportal.StripeNichtEingerichtet:
+        zustand = "dienst_fehlt"
+
+    return {"abos": abos, "rechnungen": rechnungen, "zahlungskonto": zustand}
+
+
+class PortalZiel(BaseModel):
+    rueckkehr: str = ""
+
+
+@router.post("/zahlungen/verwalten")
+def zahlungen_verwalten(body: PortalZiel, user=Depends(get_current_user),
+                        db: Session = Depends(get_db)):
+    """Eine Sitzung im Billing-Portal — die Adresse gilt einmal und kurz."""
+    from services import zahlungsportal
+    from services.base_urls import public_base_url
+
+    lead = db.query(Lead).filter(Lead.id == user.lead_id).first() if user.lead_id else None
+    if not lead:
+        raise HTTPException(404, "Kein Betrieb gefunden")
+
+    # Die Rueckkehradresse kommt aus der Umgebung, nicht aus dem Rumpf: Ein
+    # mitgeschickter Wert waere eine offene Weiterleitung.
+    ziel = f"{public_base_url()}/app/portal"
+    try:
+        return {"url": zahlungsportal.portal_sitzung(db, lead, ziel)}
+    except zahlungsportal.KeinZahlungskonto as fehler:
+        raise HTTPException(409, str(fehler))
+    except zahlungsportal.StripeNichtEingerichtet:
+        raise HTTPException(503, "Der Zahlungsdienst ist gerade nicht erreichbar.")

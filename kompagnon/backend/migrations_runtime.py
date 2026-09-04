@@ -107,6 +107,28 @@ def run_migrations():
         # zur Punktzahl gefuehrt hat. Altbestand bleibt leer — ein Bericht ohne
         # Belege zeigt die Zeile schlicht nicht.
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_belege TEXT DEFAULT '{}'",
+        # Mitwirkungsstand je Projekt (L-159, 04.09.2026). Eine Zeile je Punkt,
+        # und nur wenn etwas passiert ist — ein Punkt ohne Zeile ist offen.
+        """CREATE TABLE IF NOT EXISTS mitwirkung_stand (
+            id SERIAL PRIMARY KEY,
+            project_id INTEGER NOT NULL REFERENCES projects(id),
+            kennung VARCHAR(8) NOT NULL,
+            erledigt_am TIMESTAMP,
+            bestaetigt_von VARCHAR(120) DEFAULT '',
+            notiz TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_mitwirkung_projekt ON mitwirkung_stand (project_id)",
+        # Zahlungskonto je Betrieb (04.09.2026). Ein Kunde hat ein
+        # Zahlungsmittel, nicht eines je Produkt — bisher stand die Kennung
+        # nur an der GEO-Analyse.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)",
+        "CREATE INDEX IF NOT EXISTS ix_leads_stripe_customer ON leads (stripe_customer_id)",
+        # Ein Punkt kann je Projekt nur einmal stehen — sonst haette ein
+        # doppelter Klick zwei Eingangsdaten, und der Fristbeginn haette zwei
+        # Antworten.
+        """CREATE UNIQUE INDEX IF NOT EXISTS ux_mitwirkung_projekt_punkt
+           ON mitwirkung_stand (project_id, kennung)""",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS category_scores TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",

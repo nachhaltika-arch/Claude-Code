@@ -150,6 +150,14 @@ class Lead(Base):
     display_name = Column(String(255), default="")
 
     customer_token = Column(String, unique=True, nullable=True)
+
+    # **Die Stripe-Kundenkennung gehoert an den Betrieb (04.09.2026).**
+    #
+    # Bis heute stand sie nur an der GEO-Analyse (`modelle_audit`), also am
+    # Erzeugnis eines einzelnen Kaufs. Fuer das Zahlungskonto im Kundenportal
+    # braucht es sie je **Betrieb**: Ein Kunde hat ein Zahlungsmittel, nicht
+    # eines je Produkt.
+    stripe_customer_id = Column(String(200), nullable=True, index=True)
     customer_token_created_at = Column(DateTime, nullable=True)
 
     # PageSpeed Insights (stored per-lead)
@@ -435,6 +443,34 @@ class AutomationLog(Base):
 
     # Relationships
     project = relationship("Project", back_populates="automations")
+
+
+class MitwirkungStand(Base):
+    """Was der Kunde je Mitwirkungspunkt schon geliefert hat (L-159).
+
+    **Eine Zeile je Projekt und Punkt, und nur wenn etwas passiert ist.** Ein
+    Punkt ohne Zeile ist offen; das erspart es, beim Projektanlegen elf leere
+    Zeilen zu schreiben, die nichts sagen.
+
+    **Warum das Datum und nicht nur ein Haken.** Aus diesen Daten wird der
+    Fristbeginn gerechnet — der Tag, an dem der letzte Fristbeginn-Punkt
+    eingegangen ist. Ein Haken ohne Datum koennte das nicht belegen, und genau
+    belegen muessen wir es: Die Bauzeitgarantie haengt daran.
+
+    `bestaetigt_von` haelt fest, wer es eingetragen hat — der Kunde selbst oder
+    der Innendienst. Beim Streit darueber, ab wann die Frist lief, ist das der
+    Unterschied zwischen einer Aussage und einem Nachweis.
+    """
+
+    __tablename__ = "mitwirkung_stand"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    kennung = Column(String(8), nullable=False)          # M1 … M11
+    erledigt_am = Column(DateTime, nullable=True)
+    bestaetigt_von = Column(String(120), default="")
+    notiz = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Customer(Base):

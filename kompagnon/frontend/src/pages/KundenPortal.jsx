@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GeoAddonCard from '../components/GeoAddonCard';
 import AssistentPanel from '../components/AssistentPanel';
+import Mitwirkung from '../components/Mitwirkung';
+import Zahlungen from '../components/Zahlungen';
 import { datumKurz, datumUndZeit } from '../utils/datum';
 
 // ── Phase card ────────────────────────────────────────────────
@@ -306,6 +308,16 @@ export default function KundenPortal() {
           } catch (_) {}
         }}
       />
+
+      {/* ── Was wir vom Kunden brauchen (L-159) ──
+          Ganz oben, weil daran der Baubeginn haengt: Solange ein
+          Fristbeginn-Punkt fehlt, laeuft die Bauzeit nicht. Weiter unten
+          waere es eine Nebensache — und die Mahnmail bliebe der einzige Weg,
+          auf dem der Betrieb davon erfaehrt. */}
+      <Mitwirkung token={token} />
+
+      {/* ── Abo, Rechnungen, Zahlungsart ── */}
+      <Zahlungen token={token} />
 
       {/* ── Inspirations-URLs ── */}
       <InspirationsSection project={project} token={token} onSaved={() => {}} />

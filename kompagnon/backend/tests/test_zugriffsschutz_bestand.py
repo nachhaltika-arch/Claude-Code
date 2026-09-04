@@ -10,7 +10,7 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | Bereich | Zahl | Grund |
 |---|---|---|
 | `academy` | 14 | Kundenweg. Jede Route filtert auf `current_user.id`; die Zertifikatsausstellung nimmt keine Nutzerkennung entgegen. |
-| `portal` | 7 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. |
+| `portal` | 11 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. |
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
@@ -55,7 +55,7 @@ import pytest
 #:   **offenen** Liste hierher gewandert: Der Endpunkt las den JWT aus dem
 #:   Rumpf und entschluesselte ihn von Hand; jetzt `get_current_user` wie
 #:   ueberall, dazu Rollen- und Eigentumspruefung. Staerker als vorher.
-ERWARTET = 58
+ERWARTET = 62
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {

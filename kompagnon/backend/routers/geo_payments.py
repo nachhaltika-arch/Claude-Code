@@ -209,6 +209,20 @@ def _handle_geo_subscription_start(session: dict):
 
         analysis.stripe_subscription_id = subscription_id
         analysis.stripe_customer_id = customer_id
+
+        # **Und dieselbe Kennung an den Betrieb** (04.09.2026). Am Erzeugnis
+        # eines einzelnen Kaufs nuetzt sie dem Zahlungskonto im Kundenportal
+        # nichts: Ein Kunde hat ein Zahlungsmittel, nicht eines je Produkt.
+        try:
+            from database import Lead
+            from services import zahlungsportal
+
+            betrieb = db.query(Lead).filter(Lead.id == analysis.lead_id).first()
+            if betrieb:
+                zahlungsportal.merke_kennung(db, betrieb, customer_id)
+        except Exception as fehler:      # noqa: BLE001
+            logger.warning("Zahlungskonto nicht am Betrieb gemerkt: %s: %s",
+                           type(fehler).__name__, fehler)
         analysis.subscription_status = "active"
         analysis.upsell_active = True
         analysis.subscription_started_at = datetime.utcnow()

@@ -43,22 +43,27 @@ h1 span{font-weight:300}
 .schritt{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:3px;
   padding:8px 6px;font-size:11px;line-height:1.3;color:var(--ink-2);min-height:62px}
 
-/* Punkte */
-.punkte{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
-.pgruppe{border-left:1px solid var(--line);padding:0 6px}
-.kreise{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:24px;align-items:center}
-.kreis{width:11px;height:11px;border-radius:50%;border:2px solid;flex:none}
+/* Punkte und Module teilen dasselbe Spaltenraster — nur so steht ein
+   Modulpunkt wirklich unter seinem Beruehrungspunkt. */
+.raster{display:grid;grid-template-columns:132px repeat(38,26px);align-items:end}
+.namen-zeile{display:contents}
+.pname{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;line-height:1.1;
+  color:var(--ink-2);height:118px;white-space:nowrap;overflow:hidden;justify-self:center;
+  padding-bottom:6px}
+.kreis-zeile{display:contents}
+.kreis{width:11px;height:11px;border-radius:50%;border:2px solid;justify-self:center;margin-bottom:8px}
+.summen{display:contents}
+.summe{grid-column:span var(--n);display:flex;justify-content:center;padding:6px 0 2px}
 .zahl{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
   border-radius:50%;color:#fff;font-family:var(--mono);font-size:13px;font-weight:500}
-.namen{font-size:10px;color:var(--ink-3);line-height:1.45}
-
-/* Module */
-.matrix{width:100%;border-collapse:collapse;font-size:11px}
-.matrix td,.matrix th{padding:3px 2px;text-align:center}
-.matrix th.z{text-align:left;width:120px;font-weight:400;color:var(--ink-2);font-size:11px;white-space:nowrap}
-.matrix tr:nth-child(even){background:rgba(0,0,0,.02)}
-.pkt{width:9px;height:9px;border-radius:50%;display:inline-block}
-.trenn{border-left:1px solid var(--line)}
+.rkopf{font-size:11px;color:var(--ink-2);align-self:center;padding-right:10px;white-space:nowrap}
+.mzeile{display:contents}
+.mzeile:hover .rkopf{font-weight:700;color:var(--ink)}
+.zelle{height:19px;display:flex;align-items:center;justify-content:center}
+.zelle.grenze{box-shadow:inset 1px 0 0 var(--line)}
+.pkt{width:9px;height:9px;border-radius:50%}
+.streifen{background:rgba(0,0,0,.025)}
+@media (prefers-color-scheme:dark){.streifen{background:rgba(255,255,255,.04)}}
 
 /* Dauer */
 .dauer{display:flex;height:26px;border-radius:3px;overflow:hidden}
@@ -121,16 +126,16 @@ h1 span{font-weight:300}
   <!-- BERÜHRUNGSPUNKTE -->
   <div class="band">
     <div class="marke">Berührungs&shy;punkte</div>
-    <div class="roll"><div class="spur">
-      <div class="punkte" id="punkte"></div>
+    <div class="roll"><div class="spur" style="min-width:1120px">
+      <div class="raster" id="punkte"></div>
     </div></div>
   </div>
 
   <!-- MODULE -->
   <div class="band">
-    <div class="marke">Module<br><span style="font-weight:400;text-transform:none;letter-spacing:0">statt Abteilungen — ein Betrieb, elf Module</span></div>
-    <div class="roll"><div class="spur">
-      <table class="matrix" id="matrix"></table>
+    <div class="marke">Module<br><span style="font-weight:400;text-transform:none;letter-spacing:0">wer ist bei welchem Punkt beteiligt</span></div>
+    <div class="roll"><div class="spur" style="min-width:1120px">
+      <div class="raster" id="matrix" style="align-items:center"></div>
     </div></div>
   </div>
 
@@ -196,41 +201,89 @@ h1 span{font-weight:300}
 
 <script>
 const FARBEN = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)'];
-const PUNKTE = [
-  ['HWK-Register','Domain-Import','Analyse-Widget','Landingpage','Kaltakquise-Mail'],
-  ['Widget-Formular','Bestätigungsmail','Bericht im Browser','PDF-Bericht','Erstgespräch','Angebot','Verkaufsseite'],
-  ['Paketseite','Stripe-Kasse','Zahlung','Auftragsbestätigung','Zugangsdaten-Mail','Erste Anmeldung','Kundenkonto'],
-  ['Mitwirkungsliste','Erinnerungsmail','Positionierungsgespräch','Briefing','Bauplan','Entwurfsfreigabe','Textfreigabe','Auslieferung','Domain &amp; Zertifikat','Go-live-Mail','Schlussrechnung'],
-  ['Änderung anfordern','Guthaben','Monatsbericht','Re-Audit','Support-Ticket','Monatsrechnung','KI-Sichtbarkeit','Akademie'],
-];
-document.getElementById('punkte').innerHTML = PUNKTE.map((g,i) => `
-  <div class="pgruppe">
-    <div class="kreise">${g.map(() => `<span class="kreis" style="border-color:${FARBEN[i]}"></span>`).join('')}</div>
-    <span class="zahl" style="background:${FARBEN[i]}">${g.length}</span>
-    <p class="namen">${g.join(' · ')}</p>
-  </div>`).join('');
 
-const MODULE = [
-  ['M1 Akquise',          [1,1,0,0,0]],
-  ['M2 Audit',            [1,1,0,0,1]],
-  ['M3 Vertrieb',         [1,1,1,0,0]],
-  ['M4 Angebot &amp; Zahlung',[0,1,1,1,1]],
-  ['M5 Projekt',          [0,0,1,1,0]],
-  ['M6 Website-Bau',      [0,0,0,1,1]],
-  ['M7 Kundenportal',     [0,0,1,1,1]],
-  ['M8 Akademie',         [0,0,0,0,1]],
-  ['M9 Betreuung',        [0,0,0,0,1]],
-  ['M10 Werbung',         [1,1,0,0,0]],
-  ['M0 Fundament',        [0,0,1,1,1]],
+// Je Berührungspunkt: Name und die beteiligten Module. Die Zuordnung folgt der
+// Modulkarte — welcher Router den Punkt bedient, nicht wer sich zuständig fühlt.
+const PUNKTE = [
+  [0,'HWK-Register',           ['M1','M3']],
+  [0,'Domain-Import',          ['M1','M3']],
+  [0,'Analyse-Widget',         ['M1','M2','M0']],
+  [0,'Landingpage',            ['M4','M10']],
+  [0,'Kaltakquise-Mail',       ['M1','M10','M0']],
+  [1,'Widget-Formular',        ['M1','M0']],
+  [1,'Bestätigungsmail',       ['M1','M10','M0']],
+  [1,'Bericht im Browser',     ['M2','M1']],
+  [1,'PDF-Bericht',            ['M2']],
+  [1,'Erstgespräch',           ['M3']],
+  [1,'Angebot',                ['M4','M3']],
+  [1,'Verkaufsseite',          ['M4']],
+  [2,'Paketseite',             ['M4']],
+  [2,'Stripe-Kasse',           ['M4']],
+  [2,'Zahlung',                ['M4','M0']],
+  [2,'Auftragsbestätigung',    ['M4','M5']],
+  [2,'Zugangsdaten-Mail',      ['M0','M7']],
+  [2,'Erste Anmeldung',        ['M0']],
+  [2,'Kundenkonto',            ['M7','M0']],
+  [3,'Mitwirkungsliste',       ['M7','M5']],
+  [3,'Erinnerungsmail',        ['M5','M0']],
+  [3,'Positionierungsgespräch',['M5']],
+  [3,'Briefing',               ['M5','M7']],
+  [3,'Bauplan',                ['M6','M5']],
+  [3,'Entwurfsfreigabe',       ['M6','M7']],
+  [3,'Textfreigabe',           ['M6','M7']],
+  [3,'Auslieferung',           ['M6']],
+  [3,'Domain & Zertifikat',    ['M6','M0']],
+  [3,'Go-live-Mail',           ['M5','M0']],
+  [3,'Schlussrechnung',        ['M4','M9']],
+  [4,'Änderung anfordern',     ['M7','M9']],
+  [4,'Guthaben',               ['M9','M7']],
+  [4,'Monatsbericht',          ['M9','M2']],
+  [4,'Re-Audit',               ['M2','M9']],
+  [4,'Support-Ticket',         ['M9','M7']],
+  [4,'Monatsrechnung',         ['M4','M9']],
+  [4,'KI-Sichtbarkeit',        ['M2','M4']],
+  [4,'Akademie',               ['M8','M7']],
 ];
-document.getElementById('matrix').innerHTML = MODULE.map(([name, spalten]) => `
-  <tr><th class="z">${name}</th>${spalten.map((an,i) =>
-    `<td class="${i ? 'trenn' : ''}">${an ? `<span class="pkt" style="background:${FARBEN[i]}"></span>` : ''}</td>`
-  ).join('')}</tr>`).join('') +
-  `<tr><th class="z" style="padding-top:8px;font-weight:700">beteiligt</th>${
-    [0,1,2,3,4].map(i => `<td class="${i ? 'trenn' : ''}" style="padding-top:8px">
-      <span class="zahl" style="background:${FARBEN[i]};width:22px;height:22px;font-size:11px">${
-        MODULE.filter(m => m[1][i]).length}</span></td>`).join('')}</tr>`;
+const MODULE = ['M1 Akquise','M2 Audit','M3 Vertrieb','M4 Angebot & Zahlung',
+                'M5 Projekt','M6 Website-Bau','M7 Kundenportal','M8 Akademie',
+                'M9 Betreuung','M10 Werbung','M0 Fundament'];
+
+const beginnt = i => i === 0 || PUNKTE[i][0] !== PUNKTE[i-1][0];
+
+// ── Ebene: Berührungspunkte ────────────────────────────────────────
+const punkte = document.getElementById('punkte');
+let html = '<span></span>';                       // leere Kopfzelle
+PUNKTE.forEach(([st, name], i) =>
+  html += `<span class="pname ${beginnt(i) ? 'grenze' : ''}" title="${name}">${name}</span>`);
+html += '<span></span>';
+PUNKTE.forEach(([st], i) =>
+  html += `<span class="kreis" style="border-color:${FARBEN[st]}"></span>`);
+html += '<span></span>';
+[0,1,2,3,4].forEach(st => {
+  const n = PUNKTE.filter(p => p[0] === st).length;
+  html += `<span class="summe" style="--n:${n}"><span class="zahl" style="background:${FARBEN[st]}">${n}</span></span>`;
+});
+punkte.innerHTML = html;
+
+// ── Ebene: Module je Berührungspunkt ───────────────────────────────
+const matrix = document.getElementById('matrix');
+let m = '';
+MODULE.forEach((name, r) => {
+  const kuerzel = name.split(' ')[0];
+  m += `<span class="rkopf ${r % 2 ? 'streifen' : ''}">${name}</span>`;
+  PUNKTE.forEach(([st, , mods], i) => {
+    const an = mods.includes(kuerzel);
+    m += `<span class="zelle ${r % 2 ? 'streifen' : ''} ${beginnt(i) ? 'grenze' : ''}">${
+      an ? `<span class="pkt" style="background:${FARBEN[st]}"></span>` : ''}</span>`;
+  });
+});
+m += '<span class="rkopf" style="font-weight:700;padding-top:8px">Beteiligungen</span>';
+[0,1,2,3,4].forEach(st => {
+  const n = PUNKTE.filter(p => p[0] === st).reduce((s, p) => s + p[2].length, 0);
+  const breite = PUNKTE.filter(p => p[0] === st).length;
+  m += `<span class="summe" style="--n:${breite}"><span class="zahl" style="background:${FARBEN[st]}">${n}</span></span>`;
+});
+matrix.innerHTML = m;
 
 // Erleben: x in Prozent, y von -1 (schlecht) bis +1 (gut)
 const ERLEBEN = [

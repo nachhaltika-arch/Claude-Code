@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
+import { euroAusCent } from '../utils/geld';
 
 /**
  * Abo, Rechnungen und Zahlungsart — an einer Stelle, weil der Kunde sie als
@@ -48,8 +49,34 @@ export default function Zahlungen({ token }) {
     } finally { setLaeuft(false); }
   };
 
+  // **Der Einzug wird vom Kunden eingerichtet, nicht vom Innendienst**
+  // (Entscheidung David, 04.09.2026: das Pflege-Abo laeuft ueber Stripe).
+  // Eine Einzugsermaechtigung ist seine Zustimmung; sie laesst sich nicht
+  // fuer ihn setzen. Der Vertrag steht schon — hier wird nur der Weg
+  // geoeffnet, auf dem Stripe die Erlaubnis einholt.
+  const einzugEinrichten = async () => {
+    setLaeuft(true);
+    setFehler('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/portal/zahlungen/einzug`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || 'Der Einzug ließ sich nicht einrichten.');
+      window.location.href = d.kaufweg_url;
+    } catch (e) {
+      setFehler(e.message);
+    } finally { setLaeuft(false); }
+  };
+
   if (!daten) return null;
   const { abos = [], rechnungen = [], zahlungskonto } = daten;
+  // Ein laufendes Abo auf Stripe, dessen Einzug noch fehlt — der einzige
+  // Fall, in dem der Kunde hier etwas tun muss.
+  const offenerEinzug = abos.find(
+    (a) => a.laeuft && a.abrechnung === 'stripe' && !a.einzug_eingerichtet);
+  const nurRechnung = abos.some((a) => a.laeuft && a.abrechnung === 'rechnung');
   if (!abos.length && !rechnungen.length && zahlungskonto !== 'vorhanden') return null;
 
   return (
@@ -64,7 +91,9 @@ export default function Zahlungen({ token }) {
               <div key={i} style={S.zeile}>
                 <span style={S.stark}>{PRODUKT[a.produkt] || a.produkt}</span>
                 <span style={S.leise}>
-                  seit {a.start_monat}{a.end_monat ? ` · endet ${a.end_monat}` : ''}
+                  {euroAusCent(a.brutto_cent)} je Monat · seit {a.start_monat}
+                  {a.end_monat ? ` · endet ${a.end_monat}` : ''}
+                  {a.abrechnung === 'rechnung' ? ' · per Rechnung' : ''}
                 </span>
               </div>
             ))}
@@ -83,11 +112,22 @@ export default function Zahlungen({ token }) {
             </button>
           </>
         ) : (
-          <p style={S.leise}>
-            {zahlungskonto === 'dienst_fehlt'
-              ? 'Die Zahlungsverwaltung ist gerade nicht erreichbar. Schreiben Sie uns, wir kümmern uns.'
-              : 'Für Sie ist noch keine Zahlungsart hinterlegt — das entsteht mit der ersten Buchung.'}
-          </p>
+          <>
+            <p style={S.leise}>
+              {zahlungskonto === 'dienst_fehlt'
+                ? 'Die Zahlungsverwaltung ist gerade nicht erreichbar. Schreiben Sie uns, wir kümmern uns.'
+                : offenerEinzug
+                  ? `Für ${PRODUKT[offenerEinzug.produkt] || offenerEinzug.produkt} ist der Einzug noch nicht eingerichtet. Danach wird ${euroAusCent(offenerEinzug.brutto_cent)} monatlich abgebucht — Sie können jederzeit kündigen.`
+                  : nurRechnung
+                    ? 'Ihr Abo wird per Rechnung abgerechnet — Sie brauchen hier nichts zu hinterlegen.'
+                    : 'Für Sie ist noch keine Zahlungsart hinterlegt — das entsteht mit der ersten Buchung.'}
+            </p>
+            {offenerEinzug && zahlungskonto !== 'dienst_fehlt' && (
+              <button style={S.knopf} onClick={einzugEinrichten} disabled={laeuft}>
+                {laeuft ? 'Wird geöffnet …' : 'Bankeinzug einrichten'}
+              </button>
+            )}
+          </>
         )}
         {fehler && <p style={S.fehler}>{fehler}</p>}
       </div>

@@ -447,8 +447,17 @@ def get_zahlungen(user=Depends(get_current_user), db: Session = Depends(get_db))
     if not lead:
         return {"abos": [], "rechnungen": [], "zahlungskonto": "kein_betrieb"}
 
+    from services import abo_stunden
+
+    # **Der Kunde sieht, was er zahlt und wie es eingezogen wird.** Bis zum
+    # 04.09.2026 stand hier nur Produkt und Zeitraum — ein Abo ohne Betrag
+    # ist genau die Leerstelle aus L-160.
     abos = [{"produkt": v.produkt, "start_monat": v.start_monat,
-             "end_monat": v.end_monat, "notiz": v.notiz or ""}
+             "end_monat": v.end_monat, "notiz": v.notiz or "",
+             "abrechnung": v.abrechnung,
+             "einzug_eingerichtet": bool(v.stripe_subscription_id),
+             "brutto_cent": abo_stunden.preis_brutto_cent(v.produkt),
+             "laeuft": v.end_monat is None}
             for v in abo_vertrag.vertraege(db, lead.id)]
 
     # Rechnungen ueber die Mailadresse — derselbe Weg wie `/api/invoices/my`.
@@ -494,6 +503,56 @@ def zahlungen_verwalten(body: PortalZiel, user=Depends(get_current_user),
         raise HTTPException(409, str(fehler))
     except zahlungsportal.StripeNichtEingerichtet:
         raise HTTPException(503, "Der Zahlungsdienst ist gerade nicht erreichbar.")
+
+
+@router.post("/zahlungen/einzug")
+def zahlungen_einzug(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Den Einzug für das laufende Pflege-Abo einrichten (Entscheidung 04.09.2026).
+
+    **Warum das der Kunde selbst tut.** Eine Einzugsermächtigung ist seine
+    Zustimmung; sie lässt sich nicht im Innendienst setzen. Der Vertrag steht
+    schon — hier wird nur der Weg eröffnet, auf dem Stripe die Erlaubnis
+    einholt und das Abonnement startet.
+
+    **Ein Vertrag auf `rechnung` bekommt hier nichts.** Er ist unter anderen
+    Bedingungen geschlossen worden, und der Aufstellungslauf berechnet ihn.
+    Ihm hier stillschweigend eine Abbuchung anzubieten hieße, die Bedingung
+    zu wechseln, ohne dass jemand zustimmt.
+    """
+    from services import abo_stripe, abo_vertrag, zahlungsportal
+    from services.base_urls import public_base_url
+
+    lead = db.query(Lead).filter(Lead.id == user.lead_id).first() if user.lead_id else None
+    if not lead:
+        raise HTTPException(404, "Kein Betrieb gefunden")
+
+    vertrag = abo_vertrag.laufender(db, lead.id)
+    if vertrag is None:
+        raise HTTPException(409, "Für Ihren Betrieb läuft kein Pflege-Abo.")
+    if vertrag.abrechnung != "stripe":
+        raise HTTPException(
+            409, "Dieses Abo wird per Rechnung abgerechnet. Wenn Sie auf "
+                 "Lastschrift wechseln möchten, sagen Sie uns kurz Bescheid.")
+    if vertrag.stripe_subscription_id:
+        raise HTTPException(409, "Der Einzug ist für dieses Abo bereits eingerichtet.")
+
+    try:
+        kennung = zahlungsportal.kundenkennung(db, lead) or ""
+    except zahlungsportal.StripeNichtEingerichtet:
+        raise HTTPException(503, "Der Zahlungsdienst ist gerade nicht erreichbar.")
+
+    ziel = f"{public_base_url()}/app/portal"
+    try:
+        return abo_stripe.kaufweg(
+            vertrag.produkt, lead_id=lead.id, email=user.email or "",
+            betrieb=lead.company_name or "",
+            erfolg_url=f"{ziel}?einzug=eingerichtet",
+            abbruch_url=f"{ziel}?einzug=abgebrochen",
+            kennung_kunde=kennung)
+    except abo_stripe.StripeNichtEingerichtet:
+        raise HTTPException(503, "Der Zahlungsdienst ist gerade nicht erreichbar.")
+    except abo_stripe.UnbekanntesAbo as fehler:
+        raise HTTPException(500, str(fehler))
 
 
 # ══════════════════════════════════════════════════════════════════════

@@ -66,6 +66,36 @@ PREIS_ABO_PRO_NETTO_CENT = 14900
 #: das Buch war es ausdrücklich die Ausnahme (BUCH-12).
 STEUERSATZ_ABO = 19.0
 
+
+def preis_netto_cent(produkt: str) -> int:
+    """Der Monatspreis eines Pflege-Abos, netto und in Cent.
+
+    Unbekannte Kennungen bekommen den Basic-Preis — dieselbe Regel wie in
+    `abo_abrechnung._preis_und_kontingent`, aus dem diese Funktion stammt.
+    Sie ist bewusst nicht streng: Der Aufruf steht in einer Aufstellung, und
+    eine Ausnahme dort brächte den ganzen Monatslauf zu Fall.
+    """
+    if produkt == "ABO-PRO":
+        return PREIS_ABO_PRO_NETTO_CENT
+    return PREIS_ABO_BAS_NETTO_CENT
+
+
+def preis_brutto_cent(produkt: str) -> int:
+    """Was tatsächlich abgebucht bzw. berechnet wird.
+
+    **Warum das hier steht und nicht an zwei Stellen gerechnet wird
+    (04.09.2026).** Die Umrechnung netto → brutto stand bis dahin inmitten
+    von `abo_abrechnung.offene_posten`. Mit der Entscheidung, das Pflege-Abo
+    über Stripe laufen zu lassen, braucht sie ein zweiter Aufrufer — und ein
+    Abonnement, das einen anderen Betrag abbucht als die Aufstellung meldet,
+    fällt niemandem auf, bis ein Kunde nachrechnet.
+
+    Gerundet wird auf den Steuerbetrag, nicht auf die Summe: So steht in
+    Rechnung und Abbuchung dieselbe Zerlegung.
+    """
+    netto = preis_netto_cent(produkt)
+    return netto + int(round(netto * STEUERSATZ_ABO / 100))
+
 _MONAT = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 

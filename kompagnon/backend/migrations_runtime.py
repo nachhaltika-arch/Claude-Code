@@ -1756,6 +1756,41 @@ def run_migrations():
               SET gekoppeltes_abo = 'ABO-BAS', abo_mindestlaufzeit = 12
             WHERE slug = 'websprint_start'
               AND gekoppeltes_abo IS NULL""",
+        # ── 04.09.2026: Das Pflege-Abo laeuft ueber Stripe (Entscheidung David) ──
+        #
+        # Am 01.09. war entschieden, monatlich **per Rechnung** abzurechnen;
+        # am 04.09. ist entschieden, **Stripe** einzusetzen. Beides war zu
+        # seiner Zeit richtig — die Umstellung darf aber nicht rueckwirkend
+        # gelten: Wer unter „Rechnung" abgeschlossen hat, hat keine
+        # Einzugsermaechtigung erteilt.
+        #
+        # **Der Vorgabewert ist `rechnung`, und das ist der ganze Trick.**
+        # `ADD COLUMN ... DEFAULT` fuellt **bestehende** Zeilen mit genau
+        # diesem Wert — jeder Vertrag, den es vor dieser Migration gab,
+        # steht damit auf Rechnung, ohne dass ein UPDATE ihn suchen muesste.
+        #
+        # Der erste Entwurf machte es umgekehrt: Vorgabe `stripe`, danach ein
+        # UPDATE mit `created_at < TIMESTAMP '2026-09-04'`. Beim Nachsehen an
+        # der lokalen Datenbank stand ein Vertrag von **11:25 desselben
+        # Tages** auf `stripe` — geschlossen Stunden vor der Entscheidung,
+        # und stillschweigend auf Abbuchung gestellt. Ein Datum ist hier der
+        # falsche Massstab; „was es vorher schon gab" ist der richtige, und
+        # den kennt die Spalte selbst.
+        #
+        # Die Vorgabe bleibt auch danach `rechnung`: Ein INSERT, der die
+        # Spalte vergisst, ist ein Vertrag, den niemand abbuchen wollte.
+        # Wer `stripe` will, sagt es — `abo_vertrag.anlegen` tut das.
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS abrechnung VARCHAR(10) NOT NULL DEFAULT 'rechnung'",
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(200) DEFAULT ''",
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS stripe_price_id VARCHAR(200) DEFAULT ''",
+        # `ck_abo_abrechnung` haelt fest, dass es nur diese beiden Werte
+        # gibt — ein Tippfehler waere sonst ein Vertrag, den weder Stripe
+        # noch die Aufstellung einzieht.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_abrechnung
+                   CHECK (abrechnung IN ('rechnung', 'stripe'));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

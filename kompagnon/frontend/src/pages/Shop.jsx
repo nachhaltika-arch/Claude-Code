@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API_BASE_URL from '../config';
+import { euro } from '../utils/geld';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import KaufFormular from '../components/KaufFormular';
 
@@ -31,11 +32,6 @@ import KaufFormular from '../components/KaufFormular';
 // Tokensystem sticht den Prompt.
 const DARK = 'var(--kc-dark)';
 const MID = 'var(--kc-mid)';
-
-const euro = (wert) =>
-  Number(wert || 0).toLocaleString('de-DE', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
-  });
 
 export default function Shop() {
   const [produkte, setProdukte] = useState(null);

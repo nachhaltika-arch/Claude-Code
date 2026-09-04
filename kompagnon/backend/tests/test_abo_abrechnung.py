@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Die monatliche Abrechnung der Pflege-Abos (L-101, letzter Teil).
 
-**Die Entscheidung: per Rechnung, nicht per Abbuchung** (David, 01.09.2026).
-Damit ist der Eintrag beantwortet — Stripe kann Abonnements, wir nutzen sie
-nicht.
+**Am 04.09.2026 abgeloest: das Pflege-Abo laeuft ueber Stripe** (David).
+Dieser Lauf bleibt fuer die Vertraege, die auf Rechnung stehen — und fuer
+die, bei denen der Einzug noch nicht eingerichtet ist. Was Stripe einzieht,
+faellt heraus; `tests/test_abo_stripe.py` haelt beide Richtungen fest.
 
 **Der Lauf stellt keine Rechnung aus**, und die Tests halten das fest. Eine
 Rechnungsnummer ist fortlaufend und lässt sich nicht still zurücknehmen;

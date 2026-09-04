@@ -66,6 +66,21 @@ def vertraege(db: Session, lead_id: int) -> list:
               .all())
 
 
+def laufender(db: Session, lead_id: int):
+    """Der eine Vertrag ohne Ende — oder `None`.
+
+    Regel 3 dieses Moduls sagt: höchstens einer. Sollten wider Erwarten zwei
+    dastehen, gewinnt der zuletzt begonnene; das ist keine Reparatur, sondern
+    eine berechenbare Antwort, damit der Kaufweg nicht willkürlich einen von
+    beiden nimmt.
+    """
+    return (db.query(AboVertrag)
+              .filter(AboVertrag.lead_id == lead_id)
+              .filter(AboVertrag.end_monat.is_(None))
+              .order_by(AboVertrag.start_monat.desc(), AboVertrag.id.desc())
+              .first())
+
+
 def gilt_im_monat(db: Session, *, lead_id: int, monat: str):
     """Der Vertrag, der in diesem Monat galt — oder `None`.
 
@@ -102,10 +117,19 @@ def _ueberlappt(db: Session, *, lead_id: int, start: str,
     return False
 
 
+ABRECHNUNGSARTEN = ("stripe", "rechnung")
+
+
 def anlegen(db: Session, *, lead_id: int, produkt: str, start_monat: str,
             end_monat: Optional[str] = None, notiz: str = "",
-            wer: str = "") -> AboVertrag:
-    """Einen Vertrag eintragen. Wirft `AboZeitFehler` bei Überlappung."""
+            wer: str = "", abrechnung: str = "stripe") -> AboVertrag:
+    """Einen Vertrag eintragen. Wirft `AboZeitFehler` bei Überlappung.
+
+    `abrechnung` sagt, wie eingezogen wird — `stripe` (Vorgabe seit der
+    Entscheidung vom 04.09.2026) oder `rechnung`. Beides bleibt möglich: Ein
+    Betrieb, der keine Einzugsermächtigung erteilen will, bekommt weiter eine
+    Rechnung, und `abo_abrechnung` stellt genau diese auf.
+    """
     produkt = pruefe_produkt(produkt)
     start = pruefe_monat(start_monat)
     ende = pruefe_monat(end_monat) if end_monat else None
@@ -123,9 +147,15 @@ def anlegen(db: Session, *, lead_id: int, produkt: str, start_monat: str,
             "laufenden zuerst — ein Wechsel schreibt eine neue Zeile, damit "
             "vergangene Monate weiter mit ihrem eigenen Kontingent rechnen.")
 
+    art = (abrechnung or "stripe").strip().lower()
+    if art not in ABRECHNUNGSARTEN:
+        raise AboZeitFehler(
+            f"„{abrechnung}“ ist keine Abrechnungsart — möglich sind "
+            f"{' und '.join(ABRECHNUNGSARTEN)}.")
+
     vertrag = AboVertrag(lead_id=lead_id, produkt=produkt, start_monat=start,
                          end_monat=ende, notiz=(notiz or "")[:255],
-                         created_by=(wer or "")[:120],
+                         created_by=(wer or "")[:120], abrechnung=art,
                          created_at=datetime.utcnow())
     db.add(vertrag)
     db.commit()

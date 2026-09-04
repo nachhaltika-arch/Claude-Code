@@ -18,11 +18,22 @@
 >   bestimmbar, was schon verbraucht war.
 > - Die mit ⚠️ markierten Preisannahmen sind weiterhin offen — in Stripe steht
 >   heute kein Abonnement-Preis, mit dem sich abgleichen ließe.
-> - **Am 01.09.2026 entschieden: die Abrechnung läuft per Rechnung**, nicht
->   über Stripe-Abonnements und nicht per SEPA-Lastschrift. Damit entfällt
->   die Einzugsermächtigung — und die Zahlungsbedingung Z4 oben ist
->   überholt; sie steht durchgestrichen da statt gelöscht, weil ein
->   Angebot mit Z4 draußen sein könnte.
+> - ~~**Am 01.09.2026 entschieden: die Abrechnung läuft per Rechnung**~~ —
+>   **am 04.09.2026 anders entschieden (David): das Pflege-Abo läuft über
+>   Stripe.** Damit gilt **Z4 wieder** — monatlich im Voraus per
+>   SEPA-Lastschrift. Der Satz vom 01.09. bleibt durchgestrichen stehen statt
+>   gelöscht: Zwischen beiden Tagen sind Verträge möglich, die unter
+>   „Rechnung" geschlossen wurden, und die behalten ihre Bedingung.
+> - **Die Umstellung gilt nicht rückwirkend, und das ist im Code
+>   festgeschrieben.** `AboVertrag.abrechnung` hält je Vertrag fest, wie
+>   eingezogen wird; die Migration hat den Bestand ausdrücklich auf
+>   `rechnung` gesetzt. Wer wechselt, wechselt mit Zustimmung — eine
+>   Einzugsermächtigung lässt sich nicht im Innendienst setzen.
+> - **Was der Kunde abgebucht bekommt, ist der Bruttobetrag:** 94,01 € für
+>   BAS, 177,31 € für PRO. Das folgt der Entscheidung vom 21.08.2026 (L-61,
+>   Endpreise), steht aber neben einem Datenblatt, das „79 €" und „149 €"
+>   netto nennt. **Wo der Preis dem Kunden gezeigt wird, gehört der
+>   Bruttobetrag hin** — sonst liest er 149 und zahlt 177,31.
 > - **Gebaut ist der Aufstellungslauf, nicht der Rechnungsdruck**
 >   (`services/abo_abrechnung.py`, monatlich am Ersten um 05:30): Er sagt,
 >   wer was schuldet; die Rechnungsnummer vergibt ein Mensch, weil sie
@@ -43,7 +54,7 @@
 | Artikelnummer | ABO-BAS |
 | Preis | **79 € netto / Monat** ⚠️ Annahme, mit Stripe abgleichen |
 | Umsatzsteuer | 19 % |
-| Zahlungsbedingung | ~~**Z4** (monatlich im Voraus, SEPA)~~ → **monatlich per Rechnung** (Entscheidung David, 01.09.2026) |
+| Zahlungsbedingung | **Z4** (monatlich im Voraus, SEPA-Lastschrift über Stripe) — Entscheidung David, 04.09.2026. Bestandsverträge vom 01.-04.09. bleiben auf Rechnung. |
 | Laufzeit | 12 Monate, danach monatlich kündbar mit 1 Monat Frist |
 | Freigabestatus | 🟠 Angebotszeitpunkt und Abwicklung unklar |
 

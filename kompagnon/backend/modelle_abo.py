@@ -60,9 +60,45 @@ class AboVertrag(Base):
     #: ohne Sonderfall.
     end_monat = Column(String(7), nullable=True)
 
+    #: Wie dieser Vertrag eingezogen wird — `rechnung` oder `stripe`.
+    #:
+    #: **Warum das am Vertrag steht und nicht am Betrieb (04.09.2026).** Am
+    #: 01.09. war entschieden, monatlich per Rechnung abzurechnen; am 04.09.
+    #: hat David entschieden, das Pflege-Abo über Stripe laufen zu lassen.
+    #: Beides ist richtig gewesen — aber nicht rückwirkend: Wer einen Vertrag
+    #: unter „Rechnung" abgeschlossen hat, hat keine Einzugsermächtigung
+    #: erteilt. Eine laufende Zeile auf `stripe` umzustellen hieße, Geld von
+    #: einem Konto zu holen, für das niemand zugestimmt hat.
+    #:
+    #: **Der Vorgabewert ist `rechnung`, nicht `stripe`** — und zwar hier
+    #: wie in der Datenbank. Eine Zeile, bei der niemand die Abrechnungsart
+    #: genannt hat, ist ein Vertrag, den niemand abbuchen wollte. Wer
+    #: `stripe` will, sagt es; `abo_vertrag.anlegen` tut das für alles Neue.
+    #: Der Wechsel eines bestehenden Vertrags ist ein Vorgang mit Zustimmung,
+    #: kein Feld-Update.
+    abrechnung = Column(String(10), nullable=False, default="rechnung")
+
+    #: Das Stripe-Abonnement, sobald der Kunde den Kaufweg abgeschlossen hat.
+    #: Leer heißt: Vertrag steht, Einzug noch nicht eingerichtet.
+    stripe_subscription_id = Column(String(200), default="")
+    #: Der Stripe-Preis, gegen den das Abonnement läuft — zum Nachvollziehen,
+    #: welcher Betrag zum Zeitpunkt des Abschlusses galt.
+    stripe_price_id = Column(String(200), default="")
+
     notiz = Column(String(255), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String(120), default="")
+
+    @property
+    def laeuft_ueber_stripe(self) -> bool:
+        """Zieht Stripe dieses Abo ein — und ist es dort auch eingerichtet?
+
+        **Beide Bedingungen, und das ist der Punkt.** Ein Vertrag auf
+        `stripe` ohne Abonnement wird von niemandem eingezogen: Stripe kennt
+        ihn nicht, und der Aufstellungslauf hielte ihn für erledigt. Genau
+        dort entsteht der Monat, den keiner berechnet.
+        """
+        return self.abrechnung == "stripe" and bool(self.stripe_subscription_id)
 
 
 class InhaltsAnfrage(Base):

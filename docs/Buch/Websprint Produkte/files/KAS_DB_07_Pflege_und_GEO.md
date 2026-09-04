@@ -14,6 +14,18 @@
 | Laufzeit | 12 Monate, danach monatlich kündbar mit 1 Monat Frist |
 | Freigabestatus | 🟠 Angebotszeitpunkt und Abwicklung unklar |
 
+> **Die Abwicklung ist am 04.09.2026 entschieden (David): über Stripe.**
+> Damit gilt Z4 oben — monatlich im Voraus per SEPA-Lastschrift. Gebaut ist
+> der Weg in `services/abo_stripe.py`: Preis je Tarif, Kaufweg als
+> Abonnement, Kündigung zum Periodenende. **Nicht rückwirkend** — wer
+> zwischen dem 01. und dem 04.09. unter „Rechnung" abgeschlossen hat, behält
+> die Bedingung; `AboVertrag.abrechnung` hält es je Vertrag fest.
+>
+> **Offen bleibt der Preis selbst.** Oben steht „⚠️ Annahme". Solange das so
+> ist, bucht Stripe einen angenommenen Betrag ab — und eine Abbuchung lässt
+> sich schlechter zurücknehmen als eine Aufstellung. Vor der ersten
+> Einrichtung gehört das bestätigt.
+
 ## Leistungsverzeichnis
 | Pos. | Leistung | Frequenz |
 |---|---|---|

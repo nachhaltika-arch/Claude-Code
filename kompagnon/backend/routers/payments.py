@@ -250,6 +250,49 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, str(e))
 
 
+def _abo_einzug_eingerichtet(session, db: Session):
+    """Das fertige Abonnement am Vertrag vermerken.
+
+    **Warum der Vertrag gesucht und nicht angelegt wird.** Der Vertrag
+    besteht, bevor der Kunde den Einzug einrichtet — er ist die Zusage, das
+    Abonnement nur der Weg, das Geld zu holen. Findet sich keiner, ist etwas
+    anderes schiefgegangen als eine fehlende Zeile; dann gehoert es ins
+    Protokoll und nicht in eine erfundene Zeile.
+
+    **Die Kundenkennung wird mitgenommen.** Ohne sie zeigt das
+    Zahlungsportal im Kundenkonto spaeter nichts — dieselbe Luecke wie in
+    L-162, nur andersherum.
+    """
+    from services import abo_vertrag, zahlungsportal
+
+    merkmale = session.get("metadata") or {}
+    lead_id = int(merkmale.get("lead_id") or 0)
+    abo = (merkmale.get("abo_produkt") or "").upper()
+    subscription = session.get("subscription") or ""
+
+    if not lead_id or not subscription:
+        logger.error("Abo-Einzug ohne lead_id oder subscription: %s", merkmale)
+        return
+
+    vertrag = abo_vertrag.laufender(db, lead_id)
+    if vertrag is None or vertrag.produkt != abo:
+        logger.error("Abo-Einzug fuer Betrieb %s, aber kein passender "
+                     "laufender Vertrag (%s)", lead_id, abo)
+        return
+
+    vertrag.stripe_subscription_id = str(subscription)[:200]
+
+    kennung = session.get("customer") or ""
+    if kennung:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if lead is not None:
+            zahlungsportal.merke_kennung(db, lead, str(kennung))
+
+    db.commit()
+    logger.info("Abo-Einzug eingerichtet: Betrieb %s, %s, %s",
+                lead_id, abo, subscription)
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
@@ -282,6 +325,24 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         from services.stripe_ereignis import gegenstand
 
         session_obj = gegenstand(event)
+
+        # **Ein Pflege-Abo ist kein neues Projekt** (04.09.2026).
+        # `_handle_successful_payment` legt Lead, Konto und Projekt an und
+        # verschickt die Willkommensmail — richtig fuer einen Websprint,
+        # falsch fuer einen Kunden, der gerade nur seinen Einzug einrichtet.
+        # Er bekaeme ein zweites Projekt und eine Begruessung fuer etwas, das
+        # er seit Monaten hat.
+        merkmale = session_obj.get("metadata") or {}
+        if merkmale.get("abo_produkt"):
+            try:
+                _abo_einzug_eingerichtet(session_obj, db)
+            except Exception as e:  # noqa: BLE001
+                logger.error("Stripe: Abo-Einzug nicht vermerkt fuer Sitzung "
+                             "%s: %s", session_obj.get("id", "?"), e,
+                             exc_info=True)
+                return {"status": "error_logged"}
+            return {"status": "ok"}
+
         try:
             _handle_successful_payment(session_obj, db)
         except Exception as e:

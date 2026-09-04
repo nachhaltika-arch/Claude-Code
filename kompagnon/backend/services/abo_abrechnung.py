@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 """Was diesen Monat zu berechnen ist — die Pflege-Abos (L-101).
 
-**Die Entscheidung: per Rechnung, nicht per Abbuchung** (David, 01.09.2026).
-Damit ist der letzte offene Teil von L-101 beantwortet. Stripe kann
-Abonnements; das System nutzt sie nicht, und es muss auch keine
-Einzugsermaechtigung verwalten.
+**Am 04.09.2026 hat sich die Grundlage dieses Moduls geaendert.** Bis dahin
+galt die Entscheidung vom 01.09.: per Rechnung, nicht per Abbuchung. Seither
+gilt: **das Pflege-Abo laeuft ueber Stripe** (Entscheidung David). Der
+Widerspruch zum Datenblatt, der hier stand, ist damit aufgeloest — Z4 gilt
+wieder.
 
-**Was das Produktdatenblatt sagt und was David entschieden hat, geht
-auseinander — und das gehoert benannt.** `docs/produkte/abo-und-geo.md`
-fuehrt unter Zahlungsbedingung **Z4: monatlich im Voraus, SEPA**. Entschieden
-ist Rechnung. Der Code folgt der Entscheidung; das Datenblatt traegt einen
-Vermerk. Zwei Papiere, die verschiedene Zahlungswege behaupten, sind im
-Streitfall schlimmer als eines mit einem sichtbaren Widerspruch.
+**Dieser Lauf bleibt trotzdem, und zwar fuer zwei Faelle.** Erstens fuer
+Vertraege, die unter „Rechnung" geschlossen wurden: Sie behalten ihre
+Bedingung, weil niemand rueckwirkend eine Einzugsermaechtigung erteilt hat.
+Zweitens fuer Vertraege auf Stripe, bei denen der Kunde den Einzug **noch
+nicht eingerichtet** hat — sie sind faellig, und niemand zieht sie ein.
+
+**Was Stripe einzieht, faellt hier heraus.** `offene_posten` ueberspringt
+Vertraege mit laufendem Abonnement. Ohne das stuende derselbe Monat zweimal
+zur Zahlung, und doppelt berechnet faellt beim Kunden auf, nicht bei uns.
 
 **Dieser Lauf stellt keine Rechnung aus.** Er sagt, **was** zu berechnen ist —
 Betrieb, Abo, Monat, Betrag — und meldet es. Eine Rechnungsnummer ist
@@ -82,8 +86,21 @@ def offene_posten(db, monat: Optional[str] = None) -> list:
         if gueltig is None or gueltig.id != vertrag.id:
             continue
 
+        # **Was Stripe einzieht, gehoert nicht in diese Aufstellung**
+        # (04.09.2026). Sonst stuende derselbe Monat zweimal zur Zahlung: als
+        # Abbuchung und als Rechnung, die ein Mensch aus dieser Liste
+        # schreibt. Doppelt berechnet faellt beim Kunden auf, nicht bei uns.
+        #
+        # Geprueft wird `laeuft_ueber_stripe`, also **beides** — Art und
+        # vorhandenes Abonnement. Ein Vertrag auf `stripe`, bei dem der Kunde
+        # den Einzug noch nicht eingerichtet hat, bleibt hier stehen; er ist
+        # faellig, und niemand zieht ihn ein.
+        if getattr(gueltig, "laeuft_ueber_stripe", False):
+            continue
+
         netto, kontingent = _preis_und_kontingent(gueltig.produkt)
-        steuer = int(round(netto * abo_stunden.STEUERSATZ_ABO / 100))
+        # Eine Quelle fuer den Bruttobetrag, seit auch Stripe ihn braucht.
+        steuer = abo_stunden.preis_brutto_cent(gueltig.produkt) - netto
         stand = abo_stunden.monatsstand(db, lead_id=vertrag.lead_id, monat=monat)
         betrieb = db.query(Lead).filter(Lead.id == vertrag.lead_id).first()
 

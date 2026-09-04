@@ -73,6 +73,9 @@ import RetainerDashboard from './pages/RetainerDashboard';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
+import WasWirBrauchen from './pages/customer/WasWirBrauchen';
+import Inhaltsaenderungen from './pages/customer/Inhaltsaenderungen';
+import MeinBericht from './pages/customer/MeinBericht';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -389,6 +392,13 @@ function App() {
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
             <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />
             <Route path="rechnungen" element={<PrivateRoute><MeineRechnungen /></PrivateRoute>} />
+            {/* Die drei Arbeitsflaechen des Kunden, seit dem 04.09.2026 je
+                mit eigener Adresse (L-161). Sie standen zuvor alle drei
+                untereinander auf der Uebersicht — jede fuer sich richtig,
+                zusammen ein Stapel von 3.156 px. */}
+            <Route path="was-wir-brauchen" element={<PrivateRoute><WasWirBrauchen /></PrivateRoute>} />
+            <Route path="inhaltsaenderungen" element={<PrivateRoute><Inhaltsaenderungen /></PrivateRoute>} />
+            <Route path="mein-bericht" element={<PrivateRoute><MeinBericht /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

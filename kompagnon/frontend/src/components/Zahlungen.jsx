@@ -14,7 +14,22 @@ import { euroAusCent } from '../utils/geld';
  * **Kein toter Knopf.** Ein Betrieb ohne Kauf hat kein Zahlungskonto; dann
  * steht dort ein Satz statt einer Schaltfläche, die ins Leere führt.
  */
-export default function Zahlungen({ token }) {
+/*
+ * `ohneTitel` laesst die eigene Ueberschrift weg (L-161, 04.09.2026).
+ *
+ * Seit dem Umbau steht dieser Block **allein** auf einer Seite statt als
+ * einer von dreien auf der Uebersicht. Dann traegt die Seite den Titel, und
+ * dieser hier waere der zweite — ein Screenreader laese
+ * „Inhaltsaenderungen. Inhaltsaenderungen".
+ *
+ * **Warum die Seite ihn traegt und nicht dieser Block.** Der erste Entwurf
+ * machte es umgekehrt: Der Block befoerderte seine Ueberschrift zum `h1`.
+ * Das lief, sah richtig aus — und liess `seitenTitel.test.js` auflaufen, den
+ * Waechter aus L-17: Er liest die **Seitendatei** und kann nicht durch eine
+ * Komponente hindurchsehen. Der Waechter hat recht; ein Titel gehoert dorthin,
+ * wo die Seite steht.
+ */
+export default function Zahlungen({ token, ohneTitel = false }) {
   const [daten, setDaten] = useState(null);
   const [fehler, setFehler] = useState('');
   const [laeuft, setLaeuft] = useState(false);
@@ -81,7 +96,7 @@ export default function Zahlungen({ token }) {
 
   return (
     <section style={S.rahmen}>
-      <h2 style={S.h1}>Zahlungen</h2>
+      {!ohneTitel && <h2 style={S.h1}>Zahlungen</h2>}
 
       <div style={S.karte}>
         <h3 style={S.h2}>Laufende Verträge</h3>

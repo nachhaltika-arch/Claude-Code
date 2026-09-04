@@ -152,14 +152,25 @@ export default function SidebarNav({ badges }) {
               // Es ist derselbe Fehler wie eine Zeile darunter, dort am
               // 26.08.2026 behoben. Ein Menuepunkt soll benennen, wohin er
               // wirklich fuehrt — nicht auf eine Weiche zeigen.
-              { label: 'Dashboard',     path: user?.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard' },
-              { label: 'Meine Daten',   path: '/app/meine-daten' },
-              { label: 'Mein Briefing', path: '/app/mein-briefing' },
-              { label: 'Freigaben',     path: '/app/freigaben' },
-              { label: 'Support',       path: '/app/support' },
-              { label: 'Rechnungen',    path: '/app/rechnungen' },
-              { label: 'Akademie',      path: '/app/academy' },
-              { label: 'Einstellungen', path: '/app/settings' },
+              // **Die Reihenfolge folgt der Aufmerksamkeit des Kunden**
+              // (04.09.2026, L-161): erst wo er steht, dann was bei ihm
+              // liegt, dann was er beauftragt, dann was er zahlt. Die drei
+              // mittleren Punkte sind neu — ihre Inhalte standen bis dahin
+              // alle auf der Uebersicht untereinander.
+              //
+              // „Uebersicht" statt „Dashboard": Der Punkt heisst, was der
+              // Kunde dort findet, nicht wie das Fach heisst.
+              { label: 'Übersicht',           path: user?.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard' },
+              { label: 'Was wir brauchen',    path: '/app/was-wir-brauchen' },
+              { label: 'Inhaltsänderungen',   path: '/app/inhaltsaenderungen' },
+              { label: 'Mein Bericht',        path: '/app/mein-bericht' },
+              { label: 'Rechnungen und Zahlung', path: '/app/rechnungen' },
+              { label: 'Mein Briefing',       path: '/app/mein-briefing' },
+              { label: 'Freigaben',           path: '/app/freigaben' },
+              { label: 'Support',             path: '/app/support' },
+              { label: 'Meine Daten',         path: '/app/meine-daten' },
+              { label: 'Akademie',            path: '/app/academy' },
+              { label: 'Einstellungen',       path: '/app/settings' },
             ].map((item) => {
               const active = isActive(item.path);
               return (

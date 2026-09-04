@@ -14,7 +14,22 @@ import { datumKurz } from '../utils/datum';
  * verbleibend" wäre dieselbe Zahl in einer Sprache, die der Kunde nicht
  * spricht.
  */
-export default function Inhaltsguthaben({ token }) {
+/*
+ * `ohneTitel` laesst die eigene Ueberschrift weg (L-161, 04.09.2026).
+ *
+ * Seit dem Umbau steht dieser Block **allein** auf einer Seite statt als
+ * einer von dreien auf der Uebersicht. Dann traegt die Seite den Titel, und
+ * dieser hier waere der zweite — ein Screenreader laese
+ * „Inhaltsaenderungen. Inhaltsaenderungen".
+ *
+ * **Warum die Seite ihn traegt und nicht dieser Block.** Der erste Entwurf
+ * machte es umgekehrt: Der Block befoerderte seine Ueberschrift zum `h1`.
+ * Das lief, sah richtig aus — und liess `seitenTitel.test.js` auflaufen, den
+ * Waechter aus L-17: Er liest die **Seitendatei** und kann nicht durch eine
+ * Komponente hindurchsehen. Der Waechter hat recht; ein Titel gehoert dorthin,
+ * wo die Seite steht.
+ */
+export default function Inhaltsguthaben({ token, ohneTitel = false }) {
   const [daten, setDaten] = useState(null);
   const [text, setText] = useState('');
   const [seite, setSeite] = useState('');
@@ -57,7 +72,7 @@ export default function Inhaltsguthaben({ token }) {
 
   return (
     <section style={S.rahmen}>
-      <h2 style={S.h1}>Inhaltsänderungen</h2>
+      {!ohneTitel && <h2 style={S.h1}>Inhaltsänderungen</h2>}
 
       <div style={S.karte}>
         {guthaben ? (

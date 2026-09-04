@@ -16,6 +16,7 @@ KI-Kriterium im Katalog landet automatisch in beidem.
 import json
 import logging
 import os
+from datetime import date
 from typing import Optional
 
 from services.audit_criteria import ai_criteria, ist_anwendbar
@@ -162,9 +163,48 @@ def _schema() -> dict:
     }
 
 
+def _seitenteil(facts: dict) -> str:
+    """Die Ueberschrift des Textblocks — sie muss sagen, was drinsteht.
+
+    **Bis zum 04.09.2026 stand hier `SEITENTEXT DER STARTSEITE`** (L-150 b).
+    Uebergeben wird aber `_gesamttext`: der Text **aller** erhobenen Seiten,
+    jedes Stueck mit seiner Adresse in eckigen Klammern davor. Das Modell bekam
+    also die ganze Website und die Anweisung, sie fuer die Startseite zu
+    halten — und hat prompt eine Platzierung behauptet, die nicht stimmte
+    („die Preise stehen erst in der FAQ", waehrend sie auf der Startseite
+    standen).
+
+    Die Adressmarken sind die Loesung, nicht das Problem: Mit ihnen **kann**
+    das Modell ueber Platzierung sprechen. Es muss nur wissen, dass es sie
+    gibt.
+    """
+    seiten = (facts.get("seiten") or {}).get("seiten") or []
+    if not seiten:
+        seiten = [facts.get("url") or ""]
+    anzahl = len(seiten)
+    wort = "1 Seite" if anzahl == 1 else f"{anzahl} Seiten"
+    liste = "\n".join(f"- {s}" for s in seiten)
+    return (
+        f"GEPRUEFTE SEITEN ({wort}):\n{liste}\n\n"
+        "SEITENTEXT DER GEPRUEFTEN SEITEN — jedem Abschnitt steht seine "
+        "Adresse in eckigen Klammern voran, etwa [https://beispiel.de/faq]. "
+        "Eine Aussage darueber, wo ein Inhalt steht, musst du mit dieser "
+        "Adresse belegen. Ohne Beleg sage nichts ueber die Platzierung; was "
+        "hier nicht steht, hast du nicht gesehen.\n"
+    )
+
+
 def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str],
-                  klasse: str = "") -> list:
-    """Baut die Nachricht: Screenshot zuerst, dann Fakten und Seitentext."""
+                  klasse: str = "", heute: Optional[date] = None) -> list:
+    """Baut die Nachricht: Screenshot zuerst, dann Fakten und Seitentext.
+
+    `heute` ist der Erhebungstag. Er gehoert in den Prompt, weil das Modell
+    sonst Datumsangaben gegen sein eigenes Zeitgefuehl prueft — am 04.09.2026
+    hat es einen Blogbeitrag vom 12.08.2026 als „in die Zukunft datiert"
+    beanstandet (L-150 a). Dieselbe Angabe bekommt die gemessene Seite seit
+    jeher (`analyse_freshness(html, current_year)`); nur der Teil, der Saetze
+    schreibt, kannte sie nicht.
+    """
     content = []
 
     if screenshot_b64:
@@ -193,15 +233,21 @@ def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str],
             "bilder_gesamt": (facts.get("images") or {}).get("total"),
         },
     }
+    tag = (heute or date.today()).strftime("%d.%m.%Y")
 
     content.append({
         "type": "text",
         "text": (
             f"Bewerte diese Website.\n\n"
+            f"ERHEBUNGSTAG: {tag}. Alles vor diesem Tag liegt in der "
+            f"Vergangenheit, alles danach in der Zukunft. Pruefe jede "
+            f"Datumsangabe gegen dieses Datum und nicht gegen dein eigenes "
+            f"Zeitgefuehl.\n\n"
             f"KONTEXT:\n{json.dumps(context, indent=2, ensure_ascii=False)}\n\n"
             f"ZU BEWERTENDE KRITERIEN:\n{_rubric(klasse)}\n\n"
             f"{_klassenteil(klasse)}"
-            f"SEITENTEXT DER STARTSEITE:\n{(facts.get('page_text') or '')[:PAGE_TEXT_LIMIT]}\n\n"
+            f"{_seitenteil(facts)}"
+            f"{(facts.get('page_text') or '')[:PAGE_TEXT_LIMIT]}\n\n"
             "Zusätzlich: 'begruendung' (2-3 Sätze zu deiner Design- und "
             "Conversion-Bewertung), 'ai_summary' (3-5 Sätze in einfacher Sprache "
             "für den Betriebsinhaber), 'top_issues' (die 3 größten konkreten "

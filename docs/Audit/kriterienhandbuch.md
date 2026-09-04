@@ -75,16 +75,22 @@ Fließtext lobt „Leistungen, Preise, Laufzeiten … stehen offen da", die
 Problemliste sagt „Die Preise stehen erst in der FAQ; auf der Startseite fehlt
 oben ein kurzer Hinweis". Beides stammt aus **einem** Modellaufruf.
 
-`audit_ai.py:204` übergibt genau einen Text: `SEITENTEXT DER STARTSEITE`. Das
-Modell kann daraus nicht ableiten, ob ein FAQ-Abschnitt auf der Startseite
-liegt oder auf einer Unterseite — es rät, und die Formulierung „erst in der
-FAQ" liest sich wie ein Befund.
+**Die Ursache ist eine falsche Überschrift.** Der Textblock hieß `SEITENTEXT
+DER STARTSEITE`. Übergeben wird aber `_gesamttext` (`audit_runner.py:263`): der
+Text **aller** erhobenen Seiten, jedes Stück mit seiner Adresse in eckigen
+Klammern davor. Das Modell bekam also die ganze Website und die Anweisung, sie
+für die Startseite zu halten.
 
-**Besser:** Die Problemliste darf keine Aussage über die **Platzierung**
-enthalten, solange die Erhebung keine Abschnittsgrenzen mitliefert. Entweder
-der Prompt untersagt Ortsangaben, oder der Seitentext wird mit Abschnitts-
-überschriften und Seitenzuordnung übergeben. Das zweite ist die bessere
-Antwort und liegt nahe: `audit_seiten.py` sammelt die Unterseiten bereits.
+**Behoben am 2026-09-04.** Die Adressmarken sind die Lösung, nicht das Problem:
+Mit ihnen *kann* das Modell über Platzierung sprechen. Es muss nur wissen, dass
+es sie gibt. Der Block nennt jetzt die geprüften Seiten, erklärt die Marken und
+verlangt für jede Aussage über Platzierung einen Beleg daraus.
+
+> **Korrektur an dieser Stelle.** Hier stand zuerst, das Modell könne die
+> Seitenzugehörigkeit „nicht ableiten" und man müsse ihm Ortsangaben
+> untersagen. Beides war falsch: Die Zuordnung lag längst im Text, nur die
+> Überschrift log. Wer die Diagnose übernommen hätte, hätte dem Modell eine
+> Fähigkeit verboten, die es hat.
 
 ### 1.2 🔴 „Ein Blogbeitrag vom 12. August 2026 wird als Zukunftsdatum bewertet"
 

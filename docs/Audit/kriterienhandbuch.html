@@ -175,8 +175,9 @@ footer{padding:2.5rem 0 0;font-family:var(--mono);font-size:.72rem;color:var(--m
   <div class="fund rot">
     <h3><span class="chip rot">bestätigt</span>„Der Preis steht prominent auf der Startseite, der Bericht sagt, er fehlt"</h3>
     <p>Der Fließtext lobt „Leistungen, Preise, Laufzeiten … stehen offen da", die Problemliste sagt „Die Preise stehen erst in der FAQ". Beides stammt aus <b>einem</b> Modellaufruf.</p>
-    <p><code>audit_ai.py:204</code> übergibt genau einen Text: <code>SEITENTEXT DER STARTSEITE</code>. Das Modell kann daraus nicht ableiten, ob ein FAQ-Abschnitt auf der Startseite liegt oder auf einer Unterseite — es rät, und „erst in der FAQ" liest sich wie ein Befund.</p>
-    <p><b>Besser:</b> Die Problemliste darf keine Aussage über die Platzierung enthalten, solange die Erhebung keine Abschnittsgrenzen mitliefert. Entweder untersagt der Prompt Ortsangaben, oder der Seitentext wird mit Überschriften und Seitenzuordnung übergeben — das zweite liegt nahe, denn <code>audit_seiten.py</code> sammelt die Unterseiten bereits.</p>
+    <p><b>Die Ursache ist eine falsche Überschrift.</b> Der Textblock hieß <code>SEITENTEXT DER STARTSEITE</code>. Übergeben wird aber <code>_gesamttext</code>: der Text <em>aller</em> erhobenen Seiten, jedes Stück mit seiner Adresse in eckigen Klammern davor. Das Modell bekam die ganze Website und die Anweisung, sie für die Startseite zu halten.</p>
+    <p><b>Behoben am 04.09.2026.</b> Die Adressmarken sind die Lösung, nicht das Problem: Mit ihnen <em>kann</em> das Modell über Platzierung sprechen — es muss nur wissen, dass es sie gibt. Der Block nennt jetzt die geprüften Seiten, erklärt die Marken und verlangt für jede Aussage über Platzierung einen Beleg daraus.</p>
+    <p><b>Korrektur an dieser Stelle:</b> Hier stand zuerst, das Modell könne die Seitenzugehörigkeit „nicht ableiten“, und man müsse ihm Ortsangaben untersagen. Beides war falsch — die Zuordnung lag längst im Text, nur die Überschrift log.</p>
   </div>
 
   <div class="fund rot">

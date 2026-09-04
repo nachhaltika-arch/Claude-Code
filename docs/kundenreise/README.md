@@ -89,3 +89,38 @@ Wir wissen also nicht, was der Kunde tut, sondern nur, was er auslöst.
 
 **Und die Mailspur liegt doppelt:** `email_logs` und `communications` kennen
 einander nicht — deshalb wurde zweimal der falsche Absender beschuldigt.
+
+---
+
+## Die Reibungskarte (04.09.2026)
+
+`reibungskarte.html` — dieselben 38 Berührungspunkte, aber **nicht zum
+Vorzeigen**. Wunsch David: „ich will, dass wir diese Darstellung nutzen um
+evtl. Konflikte oder Lücken zu identifizieren an denen wir lernen können wo es
+noch hängt."
+
+**Was sie anders macht.** Jeder Punkt trägt einen Zustand, der gemessen ist:
+
+| Zustand | Bedeutung | gezählt am 04.09. |
+|---|---|---|
+| trägt | am laufenden System nachgesehen | 23 |
+| hängt | gebaut, mit benanntem Vorbehalt | 14 |
+| fehlt | im Code nicht auffindbar | 1 |
+
+**Der eigentliche Inhalt sind die acht Konflikte.** Ein Konflikt ist hier
+nicht „etwas ist kaputt", sondern: **zwei Aussagen, die nicht beide wahr sein
+können** — eine aus einem Vertrag oder Datenblatt, eine aus dem laufenden
+System. Jeder nennt beide Quellen und endet mit der Frage, die sich nicht
+wegprogrammieren lässt. Zwei davon kosten unmittelbar Geld (K1 die
+Garantieschwelle, K2 die 28,31 € Differenz je Kunde und Monat).
+
+**Dazu zwei Listen, die eine Reisekarte sonst verschweigt:** wo der Kunde
+wartet, ohne dass etwas Sichtbares geschieht (vier Stellen, zwei davon am
+04.09. geschlossen) — und die **blinden Flecken**: vier Fragen, die diese
+Karte nicht beantworten kann, weil die Zahl dahinter nirgends entsteht. Wie
+viele im Widget abbrechen. Wie lange ein Bau wirklich dauert. Wer sein Konto
+öffnet. Warum jemand kündigt.
+
+> **Warum die blinden Flecken dazugehören.** Eine Reisekarte, die nur zeigt,
+> was gebaut ist, bestätigt den Stand. Eine, die benennt, was sie **nicht**
+> weiß, sagt, wo die nächste Messung hingehört.

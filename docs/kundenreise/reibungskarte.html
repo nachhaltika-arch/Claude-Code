@@ -1,0 +1,370 @@
+<title>Reibungskarte KOMPAGNON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans:wght@400;700;900&display=swap">
+<style>
+:root{
+  --dark:#004F59; --mid:#008EAA; --yellow:#FAE600;
+  --paper:#F4F7F7; --flaeche:#FFFFFF; --tief:#E9EFEF;
+  --ink:#0C1B1E; --ink-2:#3A4A4C; --ink-3:#63797B;
+  --linie:#D6E0E0; --linie-2:#B4C6C6;
+  --traegt:#00734A; --traegt-f:#E3F1EA;
+  --haengt:#9A5B00; --haengt-f:#FBEEDC;
+  --fehlt:#A32C1E;  --fehlt-f:#FAE7E4;
+  --sans:"Noto Sans",system-ui,-apple-system,sans-serif;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --dark:#0B333B; --mid:#4FB4CB; --paper:#0D181B; --flaeche:#152529; --tief:#1B3138;
+  --ink:#E6F0F1; --ink-2:#B7CBCE; --ink-3:#88A2A6; --linie:#233D44; --linie-2:#31545D;
+  --traegt:#57CE9B; --traegt-f:#0C2F23;
+  --haengt:#E3A950; --haengt-f:#33260F;
+  --fehlt:#F0857A;  --fehlt-f:#381A16;
+}}
+:root[data-theme="dark"]{
+  --dark:#0B333B; --mid:#4FB4CB; --paper:#0D181B; --flaeche:#152529; --tief:#1B3138;
+  --ink:#E6F0F1; --ink-2:#B7CBCE; --ink-3:#88A2A6; --linie:#233D44; --linie-2:#31545D;
+  --traegt:#57CE9B; --traegt-f:#0C2F23;
+  --haengt:#E3A950; --haengt-f:#33260F;
+  --fehlt:#F0857A;  --fehlt-f:#381A16;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+     font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.blatt{max-width:1120px;margin:0 auto;padding:36px 22px 90px}
+
+/* ── Kopf ───────────────────────────────────────────────── */
+.kopf{border-bottom:3px solid var(--dark);padding-bottom:22px;margin-bottom:26px}
+.marke{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+       color:var(--mid);margin:0 0 10px}
+h1{font-size:clamp(27px,4.4vw,40px);font-weight:900;letter-spacing:-.03em;line-height:1.06;
+   margin:0 0 12px;text-wrap:balance}
+.unterzeile{font-size:17px;color:var(--ink-2);margin:0;max-width:62ch}
+.unterzeile b{color:var(--ink);font-weight:700}
+
+/* ── Zahlenband ─────────────────────────────────────────── */
+.band{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;
+      background:var(--linie);border:1px solid var(--linie);border-radius:10px;
+      overflow:hidden;margin:26px 0 34px}
+.band div{background:var(--flaeche);padding:14px 16px}
+.band .z{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--ink);
+         font-variant-numeric:tabular-nums}
+.band .w{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.35}
+
+h2{font-size:12.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+   color:var(--ink-3);margin:44px 0 6px}
+h2:first-of-type{margin-top:0}
+.leitsatz{font-size:15px;color:var(--ink-2);margin:0 0 18px;max-width:70ch}
+
+/* ── Die Kette ──────────────────────────────────────────── */
+.kette{background:var(--flaeche);border:1px solid var(--linie);border-radius:12px;
+       padding:20px 18px;overflow-x:auto}
+.stufe{display:grid;grid-template-columns:118px 1fr;gap:14px;align-items:start;
+       padding:13px 0;border-top:1px solid var(--linie)}
+.stufe:first-child{border-top:none;padding-top:2px}
+/* Der Stufenname nimmt die Markenfarbe, die im dunklen Modus ohnehin auf den
+   helleren Ton umschaltet — ein eigener Sonderfall waere ein zweiter Ort. */
+.stufe > b{font-size:13px;font-weight:900;color:var(--mid);line-height:1.3;padding-top:3px}
+.punkte{display:flex;flex-wrap:wrap;gap:6px}
+.pkt{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;
+     padding:5px 11px 5px 8px;border-radius:999px;border:1px solid var(--linie-2);
+     background:var(--flaeche);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.pkt:hover{border-color:var(--mid);color:var(--ink)}
+.pkt:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
+.pkt i{width:9px;height:9px;border-radius:50%;flex:none;display:block}
+.pkt[data-z="traegt"] i{background:var(--traegt)}
+.pkt[data-z="haengt"] i{background:var(--haengt)}
+.pkt[data-z="fehlt"]  i{background:transparent;border:2px solid var(--fehlt)}
+.pkt.an{background:var(--dark);border-color:var(--dark);color:#fff;font-weight:700}
+.pkt.an i{box-shadow:0 0 0 2px rgba(255,255,255,.5)}
+
+.legende{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;padding-top:14px;
+         border-top:1px solid var(--linie);font-size:12.5px;color:var(--ink-3)}
+.legende span{display:inline-flex;align-items:center;gap:7px}
+.legende i{width:9px;height:9px;border-radius:50%;display:block}
+
+/* ── Konflikte ──────────────────────────────────────────── */
+.konflikte{display:flex;flex-direction:column;gap:14px}
+.k{background:var(--flaeche);border:1px solid var(--linie);border-left:4px solid var(--haengt);
+   border-radius:10px;padding:18px 20px;cursor:pointer}
+.k:hover{border-color:var(--linie-2);border-left-color:var(--haengt)}
+.k.geld{border-left-color:var(--fehlt)}
+.k.gelöst{border-left-color:var(--traegt)}
+.k:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
+.k-kopf{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.k-nr{font-family:var(--mono);font-size:12px;color:var(--ink-3);flex:none}
+.k-titel{font-size:17px;font-weight:900;letter-spacing:-.015em;margin:0;flex:1;min-width:220px}
+.marke-tag{font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+     padding:3px 9px;border-radius:5px;flex:none}
+.marke-tag.geld{background:var(--fehlt-f);color:var(--fehlt)}
+.marke-tag.recht{background:var(--haengt-f);color:var(--haengt)}
+.marke-tag.gelöst{background:var(--traegt-f);color:var(--traegt)}
+
+.gegen{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--linie);
+       border:1px solid var(--linie);border-radius:8px;overflow:hidden;margin-bottom:12px}
+@media(max-width:640px){.gegen{grid-template-columns:1fr}}
+.gegen div{background:var(--tief);padding:12px 14px}
+.gegen dt{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+          color:var(--ink-3);margin:0 0 5px}
+.gegen dd{margin:0;font-size:14px;color:var(--ink);line-height:1.5}
+.gegen .q{display:block;margin-top:7px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+
+.frage{font-size:14.5px;color:var(--ink);margin:0;padding:11px 14px;
+       background:var(--tief);border-radius:8px;line-height:1.55}
+.frage b{font-weight:900}
+.betroffen{font-size:12.5px;color:var(--ink-3);margin:11px 0 0;font-family:var(--mono)}
+
+/* ── Listen ─────────────────────────────────────────────── */
+.liste{background:var(--flaeche);border:1px solid var(--linie);border-radius:10px;overflow:hidden}
+.liste > div{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:13px 17px;
+             border-top:1px solid var(--linie);align-items:baseline}
+.liste > div:first-child{border-top:none}
+.liste .n{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.liste p{margin:0;font-size:14.5px;line-height:1.55}
+.liste p b{font-weight:900}
+.liste p em{font-style:normal;color:var(--ink-3);display:block;margin-top:3px;font-size:13px}
+.erledigt .n,.erledigt p b{color:var(--traegt)}
+
+.fuss{margin-top:44px;padding-top:18px;border-top:1px solid var(--linie);
+      font-size:12.5px;color:var(--ink-3);line-height:1.6}
+.fuss code{font-family:var(--mono);font-size:11.5px}
+</style>
+
+<div class="blatt">
+
+  <header class="kopf">
+    <p class="marke">KOMPAGNON · Kundenreise als Diagnose · Stand 4. September 2026</p>
+    <h1>Wo die Reise hängt</h1>
+    <p class="unterzeile">Dieselben 38 Berührungspunkte wie in der Reisekarte — aber nicht,
+    um sie zu zeigen. Jeder trägt einen <b>gemessenen Zustand</b>, und darunter stehen die
+    Stellen, an denen zwei Aussagen <b>nicht beide wahr</b> sein können. Ein Konflikt ist
+    kein Fehler im Code; er ist eine Entscheidung, die noch niemand getroffen hat.</p>
+  </header>
+
+  <div class="band">
+    <div><div class="z">38</div><div class="w">Berührungspunkte</div></div>
+    <div><div class="z">14</div><div class="w">davon mit benanntem Vorbehalt — sie „hängen"</div></div>
+    <div><div class="z">8</div><div class="w">Konflikte — zwei Aussagen, eine muss weichen</div></div>
+    <div><div class="z">2</div><div class="w">davon kosten unmittelbar Geld</div></div>
+    <div><div class="z">4</div><div class="w">Stellen, an denen der Kunde wartet</div></div>
+    <div><div class="z">4</div><div class="w">blinde Flecken — wir messen es nicht</div></div>
+  </div>
+
+  <h2>Die Kette</h2>
+  <p class="leitsatz">Klicken Sie einen Konflikt weiter unten an — die betroffenen Punkte
+  leuchten hier auf. Der Zustand ist gemessen, nicht geschätzt; wo nichts gemessen wurde,
+  steht es als blinder Fleck.</p>
+
+  <div class="kette" id="kette"></div>
+
+  <h2>Die Konflikte</h2>
+  <p class="leitsatz">Jeder nennt zwei Aussagen, die sich widersprechen, und woher jede
+  stammt. Die Frage darunter gehört David — sie lässt sich nicht wegprogrammieren.</p>
+
+  <div class="konflikte" id="konflikte"></div>
+
+  <h2>Wo der Kunde wartet</h2>
+  <p class="leitsatz">Nicht jeder Bruch ist ein Konflikt. Manchmal geschieht schlicht
+  nichts Sichtbares — und Stille ist an einer Kundenreise die teuerste Stelle, weil
+  niemand sie meldet.</p>
+
+  <div class="liste" id="stille"></div>
+
+  <h2>Blinde Flecken</h2>
+  <p class="leitsatz">Vier Fragen, die diese Karte <em>nicht</em> beantworten kann, weil
+  die Zahl dahinter nirgends entsteht. Sie sind der Grund, warum die nächste Fassung
+  besser wird als diese.</p>
+
+  <div class="liste" id="blind"></div>
+
+  <p class="fuss">
+    <b>Woher die Zustände kommen.</b> „Trägt" heißt: am laufenden System nachgesehen.
+    „Hängt" heißt: gebaut, aber mit einem benannten Vorbehalt. „Fehlt" heißt: im Code
+    nicht auffindbar. Belege sind Lagebild-Nummern (<code>docs/soll-ist-analyse.md</code>),
+    Dateien im Repo oder Messungen dieses Tages. Wo eine Quelle fehlt, steht es dabei.
+  </p>
+</div>
+
+<script>
+const STUFEN = [
+  { name: 'Aufmerksamkeit', punkte: [
+    ['HWK-Register','traegt'],['Domain-Import','traegt'],['Analyse-Widget','haengt'],
+    ['Landingpage','traegt'],['Kaltakquise-Mail','traegt'] ] },
+  { name: 'Prüfung', punkte: [
+    ['Widget-Formular','traegt'],['Bestätigungsmail','traegt'],['Bericht im Browser','haengt'],
+    ['PDF-Bericht','haengt'],['Erstgespräch','traegt'],['Angebot','haengt'],
+    ['Verkaufsseite','haengt'] ] },
+  { name: 'Kauf', punkte: [
+    ['Paketseite','haengt'],['Stripe-Kasse','traegt'],['Zahlung','traegt'],
+    ['Auftragsbestätigung','traegt'],['Zugangsdaten-Mail','traegt'],['Erste Anmeldung','haengt'],
+    ['Kundenkonto','traegt'] ] },
+  { name: 'Bau', punkte: [
+    ['Mitwirkungsliste','haengt'],['Erinnerungsmail','traegt'],['Positionierungsgespräch','traegt'],
+    ['Briefing','traegt'],['Bauplan','haengt'],['Entwurfsfreigabe','haengt'],
+    ['Textfreigabe','haengt'],['Auslieferung','traegt'],['Domain & Zertifikat','traegt'],
+    ['Go-live-Mail','traegt'],['Schlussrechnung','fehlt'] ] },
+  { name: 'Betreuung', punkte: [
+    ['Änderung anfordern','traegt'],['Guthaben','traegt'],['Monatsbericht','haengt'],
+    ['Re-Audit','traegt'],['Support-Ticket','traegt'],['Monatsrechnung','haengt'],
+    ['KI-Sichtbarkeit','haengt'],['Akademie','traegt'] ] },
+];
+
+const KONFLIKTE = [
+  { nr:'K1', art:'geld', tag:'Geld', titel:'Die Garantie misst weniger, als sie zusagt',
+    links:{ t:'Was zugesagt ist', s:'„Mindestens 85 von 100 Punkten bei Abnahme."',
+            q:'Angebotsbaukasten, Garantie G1' },
+    rechts:{ t:'Was gemessen wird', s:'78 % der Kriterien geprüft. Elf tragen „nicht erhoben" — alle vier Performance-Werte und sechs zur Barrierefreiheit.',
+             q:'Produktivbericht neovendo, 4. September 2026' },
+    frage:'Der Kunde kann beides selbst nachmessen — Ladezeit und Barrierefreiheit sind genau die zwei Kategorien, die ausgefallen sind. <b>Entweder der PageSpeed-Schlüssel wird gesetzt, oder die Zusage wird auf das zugeschnitten, was wir wirklich prüfen.</b> Beides ist vertretbar; der Zwischenzustand nicht.',
+    punkte:['Analyse-Widget','Bericht im Browser','PDF-Bericht','Angebot'], beleg:'L-165' },
+
+  { nr:'K2', art:'geld', tag:'Geld', titel:'149 € — netto oder brutto?',
+    links:{ t:'Das Produktdatenblatt', s:'„149 € netto / Monat", 19 % Umsatzsteuer. Brutto also <b>177,31 €</b>.',
+            q:'docs/produkte/abo-und-geo.md · services/abo_stunden.py' },
+    rechts:{ t:'Die Rechnungen', s:'149,00 € als <b>Bruttobetrag</b>, netto 125,21 €.',
+             q:'invoices, angelegt am 4. September (Beispieldaten)' },
+    frage:'<b>28,31 € im Monat je Kunde</b> hängen an der Antwort. Bis zum 4. September stellte der Lauf nur auf, und ein Mensch sah die Zahl vor der Rechnung. Seit der Entscheidung zieht Stripe ein — eine Abbuchung holt man schlechter zurück als eine Aufstellung. Und im Datenblatt steht bei beiden Preisen weiterhin „⚠️ Annahme".',
+    punkte:['Monatsrechnung','Zahlung','Kundenkonto'], beleg:'L-169' },
+
+  { nr:'K3', art:'recht', tag:'Vertrag', titel:'Die Frist ruht — aufgeschrieben wird es nirgends',
+    links:{ t:'Was im Angebot steht', s:'„Verzögert sich eine Freigabe nach M7 oder M8, ruht die Frist für die Dauer der Verzögerung."',
+            q:'Angebotsfuß, Baukasten' },
+    rechts:{ t:'Was das System führt', s:'Den Fristbeginn je Mitwirkungspunkt — aber <b>kein Feld für eine Pause</b>. Wann etwas vorlag und wann freigegeben wurde, steht nirgends.',
+             q:'services/mitwirkung.py · mitwirkung_stand' },
+    frage:'Ohne die Spanne ist das zugesagte Bauzeitende nicht berechenbar, sondern nur behauptbar — <b>von beiden Seiten</b>. Im Streit steht Aussage gegen Aussage über eine Frist, die wir selbst zugesagt haben.',
+    punkte:['Bauplan','Entwurfsfreigabe','Textfreigabe'], beleg:'L-166' },
+
+  { nr:'K4', art:'recht', tag:'Ablauf', titel:'Der Ablauf kennt das Produkt nicht',
+    links:{ t:'Was der Vertrag sagt', s:'Websprint Start: Mitwirkung <b>M1 bis M5</b>. Kein Bauplan, keine Textfreigabe — bei einer Seite aus fester Vorlage gibt es beides nicht.',
+            q:'KAS_DB_08_Websprint_Start.md' },
+    rechts:{ t:'Was der Kunde sieht', s:'Dieselbe Schrittkette wie ein Neubau über 28 Tage. Sie liest Projektfelder, nicht das Paket.',
+             q:'frontend/src/utils/schrittkette.js' },
+    frage:'Ein Start-Kunde bekommt Freigaben angezeigt, die sein Vertrag nicht kennt — und wartet womöglich auf etwas, das nie kommt. <b>Die anwendbaren Schritte gehören aus dem Produkt abgeleitet</b>, so wie es <code>mitwirkung.gilt_fuer</code> für die Mitwirkungspunkte längst tut.',
+    punkte:['Mitwirkungsliste','Bauplan','Entwurfsfreigabe','Textfreigabe'], beleg:'L-168' },
+
+  { nr:'K5', art:'recht', tag:'Leistung', titel:'Der Monatsbericht verspricht vier Zahlen und misst eine',
+    links:{ t:'Was Pflege Pro zusagt', s:'„Monatlicher Leistungsbericht: <b>Aufrufe, Anfragen, Auffindbarkeit, Ladezeit</b>."',
+            q:'Produktdatenblatt ABO-PRO, Position 9' },
+    rechts:{ t:'Was gemessen wird', s:'Die Ladezeit. Eine von vier — PageSpeed mobil, monatlich.',
+             q:'automations/scheduler_bericht.py' },
+    frage:'Seit dem 4. September steht der Verlauf im Kundenkonto und sagt ausdrücklich, was er zeigt. Damit ist der Bericht ehrlich — aber <b>die Zusage im Datenblatt stimmt weiter nicht</b>. Entweder die drei anderen Zahlen entstehen, oder die Zusage wird auf eine zusammengestrichen.',
+    punkte:['Monatsbericht'], beleg:'am 4.9. beim Bauen von Rang 2 gefunden' },
+
+  { nr:'K6', art:'recht', tag:'Abrechnung', titel:'Zwei Wege zum Geld, gleichzeitig',
+    links:{ t:'Seit dem 4. September', s:'Das Pflege-Abo läuft über Stripe — SEPA-Lastschrift, Z4.',
+            q:'Entscheidung David, 4.9.2026' },
+    rechts:{ t:'Für Bestandsverträge', s:'Weiter per Rechnung. Wer unter „Rechnung" abgeschlossen hat, hat keine Einzugsermächtigung erteilt.',
+             q:'AboVertrag.abrechnung' },
+    frage:'Das ist <b>mit Absicht so</b> und kein Fehler — aber es heißt, dass zwei Kunden mit demselben Abo verschiedene Rechnungswege haben. Jeder muss im Konto sehen, in welchem er ist, und der Innendienst muss es beim Anlegen entscheiden statt es geschehen zu lassen.',
+    punkte:['Zahlung','Monatsrechnung','Kundenkonto'], beleg:'L-162' },
+
+  { nr:'K7', art:'recht', tag:'Zugang', titel:'Ein Betrieb ist keine Person',
+    links:{ t:'Wie Betriebe arbeiten', s:'Der Inhaber entscheidet, die Bürokraft pflegt die Inhalte, der Meister gibt frei.',
+            q:'Soll-Ist des Kundenkontos' },
+    rechts:{ t:'Wie das Konto gebaut ist', s:'Ein Zugang je Betrieb. Kollegen einzuladen verlangt <code>manage_users</code> — also Innendienst.',
+             q:'L-160, Rang 4' },
+    frage:'Solange nur einer hineinkommt, wandern Zugangsdaten per WhatsApp durch den Betrieb. <b>Das ist keine Bequemlichkeitsfrage, sondern eine Zugangsfrage:</b> Wir wissen dann nicht mehr, wer freigegeben hat.',
+    punkte:['Erste Anmeldung','Kundenkonto','Entwurfsfreigabe'], beleg:'L-160' },
+
+  { nr:'K8', art:'recht', tag:'Steuerung', titel:'Zwei Listen heißen „L" — und eine altert unbemerkt',
+    links:{ t:'Was die Datenblätter sagen', s:'Websprint System: <b>🔴 gesperrt</b>, Blocker L1. GEO ebenso.',
+            q:'KAS_DB_03, KAS_DB_07' },
+    rechts:{ t:'Was gemessen wurde', s:'L1 ist geschlossen — Auslieferung samt Verifikation am lebenden Dienst. Sieben von elf Blockern waren erledigt, ohne dass es jemand eintrug.',
+             q:'11 Messungen am Code, 4.9.2026' },
+    frage:'Ein Verkaufsdokument, das eine aufgehobene Sperre meldet, kostet Umsatz; eines, das eine bestehende verschweigt, kostet mehr. Die Blocker sind übersetzt und der Report trägt einen Schlussvermerk — <b>die Freigabe selbst ist eine Entscheidung und gehört David.</b>',
+    punkte:['Verkaufsseite','Paketseite','Angebot'], beleg:'L-163' },
+];
+
+const STILLE = [
+  { n:'B1', t:'Zwischen Bestätigungsmail und Bericht',
+    s:'Der Interessent hat seine Adresse gegeben und wartet. Wie lange, sagt ihm niemand — und ob überhaupt etwas kommt, auch nicht.',
+    offen:true },
+  { n:'B2', t:'Zwischen Zahlung und Zugangsdaten',
+    s:'Er hat gerade zwischen 1.500 und 12.900 € überwiesen. Die nächste Nachricht ist eine Zugangsdaten-Mail, aber niemand sagt ihm, was jetzt zuerst passiert.',
+    offen:true },
+  { n:'B3', t:'Während des Baus',
+    s:'Vierzehn bis zweiundvierzig Tage, in denen der Kunde nichts sieht. <b>Am 4. September geschlossen:</b> Die Übersicht nennt jetzt immer den nächsten Schritt — bei ihm, wenn etwas bei ihm liegt, sonst bei uns.',
+    offen:false },
+  { n:'B4', t:'Nach dem Go-live',
+    s:'Die teuerste Stille: Der Kunde zahlt monatlich und sieht nichts dafür. <b>Am 4. September geschlossen:</b> Monatsbericht und Re-Audit stehen im Konto, das Guthaben ebenso.',
+    offen:false },
+];
+
+const BLIND = [
+  { n:'?', t:'Wie viele brechen im Widget ab?',
+    s:'Wir zählen abgeschlossene Analysen. Wer die Adresse eingibt und dann doch nicht absendet, hinterlässt keine Spur — und genau der ist die größte Gruppe.' },
+  { n:'?', t:'Wie lange dauert es wirklich?',
+    s:'Zugesagt sind 7, 14, 28 oder 42 Kalendertage. Was tatsächlich zwischen Auftrag und Go-live liegt, wird nirgends gerechnet — und ohne die Zahl ist die Bauzeitgarantie eine Hoffnung.' },
+  { n:'?', t:'Wer öffnet sein Konto — und wie oft?',
+    s:'Alles, was auf dieser Reise nach dem Go-live liegt, setzt voraus, dass der Kunde sich anmeldet. Ob er das tut, weiß niemand.' },
+  { n:'?', t:'Warum kündigt jemand?',
+    s:'Ein Abo endet mit einem <code>end_monat</code> in einer Zeile. Der Grund steht nirgends, und damit lernt die Reise aus ihrem wichtigsten Ereignis nichts.' },
+];
+
+// ── Zeichnen ────────────────────────────────────────────────
+const kette = document.getElementById('kette');
+kette.innerHTML = STUFEN.map((s) => `
+  <div class="stufe">
+    <b>${s.name}</b>
+    <div class="punkte">${s.punkte.map(([name, z]) =>
+      `<button class="pkt" data-z="${z}" data-name="${name}"><i></i>${name}</button>`).join('')}</div>
+  </div>`).join('') + `
+  <div class="legende">
+    <span><i style="background:var(--traegt)"></i>trägt — am laufenden System nachgesehen</span>
+    <span><i style="background:var(--haengt)"></i>hängt — gebaut, mit benanntem Vorbehalt</span>
+    <span><i style="background:transparent;border:2px solid var(--fehlt)"></i>fehlt — im Code nicht auffindbar</span>
+  </div>`;
+
+document.getElementById('konflikte').innerHTML = KONFLIKTE.map((k) => `
+  <article class="k ${k.art === 'geld' ? 'geld' : ''}" tabindex="0" data-nr="${k.nr}">
+    <div class="k-kopf">
+      <span class="k-nr">${k.nr}</span>
+      <h3 class="k-titel">${k.titel}</h3>
+      <span class="marke-tag ${k.art}">${k.tag}</span>
+    </div>
+    <dl class="gegen">
+      <div><dt>${k.links.t}</dt><dd>${k.links.s}<span class="q">${k.links.q}</span></dd></div>
+      <div><dt>${k.rechts.t}</dt><dd>${k.rechts.s}<span class="q">${k.rechts.q}</span></dd></div>
+    </dl>
+    <p class="frage">${k.frage}</p>
+    <p class="betroffen">${k.punkte.length} Berührungspunkte · Beleg: ${k.beleg}</p>
+  </article>`).join('');
+
+document.getElementById('stille').innerHTML = STILLE.map((b) => `
+  <div class="${b.offen ? '' : 'erledigt'}">
+    <span class="n">${b.n}</span>
+    <p><b>${b.t}</b><em>${b.s}</em></p>
+  </div>`).join('');
+
+document.getElementById('blind').innerHTML = BLIND.map((b) => `
+  <div><span class="n">${b.n}</span><p><b>${b.t}</b><em>${b.s}</em></p></div>`).join('');
+
+// ── Ein Konflikt zeigt auf seine Punkte ─────────────────────
+let offen = null;
+function markiere(nr) {
+  const k = KONFLIKTE.find((x) => x.nr === nr);
+  const gleich = offen === nr;
+  offen = gleich ? null : nr;
+  document.querySelectorAll('.pkt').forEach((p) => {
+    p.classList.toggle('an', !gleich && k.punkte.includes(p.dataset.name));
+  });
+  document.querySelectorAll('.k').forEach((a) => {
+    a.style.borderColor = (!gleich && a.dataset.nr === nr) ? 'var(--mid)' : '';
+    a.style.borderLeftColor = '';
+  });
+  if (!gleich) document.getElementById('kette').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+document.querySelectorAll('.k').forEach((a) => {
+  a.addEventListener('click', () => markiere(a.dataset.nr));
+  a.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markiere(a.dataset.nr); }
+  });
+});
+// Umgekehrt: ein Punkt sagt, an welchen Konflikten er hängt.
+document.querySelectorAll('.pkt').forEach((p) => {
+  p.addEventListener('click', () => {
+    const treffer = KONFLIKTE.filter((k) => k.punkte.includes(p.dataset.name));
+    if (treffer.length) markiere(treffer[0].nr);
+  });
+});
+</script>

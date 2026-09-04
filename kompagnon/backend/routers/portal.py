@@ -9,6 +9,7 @@ POST /api/portal/documents/upload  — upload a file (multipart)
 """
 import os
 from datetime import datetime
+from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
@@ -345,7 +346,9 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
         project = (db.query(Project).filter(Project.lead_id == user.lead_id)
                    .order_by(Project.created_at.desc()).first())
     if not project:
-        return {"punkte": [], "offen": 0, "erledigt": 0, "start_moeglich": False}
+        return {"punkte": [], "spaeter": [], "offen": 0, "erledigt": 0,
+                "gesamt": 0, "start_moeglich": False,
+                "termin_link": "", "lead_id": user.lead_id}
 
     staende = {s.kennung: s for s in db.query(MitwirkungStand)
                .filter(MitwirkungStand.project_id == project.id).all()}
@@ -360,6 +363,20 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
             "erledigt": bool(stand and stand.erledigt_am),
             "erledigt_am": stand.erledigt_am.isoformat() if stand and stand.erledigt_am else None,
             "bestaetigt_von": (stand.bestaetigt_von or "") if stand else "",
+            # **Was der Kunde hier tun kann** (04.09.2026). Bis dahin war die
+            # Liste eine zum Abhaken: lesen, anderswo erledigen, bestaetigen.
+            # Die Handlung gehoert zum Punkt und kommt aus dem Katalog —
+            # eine Verzweigung nach Kennung in der Oberflaeche waere der
+            # zweite Ort, an dem der Katalog gepflegt werden muss.
+            "aktion": p.aktion,
+            "dateiart": p.dateiart,
+            "felder": [{"name": f, "beschriftung": b}
+                       for f, b in kat.felder_fuer(p.kennung)],
+            "wahlen": ([{"wert": w, "text": s} for w, s in kat.WER_TRAEGT_EIN.items()]
+                       if p.aktion == kat.AKTION_DOMAIN
+                       else [{"wert": w, "text": s} for w, s in kat.WER_SCHREIBT.items()]
+                       if p.aktion == kat.AKTION_TEXTE else []),
+            "notiz": (stand.notiz or "") if stand else "",
         }
 
     vor_start = [p for p in punkte if p.wirkung == kat.FRISTBEGINN]
@@ -369,8 +386,25 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
     # `Project` traegt keinen eigenen Namen — der Betrieb schon. Dieselbe
     # Ableitung wie in `/me`; zwei Wege zum selben Namen laufen auseinander.
     lead = db.query(Lead).filter(Lead.id == project.lead_id).first()
+
+    # **Der Terminlink steht in den Einstellungen, nicht im Code.** Er
+    # wechselt, wenn David den Kalender wechselt; ein fest verdrahteter Link
+    # fuehrt dann ins Leere, und niemand merkt es, weil ein Link nicht rot
+    # wird. Fehlt er, zeigt die Oberflaeche keinen toten Knopf, sondern
+    # sagt, dass wir uns melden.
+    termin_link = ""
+    try:
+        from database import SystemSettings
+        eintrag = (db.query(SystemSettings)
+                     .filter(SystemSettings.key == "termin_link").first())
+        termin_link = (eintrag.value or "").strip() if eintrag else ""
+    except Exception:  # noqa: BLE001 — eine fehlende Einstellung kippt die Seite nicht
+        db.rollback()
+
     return {
         "projekt": (lead.company_name if lead else "") or "Ihr Projekt",
+        "termin_link": termin_link,
+        "lead_id": project.lead_id,
         # Getrennt ausgegeben, nicht in einer Liste mit einem Merkmal:
         # Lieferungen vor dem Start und Freigaben mittendrin sind zwei Dinge,
         # und gemischt sieht die Aufgabe doppelt so gross aus.
@@ -385,6 +419,15 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
 
 class MitwirkungEintrag(BaseModel):
     notiz: str = ""
+    #: Die Angaben zu diesem Punkt — Name je Feld, wie ihn `felder_fuer`
+    #: nennt, dazu `wahl` und `hinweis`.
+    #:
+    #: **Bewusst ein freies Woerterbuch und trotzdem eng gefuehrt:** Was
+    #: davon uebernommen wird, entscheidet `mitwirkung.notiz_bauen` anhand
+    #: des Katalogs. Ein Feld, das dort nicht steht, faellt heraus — ein
+    #: Aufrufer kann also nichts Fremdes in die Notiz schreiben, und ein
+    #: neues Feld im Katalog wirkt hier ohne Aenderung.
+    angaben: Dict[str, str] = {}
 
 
 @router.post("/mitwirkung/{kennung}")
@@ -407,6 +450,13 @@ def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
     if not project:
         raise HTTPException(404, "Kein Projekt gefunden")
 
+    # **Der Kunde schreibt seine Notiz nicht selbst.** `body.notiz` bleibt
+    # fuer den freien Fall, aber wo der Katalog Felder kennt, entsteht die
+    # Zeile aus ihnen — ein Aufrufer soll nicht bestimmen koennen, was im
+    # Nachweis steht, aus dem spaeter der Fristbeginn abgeleitet wird.
+    aus_angaben = kat.notiz_bauen(kennung, body.angaben or {})
+    notiz = aus_angaben or (body.notiz or "")
+
     stand = (db.query(MitwirkungStand)
              .filter(MitwirkungStand.project_id == project.id,
                      MitwirkungStand.kennung == kennung).first())
@@ -419,8 +469,10 @@ def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
     if not stand.erledigt_am:
         stand.erledigt_am = datetime.utcnow()
         stand.bestaetigt_von = user.email or ""
-    if body.notiz:
-        stand.notiz = body.notiz
+    # Die Angaben ueberschreiben eine aeltere Notiz — wer nachtraegt, hat
+    # etwas berichtigt. Ein leerer Aufruf loescht nichts.
+    if notiz:
+        stand.notiz = notiz
     db.commit()
     return {"ok": True, "kennung": kennung,
             "erledigt_am": stand.erledigt_am.isoformat()}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
+import MitwirkungAktion from './kunde/MitwirkungAktion';
 
 /**
  * Was wir vom Kunden brauchen — als Liste, die er abarbeiten kann (L-159).
@@ -55,13 +56,13 @@ export default function Mitwirkung({ token, ohneTitel = false }) {
 
   useEffect(() => { if (token) laden(); }, [token]);   // eslint-disable-line
 
-  const eintragen = async (kennung) => {
+  const eintragen = async (kennung, angaben = {}) => {
     setLaeuft(kennung);
     try {
       const res = await fetch(`${API_BASE_URL}/api/portal/mitwirkung/${kennung}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ angaben }),
       });
       if (!res.ok) throw new Error('Eintrag nicht gespeichert — bitte noch einmal.');
       await laden();
@@ -96,7 +97,9 @@ export default function Mitwirkung({ token, ohneTitel = false }) {
             <Karte key={p.kennung} punkt={p} naechst={p.kennung === naechster}
                    auf={offenerPunkt === p.kennung}
                    umschalten={() => setOffenerPunkt(offenerPunkt === p.kennung ? null : p.kennung)}
-                   eintragen={eintragen} laeuft={laeuft === p.kennung} />
+                   eintragen={eintragen} laeuft={laeuft === p.kennung}
+                   token={token} leadId={daten.lead_id} terminLink={daten.termin_link}
+                   neuLaden={laden} />
           ))}
         </>
       )}
@@ -138,7 +141,8 @@ function satz({ offen, start_moeglich }) {
 
 const WORTE = ['keine', 'eine', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht'];
 
-function Karte({ punkt, naechst, auf, umschalten, eintragen, laeuft }) {
+function Karte({ punkt, naechst, auf, umschalten, eintragen, laeuft,
+                 token, leadId, terminLink, neuLaden }) {
   const fertig = punkt.erledigt;
   return (
     <article style={{ ...S.karte, borderTopColor: fertig ? 'var(--status-success)' : 'var(--brand-primary)' }}>
@@ -168,9 +172,23 @@ function Karte({ punkt, naechst, auf, umschalten, eintragen, laeuft }) {
         <div style={S.klapp}>
           <p style={S.klappText}>{punkt.vertragstext}</p>
           {fertig ? (
-            <p style={S.leise}>
-              Sollte das nicht stimmen, schreiben Sie uns — wir tragen es zurück.
-            </p>
+            <>
+              {punkt.notiz && (
+                /* Was wir verbucht haben, im Wortlaut. Die Stelle, an der ein
+                   Kunde widersprechen kann — und aus der der Fristbeginn
+                   abgeleitet wird. */
+                <p style={S.notiz}>{punkt.notiz}</p>
+              )}
+              <p style={S.leise}>
+                Sollte das nicht stimmen, schreiben Sie uns — wir tragen es zurück.
+              </p>
+            </>
+          ) : punkt.aktion && punkt.aktion !== 'abhaken' ? (
+            /* **Die Handlung selbst, nicht nur ein Haken** (04.09.2026).
+               Welche es ist, sagt der Katalog — siehe `MitwirkungAktion`. */
+            <MitwirkungAktion punkt={punkt} token={token} leadId={leadId}
+                              terminLink={terminLink} eintragen={eintragen}
+                              laeuft={laeuft} neuLaden={neuLaden} />
           ) : (
             <button style={S.knopf} onClick={() => eintragen(punkt.kennung)} disabled={laeuft}>
               {laeuft ? 'Wird gespeichert …' : 'Das habe ich erledigt'}
@@ -212,4 +230,6 @@ const S = {
   liste: { margin: 0, paddingLeft: 20, fontSize: 14, color: 'var(--text-secondary)' },
   fehler: { color: 'var(--status-danger-text)', fontSize: 14 },
   leise: { color: 'var(--text-tertiary)', fontSize: 14 },
+  notiz: { fontSize: 14, color: 'var(--text-primary)', background: 'var(--bg-app)',
+           padding: '10px 14px', borderRadius: 6, margin: '0 0 10px', lineHeight: 1.5 },
 };

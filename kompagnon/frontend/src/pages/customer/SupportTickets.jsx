@@ -54,7 +54,7 @@ export default function SupportTickets() {
   };
   const badgeStyle = (bg, color) => ({
     display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-    fontSize: 11, fontWeight: 600, background: bg, color,
+    fontSize: 12, fontWeight: 600, background: bg, color,
   });
 
   return (
@@ -101,7 +101,7 @@ export default function SupportTickets() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{t.title}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>{t.description}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
                 {t.ticket_number} · {t.created_at ? new Date(t.created_at).toLocaleDateString('de-DE') : ''}
               </div>
             </div>

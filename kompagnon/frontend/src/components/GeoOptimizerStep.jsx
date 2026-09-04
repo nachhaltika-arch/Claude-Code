@@ -8,39 +8,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
-import { datumKurz, monatUndJahr } from '../utils/datum';
-
-const SCORE_COLOR = (score) => {
-  if (score >= 75) return '#27ae60';
-  if (score >= 50) return '#f39c12';
-  return '#e74c3c';
-};
-
-const SCORE_LABEL = (score) => {
-  if (score >= 75) return 'Gut';
-  if (score >= 50) return 'Ausbaufaehig';
-  return 'Handlungsbedarf';
-};
-
-const ScoreBar = ({ label, score }) => (
-  <div style={{ marginBottom: 10 }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-      <span>{label}</span>
-      <span style={{ fontWeight: 600, color: SCORE_COLOR(score) }}>{score}/100</span>
-    </div>
-    <div style={{ height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
-      <div
-        style={{
-          height: '100%',
-          width: `${Math.min(score, 100)}%`,
-          background: SCORE_COLOR(score),
-          borderRadius: 4,
-          transition: 'width 0.6s ease',
-        }}
-      />
-    </div>
-  </div>
-);
+// Am 31.08.2026 herausgeloest (L-25): die zwei groessten Reiter und die drei
+// Bausteine, die sie mit der Ansicht teilen.
+import { SCORE_LABEL, ScoreBar } from './geo/geoBausteine';
+import ReiterNennung from './geo/ReiterNennung';
+import ReiterMonitoring from './geo/ReiterMonitoring';
 
 export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onComplete }) {
   const { token, hasRole } = useAuth();
@@ -61,6 +33,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
   const [nennungLaeuft, setNennungLaeuft] = useState(false);
   const [nennungFehler, setNennungFehler] = useState('');
   const [verlauf, setVerlauf] = useState(null);
+  const [wirkung, setWirkung] = useState(null);
 
   // ── Das laufende Abo (26.08.2026, L-105) ──────────────────────────
   // `POST /api/geo-payments/{id}/cancel` gibt es seit dem Bau des Add-ons
@@ -159,6 +132,26 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token]);
 
+  // **Der Wirkungsbericht nach 60 Tagen (GEO-01, Position 7).** Er war seit
+  // dem 25.08.2026 gebaut und hatte bis zum 27.08. **keinen Aufrufer** — der
+  // vierte Fund derselben Art in dieser Datei-Familie. Er rechnet nur auf
+  // vorhandenen Daten, kostet also nichts und darf beim Oeffnen des Reiters
+  // geladen werden; die Nennungsmessung darunter kostet Geld und bleibt am
+  // Knopf.
+  const ladeWirkung = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/wirkungsbericht`, { headers });
+      // 404 heisst „fuer dieses Projekt gibt es keine GEO-Analyse" — kein
+      // Fehler, sondern eine Auskunft. Der Abschnitt bleibt dann einfach weg.
+      if (resp.ok) setWirkung(await resp.json());
+    } catch (err) {
+      console.error('Wirkungsbericht nicht ladbar:', err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, token]);
+
   const pruefeNennung = async () => {
     setNennungLaeuft(true);
     setNennungFehler('');
@@ -218,6 +211,33 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       if (resp.ok) setMonitoring(await resp.json());
     } catch (err) {
       console.error('Monitoring load error:', err);
+    }
+  };
+
+  /**
+   * Das Monitoring ein- oder ausschalten (L-105, 31.08.2026).
+   *
+   * **`PATCH /api/geo/{id}/monitoring/toggle` war gebaut und ungerufen.**
+   * Der Verlaufsreiter versprach dabei „der erste Report erscheint am 1. des
+   * naechsten Monats" — auch dann, wenn das Monitoring aus war und nie einer
+   * kaeme. Ein Versprechen, das an einem Schalter haengt, den niemand sieht.
+   */
+  const monitoringSchalten = async (an) => {
+    if (!isAdmin) return;
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/api/geo/${projectId}/monitoring/toggle`,
+        { method: 'PATCH', headers, body: JSON.stringify({ enabled: an }) },
+      );
+      if (resp.ok) {
+        const daten = await resp.json();
+        // Den bekannten Stand fortschreiben statt neu zu laden: Die Antwort
+        // sagt genau das eine Feld, das sich geaendert hat.
+        setMonitoring(alt => ({ ...(alt || { history: [] }),
+                                monitoring_enabled: daten.monitoring_enabled }));
+      }
+    } catch (err) {
+      console.error('Monitoring-Schalter:', err);
     }
   };
 
@@ -430,6 +450,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={() => {
               setActiveTab(tab.id);
               if (tab.id === 'monitoring' && !monitoring) loadMonitoring();
+              if (tab.id === 'monitoring' && !wirkung) ladeWirkung();
               if (tab.id === 'nennung' && !verlauf) ladeVerlauf();
             }}
             style={{
@@ -480,7 +501,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <strong style={{ fontSize: 14 }}>{rec.titel}</strong>
                   <span style={{
-                    fontSize: 11, fontWeight: 700,
+                    fontSize: 12, fontWeight: 700,
                     background: rec.prioritaet === 'hoch' || rec.priorität === 'hoch' ? '#FED7AA' : '#D1D5DB',
                     color: rec.prioritaet === 'hoch' || rec.priorität === 'hoch' ? '#92400E' : '#374151',
                     padding: '2px 8px', borderRadius: 20,
@@ -571,145 +592,23 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       )}
 
       {activeTab === 'nennung' && (
-        <div>
-          <div style={{
-            background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8,
-            padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#374151',
-          }}>
-            <strong>Zwei verschiedene Fragen.</strong> Die Analyse nebenan misst, ob eine
-            Maschine den Betrieb <em>lesen</em> kann. Hier wird gefragt, ob sie ihn auch
-            <em> nennt</em> — mit denselben Fragen, die ein Kunde stellt.
-            {' '}Jeder Lauf kostet Geld und fliesst deshalb in keinen Score ein.
-          </div>
-
-          <button
-            onClick={pruefeNennung}
-            disabled={nennungLaeuft}
-            style={{
-              background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
-              border: 'none', padding: '10px 20px', borderRadius: 8, fontSize: 14,
-              fontWeight: 600, cursor: nennungLaeuft ? 'not-allowed' : 'pointer',
-              opacity: nennungLaeuft ? 0.7 : 1, marginBottom: 16,
-            }}
-          >
-            {nennungLaeuft ? 'Wird gefragt … (bis zu einer Minute)' : 'Nennung jetzt pruefen'}
-          </button>
-
-          {nennungFehler && (
-            <div style={{
-              background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8,
-              padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#78350F',
-            }}>
-              <strong>Nicht gemessen.</strong> {nennungFehler}
-              <div style={{ marginTop: 6 }}>
-                Das ist <strong>keine</strong> Aussage ueber den Betrieb — es wurde nicht gefragt.
-              </div>
-            </div>
-          )}
-
-          {nennung && (
-            <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
-              {Object.entries(nennung.anbieter || {}).map(([schluessel, block]) => (
-                <div key={schluessel} style={{
-                  border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 16px',
-                  background: block.collected ? '#fff' : '#F9FAFB',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between',
-                                alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                    <strong style={{ fontSize: 14 }}>{block.anzeige || schluessel}</strong>
-                    {block.collected ? (
-                      <span style={{ fontSize: 14, fontWeight: 700,
-                                     color: SCORE_COLOR((block.quote || 0) * 100) }}>
-                        {block.genannt_bei} von {block.beantwortet} Fragen
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 12, color: '#6B7280' }}>nicht erhoben</span>
-                    )}
-                  </div>
-                  {block.collected ? (
-                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      Modell {block.modell}
-                      {block.fehler > 0 && ` · ${block.fehler} Frage(n) ohne Antwort`}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                      {block.grund}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {verlauf?.verlauf?.length > 0 && (
-            <div>
-              <h4 style={{ fontSize: 14, margin: '0 0 8px' }}>Verlauf</h4>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13,
-                                fontVariantNumeric: 'tabular-nums' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#6B7280' }}>
-                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Lauf</th>
-                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Genannt bei</th>
-                      <th style={{ padding: '6px 8px', borderBottom: '1px solid #E5E7EB' }}>Nicht erhoben</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...verlauf.verlauf].reverse().map((eintrag, i) => (
-                      <tr key={eintrag.am || i}>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
-                          {datumKurz(eintrag.am)}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
-                          {Object.entries(eintrag.anbieter || {})
-                            .map(([k, w]) => `${k}: ${w.genannt_bei}/${w.von}`)
-                            .join(' · ') || '—'}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #F3F4F6',
-                                     color: '#6B7280' }}>
-                          {(eintrag.nicht_erhoben || []).join(', ') || '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+        <ReiterNennung
+          activeTab={activeTab}
+          nennung={nennung}
+          nennungFehler={nennungFehler}
+          nennungLaeuft={nennungLaeuft}
+          pruefeNennung={pruefeNennung}
+          verlauf={verlauf}
+        />
       )}
-
       {activeTab === 'monitoring' && (
-        <div>
-          {!monitoring ? (
-            <p style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>Wird geladen...</p>
-          ) : monitoring.history.length === 0 ? (
-            <p style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>
-              Noch keine Monitoring-Daten — der erste Report erscheint am 1. des naechsten Monats.
-            </p>
-          ) : (
-            <div>
-              <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
-                Monatliche GEO-Score Entwicklung (letzter Check: {datumKurz(monitoring.last_monitored_at, 'Nie')})
-              </p>
-              {monitoring.history.slice().reverse().map((entry, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-                  <span style={{ fontSize: 13, color: '#374151' }}>
-                    {monatUndJahr(entry.date)}
-                  </span>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(entry.score) }}>{entry.score}/100</span>
-                    {entry.change !== 0 && (
-                      <span style={{ fontSize: 12, color: entry.change > 0 ? '#27ae60' : '#e74c3c' }}>
-                        {entry.change > 0 ? `+${entry.change}` : entry.change}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ReiterMonitoring
+          activeTab={activeTab}
+          isAdmin={isAdmin}
+          monitoringSchalten={monitoringSchalten}
+          monitoring={monitoring}
+          wirkung={wirkung}
+        />
       )}
     </div>
   );

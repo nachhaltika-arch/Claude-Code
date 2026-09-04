@@ -114,14 +114,14 @@ export default function MeineDateien({ leadId, token }) {
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 600 }}>Wofür ist die Datei?</span>
+          <span style={{ fontSize: 12, fontWeight: 600 }}>Wofür ist die Datei?</span>
           <select value={art} onChange={(e) => setArt(e.target.value)} style={feld}>
             {ARTEN.map((a) => <option key={a.wert} value={a.wert}>{a.label}</option>)}
           </select>
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 600 }}>Datei wählen</span>
+          <span style={{ fontSize: 12, fontWeight: 600 }}>Datei wählen</span>
           <input
             ref={eingabe}
             type="file"
@@ -134,7 +134,7 @@ export default function MeineDateien({ leadId, token }) {
         </label>
 
         {laeuft && (
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Wird hochgeladen …</span>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Wird hochgeladen …</span>
         )}
       </div>
 
@@ -164,7 +164,7 @@ export default function MeineDateien({ leadId, token }) {
               <span style={{ color: 'var(--text-tertiary)' }}>
                 {d.file_type} · {groesse(d.file_size)}
               </span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>
                 {d.uploaded_by_role === 'kunde' ? 'von Ihnen' : 'von KOMPAGNON'}
               </span>
             </li>

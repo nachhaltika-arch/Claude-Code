@@ -45,6 +45,7 @@ from services.assistant_budget import (
     kosten_fuer,
 )
 from services.assistant_context import MODUS_TEAM, baue_kontext, modus_fuer_rolle
+from services.rechte import gehoert_zum_innendienst
 from services.assistant_rules import pruefe_antwort, regelwerk_fuer_prompt
 
 try:
@@ -337,14 +338,44 @@ def _speichern(db: Session, gespraech: AssistantConversation, rolle: str,
     return nachricht
 
 
-@router.get("/conversations/{conversation_id}")
-def verlauf(conversation_id: int, db: Session = Depends(get_db),
-            user=Depends(require_any_auth)):
-    """Der gespeicherte Gesprächsverlauf."""
+def _gespraech_oder_403(db: Session, conversation_id: int, user):
+    """Das Gespräch — oder 403, wenn es einem anderen Betrieb gehört.
+
+    **404 vor 403 waere hier falsch herum.** Ob es ein Gespraech mit dieser
+    Nummer gibt, ist bereits eine Auskunft; deshalb erst suchen, dann die
+    Zugehoerigkeit pruefen, und bei Fremdbesitz **403** — nicht 404, weil der
+    Innendienst denselben Weg geht und ein echtes „gibt es nicht" von einem
+    „gehoert dir nicht" unterscheiden koennen muss.
+    """
     gespraech = (db.query(AssistantConversation)
                    .filter(AssistantConversation.id == conversation_id).first())
     if not gespraech:
         raise HTTPException(404, "Gespräch nicht gefunden")
+
+    if (not gehoert_zum_innendienst(getattr(user, "role", ""))
+            and getattr(user, "lead_id", None) != gespraech.lead_id):
+        raise HTTPException(403, "Kein Zugriff auf dieses Gespräch")
+
+    return gespraech
+
+
+@router.get("/conversations/{conversation_id}")
+def verlauf(conversation_id: int, db: Session = Depends(get_db),
+            user=Depends(require_any_auth)):
+    """Der gespeicherte Gesprächsverlauf — nur der eigene.
+
+    **Bis zum 31.08.2026 stand hier nur `require_any_auth`**, und das heisst
+    „irgendwer ist angemeldet". Wer die Nummer hochzaehlte, las fremde
+    Gespraeche mit Namen des Betriebs, Inhalt und Kosten je Nachricht. Der
+    Endpunkt hatte keinen Aufrufer, also fiel es niemandem auf — genau deshalb
+    wurde er geprueft, **bevor** er einen bekam.
+
+    Dieselbe Pruefung wie in `leads_portal.lead_oder_403`: Wer nicht zum
+    Innendienst gehoert, sieht nur den eigenen Betrieb. Nicht „ist Kunde",
+    sondern „gehoert nicht zum Innendienst" — die Umkehrung von 18.08.2026,
+    die damals die Rolle `nutzer` durchgelassen hatte.
+    """
+    gespraech = _gespraech_oder_403(db, conversation_id, user)
 
     return {
         "conversation_id": gespraech.id,
@@ -386,11 +417,12 @@ def eskalieren(conversation_id: int, body: Eskalation,
     Entscheidung 3.2: Das trennt unverbindliche Hilfe von verbindlicher
     Kommunikation. Der Verlauf fährt zusammengefasst mit, damit niemand ihn
     nachlesen muss.
+
+    **Am 31.08.2026 abgesichert wie `verlauf`.** Auch hier stand nur
+    `require_any_auth`; ein Fremder konnte ein Gespraech eskalieren, das ihm
+    nicht gehoert — und der Verlauf faehrt dabei im Klartext ans Team.
     """
-    gespraech = (db.query(AssistantConversation)
-                   .filter(AssistantConversation.id == conversation_id).first())
-    if not gespraech:
-        raise HTTPException(404, "Gespräch nicht gefunden")
+    gespraech = _gespraech_oder_403(db, conversation_id, user)
 
     if gespraech.escalated_at is not None:
         return {"bereits_eskaliert": True, "conversation_id": gespraech.id}

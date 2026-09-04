@@ -22,8 +22,16 @@ import re
 import pytest
 
 WURZEL = pathlib.Path(__file__).resolve().parents[3]
+#: **Seit dem 31.08.2026 zwei Dateien statt einer.** `GeoOptimizerStep.jsx`
+#: stand mit 813 Zeilen ueber der Groessengrenze; die zwei groessten Reiter
+#: sind ausgezogen (L-25). Die **Abfrage** blieb in der Ansicht, wo der
+#: Zustand liegt; die **Darstellung** steht im Reiter. Dieser Test hat den
+#: Umzug gemeldet, und die Trennung ist der Grund, warum er jetzt zwei
+#: Adressen kennt statt einer.
+ANSICHT = (WURZEL / "kompagnon" / "frontend" / "src" / "components"
+           / "GeoOptimizerStep.jsx")
 KOMPONENTE = (WURZEL / "kompagnon" / "frontend" / "src" / "components"
-              / "GeoOptimizerStep.jsx")
+              / "geo" / "ReiterNennung.jsx")
 
 
 def test_der_endpunkt_existiert():
@@ -37,8 +45,8 @@ def test_der_endpunkt_existiert():
 @pytest.mark.parametrize("pfadstueck", ["ki-sichtbarkeit", "ki-sichtbarkeit/verlauf"])
 def test_das_frontend_ruft_ihn_auf(pfadstueck):
     """Ohne Aufrufer ist der Endpunkt für den Nutzer nicht vorhanden."""
-    assert KOMPONENTE.exists(), KOMPONENTE
-    quelle = KOMPONENTE.read_text(encoding="utf-8")
+    assert ANSICHT.exists(), ANSICHT
+    quelle = ANSICHT.read_text(encoding="utf-8")
     assert pfadstueck in quelle, (
         f"Kein Aufruf auf {pfadstueck} im GEO-Schritt — der Endpunkt wäre "
         "wieder gebaut und nicht angeschlossen.")
@@ -75,8 +83,11 @@ def test_die_oberflaeche_haengt_keinen_score_daran():
     Diese Entscheidung steht so im Dienst und gehört David. Bis sie fällt,
     darf die Nennung nirgends in den GEO-Score einfließen.
     """
-    quelle = KOMPONENTE.read_text(encoding="utf-8")
-    nennungsblock = quelle.split("activeTab === 'nennung'")[1].split(
-        "activeTab === 'monitoring'")[0]
+    # **Die Datei ist der Block.** Bis zum 31.08.2026 wurde er aus der
+    # Ansicht zwischen zwei Reitermarken herausgeschnitten; seit dem Schnitt
+    # (L-25) steht er fuer sich, und die Zerlegung waere ein Suchen nach
+    # Marken, die es dort nicht mehr gibt — der Test waere mit einem
+    # `IndexError` gescheitert statt mit einer Aussage.
+    nennungsblock = KOMPONENTE.read_text(encoding="utf-8")
     assert not re.search(r"geo_score|setScore|score\s*\+", nennungsblock), (
         "der Nennungsblock rechnet an einem Score mit")

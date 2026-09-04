@@ -2,7 +2,18 @@
 #
 # KOMPAGNON — Push auf `staging`, aber nur wenn nichts mehr läuft.
 #
-# Aufgerufen aus `.claude/settings.json` nach jedem Bash-Schritt.
+# **Seit dem 29.08.2026 nicht mehr angeschlossen.** Das Skript bleibt hier,
+# weil seine Überlegung zu `cancel-in-progress` weiter richtig ist — aber
+# gepusht wird nur noch auf ausdrückliche Ansage (Entscheidung David,
+# siehe CLAUDE.md). Ein Hook, der von selbst pusht, macht diese Regel
+# unhaltbar: Er hat am 29.08. zwei Commits verschickt, die als „wartet
+# lokal" gemeldet waren, und der Widerspruch fiel nur auf, weil die
+# CI-Wache den Lauf meldete.
+#
+# Wer ihn reaktiviert, trägt ihn wieder unter `hooks.PostToolUse` in
+# `.claude/settings.json` ein — und hebt vorher die Regel in CLAUDE.md auf.
+#
+# Früher aufgerufen aus `.claude/settings.json` nach jedem Bash-Schritt.
 #
 # **Warum es das gibt.** Die Regel dort pushte bisher bedingungslos: bei jedem
 # Bash-Aufruf, sobald etwas unversandt war. Der Workflow hat aber

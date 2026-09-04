@@ -1,0 +1,114 @@
+# PRODUKTDATENBLATT · WB-01
+## WORKBOOK „Homepage-Standard in 30 Schritten"
+
+| | |
+|---|---|
+| Artikelnummer | WB-01 |
+| Preis | **149 € netto** |
+| Umsatzsteuer | 19 % ⚠️ (siehe Abschnitt 6) |
+| Zahlungsbedingung | **Z3** (Vorkasse) |
+| Auslieferung | Sofortiger Download nach Zahlungseingang |
+| Garantie | **G5** — 100 % Anrechnung auf jeden Websprint innerhalb 6 Monaten |
+| Freigabestatus | 🔴 nicht geschrieben, kein Bestellsystem vorhanden |
+
+---
+
+## 1. Funktion im Portfolio
+
+Das Workbook befähigt den Kunden, seine Seite selbst auf Standard zu bringen. Das klingt nach Kannibalisierung und ist das Gegenteil:
+
+1. **Selbstselektion.** Wer bei Schritt 9 aufgibt, hat sich selbst bewiesen, dass er den Websprint braucht. Diese Erkenntnis überzeugt stärker als jedes Verkaufsgespräch.
+2. **Anrechnung.** 149 € sind keine versunkenen Kosten, sondern eine Anzahlung.
+3. **Reichweite.** Nicht ortsgebunden. Ein Dachdecker in Passau kauft es, obwohl wir ihn nie besuchen.
+4. **Beweis.** Wer eine Norm veröffentlicht **und** das Werkzeug zu ihrer Erfüllung mitliefert, argumentiert nicht mehr — er hat den Maßstab gesetzt.
+
+⚠️ **Abgrenzung zum Buch zwingend:** Das Workbook erhält **keine ISBN** und wird **nicht als Buch vertrieben**, sondern als digitales Arbeitsmaterial mit Druckbeilage. Nur so bleibt es außerhalb der Buchpreisbindung und die Anrechnung nach G5 ist zulässig. Diese Konstruktion muss anwaltlich bestätigt werden.
+
+---
+
+## 2. Leistungsverzeichnis
+
+| Teil | Inhalt | Umfang |
+|---|---|---|
+| A | **Selbstaudit** — die 100 Punkte als ausfüllbare Prüfliste mit Punktwerten | ca. 12 S. |
+| B | **Kategorien 1–8** — je Kategorie: was geprüft wird, wie man es selbst prüft, wie man es behebt, welcher Punktgewinn entsteht | ca. 60 S. |
+| C | **30 Arbeitsschritte** in Reihenfolge, je Schritt: Zeitaufwand, benötigte Werkzeuge, Erfolgskriterium | ca. 40 S. |
+| D | **Vorlagen:** Textbriefing, Fotobriefing mit Shotlist, Prüfliste Rechtstexte, Anforderungsliste für Dienstleister, Übergabeprotokoll | ca. 20 S. |
+| E | **Abnahme-Selbstprotokoll** zum Ausfüllen | ca. 4 S. |
+
+**Formate:** ausfüllbares PDF · Auditbogen als Tabellenkalkulation · Druckversion zum Selbstausdruck.
+
+**Nicht enthalten:** individuelle Beratung, Prüfung des Ergebnisses durch KOMPAGNON, Softwarezugang, Umsetzung, Rechtsberatung.
+
+---
+
+## 3. Angebots- und Verkaufstext
+
+> **Homepage-Standard in 30 Schritten**
+>
+> Sie wollen es selbst machen? Gut. Hier ist der vollständige Weg.
+>
+> Das Workbook enthält das komplette Audit als Prüfliste zum Ausfüllen, alle 100 Kriterien mit Erklärung und Lösungsweg, 30 Arbeitsschritte in der richtigen Reihenfolge mit Zeitangabe, sowie Vorlagen für Texte, Fotos, Rechtstexte und die Zusammenarbeit mit Dienstleistern.
+>
+> **149 € netto.** Entscheiden Sie sich innerhalb von sechs Monaten doch für einen Websprint, wird der volle Betrag angerechnet.
+
+**Einwandbehandlung „dann brauche ich Sie ja nicht mehr":**
+> „Richtig. Wenn Sie die 30 Schritte selbst umsetzen, brauchen Sie mich nicht. Die meisten schaffen die ersten acht und stellen bei Schritt neun fest, dass es einen Entwickler braucht. Dann rufen Sie an, und die 149 € gehen ab."
+
+---
+
+## 4. Interne Kalkulation
+
+| Position | Ansatz |
+|---|---|
+| Ableitung aus dem Buchmanuskript | 20 h |
+| Neuerstellung Teil C und D | 30 h |
+| Gestaltung und Satz (Manuel) | 20 h |
+| Ausfüllbares PDF und Tabellenbogen | 10 h |
+| **Einmaliger Erstellungsaufwand** | **~80 h** |
+| Grenzkosten je Verkauf | nahe null |
+
+**Break-even bei etwa 65 verkauften Exemplaren.** Danach ist jeder Verkauf nahezu vollständig Deckungsbeitrag. Das ist der wirtschaftliche Kern des Produkts — und der Grund, warum es die Kapazitätsgrenze des Kammerbezirks umgeht.
+
+---
+
+## 5. 🔴 Erforderliches Bestellsystem
+
+Das Workbook ist das **erste Produkt mit eigenem Bestellvorgang**. Heute technisch nicht verkaufbar.
+
+| Ebene | Anforderung |
+|---|---|
+| Datenbank | Neue Tabelle `orders`, **getrennt von `deals`** |
+| Datenbank | Felder: Käufer, Produkt, Betrag, Zahlstatus, `anrechnung_gueltig_bis`, Verknüpfung zu späterem Deal |
+| Backend | Stripe Checkout, Einmalzahlung |
+| Backend | Auslieferung über **signierte, ablaufende Download-Adresse** — nicht über ein öffentliches Verzeichnis |
+| Backend | Rechnung mit **lückenlosem, fortlaufendem Nummernkreis** (GoBD) |
+| Backend | Bestell- und Auslieferungsmail über Brevo |
+| Recht | Widerrufsbelehrung und **ausdrücklicher Widerrufsverzicht vor dem Download** |
+| Frontend | Produktseite, Kaufabschluss, Downloadbereich |
+| Vertrieb | Anrechnung muss bei Angebotserstellung **automatisch** gezogen werden |
+
+⚠️ **Der teuerste Fehler wäre, das Workbook in die `deals`-Pipeline zu zwingen.** Ein Deal in KAS ist ein Projekt mit Prozessschritten, Domain und Auslieferung. Eine Workbook-Bestellung ist nichts davon. Wird `product_type` um digitale Produkte erweitert, laufen diese Bestellungen durch einen Prozessflow, der beim Auslieferungsschritt abbricht, weil keine Domain existiert.
+
+⚠️ **Manuelle Anrechnung ist eine Fehlerquelle.** Sie wird irgendwann vergessen — der Kunde erinnert sich. Beim Anlegen eines Deals muss automatisch geprüft werden, ob unter der E-Mail-Adresse eine offene Anrechnung liegt.
+
+---
+
+## 6. ⚠️ Steuersatz ungeklärt
+
+Elektronische Publikationen unterliegen 7 %, digitale Werkzeuge und Vorlagen 19 %. Ein Mischprodukt aus PDF, Tabellenbogen und Druckbeilage ist nicht eindeutig zuzuordnen. **Vor Verkaufsstart mit dem Steuerberater klären** — eine falsche Zuordnung wird bei der nächsten Prüfung rückwirkend korrigiert, mit Zinsen.
+
+---
+
+## 7. Offene Punkte
+
+| # | Punkt | Verantwortung |
+|---|---|---|
+| 1 | 🔴 Inhalt schreiben — Ableitung aus dem Buch oder Neuerstellung | Geschäftsführung |
+| 2 | 🔴 Bestellsystem `orders` bauen | Technik |
+| 3 | 🔴 Widerrufsbelehrung und Verzichtserklärung | Recht |
+| 4 | 🔴 Konstruktion „kein Buch" anwaltlich bestätigen | Recht |
+| 5 | ⚠️ Steuersatz klären | Steuerberater |
+| 6 | Automatische Anrechnungsprüfung im Angebotsprozess | Technik |
+| 7 | Preisentscheidung 149 € oder 99 € | Geschäftsführung |
+| 8 | Anrechnungsfrist 6 oder 12 Monate | Geschäftsführung |

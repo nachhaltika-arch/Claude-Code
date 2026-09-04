@@ -131,11 +131,13 @@ def projekt_festpreis(db, slug: str, bezahlt: float):
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
     from sqlalchemy import text
+    from services.preisangabe import preisangabe
     import json as _j
     rows = db.execute(text(
         "SELECT slug, name, price_brutto, price_netto, tax_rate, "
         "short_desc, delivery_days, highlighted, highlight_label, "
-        "features, payment_type, status "
+        "features, payment_type, status, "
+        "gekoppeltes_abo, abo_mindestlaufzeit "
         "FROM products WHERE status='live' ORDER BY sort_order ASC"
     )).mappings().all()
     result = {}
@@ -157,6 +159,15 @@ def get_packages(db: Session = Depends(get_db)):
             "delivery_days":   r["delivery_days"],
             "highlighted":     r["highlighted"],
             "highlight_label": r["highlight_label"] or "",
+            # Die Pflichtangabe bei gekoppeltem Abo (L-164). Sie steht auch
+            # hier, weil § 4.1 des Datenblatts WS-STA-01 den Gesamtpreis der
+            # Mindestlaufzeit in **jeder** Preisangabe verlangt — und dieser
+            # Endpunkt speist die Verkaufsseiten und das Angebot, nicht nur
+            # die Kasse. Ein Feld, das nur der eine Weg kennt, ist genau die
+            # Luecke, aus der eine falsche Preisangabe entsteht.
+            "preisangabe":     preisangabe(
+                int(round(float(r["price_netto"] or 0) * 100)),
+                r["gekoppeltes_abo"], r["abo_mindestlaufzeit"] or 0),
         }
     return result
 
@@ -165,6 +176,17 @@ def get_packages(db: Session = Depends(get_db)):
 async def create_checkout(request: Request, db: Session = Depends(get_db)):
     from sqlalchemy import text as _t
     import json as _j
+
+    # **Kein echtes Geld ausserhalb der Produktion** (04.09.2026). Siehe
+    # `services/stripe_modus.py`: Ein Live-Schluessel in einer Umgebung, die
+    # sich ausdruecklich als nicht-produktiv bezeichnet, haelt hier an — sonst
+    # bucht ein Testklick von einer echten Karte ab, und niemand sieht es,
+    # weil auf Staging niemand auf seinen Kontoauszug schaut.
+    from services import stripe_modus
+    try:
+        stripe_modus.pruefe_oder_fehler()
+    except stripe_modus.FalscherModus as fehler:
+        raise HTTPException(503, str(fehler))
 
     body = await request.json()
     # Kein Rueckfall auf einen Paketnamen (L-97, 23.08.2026). Hier stand
@@ -239,6 +261,49 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, str(e))
 
 
+def _abo_einzug_eingerichtet(session, db: Session):
+    """Das fertige Abonnement am Vertrag vermerken.
+
+    **Warum der Vertrag gesucht und nicht angelegt wird.** Der Vertrag
+    besteht, bevor der Kunde den Einzug einrichtet — er ist die Zusage, das
+    Abonnement nur der Weg, das Geld zu holen. Findet sich keiner, ist etwas
+    anderes schiefgegangen als eine fehlende Zeile; dann gehoert es ins
+    Protokoll und nicht in eine erfundene Zeile.
+
+    **Die Kundenkennung wird mitgenommen.** Ohne sie zeigt das
+    Zahlungsportal im Kundenkonto spaeter nichts — dieselbe Luecke wie in
+    L-162, nur andersherum.
+    """
+    from services import abo_vertrag, zahlungsportal
+
+    merkmale = session.get("metadata") or {}
+    lead_id = int(merkmale.get("lead_id") or 0)
+    abo = (merkmale.get("abo_produkt") or "").upper()
+    subscription = session.get("subscription") or ""
+
+    if not lead_id or not subscription:
+        logger.error("Abo-Einzug ohne lead_id oder subscription: %s", merkmale)
+        return
+
+    vertrag = abo_vertrag.laufender(db, lead_id)
+    if vertrag is None or vertrag.produkt != abo:
+        logger.error("Abo-Einzug fuer Betrieb %s, aber kein passender "
+                     "laufender Vertrag (%s)", lead_id, abo)
+        return
+
+    vertrag.stripe_subscription_id = str(subscription)[:200]
+
+    kennung = session.get("customer") or ""
+    if kennung:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if lead is not None:
+            zahlungsportal.merke_kennung(db, lead, str(kennung))
+
+    db.commit()
+    logger.info("Abo-Einzug eingerichtet: Betrieb %s, %s, %s",
+                lead_id, abo, subscription)
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
@@ -263,7 +328,32 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, "Webhook Fehler")
 
     if event["type"] == "checkout.session.completed":
-        session_obj = event["data"]["object"]
+        # **Erst zu gewoehnlichen Daten machen, dann weiterreichen.**
+        # `construct_event` liefert ein `StripeObject`, und das ist seit
+        # stripe 15 keine dict-Unterklasse mehr: `.get(...)` sucht dort
+        # einen *Schluessel* namens „get" und wirft. Erster echter Testkauf
+        # am 27.08.2026 → HTTP 500. Siehe `services/stripe_ereignis.py`.
+        from services.stripe_ereignis import gegenstand
+
+        session_obj = gegenstand(event)
+
+        # **Ein Pflege-Abo ist kein neues Projekt** (04.09.2026).
+        # `_handle_successful_payment` legt Lead, Konto und Projekt an und
+        # verschickt die Willkommensmail — richtig fuer einen Websprint,
+        # falsch fuer einen Kunden, der gerade nur seinen Einzug einrichtet.
+        # Er bekaeme ein zweites Projekt und eine Begruessung fuer etwas, das
+        # er seit Monaten hat.
+        merkmale = session_obj.get("metadata") or {}
+        if merkmale.get("abo_produkt"):
+            try:
+                _abo_einzug_eingerichtet(session_obj, db)
+            except Exception as e:  # noqa: BLE001
+                logger.error("Stripe: Abo-Einzug nicht vermerkt fuer Sitzung "
+                             "%s: %s", session_obj.get("id", "?"), e,
+                             exc_info=True)
+                return {"status": "error_logged"}
+            return {"status": "ok"}
+
         try:
             _handle_successful_payment(session_obj, db)
         except Exception as e:
@@ -277,6 +367,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+class _UebersprungenerSchritt(Exception):
+    """Ein Schritt, den dieses Produkt nicht hat.
+
+    **Warum eine Ausnahme und kein `if` um den ganzen Block.** Die beiden
+    Bloecke darunter stehen bereits in `try/except Exception`, und ihre
+    Einrueckung ist tief. Ein zusaetzliches `if` haette sie um eine Ebene
+    verschoben — eine Aenderung von hundert Zeilen am Zahlungspfad, in der
+    ein echter Fehler leicht untergeht. So bleibt der Eingriff eine Zeile,
+    und der Unterschied ist im Diff zu sehen.
+
+    Das `except Exception` faengt sie mit; der Protokolleintrag sagt dann
+    „uebersprungen", nicht „fehlgeschlagen".
+    """
+
+
 def _handle_successful_payment(session: dict, db: Session):
     """
     Nach erfolgreicher Stripe-Zahlung:
@@ -286,7 +391,29 @@ def _handle_successful_payment(session: dict, db: Session):
     4. Projekt anlegen
     5. Content-Scraper im Hintergrund starten
     """
+    from sqlalchemy import text as _t
+
     meta        = session.get("metadata", {})
+
+    # ── GEHOERT DIESE KASSE UEBERHAUPT HIERHER? ──────────────────────
+    #
+    # **Ein Stripe-Endpunkt abonniert Ereignisarten, nicht Vorgaenge.** Diese
+    # Adresse bekommt deshalb **jede** abgeschlossene Kasse des Kontos, auch
+    # die des Buchs, des Shops und des GEO-Abos. Ohne diese Zeilen haette ein
+    # Buchkauf fuer 49 EUR hier einen Lead, ein Benutzerkonto, ein
+    # Website-Projekt und eine Willkommensmail ausgeloest — der Kaeufer
+    # bekaeme Zugangsdaten fuer ein Projekt, das er nie bestellt hat.
+    #
+    # Siehe `services/zahlungsweg.py` fuer die Marker.
+    from services.zahlungsweg import WEBSPRINT, weg_der_sitzung
+
+    weg = weg_der_sitzung(meta)
+    if weg != WEBSPRINT:
+        logger.info(
+            "Stripe: Sitzung %s gehoert zum Weg %r — hier uebersprungen",
+            session.get("id", "?"), weg)
+        return
+
     email       = meta.get("customer_email") or session.get("customer_email", "")
     company     = meta.get("company_name", "")
     name        = meta.get("customer_name", "")
@@ -324,6 +451,43 @@ def _handle_successful_payment(session: dict, db: Session):
         f"{company} ({email}) | {amount:.2f} EUR | Session: {stripe_session_id}"
     )
 
+    # ── WELCHE SCHRITTE DIESER KAUF AUSLOEST ─────────────────
+    # **Bis zum 27.08.2026 waren es immer dieselben fuenf** — der
+    # Websprint-Ablauf, auch fuer ein PDF-Workbook. `products.webhook_actions`
+    # trug die Liste laengst und wurde von keiner Zeile gelesen.
+    #
+    # Die Vorgabe bleibt das Verhalten von heute: Ein Produkt ohne Eintrag
+    # bekommt weiter alle fuenf. Siehe `services/kaufabwicklung.py`.
+    from services.kaufabwicklung import (AUFTRAGSBESTAETIGUNG, KONTO, LEAD,
+                                         PROJEKT, SCRAPER, WILLKOMMEN,
+                                         schritte_fuer)
+
+    # **Diese Abfrage darf den Kauf nicht kosten.** Beim ersten Anlauf stand
+    # sie ohne Absicherung hier, und ein Fehlschlag vergiftete die Sitzung:
+    # `current transaction is aborted, commands ignored until end of
+    # transaction block` — danach scheitert **jede** weitere Anweisung, also
+    # auch die Kundenanlage. Das Geld waere da, der Kunde nicht.
+    #
+    # Gefunden hat es der Gesamtlauf der Tests, nicht der Einzellauf: Die
+    # beiden Dateien fuer sich blieben gruen.
+    #
+    # Bricht sie, gilt die Vorgabe — das Verhalten von vor dem 27.08.2026.
+    _produktzeile = None
+    if package_id:
+        try:
+            _produktzeile = db.execute(_t(
+                "SELECT webhook_actions FROM products WHERE slug=:s"
+            ), {"s": package_id}).mappings().first()
+        except Exception as fehler:        # noqa: BLE001 — siehe Kommentar
+            db.rollback()                  # sonst bleibt die Sitzung vergiftet
+            logger.warning(
+                "Stripe: Kaufaktionen fuer %s nicht lesbar (%s) — "
+                "es gilt der vollstaendige Ablauf", package_id, fehler)
+    schritte = schritte_fuer(_produktzeile)
+    logger.info("Stripe: Kaufabwicklung fuer %s — Schritte: %s",
+                package_id or "(ohne Produktangabe)",
+                ", ".join(sorted(schritte)) or "keine")
+
     name_parts = name.split(" ", 1)
     first_name = name_parts[0] if name_parts else ""
     last_name  = name_parts[1] if len(name_parts) > 1 else ""
@@ -354,9 +518,21 @@ def _handle_successful_payment(session: dict, db: Session):
 
     logger.info(f"Stripe: Lead {lead.id} angelegt fuer {company}")
 
+    # **Das Zahlungskonto am Betrieb merken** (04.09.2026). Stripe legt bei
+    # jedem Kauf einen Kunden an; ohne diese Zeile faende das Kundenportal ihn
+    # nur ueber einen Umweg — Nachschlagen per Mailadresse — und bei einer
+    # abweichenden Adresse gar nicht.
+    try:
+        from services import zahlungsportal
+
+        zahlungsportal.merke_kennung(db, lead, session.get("customer", "") or "")
+    except Exception as fehler:      # noqa: BLE001
+        logger.warning("Zahlungskonto nicht am Betrieb gemerkt: %s: %s",
+                       type(fehler).__name__, fehler)
+
     # ── 2. USER ANLEGEN ──────────────────────────────────────
     temp_pw = None
-    if email:
+    if email and KONTO in schritte:
         existing = db.query(User).filter(User.email == email).first()
         if not existing:
             from auth import hash_password
@@ -377,8 +553,13 @@ def _handle_successful_payment(session: dict, db: Session):
             logger.info(f"Stripe: User {email} existiert bereits")
 
     # ── 3. PROJEKT ANLEGEN ───────────────────────────────────
+    # **Der Schritt, um den es geht.** Ein Workbook-Kaeufer bekam hier ein
+    # Website-Projekt, das beim Schritt „Veroeffentlichung" haengen bleibt,
+    # weil es keine Domain gibt.
     project_id = None
     try:
+        if PROJEKT not in schritte:
+            raise _UebersprungenerSchritt(PROJEKT)
         existing_project = db.query(Project).filter(
             Project.lead_id == lead.id
         ).first()
@@ -404,6 +585,12 @@ def _handle_successful_payment(session: dict, db: Session):
         else:
             project_id = existing_project.id
             logger.info(f"Stripe: Projekt bereits vorhanden ({project_id})")
+    except _UebersprungenerSchritt:
+        # **Kein Fehler.** Dieses Produkt hat den Schritt nicht — eine
+        # Meldung „fehlgeschlagen" haette jemanden auf die Suche nach einem
+        # Fehler geschickt, den es nicht gibt.
+        logger.info("Stripe: Kein Projekt fuer %s — nicht vorgesehen",
+                    package_id or "dieses Produkt")
     except Exception as e:
         logger.error(f"Stripe: Projekt-Anlage fehlgeschlagen: {e}")
         # Kein raise — Commit laeuft trotzdem durch
@@ -426,6 +613,8 @@ def _handle_successful_payment(session: dict, db: Session):
     # ── AUFTRAGSBESTÄTIGUNG PDF ──────────────────────────────
     pdf_path = None
     try:
+        if AUFTRAGSBESTAETIGUNG not in schritte:
+            raise _UebersprungenerSchritt(AUFTRAGSBESTAETIGUNG)
         from services.auftragsbestaetigung_pdf import save_auftragsbestaetigung
         pdf_path = save_auftragsbestaetigung(
             session_id     = session.get("id", ""),
@@ -445,11 +634,14 @@ def _handle_successful_payment(session: dict, db: Session):
                 proj.auftragsbestaetigung_pdf = pdf_path
                 db.commit()
         logger.info(f"Auftragsbestaetigung gespeichert: {pdf_path}")
+    except _UebersprungenerSchritt:
+        logger.info("Stripe: Keine Auftragsbestaetigung fuer %s — "
+                    "nicht vorgesehen", package_id or "dieses Produkt")
     except Exception as e:
         logger.error(f"Auftragsbestaetigung PDF Fehler: {e}")
 
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
-    if email:
+    if email and WILLKOMMEN in schritte:
         try:
             from services.email import anhang_aus_datei, send_email
             from services.qr_service import get_portal_url
@@ -612,7 +804,7 @@ def _handle_successful_payment(session: dict, db: Session):
             # E-Mail-Fehler darf Webhook NICHT zum Fehlschlagen bringen
 
     # ── 5. CONTENT-SCRAPER IM HINTERGRUND ───────────────────
-    if website_url and lead.id:
+    if website_url and lead.id and SCRAPER in schritte:
         def _scrape_in_background(lead_id: int):
             try:
                 import asyncio

@@ -77,7 +77,7 @@ export default function FeedbackButton() {
                   <input aria-label="Kurze Beschreibung..." value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Kurze Beschreibung..." maxLength={100} style={{ ...inp, marginBottom: 12 }} />
                   <Lbl>Beschreibung *</Lbl>
                   <textarea aria-label="Details..." value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={4} style={{ ...inp, resize: 'vertical', minHeight: 100, marginBottom: 16 }} />
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>ℹ️ Seite und Browser-Info werden automatisch mitgesendet</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>ℹ️ Seite und Browser-Info werden automatisch mitgesendet</div>
                   <button onClick={submit} disabled={loading || !form.title || !form.description} style={{
                     width: '100%', padding: 12, background: 'var(--brand-primary)', opacity: loading || !form.title || !form.description ? 0.5 : 1,
                     color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
@@ -90,7 +90,7 @@ export default function FeedbackButton() {
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Danke!</h3>
                 <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 16 }}>Ihr Ticket wurde erstellt.</p>
                 <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--kc-mid-a-25)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Ticket-Nummer</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Ticket-Nummer</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--brand-primary)', letterSpacing: '0.05em' }}>{ticketNr}</div>
                 </div>
                 <button onClick={reset} style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Schliessen</button>
@@ -104,5 +104,5 @@ export default function FeedbackButton() {
 }
 
 function Lbl({ children }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>;
+  return <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{children}</div>;
 }

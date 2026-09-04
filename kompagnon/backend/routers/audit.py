@@ -38,44 +38,10 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 #: Auf welche Stufe die Zahl im Werbetext abgerundet wird (L-65).
 #: Zehner: „Über 340" bleibt ueber Wochen stehen und ist dabei immer wahr.
-ANZEIGE_STUFE = 10
-
-
-def analysen_zaehlen(db) -> int:
-    """Wie viele Analysen es gibt — die Zahl hinter dem Werbetext."""
-    from sqlalchemy import text as _text
-
-    zeile = db.execute(_text("SELECT COUNT(*) FROM audit_results")).fetchone()
-    return int(zeile[0] or 0)
-
-
-@router.get("/analysen/anzahl")
-def analysen_anzahl(db: Session = Depends(get_db)):
-    """Wie viele Betriebe schon analysiert wurden (L-65).
-
-    **Ohne Anmeldung**, weil das eingebettete Widget auf fremden Seiten
-    laeuft. Herausgegeben wird **eine** aggregierte Zahl — kein Betrieb,
-    keine Domain, kein Ergebnis. Beim Widget-Pentest am 12.08.2026 war genau
-    das der Befund: Der Teaser gab jede Analyse aus.
-
-    `anzeige` ist auf Zehner **abgerundet**. „Über 347 analysiert" liest sich
-    wie ein Zaehlerstand und ist bei der naechsten Analyse falsch;
-    abgerundet ist die Aussage immer wahr — es sind mindestens so viele.
-    Aufrunden hiesse mehr behaupten, als geschehen ist.
-
-    Faellt die Zaehlung aus, kommt `0` zurueck und **kein Fehler**: Das
-    Widget haengt auf einer fremden Seite. Dann faellt der Satz weg, nicht
-    das Widget.
-    """
-    try:
-        gesamt = analysen_zaehlen(db)
-    except Exception as fehler:  # noqa: BLE001 — der Satz darf fehlen, das Widget nicht
-        logger.warning("Analysenzahl nicht ermittelbar (%s: %s)",
-                       type(fehler).__name__, fehler)
-        return {"analysen": 0, "anzeige": 0}
-
-    return {"analysen": gesamt,
-            "anzeige": (gesamt // ANZEIGE_STUFE) * ANZEIGE_STUFE}
+# Der Werbetext, zu dem `ANZEIGE_STUFE` gehoerte, ist am 27.08.2026 entfernt
+# worden — mit ihm `GET /api/audit/analysen/anzahl` und der Hook, der ihn rief.
+# Die Konstante bleibt hier nicht stehen; wer die Zahl wieder braucht, holt
+# beides aus der Historie.
 
 # Vollständiges Audit: Mehrseiten-Crawl, PageSpeed und KI-Bewertung.
 # Freigegeben am 2026-08-11 (vorher 90s — reichte nur für die Startseite).
@@ -236,6 +202,7 @@ def _run_audit_background(audit_id: int):
         audit2.level           = result["level"]
         audit2.item_scores     = json.dumps(result["items"], ensure_ascii=False)
         audit2.item_sources    = json.dumps(result["sources"], ensure_ascii=False)
+        audit2.item_belege     = json.dumps(result.get("belege", {}), ensure_ascii=False)
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]

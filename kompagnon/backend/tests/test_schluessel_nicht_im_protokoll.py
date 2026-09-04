@@ -67,6 +67,169 @@ class TestSchwaerzung:
     def test_schwaerzt_geheime_abfrageparameter(self, roh, erwartet):
         assert schwaerzen(roh) == erwartet
 
+    @pytest.mark.parametrize("pfad", [
+        "/api/posteingang/brevo/",
+        "/api/mail-events/brevo/",
+    ])
+    def test_schwaerzt_auch_geheimnisse_im_pfad(self, pfad):
+        """**Der Fund vom 31.08.2026 — eine Ebene weiter als L-98.**
+
+        Beide Brevo-Webhooks tragen ihr Geheimnis im **Pfad**, weil Brevo
+        nicht signiert und der Pfad die einzige Stelle ist, die unveraendert
+        ankommt. Uvicorn schreibt jede Anfragezeile mit vollem Pfad ins
+        Protokoll — damit stand
+        `POST /api/posteingang/brevo/<Geheimnis> 200 OK` im Klartext im
+        Produktivprotokoll.
+
+        Gefunden nicht beim Suchen danach, sondern beim **Nachlesen des
+        Protokolls** waehrend des Beweislaufs fuer L-18.
+        """
+        roh = f'INFO: 1.2.3.4:0 - "POST {pfad}geheim-nur-im-test HTTP/1.1" 200 OK'
+
+        geschwaerzt = schwaerzen(roh)
+
+        assert "geheim-nur-im-test" not in geschwaerzt
+        # Der Weg bleibt lesbar — sonst laesst sich nicht mehr sehen, **dass**
+        # der Webhook gerufen wurde.
+        assert pfad in geschwaerzt
+        assert "***geschwaerzt***" in geschwaerzt
+        assert "200 OK" in geschwaerzt
+
+    @pytest.mark.parametrize("pfad", [
+        "/api/posteingang/brevo/geheim-nur-im-test",
+        "/api/mail-events/brevo/geheim-nur-im-test",
+    ])
+    def test_filter_schwaerzt_die_satzform_von_uvicorn(self, pfad):
+        """**Die Satzform, die uvicorn wirklich erzeugt** — nicht eine gebaute.
+
+        Am 31.08.2026 zweimal danebengegriffen, und beide Male haette dieser
+        Test es gefangen:
+
+        1. Der Filter hing nur an den Handlern der Wurzel; `uvicorn.access`
+           hat eigene und `propagate = False`.
+        2. Danach hing er richtig — und wirkte trotzdem nicht: Die Schranke
+           im Filter stieg aus, wenn kein `=` im Satz vorkam, und die
+           Anfragezeile hat keins. Die Pfadschwaerzung war eingebaut und
+           **nicht angeschlossen**.
+
+        Die vorhandenen Tests pruefen `schwaerzen()` mit einem fertigen Satz.
+        Uvicorn uebergibt den Pfad aber als **Argument** zu einer Vorlage; wer
+        nur die Funktion prueft, sieht die Schranke davor nie.
+        """
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "POST", pfad, "1.1", 403, "Forbidden"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        ausgabe = satz.getMessage()
+        assert "geheim-nur-im-test" not in ausgabe
+        assert "***geschwaerzt***" in ausgabe
+        # Der Rest der Zeile bleibt lesbar — sonst taugt das Protokoll nicht.
+        assert "403 Forbidden" in ausgabe
+
+    def test_die_satzform_ueberlebt_die_schwaerzung(self):
+        """**Uvicorns Formatierer packt genau fuenf Argumente aus.**
+
+        Der zweite Anlauf am 31.08.2026 hat das Geheimnis entfernt, indem er
+        den Satz ausformulierte und `args = ()` setzte. Damit war das Leck weg
+        und das Zugriffsprotokoll kaputt: `AccessFormatter.formatMessage` liest
+        `client_addr, method, full_path, http_version, status_code` aus
+        `record.args` und warf bei **jeder** Anfrage an die beiden Webhooks
+        `ValueError: not enough values to unpack (expected 5, got 0)` — samt
+        Traceback im Protokoll.
+
+        Ein Leck gegen ein unlesbares Protokoll zu tauschen ist kein
+        Fortschritt. Deshalb wird das **Argument** geschwaerzt, in dem der Pfad
+        steht, und die Form bleibt.
+        """
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "POST",
+                  "/api/posteingang/brevo/geheim-nur-im-test", "1.1",
+                  403, "Forbidden"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        assert isinstance(satz.args, tuple)
+        assert len(satz.args) == 6, (
+            "die Argumente sind weg — uvicorns Formatierer scheitert daran")
+        assert satz.args[2] == "/api/posteingang/brevo/***geschwaerzt***"
+
+    def test_ein_platzhalter_in_der_vorlage_bleibt_stehen(self):
+        """Beim Reparieren der Reparatur einmal kaputtgemacht.
+
+        Wer die **Vorlage** schwaerzt, waehrend Argumente daran haengen,
+        frisst den Platzhalter: Aus `"… key=%s"` wird
+        `"… key=***geschwaerzt***"`, und `msg % args` scheitert danach mit
+        „not all arguments converted". Der Satz muss trotzdem formatierbar
+        bleiben.
+        """
+        satz = logging.LogRecord(
+            name="httpx", level=logging.INFO, pathname=__file__, lineno=1,
+            msg='HTTP Request: GET https://x?key=%s "200 OK"',
+            args=("geheim-nur-im-test",), exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        # Kein Fehler beim Formatieren, und das Geheimnis ist weg.
+        ausgabe = satz.getMessage()
+        assert "geheim-nur-im-test" not in ausgabe
+        assert "***geschwaerzt***" in ausgabe
+
+    def test_filter_laesst_gewoehnliche_anfragezeilen_stehen(self):
+        """Die Gegenprobe: Ohne sie waere der Test darueber auch dann gruen,
+        wenn **jede** Anfragezeile geschwaerzt wuerde."""
+        satz = logging.LogRecord(
+            name="uvicorn.access", level=logging.INFO, pathname=__file__,
+            lineno=1, msg='%s - "%s %s HTTP/%s" %d %s',
+            args=("1.2.3.4:0", "GET", "/api/leads/12/audits", "1.1", 200, "OK"),
+            exc_info=None,
+        )
+
+        Schwaerzung().filter(satz)
+
+        assert satz.getMessage() == '1.2.3.4:0 - "GET /api/leads/12/audits HTTP/1.1" 200 OK'
+
+    def test_der_filter_haengt_am_zugriffsprotokoll_von_uvicorn(self):
+        """**Die Schwaerzung muss dort haengen, wo der Pfad hingeschrieben wird.**
+
+        Am 31.08.2026 am laufenden Dienst gemessen statt im Code gelesen: Ein
+        Aufruf auf `/api/posteingang/brevo/pruefwert…` stand danach
+        **unveraendert** im Staging-Protokoll. Der Filter hing nur an den
+        Handlern der Wurzel — und uvicorn setzt fuer `uvicorn.access` eigene
+        Handler mit `propagate = False`. Ausgerechnet die Anfragezeile traegt
+        aber den Pfad.
+
+        Eine Schwaerzung, die die eine Zeile nicht sieht, in der das
+        Geheimnis wirklich steht, ist keine.
+        """
+        import logging
+
+        import main  # noqa: F401  — haengt die Filter beim Import ein
+
+        for name in ("uvicorn.access", "uvicorn.error"):
+            arten = [type(f).__name__ for f in logging.getLogger(name).filters]
+            assert "Schwaerzung" in arten, (
+                f"{name} hat keine Schwaerzung — der Pfad steht dort im Klartext")
+
+    def test_laesst_gewoehnliche_pfade_stehen(self):
+        """Die Gegenprobe zur Pfadschwaerzung.
+
+        Ohne sie waere der Test darueber auch dann gruen, wenn **jeder** Pfad
+        geschwaerzt wuerde — und dann waere das Protokoll unbrauchbar.
+        """
+        roh = 'INFO: 1.2.3.4:0 - "GET /api/leads/12/audits HTTP/1.1" 200 OK'
+
+        assert schwaerzen(roh) == roh
+
     def test_laesst_harmlose_parameter_stehen(self):
         # Arrange
         roh = "GET https://x?url=https://kunde.de&strategy=mobile&category=performance"

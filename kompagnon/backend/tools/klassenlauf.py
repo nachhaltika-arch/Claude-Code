@@ -8,6 +8,16 @@ Fehlerseite, die als Messung zaehlte, und `/llm.txt` statt `/llms.txt`. Beide
 sind inzwischen behoben. Zwei weitere Klassenlaeufe sollen finden, was noch
 niemand gesehen hat.
 
+**Was es ausdruecklich NICHT erhebt (seit dem 28.08.2026 in der Ausgabe
+getrennt).** Es ruft `collect_facts`, aber weder einen Bildschirmabzug noch
+ein Sprachmodell — der echte Auditweg (`routers.audit._gather`) macht beides
+parallel. Die sechs `Source.AI`-Kriterien fallen hier deshalb **bei jeder
+Seite** aus. Bis sie getrennt wurden, standen sie in derselben Liste wie eine
+echte Fehlmessung: Im Lauf vom 28.08. gegen `gutdurchdacht.de` waren **sechs
+von acht** gemeldeten Luecken die des Werkzeugs, nicht die der Website. Ein
+Werkzeug, das eigene blinde Stellen als fremde Befunde ausgibt, ist schlimmer
+als keines.
+
 **Was dieses Werkzeug ausgibt.** Nicht die Punktzahl. Punkte sind hier
 uninteressant, weil niemand weiss, ob sie stimmen — genau das ist die Frage.
 Ausgegeben wird, **was ausfiel und warum**: welche Erhebung nicht lieferte,
@@ -117,11 +127,32 @@ async def _ein_lauf(klasse: str, url: str) -> None:
 
     nicht_erhoben = [c for c in all_criteria()
                      if quellen.get(c.key) == Source.NOT_COLLECTED.value]
-    verloren = sum(c.max_points for c in nicht_erhoben)
-    print(f"\nKriterien ohne Messung: {len(nicht_erhoben)} von "
+
+    # **Die eigene blinde Stelle zuerst (L-113, 28.08.2026).** Dieses Werkzeug
+    # ruft `collect_facts`, aber **keinen** Bildschirmabzug und keine KI — der
+    # echte Auditweg (`routers.audit._gather`) macht beides. Die sechs
+    # `Source.AI`-Kriterien fallen hier also **immer** aus, und zwar bei jeder
+    # Seite. Sie in dieselbe Liste zu schreiben wie eine echte Fehlmessung
+    # hiesse, dem Werkzeug einen Befund unterzuschieben, der aus ihm selbst
+    # kommt: 6 von 8 Meldungen im Lauf vom 28.08. waren genau das.
+    eigene_luecke = [c for c in nicht_erhoben if c.source == Source.AI]
+    echte_luecke = [c for c in nicht_erhoben if c.source != Source.AI]
+
+    verloren = sum(c.max_points for c in echte_luecke)
+    print(f"\nKriterien ohne Messung: {len(echte_luecke)} von "
           f"{len(list(all_criteria()))} ({verloren} von 103 Punkten)")
-    for c in nicht_erhoben:
+    for c in echte_luecke:
         print(f"  ⚪ {c.buch_code} {c.key} ({c.max_points} P) — {c.buch_label}")
+    if not echte_luecke:
+        print("  — keine")
+
+    if eigene_luecke:
+        print(f"\nVon diesem Werkzeug nicht erhoben ({len(eigene_luecke)}) — "
+              f"**kein** Befund ueber die Website:")
+        print("  Es holt keinen Bildschirmabzug und befragt kein Modell; der "
+              "Auditweg tut beides.")
+        for c in eigene_luecke:
+            print(f"  ◻ {c.buch_code} {c.key} ({c.max_points} P) — {c.buch_label}")
 
     verdacht = _verdachtsmomente(fakten)
     if verdacht:

@@ -98,7 +98,7 @@ export default function CampaignManager() {
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                   <span style={{ fontSize: 22 }}>{c.source_icon}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {c.source_label}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export default function CampaignManager() {
               <div style={{ padding: '14px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Tracking-URL */}
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                     Tracking-URL
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -124,7 +124,7 @@ export default function CampaignManager() {
                       style={{
                         flex: 1, padding: '7px 10px',
                         background: 'var(--bg-app)', border: '1px solid var(--border-light)',
-                        borderRadius: 'var(--radius-md)', fontSize: 11,
+                        borderRadius: 'var(--radius-md)', fontSize: 12,
                         color: 'var(--text-primary)', fontFamily: 'monospace',
                         outline: 'none',
                       }}
@@ -133,7 +133,7 @@ export default function CampaignManager() {
                       style={{
                         padding: '7px 12px', background: 'var(--bg-app)',
                         border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-                        fontSize: 11, cursor: 'pointer', color: 'var(--text-secondary)',
+                        fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)',
                         fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
                       }}>
                       📋
@@ -145,17 +145,17 @@ export default function CampaignManager() {
                 <div style={{ display: 'flex', gap: 14, padding: '8px 0' }}>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{c.lead_count || 0}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Leads</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Leads</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--status-success-text)' }}>{c.won_count || 0}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Gewonnen</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Gewonnen</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--brand-primary)' }}>
                       {c.lead_count ? Math.round(((c.won_count || 0) / c.lead_count) * 100) : 0}%
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
                   </div>
                 </div>
 
@@ -281,7 +281,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
     background: 'var(--bg-app)', color: 'var(--text-primary)',
     fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
   };
-  const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block' };
 
   return createPortal(
     <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
@@ -300,7 +300,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
       }}>
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               Neue Kampagne
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -346,7 +346,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Ziel-URL</label>
             <input aria-label="Ziel-URL" style={inputStyle} value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://kompagnon.eu" />
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               Wohin der Kunde nach Klick weitergeleitet wird. Bei Briefkarten wird automatisch die Landing-Page verwendet.
             </div>
           </div>

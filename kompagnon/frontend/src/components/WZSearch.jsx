@@ -52,6 +52,11 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
         background: 'var(--bg-app)',
         cursor: 'text',
       }} onClick={() => !value && setOpen(true)}>
+        {/* **Kein `role="button"` hier (30.08.2026, L-17).** Diese Flaeche
+            umschliesst ein Eingabefeld; sie als Schaltflaeche auszugeben waere
+            ein Bedienelement im Bedienelement. Der Tastaturweg fuehrt in das
+            Feld selbst — und das oeffnet die Liste jetzt beim Fokus, so wie
+            der Klick auf die Flaeche sie fuer die Maus oeffnet. */}
         <span style={{ fontSize: 14, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔍</span>
         {value ? (
           <>
@@ -103,7 +108,7 @@ export default function WZSearch({ value, onChange, placeholder = 'Branche suche
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-active)'}
               onMouseLeave={e => e.currentTarget.style.background = ''}
             >
-              <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 52 }}>
+              <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0, minWidth: 52 }}>
                 {entry.code}
               </span>
               <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>

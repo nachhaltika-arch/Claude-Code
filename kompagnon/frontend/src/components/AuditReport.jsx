@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   RadarChart,
   PolarGrid,
@@ -7,202 +7,16 @@ import {
   ResponsiveContainer,
   Tooltip as ReTooltip,
 } from 'recharts';
-import * as echarts from 'echarts';
 import { useScreenSize } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
 import { fassungText } from '../utils/fassung';
-
-const LEVEL_STYLES = {
-  'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
-  'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
-  'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
-  'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '⛔' },
-};
-
-const CATEGORIES = [
-  {
-    key: 'rechtliche_compliance',
-    label: 'Rechtliche Compliance',
-    shortLabel: 'Rechtlich',
-    max: 30,
-    color: '#3f51b5',
-    items: [
-            // Diese Liste ist der **Rueckfall fuer Altbestaende** — Audits ohne
-      // mitgelieferten Katalog. Ihre Punktzahlen sind deshalb bewusst die
-      // alten (Impressum 7 statt heute 6): So wurden diese Audits damals
-      // gerechnet. Neue Audits laufen ueber `audit.catalogue`.
-      // Was hier nicht bleiben darf, ist die Rechtsangabe: Das TMG ist
-      // seit Mai 2024 abgeloest (25.08.2026).
-      { key: 'rc_impressum',    label: 'Impressum (§ 5 DDG)',              max: 7 },
-      { key: 'rc_datenschutz',  label: 'Datenschutzerklärung (DSGVO)', max: 7 },
-      { key: 'rc_cookie',       label: 'Cookie Consent (TDDDG)',            max: 6 },
-      { key: 'rc_bfsg',         label: 'Barrierefreiheitserklärung (BFSG)', max: 4 },
-      { key: 'rc_urheberrecht', label: 'Urheberrecht & Lizenzen',          max: 3 },
-      { key: 'rc_ecommerce',    label: 'E-Commerce Pflichten',             max: 3 },
-    ],
-  },
-  {
-    key: 'technische_performance',
-    label: 'Technische Performance',
-    shortLabel: 'Performance',
-    max: 20,
-    color: '#2196f3',
-    items: [
-      { key: 'tp_lcp',    label: 'LCP (Ladezeit Hauptinhalt)',  max: 5 },
-      { key: 'tp_cls',    label: 'CLS (Layout-Stabilität)', max: 4 },
-      { key: 'tp_inp',    label: 'INP (Interaktionszeit)',      max: 3 },
-      { key: 'tp_mobile', label: 'Mobile-First Design',         max: 4 },
-      { key: 'tp_bilder', label: 'Bildoptimierung',             max: 4 },
-    ],
-  },
-  {
-    key: 'barrierefreiheit',
-    label: 'Barrierefreiheit',
-    shortLabel: 'Barrierefr.',
-    max: 20,
-    color: '#9c27b0',
-    items: [
-      { key: 'bf_kontrast',     label: 'Farbkontraste (WCAG AA)',           max: 5 },
-      { key: 'bf_tastatur',     label: 'Tastaturzugänglichkeit',       max: 5 },
-      { key: 'bf_screenreader', label: 'Screenreader-Kompatibilität', max: 5 },
-      { key: 'bf_lesbarkeit',   label: 'Lesbarkeit & Textgröße', max: 5 },
-    ],
-  },
-  {
-    key: 'sicherheit_datenschutz',
-    label: 'Sicherheit & Datenschutz',
-    shortLabel: 'Sicherheit',
-    max: 15,
-    color: '#f44336',
-    items: [
-      { key: 'si_ssl',          label: 'HTTPS / SSL-Zertifikat',        max: 4 },
-      { key: 'si_header',       label: 'Security-Header (HSTS, CSP)',   max: 4 },
-      { key: 'si_drittanbieter',label: 'DSGVO Drittanbieter',           max: 4 },
-      { key: 'si_formulare',    label: 'Formularsicherheit',            max: 3 },
-    ],
-  },
-  {
-    key: 'seo_sichtbarkeit',
-    label: 'SEO & Sichtbarkeit',
-    shortLabel: 'SEO',
-    max: 10,
-    color: '#ff9800',
-    items: [
-      { key: 'se_seo',    label: 'Technische SEO Grundlagen',      max: 4 },
-      { key: 'se_schema', label: 'Strukturierte Daten (Schema.org)', max: 3 },
-      { key: 'se_lokal',  label: 'Lokale Auffindbarkeit',          max: 3 },
-    ],
-  },
-  {
-    key: 'inhalt_nutzererfahrung',
-    label: 'Inhalt & Nutzererfahrung',
-    shortLabel: 'Inhalt/UX',
-    max: 5,
-    color: '#4caf50',
-    items: [
-      { key: 'ux_erstindruck', label: 'Erster Eindruck',           max: 1 },
-      { key: 'ux_cta',         label: 'Klare Call-to-Action',      max: 1 },
-      { key: 'ux_navigation',  label: 'Navigation & Struktur',     max: 1 },
-      { key: 'ux_vertrauen',   label: 'Vertrauenssignale',         max: 1 },
-      { key: 'ux_content',     label: 'Content-Qualität',     max: 1 },
-      { key: 'ux_kontakt',     label: 'Kontaktmöglichkeiten', max: 1 },
-    ],
-  },
-];
-
-const HOSTING_ITEMS = [
-  { key: 'ho_anbieter', label: 'Anbieter identifizierbar' },
-  { key: 'ho_uptime',   label: 'Erreichbarkeit' },
-  { key: 'ho_cdn',      label: 'CDN aktiv' },
-  { key: 'ho_cms',      label: 'CMS erkannt' },
-];
-
-// Farben und Kurzlabels für die Kategorien des überarbeiteten Katalogs.
-// Die Kriterien selbst kommen aus der API — hier steht nur die Darstellung.
-const CATEGORY_META = {
-  recht_compliance:  { color: '#B02418', shortLabel: 'Recht' },
-  sicherheit:        { color: '#7C3AED', shortLabel: 'Sicherheit' },
-  performance:       { color: '#2563EB', shortLabel: 'Performance' },
-  barrierefreiheit:  { color: '#0891B2', shortLabel: 'Barrierefrei' },
-  seo:               { color: '#16A34A', shortLabel: 'SEO' },
-  design:            { color: '#DB2777', shortLabel: 'Design' },
-  conversion:        { color: '#EA580C', shortLabel: 'Conversion' },
-  inhalt:            { color: '#65A30D', shortLabel: 'Inhalt' },
-};
-
-// Klartext für ausgefallene Prüfungen — "nicht erhoben" allein sagt nicht,
-// ob die Website ein Problem hat oder das Audit eines.
-const COLLECTION_REASONS = {
-  kontingent_ohne_api_key: 'kein API-Key hinterlegt',
-  kontingent_erschoepft:  'Tageskontingent erschöpft',
-  api_fehler:             'API-Fehler',
-  ausnahme:               'technischer Fehler',
-  timeout:                'Zeitüberschreitung',
-  handshake_fehlgeschlagen: 'Verbindung fehlgeschlagen',
-  // Hinter der Seite steht kein Betrieb — die angebotsbezogenen Kriterien
-  // gelten dann nicht und zählen nicht mit. Die erkannte Art der Seite steht
-  // im title-Attribut.
-  keine_betriebsseite:    'kein Betrieb erkannt — Maßstab nicht anwendbar',
-};
-
-// Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.
-const SOURCE_BADGES = {
-  gemessen:       { icon: '●', color: '#16A34A', title: 'Technisch gemessen' },
-  abgeleitet:     { icon: '◐', color: '#2563EB', title: 'Aus Messwerten abgeleitet' },
-  einschaetzung:  { icon: '◇', color: '#7C3AED', title: 'KI-Einschätzung' },
-  nicht_erhoben:  { icon: '○', color: '#9CA3AF', title: 'Nicht erhoben — zählt nicht in den Score' },
-};
-
-/**
- * Baut die Kategorie-Ansicht aus der API-Antwort.
- * Nicht erhobene Kriterien fallen aus Punkten UND Maximum heraus, damit eine
- * fehlende Messung nicht als "null Punkte" erscheint.
- * @returns {Array|null} null, wenn das Audit noch nach dem alten Katalog lief
- */
-function buildViewCategories(audit) {
-  const hasSources = audit.sources && Object.keys(audit.sources).length > 0;
-  if (!Array.isArray(audit.catalogue) || !audit.catalogue.length || !hasSources) {
-    return null;
-  }
-
-  return audit.catalogue.map((cat) => {
-    const collected = cat.criteria.filter((c) => c.collected);
-    const meta = CATEGORY_META[cat.key] || {};
-    return {
-      key: cat.key,
-      label: cat.label,
-      shortLabel: meta.shortLabel || cat.label,
-      color: meta.color || 'var(--brand-primary)',
-      score: collected.reduce((sum, c) => sum + (c.score || 0), 0),
-      max: collected.reduce((sum, c) => sum + c.max, 0),
-      nominalMax: cat.nominal_max,
-      criteria: cat.criteria,
-    };
-  });
-}
-
-function scoreColor(score, max) {
-  if (max === 0) return 'var(--text-tertiary)';
-  const pct = score / max;
-  if (pct >= 1.0) return 'var(--status-success-text)';
-  if (pct >= 0.5) return 'var(--status-warning-text)';
-  return 'var(--brand-primary)';
-}
-
-function scoreIcon(score, max) {
-  if (max === 0) return '—';
-  const pct = score / max;
-  if (pct >= 1.0) return '✓';
-  if (pct >= 0.5) return '⚠';
-  return '✗';
-}
-
-// ═══════════════════════════════════════════════════════════
-// Main Component
-// ═══════════════════════════════════════════════════════════
+import {
+  CATEGORIES, COLLECTION_REASONS, HOSTING_ITEMS, LEVEL_STYLES,
+  SOURCE_BADGES, buildViewCategories, scoreColor,
+} from './audit/auditDaten';
+import { CategorySection, MetricCard } from './audit/auditTeile';
 
 export default function AuditReport({ auditData, onClose }) {
   const { isMobile } = useScreenSize();
@@ -401,7 +215,7 @@ export default function AuditReport({ auditData, onClose }) {
           niemand. Ein Ergebnis ohne Massstab ist keine Aussage — und zwei
           Ergebnisse aus zwei Fassungen sind nicht dasselbe Ergebnis. */}
       <div style={{
-        fontSize: 11, color: 'var(--text-tertiary)',
+        fontSize: 12, color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-mono)', textAlign: 'right',
       }}>
         Homepage Standard · {fassungText(r.standard_version)}
@@ -455,7 +269,7 @@ export default function AuditReport({ auditData, onClose }) {
               <PolarGrid stroke="var(--border-light)" />
               <PolarAngleAxis
                 dataKey="subject"
-                tick={{ fontSize: 11, fill: '#555' }}
+                tick={{ fontSize: 12, fill: '#555' }}
               />
               <Radar
                 name="Score %"
@@ -486,7 +300,7 @@ export default function AuditReport({ auditData, onClose }) {
               return (
                 <div key={cat.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                       {cat.label}
                       {partial && (
                         <span
@@ -497,7 +311,7 @@ export default function AuditReport({ auditData, onClose }) {
                         </span>
                       )}
                     </span>
-                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
                       {catScore}/{cat.max}
                     </span>
                   </div>
@@ -547,7 +361,7 @@ export default function AuditReport({ auditData, onClose }) {
         {coverage != null && (
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center',
-            marginBottom: '12px', fontSize: '11px', color: 'var(--text-tertiary)',
+            marginBottom: '12px', fontSize: 12, color: 'var(--text-tertiary)',
           }}>
             <span>{coverage}% der Kriterien konnten geprüft werden.</span>
             {seitenGeprueft > 1 && (
@@ -600,7 +414,7 @@ export default function AuditReport({ auditData, onClose }) {
                     borderRadius: 'var(--radius-md)',
                     background: ok ? '#e8f5e9' : '#fdecea',
                     border: `1px solid ${ok ? 'var(--status-success-text)' : 'var(--brand-primary)'}`,
-                    fontSize: '11px', fontWeight: 600,
+                    fontSize: 12, fontWeight: 600,
                     color: ok ? 'var(--status-success-text)' : 'var(--brand-primary)',
                   }}
                 >
@@ -710,7 +524,7 @@ export default function AuditReport({ auditData, onClose }) {
         const color = notOk ? '#9A3412' : '#1E40AF';
         const icon  = notOk ? '⚠️' : 'ℹ️';
         const text  = notOk
-          ? 'Handlungsbedarf: Diese Website erfüllt den Homepage Standard 2025 nicht. Die wichtigsten Probleme sind unten aufgeführt.'
+          ? `Handlungsbedarf: Diese Website erfüllt den Homepage Standard ${fassungText(r.standard_version)} nicht. Die wichtigsten Probleme sind unten aufgeführt.`
           : 'Gutes Fundament — gezielte Optimierungen bringen Sie auf Gold-Niveau.';
         return (
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 18px' }}>
@@ -800,7 +614,7 @@ export default function AuditReport({ auditData, onClose }) {
                 <div key={ph.label} style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${ph.border}` }}>
                   <div style={{ background: ph.headerBg, padding: '10px 14px' }}>
                     <div style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{ph.label} — {ph.title}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>{ph.period}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{ph.period}</div>
                   </div>
                   <div style={{ background: ph.bg, padding: '12px 14px' }}>
                     <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -830,7 +644,7 @@ export default function AuditReport({ auditData, onClose }) {
             den Anforderungen des <strong>{r.level}</strong> entspricht
             und eine Gesamtbewertung von <strong>{r.total_score} / 100 Punkten</strong> erzielt hat.
           </p>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', marginTop: '16px' }}>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: 12, marginTop: '16px' }}>
             Auditor: KOMPAGNON Communications
           </p>
         </div>
@@ -843,183 +657,3 @@ export default function AuditReport({ auditData, onClose }) {
 // Category Section (collapsible)
 // ═══════════════════════════════════════════════════════════
 
-function CategorySection({ category }) {
-  const [expanded, setExpanded] = React.useState(true);
-  const catScore = category.score;
-  const color = scoreColor(catScore, category.max);
-
-  return (
-    <div className="kc-card" style={{ overflow: 'hidden', padding: 0 }}>
-      <button
-        onClick={() => setExpanded((e) => !e)}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '4px', height: '20px', borderRadius: '2px', background: category.color, flexShrink: 0 }} />
-          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-            {category.label}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
-            {catScore}/{category.max}
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-            {expanded ? '▲' : '▼'}
-          </span>
-        </div>
-      </button>
-
-      {expanded && (
-        <div style={{
-          borderTop: '1px solid var(--border-light)',
-          padding: '12px 16px',
-          display: 'flex', flexDirection: 'column', gap: '8px',
-          background: 'var(--bg-app)',
-        }}>
-          {category.criteria.map((item) => {
-            const score = item.score ?? 0;
-            const notCollected = item.collected === false;
-            const pct = item.max > 0 ? (score / item.max) * 100 : 0;
-            const icolor = notCollected ? 'var(--text-tertiary)' : scoreColor(score, item.max);
-            const badge = SOURCE_BADGES[item.source] || null;
-
-            return (
-              <div
-                key={item.key}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '16px 1fr 100px 48px 20px',
-                  gap: '12px',
-                  alignItems: 'center',
-                  opacity: notCollected ? 0.55 : 1,
-                }}
-              >
-                <span
-                  title={badge ? badge.title : ''}
-                  style={{ fontSize: '11px', color: badge ? badge.color : 'transparent' }}
-                >
-                  {badge ? badge.icon : ''}
-                </span>
-                <span
-                  title={item.hint || ''}
-                  style={{ fontSize: '11px', color: 'var(--text-secondary)' }}
-                >
-                  {item.label}
-                </span>
-                <div style={{ height: '5px', background: 'var(--border-light)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                  {!notCollected && (
-                    <div style={{
-                      height: '100%', width: `${pct}%`, background: icolor,
-                      borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease',
-                    }} />
-                  )}
-                </div>
-                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
-                  {notCollected ? '–' : `${score}/${item.max}`}
-                </span>
-                <span style={{ fontSize: '11px', color: icolor, fontWeight: 700, textAlign: 'center' }}>
-                  {notCollected ? '○' : scoreIcon(score, item.max)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// ECharts Radar (Block 2)
-// ═══════════════════════════════════════════════════════════
-
-const RADAR_INDICATORS = [
-  { name: 'SEO & Keywords', max: 10 },
-  { name: 'Performance',    max: 10 },
-  { name: 'Sicherheit',     max: 10 },
-  { name: 'Inhalt & UX',    max: 10 },
-  { name: 'Rechtliches',    max: 10 },
-  { name: 'GEO / KI',       max: 10 },
-];
-
-function EChartsRadar({ auditData: r, getCatScore }) {
-  const radarRef = useRef(null);
-
-  const vals = [
-    Math.round((Math.min(getCatScore('seo_sichtbarkeit', 10),   10)  / 10)  * 10),
-    Math.round((Math.min(getCatScore('technische_performance',20),20) / 20)  * 10),
-    Math.round((Math.min(getCatScore('sicherheit_datenschutz',15),15)/ 15)  * 10),
-    Math.round((Math.min(getCatScore('inhalt_nutzererfahrung', 5),  5)  / 5)  * 10),
-    Math.round((Math.min(getCatScore('rechtliche_compliance',  30), 30) / 30) * 10),
-    Math.round(((r.geo_score || 0) / 10) * 10),
-  ];
-
-  useEffect(() => {
-    if (!radarRef.current) return;
-    const chart = echarts.init(radarRef.current);
-    chart.setOption({
-      backgroundColor: 'transparent',
-      radar: {
-        indicator: RADAR_INDICATORS,
-        splitNumber: 5,
-        axisName: { color: '#374151', fontSize: 11 },
-        splitLine: { lineStyle: { color: '#E5E7EB' } },
-        splitArea: { show: false },
-        axisLine: { lineStyle: { color: '#E5E7EB' } },
-      },
-      series: [{
-        type: 'radar',
-        data: [{ value: vals, name: 'Score (0–10)' }],
-        lineStyle: { color: '#0d6efd', width: 2 },
-        areaStyle: { color: 'rgba(13,110,253,0.18)' },
-        symbol: 'circle',
-        symbolSize: 5,
-        itemStyle: { color: '#0d6efd' },
-      }],
-      tooltip: { trigger: 'item' },
-    });
-    const onResize = () => chart.resize();
-    window.addEventListener('resize', onResize);
-    return () => { window.removeEventListener('resize', onResize); chart.dispose(); };
-  }, [r.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="kc-card">
-      <strong style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>Kategorien-Radar (interaktiv)</strong>
-      <div ref={radarRef} style={{ width: '100%', height: 320 }} />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// Metric Card
-// ═══════════════════════════════════════════════════════════
-
-function MetricCard({ label, value, hint, ok, warn }) {
-  const color = ok ? 'var(--status-success-text)' : warn ? 'var(--status-warning-text)' : 'var(--brand-primary)';
-  return (
-    <div style={{
-      padding: '16px',
-      background: 'var(--bg-app)',
-      borderRadius: 'var(--radius-md)',
-      border: '1px solid var(--border-light)',
-      textAlign: 'center',
-    }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '18px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
-        {value}
-      </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-        {hint}
-      </div>
-    </div>
-  );
-}

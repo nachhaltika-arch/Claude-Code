@@ -36,8 +36,8 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     { value: 'geplant',      label: 'Geplant',       color: 'var(--text-tertiary)',       bg: 'var(--bg-elevated)' },
     { value: 'in_arbeit',    label: 'In Arbeit',     color: '#854D0E',                    bg: '#FEF9C3' },
     { value: 'entwurf',      label: 'Entwurf',       color: '#7c3aed',                    bg: '#f3e8ff' },
-    { value: 'review',       label: 'Zur Pruefung',  color: 'var(--kc-mid)',                    bg: '#E6F6FA' },
-    { value: 'freigegeben',  label: 'Freigegeben',   color: '#059669',                    bg: '#dcfce7' },
+    { value: 'review',       label: 'Zur Pruefung',  color: 'var(--text-brand)',                    bg: '#E6F6FA' },
+    { value: 'freigegeben',  label: 'Freigegeben',   color: 'var(--success)',                    bg: '#dcfce7' },
   ];
 
   const makeSlug = (name) => name.toLowerCase().replace(/[äa]/g,'ae').replace(/[öo]/g,'oe').replace(/[üu]/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -109,7 +109,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
   const statusOf = (s) => STATUSES.find(st => st.value === s) || STATUSES[0];
   const inputStyle = { width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' };
-  const btnSm = { padding: '4px 8px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+  const btnSm = { padding: '4px 8px', fontSize: 12, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
 
   return (
     <div style={{ display: 'flex', minHeight: 480 }}>
@@ -151,7 +151,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                 borderLeft: isSel ? `3px solid ${st.color}` : '3px solid transparent',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  {p.parent_id && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>↳</span>}
+                  {p.parent_id && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>↳</span>}
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.page_name}</span>
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                     <button onClick={e => { e.stopPropagation(); moveUp(idx); }} disabled={idx === 0} style={{ ...btnSm, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↑</button>
@@ -159,8 +159,8 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
-                  <span style={{ marginLeft: 'auto', fontSize: 9, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
                 </div>
               </div>
             );
@@ -168,14 +168,14 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
           {pflichtPages.length > 0 && (
             <>
-              <div style={{ padding: '8px 14px', fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
+              <div style={{ padding: '8px 14px', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
               {pflichtPages.map(p => (
                 <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedId(p.id))} key={p.id} onClick={() => setSelectedId(p.id)} style={{
                   padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',
                   background: selectedId === p.id ? 'var(--bg-app)' : 'transparent', opacity: 0.7,
                 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
                 </div>
               ))}
             </>
@@ -200,12 +200,12 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Status */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Status</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Status</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {STATUSES.map(st => (
                   <button key={st.value} onClick={() => savePage(selected.id, { status: st.value })}
                     style={{
-                      padding: '6px 14px', borderRadius: 99, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                      padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                       background: selected.status === st.value ? st.color : st.bg,
                       color: selected.status === st.value ? '#fff' : st.color,
                       border: `1px solid ${st.color}`, transition: 'all .15s',
@@ -220,7 +220,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
               {/* Seitenname */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
                 {editField?.field === 'page_name' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Seitenname" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
@@ -233,7 +233,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* Seitentyp */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
                 <select aria-label="Typ" value={selected.page_type} onChange={e => savePage(selected.id, { page_type: e.target.value })} disabled={selected.ist_pflichtseite} style={inputStyle}>
                   {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -241,7 +241,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* Keyword */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
                 {editField?.field === 'ziel_keyword' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Ziel-Keyword" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
@@ -254,7 +254,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
               {/* CTA */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
                 {editField?.field === 'cta_text' ? (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input aria-label="Text der Handlungsaufforderung" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
@@ -268,7 +268,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Zweck */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
               {editField?.field === 'zweck' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea aria-label="Zweck der Seite" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
@@ -284,7 +284,7 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Notizen */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
               {editField?.field === 'notizen' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <textarea aria-label="Notizen" value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
@@ -300,10 +300,10 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
 
             {/* Template Upload */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
               {selected.mockup_html ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 11, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>✓</span> Template vorhanden ({Math.round(selected.mockup_html.length / 1024)} KB)
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -384,7 +384,7 @@ export function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasE
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Der Kunde hat das Briefing noch nicht freigegeben. Sobald die Freigabe erteilt wurde, kann die KI-Sitemap erstellt werden.</div>
       </div>
       <button onClick={generate} disabled={loading}
-        style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(217,119,6,.4)', background: 'transparent', color: '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+        style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(217,119,6,.4)', background: 'transparent', color: 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
         Erneut prüfen
       </button>
     </div>
@@ -427,7 +427,7 @@ export function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasE
               : 'Claude analysiert Briefing, USP, Zielgruppe und gecrawlte Seiten'
           }
         </div>
-        {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
       </div>
       {!done && (
         <button

@@ -41,7 +41,7 @@ export default function AlertBanner({ alerts = [], onOeffnen }) {
             <>
               <span
                 className="kc-badge kc-badge--danger"
-                style={{ fontSize: '0.65rem', flexShrink: 0 }}
+                style={{ flexShrink: 0 }}
               >
                 #{alert.project_id}
               </span>

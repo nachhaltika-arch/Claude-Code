@@ -24,7 +24,7 @@ hält das fest.
 """
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
+from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
                         Numeric, String)
 
 from database import Base
@@ -76,6 +76,16 @@ class BookOrder(Base):
     waiver_accepted = Column(Boolean, nullable=False, default=False)
     waiver_accepted_at = Column(DateTime, nullable=True)
 
+    #: **Welche AGB-Fassung akzeptiert wurde** (L-100, ORDERS_05). Der Punkt,
+    #: den ORDERS_05 „den Punkt, den fast alle vergessen" nennt: Aendern sich
+    #: die AGB, ist ohne diese Angabe im Streitfall nicht mehr feststellbar,
+    #: welchen Bedingungen der Kaeufer zugestimmt hat. Die Zustimmung allein
+    #: belegt dann nur, dass jemand irgendwann irgendetwas angehakt hat.
+    terms_version = Column(String(20), default="")
+    #: Wann zugestimmt wurde. Wie beim Verzicht ist der Zeitstempel der
+    #: Nachweis, nicht das Haeckchen allein.
+    terms_accepted_at = Column(DateTime, nullable=True)
+
     # ── Auslieferung der PDF-Fassung ─────────────────────────────────
     download_token = Column(String(64), unique=True, index=True)
     download_expires_at = Column(DateTime, nullable=True)
@@ -83,9 +93,56 @@ class BookOrder(Base):
     delivered_at = Column(DateTime, nullable=True)
 
     # ── Abwicklung der gedruckten Fassung ────────────────────────────
+    #: `not_applicable` (nichts zu drucken) · `awaiting_payment` (Druck
+    #: bestellt, Stripe hat noch nicht bestaetigt) · `queued` (bezahlt, wartet
+    #: auf den naechsten BoD-Export) · `exported` (in einer CSV aufgegeben) ·
+    #: `shipped` (unterwegs, Sendungsnummer vorhanden).
+    #:
+    #: **`awaiting_payment` kam am 01.09.2026 dazu** (BUCH-07). Vorher sprang
+    #: eine Druckbestellung schon beim Anlegen auf `queued`, also vor der
+    #: Zahlung — die Warteschlange enthielt abgebrochene Kassen, und der
+    #: Export haette Buecher an Nichtkaeufer geschickt. Der Zwischenschritt
+    #: sagt, was wirklich gilt: bestellt, aber noch nicht bezahlt.
     fulfillment_status = Column(String(20), default="not_applicable")
     fulfillment_exported_at = Column(DateTime, nullable=True)
     tracking_number = Column(String(100), default="")
+
+    # ── Welches Katalogprodukt (27.08.2026) ──────────────────────────
+    #: Leer bei den Buchbestellungen von vor dem 27.08. — dort sagt
+    #: `variant` (pdf/print/bundle), was gekauft wurde. Fuer alles andere aus
+    #: `products` steht hier der Slug.
+    product_slug = Column(String(100), default="", index=True)
+
+    #: Steuert Widerrufsrecht und Nettoausweis. Ein Geschaeftskunde hat kein
+    #: Widerrufsrecht nach § 355 BGB; ein Verbraucher schon, und deshalb
+    #: braucht er den Verzicht (§ 356 Abs. 5), bevor sofort ausgeliefert wird.
+    is_business = Column(Boolean, nullable=False, default=False)
+    buyer_vat_id = Column(String(50), default="")
+
+    #: **Vorgemerkt** fuer ein Angebot, aber noch nicht verbraucht
+    #: (L-100, ORDERS_08; Entscheidung David 29.08.2026: eingeloest wird bei
+    #: **Annahme**). Zwischen Angebot und Annahme liegen Wochen — ohne diese
+    #: Vormerkung liesse sich dieselbe Anrechnung einem zweiten Angebot
+    #: beilegen und bei Annahme beider zweimal abziehen.
+    #:
+    #: Der Rueckweg gehoert dazu: Ein **verlorener** Deal gibt sie frei.
+    #: Sonst haette „bei Annahme" genau die Wirkung, die sie vermeiden soll —
+    #: die Anrechnung waere fuer immer blockiert statt sofort verbraucht.
+    credit_reserved_deal_id = Column(Integer, nullable=True, index=True)
+    credit_reserved_at = Column(DateTime, nullable=True)
+
+    #: Auf welchen Deal der Betrag angerechnet wurde (L-100, ORDERS_08).
+    #: **Die Einloesung ist endgueltig.** Eine Ruecknahme erfolgt nur von Hand
+    #: mit Protokolleintrag — sonst entstuende ein Weg, denselben Betrag
+    #: mehrfach anzurechnen.
+    credit_redeemed_deal_id = Column(Integer, nullable=True, index=True)
+    credit_redeemed_at = Column(DateTime, nullable=True)
+
+    #: Bis wann sich der Betrag auf einen Websprint anrechnen laesst
+    #: (Garantie G5). Errechnet beim Kauf aus `products.credit_months` —
+    #: **nicht** spaeter aus dem heutigen Stand des Katalogs: Wer im Mai
+    #: gekauft hat, behaelt die Frist, die im Mai galt.
+    credit_valid_until = Column(Date, nullable=True)
 
     # ── Anschluss an den Vertrieb ────────────────────────────────────
     #: **Der eigentliche Geschäftszweck.** Ohne diese Verknüpfung verkauft

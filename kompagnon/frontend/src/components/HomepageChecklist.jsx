@@ -52,8 +52,8 @@ function getStatus(score, maxScore) {
 }
 
 const S = {
-  ok: { icon: '✓', color: '#059669', bg: 'var(--status-success-bg)', label: 'Vorhanden' },
-  partial: { icon: '~', color: '#d97706', bg: 'var(--status-warning-bg)', label: 'Unvollstaendig' },
+  ok: { icon: '✓', color: 'var(--success)', bg: 'var(--status-success-bg)', label: 'Vorhanden' },
+  partial: { icon: '~', color: 'var(--warn)', bg: 'var(--status-warning-bg)', label: 'Unvollstaendig' },
   missing: { icon: '✗', color: '#dc2626', bg: 'var(--status-danger-bg)', label: 'Fehlt' },
   unknown: { icon: '?', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)', label: 'Nicht geprueft' },
 };
@@ -77,12 +77,12 @@ export default function HomepageChecklist({ auditData }) {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {auditData && criticalMissing > 0 && (
-            <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
               {criticalMissing} Pflicht fehlt
             </span>
           )}
           {auditData && (
-            <span style={{ background: okItems === totalItems ? 'var(--status-success-bg)' : 'var(--status-neutral-bg)', color: okItems === totalItems ? '#059669' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ background: okItems === totalItems ? 'var(--status-success-bg)' : 'var(--status-neutral-bg)', color: okItems === totalItems ? 'var(--success)' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
               {Math.round((okItems / totalItems) * 100)}% erfuellt
             </span>
           )}
@@ -103,7 +103,7 @@ export default function HomepageChecklist({ auditData }) {
                 <span style={{ fontSize: 20 }}>{area.icon}</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: area.color }}>{area.area}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} Punkte erfuellt</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} Punkte erfuellt</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -125,12 +125,12 @@ export default function HomepageChecklist({ auditData }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
-                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
-                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
+                          {item.critical && <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{item.desc}</div>
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>
                     </div>
                   );
                 })}
@@ -145,7 +145,7 @@ export default function HomepageChecklist({ auditData }) {
         );
       })}
 
-      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>ℹ️</span> Basierend auf DDG, DSGVO, WCAG 2.1 und Google Core Web Vitals. Stand: 2026.
       </div>
     </div>

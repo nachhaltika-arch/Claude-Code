@@ -33,7 +33,7 @@ export function StatusBadge({ status, style }) {
   const entwurf = status === 'draft';
   return (
     <span style={{
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: 700,
       padding: '2px 6px',
       borderRadius: 3,
@@ -76,7 +76,7 @@ export function ContractPanel({
       marginBottom: 12,
     }}>
       <div style={{
-        fontSize: 11, fontWeight: 800, textTransform: 'uppercase',
+        fontSize: 12, fontWeight: 800, textTransform: 'uppercase',
         letterSpacing: '0.05em', marginBottom: 6,
         color: konform ? '#166534' : '#991b1b',
       }}>
@@ -98,7 +98,7 @@ export function ContractPanel({
         </ul>
       )}
 
-      <div style={{ fontSize: 11, color: konform ? '#15803d' : '#991b1b' }}>
+      <div style={{ fontSize: 12, color: konform ? '#15803d' : '#991b1b' }}>
         {hinweis || (entwurf
           ? 'Als Entwurf gespeichert. Entwuerfe erscheinen nicht im Wireframe-Editor '
             + 'und landen auf keiner Kundenseite.'
@@ -107,7 +107,7 @@ export function ContractPanel({
       </div>
 
       {stale && (
-        <div style={{ fontSize: 11, color: '#92400e', marginTop: 6 }}>
+        <div style={{ fontSize: 12, color: '#92400e', marginTop: 6 }}>
           Der Befund gilt fuer den zuletzt geprueften Stand. Nach dem Speichern wird neu geprueft.
         </div>
       )}
@@ -124,7 +124,7 @@ export function ContractPanel({
             marginTop: 10, padding: '7px 14px',
             background: 'var(--success)', opacity: konform && !approving && !stale ? 1 : 0.5,
             color: 'var(--text-on-brand)', border: 'none', borderRadius: 6,
-            fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+            fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
             textTransform: 'uppercase', letterSpacing: '0.04em',
             cursor: konform && !approving && !stale ? 'pointer' : 'not-allowed',
           }}

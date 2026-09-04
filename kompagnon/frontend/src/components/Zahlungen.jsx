@@ -1,0 +1,210 @@
+import { useState, useEffect } from 'react';
+import API_BASE_URL from '../config';
+import { datumKurz } from '../utils/datum';
+import { euroAusCent } from '../utils/geld';
+
+/**
+ * Abo, Rechnungen und Zahlungsart — an einer Stelle, weil der Kunde sie als
+ * eines denkt: Was zahle ich, womit zahle ich, was habe ich bezahlt.
+ *
+ * **Die Zahlungsart ändert er bei Stripe, nicht bei uns.** Ein eigenes
+ * Kartenformular hieße, Kartendaten durch unseren Server zu führen. Der Knopf
+ * holt eine Sitzung im Billing-Portal und leitet dorthin weiter.
+ *
+ * **Kein toter Knopf.** Ein Betrieb ohne Kauf hat kein Zahlungskonto; dann
+ * steht dort ein Satz statt einer Schaltfläche, die ins Leere führt.
+ */
+/*
+ * `ohneTitel` laesst die eigene Ueberschrift weg (L-161, 04.09.2026).
+ *
+ * Seit dem Umbau steht dieser Block **allein** auf einer Seite statt als
+ * einer von dreien auf der Uebersicht. Dann traegt die Seite den Titel, und
+ * dieser hier waere der zweite — ein Screenreader laese
+ * „Inhaltsaenderungen. Inhaltsaenderungen".
+ *
+ * **Warum die Seite ihn traegt und nicht dieser Block.** Der erste Entwurf
+ * machte es umgekehrt: Der Block befoerderte seine Ueberschrift zum `h1`.
+ * Das lief, sah richtig aus — und liess `seitenTitel.test.js` auflaufen, den
+ * Waechter aus L-17: Er liest die **Seitendatei** und kann nicht durch eine
+ * Komponente hindurchsehen. Der Waechter hat recht; ein Titel gehoert dorthin,
+ * wo die Seite steht.
+ */
+export default function Zahlungen({ token, ohneTitel = false }) {
+  const [daten, setDaten] = useState(null);
+  const [fehler, setFehler] = useState('');
+  const [laeuft, setLaeuft] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/portal/zahlungen`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Konnte nicht geladen werden (${res.status})`);
+        setDaten(await res.json());
+      } catch (e) { setFehler(e.message); }
+    })();
+  }, [token]);
+
+  const verwalten = async () => {
+    setLaeuft(true);
+    setFehler('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/portal/zahlungen/verwalten`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || 'Die Zahlungsseite ließ sich nicht öffnen.');
+      window.location.href = d.url;
+    } catch (e) {
+      setFehler(e.message);
+    } finally { setLaeuft(false); }
+  };
+
+  // **Der Einzug wird vom Kunden eingerichtet, nicht vom Innendienst**
+  // (Entscheidung David, 04.09.2026: das Pflege-Abo laeuft ueber Stripe).
+  // Eine Einzugsermaechtigung ist seine Zustimmung; sie laesst sich nicht
+  // fuer ihn setzen. Der Vertrag steht schon — hier wird nur der Weg
+  // geoeffnet, auf dem Stripe die Erlaubnis einholt.
+  const einzugEinrichten = async () => {
+    setLaeuft(true);
+    setFehler('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/portal/zahlungen/einzug`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || 'Der Einzug ließ sich nicht einrichten.');
+      window.location.href = d.kaufweg_url;
+    } catch (e) {
+      setFehler(e.message);
+    } finally { setLaeuft(false); }
+  };
+
+  if (!daten) return null;
+  const { abos = [], rechnungen = [], zahlungskonto } = daten;
+  // Ein laufendes Abo auf Stripe, dessen Einzug noch fehlt — der einzige
+  // Fall, in dem der Kunde hier etwas tun muss.
+  const offenerEinzug = abos.find(
+    (a) => a.laeuft && a.abrechnung === 'stripe' && !a.einzug_eingerichtet);
+  const nurRechnung = abos.some((a) => a.laeuft && a.abrechnung === 'rechnung');
+  if (!abos.length && !rechnungen.length && zahlungskonto !== 'vorhanden') return null;
+
+  return (
+    <section style={S.rahmen}>
+      {!ohneTitel && <h2 style={S.h1}>Zahlungen</h2>}
+
+      <div style={S.karte}>
+        <h3 style={S.h2}>Laufende Verträge</h3>
+        {abos.length === 0
+          ? <p style={S.leise}>Zurzeit kein laufendes Abo.</p>
+          : abos.map((a, i) => (
+              <div key={i} style={S.zeile}>
+                <span style={S.stark}>{PRODUKT[a.produkt] || a.produkt}</span>
+                <span style={S.leise}>
+                  {/* **Beide Zahlen, beschriftet** (Entscheidung David,
+                      04.09.2026: die Abo-Preise sind **netto** gemeint).
+                      Der Betrieb hat „149 € netto" unterschrieben und bekommt
+                      177,31 € abgebucht — beides richtig, und nebeneinander
+                      ohne Beschriftung genau die Zeile, bei der er anruft.
+                      Der Bruttobetrag steht vorn, weil er abgebucht wird
+                      (L-61: der Preis, der grossgeschrieben ist, ist der
+                      Endpreis). */}
+                  {euroAusCent(a.brutto_cent)} je Monat
+                  {a.netto_cent ? ` (${euroAusCent(a.netto_cent)} netto zzgl. ${a.steuersatz} % USt.)` : ''}
+                  {' · seit '}{a.start_monat}
+                  {a.end_monat ? ` · endet ${a.end_monat}` : ''}
+                  {a.abrechnung === 'rechnung' ? ' · per Rechnung' : ''}
+                </span>
+              </div>
+            ))}
+      </div>
+
+      <div style={S.karte}>
+        <h3 style={S.h2}>Zahlungsart</h3>
+        {zahlungskonto === 'vorhanden' ? (
+          <>
+            <p style={S.leise}>
+              Karte oder Bankeinzug ändern, Abo kündigen, Belege herunterladen —
+              alles bei unserem Zahlungsdienst.
+            </p>
+            <button style={S.knopf} onClick={verwalten} disabled={laeuft}>
+              {laeuft ? 'Wird geöffnet …' : 'Zahlungsdaten verwalten'}
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={S.leise}>
+              {zahlungskonto === 'dienst_fehlt'
+                ? 'Die Zahlungsverwaltung ist gerade nicht erreichbar. Schreiben Sie uns, wir kümmern uns.'
+                : offenerEinzug
+                  ? `Für ${PRODUKT[offenerEinzug.produkt] || offenerEinzug.produkt} ist der Einzug noch nicht eingerichtet. Danach werden ${euroAusCent(offenerEinzug.brutto_cent)} monatlich abgebucht — das sind ${euroAusCent(offenerEinzug.netto_cent)} netto zzgl. ${offenerEinzug.steuersatz} % Umsatzsteuer. Sie können jederzeit kündigen.`
+                  : nurRechnung
+                    ? 'Ihr Abo wird per Rechnung abgerechnet — Sie brauchen hier nichts zu hinterlegen.'
+                    : 'Für Sie ist noch keine Zahlungsart hinterlegt — das entsteht mit der ersten Buchung.'}
+            </p>
+            {offenerEinzug && zahlungskonto !== 'dienst_fehlt' && (
+              <button style={S.knopf} onClick={einzugEinrichten} disabled={laeuft}>
+                {laeuft ? 'Wird geöffnet …' : 'Bankeinzug einrichten'}
+              </button>
+            )}
+          </>
+        )}
+        {fehler && <p style={S.fehler}>{fehler}</p>}
+      </div>
+
+      {rechnungen.length > 0 && (
+        <div style={S.karte}>
+          <h3 style={S.h2}>Ihre Rechnungen</h3>
+          {rechnungen.map((r, i) => (
+            <div key={i} style={S.zeile}>
+              <span style={S.mono}>{r.invoice_number || '—'}</span>
+              <span style={S.leise}>{r.line_item}</span>
+              <span style={S.betrag}>{geld(r.amount_gross)}</span>
+              <span style={r.status === 'bezahlt' ? S.markeOk : S.markeOffen}>
+                {r.status === 'bezahlt'
+                  ? `bezahlt${r.paid_at ? ` am ${datumKurz(r.paid_at)}` : ''}`
+                  : `offen${r.due_date ? ` bis ${datumKurz(r.due_date)}` : ''}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Die Kennungen kommen aus `services/abo_vertrag`: ABO-BAS, ABO-PRO.
+// Erst falsch geraten (abo_bas), dann am laufenden Dienst nachgesehen.
+const PRODUKT = { 'ABO-BAS': 'Pflege Basic', 'ABO-PRO': 'Pflege Pro' };
+
+function geld(wert) {
+  const n = Number(wert);
+  return Number.isFinite(n)
+    ? n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+    : '—';
+}
+
+const marke = {
+  fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+  whiteSpace: 'nowrap', flex: 'none',
+};
+const S = {
+  rahmen: { marginTop: 32 },
+  h1: { fontWeight: 900, letterSpacing: '-0.025em', fontSize: 20, margin: '0 0 12px', color: 'var(--text-primary)' },
+  h2: { fontWeight: 900, fontSize: 14, textTransform: 'uppercase', letterSpacing: '-0.02em', margin: '0 0 12px', color: 'var(--text-secondary)' },
+  karte: { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 24, marginBottom: 12 },
+  zeile: { display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', padding: '10px 0', borderTop: '1px solid var(--border-subtle)' },
+  stark: { fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' },
+  mono: { fontFamily: 'var(--font-mono, monospace)', fontSize: 13, color: 'var(--text-primary)', flex: 'none' },
+  betrag: { fontFamily: 'var(--font-mono, monospace)', fontSize: 14, marginLeft: 'auto', color: 'var(--text-primary)' },
+  leise: { fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 12px', maxWidth: '60ch', flex: 1 },
+  markeOk: { ...marke, background: 'var(--status-success-bg)', color: 'var(--status-success)' },
+  markeOffen: { ...marke, background: 'var(--bg-app)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' },
+  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: 'var(--text-on-brand)' },
+  fehler: { color: 'var(--status-danger-text)', fontSize: 14, marginTop: 12 },
+};

@@ -1,4 +1,5 @@
 import React from 'react';
+import OeffentlicheSeite from './components/ui/OeffentlicheSeite';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -32,6 +33,9 @@ import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import ResetPassword from './pages/ResetPassword';
 import EmailBestaetigen from './pages/EmailBestaetigen';
+import Shop from './pages/Shop';
+import ShopDanke from './pages/ShopDanke';
+import NichtGefunden from './pages/NichtGefunden';
 import Academy from './pages/Academy';
 import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyAdmin from './pages/AcademyAdmin';
@@ -58,14 +62,20 @@ import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
 import Fehlerprotokoll from './pages/Fehlerprotokoll';
+import BuchBestellungen from './pages/BuchBestellungen';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
+import AGB from './pages/AGB';
+import Widerrufsbelehrung from './pages/Widerrufsbelehrung';
 import Barrierefreiheit from './pages/Barrierefreiheit';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
+import WasWirBrauchen from './pages/customer/WasWirBrauchen';
+import Inhaltsaenderungen from './pages/customer/Inhaltsaenderungen';
+import MeinBericht from './pages/customer/MeinBericht';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -181,19 +191,25 @@ function App() {
        <VersandProvider>
         <Routes>
           {/* ── Auth-Seiten — kein Marketing mehr ── */}
-          <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          <Route path="/login"          element={<PublicRoute><OeffentlicheSeite><Login /></OeffentlicheSeite></PublicRoute>} />
+          <Route path="/register"       element={<PublicRoute><OeffentlicheSeite><Register /></OeffentlicheSeite></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><OeffentlicheSeite><ResetPassword /></OeffentlicheSeite></PublicRoute>} />
           {/* Das Ziel des Links aus der Bestaetigungsmail. Der Endpunkt
               dahinter gab es seit jeher, mit keinem einzigen Aufrufer
               (27.08.2026). Nicht `PublicRoute`: Wer angemeldet ist und den
               Link aus seinem Postfach oeffnet, wuerde sonst weggeleitet,
               ohne dass seine Adresse je bestaetigt wird. */}
-          <Route path="/e-mail-bestaetigen" element={<EmailBestaetigen />} />
+          <Route path="/e-mail-bestaetigen" element={<OeffentlicheSeite><EmailBestaetigen /></OeffentlicheSeite>} />
+          {/* Die oeffentliche Verkaufsseite fuer die digitalen Produkte
+              (L-100, ORDERS_02). **Ohne `PublicRoute`**: Die leitet
+              Angemeldete auf das Dashboard um — hier waere das falsch.
+              Wer schon Kunde ist, darf ein Workbook kaufen. */}
+          <Route path="/shop" element={<OeffentlicheSeite><Shop /></OeffentlicheSeite>} />
+          <Route path="/shop/danke" element={<OeffentlicheSeite><ShopDanke /></OeffentlicheSeite>} />
 
           {/* ── Kundenportal (bleibt auf Render) ── */}
-          <Route path="/portal/login"  element={<PortalLogin />} />
-          <Route path="/kundenportal"  element={<PortalLogin />} />
+          <Route path="/portal/login"  element={<OeffentlicheSeite><PortalLogin /></OeffentlicheSeite>} />
+          <Route path="/kundenportal"  element={<OeffentlicheSeite><PortalLogin /></OeffentlicheSeite>} />
 
           {/* ── Rechtliches ──
             * Beide Seiten lagen seit jeher in `pages/`, hingen aber an keiner
@@ -201,10 +217,17 @@ function App() {
             * des Kundenportals zeigte stattdessen auf `kompagnon.eu` — eine
             * dritte Domain neben der, auf der der Kunde gerade stand
             * (UX-19, 18.08.2026). */}
-          <Route path="/impressum"        element={<Impressum />} />
-          <Route path="/datenschutz"      element={<Datenschutz />} />
-          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
-          <Route path="/portal/:token" element={<CustomerPortal />} />
+          <Route path="/impressum"        element={<OeffentlicheSeite><Impressum /></OeffentlicheSeite>} />
+          <Route path="/datenschutz"      element={<OeffentlicheSeite><Datenschutz /></OeffentlicheSeite>} />
+          <Route path="/barrierefreiheit" element={<OeffentlicheSeite><Barrierefreiheit /></OeffentlicheSeite>} />
+          {/* AGB und Widerrufsbelehrung (ORDERS_05, 29.08.2026). Vor dem
+            * Bestellformular gebaut, weil das Haeckchen daneben auf eine
+            * Adresse zeigen muss — ein Verweis ins Leere ist keine
+            * Einbeziehung. Der Text selbst kommt von der Kanzlei;
+            * `inhalte/rechtstexte.js` traegt bis dahin die Gliederung. */}
+          <Route path="/agb"              element={<OeffentlicheSeite><AGB /></OeffentlicheSeite>} />
+          <Route path="/widerruf"         element={<OeffentlicheSeite><Widerrufsbelehrung /></OeffentlicheSeite>} />
+          <Route path="/portal/:token" element={<OeffentlicheSeite><CustomerPortal /></OeffentlicheSeite>} />
 
           {/* ── Der Bestellweg ──────────────────────────────────────────────
             * Bis zum 21.08.2026 gab es diese vier Routen **nicht** (L-64).
@@ -225,11 +248,11 @@ function App() {
               ohne Anmeldung erreichbar war. Der Slug wird als
               `utm_source`/`utm_campaign` mitgeschickt, wenn die Adresse
               keine eigenen UTM-Parameter traegt. */}
-          <Route path="/kampagne/:slug"    element={<KampagneLandingPage />} />
-          <Route path="/paket/:slug"       element={<PaketSeite />} />
-          <Route path="/checkout"          element={<Checkout />} />
-          <Route path="/checkout/success"  element={<CheckoutSuccess />} />
-          <Route path="/checkout/:package" element={<Checkout />} />
+          <Route path="/kampagne/:slug"    element={<OeffentlicheSeite><KampagneLandingPage /></OeffentlicheSeite>} />
+          <Route path="/paket/:slug"       element={<OeffentlicheSeite><PaketSeite /></OeffentlicheSeite>} />
+          <Route path="/checkout"          element={<OeffentlicheSeite><Checkout /></OeffentlicheSeite>} />
+          <Route path="/checkout/success"  element={<OeffentlicheSeite><CheckoutSuccess /></OeffentlicheSeite>} />
+          <Route path="/checkout/:package" element={<OeffentlicheSeite><Checkout /></OeffentlicheSeite>} />
 
           {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──
             * `/abnahme/:projectId` stand hier, war aber nicht token-basiert:
@@ -239,7 +262,7 @@ function App() {
             * Seite. Entfernt am 17.08.2026. Die Abnahme wird im Innendienst
             * unter Projekt → Abnahme eingetragen. */}
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
-          <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
+          <Route path="/academy/certificate/:code" element={<OeffentlicheSeite><AcademyCertificate /></OeffentlicheSeite>} />
 
           {/* ── Der Projekt-Editor ────────────────────────────────────────
             * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.
@@ -369,6 +392,13 @@ function App() {
             <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
             <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />
             <Route path="rechnungen" element={<PrivateRoute><MeineRechnungen /></PrivateRoute>} />
+            {/* Die drei Arbeitsflaechen des Kunden, seit dem 04.09.2026 je
+                mit eigener Adresse (L-161). Sie standen zuvor alle drei
+                untereinander auf der Uebersicht — jede fuer sich richtig,
+                zusammen ein Stapel von 3.156 px. */}
+            <Route path="was-wir-brauchen" element={<PrivateRoute><WasWirBrauchen /></PrivateRoute>} />
+            <Route path="inhaltsaenderungen" element={<PrivateRoute><Inhaltsaenderungen /></PrivateRoute>} />
+            <Route path="mein-bericht" element={<PrivateRoute><MeinBericht /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
@@ -400,6 +430,9 @@ function App() {
             {/* Settings with sub-navigation */}
             {/* Was der Server nicht verarbeiten konnte — L-10. */}
             <Route path="fehler" element={<PrivateRoute roles={['admin']}><Fehlerprotokoll /></PrivateRoute>} />
+            {/* Die Druckwarteschlange (BUCH-07). Nur Admin: Die Liste
+                traegt Lieferanschriften. */}
+            <Route path="buchbestellungen" element={<PrivateRoute roles={['admin']}><BuchBestellungen /></PrivateRoute>} />
 
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/app/settings/profile" replace />} />
@@ -418,8 +451,17 @@ function App() {
             <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* **Auffang.** Bis zum 27.08.2026 stand hier
+              `<Navigate to="/login" replace />`: Jeder unbekannte Pfad
+              landete auf der Anmeldemaske, und wer sich vertippte, hielt sich
+              fuer abgemeldet. David ist genau darueber gestolpert —
+              `/app/admin/rollen` gibt es nicht, die Rollenverwaltung liegt
+              unter `/app/settings/roles`.
+
+              Das ist die Fehlerklasse aus L-64: ein Weg, der still bei der
+              Anmeldung endet. Eine falsche Adresse ist etwas anderes als eine
+              abgelaufene Sitzung. */}
+          <Route path="*" element={<NichtGefunden />} />
         </Routes>
         <FeedbackButton />
         <Toaster

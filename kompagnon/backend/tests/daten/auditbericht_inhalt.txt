@@ -385,11 +385,10 @@ Google AI Overview
 <b>Was ist llms.txt?</b> Eine neue Konvention (ähnlich robots.txt) die KI-Systemen mitteilt, welche Inhalte für das Training oder die Antwortgenerierung genutzt werden dürfen. Websites mit llms.txt werden von ChatGPT, Claude & Co. bevorzugt zitiert.
 Maßnahmen-Roadmap
 Basierend auf den Audit-Ergebnissen empfehlen wir folgende Umsetzungsreihenfolge:
-<font color="white"><b>Phase 1 — Quick Wins (Woche 1–2)</b></font>
-• Audit-Score weiter optimieren & Inhalte aktualisieren
-<font color="white"><b>Phase 2 — Mittelfristig (Monat 1–3)</b></font>
-• Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen
-<font color="white"><b>Phase 3 — Langfristig (Monat 3–6)</b></font>
+Die höchste Auszeichnungsstufe ist erreicht. Die folgenden Punkte halten sie.
+<font color="white"><b>Befund — Kein offener Punkt in der Messung</b></font>
+• Alle erhobenen Kriterien sind vollständig erfüllt.
+<font color="white"><b>Laufend — Empfehlungen ohne Messung</b></font>
 • Backlink-Aufbau über lokale Verzeichnisse und Branchenportale
 • Google Business Profil optimieren und regelmäßig pflegen
 • KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen

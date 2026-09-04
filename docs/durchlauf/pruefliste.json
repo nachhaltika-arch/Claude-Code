@@ -1,0 +1,40 @@
+{
+  "_zweck": "Fragen, die keine Maschine beantwortet. Der Durchlauf fuehrt sie am Berichtsende auf und meldet, welche ueberfaellig sind. 'zuletzt' auf das Datum der Beantwortung setzen — leer heisst: noch nie beantwortet.",
+  "fragen": [
+    {
+      "kennung": "messung-misst-was-sie-verspricht",
+      "frage": "Misst der Website-Standard noch, was er verspricht? Ein Lauf gegen die eingefrorene Referenzseite, Sollwerte verglichen.",
+      "warum": "L-107, L-150 bis L-155 waren alle von dieser Art: Die Erhebung lief, die Zahl entstand, und sie bedeutete etwas anderes als der Text daneben. Kein Skript merkt das — es braucht jemanden, der Messwert und Versprechen nebeneinanderlegt.",
+      "intervall_tage": 30,
+      "zuletzt": ""
+    },
+    {
+      "kennung": "oberflaeche-selbsterklaerend",
+      "frage": "Sind die sechs Hauptbildschirme noch selbsterklaerend? Krug-Durchgang nach docs/ux-soll-ist-kas.md § 2.",
+      "warum": "Bedienbarkeit ist ein Urteil, keine Messung. Kontrast und Schriftgroesse sind vermessen; ob jemand versteht, was er sieht, nicht.",
+      "intervall_tage": 90,
+      "zuletzt": ""
+    },
+    {
+      "kennung": "doku-stimmt-mit-dienst",
+      "frage": "Stimmen die Adressen und Zahlen in CLAUDE.md und den Blueprints noch mit den laufenden Diensten ueberein?",
+      "warum": "Am 27.08.2026 zeigte CLAUDE.md auf einen suspendierten Dienst in Oregon. Eine Anweisungsdatei, die auf einen toten Dienst zeigt, ist gefaehrlicher als gar keine: Wer dort 503 misst, meldet einen Produktivausfall, den es nicht gibt.",
+      "intervall_tage": 30,
+      "zuletzt": "2026-08-27"
+    },
+    {
+      "kennung": "lizenzen-und-recht",
+      "frage": "Sind Lizenzlage (Studio-SDK, node_modules) und Rechtstexte (DDG, USt.) noch tragfaehig?",
+      "warum": "L-148, L-149, L-122, L-118. Keine Maschine beurteilt eine Lizenz. Maschinell moeglich ist hoechstens ein Abgleich der Lizenzfelder gegen eine Freigabeliste — die Frage danach bleibt menschlich.",
+      "intervall_tage": 180,
+      "zuletzt": ""
+    },
+    {
+      "kennung": "sicherungen-zurueckspielbar",
+      "frage": "Laesst sich eine Sicherung wirklich zurueckspielen? Einmal ausprobiert, nicht nur geprueft, dass sie existiert.",
+      "warum": "Eine Sicherung, die noch nie zurueckgespielt wurde, ist eine Annahme. Der Standard fragt Kunden genau das; das eigene Haus sollte die Antwort kennen.",
+      "intervall_tage": 180,
+      "zuletzt": ""
+    }
+  ]
+}

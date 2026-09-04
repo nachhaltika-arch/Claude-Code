@@ -170,7 +170,7 @@ export default function MeineDaten() {
             }}>
               {gruppe.felder.map((feld) => (
                 <label key={feld.name} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, var(--text-primary))' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, var(--text-primary))' }}>
                     {feld.label}
                   </span>
                   <input
@@ -186,7 +186,7 @@ export default function MeineDaten() {
                     }}
                   />
                   {feld.hinweis && (
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
                       {feld.hinweis}
                     </span>
                   )}
@@ -206,7 +206,7 @@ export default function MeineDaten() {
           }}>
             {speichert ? 'Wird gespeichert …' : 'Änderungen speichern'}
           </button>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {anzahlGeaendert === 0
               ? 'Keine Änderungen'
               : `${anzahlGeaendert} geändert${anzahlGeaendert === 1 ? '' : 'e'} Angabe${anzahlGeaendert === 1 ? '' : 'n'}`}

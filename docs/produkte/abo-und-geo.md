@@ -18,6 +18,38 @@
 >   bestimmbar, was schon verbraucht war.
 > - Die mit ⚠️ markierten Preisannahmen sind weiterhin offen — in Stripe steht
 >   heute kein Abonnement-Preis, mit dem sich abgleichen ließe.
+> - ~~**Am 01.09.2026 entschieden: die Abrechnung läuft per Rechnung**~~ —
+>   **am 04.09.2026 anders entschieden (David): das Pflege-Abo läuft über
+>   Stripe.** Damit gilt **Z4 wieder** — monatlich im Voraus per
+>   SEPA-Lastschrift. Der Satz vom 01.09. bleibt durchgestrichen stehen statt
+>   gelöscht: Zwischen beiden Tagen sind Verträge möglich, die unter
+>   „Rechnung" geschlossen wurden, und die behalten ihre Bedingung.
+> - **Die Umstellung gilt nicht rückwirkend, und das ist im Code
+>   festgeschrieben.** `AboVertrag.abrechnung` hält je Vertrag fest, wie
+>   eingezogen wird; die Migration hat den Bestand ausdrücklich auf
+>   `rechnung` gesetzt. Wer wechselt, wechselt mit Zustimmung — eine
+>   Einzugsermächtigung lässt sich nicht im Innendienst setzen.
+> - **Am 04.09.2026 entschieden (David): die Preise sind NETTO gemeint.**
+>   79 € und 149 € netto, also 94,01 € und 177,31 € brutto — und der
+>   Bruttobetrag ist es, der abgebucht wird. Der Code rechnete bereits so
+>   (`abo_stunden.preis_brutto_cent`); die Entscheidung bestätigt ihn.
+> - **Im Kundenkonto stehen seither beide Zahlen, beschriftet:** „177,31 €
+>   je Monat (149,00 € netto zzgl. 19 % USt.)". Der Betrieb hat „149 € netto"
+>   unterschrieben und bekommt 177,31 € abgebucht — beides richtig, und
+>   nebeneinander ohne Beschriftung genau die Zeile, bei der er anruft.
+> - **Offen bleibt, ob 79 und 149 die richtigen Beträge sind.** Die
+>   ⚠️-Markierung im Datenblatt betrifft die Höhe, nicht die Frage netto oder
+>   brutto; sie steht weiter.
+> - **Gebaut ist der Aufstellungslauf, nicht der Rechnungsdruck**
+>   (`services/abo_abrechnung.py`, monatlich am Ersten um 05:30): Er sagt,
+>   wer was schuldet; die Rechnungsnummer vergibt ein Mensch, weil sie
+>   fortlaufend ist und sich nicht zurücknehmen lässt.
+> - **Die Leistungszahlen standen im Werkzeug falsch** und sind am
+>   01.09.2026 an diesem Blatt richtiggestellt worden: 30 Minuten für
+>   BAS (nicht null), 90 statt 120 für PRO („statt 30", nicht
+>   „zusätzlich"), und das Re-Audit ist bei BAS **jährlich**, nicht
+>   vierteljährlich. `tests/test_abo_datenblatt.py` liest seither dieses
+>   Blatt und wird rot, wenn Code und Produkt auseinanderlaufen.
 
 ---
 
@@ -28,7 +60,7 @@
 | Artikelnummer | ABO-BAS |
 | Preis | **79 € netto / Monat** ⚠️ Annahme, mit Stripe abgleichen |
 | Umsatzsteuer | 19 % |
-| Zahlungsbedingung | **Z4** (monatlich im Voraus, SEPA) |
+| Zahlungsbedingung | **Z4** (monatlich im Voraus, SEPA-Lastschrift über Stripe) — Entscheidung David, 04.09.2026. Bestandsverträge vom 01.-04.09. bleiben auf Rechnung. |
 | Laufzeit | 12 Monate, danach monatlich kündbar mit 1 Monat Frist |
 | Freigabestatus | 🟠 Angebotszeitpunkt und Abwicklung unklar |
 

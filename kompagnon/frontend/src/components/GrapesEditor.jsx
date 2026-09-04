@@ -131,7 +131,7 @@ export default function GrapesEditor({
           Live auf Netlify ✓{' '}
           {data.deploy_url && (
             <a href={data.deploy_url} target="_blank" rel="noopener noreferrer"
-               style={{ color: '#16a34a', fontWeight: 700 }}>
+               style={{ color: 'var(--success)', fontWeight: 700 }}>
               Link →
             </a>
           )}

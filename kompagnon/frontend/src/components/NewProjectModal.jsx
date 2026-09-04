@@ -1,10 +1,22 @@
 import { useState } from "react";
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from "react-dom";
 import { aufTaste } from '../utils/tastaturBedienung';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+// Die API-Basis kommt aus `config.js` und wird hier **nicht** noch einmal
+// aus der Umgebung gelesen (L-145). Bis zum 28.08.2026 stand hier
+// `process.env.REACT_APP_API_URL || ""` — und `""` heisst relative Adresse,
+// also die eigene Herkunft. Fehlt die Variable, haetten die fuenf Aufrufe
+// dieser Komponente an die Static Site gefragt und HTML statt JSON bekommen:
+// genau der Produktivausfall vom selben Tag, nur dauerhaft und still.
+import API_BASE_URL from '../config';
 
 export default function NewProjectModal({ onClose, onProjectCreated }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // dieses Modals reagiert auf einen Klick; mit der Tastatur gab es keinen
+  // Weg heraus ausser dem Suchen des Abbrechen-Knopfes. `role="button"` waere
+  // hier falsch: Eine Ueberlagerung ist keine Schaltflaeche.
+  useEscapeKey(onClose);
+
   const token = localStorage.getItem("kompagnon_token");
   const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -151,7 +163,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.company_name}</div>
-                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "#f59e0b" }}>
+                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "var(--warn)" }}>
                         {lead.website_url || "⚠ Keine Domain hinterlegt"}
                       </div>
                     </div>
@@ -163,7 +175,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {suche.length >= 2 && !sucheLoading && sucheErgebnisse.length === 0 && (
               <p style={{ color: "#888", fontSize: 13, margin: "8px 0 0" }}>
                 Kein Unternehmen gefunden.{" "}
-                <button onClick={() => setStufe("create")} style={{ color: "var(--kc-mid)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
+                <button onClick={() => setStufe("create")} style={{ color: "var(--text-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
               </p>
             )}
           </div>

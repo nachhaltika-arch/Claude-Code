@@ -58,6 +58,10 @@ export const MENUE_GRUPPEN = [
       { label: 'Deals',           path: '/app/deals' },
       { label: 'Betriebe',        path: '/app/betriebe' },
       { label: 'Export',          path: '/app/export' },
+      // Die Druckwarteschlange des Buchs (BUCH-07). Sie steht unter
+      // Vertrieb, weil sie eingehende Bestellungen abarbeitet — nicht
+      // unter „Angebot", wo beschrieben wird, was wir verkaufen.
+      { label: 'Buchbestellungen', path: '/app/buchbestellungen', adminOnly: true },
     ],
   },
   {
@@ -104,7 +108,15 @@ export const MENUE_GRUPPEN = [
     eintraege: [
       { label: 'Profil',            path: '/app/profile' },
       { label: 'Sicherheit',        path: '/app/2fa-setup' },
-      { label: 'System',            path: '/app/settings' },
+      // **Zeigte bis zum 27.08.2026 auf `/app/settings`** — und das leitet
+      // auf `/app/settings/profile` um. Wer „System" anklickte, landete auf
+      // dem Profil. Ein Menuepunkt, der woanders hinfuehrt, als er sagt,
+      // ist schlimmer als einer, der fehlt.
+      { label: 'System',            path: '/app/settings/system' },
+      // Aus der Einstellungs-Seitenleiste hierher geholt (Bitte David,
+      // 27.08.2026). Sie stand neben dem Hauptmenue und wiederholte es zur
+      // Haelfte; diese drei gab es **nur** dort.
+      { label: 'Benachrichtigungen', path: '/app/settings/notifications' },
     ],
   },
   {
@@ -113,13 +125,27 @@ export const MENUE_GRUPPEN = [
     icon: '🔧',
     eintraege: [
       { label: 'Benutzer',          path: '/app/admin/users', adminOnly: true },
-      { label: 'Rollen',            path: '/app/admin/roles', adminOnly: true },
+      // **Zeigte bis zum 27.08.2026 auf `/app/admin/roles` — den Pfad gibt
+      // es nicht.** Die Rollenverwaltung liegt unter
+      // `/app/settings/roles`, innerhalb der Einstellungen mit ihrer
+      // Seitenleiste. Wer den Menuepunkt anklickte, landete im Auffang;
+      // bis heute hiess das: auf der Anmeldemaske. David hat es gemeldet.
+      //
+      // `menueZiele.test.js` haelt seither jeden Eintrag gegen die
+      // Routen — ein Menuepunkt, der nirgendwohin fuehrt, ist die
+      // teuerste Sorte Knopf.
+      { label: 'Rollen',            path: '/app/settings/roles', adminOnly: true },
       // Heisst wie die Seite, zu der er fuehrt. Hier stand kurz „Bausteine" —
       // kuerzer und besseres Deutsch, aber die Seite traegt weiter die
       // Ueberschrift „Komponenten-Bibliothek". Menue und Titel auseinander
       // laufen zu lassen ist genau UX-01, der erste Befund dieser Pruefung.
       // Wer umbenennen will, benennt beides um.
       { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
+      // Ebenfalls aus der Seitenleiste. „KAS Website" gehoert hierher und
+      // nicht unter „Einstellungen": Es ist die eigene Agenturseite mit
+      // eigenem Deploy — ein Arbeitsbereich, keine Einstellung.
+      { label: 'KAS Website',       path: '/app/settings/kas-website', adminOnly: true },
+      { label: 'Vorlagen',          path: '/app/settings/templates', adminOnly: true },
       // Ein Fehlerprotokoll, das niemand findet, ist so gut wie keines (L-10).
       { label: 'Fehlerprotokoll', path: '/app/fehler', adminOnly: true },
     ],

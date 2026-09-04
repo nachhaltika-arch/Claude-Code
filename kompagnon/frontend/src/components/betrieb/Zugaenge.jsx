@@ -149,16 +149,16 @@ export default function Zugaenge({ leadId, token }) {
       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
         Zugänge dieses Betriebs
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 16 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 16 }}>
         Jeder Mensch im Betrieb bekommt ein eigenes Konto — kein geteiltes
         Passwort. Freigeschaltete Kurse gelten dem Betrieb und gelten damit
         für jeden Zugang, auch für später hinzugekommene.
       </div>
 
       {zugaenge === null ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Wird geladen …</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Wird geladen …</div>
       ) : zugaenge.length === 0 ? (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
           Noch kein Zugang. Der erste entsteht beim Kauf — oder hier.
         </div>
       ) : (
@@ -173,7 +173,7 @@ export default function Zugaenge({ leadId, token }) {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {z.name || z.email}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {z.name ? z.email : ''}
                   {z.zuletzt_angemeldet
                     ? ` · zuletzt angemeldet ${z.zuletzt_angemeldet.slice(0, 10)}`
@@ -181,7 +181,7 @@ export default function Zugaenge({ leadId, token }) {
                 </div>
               </div>
               <span style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
                 textTransform: 'uppercase', padding: '3px 8px',
                 borderRadius: 'var(--radius-sm)',
                 background: !z.aktiv ? 'var(--bg-active)'
@@ -211,7 +211,7 @@ export default function Zugaenge({ leadId, token }) {
         * Screenreader je nach Browser gar nicht als Name angesagt — das Feld
         * hiesse dann „Eingabefeld". `feldName.test.js` wacht darueber. */}
       <form onSubmit={einladen} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
           Weiteren Zugang einladen
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -235,7 +235,7 @@ export default function Zugaenge({ leadId, token }) {
         }}>
           {laeuft ? 'Wird eingeladen …' : 'Einladung senden'}
         </button>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
           Der Eingeladene setzt sein Passwort über einen Link, der sieben Tage
           gilt. Ein Passwort wird nie verschickt und nirgends angezeigt.
         </div>
@@ -278,11 +278,11 @@ const feld = {
 const knopfLeise = {
   padding: '5px 10px', border: '1px solid var(--border-light)',
   borderRadius: 'var(--radius-md)', background: 'transparent',
-  color: 'var(--text-tertiary)', fontSize: 10, cursor: 'pointer',
+  color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
   whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)',
 };
 
 const meldung = {
   marginTop: 12, padding: '8px 10px', borderRadius: 'var(--radius-md)',
-  fontSize: 11, lineHeight: 1.5,
+  fontSize: 12, lineHeight: 1.5,
 };

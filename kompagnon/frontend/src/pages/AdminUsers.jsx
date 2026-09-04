@@ -107,11 +107,11 @@ export default function AdminUsers() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
                     {u.first_name} {u.last_name}
-                    {!u.is_active && <span style={{ color: '#c03030', fontSize: 11, marginLeft: 8 }}>(deaktiviert)</span>}
+                    {!u.is_active && <span style={{ color: '#c03030', fontSize: 12, marginLeft: 8 }}>(deaktiviert)</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{u.email}</div>
                 </div>
-                <span style={{ background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
+                <span style={{ background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
                   {badge.label}
                 </span>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -177,7 +177,7 @@ function SmallBtn({ onClick, label, danger }) {
     <button onClick={onClick} style={{
       background: danger ? 'var(--status-danger-bg)' : 'var(--bg-app)',
       color: danger ? 'var(--status-danger-text)' : 'var(--text-primary)',
-      border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', minHeight: 30,
+      border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 30,
     }}>
       {label}
     </button>

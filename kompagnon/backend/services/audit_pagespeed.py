@@ -20,7 +20,28 @@ logger = logging.getLogger(__name__)
 # auf — den es nicht gibt. Mit gesetztem Key lief damit jeder Aufruf ins Leere.
 PSI_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 
-PSI_TIMEOUT = 30.0
+# **Am 2026-08-28 von 30 auf 60 Sekunden angehoben — gemessen, nicht geschaetzt.**
+#
+# Anlass war die Frage, warum `tp_lcp`, `tp_cls`, `tp_mobile` und die `bf_*`
+# in vier von acht auswertbaren Pruefungen ausfielen (L-126). Vermutet wurde
+# ein fehlender Schluessel; er war da. Die Messung vom Produktivdienst aus,
+# mit beiden Kategorien wie im echten Aufruf:
+#
+#     kas.kompagnon.group   mobil 17,4 s · Desktop 17,8 s
+#     nachhaltika.de        mobil 22,9 s · Desktop 16,7 s
+#     api.kompagnon.group   mobil  4,8 s · Desktop  5,4 s
+#
+# Ein Lauf gegen `kas.kompagnon.group` (mobil) endete zuvor bei **30,2 s** —
+# also genau an der alten Grenze. Zwischen 23 s Normalfall und 30 s Grenze
+# liegt kein Spielraum; jede langsamere Seite faellt heraus, und der Ausfall
+# sieht im Ergebnis aus wie „nicht erhoben" und nicht wie „zu frueh
+# abgebrochen".
+#
+# **Was das kostet:** nichts, was jemand merkt. Je Audit laeuft genau **ein**
+# PSI-Aufruf (`audit_runner`, `psi_mobile`), und der laeuft parallel zu QA,
+# Hosting, Links, Rechtsseiten und TLS. Die Grenze greift nur, wenn Google
+# wirklich haengt.
+PSI_TIMEOUT = 60.0
 
 # Lighthouse-Audits je Barrierefreiheits-Kriterium.
 #

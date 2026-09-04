@@ -105,7 +105,7 @@ export default function CommandPalette({ open, onClose }) {
             }}
           />
           <kbd style={{
-            fontSize: 10, padding: '2px 6px', borderRadius: 4,
+            fontSize: 12, padding: '2px 6px', borderRadius: 4,
             background: 'var(--bg-app)', border: '1px solid var(--border-light)',
             color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)',
             flexShrink: 0,
@@ -148,7 +148,7 @@ export default function CommandPalette({ open, onClose }) {
                 </span>
                 {i === selected && (
                   <kbd style={{
-                    marginLeft: 'auto', fontSize: 10, padding: '2px 6px',
+                    marginLeft: 'auto', fontSize: 12, padding: '2px 6px',
                     borderRadius: 4, background: 'var(--brand-primary-light)',
                     color: 'var(--brand-primary-dark)',
                     fontFamily: 'var(--font-mono)', flexShrink: 0,
@@ -163,11 +163,11 @@ export default function CommandPalette({ open, onClose }) {
           borderTop: '1px solid var(--border-light)',
           padding: '8px 18px',
           display: 'flex', gap: 16,
-          fontSize: 11, color: 'var(--text-tertiary)',
+          fontSize: 12, color: 'var(--text-tertiary)',
         }}>
-          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>↑↓</kbd> navigieren</span>
-          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>↵</kbd> öffnen</span>
-          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>Esc</kbd> schließen</span>
+          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>↑↓</kbd> navigieren</span>
+          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>↵</kbd> öffnen</span>
+          <span><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>Esc</kbd> schließen</span>
         </div>
       </div>
     </div>,

@@ -5,6 +5,7 @@ import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { VERZICHTSTEXT } from '../inhalte/rechtstexte';
 
 
 const A = '#D4A017';
@@ -19,7 +20,10 @@ export default function Checkout() {
   const [packages, setPackages] = useState([]);
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(pkgParam || searchParams.get('package') || 'kompagnon');
-  const [form, setForm] = useState({ name: '', company: '', website: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ name: '', company: '', website: '', email: '', phone: '', message: '',
+    // Widerrufsverzicht (BUCH-12, FIX-4). Nicht vorbelegt —
+    // vorangekreuzte Zustimmungen sind unwirksam.
+    withdrawal_waived: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,6 +36,10 @@ export default function Checkout() {
           name:      p.name,
           price:     parseFloat(p.price_brutto).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
           desc:      p.short_desc || '',
+          // Die Pflichtangabe bei gekoppeltem Abo (L-164). Sie muss gerade
+          // hier stehen: Der Kunde sieht in der Kasse „1.785 Euro" und
+          // schliesst zugleich zwoelf Monate Pflege ab.
+          preisangabe: p.preisangabe || '',
           highlight: p.highlighted,
           features:  Array.isArray(p.features) ? p.features : [],
         }));
@@ -45,11 +53,22 @@ export default function Checkout() {
   }, []); // eslint-disable-line
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const pkg = packages.find((p) => p.id === selected) || packages[0] || { name: '', price: '', features: [] };
+  const pkg = packages.find((p) => p.id === selected) || packages[0] || { name: '', price: '', features: [], preisangabe: '' };
 
   const handleCheckout = async () => {
     if (!form.email || !form.name || !form.company) { setError('Bitte alle Pflichtfelder ausfuellen'); return; }
     if (!form.website.trim()) { setError('Bitte Website / Domain eingeben'); return; }
+    // **Ohne Verzicht kein sofortiger Leistungsbeginn** (§ 356 Abs. 4 BGB,
+    // BUCH-12 FIX-4). Ein Websprint beginnt innerhalb der Widerrufsfrist;
+    // ohne diese Zustimmung gaebe es bei einem Widerruf **keinen Wertersatz**
+    // fuer bereits geleistete Arbeit. Die Sperre steht hier im Absendeweg und
+    // nicht nur als deaktivierter Knopf — ein `disabled` ist keine Pruefung.
+    if (!form.withdrawal_waived) {
+      setError('Bitte bestätigen Sie den sofortigen Leistungsbeginn — '
+               + 'ohne diese Zustimmung dürfen wir nicht vor Ablauf der '
+               + 'Widerrufsfrist mit der Arbeit beginnen.');
+      return;
+    }
     const websiteUrl = form.website.trim().startsWith('http') ? form.website.trim() : `https://${form.website.trim()}`;
     setLoading(true);
     setError('');
@@ -89,7 +108,7 @@ export default function Checkout() {
               {i > 0 && <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.3)' }} />}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{
-                  width: 24, height: 24, borderRadius: '50%', fontSize: 11, fontWeight: 700, color: 'var(--text-on-brand)',
+                  width: 24, height: 24, borderRadius: '50%', fontSize: 12, fontWeight: 700, color: 'var(--text-on-brand)',
                   background: step > i + 1 ? 'var(--success)' : step === i + 1 ? A : 'rgba(255,255,255,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
@@ -113,7 +132,18 @@ export default function Checkout() {
         {step === 1 && (
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Einmaliger Festpreis — es kommt nichts hinzu.</p>
+            {/* **Am 04.09.2026 bedingt gemacht (L-164).** Hier stand unbedingt
+                „Einmaliger Festpreis — es kommt nichts hinzu." Solange alle
+                Pakete einmalig waren, war das richtig. Mit dem Websprint Start
+                steht darueber ein Paket, bei dem zwoelf Monate Pflege
+                zwingender Bestandteil sind — der Satz haette der Kachel
+                direkt darunter widersprochen. Eine falsche Zusage ueber dem
+                Preis ist schwerer als eine fehlende Angabe daneben. */}
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>
+              {packages.some(p => p.preisangabe)
+                ? 'Festpreis je Paket. Wo eine laufende Pflege dazugehoert, steht der Gesamtpreis am Paket.'
+                : 'Einmaliger Festpreis — es kommt nichts hinzu.'}
+            </p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {packages.map((p) => (
                 <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelected(p.id))} key={p.id} onClick={() => setSelected(p.id)} style={{
@@ -123,7 +153,7 @@ export default function Checkout() {
                   boxShadow: selected === p.id ? '0 4px 20px rgba(15,30,58,0.15)' : '0 2px 8px rgba(0,0,0,0.06)',
                   transition: 'all 0.2s',
                 }}>
-                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
+                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: 'var(--text-primary)', fontSize: 12, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{p.name}</div>
@@ -133,7 +163,11 @@ export default function Checkout() {
                       {selected === p.id && <span style={{ color: '#fff', fontSize: 12 }}>✓</span>}
                     </div>
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 16 }}>{p.price} Euro</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', marginBottom: p.preisangabe ? 8 : 16 }}>{p.price} Euro</div>
+                  {p.preisangabe && (
+                    <p style={{ fontSize: 12.5, lineHeight: 1.5, fontWeight: 700,
+                                color: 'var(--text-primary)', margin: '0 0 16px' }}>{p.preisangabe}</p>
+                  )}
                   {p.features.map((f) => (
                     <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#4a5a74', marginBottom: 6 }}>
                       <span style={{ color: '#27ae60', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
@@ -167,7 +201,7 @@ export default function Checkout() {
               <div style={{ marginBottom: 16 }}>
                 <label style={lbl}>Website / Domain *</label>
                 <input aria-label="Website / Domain" style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
               </div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input aria-label="E-Mail" style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input aria-label="Telefon" style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>
@@ -178,9 +212,30 @@ export default function Checkout() {
 
               {/* Package summary */}
               <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Einmaliger Festpreis</div></div>
+                <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{pkg.preisangabe ? 'Festpreis zzgl. laufender Pflege' : 'Einmaliger Festpreis'}</div></div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{pkg.price} Euro</div>
+                {pkg.preisangabe && (
+                  <p style={{ fontSize: 12.5, lineHeight: 1.5, fontWeight: 700,
+                              color: 'var(--text-primary)', margin: '6px 0 0' }}>{pkg.preisangabe}</p>
+                )}
               </div>
+
+              {/* Widerrufsverzicht (BUCH-12, FIX-4). Der Wortlaut kommt aus
+                  `inhalte/rechtstexte.js` und ist bis zur anwaltlichen
+                  Fassung eine sichtbare Markierung — derselbe Grundsatz wie
+                  im Shop-Formular: Ein plausibler Rechtssatz wird nie
+                  geprueft, weil er geprueft aussieht. */}
+              <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                <input type="checkbox" data-testid="checkout-verzicht"
+                       checked={form.withdrawal_waived}
+                       onChange={e => setForm({ ...form, withdrawal_waived: e.target.checked })} />
+                <span>{VERZICHTSTEXT}</span>
+              </label>
+              <p style={{ fontSize: 12, marginBottom: 16 }}>
+                <a href="/widerruf" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', fontWeight: 700 }}>Widerrufsbelehrung</a>
+                {' '}und{' '}
+                <a href="/agb" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>AGB</a>
+              </p>
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setStep(1)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>
@@ -191,7 +246,7 @@ export default function Checkout() {
                   {loading ? 'Wird vorbereitet...' : 'Weiter zur Zahlung'}
                 </button>
               </div>
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
             </div>
           </div>
         )}

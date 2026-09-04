@@ -78,6 +78,88 @@ def get_template(
     return dict(row._mapping)
 
 
+@router.post("/upload")
+async def upload_seite(
+    name: str = Form(""),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Eine `.html`-Datei als bearbeitbare Systemseite anlegen (Bitte David).
+
+    **Warum das nicht `/templates/upload` konnte.** Der nimmt `.zip` und
+    `.grapesjs` und lehnt eine einzelne `.html` ausdruecklich ab — und er
+    legt **Vorlagen** an, keine Seiten. Gewuenscht war beides: hochladen
+    **und** bearbeiten.
+
+    **Was entfernt wird, steht in der Antwort.** `services/html_seite.py`
+    nimmt Skripte, eingebettete Rahmen, Ereignis-Attribute und
+    `javascript:`-Adressen heraus — weil eine gespeicherte Seite spaeter
+    veroeffentlicht wird und ab da im Browser jedes Besuchers laeuft. Der
+    Rueckgabewert `hinweis` nennt jede Sorte. Still zu entfernen waere
+    schlimmer als abzulehnen: Wer seine Seite nicht wiedererkennt, sucht den
+    Fehler bei sich.
+    """
+    from services import html_seite
+
+    dateiname = file.filename or ""
+    if not dateiname.lower().endswith((".html", ".htm")):
+        raise HTTPException(400, "Nur .html und .htm werden hier angenommen. "
+                                 "Fuer Vorlagen gibt es /templates/upload.")
+
+    roh = await file.read()
+    if len(roh) > 2 * 1024 * 1024:
+        # Eine Seite mit zwei Megabyte Text ist kein Versehen mehr. Die
+        # Grenze steht hier und nicht im Frontend: Eine Grenze, die nur die
+        # Oberflaeche kennt, ist keine.
+        raise HTTPException(400, "Die Datei ist groesser als 2 MB")
+
+    teile = html_seite.einlesen(roh.decode("utf-8", errors="replace"))
+
+    # Der Name: was angegeben wurde, sonst der Titel aus dem Dokument, sonst
+    # der Dateiname. Geraten wird nichts — die Reihenfolge ist die von
+    # „genau gesagt" nach „steht wenigstens drin".
+    anzeigename = (name.strip() or teile["titel"]
+                   or dateiname.rsplit(".", 1)[0])[:200]
+    slug = "/" + html_seite.slug_aus(anzeigename)
+
+    vorhanden = db.execute(
+        text("SELECT id FROM public_pages WHERE slug = :s"), {"s": slug}
+    ).fetchone()
+    if vorhanden:
+        raise HTTPException(409, f"Eine Seite unter '{slug}' gibt es bereits. "
+                                 f"Bitte einen anderen Namen waehlen.")
+
+    ergebnis = db.execute(text("""
+        INSERT INTO public_pages
+          (slug, name, page_type, status, html_content, css_content,
+           meta_title, meta_description, description)
+        VALUES (:slug, :name, 'upload', 'draft', :html, :css,
+                :titel, :beschreibung, :desc)
+        RETURNING id
+    """), {
+        "slug": slug,
+        "name": anzeigename,
+        "html": teile["html"],
+        "css": teile["css"],
+        "titel": teile["titel"],
+        "beschreibung": teile["beschreibung"],
+        "desc": f"Hochgeladen aus {dateiname}",
+    })
+    seiten_id = ergebnis.fetchone()[0]
+    db.commit()
+
+    logger.info("Seite %s aus %s angelegt (%s)", seiten_id, dateiname,
+                ", ".join(teile["entfernt"]) or "nichts entfernt")
+
+    return {
+        "id": seiten_id,
+        "slug": slug,
+        "name": anzeigename,
+        "hinweis": html_seite.meldung(teile["entfernt"]),
+    }
+
+
 @router.post("/templates/upload")
 async def upload_template(
     name: str = Form(...),

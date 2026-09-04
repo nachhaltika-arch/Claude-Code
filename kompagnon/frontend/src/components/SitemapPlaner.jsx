@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -6,10 +7,10 @@ import { aufTaste } from '../utils/tastaturBedienung';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TYPE_META = {
-  startseite:  { label: 'Startseite',      color: 'var(--kc-mid)', icon: '🏠' },
+  startseite:  { label: 'Startseite',      color: 'var(--text-brand)', icon: '🏠' },
   leistung:    { label: 'Leistungsseite',  color: '#2563EB', icon: '🔧' },
-  info:        { label: 'Info-Seite',      color: '#059669', icon: 'ℹ️' },
-  vertrauen:   { label: 'Vertrauensseite', color: '#D97706', icon: '⭐' },
+  info:        { label: 'Info-Seite',      color: 'var(--success)', icon: 'ℹ️' },
+  vertrauen:   { label: 'Vertrauensseite', color: 'var(--warn)', icon: '⭐' },
   conversion:  { label: 'Kontakt',         color: '#DC2626', icon: '📞' },
   rechtlich:   { label: 'Rechtlich',       color: '#6B7280', icon: '⚖️' },
   sonstige:    { label: 'Sonstige',        color: '#8B5CF6', icon: '📄' },
@@ -58,7 +59,7 @@ const inp = {
   fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD', color: '#1A2C32',
 };
 const lbl = {
-  fontSize: 11, fontWeight: 700, color: '#5A7080',
+  fontSize: 12, fontWeight: 700, color: '#5A7080',
   textTransform: 'uppercase', letterSpacing: '0.06em',
   marginBottom: 4, display: 'block',
 };
@@ -84,7 +85,7 @@ function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || STATUS_STYLE.geplant;
   return (
     <span style={{
-      padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+      padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600,
       background: s.bg, color: s.text, whiteSpace: 'nowrap',
     }}>
       {statusLabel(status)}
@@ -116,10 +117,10 @@ function PageCard({ page, isChild, onEdit, onDelete }) {
           {page.page_name}
         </div>
         {page.ziel_keyword && (
-          <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>🔑 {page.ziel_keyword}</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>🔑 {page.ziel_keyword}</div>
         )}
         {page.zweck && (
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>{page.zweck}</div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>{page.zweck}</div>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -186,7 +187,7 @@ function PflichtseiteRow({ page, onEdit }) {
         <span style={{ fontWeight: 700, fontSize: 13, color: '#6B7280' }}>{page.page_name}</span>
       </div>
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+        fontSize: 12, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
         background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap',
       }}>⚖️ Pflicht</span>
       <StatusBadge status={page.status} />
@@ -297,6 +298,12 @@ function AddPageForm({ contentPages, leadId, onAdded, onCancel }) {
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 
 function EditModal({ page, contentPages, onSaved, onClose }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  useEscapeKey(onClose);
+
   const isPflicht = !!page.ist_pflichtseite;
 
   const [form, setForm] = useState({
@@ -656,7 +663,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: '#8A9BA8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
+            <div style={{ fontSize: 12, color: '#8A9BA8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
               Seitenstruktur planen
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#1A2C32', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

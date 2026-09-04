@@ -34,7 +34,7 @@ export default function Login() {
   };
 
   const labelStyle = {
-    display: 'block', fontSize: 11, fontWeight: 500,
+    display: 'block', fontSize: 12, fontWeight: 500,
     color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 6,
   };
@@ -216,7 +216,7 @@ export default function Login() {
                 <div style={{ textAlign: 'right', marginBottom: 18 }}>
                   <button type="button" onClick={() => setStep('forgot')} style={{
                     background: 'none', border: 'none', color: 'var(--brand-primary-mid)',
-                    fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   }}>
                     Passwort vergessen?
                   </button>
@@ -322,7 +322,7 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>
           © 2026 KOMPAGNON
         </div>
       </div>

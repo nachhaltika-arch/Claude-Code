@@ -62,6 +62,9 @@ def paket_fuer_beleg(db, slug: str, bezahlt: float) -> dict:
                 "brutto": brutto,
                 "netto": round(netto, 2),
                 "mwst": round(brutto - netto, 2),
+                # **Der Satz, nicht nur der Betrag.** Der Beleg wies ihn bis
+                # zum 27.08.2026 fest mit „19 %" aus. Das Buch hat sieben.
+                "steuersatz": satz,
                 "leistungen": list(zeile[4] or []),
                 # **Nicht der letzte Leistungspunkt.** Die alte feste Liste
                 # trug die Lieferzeit als letzten Eintrag, und die Darstellung
@@ -85,6 +88,9 @@ def paket_fuer_beleg(db, slug: str, bezahlt: float) -> dict:
         "brutto": betrag,
         "netto": netto,
         "mwst": round(betrag - netto, 2),
+        # Ohne Produktzeile ist der Regelsatz die einzige Annahme, die es
+        # gibt — und sie steht hier, statt im Dokument versteckt zu sein.
+        "steuersatz": REGELSATZ_PROZENT,
         "leistungen": [],
         "lieferzeit_tage": None,
         "quelle": "zahlung",

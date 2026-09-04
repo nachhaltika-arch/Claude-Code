@@ -17,8 +17,13 @@ from pathlib import Path
 
 from services.audit_criteria import CATALOGUE
 
+#: **Seit dem 30.08.2026 in `audit/auditDaten.jsx`.** `AuditReport.jsx` stand
+#: mit 1.025 Zeilen ueber der Groessengrenze und ist geteilt (L-25); die
+#: Kataloge sind mit ausgezogen. Dieser Test hat den Umzug gemeldet —
+#: „CATEGORY_META nicht gefunden — wurde das Bauteil umgebaut?", und genau
+#: das war passiert. Die Frage im Text war die richtige.
 BAUTEIL = (Path(__file__).resolve().parents[2] / "frontend" / "src"
-           / "components" / "AuditReport.jsx")
+           / "components" / "audit" / "auditDaten.jsx")
 
 
 def _meta_schluessel() -> set:

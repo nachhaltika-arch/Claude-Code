@@ -244,13 +244,13 @@ ${blocksHtml}
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         padding: '10px 18px',
         background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
-        fontSize: 11,
+        fontSize: 12,
       }}>
         <SourceBadge label="Sitemap" value={`${sitemapPages.length} Page${sitemapPages.length === 1 ? '' : 's'}`} icon="🗺" />
         <SourceBadge label="Wireframe" value={`${totalBlocks} Block${totalBlocks === 1 ? '' : 's'}`} icon="🧱" />
         <SourceBadge label="Style-Guide" value={styleHasOverrides ? 'Custom' : 'Default'} icon="🎨" />
         <div style={{ flex: 1 }} />
-        <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
           {libraryLoading ? '⟳ Templates werden geladen…' : 'Live-Vorschau aktualisiert sich automatisch'}
         </span>
       </div>
@@ -262,7 +262,7 @@ ${blocksHtml}
           background: 'var(--bg-app)', borderRight: '1px solid var(--border-light)',
           padding: 16, overflowY: 'auto',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Sitemap
           </div>
           {sitemapPages.length === 0 ? (
@@ -292,7 +292,7 @@ ${blocksHtml}
           )}
 
           <div style={{
-            fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
+            fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.1em',
             marginBottom: 8, paddingTop: 16, borderTop: '1px solid var(--border-light)',
           }}>
@@ -316,7 +316,7 @@ ${blocksHtml}
             </button>
             {uebernahme.text && (
               <div style={{
-                fontSize: 11, lineHeight: 1.4, padding: '6px 8px', borderRadius: 6,
+                fontSize: 12, lineHeight: 1.4, padding: '6px 8px', borderRadius: 6,
                 background: uebernahme.status === 'fehler' ? '#fef2f2' : '#f0fdf4',
                 color: uebernahme.status === 'fehler' ? '#991b1b' : '#166534',
                 border: `1px solid ${uebernahme.status === 'fehler' ? '#fca5a5' : '#86efac'}`,
@@ -342,7 +342,7 @@ ${blocksHtml}
             <div style={{
               padding: '10px 18px',
               background: '#fff', borderBottom: '1px solid var(--border-light)',
-              fontSize: 11, color: 'var(--text-secondary)',
+              fontSize: 12, color: 'var(--text-secondary)',
               display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
             }}>
               <Breadcrumb page={activeSitemapPage} sitemapPages={sitemapPages} />
@@ -350,7 +350,7 @@ ${blocksHtml}
                 <span title="Pflichtseite" style={{ marginLeft: 4 }}>🔒</span>
               )}
               <span style={{ flex: 1 }} />
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, color: 'var(--text-tertiary)' }}>
                 /{slugify(activeSitemapPage.page_name)}
               </span>
             </div>
@@ -393,10 +393,10 @@ function SourceBadge({ label, value, icon }) {
       background: '#fff', border: '1px solid var(--border-light)', borderRadius: 6,
     }}>
       <span aria-hidden style={{ fontSize: 12 }}>{icon}</span>
-      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: KC_DARK }}>{value}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>{value}</span>
     </div>
   );
 }
@@ -458,9 +458,9 @@ function PageButton({ label, isActive, onClick, isPflicht, hasWireframe = true, 
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {label}
       </span>
-      {isPflicht && <span aria-label="Pflichtseite" style={{ fontSize: 10 }}>🔒</span>}
+      {isPflicht && <span aria-label="Pflichtseite" style={{ fontSize: 12 }}>🔒</span>}
       {!hasWireframe && (
-        <span title="Kein Wireframe" style={{ fontSize: 9, opacity: 0.7 }}>—</span>
+        <span title="Kein Wireframe" style={{ fontSize: 12, opacity: 0.7 }}>—</span>
       )}
     </button>
   );

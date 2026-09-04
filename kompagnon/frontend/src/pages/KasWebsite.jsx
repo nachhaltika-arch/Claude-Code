@@ -189,7 +189,7 @@ export default function KasWebsite() {
             KAS Website
           </div>
           <div style={{
-            fontSize: 11, fontWeight: 700,
+            fontSize: 12, fontWeight: 700,
             color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '.08em',
           }}>
@@ -206,7 +206,7 @@ export default function KasWebsite() {
         {site?.configured ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{
-              background: '#dcfce7', color: '#16a34a',
+              background: '#dcfce7', color: 'var(--success)',
               padding: '3px 12px', borderRadius: 20,
               fontSize: 12, fontWeight: 700, width: 'fit-content',
             }}>
@@ -219,7 +219,7 @@ export default function KasWebsite() {
               </a>
             )}
             {site.last_deploy && (
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Letzter Deploy: {String(site.last_deploy).slice(0, 16).replace('T', ' ')}
               </div>
             )}
@@ -288,7 +288,7 @@ export default function KasWebsite() {
                   {['Titel', 'Pfad', 'Status', 'Inhalt', 'Aktionen'].map(h => (
                     <th key={h} style={{
                       textAlign: 'left', padding: '8px 12px',
-                      fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+                      fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)',
                       textTransform: 'uppercase', letterSpacing: '.06em',
                     }}>
                       {h}
@@ -308,16 +308,16 @@ export default function KasWebsite() {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                        padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                         background: page.status === 'live' ? '#dcfce7' : 'var(--bg-elevated)',
-                        color:      page.status === 'live' ? '#16a34a' : 'var(--text-tertiary)',
+                        color:      page.status === 'live' ? 'var(--success)' : 'var(--text-tertiary)',
                       }}>
                         {page.status === 'live' ? 'Live' : 'Entwurf'}
                       </span>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                        padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                         background: page.has_content ? '#E6F1FB' : '#FEF9C3',
                         color:      page.has_content ? '#185FA5' : '#854D0E',
                       }}>
@@ -327,12 +327,12 @@ export default function KasWebsite() {
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => setEditingPage(page)}
-                          style={{ ...btn('var(--brand-primary)'), padding: '5px 12px', fontSize: 11 }}>
+                          style={{ ...btn('var(--brand-primary)'), padding: '5px 12px', fontSize: 12 }}>
                           ✏️ Bearbeiten
                         </button>
                         {!page.ist_startseite && (
                           <button onClick={() => deletePage(page)}
-                            style={{ ...btn('#dc2626'), padding: '5px 10px', fontSize: 11 }}>
+                            style={{ ...btn('#dc2626'), padding: '5px 10px', fontSize: 12 }}>
                             🗑
                           </button>
                         )}
@@ -389,16 +389,16 @@ export default function KasWebsite() {
             background: '#dcfce7', borderRadius: 'var(--radius-md)',
             border: '1px solid #bbf7d0',
           }}>
-            <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 8, fontSize: 13 }}>
+            <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: 8, fontSize: 13 }}>
               ✓ {deployResult.pages_deployed.length} Seiten deployed
             </div>
             {deployResult.deploy_url && (
               <a href={deployResult.deploy_url} target="_blank" rel="noopener noreferrer"
-                 style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>
+                 style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600, textDecoration: 'none' }}>
                 {deployResult.deploy_url} →
               </a>
             )}
-            <div style={{ marginTop: 10, fontSize: 11, color: '#166534', fontFamily: 'monospace' }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: '#166534', fontFamily: 'monospace' }}>
               {deployResult.pages_deployed.map(f => <div key={f}>• {f}</div>)}
             </div>
           </div>

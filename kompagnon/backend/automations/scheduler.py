@@ -118,6 +118,24 @@ def job_hwk_scrape_weekly():
 
 
 
+def job_anrechnung_ablaufwarnung():
+    """Erinnert an Anrechnungen, die in dreissig Tagen verfallen (ORDERS_08).
+
+    **Ein Verkaufsinstrument, kein Serviceschreiben** — und ein zulaessiges:
+    Der Empfaenger hat gekauft, die Anrechnung ist ihm zugesagt, der Anlass
+    ist sachlich. Genau dafuer wurde sie konstruiert.
+
+    Der Dienst oeffnet seine eigene Sitzung und schliesst sie, **bevor** Brevo
+    gerufen wird; siehe `services/anrechnung.ablaufwarnung`.
+    """
+    from services.anrechnung import ablaufwarnung
+
+    gesendet = ablaufwarnung()
+    if gesendet:
+        logger.info(f"Anrechnung: {gesendet} Ablaufwarnungen versendet")
+    return gesendet
+
+
 def job_fehlerprotokoll_aufraeumen():
     """Raeumt Eintraege weg, die dreissig Tage lang nicht mehr auftraten."""
     from services.fehlerprotokoll import alte_aufraeumen
@@ -168,6 +186,24 @@ def job_update_all_margins():
 # ===================================================================
 # MONTHLY PERFORMANCE REPORT
 # ===================================================================
+
+def _run_abo_abrechnung():
+    """Monatliche Aufstellung der Pflege-Abos (L-101, Abrechnung per Rechnung)."""
+    try:
+        from services.abo_abrechnung import lauf_mit_eigener_sitzung
+        lauf_mit_eigener_sitzung()
+    except Exception as e:                              # noqa: BLE001
+        logger.error(f"Abo-Abrechnung Wrapper Fehler: {e}", exc_info=True)
+
+
+def _run_quartals_reaudit():
+    """Termingeber fuer das Quartals-Re-Audit der Pflege-Abos (L-101)."""
+    try:
+        from services.quartals_reaudit import lauf_mit_eigener_sitzung
+        lauf_mit_eigener_sitzung()
+    except Exception as e:                              # noqa: BLE001
+        logger.error(f"Quartals-Re-Audit Wrapper Fehler: {e}", exc_info=True)
+
 
 def _run_geo_monitoring_sync():
     """Synchroner Wrapper fuer den asynchronen GEO-Monitor-Job."""
@@ -306,6 +342,18 @@ class CompagnonScheduler:
             "cron",
             hour=4, minute=30,
             id="fehlerprotokoll_aufraeumen",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # Taeglich frueh, vor dem Arbeitstag: Wer die Mail morgens liest,
+        # kann noch am selben Tag anrufen. Der Dienst meldet nur Fristen, die
+        # **genau** in dreissig Tagen enden — sonst bekaeme derselbe Kaeufer
+        # die Erinnerung an dreissig Tagen hintereinander (ORDERS_08).
+        self.scheduler.add_job(
+            job_anrechnung_ablaufwarnung,
+            "cron",
+            hour=7, minute=15,
+            id="anrechnung_ablaufwarnung",
             replace_existing=True,
             timezone="Europe/Berlin",
         )
@@ -456,6 +504,51 @@ class CompagnonScheduler:
             name="Monatlicher GEO-Sichtbarkeits-Check",
         )
         logger.info("✓ Monatlicher GEO-Monitoring Job registriert (1. des Monats, 07:00)")
+
+        # Quartals-Re-Audit der Pflege-Abos — 1. Januar/April/Juli/Oktober,
+        # 06:00 Uhr (L-101). **Vor den Monatsjobs um 07:00 und 08:30**, damit
+        # die Faelligkeitsmeldung oben in der Glocke steht und nicht unter dem
+        # GEO-Bericht.
+        #
+        # Er stellt nur fest, wer dran ist, und meldet es. Die Pruefung selbst
+        # loest ein Mensch aus — sie kostet Guthaben, und die Entscheidung bei
+        # einem gefallenen Wert (G4: Nachbesserung ohne Berechnung) gehoert
+        # nicht in einen Cron-Eintrag.
+        self.scheduler.add_job(
+            _run_quartals_reaudit,
+            "cron",
+            month="1,4,7,10",
+            day=1,
+            hour=6,
+            minute=0,
+            id="quartals_reaudit",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+            name="Quartals-Re-Audit der Pflege-Abos",
+        )
+        logger.info("✓ Quartals-Re-Audit Job registriert (1.1./1.4./1.7./1.10., 06:00)")
+
+        # Monatliche Abo-Abrechnung — 1. des Monats, 05:30 Uhr (L-101).
+        # **Vor allen anderen Monatsjobs**, weil daran Geld haengt: Wer den
+        # Morgen des Ersten mit einer Liste beginnt, stellt die Rechnungen;
+        # wer sie unter drei Berichten findet, verschiebt sie.
+        #
+        # Der Lauf stellt **keine** Rechnung aus. Eine Rechnungsnummer ist
+        # fortlaufend und laesst sich nicht still zuruecknehmen — sie vergibt
+        # ein Mensch. Entscheidung David, 01.09.2026: per Rechnung, nicht per
+        # Abbuchung.
+        self.scheduler.add_job(
+            _run_abo_abrechnung,
+            "cron",
+            day=1,
+            hour=5,
+            minute=30,
+            id="abo_abrechnung",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+            name="Monatliche Abrechnung der Pflege-Abos",
+        )
+        logger.info("✓ Abo-Abrechnung Job registriert (1. des Monats, 05:30)")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -122,7 +123,7 @@ const LOCAL_TEMPLATES = [
     name: 'Referenzen',
     category: 'Referenzen',
     description: 'Kundenprojekte und Bewertungen',
-    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: -apple-system, sans-serif; } .hero { background: #7c3aed; color: white; padding: 60px 40px; text-align: center; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 24px; max-width: 1100px; margin: 0 auto; padding: 60px 40px; } .card { border: 1px solid #eee; border-radius: 10px; overflow: hidden; } .card-img { height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; } .card-body { padding: 20px; } .stars { color: #f59e0b; margin-bottom: 8px; } .quote { font-style: italic; color: #555; line-height: 1.6; }</style></head><body><div class="hero"><h1>Unsere Referenzen</h1><p>Was unsere Kunden sagen</p></div><div class="grid"><div class="card"><div class="card-img">⭐</div><div class="card-body"><div class="stars">★★★★★</div><div class="quote">"Hervorragende Arbeit, pünktlich und professionell. Sehr empfehlenswert!"</div><strong style="display:block;margin-top:12px">— Max Mustermann</strong></div></div><div class="card"><div class="card-img">🏆</div><div class="card-body"><div class="stars">★★★★★</div><div class="quote">"Qualität überzeugt. Wir sind sehr zufrieden mit dem Ergebnis."</div><strong style="display:block;margin-top:12px">— Anna Beispiel</strong></div></div></div></body></html>`,
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: -apple-system, sans-serif; } .hero { background: #7c3aed; color: white; padding: 60px 40px; text-align: center; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 24px; max-width: 1100px; margin: 0 auto; padding: 60px 40px; } .card { border: 1px solid #eee; border-radius: 10px; overflow: hidden; } .card-img { height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; } .card-body { padding: 20px; } .stars { color: var(--warn); margin-bottom: 8px; } .quote { font-style: italic; color: #555; line-height: 1.6; }</style></head><body><div class="hero"><h1>Unsere Referenzen</h1><p>Was unsere Kunden sagen</p></div><div class="grid"><div class="card"><div class="card-img">⭐</div><div class="card-body"><div class="stars">★★★★★</div><div class="quote">"Hervorragende Arbeit, pünktlich und professionell. Sehr empfehlenswert!"</div><strong style="display:block;margin-top:12px">— Max Mustermann</strong></div></div><div class="card"><div class="card-img">🏆</div><div class="card-body"><div class="stars">★★★★★</div><div class="quote">"Qualität überzeugt. Wir sind sehr zufrieden mit dem Ergebnis."</div><strong style="display:block;margin-top:12px">— Anna Beispiel</strong></div></div></div></body></html>`,
   },
   {
     id: 'local-7',
@@ -150,6 +151,11 @@ const CATEGORY_COLORS = {
 };
 
 export default function TemplateLibrary() {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  useEscapeKey(() => { setShowZipModal(false); setShowUrlModal(false); });
+
   const { token } = useAuth();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const [apiTemplates, setApiTemplates] = useState([]);
@@ -304,7 +310,7 @@ export default function TemplateLibrary() {
                   <div style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{tpl.name}</div>
-                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: badge.bg, color: badge.color, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                      <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: badge.bg, color: badge.color, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
                         {tpl.category}
                       </span>
                     </div>
@@ -354,12 +360,12 @@ export default function TemplateLibrary() {
                 <div key={tpl.id} style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{tpl.name}</div>
-                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, padding: '3px 9px', borderRadius: 10, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
                       {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
                     </span>
                   </div>
                   {tpl.category && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>{tpl.category}</div>}
-                  {tpl.created_at && <div style={{ fontSize: 11, color: '#aaa', marginBottom: 14 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                  {tpl.created_at && <div style={{ fontSize: 12, color: '#aaa', marginBottom: 14 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Link to={`/app/settings/templates/${tpl.id}`} style={{ flex: 1, padding: '8px 12px', background: '#f0f0f0', color: '#333', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 13, textAlign: 'center', textDecoration: 'none', display: 'block' }}>
                       ✏️ Bearbeiten

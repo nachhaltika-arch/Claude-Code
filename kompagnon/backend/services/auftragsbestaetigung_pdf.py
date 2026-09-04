@@ -42,6 +42,42 @@ def _register_fonts():
         return "Helvetica", "Helvetica-Bold"
 
 
+def _euro(betrag) -> str:
+    """Ein Betrag in deutscher Schreibweise: `4.165,00 EUR`.
+
+    **Der Anlass (27.08.2026, David).** Das Dokument schrieb `4165.00 EUR` —
+    englische Schreibweise, ohne Tausenderpunkt, in einer Auftragsbestaetigung
+    einer deutschen GmbH an deutsche Handwerksbetriebe. Kein Fehler in der
+    Zahl, aber einer im Beleg: Er sieht aus, als waere er nicht fuer den
+    Empfaenger gemacht.
+
+    **Ohne `locale`.** Das Modul haengt an dem, was im Betriebssystem des
+    Servers installiert ist; `de_DE.UTF-8` fehlt in schlanken Containern, und
+    `setlocale` wirkt prozessweit — es wuerde jede andere Zahlenausgabe
+    desselben Dienstes mitveraendern. Zwei Zeilen Umstellen sind hier der
+    ehrlichere Weg als eine globale Einstellung fuer eine Tabellenzelle.
+    """
+    ganz, _, nach = f"{float(betrag or 0):,.2f}".partition(".")
+    return f"{ganz.replace(',', '.')},{nach} EUR"
+
+
+def _steuerzeile(paket: dict) -> str:
+    """„MwSt. 19 %" — mit dem Satz aus dem Produkt, nicht mit einem festen.
+
+    Hier stand die Zahl **fest im Dokument**. Das Buch hat sieben Prozent; ein
+    Beleg darueber haette „MwSt. 19 %" ausgewiesen und daneben den
+    7-%-Betrag — eine falsche Angabe auf einem Steuerdokument. Dieselbe
+    Bauart wie die feste Preisliste, die am 22.08.2026 aus derselben Datei
+    verschwand (L-29).
+
+    Fehlt der Satz, steht dort **kein Prozentwert** statt eines erfundenen.
+    """
+    satz = paket.get("steuersatz")
+    if satz is None:
+        return "MwSt."
+    return f"MwSt. {satz:.0f} %" if float(satz) == int(satz) else f"MwSt. {satz} %"
+
+
 def _clean_text(text):
     """Normalize Unicode text for PDF rendering."""
     if not text:
@@ -106,7 +142,34 @@ def generate_auftragsbestaetigung(
     KC_BORDER = colors.HexColor("#e2e8f0")
 
     def ps(name, **kw):
-        return ParagraphStyle(name, fontName=fn, textColor=KC_DARK, **kw)
+        """Ein Absatzformat mit Vorgaben, die der Aufrufer **ueberschreiben
+        darf**.
+
+        **Der Befund (27.08.2026, erster echter Testkauf).** Hier stand
+
+            return ParagraphStyle(name, fontName=fn, textColor=KC_DARK, **kw)
+
+        und drei Aufrufer unten geben genau diese beiden Namen noch einmal
+        mit (`fontName=fb`, `textColor=KC_GRAY`). Python bricht bei einem
+        doppelten Schluesselwort ab:
+
+            TypeError: ParagraphStyle() got multiple values for
+                       keyword argument 'fontName'
+
+        Damit ist **nie eine Auftragsbestaetigung entstanden**, seit es diese
+        Funktion gibt. Aufgefallen ist es nicht, weil der Fehler im
+        Zahlungspfad in einem `except Exception` landet und dort nur
+        protokolliert wird — richtig so, eine kaputte Beilage darf keinen
+        Kauf kippen. Nur sieht dann eben niemand hin.
+
+        **Und kein Test hat es gefunden**, obwohl es zwei zu dieser Datei
+        gibt: Sie pruefen die *Preisermittlung* rund um das PDF. **Erzeugt**
+        hat das Dokument keiner. Dieselbe Luecke wie beim StripeObject am
+        selben Abend — geprueft wurde alles ausser dem Gegenstand.
+        """
+        vorgaben = {"fontName": fn, "textColor": KC_DARK}
+        vorgaben.update(kw)             # der Aufrufer hat das letzte Wort
+        return ParagraphStyle(name, **vorgaben)
 
     st_label   = ps("label",   fontSize=8,  fontName=fb, textColor=KC_GRAY,
                     spaceAfter=2, leading=10)
@@ -227,15 +290,15 @@ def generate_auftragsbestaetigung(
         ],
         [
             Paragraph(_clean_text(paket["name"]), st_value),
-            Paragraph(_clean_text(f"{paket['netto']:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_euro(paket['netto'])), st_right),
         ],
         [
             Paragraph(_clean_text("Nettobetrag"), st_label),
-            Paragraph(_clean_text(f"{paket['netto']:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_euro(paket['netto'])), st_right),
         ],
         [
-            Paragraph(_clean_text("MwSt. 19 %"), st_label),
-            Paragraph(_clean_text(f"{mwst:.2f} EUR"), st_right),
+            Paragraph(_clean_text(_steuerzeile(paket)), st_label),
+            Paragraph(_clean_text(_euro(mwst)), st_right),
         ],
         [
             Paragraph(
@@ -244,7 +307,7 @@ def generate_auftragsbestaetigung(
                                textColor=KC_WHITE)
             ),
             Paragraph(
-                _clean_text(f"{paket['brutto']:.2f} EUR"),
+                _clean_text(_euro(paket['brutto'])),
                 ParagraphStyle("totalr", fontName=fb, fontSize=11,
                                textColor=KC_WHITE, alignment=TA_RIGHT)
             ),

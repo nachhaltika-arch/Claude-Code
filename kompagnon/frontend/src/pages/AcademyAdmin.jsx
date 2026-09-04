@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,16 @@ export default function AcademyAdmin() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [deleteId, setDeleteId] = useState(null);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setDeleteId(null), Boolean(deleteId));
 
   // Drag-and-drop state
   const dragIdx  = useRef(null);
@@ -145,7 +156,7 @@ export default function AcademyAdmin() {
             display: 'grid', gridTemplateColumns: '28px 44px 1fr auto',
             gap: 12, padding: '8px 16px',
             background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
-            fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '0.06em',
           }}>
             <span />
@@ -212,14 +223,14 @@ export default function AcademyAdmin() {
                         background: published ? 'var(--status-success-text)' : 'var(--status-warning-text)',
                         flexShrink: 0,
                       }} />
-                      <span style={{ fontSize: 11, color: published ? 'var(--status-success-text)' : 'var(--status-warning-text)', fontWeight: 500 }}>
+                      <span style={{ fontSize: 12, color: published ? 'var(--status-success-text)' : 'var(--status-warning-text)', fontWeight: 500 }}>
                         {published ? 'Veröffentlicht' : 'Entwurf'}
                       </span>
                     </div>
 
                     {/* Module / lesson count */}
                     {(moduleCount !== null || lessonCount !== null) && (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         {moduleCount !== null && `${moduleCount} ${moduleCount === 1 ? 'Modul' : 'Module'}`}
                         {moduleCount !== null && lessonCount !== null && ' · '}
                         {lessonCount !== null && `${lessonCount} ${lessonCount === 1 ? 'Lektion' : 'Lektionen'}`}
@@ -229,7 +240,7 @@ export default function AcademyAdmin() {
                     {/* Audience badge */}
                     {aud && (
                       <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px',
+                        fontSize: 12, fontWeight: 600, padding: '2px 8px',
                         borderRadius: 'var(--radius-full)',
                         background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)',
                         letterSpacing: '0.02em',

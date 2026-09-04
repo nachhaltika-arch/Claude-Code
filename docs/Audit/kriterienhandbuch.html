@@ -1,0 +1,386 @@
+<title>Kriterienhandbuch Website-Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap">
+<style>
+:root{
+  --paper:#F5F7F6; --surface:#FFFFFF; --sunken:#EDF1EF;
+  --ink:#131A18; --ink-2:#39443F; --muted:#5A6663;
+  --rule:#DDE3E1; --rule-2:#B6C1BD;
+  --accent:#00846F; --accent-bg:#E3F0EC;
+  --signal:#A6401F; --signal-bg:#F8EAE4;
+  --warn:#8A5A12; --warn-bg:#FAF0DE;
+  --c1:#00846F; --c2:#B5761B; --c3:#6B4FA8;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1413; --surface:#161D1B; --sunken:#1B2422;
+    --ink:#E6ECEA; --ink-2:#C0CBC7; --muted:#93A09C;
+    --rule:#26302E; --rule-2:#3B4744;
+    --accent:#48B79F; --accent-bg:#14211E;
+    --signal:#E08461; --signal-bg:#241612;
+    --warn:#D8A954; --warn-bg:#221A0C;
+    --c1:#2E9C84; --c2:#C08327; --c3:#8B6BC8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1413; --surface:#161D1B; --sunken:#1B2422;
+  --ink:#E6ECEA; --ink-2:#C0CBC7; --muted:#93A09C;
+  --rule:#26302E; --rule-2:#3B4744;
+  --accent:#48B79F; --accent-bg:#14211E;
+  --signal:#E08461; --signal-bg:#241612;
+  --warn:#D8A954; --warn-bg:#221A0C;
+  --c1:#2E9C84; --c2:#C08327; --c3:#8B6BC8;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:60rem;margin:0 auto;padding:0 1.5rem 5rem}
+.prose{max-width:70ch}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+header.top{padding:3.5rem 0 2rem;border-bottom:2px solid var(--ink)}
+.kicker{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 1rem}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(2rem,5vw,2.9rem);
+  line-height:1.08;letter-spacing:-.015em;margin:0 0 .8rem;text-wrap:balance;max-width:18ch}
+.lede{font-size:1.1rem;color:var(--ink-2);margin:0;max-width:56ch}
+.stand{margin-top:1.6rem;font-family:var(--mono);font-size:.74rem;color:var(--muted);
+  display:flex;gap:1.4rem;flex-wrap:wrap}
+
+h2{font-family:var(--serif);font-weight:600;font-size:1.75rem;line-height:1.15;
+  letter-spacing:-.01em;margin:0 0 .9rem;text-wrap:balance}
+h3{font-size:1.05rem;font-weight:600;margin:2.2rem 0 .6rem;text-wrap:balance}
+h4{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:2rem 0 .7rem}
+section{padding:2.8rem 0;border-bottom:1px solid var(--rule)}
+p{margin:0 0 1rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--sunken);
+  padding:.08em .35em;border-radius:3px}
+
+/* Diagramm */
+.chart{background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:1.4rem 1.5rem;margin:0 0 1.6rem}
+.chart figcaption{font-size:.86rem;color:var(--muted);margin-top:.9rem}
+.legend{display:flex;gap:1.3rem;flex-wrap:wrap;margin:1rem 0 0;
+  font-size:.84rem;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:.45rem}
+.swatch{width:11px;height:11px;border-radius:2px;flex:none}
+.bar{width:100%;height:auto;display:block}
+.bar text{font-family:var(--mono);font-size:11px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:.72rem;padding:.35rem .6rem;border-radius:3px;
+  opacity:0;transition:opacity .12s;z-index:40;white-space:nowrap}
+
+/* Tabellen */
+.tw{overflow-x:auto;margin:0 0 1.3rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{text-align:left;font-weight:600;font-size:.72rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);padding:.4rem .85rem .4rem 0;
+  border-bottom:1px solid var(--rule-2);vertical-align:bottom;white-space:nowrap}
+td{padding:.6rem .85rem .6rem 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th:last-child,td:last-child{padding-right:0}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.k{font-family:var(--mono);font-size:.82rem;color:var(--ink);white-space:nowrap}
+.k b{display:block;font-family:var(--sans);font-size:.9rem;font-weight:500;
+  white-space:normal;margin-top:.15rem;color:var(--ink-2)}
+.art{text-align:center;font-size:1rem;width:2.5rem}
+tr.sum td{border-top:1px solid var(--rule-2);border-bottom:none;font-weight:600}
+
+/* Befunde */
+.fund{border-left:3px solid var(--rule-2);padding:.1rem 0 .1rem 1.1rem;margin:1.2rem 0}
+.fund.rot{border-color:var(--signal)}
+.fund.gelb{border-color:var(--warn)}
+.chip{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.14em .5em;border-radius:2px;vertical-align:.15em;
+  margin-right:.5rem}
+.chip.rot{background:var(--signal-bg);color:var(--signal)}
+.chip.gelb{background:var(--warn-bg);color:var(--warn)}
+.note{background:var(--sunken);border-radius:3px;padding:.9rem 1.1rem;margin:0 0 1.2rem;
+  font-size:.92rem;color:var(--ink-2)}
+.note p:last-child{margin-bottom:0}
+.note b{color:var(--ink)}
+.legendlein{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin:0 0 1rem}
+footer{padding:2.5rem 0 0;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">Website-Check · Prüfwerk</p>
+  <h1>Was der Check prüft — und woraus die Punkte kommen</h1>
+  <p class="lede">43 Kriterien, je Kriterium die Stelle im Code, die den Wert liefert. Dazu fünf Beanstandungen aus einem Fremdlauf, jede am Code nachgegangen.</p>
+  <div class="stand">
+    <span>Stand 04.09.2026</span><span>Quellstand 87e2cf5</span><span>103 Punkte · 8 Kategorien</span>
+  </div>
+</header>
+
+<section>
+  <h2>Woran die 103 Punkte hängen</h2>
+  <p class="prose">Die Frage, ob eine Eigenentwicklung lohnt, lässt sich beziffern. Jeder Punkt des Maßstabs hat genau eine Herkunft.</p>
+
+  <figure class="chart">
+    <svg class="bar" viewBox="0 0 720 116" role="img" aria-label="Verteilung der 103 Punkte: 68 aus eigener Messung, 20 aus PageSpeed Insights, 15 aus dem Sprachmodell.">
+      <g id="seg">
+        <rect x="0" y="26" width="452" height="34" rx="4" fill="var(--c1)" data-t="Eigene Messung · 68 von 103 Punkten · 25 Kriterien"/>
+        <rect x="456" y="26" width="129" height="34" rx="4" fill="var(--c2)" data-t="PageSpeed Insights · 20 von 103 Punkten · 8 Kriterien"/>
+        <rect x="589" y="26" width="99" height="34" rx="4" fill="var(--c3)" data-t="Sprachmodell · 15 von 103 Punkten · 6 Kriterien"/>
+      </g>
+      <text x="0" y="18" fill="var(--muted)">0</text>
+      <text x="452" y="18" fill="var(--muted)" text-anchor="middle">68</text>
+      <text x="585" y="18" fill="var(--muted)" text-anchor="middle">88</text>
+      <text x="688" y="18" fill="var(--muted)" text-anchor="end">103</text>
+      <text x="0" y="80" fill="var(--ink)">68 P · eigene Messung</text>
+      <text x="456" y="80" fill="var(--ink)">20 P · PageSpeed</text>
+      <text x="589" y="80" fill="var(--ink)">15 P · KI</text>
+      <text x="0" y="99" fill="var(--muted)">25 Kriterien</text>
+      <text x="456" y="99" fill="var(--muted)">8 Kriterien</text>
+      <text x="589" y="99" fill="var(--muted)">6 Kriterien</text>
+    </svg>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--c1)"></i>Eigene Messung — läuft ohne Fremddienst</span>
+      <span><i class="swatch" style="background:var(--c2)"></i>PageSpeed Insights (Google)</span>
+      <span><i class="swatch" style="background:var(--c3)"></i>Sprachmodell</span>
+    </div>
+    <figcaption>Fällt ein Fremddienst aus, fallen seine Kriterien aus Zähler <em>und</em> Nenner. Beim Sprachmodell entfällt zusätzlich der gesamte Fließtext des Berichts.</figcaption>
+  </figure>
+
+  <div class="note prose">
+    <p><b>Der Ausfall ist kein Gedankenspiel, er ist der Normalfall.</b> Im geprüften Fremdlauf sind <b>alle acht</b> PageSpeed-Kriterien ausgefallen. Der Kunde liest deshalb „Barrierefreiheit 0/2" und „Performance 1/3" — Zahlen, die wie ein vernichtendes Urteil aussehen und in Wahrheit heißen: <em>von fünf Kriterien konnten wir eines messen.</em> Die Rechnung ist richtig, die Darstellung ist irreführend.</p>
+  </div>
+
+  <h4>Was eine Eigenentwicklung ersetzen könnte</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Heute fremd erhoben</th><th style="width:7rem">Eigen machbar</th><th>Womit</th></tr></thead>
+    <tbody>
+      <tr><td class="k">bf_kontrast · bf_tastatur<br>bf_lighthouse · dg_typografie</td><td><b>ja</b></td><td>Der Browserlauf (<code>seitenbrowser.py</code>, seit 26.08. produktiv) hat die gerenderte Seite bereits im Zugriff. Kontrast, Schriftgröße, Skip-Link und Fokusreihenfolge sind daraus direkt messbar — dieselben Prüfungen, die für die eigene Oberfläche längst geschrieben sind.</td></tr>
+      <tr><td class="k">tp_lcp · tp_cls<br>tp_inp · tp_mobile</td><td>nein</td><td><code>tp_inp</code> ist ein Felddatenwert aus echten Nutzersitzungen; den kann niemand im Labor erzeugen. LCP und CLS wären über den eigenen Browser messbar, aber ohne Googles Netz- und Gerätemodell nicht vergleichbar — und die Zahl im Bericht soll dieselbe sein, die der Betrieb bei Google sieht.</td></tr>
+      <tr><td class="k">dg_farbsystem · dg_bildqualitaet<br>dg_aktualitaet</td><td>teilweise</td><td>Palettengröße und Bildherkunft sind messbar. „Wirkt zeitgemäß" ist es nicht.</td></tr>
+      <tr><td class="k">cv_klarheit · cv_angebot<br>ih_textqualitaet</td><td>nein</td><td>Texturteile. Sie sind der Grund, warum überhaupt ein Modell im Spiel ist.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="prose"><b>Umgesetzt am 04.09.2026 — und die Zahl war zu hoch.</b> Kontrast, Schriftgröße und Tastatur werden jetzt am gerenderten Dokument gemessen, wenn PageSpeed ausfällt; Lighthouse bleibt erste Quelle, damit sich keine Punktzahl im Bestand verschiebt.</p>
+  <div class="note prose"><p><b><code>bf_lighthouse</code> bleibt außen vor.</b> Das Kriterium heißt „Lighthouse-Accessibility-Score" und <em>ist</em> dieser Wert. Ihn durch eine eigene Zahl zu ersetzen wäre ein anderes Kriterium, also eine Änderung am Maßstab. Damit wandern <b>5 von 20</b> Punkten in die eigene Messung, nicht 8 — die zuerst genannte Zahl zählte <code>bf_lighthouse</code> mit.</p></div>
+  <p class="prose">Die Core Web Vitals bleiben bei Google — dort gehören sie hin.</p>
+</section>
+
+<section>
+  <h2>Der Fremdlauf</h2>
+  <p class="prose">Fünf Beanstandungen, jede am Code nachgegangen. <b>Zwei bestätigen sich, eine ist etwas anderes als gemeldet, zwei sind richtig gemessen und falsch dargestellt.</b></p>
+
+  <div class="fund rot">
+    <h3><span class="chip rot">bestätigt</span>„Der Preis steht prominent auf der Startseite, der Bericht sagt, er fehlt"</h3>
+    <p>Der Fließtext lobt „Leistungen, Preise, Laufzeiten … stehen offen da", die Problemliste sagt „Die Preise stehen erst in der FAQ". Beides stammt aus <b>einem</b> Modellaufruf.</p>
+    <p><b>Die Ursache ist eine falsche Überschrift.</b> Der Textblock hieß <code>SEITENTEXT DER STARTSEITE</code>. Übergeben wird aber <code>_gesamttext</code>: der Text <em>aller</em> erhobenen Seiten, jedes Stück mit seiner Adresse in eckigen Klammern davor. Das Modell bekam die ganze Website und die Anweisung, sie für die Startseite zu halten.</p>
+    <p><b>Behoben am 04.09.2026.</b> Die Adressmarken sind die Lösung, nicht das Problem: Mit ihnen <em>kann</em> das Modell über Platzierung sprechen — es muss nur wissen, dass es sie gibt. Der Block nennt jetzt die geprüften Seiten, erklärt die Marken und verlangt für jede Aussage über Platzierung einen Beleg daraus.</p>
+    <p><b>Korrektur an dieser Stelle:</b> Hier stand zuerst, das Modell könne die Seitenzugehörigkeit „nicht ableiten“, und man müsse ihm Ortsangaben untersagen. Beides war falsch — die Zuordnung lag längst im Text, nur die Überschrift log.</p>
+  </div>
+
+  <div class="fund rot">
+    <h3><span class="chip rot">bestätigt</span>„Ein Blogbeitrag vom 12. August 2026 wird als Zukunftsdatum bewertet"</h3>
+    <p>Im gesamten Prompt kommt <b>kein heutiges Datum vor</b>. Das Modell beurteilt Datumsangaben gegen seine eigene Zeitvorstellung; ein Beitrag vom 12.08.2026 erscheint ihm als Zukunft.</p>
+    <p><b>Besser:</b> Das Erhebungsdatum in den Prompt, als Satz und nicht als Feld. Dazu ein Test, der einen Text mit dem gestrigen Datum schickt und prüft, dass keine Zukunftsbehauptung entsteht.</p>
+    <p><b>Der Fehler hätte auffallen müssen:</b> <code>analyse_freshness</code> bekommt das laufende Jahr ausdrücklich übergeben. Die <em>gemessene</em> Seite kennt das Datum also. Nur der Teil, der Sätze schreibt, kennt es nicht.</p>
+  </div>
+
+  <div class="fund gelb">
+    <h3><span class="chip gelb">anders</span>„Cookie-Consent 0/4, obwohl kein einwilligungspflichtiger Dienst da ist"</h3>
+    <p>Etwas anderes als gemeldet — und schwerer. Die Bedingung ist gebaut: ohne Drittanbieter gibt es die vollen 4 Punkte. Sie hat nur nicht gegriffen, weil sie die <b>falsche Größe</b> liest. <code>detect_third_parties</code> liefert drei Mengen: <code>count</code> (alle acht erkannten Dienste, <em>einschließlich Google Maps und YouTube</em>), <code>tracking_services</code> und <code>external_fonts</code>.</p>
+    <p>Damit bewerten <b>drei Kriterien denselben Karteneinbau verschieden:</b></p>
+    <div class="tw"><table>
+      <thead><tr><th>Kriterium</th><th>liest</th><th class="num">Ergebnis</th></tr></thead>
+      <tbody>
+        <tr><td class="k">rc_cookie</td><td><code>count &gt; 0</code> → einwilligungspflichtig</td><td class="num">0 von 4</td></tr>
+        <tr><td class="k">si_drittanbieter</td><td>nur Fonts und Tracking</td><td class="num">2 von 2</td></tr>
+        <tr><td class="k">se_lokal</td><td><code>google_maps</code> → lokales Signal</td><td class="num">+1 Punkt</td></tr>
+      </tbody>
+    </table></div>
+    <p>Ein Einbau, ein Bericht, drei Urteile — untereinander auf derselben Seite. Der Fremdleser hat daraus geschlossen, die Cookie-Prüfung sei kaputt. Sie ist es nicht: <b>die Kriterien sind sich uneinig, was „einwilligungspflichtig" heißt.</b></p>
+    <p><b>Sofort und ohne Maßstabsänderung möglich:</b> Der Bericht muss sagen, <em>welcher</em> Dienst den Abzug ausgelöst hat. Die Liste steht im Befund — sie wird nur nirgends ausgegeben. Hätte dort „Google Maps gefunden, kein Consent-Tool" gestanden, wäre die Rückfrage nie entstanden.</p>
+    <p><b>Nebenbefund:</b> <code>maps_embedded</code> wird erhoben und von keinem Kriterium gelesen. Fünfte Wiederholung derselben Klasse — gebaut, nicht angeschlossen.</p>
+  </div>
+
+  <div class="fund gelb">
+    <h3><span class="chip gelb">Darstellung</span>„Performance 1/3 und Barrierefreiheit 0/2, obwohl das meiste gar nicht erhoben wurde"</h3>
+    <p>Richtig gerechnet, falsch dargestellt. Beide Kategorien haben genau ein erhobenes Kriterium: <code>tp_bilder</code> (3 Punkte, 1 erreicht) und <code>bf_alt</code> (2 Punkte, 0 erreicht). Die übrigen acht hängen an PageSpeed und sind ausgefallen. Die einzelnen Zeilen sind korrekt als „nicht erhoben" gekennzeichnet — die <b>Kategorieüberschrift</b> ist es nicht.</p>
+    <p><b>Besser:</b> Die Kategoriezeile trägt den Anteil mit — „0 von 2 · 1 von 5 Kriterien erhoben". Und wo eine ganze Kategorie an einem ausgefallenen Fremddienst hängt, gehört ein Satz darüber, nicht in die Fußnote.</p>
+  </div>
+
+  <div class="fund gelb">
+    <h3><span class="chip gelb">zu grob</span>„Alt-Texte sind vorhanden, der Bericht sagt, sie fehlen"</h3>
+    <p>Die Messung ist zu grob, um den Vorwurf zu tragen. <code>qa_scanner.py:205</code> zählt <code>&lt;img&gt;</code>-Elemente im <b>roh geladenen HTML</b> und wertet jedes mit leerem <code>alt</code> als fehlend. Drei Fälle laufen falsch:</p>
+    <ol class="prose">
+      <li><code>alt=""</code> ist <b>korrektes Markup</b>, kein Fehler — es kennzeichnet ein dekoratives Bild und ist nach WCAG genau richtig.</li>
+      <li>Bilder, die erst im Browser entstehen (Lazy Loading, <code>&lt;picture&gt;</code>, Hintergrundbilder), stehen nicht im Roh-HTML.</li>
+      <li>Zählpixel und Icons wiegen so schwer wie ein Inhaltsbild.</li>
+    </ol>
+    <p>Der Katalog verspricht „Anteil der Bilder mit einem Alt-Text"; gemessen wird der Anteil der <code>img</code>-Tags im Quelltext mit nichtleerem <code>alt</code>. Das ist nicht dasselbe.</p>
+    <p><b>Behoben am 04.09.2026.</b> Dekorative Bilder und Zählpixel fallen aus Zähler und Nenner, und der Scanner misst jetzt das HTML, das die Erhebung ohnehin hat — nach einem Browserlauf also das gerenderte Dokument.</p>
+    <p><b>Dabei kam der schwerere Fund heraus:</b> Der Scanner lud die Seite bis dahin <em>selbst ein zweites Mal</em>, ohne JavaScript. Nach einem geglückten Browserlauf fällt <code>clientseitig</code> bewusst auf falsch zurück — und damit griff auch die Schutzregel nicht mehr, die diese Kriterien vorher ausgenommen hatte. Der Bericht hielt die Messung für gültig, obwohl der Scanner nur die Hülle gesehen hatte. Betraf <code>bf_alt</code>, <code>bf_semantik</code> und <code>se_schema</code>.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Die 43 Kriterien im Einzelnen</h2>
+  <p class="legendlein">● gemessen &nbsp; ◐ abgeleitet &nbsp; ◇ KI-Einschätzung &nbsp;— die Spalte rechts nennt den tatsächlichen Rechenweg.</p>
+
+  <h3>Recht &amp; Compliance — 20 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">rc_impressum<b>Impressum (§ 5 DDG)</b></td><td class="num">6</td><td class="art">●</td><td>3 wenn die Unterseite erreichbar ist, weitere 3 wenn die Pflichtangaben vollständig sind</td></tr>
+      <tr><td class="k">rc_datenschutz<b>Datenschutzerklärung</b></td><td class="num">6</td><td class="art">●</td><td>ebenso, über die Prüfung der Pflichtinhalte</td></tr>
+      <tr><td class="k">rc_cookie<b>Cookie-Consent (TDDDG)</b></td><td class="num">4</td><td class="art">●</td><td>4 bei erkanntem Consent-Tool (19 Signaturen), 4 wenn <em>kein</em> Drittanbieter gefunden wurde, sonst 0</td></tr>
+      <tr><td class="k">rc_bfsg<b>Barrierefreiheitserklärung</b></td><td class="num">2</td><td class="art">●</td><td>2 wenn eine Erklärung verlinkt ist</td></tr>
+      <tr><td class="k">rc_formular_dsgvo<b>Formular DSGVO-konform</b></td><td class="num">2</td><td class="art">●</td><td>2 wenn <em>alle</em> Formulare eine Einwilligung tragen, 1 wenn mindestens eines; ohne Formular nicht erhoben</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>rc_impressum / rc_datenschutz:</b> Die Erkennung läuft über Linktexte und Adressmuster. Eine Seite, die ihr Impressum nur als Bild oder hinter einem Skript führt, gilt als nicht erreichbar — mit dem schwersten Ergebnis, das der Katalog kennt (Deckel auf „Nicht konform"). Der Browserlauf würde auch das auflösen.</p></div>
+
+  <h3>Sicherheit &amp; Datenschutz — 10 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">si_ssl<b>TLS-Zertifikat</b></td><td class="num">3</td><td class="art">●</td><td>echter Handshake; 3 gültig, 2 bei baldigem Ablauf, 0 ungültig</td></tr>
+      <tr><td class="k">si_redirect<b>HTTP→HTTPS</b></td><td class="num">2</td><td class="art">●</td><td>2 wenn die http-Variante weiterleitet</td></tr>
+      <tr><td class="k">si_header<b>Security-Header</b></td><td class="num">3</td><td class="art">●</td><td>Anteil von HSTS, CSP, X-Frame-Options, X-Content-Type-Options, skaliert auf 3</td></tr>
+      <tr><td class="k">si_drittanbieter<b>Drittanbieter ohne Einwilligung</b></td><td class="num">2</td><td class="art">●</td><td>2 minus 1 für externe Google-Fonts, minus 1 für Tracking ohne Consent-Tool</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>si_header:</b> Vier Header auf drei Punkte, gerundet — wer den dritten von vier nachrüstet, bekommt dafür nichts (0→0, 1→1, 2→2, <b>3→2</b>, 4→3). Belegt, vertagt auf die Fassung 2027.1, von vier Tests gehalten.</p></div>
+
+  <h3>Performance &amp; Core Web Vitals — 15 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">tp_lcp<b>LCP (Ladezeit Hauptinhalt)</b></td><td class="num">4</td><td class="art">●</td><td>PageSpeed: unter 2,5 s → 4 · unter 4,0 s → 2 · darüber 0</td></tr>
+      <tr><td class="k">tp_cls<b>CLS (Layout-Stabilität)</b></td><td class="num">3</td><td class="art">●</td><td>PageSpeed, Schwellenstaffel</td></tr>
+      <tr><td class="k">tp_inp<b>INP (Interaktionszeit)</b></td><td class="num">2</td><td class="art">●</td><td>CrUX-Felddaten — nur vorhanden, wenn die Seite genug echten Verkehr hat</td></tr>
+      <tr><td class="k">tp_mobile<b>Mobile-Performance</b></td><td class="num">3</td><td class="art">●</td><td>PageSpeed mobil: ab 90 → 3 · ab 70 → 2 · ab 50 → 1</td></tr>
+      <tr><td class="k">tp_bilder<b>Bildoptimierung</b></td><td class="num">3</td><td class="art">●</td><td>je 1: ≥50 % moderne Formate · ≥50 % lazy · ≥80 % mit Größenangabe <em>und</em> kein überdimensioniertes Bild</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>tp_inp ist strukturell oft nicht erhebbar</b> — ein Handwerksbetrieb mit wenig Verkehr hat keine Felddaten. Der Bericht sollte den Unterschied zwischen „ausgefallen" und „für diese Seite nicht erhebbar" zeigen, statt beides als „nicht erhoben" zu führen.</p></div>
+
+  <h3>Barrierefreiheit (WCAG/BFSG) — 10 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">bf_lighthouse<b>Accessibility-Score</b></td><td class="num">3</td><td class="art">●</td><td>Lighthouse-Gesamtwert, Schwellenstaffel</td></tr>
+      <tr><td class="k">bf_kontrast<b>Farbkontraste</b></td><td class="num">2</td><td class="art">●</td><td>Lighthouse-Audit <code>color-contrast</code>, skaliert</td></tr>
+      <tr><td class="k">bf_alt<b>Alt-Texte</b></td><td class="num">2</td><td class="art">●</td><td>Anteil der <code>img</code> im Roh-HTML mit nichtleerem <code>alt</code></td></tr>
+      <tr><td class="k">bf_semantik<b>Semantik &amp; Struktur</b></td><td class="num">2</td><td class="art">●</td><td>1 für saubere Überschriftenhierarchie, 1 für bestandenes Lighthouse-Semantik-Audit</td></tr>
+      <tr><td class="k">bf_tastatur<b>Tastaturbedienung</b></td><td class="num">1</td><td class="art">◐</td><td>Lighthouse-Audit, skaliert</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>Diese Kategorie ist der beste Kandidat für die Eigenentwicklung.</b> Vier von fünf hängen an Lighthouse, und Lighthouse kommt über PageSpeed — fällt also mit ihm aus. Kontrast, Schriftgröße, Fokusreihenfolge, Skip-Link und Alt-Texte sind am gerenderten Dokument alle direkt messbar, und der Browser läuft bereits.</p></div>
+
+  <h3>SEO &amp; Auffindbarkeit — 18 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">se_meta<b>Title &amp; Meta-Description</b></td><td class="num">3</td><td class="art">●</td><td>je 1: Title vorhanden und Länge in Ordnung · Description ebenso · Title trägt Ort oder Leistung nach Branchenklasse</td></tr>
+      <tr><td class="k">se_struktur<b>Überschriften &amp; Tiefe</b></td><td class="num">2</td><td class="art">●</td><td>1 für genau ein H1 mit H2-Gliederung, 1 für Mindestwortzahl</td></tr>
+      <tr><td class="k">se_index<b>Indexierbarkeit</b></td><td class="num">3</td><td class="art">●</td><td>je 1: robots.txt ohne Aussperrung · sitemap.xml · Canonical</td></tr>
+      <tr><td class="k">se_schema<b>Strukturierte Daten</b></td><td class="num">3</td><td class="art">●</td><td>je 1: JSON-LD vorhanden · passender Haupttyp · ein passender Zusatztyp</td></tr>
+      <tr><td class="k">se_lokal<b>Lokale Signale</b></td><td class="num">3</td><td class="art">●</td><td>je 1: Ort in Title oder H1 · Telefon als <code>tel:</code>-Link · Karteneinbau oder LocalBusiness</td></tr>
+      <tr><td class="k">se_links<b>Keine defekten Links</b></td><td class="num">1</td><td class="art">●</td><td>1 wenn die Linkprüfung der Startseite nichts findet</td></tr>
+      <tr><td class="k">se_ki_lesbar<b>Lesbarkeit für KI</b></td><td class="num">3</td><td class="art">●</td><td>2 wenn kein KI-Crawler ausgesperrt ist, 1 für vorhandene <code>llms.txt</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>se_links prüft nur die Startseite.</b> Der Hinweis sagt das auch — aber ein Betrieb liest „Keine defekten Links: 1/1" und hält seine ganze Seite für geprüft. Entweder tiefer prüfen (die Unterseiten liegen vor) oder den Namen auf das eingrenzen, was gemessen wird.</p></div>
+
+  <h3>Design &amp; Gestaltung — 10 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">dg_aktualitaet<b>Visuelle Aktualität</b></td><td class="num">3</td><td class="art">◇</td><td>Modellurteil am Bildschirmfoto</td></tr>
+      <tr><td class="k">dg_typografie<b>Typografie &amp; Lesbarkeit</b></td><td class="num">2</td><td class="art">●</td><td>Lighthouse-Audit <code>font-size</code></td></tr>
+      <tr><td class="k">dg_farbsystem<b>Farbsystem &amp; Konsistenz</b></td><td class="num">2</td><td class="art">◇</td><td>Modellurteil</td></tr>
+      <tr><td class="k">dg_bildqualitaet<b>Bildqualität &amp; Authentizität</b></td><td class="num">2</td><td class="art">◇</td><td>Modellurteil</td></tr>
+      <tr><td class="k">dg_mobil<b>Mobile Darstellung</b></td><td class="num">1</td><td class="art">●</td><td>1 wenn eine Viewport-Angabe im Kopf steht</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>dg_mobil misst nichts.</b> Ein <code>meta viewport</code> steht in jeder Vorlage der letzten zehn Jahre; das Kriterium vergibt seinen Punkt praktisch immer. Am gerenderten Dokument wäre prüfbar, was der Name verspricht: ob die Seite bei 375 px Breite ohne Querlauf steht.</p></div>
+
+  <h3>Conversion &amp; Nutzerführung — 15 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">cv_klarheit<b>Klarheit above the fold</b></td><td class="num">3</td><td class="art">◇</td><td>Modellurteil am Bildschirmfoto</td></tr>
+      <tr><td class="k">cv_cta<b>Primär-CTA</b></td><td class="num">3</td><td class="art">◐</td><td>Anzahl branchenpassender Handlungsaufrufe: ab 3 → 3 · ab 1 → 2 · sonst 0</td></tr>
+      <tr><td class="k">cv_kontakt<b>Kontaktwege</b></td><td class="num">3</td><td class="art">●</td><td>je 1 für die drei Kontaktmerkmale der Branchenklasse</td></tr>
+      <tr><td class="k">cv_vertrauen<b>Vertrauenssignale</b></td><td class="num">3</td><td class="art">◐</td><td>Zahl der Signalgruppen: ab 4 → 3 · ab 2 → 2 · ab 1 → 1</td></tr>
+      <tr><td class="k">cv_angebot<b>Angebots-Klarheit</b></td><td class="num">3</td><td class="art">◇</td><td>Modellurteil am Seitentext</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>cv_angebot</b> ist das Kriterium, das im Fremdlauf den falschen Preis-Befund erzeugt hat. Es urteilt über Platzierung, ohne die Seitenstruktur zu kennen.</p></div>
+
+  <h3>Inhalt &amp; Substanz — 5 Punkte</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Kriterium</th><th class="num">P</th><th class="art">Art</th><th>Woraus die Punkte kommen</th></tr></thead>
+    <tbody>
+      <tr><td class="k">ih_leistungsseiten<b>Eigene Leistungsseiten</b></td><td class="num">2</td><td class="art">●</td><td>Anzahl branchenpassender Leistungsseiten, Schwellenstaffel</td></tr>
+      <tr><td class="k">ih_aktualitaet<b>Aktualität</b></td><td class="num">1</td><td class="art">●</td><td>1 wenn das Copyright-Jahr aktuell ist <em>oder</em> ein Datum im Text steht</td></tr>
+      <tr><td class="k">ih_textqualitaet<b>Textqualität</b></td><td class="num">2</td><td class="art">◇</td><td>Modellurteil</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><p><b>ih_aktualitaet erkennt jedes Muster TT.MM.JJJJ</b> — auch eines aus 2019 und auch eines in der Zukunft. Ein Datum genügt, sein Wert wird nicht geprüft. Genau die Seite, deren Blogdatum das Modell als Zukunft beanstandet, bekommt dafür hier ihren Punkt.</p></div>
+
+  <h3>Infrastruktur — ohne Wertung</h3>
+  <div class="tw"><table>
+    <thead><tr><th style="width:15rem">Angabe</th><th class="num">P</th><th>Woraus sie kommt</th></tr></thead>
+    <tbody>
+      <tr><td class="k">ho_anbieter<b>Hosting-Anbieter</b></td><td class="num">0</td><td>Rückwärtsauflösung und Header</td></tr>
+      <tr><td class="k">ho_uptime<b>Erreichbarkeit</b></td><td class="num">0</td><td>Antwort auf den Abruf</td></tr>
+      <tr><td class="k">ho_cdn<b>CDN aktiv</b></td><td class="num">0</td><td>sieben Header-Signaturen</td></tr>
+      <tr><td class="k">ho_cms<b>CMS / Tech-Stack</b></td><td class="num">0</td><td>Signaturen im HTML</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Rangliste der Weiterentwicklung</h2>
+  <p class="prose">Geordnet nach dem, was der Fremdlauf gezeigt hat: <b>falsche Befunde zuerst, dann fehlende Belege, dann Maßstabsfragen.</b></p>
+  <div class="tw"><table>
+    <thead><tr><th class="num">#</th><th style="width:19rem">Was</th><th>Wirkung</th><th class="num">Aufwand</th><th class="num">Maßstab</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1 ✅</td><td>Heutiges Datum in den KI-Prompt</td><td>beendet die Zukunftsbehauptung</td><td class="num">S</td><td class="num">nein</td></tr>
+      <tr><td class="num">2 ✅</td><td>Jeder Punktabzug nennt seinen Messwert</td><td>beantwortet die Hauptkritik des Fremdlaufs; die Cookie-Rückfrage wäre nie entstanden</td><td class="num">M</td><td class="num">nein</td></tr>
+      <tr><td class="num">3 ✅</td><td>Kategoriezeile zeigt „x von y erhoben"</td><td>„0/2" liest sich nicht mehr als Urteil</td><td class="num">S</td><td class="num">nein</td></tr>
+      <tr><td class="num">4 ✅</td><td><em>04.09. erledigt.</em> Alt-Texte am Browserlauf, <code>alt=""</code> als korrekt werten</td><td>behebt einen belegten Fehlbefund</td><td class="num">M</td><td class="num">nein</td></tr>
+      <tr><td class="num">5</td><td>KI darf nichts über Platzierung sagen, solange sie die Struktur nicht kennt</td><td>behebt den zweiten belegten Fehlbefund</td><td class="num">M</td><td class="num">nein</td></tr>
+      <tr><td class="num">6 ✅</td><td><em>04.09. erledigt.</em> Barrierefreiheit vom Browserlauf, Lighthouse bleibt erste Quelle</td><td>8 Punkte weniger Fremdabhängigkeit; die Kategorie fällt nicht mehr komplett aus</td><td class="num">L</td><td class="num">nein</td></tr>
+      <tr><td class="num">7 →</td><td><em>2027.1 § 8.</em> <code>maps_embedded</code> anschließen oder entfernen</td><td>ein erhobener Wert ohne Leser</td><td class="num">S</td><td class="num">ja</td></tr>
+      <tr><td class="num">8 →</td><td><em>2027.1 § 8.</em> Einigung, was „einwilligungspflichtig" heißt</td><td>beendet drei Urteile über einen Sachverhalt</td><td class="num">M</td><td class="num">2027.1</td></tr>
+      <tr><td class="num">9 →</td><td><em>2027.1 § 8.</em> <code>dg_mobil</code> an der gerenderten Breite messen</td><td>das Kriterium misst wieder etwas</td><td class="num">M</td><td class="num">ja</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose"><b>Stand 04.09.2026: 1 bis 4 und 6 sind erledigt</b>; 7 bis 9 stehen als Abschnitt 8 im Papier zur Katalogfassung 2027.1 und warten auf eine Entscheidung, zusammen mit der Korrektur der Platzierungsaussage aus dem ersten Befund. Keiner davon hat einen Punktwert im Bestand verschoben.</p>
+  <p class="prose"><b>Die ersten fünf ändern keinen einzigen Punktwert im Bestand.</b> Sie machen den Bericht belegbar, nicht strenger. Erst ab Nummer 6 wird es Arbeit, und erst ab Nummer 8 verschieben sich Punktzahlen — dort gehört es in die Katalogfassung 2027.1.</p>
+</section>
+
+<footer>Gemessen am Quellstand 87e2cf5 · jede Angabe der Spalte „Woraus die Punkte kommen" ist aus dem Bewertungslauf abgelesen</footer>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+(function(){
+  var tip = document.getElementById('tip');
+  document.querySelectorAll('#seg rect').forEach(function(r){
+    r.style.cursor = 'default';
+    r.addEventListener('mousemove', function(e){
+      tip.textContent = r.getAttribute('data-t');
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top  = (e.clientY - 34) + 'px';
+      tip.style.opacity = '1';
+    });
+    r.addEventListener('mouseleave', function(){ tip.style.opacity = '0'; });
+  });
+})();
+</script>

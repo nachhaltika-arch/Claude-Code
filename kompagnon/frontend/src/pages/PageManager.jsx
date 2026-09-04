@@ -8,10 +8,10 @@ import API_BASE_URL from '../config';
 import { datumKurz } from '../utils/datum';
 
 const TYPE_LABELS = {
-  landing:       { label: 'Landing',     color: 'var(--kc-mid)', bg: '#e0f4f8' },
+  landing:       { label: 'Landing',     color: 'var(--text-brand)', bg: '#e0f4f8' },
   paket:         { label: 'Paket',       color: '#7c3aed', bg: '#ede9fe' },
   auth:          { label: 'Auth',        color: '#1d9e75', bg: '#d1fae5' },
-  transaktional: { label: 'Transaktion', color: '#d97706', bg: '#fef3c7' },
+  transaktional: { label: 'Transaktion', color: 'var(--warn)', bg: '#fef3c7' },
   legal:         { label: 'Legal',       color: '#6b7280', bg: '#f3f4f6' },
   portal:        { label: 'Portal',      color: '#b9227d', bg: '#fce7f3' },
   custom:        { label: 'Custom',      color: '#374151', bg: '#e5e7eb' },
@@ -63,6 +63,13 @@ export default function PageManager() {
   const [loading, setLoading] = useState(true);
   const [showNewPage, setShowNewPage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  //: Der Upload einer **Seite** (nicht einer Vorlage) — Bitte David,
+  //: 27.08.2026. `/templates/upload` nimmt nur .zip und .grapesjs und
+  //: legt Vorlagen an; hier entsteht eine bearbeitbare Systemseite.
+  const [seiteHochladen, setSeiteHochladen] = useState(false);
+  const [seiteDatei, setSeiteDatei] = useState(null);
+  const [seiteName, setSeiteName] = useState('');
+  const [seiteLaeuft, setSeiteLaeuft] = useState(false);
   const [newPage, setNewPage] = useState({ slug: '', name: '', page_type: 'custom', description: '' });
   // Tracks ob der User den Slug schon manuell editiert hat — sobald ja, stoppt
   // das Auto-Suggest aus dem Name-Feld, damit User-Input nicht überschrieben wird.
@@ -158,6 +165,30 @@ export default function PageManager() {
     setUploading(false);
   };
 
+  const seiteLoeschen = async (page) => {
+    // **Der Name steht in der Rueckfrage, nicht nur „Seite loeschen?".**
+    // Wer drei Zeilen offen hat, weiss sonst nicht, welche er gerade
+    // wegwirft — und die Loeschung ist nicht rueckholbar.
+    if (!window.confirm(
+      `Die Seite „${page.name}" (${page.slug}) wirklich loeschen? `
+      + 'Das laesst sich nicht rueckgaengig machen.')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pages/${page.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const daten = await res.json().catch(() => ({}));
+        toast.error(daten.detail || 'Die Seite konnte nicht geloescht werden');
+        return;
+      }
+      toast.success(`„${page.name}" geloescht`);
+      loadData();
+    } catch {
+      toast.error('Verbindungsfehler — es wurde nichts geloescht');
+    }
+  };
+
   const handleDeleteTemplate = async (id) => {
     if (!window.confirm('Template löschen?')) return;
     try {
@@ -169,6 +200,39 @@ export default function PageManager() {
     } catch { toast.error('Fehler'); }
   };
 
+  const htmlHochladen = async () => {
+    if (!seiteDatei) { toast.error('Bitte eine .html-Datei waehlen'); return; }
+    setSeiteLaeuft(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', seiteName);
+      fd.append('file', seiteDatei);
+      const res = await fetch(`${API_BASE_URL}/api/pages/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const daten = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error(daten.detail || 'Upload fehlgeschlagen'); return; }
+
+      // **Der Hinweis wird angezeigt, nicht verschluckt.** Wenn beim Einlesen
+      // Skripte oder Rahmen entfernt wurden, sagt das Backend es — und wer
+      // seine Seite danach nicht wiedererkennt, soll den Grund lesen und
+      // nicht bei sich suchen.
+      toast.success(`Seite „${daten.name}" angelegt`);
+      if (daten.hinweis) toast(daten.hinweis, { duration: 9000, icon: 'ℹ️' });
+
+      setSeiteHochladen(false);
+      setSeiteDatei(null);
+      setSeiteName('');
+      loadData();
+    } catch {
+      toast.error('Verbindungsfehler — es wurde nichts angelegt');
+    } finally {
+      setSeiteLaeuft(false);
+    }
+  };
+
   const filteredPages = activeTab === 2
     ? pages.filter(p => p.page_type === 'paket' || p.product_id)
     : pages;
@@ -177,7 +241,7 @@ export default function PageManager() {
     badge: (config) => ({
       display: 'inline-flex', alignItems: 'center',
       padding: '2px 8px', borderRadius: 4,
-      fontSize: 11, fontWeight: 700,
+      fontSize: 12, fontWeight: 700,
       color: config.color, background: config.bg,
     }),
     btn: (primary) => ({
@@ -213,8 +277,11 @@ export default function PageManager() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button style={S.btn(false)} onClick={() => setSeiteHochladen(true)}>
+            ⬆ HTML-Seite hochladen
+          </button>
           <button style={S.btn(false)} onClick={() => setShowUpload(true)}>
-            ⬆ Template hochladen
+            ⬆ Vorlage hochladen
           </button>
           <button style={S.btn(true)} onClick={() => setShowNewPage(true)}>
             + Neue Seite
@@ -259,7 +326,7 @@ export default function PageManager() {
               gap: 12, padding: '10px 16px',
               background: 'var(--bg-app)',
               borderBottom: '1px solid var(--border-light)',
-              fontSize: 11, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
               color: 'var(--text-tertiary)',
               textTransform: 'uppercase', letterSpacing: '.06em',
             }}>
@@ -297,7 +364,7 @@ export default function PageManager() {
                     {page.name}
                   </div>
                   {page.updated_at && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                       {datumKurz(page.updated_at)}
                     </div>
                   )}
@@ -320,6 +387,17 @@ export default function PageManager() {
                   }}>
                     👁
                   </a>
+                  {/* `DELETE /api/pages/{id}` gab es seit jeher und hatte
+                      keinen Aufrufer — geloescht werden konnten nur Vorlagen
+                      (Bitte David, 27.08.2026). */}
+                  <button onClick={() => seiteLoeschen(page)}
+                          aria-label={`Seite „${page.name}" loeschen`}
+                          style={{
+                            ...S.btn(false), padding: '5px 10px', fontSize: 12,
+                            color: 'var(--status-danger-text)',
+                          }}>
+                    🗑 Löschen
+                  </button>
                 </div>
               </div>
             );
@@ -376,7 +454,7 @@ export default function PageManager() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
                       {tpl.name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
                       {tpl.category}
                       {tpl.is_builtin && (
                         <span style={{ marginLeft: 6, ...S.badge({ color: '#374151', bg: '#e5e7eb' }) }}>
@@ -391,7 +469,7 @@ export default function PageManager() {
                         title={tpl.is_builtin ? 'Eingebaute Templates sind schreibgeschützt' : 'Template im GrapesJS-Editor bearbeiten'}
                         style={{
                           ...S.btn(true),
-                          padding: '5px 10px', fontSize: 11, flex: 1,
+                          padding: '5px 10px', fontSize: 12, flex: 1,
                           opacity: tpl.is_builtin ? 0.5 : 1,
                           cursor: tpl.is_builtin ? 'not-allowed' : 'pointer',
                         }}>
@@ -400,7 +478,7 @@ export default function PageManager() {
                       {!tpl.is_builtin && (
                         <button
                           onClick={() => handleDeleteTemplate(tpl.id)}
-                          style={{ ...S.btn(false), padding: '5px 10px', fontSize: 11 }}>
+                          style={{ ...S.btn(false), padding: '5px 10px', fontSize: 12 }}>
                           🗑
                         </button>
                       )}
@@ -432,7 +510,7 @@ export default function PageManager() {
                 User den Slug nicht selbst editiert hat. */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name (intern)</label>
@@ -455,7 +533,7 @@ export default function PageManager() {
             {/* Slug — sobald angefasst, kein Auto-Override mehr */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>URL-Pfad (slug)</label>
@@ -473,12 +551,12 @@ export default function PageManager() {
                 }}
               />
               {newPage.slug && validateSlug(newPage.slug) && (
-                <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
                   {validateSlug(newPage.slug)}
                 </div>
               )}
               {!slugManuallyEdited && newPage.name && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                   Wird automatisch aus dem Namen erzeugt — beim Tippen übernimmst du.
                 </div>
               )}
@@ -487,7 +565,7 @@ export default function PageManager() {
             {/* Beschreibung */}
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Beschreibung (optional)</label>
@@ -500,7 +578,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>
@@ -527,6 +605,86 @@ export default function PageManager() {
       )}
 
       {/* Modal: Template Upload */}
+      {/* Der Dialog fuer eine **Seite** aus einer .html-Datei. Bewusst neben
+          dem Vorlagen-Dialog und nicht darin: Es sind zwei verschiedene
+          Dinge, und ein Dialog mit einem Schalter „Seite oder Vorlage" laesst
+          den Menschen raten, was er gerade tut. */}
+      {seiteHochladen && createPortal(
+        // **Der Hintergrund schliesst, aber nicht nur mit der Maus.**
+        // `onKeyDown` faengt Escape, und der Klick prueft `e.target ===
+        // e.currentTarget` statt `stopPropagation` im Kasten darin — so
+        // braucht der Kasten gar keinen Klickfaenger. `tastaturZugang.test.js`
+        // zaehlt jedes klickbare Element ohne Tastaturweg, und die Ratsche
+        // soll nicht wegen eines Dialogs steigen.
+        <div
+          role="presentation"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSeiteHochladen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSeiteHochladen(false); }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: 20,
+          }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12, padding: 24,
+            width: '100%', maxWidth: 480,
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                HTML-Seite hochladen
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 0', lineHeight: 1.65 }}>
+                Die Datei wird als bearbeitbare Seite angelegt — Stile und
+                Beschreibung werden übernommen. Skripte und eingebettete Rahmen
+                werden entfernt; was fehlt, steht danach im Hinweis.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="pm-seite-name" style={{
+                display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4,
+                color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em',
+              }}>
+                Name (leer lassen: aus dem Titel der Datei)
+              </label>
+              <input id="pm-seite-name" value={seiteName}
+                     onChange={(e) => setSeiteName(e.target.value)}
+                     style={{
+                       width: '100%', padding: '10px 12px', fontSize: 14, boxSizing: 'border-box',
+                       border: '1px solid var(--border-medium)', borderRadius: 8,
+                       fontFamily: 'var(--font-sans)',
+                     }} />
+            </div>
+
+            <div>
+              <label htmlFor="pm-seite-datei" style={{
+                display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4,
+                color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em',
+              }}>
+                Datei (.html)
+              </label>
+              <input id="pm-seite-datei" type="file" accept=".html,.htm"
+                     onChange={(e) => setSeiteDatei(e.target.files?.[0] || null)}
+                     style={{ fontSize: 13 }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" style={S.btn(true)} disabled={seiteLaeuft}
+                      onClick={htmlHochladen}>
+                {seiteLaeuft ? 'Wird eingelesen…' : 'Hochladen'}
+              </button>
+              <button type="button" style={S.btn(false)}
+                      onClick={() => setSeiteHochladen(false)}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {showUpload && createPortal(
         <div onClick={() => setShowUpload(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
@@ -542,7 +700,7 @@ export default function PageManager() {
             </h2>
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Name</label>
@@ -553,7 +711,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>Kategorie</label>
@@ -567,7 +725,7 @@ export default function PageManager() {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{
-                display: 'block', fontSize: 11, fontWeight: 600,
+                display: 'block', fontSize: 12, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '.06em',
                 color: 'var(--text-secondary)', marginBottom: 4,
               }}>

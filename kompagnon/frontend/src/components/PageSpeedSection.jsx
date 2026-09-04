@@ -109,9 +109,9 @@ export default function PageSpeedSection({ leadId }) {
                 const c = scoreColor(score);
                 return (
                   <div key={label} style={{ background: c.bg, borderRadius: 'var(--radius-lg)', padding: '20px 16px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
                     <div style={{ fontSize: 42, fontWeight: 700, color: c.text, lineHeight: 1 }}>{score ?? '—'}</div>
-                    <div style={{ fontSize: 11, color: c.text, marginTop: 4, opacity: 0.7 }}>/ 100</div>
+                    <div style={{ fontSize: 12, color: c.text, marginTop: 4, opacity: 0.7 }}>/ 100</div>
                   </div>
                 );
               })}
@@ -121,13 +121,13 @@ export default function PageSpeedSection({ leadId }) {
                 const c = vitalColor(key, value);
                 return (
                   <div key={key} style={{ background: c.bg, borderRadius: 'var(--radius-md)', padding: '12px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: c.text, lineHeight: 1.1 }}>{fmtVital(key, value)}</div>
                   </div>
                 );
               })}
             </div>
-            {ps.checked_at && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>Zuletzt gemessen: {fmtTs(ps.checked_at)}</div>}
+            {ps.checked_at && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>Zuletzt gemessen: {fmtTs(ps.checked_at)}</div>}
           </>
         )}
       </div>

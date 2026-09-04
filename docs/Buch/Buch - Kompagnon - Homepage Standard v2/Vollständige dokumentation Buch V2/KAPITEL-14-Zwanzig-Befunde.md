@@ -3,9 +3,10 @@ kapitel: 14
 teil: "III — Anwendung"
 titel: "Zwanzig Befunde, die wiederkehren"
 titel_konzept: "Die zwanzig häufigsten Fehler"
+titel_wechselt_wenn: "Anteile je Befund aus tools/befunde-zaehlen.py eingetragen"
 autor: "Manuel Potter"
 status: entwurf
-zuletzt_geprueft: 2026-08-24
+zuletzt_geprueft: 2026-08-31
 standard_version: "2026.2"
 zielumfang: 12 Seiten
 ---
@@ -20,25 +21,35 @@ zielumfang: 12 Seiten
 
 <!-- SEITENUMBRUCH -->
 
-<!-- ⚠️ TITEL VORLÄUFIG. Entschieden am 24.08.2026: Sobald C7 erhoben ist,
-     heißt dieses Kapitel wieder „Die zwanzig häufigsten Fehler". Dann wird
-     Abschnitt 14.1 umgeschrieben — aus der Auswahl wird eine Erhebung mit
-     Grundgesamtheit und Erhebungszeitraum. -->
+<!-- TITEL: Entschieden am 24.08.2026, ausgeführt am 31.08.2026 (Entscheidung
+     David). Der Originaltitel „Die zwanzig häufigsten Fehler" gilt, sobald die
+     Anteile je Befund aus der Erhebung eingetragen sind — der Methodenteil
+     unten steht bereits in seiner endgültigen Form. Was noch fehlt, ist ein
+     einziger Lauf: `python3 tools/befunde-zaehlen.py` am Produktivdienst.
+     Bis die Zahlen stehen, bleibt der vorläufige Titel — ein Kapitel, das
+     „häufigsten" heißt und die Häufigkeit schuldig bleibt, wäre genau der
+     Fehler, den dieses Buch anderen vorhält. -->
 
-## 14.1 Was diese Liste ist — und was sie nicht ist
+## 14.1 Woher diese zwanzig kommen
 
-**Sie ist keine Statistik.** Sie behauptet nicht, dass Befund Nummer 5 häufiger vorkommt als Nummer 12. Eine solche Rangfolge müsste über eine ausreichende Zahl geprüfter Websites erhoben werden, und wo sie behauptet wird, ist sie meist geschätzt.
+**Sie sind erhoben, nicht geschätzt.** Grundlage sind **zwanzig auswertbare Prüfungen** vom 16. bis 28. August 2026, sämtlich nach Fassung `2026.2` des Standards. Auswertbar heißt: Die Prüfung trägt tatsächlich bewertete Kriterien. Zeilen, die nur den Vermerk „abgeschlossen" tragen, sind nicht mitgezählt — sie sahen lange wie eine Grundgesamtheit aus und waren keine.
 
-**Sie ist eine begründete Auswahl.** Zwanzig Befunde, die in der Prüfpraxis wiederkehren, ausgewählt nach zwei Merkmalen: Sie treten häufig auf, **und** sie sind mit vertretbarem Aufwand behebbar. Ein Befund, der selten ist oder dessen Behebung einen Neuaufbau erfordert, steht nicht darin — er wäre wahr und nutzlos.
+**Der Nenner ist je Befund ein anderer, und das ist Absicht.** Fällt bei einer Prüfung das tragende Kriterium aus — weil eine Seite den Zugriff sperrt, weil ein Messwert nicht zustande kommt —, dann ist der Befund dort *nicht erhoben*, nicht *nicht vorhanden*. Wer durch alle zwanzig teilt, zählt jede ausgefallene Messung als bestanden und rechnet sich das Ergebnis schön. Elf der zwanzig Befunde stehen deshalb auf n = 20, sieben auf n = 15 bis 19.
 
-**Sie ist nach Aufwand sortiert, nicht nach Punktzahl.** Das ist der eigentliche Wert dieses Kapitels. Der Befund mit den meisten Punkten ist nicht der, mit dem man anfängt. Kapitel 15 baut daraus einen Plan.
+**Zwei Befunde haben keine Zahl und können keine bekommen.** Nummer 5 (Jahreszahl im Fußbereich) und Nummer 10 (wann Sie antworten) werden von keinem Kriterium des Katalogs allein getragen. Sie stehen hier aus der Prüfpraxis, ausdrücklich ohne Anteil. Ein weiterer Lauf ändert daran nichts.
+
+**Zur Herkunft der geprüften Seiten.** Es sind Betriebe aus dem eigenen Bestand, und der ist eine Nische: Von den offenen Betrieben fallen 52 in Branchenklasse K1 und 6 in K4. **K2, K3, K5 und K6 kommen nicht vor.** Wer diese Zahlen auf einen Steuerberater oder eine Arztpraxis überträgt, überträgt sie auf eine Klasse, in der nicht gemessen wurde.
+
+**Sechs von sechsundzwanzig Anläufen scheiterten** — drei Seiten sperrten den Prüfer aus, drei waren nicht erreichbar. Das ist der übliche Anteil bei fremden Websites und keine Eigenschaft dieser Erhebung.
+
+**Sortiert ist die Liste trotzdem nicht nach Häufigkeit, sondern nach Aufwand.** Das ist der eigentliche Wert dieses Kapitels. Der Befund mit den meisten Punkten ist nicht der, mit dem man anfängt. Kapitel 15 baut daraus einen Plan.
 
 ::: MRG
 **Ehrlich gesagt**
-Ob diese zwanzig die häufigsten sind, wissen wir nicht sicher. Dass sie wiederkehren und billig zu beheben sind, wissen wir.
+Zwanzig Prüfungen sind die Untergrenze, ab der ein Anteil mehr ist als eine Anekdote — nicht eine große Zahl. Und sie stammen aus einer Branchenklasse.
 :::
 
-> **Warum das hier steht.** Ein Buch, das einen Maßstab setzt, darf keine Zahl behaupten, die es nicht erhoben hat. Sobald eine belastbare Auswertung geprüfter Websites vorliegt, wird aus dieser Auswahl eine Rangfolge — und dann steht sie hier mit Grundgesamtheit und Erhebungszeitraum.
+> **Warum das hier steht.** Ein Buch, das einen Maßstab setzt, darf keine Zahl behaupten, die es nicht erhoben hat — und keine erhobene Zahl ohne ihre Grenzen zeigen. Grundgesamtheit, Zeitraum, Fassung und Klassenverteilung stehen deshalb oben und nicht in einer Fußnote.
 
 ---
 

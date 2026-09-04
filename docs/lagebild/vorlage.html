@@ -121,6 +121,9 @@ main{padding:30px 0 72px}
 .luecke[data-status="geschlossen"]::before{background:var(--gut)}
 .luecke[data-status="teilweise"]::before{background:var(--warn)}
 .luecke[data-status="offen"]::before{background:var(--kc-mid)}
+/* terminiert: entschieden, datiert, von einem Test gehalten. Eigene,
+   ruhige Farbe — es ist kein Mangel und auch nichts Erledigtes. */
+.luecke[data-status="terminiert"]::before{background:var(--ink-3)}
 .luecke[data-status="offen"][data-prio="P0"]::before{background:var(--krit); width:4px}
 
 .luecke summary{
@@ -143,6 +146,7 @@ main{padding:30px 0 72px}
 }
 .p-offen{background:var(--krit-bg); color:var(--krit)}
 .p-teilweise{background:var(--warn-bg); color:var(--warn)}
+.p-terminiert{background:var(--senke); color:var(--ink-2)}
 .p-geschlossen{background:var(--gut-bg); color:var(--gut)}
 .quelle{font-size:11.5px; color:var(--ink-3)}
 .quelle b{font-weight:600; color:var(--ink-2)}
@@ -352,6 +356,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   <!-- ══ Offene Punkte ══════════════════════════════════ -->
   <section class="blatt" id="b-luecken" role="tabpanel" aria-labelledby="t-luecken">
     <p class="vorwort">Jede Zeile trägt ihre <b>Herkunft</b> — woher der Befund stammt und womit er belegt ist. Die Priorität sagt, was zuerst weh tut: <b>P0</b> produktiv defekt oder Sicherheitsrisiko, <b>P1</b> Betrieb, <b>P2</b> Produkt, <b>P3</b> Schulden. Aufklappen zeigt den vollen Befund.</p>
+    <p class="vorwort"><b>terminiert</b> ist seit dem 01.09.2026 ein eigener Zustand: entschieden, mit Datum oder benannter Bedingung, und von einem Test gehalten, der rot wird, wenn der Termin eintritt. Solche Einträge brauchen heute nichts — sie standen vorher zwischen den offenen und haben sie länger aussehen lassen, als sie sind. Der Filter blendet sie voreingestellt aus.</p>
 
     <div class="filter">
       <button class="chip" data-f="prio" data-w="P0" aria-pressed="false">P0</button>
@@ -361,6 +366,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
       <span class="trenner"></span>
       <button class="chip" data-f="status" data-w="offen" aria-pressed="true">offen</button>
       <button class="chip" data-f="status" data-w="teilweise" aria-pressed="true">teilweise</button>
+      <button class="chip" data-f="status" data-w="terminiert" aria-pressed="false" title="Entschieden und datiert — ein Test wird rot, wenn der Termin eintritt">terminiert</button>
       <button class="chip" data-f="status" data-w="geschlossen" aria-pressed="false">geschlossen</button>
       <span class="trenner"></span>
       <input class="suche" type="search" placeholder="Suchen — Text, Kennung, Herkunft …" aria-label="Offene Punkte durchsuchen">

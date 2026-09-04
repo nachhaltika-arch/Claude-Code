@@ -44,7 +44,11 @@ VERAENDERND = (
     ("post",  "/api/projects/1/time"),
     ("post",  "/api/projects/1/trigger"),
     ("post",  "/api/projects/from-lead/1"),
-    ("post",  "/api/projects/1/scrape"),
+    # `/api/projects/1/scrape` stand hier bis zum 01.09.2026. Wie schon
+    # `scrape-content` am 26.08. ist die Route entfernt (L-105): Sie war der
+    # aermere von zwei Branddesign-Laeufen, und die Werkstatt ruft den
+    # anderen — `POST /api/branddesign/{lead_id}/scrape`. Eine 404 als
+    # Zugriffsschutz zu feiern waere dieselbe Selbsttaeuschung wie damals.
     ("post",  "/api/projects/1/hosting-scan"),
     ("post",  "/api/projects/1/domain-check"),
     ("post",  "/api/projects/1/qa/run"),

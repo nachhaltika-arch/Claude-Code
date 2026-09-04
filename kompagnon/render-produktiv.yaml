@@ -302,12 +302,43 @@ services:
       # onrender.com-Adresse.
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_WEBHOOK_SECRET_BUCH
+        sync: false
       - key: STRIPE_WEBHOOK_SECRET_GEO
         sync: false
       - key: NETLIFY_WEBHOOK_SECRET
         sync: false
       - key: BREVO_WEBHOOK_SECRET
         sync: false
+
+      # ── Posteingang: eingehende Kundenmails ueber Brevo (L-157) ──────────
+      #
+      # **Warum das Geheimnis im Pfad steht:** Brevo signiert seine Inbound-
+      # Webhooks nicht. Ohne hinterlegtes Geheimnis bleibt der Weg geschlossen
+      # — eine halb eingerichtete Route soll nichts durchlassen.
+      #
+      # **Warum zwei Schluessel:** Das Geheimnis steht an zwei Stellen — hier
+      # und in der Ziel-URL der Brevo-Route. Beide lassen sich nicht im selben
+      # Augenblick aendern; `..._ALT` haelt waehrend des Wechsels den alten
+      # Wert gueltig. Ohne ihn bekaeme jede eingehende Mail zwischen den
+      # beiden Schritten **403**, und der Endpunkt antwortet absichtlich immer
+      # 200, damit Brevo nicht wiederholt: Der Ausfall waere still.
+      #
+      # Beide standen bis zum 04.09.2026 in keinem Blueprint — der Posteingang
+      # hing an einem Dashboard-Eintrag, den niemand nachlesen konnte.
+      - key: BREVO_INBOUND_SECRET
+        sync: false
+      - key: BREVO_INBOUND_SECRET_ALT
+        sync: false
+
+      # BACKEND_URL steht bewusst nicht hier (L-156, 04.09.2026). Die
+      # Bestellmail baute ihre Abruf- und Rechnungslinks daraus und fiel ohne
+      # sie auf die **Frontend**-Adresse zurueck — an eine Static Site, die
+      # keine API kennt. Die Aufloesung ist keine neue Variable, sondern die
+      # vorhandene Kette in `services/base_urls.py`: API_BASE_URL, sonst
+      # RENDER_EXTERNAL_URL, das Render je Dienst selbst setzt. Dieselbe
+      # Antwort wie bei API_BASE_URL daneben.
+
       - key: TRACKDESK_WEBHOOK_SECRET
         sync: false
       - key: WEBHOOK_SECRET

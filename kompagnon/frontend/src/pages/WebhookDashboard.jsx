@@ -69,7 +69,7 @@ export default function WebhookDashboard() {
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{s.label}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <code style={{ flex: 1, fontSize: 10, background: 'var(--bg-app)', padding: '6px 8px', borderRadius: 4, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+              <code style={{ flex: 1, fontSize: 12, background: 'var(--bg-app)', padding: '6px 8px', borderRadius: 4, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                 {API_BASE_URL}/api/webhooks/{s.key}
               </code>
               <button onClick={() => copyUrl(s.key)} style={btnPrimary} title="URL kopieren">
@@ -92,7 +92,7 @@ export default function WebhookDashboard() {
             borderRadius: '8px 8px 0 0',
           }}>
             {['Quelle', 'Firma', 'E-Mail', 'Datum'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
+              <span key={h} style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
             ))}
           </div>
 
@@ -117,7 +117,7 @@ export default function WebhookDashboard() {
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <div>
-                <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 500, background: sourceColor(entry.source) + '18', color: sourceColor(entry.source) }}>
+                <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: sourceColor(entry.source) + '18', color: sourceColor(entry.source) }}>
                   {sourceLabel(entry.source)}
                 </span>
               </div>
@@ -147,12 +147,12 @@ export default function WebhookDashboard() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 6, background: s?.color || 'var(--brand-primary)', color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: s?.color || 'var(--brand-primary)', color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                       {s?.icon}
                     </div>
                     {s?.label}
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
                 </button>
                 {isOpen && (
                   <div style={{ padding: '0 16px 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>

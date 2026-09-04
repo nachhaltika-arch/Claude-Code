@@ -64,37 +64,120 @@ def gesperrte_ki_crawler(robots_text: str) -> list:
     return sorted(set(gesperrt))
 
 
-async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
+
+def _ist_dekorativ(img) -> bool:
+    """Kennzeichnet dieses Bild sich selbst als schmueckend?
+
+    `alt=""` ist **korrektes** Markup (WCAG H67): Es sagt der Vorlesesoftware,
+    dass das Bild nichts beitraegt und uebersprungen werden soll. Es als
+    fehlenden Alternativtext zu zaehlen bestraft den Betrieb dafuer, dass er es
+    richtig gemacht hat — genau das ist am 04.09.2026 gemeldet worden.
+
+    **Kein `alt`-Attribut ist etwas anderes** und bleibt ein Mangel: Das eine
+    sagt „dieses Bild traegt keine Information", das andere sagt gar nichts.
+    """
+    if img.has_attr("alt") and not (img.get("alt") or "").strip():
+        return True
+    if (img.get("role") or "").strip().lower() in ("presentation", "none"):
+        return True
+    return (img.get("aria-hidden") or "").strip().lower() == "true"
+
+
+def _ist_zaehlpixel(img) -> bool:
+    """Ein Bild von hoechstens zwei Pixeln Kantenlaenge ist kein Inhalt.
+
+    Gezaehlt wird nur, was die Seite selbst als Groesse angibt. Ein Bild ohne
+    Massangabe gilt als Inhaltsbild — im Zweifel fuer den Alternativtext.
+    """
+    for attr in ("width", "height"):
+        wert = (img.get(attr) or "").strip()
+        if wert.isdigit() and int(wert) <= 2:
+            return True
+    return False
+
+
+def alt_text_befund(soup) -> dict:
+    """Alternativtexte — gemessen an den **Inhaltsbildern** (L-152).
+
+    Die Abstufung des Kriteriums spricht woertlich von „Inhaltsbildern".
+    Gezaehlt wurden bis zum 04.09.2026 alle `<img>` im Quelltext, also auch
+    dekorative Grafiken und Zaehlpixel. Beide fallen jetzt aus Zaehler **und**
+    Nenner — dieselbe Regel wie bei einer nicht erhobenen Messung: Was nicht
+    zur Sache gehoert, wird weder gutgeschrieben noch angelastet.
+
+    Die drei Gruppen stehen einzeln im Ergebnis, damit der Bericht belegen
+    kann, warum der Nenner kleiner ist als die Zahl der Bilder auf der Seite.
+    """
+    alle = soup.find_all("img")
+    dekorativ = [i for i in alle if _ist_dekorativ(i)]
+    pixel = [i for i in alle if i not in dekorativ and _ist_zaehlpixel(i)]
+    inhalt = [i for i in alle if i not in dekorativ and i not in pixel]
+    mit_alt = [i for i in inhalt if (i.get("alt") or "").strip()]
+
+    quote = round(len(mit_alt) / len(inhalt) * 100) if inhalt else 100
+    return {
+        "bilder_gesamt": len(alle),
+        "bilder_inhalt": len(inhalt),
+        "bilder_dekorativ": len(dekorativ),
+        "bilder_pixel": len(pixel),
+        "bilder_mit_alt": len(mit_alt),
+        "alt_texte_quote": quote,
+        "alt_texte_ok": quote >= 80,
+    }
+
+
+async def run_full_qa(url: str, company: str = "", trade: str = "",
+                      html: str = "") -> dict:
     """
     Führt alle Checks durch und gibt strukturiertes Ergebnis zurück.
     Dauer: ca. 25-40 Sekunden.
+
+    **`html` ist die Messgrundlage, wenn die Erhebung sie schon hat (L-155,
+    04.09.2026).** Bis dahin bekam der Scanner nur die Adresse und lud die
+    Seite ein zweites Mal — mit `httpx`, also **ohne JavaScript**. Das
+    gerenderte Dokument aus dem Browserlauf (`seitenbrowser`, seit 26.08.
+    produktiv) erreichte ihn nie.
+
+    Das war nicht bloss ein doppelter Abruf. Nach einem geglueckten Browserlauf
+    faellt `facts["clientseitig"]` bewusst auf falsch zurueck, damit die
+    inhaltsabhaengigen Kriterien wieder zaehlen duerfen — und damit greift
+    `nur_geruest` nicht mehr, das sie vorher ausgenommen hat. Fuer eine im
+    Browser aufgebaute Seite hielt der Bericht die Messung also fuer gueltig,
+    obwohl der Scanner nur die leere Huelle gesehen hatte.
+
+    **Ohne `html` bleibt die alte Bauart.** Der Scanner wird auch ausserhalb
+    der Erhebung aufgerufen und muss dort weiter selbst laden koennen.
     """
     if not url.startswith("http"):
         url = "https://" + url
 
     results = {}
 
-    # HTML der Startseite laden (einmalig — alle Parser nutzen dasselbe)
-    html = ""
+    # HTML der Startseite: entweder uebergeben oder selbst geladen.
     soup = None
-    try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
-                                     headers=BROWSER_HEADERS) as c:
-            r = await c.get(url)
-            # Eine abweisende Antwort ist kein Messergebnis. Ohne diese Prüfung
-            # zergliedert der Scanner die Fehlerseite, findet erwartungsgemäß
-            # weder Canonical noch Schema, und die Bewertung zählt die Nullen
-            # als „gemessen" — die Seite verliert Punkte für Mängel, die sie
-            # nicht hat. Leere Checks lassen die Bewertung stattdessen
-            # überspringen (siehe `_score_seo`: `if not qa`).
-            if r.status_code != 200:
-                logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
-                return {"error": f"HTTP {r.status_code}", "checks": {}}
-            html = r.text
-            soup = BeautifulSoup(html, "html.parser")
-    except Exception as e:
-        logger.warning(f"QA: Seite nicht ladbar: {e}")
-        return {"error": str(e), "checks": {}}
+    if html:
+        soup = BeautifulSoup(html, "html.parser")
+    else:
+        html = ""
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
+                                         headers=BROWSER_HEADERS) as c:
+                r = await c.get(url)
+                # Eine abweisende Antwort ist kein Messergebnis. Ohne diese
+                # Prüfung zergliedert der Scanner die Fehlerseite, findet
+                # erwartungsgemäß weder Canonical noch Schema, und die
+                # Bewertung zählt die Nullen als „gemessen" — die Seite
+                # verliert Punkte für Mängel, die sie nicht hat. Leere Checks
+                # lassen die Bewertung stattdessen überspringen (siehe
+                # `_score_seo`: `if not qa`).
+                if r.status_code != 200:
+                    logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
+                    return {"error": f"HTTP {r.status_code}", "checks": {}}
+                html = r.text
+                soup = BeautifulSoup(html, "html.parser")
+        except Exception as e:
+            logger.warning(f"QA: Seite nicht ladbar: {e}")
+            return {"error": str(e), "checks": {}}
 
     html_lower = html.lower()
 
@@ -203,14 +286,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     # ─── KATEGORIE 3: INHALTE & UX ──────────────────────────────────
 
     # Alt-Texte
-    alle_imgs = soup.find_all("img")
-    imgs_mit_alt = [i for i in alle_imgs if i.get("alt", "").strip()]
-    results["bilder_gesamt"] = len(alle_imgs)
-    results["bilder_mit_alt"] = len(imgs_mit_alt)
-    results["alt_texte_quote"] = round(
-        len(imgs_mit_alt) / len(alle_imgs) * 100 if alle_imgs else 100
-    )
-    results["alt_texte_ok"] = results["alt_texte_quote"] >= 80
+    results.update(alt_text_befund(soup))
 
     # Kontaktformular vorhanden
     forms = soup.find_all("form")

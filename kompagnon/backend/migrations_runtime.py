@@ -30,6 +30,24 @@ logger = logging.getLogger(__name__)
 def run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
+
+    # **Der Buchpreis wird nicht abgeschrieben, sondern geholt.**
+    # `services/buch_preise.py` sagt im Kopf: „Wer einen Buchpreis sucht,
+    # findet ihn hier — und nur hier." Am 24.08. stand ein Paketpreis an
+    # fuenf Stellen, beim Nachzaehlen waren es vierzehn (L-29). Eine feste
+    # 49.00 im Katalog waere die fuenfzehnte gewesen.
+    #
+    # Deshalb liest die Migration den Wert und setzt ihn ein. Wer in
+    # `buch_preise` den Preis aendert, aendert ihn beim naechsten Start auch
+    # im Katalog — ohne dass jemand daran denken muss.
+    from services.buch_preise import STEUERSATZ, VARIANTEN
+
+    _buch_brutto = VARIANTEN["print"]["brutto_cents"] / 100
+    _buch_steuer = float(STEUERSATZ)
+    _buch_netto = round(_buch_brutto / (1 + _buch_steuer / 100), 2)
+    _buch_pdf = VARIANTEN["pdf"]["brutto_cents"] / 100
+    _buch_bundle = VARIANTEN["bundle"]["brutto_cents"] / 100
+    _buch_versand = VARIANTEN["print"]["versand_cents"] / 100
     migrations = [
         # Ensure the users.role column can hold 'superadmin' (and drop any
         # legacy CHECK constraint that might reject it)
@@ -85,6 +103,51 @@ def run_migrations():
         # Migration brauchen. Die Einzelspalten oben sind Altbestand.
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_scores TEXT DEFAULT '{}'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_sources TEXT DEFAULT '{}'",
+        # Der Beleg je Kriterium (L-151, 04.09.2026): der gemessene Wert, der
+        # zur Punktzahl gefuehrt hat. Altbestand bleibt leer — ein Bericht ohne
+        # Belege zeigt die Zeile schlicht nicht.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_belege TEXT DEFAULT '{}'",
+        # Mitwirkungsstand je Projekt (L-159, 04.09.2026). Eine Zeile je Punkt,
+        # und nur wenn etwas passiert ist — ein Punkt ohne Zeile ist offen.
+        """CREATE TABLE IF NOT EXISTS mitwirkung_stand (
+            id SERIAL PRIMARY KEY,
+            project_id INTEGER NOT NULL REFERENCES projects(id),
+            kennung VARCHAR(8) NOT NULL,
+            erledigt_am TIMESTAMP,
+            bestaetigt_von VARCHAR(120) DEFAULT '',
+            notiz TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_mitwirkung_projekt ON mitwirkung_stand (project_id)",
+        # Zahlungskonto je Betrieb (04.09.2026). Ein Kunde hat ein
+        # Zahlungsmittel, nicht eines je Produkt — bisher stand die Kennung
+        # nur an der GEO-Analyse.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)",
+        "CREATE INDEX IF NOT EXISTS ix_leads_stripe_customer ON leads (stripe_customer_id)",
+        # Aenderungswuensche des Kunden an seiner Website (04.09.2026).
+        # Die **Minuten** stehen weiter in der Zeiterfassung; hier steht der
+        # Wunsch. `zeit_id` verbindet beide, sobald jemand verbucht hat.
+        """CREATE TABLE IF NOT EXISTS inhalts_anfragen (
+            id SERIAL PRIMARY KEY,
+            lead_id INTEGER NOT NULL REFERENCES leads(id),
+            monat VARCHAR(7) NOT NULL,
+            beschreibung TEXT NOT NULL,
+            seite VARCHAR(300) DEFAULT '',
+            status VARCHAR(20) DEFAULT 'offen',
+            angefragt_am TIMESTAMP DEFAULT NOW(),
+            angefragt_von VARCHAR(120) DEFAULT '',
+            erledigt_am TIMESTAMP,
+            bearbeitet_von VARCHAR(120) DEFAULT '',
+            zeit_id INTEGER,
+            notiz TEXT DEFAULT ''
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_inhalt_betrieb ON inhalts_anfragen (lead_id)",
+        "CREATE INDEX IF NOT EXISTS ix_inhalt_monat ON inhalts_anfragen (monat)",
+        # Ein Punkt kann je Projekt nur einmal stehen — sonst haette ein
+        # doppelter Klick zwei Eingangsdaten, und der Fristbeginn haette zwei
+        # Antworten.
+        """CREATE UNIQUE INDEX IF NOT EXISTS ux_mitwirkung_projekt_punkt
+           ON mitwirkung_stand (project_id, kennung)""",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS category_scores TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
@@ -1330,6 +1393,228 @@ def run_migrations():
         # weiter; wer `nutzer` war, kann jetzt mehr als vorher — das ist der
         # Sinn der Zusammenlegung und keine Nebenwirkung.
         "UPDATE users SET role = 'mitarbeiter' WHERE role IN ('auditor', 'nutzer')",
+        # ── 27.08.2026: drei Felder fuer den Shop (L-100, ORDERS_02) ──
+        # Der Katalog kannte Preis, Steuersatz und Lieferzeit — nicht aber,
+        # ob ein Produkt auf einen Websprint **anrechenbar** ist (Garantie
+        # G5), wie lange, und **wie** es ausgeliefert wird. Genau diese drei
+        # Angaben braucht die Verkaufsseite, und ORDERS_08 rechnet spaeter
+        # mit den ersten beiden.
+        #
+        # Vorgabe `false` / `0` / `none`: Die bestehenden Websprints sind
+        # nicht anrechenbar (sie **sind** das, worauf angerechnet wird), und
+        # ihre Auslieferung ist ein Projekt, kein Download.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_creditable BOOLEAN DEFAULT false",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS credit_months INTEGER DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_type VARCHAR(30) DEFAULT 'none'",
+        # Welche Datei im Objektspeicher zu diesem Produkt gehoert
+        # (L-100, ORDERS_06, 29.08.2026). Ein Schluessel wie
+        # `produkte/workbook-2026-1.pdf`, **nicht** eine Adresse: Der
+        # Bucket steht in der Umgebung, und eine Adresse in der
+        # Datenbank waere beim Wechsel des Speichers in jeder Zeile
+        # falsch. Leer heisst „keine Datei hinterlegt" — der Abruf
+        # antwortet dann 503 und nicht mit einer Adresse auf den
+        # Wurzelpfad des Buckets.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_key VARCHAR(300) DEFAULT ''",
+        # ── Rechnungsnummernkreis (L-100, ORDERS_07, 29.08.2026) ───────────
+        #
+        # **Der Mangel ist aelter als der Shop.** `routers/retainer.py` vergab
+        # die Nummer als `COUNT(*) + 1` ueber `invoices`. Wird eine Rechnung
+        # geloescht, sinkt die Zahl und die naechste Vergabe wiederholt eine
+        # bereits vergebene Nummer; zwei gleichzeitige Aufrufe zaehlen dieselbe
+        # Menge. Die GoBD verlangen lueckenlos **und** fortlaufend.
+        #
+        # Ein Zaehler ist ein eigener Sachverhalt: Aus dem Bestand abgeleitet
+        # aendert sich die naechste Nummer rueckwirkend, sobald jemand
+        # storniert oder ein Auszug eingespielt wird.
+        #
+        # Entscheidung David: **ein gemeinsamer Kreis** fuer Projekte und Shop,
+        # Format `KAS-YY-0000`. Der Schluessel (prefix, year) traegt die
+        # Sperre, mit der `SELECT ... FOR UPDATE` arbeitet.
+        """CREATE TABLE IF NOT EXISTS invoice_counters (
+            prefix      VARCHAR(10) NOT NULL,
+            year        INTEGER     NOT NULL,
+            last_number INTEGER     NOT NULL DEFAULT 0,
+            updated_at  TIMESTAMP   DEFAULT NOW(),
+            PRIMARY KEY (prefix, year)
+        )""",
+        # Die zwei digitalen Produkte sind anrechenbar, sechs Monate lang.
+        # Eng gehalten wie oben: nur solange niemand es von Hand geaendert hat.
+        """UPDATE products
+              SET is_creditable = true, credit_months = 6, delivery_type = 'download'
+            WHERE slug = 'workbook_homepage_standard' AND credit_months = 0""",
+        """UPDATE products
+              SET is_creditable = true, credit_months = 6, delivery_type = 'appointment'
+            WHERE slug = 'check_plus' AND credit_months = 0""",
+
+        # ── 27.08.2026: die zwei digitalen Produkte in den Katalog (L-100) ──
+        # Aus Davids ORDERS-Prompt-Paket, Schritt 01. Der Katalog (`products`)
+        # und die Bestellablage (`book_orders`) gab es laengst — verkaufbar
+        # waren bisher nur die zwei Websprints.
+        #
+        # **Preise sind Endpreise, nicht netto** — und das weicht bewusst vom
+        # Prompt ab. ORDERS_01 nennt „14900 Cent netto"; am 21.08.2026 hat
+        # David fuer L-61 aber „Endpreise" entschieden: `price_brutto` ist,
+        # was abgebucht wird, und die Verkaufsseiten nennen genau diese Zahl.
+        # Woertlich gefolgt haette der Kunde 149 EUR gelesen und 177,31 EUR
+        # gezahlt — exakt der Fehler, den L-61 geschlossen hat.
+        #
+        # **Steuersatz geklaert (Entscheidung David, 27.08.2026): 7 % fuer das
+        # Workbook.** Es ist eine elektronische Publikation und faellt damit
+        # unter Anlage 2 UStG — wie das Buch, dem das E-Book seit Dezember
+        # 2019 gleichgestellt ist. Der Prompt gab 19 % vor; das war der
+        # Platzhalter bis zur Klaerung.
+        #
+        # **Check PLUS bleibt bei 19 %**, und das ist kein Versehen: Dort wird
+        # eine Pruefleistung mit persoenlicher Auswertung verkauft, keine
+        # Publikation. Zwei Produkte, zwei Saetze, je ein Grund.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('workbook_homepage_standard',
+              'Workbook Homepage-Standard',
+              'Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten',
+              149.00, 139.25, 7, 'once', 0, 'draft', false, 'Empfehlung',
+              '["Arbeitsbuch als PDF, sofort nach Zahlung","30 Schritte entlang des Homepage-Standards","89 Ankreuzkaesten zum Abhaken","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["name","email"]'::jsonb,
+              '[]'::jsonb,
+              10)
+           ON CONFLICT (slug) DO NOTHING""",
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('check_plus',
+              'Check PLUS',
+              'Der Homepage-Standard-Check mit persoenlicher Auswertung',
+              249.00, 209.24, 19, 'once', 7, 'draft', false, 'Empfehlung',
+              '["Vollpruefung nach dem Homepage-Standard, 100 Punkte","Schriftlicher Befundbericht","Persoenliche Auswertung, 45 Minuten","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '[]'::jsonb,
+              11)
+           ON CONFLICT (slug) DO NOTHING""",
+        # `ON CONFLICT DO NOTHING` oben fasst eine **bestehende** Zeile nicht
+        # an — auf Staging stand das Workbook seit heute Mittag mit 19 %. Ohne
+        # diesen Nachzug gaelte die Entscheidung nur dort, wo die Tabelle noch
+        # leer war, und zwei Umgebungen truegen verschiedene Steuersaetze.
+        #
+        # Eng gehalten: Nur solange Preis und alter Satz unveraendert sind.
+        # Wer den Preis gepflegt hat, bekommt seine Zeile nicht ueberschrieben.
+        """UPDATE products
+              SET tax_rate = 7, price_netto = 139.25
+            WHERE slug = 'workbook_homepage_standard'
+              AND tax_rate = 19
+              AND price_brutto = 149.00""",
+        # ── 27.08.2026: das Buch im Katalog (Bitte David) ──
+        # **Damit es im Produkt-Editor bearbeitbar ist** — verkauft wird es
+        # weiterhin ueber `POST /api/book/checkout`, das drei Varianten und
+        # eine Lieferanschrift kennt. Dieser Eintrag ist die Katalogansicht,
+        # nicht ein zweiter Verkaufsweg.
+        #
+        # Genommen wird die **gedruckte** Ausgabe (Davids Zahl). PDF und
+        # Buendel stehen in der Beschreibung, weil ein Katalog mit einer Zahl
+        # fuer drei Varianten den Leser in die Irre fuehrt. Der Versand
+        # gehoert nicht in den Produktpreis: `products` kennt keinen Versand,
+        # und 49 als Endpreis fuer ein gedrucktes Buch waere eine Zusage, die
+        # die Kasse nicht haelt.
+        f"""INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order)
+           VALUES
+             ('buch_homepage_standard',
+              'Der Homepage Standard (Buch)',
+              'Gedruckt {_buch_brutto:.2f} EUR zzgl. {_buch_versand:.2f} Versand · als PDF {_buch_pdf:.2f} EUR · als Buendel {_buch_bundle:.2f} EUR',
+              {_buch_brutto:.2f}, {_buch_netto:.2f}, {_buch_steuer:.0f}, 'once', 5, 'draft', false, 'Empfehlung',
+              '["Der vollstaendige Homepage-Standard, 100 Punkte","Drei Ausgaben: gedruckt, als PDF, als Buendel","Preis und Steuersatz kommen aus services/buch_preise.py"]'::jsonb,
+              '["name","company","email"]'::jsonb,
+              '[]'::jsonb,
+              12)
+           ON CONFLICT (slug) DO NOTHING""",
+        # **Bewusst kein Nachzug-UPDATE.** Der erste Entwurf hatte einen:
+        # „falls jemand den Preis in `buch_preise` aendert". Er haette bei
+        # jedem Serverstart die Katalogzeile ueberschrieben — und damit auch
+        # jede Aenderung, die David im Produkt-Editor vornimmt. Ein Feld, das
+        # sich bearbeiten laesst und beim naechsten Deploy zurueckspringt,
+        # ohne dass es jemand sagt, ist schlimmer als ein gesperrtes Feld.
+        # Gefunden bei der Gegenprobe des Waechters, nicht beim Schreiben.
+        #
+        # Die Zeile entsteht **einmal** mit dem abgeleiteten Wert. Was danach
+        # damit geschieht, entscheidet der Editor — und
+        # `tests/test_buchpreis_eine_stelle.py` haelt fest, dass die
+        # Ableitung nicht durch eine feste Zahl ersetzt wird.
+        "UPDATE products SET delivery_type = 'print' WHERE slug = 'buch_homepage_standard' AND delivery_type = 'none'",
+        # ── 27.08.2026: die Kaufabwicklung je Produkt (Bitte David) ──
+        # `webhook_actions` wurde seit jeher geschrieben und von **keiner
+        # Zeile gelesen**; `_handle_successful_payment` machte nach jeder
+        # Zahlung den Websprint-Ablauf. Seit heute liest der Zahlungspfad die
+        # Liste (`services/kaufabwicklung.py`) — und deshalb muessen die drei
+        # digitalen Produkte jetzt sagen, was sie wollen.
+        #
+        # **`create_user` fehlt mit Absicht.** Das Konto entsteht mit einem
+        # Zufallspasswort, und das erfaehrt der Kaeufer **nur** aus der
+        # Willkommensmail — die ist ueber eine neue Website geschrieben und
+        # passt hier nicht. Ein Konto anzulegen, dessen Passwort niemand
+        # kennt, waere ein Zugang, den es nur auf dem Papier gibt.
+        # Beides kommt zusammen mit ORDERS_06 (Auslieferung und Mail).
+        #
+        # `create_lead` steht drin, weil der Lead den Idempotenz-Schutz
+        # traegt; `send_pdf` ist die Auftragsbestaetigung.
+        """UPDATE products
+              SET webhook_actions = '["create_lead","send_pdf"]'::jsonb
+            WHERE slug IN ('workbook_homepage_standard', 'check_plus',
+                           'buch_homepage_standard')
+              AND webhook_actions = '[]'::jsonb""",
+        # ── 27.08.2026: `book_orders` wird zur Bestellung digitaler Produkte ──
+        # Davids Entscheidung: verallgemeinern statt eine zweite Tabelle. Die
+        # Spalte heisst weiter `book_orders`; sie umzubenennen waere ein
+        # Eingriff in eine Tabelle mit echten Buchbestellungen, und der Name
+        # ist das Unwichtigste daran. Was fehlte, sind vier Angaben:
+        #
+        #   product_slug        welches Katalogprodukt (das Buch nutzt weiter
+        #                       `variant` fuer pdf/print/bundle)
+        #   is_business         steuert Widerrufsrecht und Nettoausweis
+        #   buyer_vat_id        USt-IdNr. bei Geschaeftskunden
+        #   credit_valid_until  bis wann die Anrechnung gilt (Garantie G5)
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS product_slug VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT false",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS buyer_vat_id VARCHAR(50) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_valid_until DATE",
+        # Anrechnung G5 (L-100, ORDERS_08, 29.08.2026). Wer ein Workbook
+        # oder einen Check PLUS gekauft hat, bekommt den Betrag binnen
+        # sechs Monaten auf einen Websprint angerechnet. Ohne Vermerk am
+        # Deal liesse sich derselbe Betrag mehrfach abziehen.
+        # Vormerkung zwischen Angebot und Annahme (ORDERS_08,
+        # Entscheidung David 29.08.2026: eingeloest wird bei Annahme).
+        # Ohne sie laege dieselbe Anrechnung in zwei offenen Angeboten.
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_reserved_deal_id INTEGER",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_reserved_at TIMESTAMP",
+        "CREATE INDEX IF NOT EXISTS idx_book_orders_credit_reserved ON book_orders(credit_reserved_deal_id)",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_deal_id INTEGER",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS credit_redeemed_at TIMESTAMP",
+        "CREATE INDEX IF NOT EXISTS idx_book_orders_credit_deal ON book_orders(credit_redeemed_deal_id)",
+        # ── Nachweis der AGB-Zustimmung (L-100, ORDERS_05, 29.08.2026) ──
+        #
+        # Ohne die **Fassung** ist die Zustimmung im Streitfall wertlos:
+        # Sie belegt dann nur, dass jemand irgendwann irgendetwas angehakt
+        # hat. Der Zeitstempel steht daneben, aus demselben Grund wie beim
+        # Widerrufsverzicht — es zaehlt, **wann** zugestimmt wurde.
+        #
+        # Kein Vorgabewert und keine Nachfuellung fuer Altzeilen: Eine
+        # erfundene Fassung waere schlimmer als eine leere Spalte, weil sie
+        # beantwortet aussieht. Bestellungen von vor dieser Aenderung gibt
+        # es ohnehin nicht — die Katalogprodukte stehen auf `draft`.
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS terms_version VARCHAR(20) DEFAULT ''",
+        "ALTER TABLE book_orders ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMP",
+        "CREATE INDEX IF NOT EXISTS ix_book_orders_product_slug ON book_orders (product_slug)",
+        # **`draft`, nicht `live`** — und das ist die wichtigste Zeile hier.
+        # ORDERS_00 sagt es selbst: „Vor Prompt 05 darf nichts live gehen."
+        # Ein Verkauf an Verbraucher ohne Widerrufsbelehrung ist ein
+        # Rechtsverstoss, und die Widerrufsfrist laeuft dann **nicht ab** —
+        # der Kaeufer kann noch nach einem Jahr widerrufen. Wer die zwei
+        # Zeilen auf `live` setzt, muss vorher ORDERS_05 gebaut haben.
         # ── 27.08.2026: der Bestaetigungsriegel bekommt einen Altbestand ──
         # Ab heute sperrt die Anmeldung Konten ohne bestaetigte Adresse aus
         # (Entscheidung David). Ohne diese Zeile waere jedes bestehende
@@ -1356,6 +1641,193 @@ def run_migrations():
             WHERE is_verified = false
               AND (created_at IS NULL
                    OR created_at < TIMESTAMP '2026-08-28 00:00:00')""",
+        # ── 31.08.2026: die zweite Achse der Zeiterfassung (L-101) ──
+        # ABO-PRO sagt zwei Stunden **je Monat und Kunde** zu. Gezaehlt wurde
+        # bisher je **Projekt und Bauphase** — eine andere Achse, und ein Abo
+        # hat gar kein Projekt, gegen das gebucht wuerde.
+        #
+        # **`project_id` wird nullable**, sonst braeuchte jede Abo-Zeile ein
+        # erfundenes Projekt. `DROP NOT NULL` ist in Postgres nicht
+        # idempotent-freundlich formulierbar wie `ADD COLUMN IF NOT EXISTS`;
+        # zweimal ausgefuehrt ist es aber folgenlos, und genau das ist hier
+        # die Bedingung.
+        "ALTER TABLE time_tracking ALTER COLUMN project_id DROP NOT NULL",
+        "ALTER TABLE time_tracking ADD COLUMN IF NOT EXISTS lead_id INTEGER",
+        "ALTER TABLE time_tracking ADD COLUMN IF NOT EXISTS abrechnungsmonat VARCHAR(7)",
+        "CREATE INDEX IF NOT EXISTS ix_time_tracking_lead_monat "
+        "ON time_tracking (lead_id, abrechnungsmonat)",
+        # **Genau eine Achse je Zeile — und zwar in der Datenbank.**
+        # Der Dienst prueft es ebenfalls, aber ein SQL-Skript oder eine
+        # spaetere Einspielung geht am Dienst vorbei. Eine Zeile mit beiden
+        # Bezuegen zaehlte doppelt, eine ohne beide gar nicht — und beides
+        # faellt in einer Summe nicht auf.
+        """DO $$ BEGIN
+               ALTER TABLE time_tracking ADD CONSTRAINT ck_time_tracking_eine_achse
+                   CHECK ((project_id IS NULL) <> (lead_id IS NULL));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # ── Welches Pflege-Abo gilt (L-101, 01.09.2026) ──────────────
+        """CREATE TABLE IF NOT EXISTS abo_vertraege (
+               id           SERIAL PRIMARY KEY,
+               lead_id      INTEGER NOT NULL REFERENCES leads(id),
+               produkt      VARCHAR(20)  NOT NULL,
+               start_monat  VARCHAR(7)   NOT NULL,
+               end_monat    VARCHAR(7),
+               notiz        VARCHAR(255) DEFAULT '',
+               created_at   TIMESTAMP DEFAULT NOW(),
+               created_by   VARCHAR(120) DEFAULT ''
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_abo_vertraege_lead "
+        "ON abo_vertraege (lead_id, start_monat)",
+        # **Die Form des Monats gehoert in die Datenbank, nicht nur in den
+        # Dienst.** Steht dort einmal `2026-8` statt `2026-08`, vergleicht
+        # jede Abfrage Zeichenketten falsch herum — und die Restzahl eines
+        # Betriebs waere still die eines anderen Monats.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_monatsform
+                   CHECK (start_monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'
+                          AND (end_monat IS NULL
+                               OR end_monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # **Ein Vertrag, der vor seinem Beginn endet, ist keiner.** Der Dienst
+        # faengt es ab; eine spaetere Einspielung geht am Dienst vorbei, und
+        # so eine Zeile gaebe fuer jeden Monat „kein Vertrag" zurueck, ohne
+        # dass irgendwo etwas fehlte.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_ende_nach_start
+                   CHECK (end_monat IS NULL OR end_monat >= start_monat);
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # ── 04.09.2026: WS-STA-01 „Websprint Start" kommt in den Katalog (L-164) ──
+        #
+        # Das Datenblatt beschreibt seit dem 23.08. ein viertes Produkt —
+        # verpreist, terminiert, mit eigener Zahlungsbedingung Z7. Im Code kam
+        # `websprint_start` **null Mal** vor. Ein Auftrag dafuer waere still
+        # als `websprint_neubau` gelandet: mit dessen 28 Tagen Bauzeit, dessen
+        # Mitwirkungsliste und dessen Preis. Der Spaltenstandard macht daraus
+        # keinen Fehler, sondern ein falsches Projekt ohne Meldung.
+        #
+        # **Warum eine Migration und nicht nur der Seed in `startphase.py`.**
+        # Der Seed dort laeuft nur, wenn `products` **leer** ist. Produktiv und
+        # Staging sind es nicht — dort haette ein vierter Eintrag in der
+        # Vorlage nichts bewirkt. Genau diese Bauart („gebaut, nicht
+        # angeschlossen") ist hier oft genug vorgekommen, um sie beim Namen zu
+        # nennen. Der Seed wird trotzdem mitgepflegt, damit eine frische
+        # Datenbank denselben Katalog bekommt; `test_produktvorlage.py` haelt
+        # beide zusammen.
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS gekoppeltes_abo VARCHAR(20)",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS abo_mindestlaufzeit INTEGER DEFAULT 0",
+        # Die beiden Spalten tragen **nicht** den Abo-Preis. Der steht seit
+        # L-100 in `services/abo_stunden.py` und ist die Grundlage jeder
+        # Abrechnung; eine zweite Zeile mit demselben Betrag waere der zweite
+        # Ort, an dem 79 EUR gepflegt werden muessten. Gespeichert wird nur,
+        # **welches** Abo gekoppelt ist und wie lange — gerechnet wird in
+        # `services/preisangabe.py`.
+        #
+        # `draft`, nicht `live`, und der Grund ist nicht technisch: Das
+        # Datenblatt nennt als Freigabebedingung den Meilenstein „Pflege-Abo
+        # aktiv, 24.09.2026". Solange das monatliche Entgelt nicht abgerechnet
+        # wird, verkauft dieses Paket eine Leistung, die niemand in Rechnung
+        # stellt. Freischalten ist eine Entscheidung, kein Handgriff.
+        """INSERT INTO products
+             (slug, name, short_desc, price_brutto, price_netto, tax_rate,
+              payment_type, delivery_days, status, highlighted, highlight_label,
+              features, checkout_fields, webhook_actions, sort_order,
+              gekoppeltes_abo, abo_mindestlaufzeit)
+           VALUES
+             ('websprint_start', 'Websprint Start',
+              'Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege',
+              1785.00, 1500.00, 19, 'once', 7, 'draft', false, 'Empfehlung',
+              '["Audit nach Homepage-Standard, dokumentiert","Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten","Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv","Einpflegen der gelieferten Texte, bis 4.000 Zeichen","Bildaufbereitung, bis 10 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Optimierung und strukturierte Auszeichnung","Hosting-Einrichtung, SSL, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisungsvideo statt Live-Schulung","Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat","Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"]'::jsonb,
+              '["name","company","email","phone"]'::jsonb,
+              '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
+              0, 'ABO-BAS', 12)
+           ON CONFLICT (slug) DO NOTHING""",
+        # `sort_order = 0`: Start steht **vor** dem Relaunch. Die Leiter
+        # beginnt beim kleinsten Paket, und das Datenblatt begruendet den
+        # Namen genau damit — „Start beschreibt eine Position, keine
+        # Qualitaetsstufe".
+        #
+        # Fuer Datenbanken, in denen die Zeile schon steht, die Kopplung aber
+        # noch nicht: `WHERE gekoppeltes_abo IS NULL` haelt es wiederholbar und
+        # fasst eine von Hand gepflegte Zeile nicht an.
+        """UPDATE products
+              SET gekoppeltes_abo = 'ABO-BAS', abo_mindestlaufzeit = 12
+            WHERE slug = 'websprint_start'
+              AND gekoppeltes_abo IS NULL""",
+        # ── 04.09.2026: Das Pflege-Abo laeuft ueber Stripe (Entscheidung David) ──
+        #
+        # Am 01.09. war entschieden, monatlich **per Rechnung** abzurechnen;
+        # am 04.09. ist entschieden, **Stripe** einzusetzen. Beides war zu
+        # seiner Zeit richtig — die Umstellung darf aber nicht rueckwirkend
+        # gelten: Wer unter „Rechnung" abgeschlossen hat, hat keine
+        # Einzugsermaechtigung erteilt.
+        #
+        # **Der Vorgabewert ist `rechnung`, und das ist der ganze Trick.**
+        # `ADD COLUMN ... DEFAULT` fuellt **bestehende** Zeilen mit genau
+        # diesem Wert — jeder Vertrag, den es vor dieser Migration gab,
+        # steht damit auf Rechnung, ohne dass ein UPDATE ihn suchen muesste.
+        #
+        # Der erste Entwurf machte es umgekehrt: Vorgabe `stripe`, danach ein
+        # UPDATE mit `created_at < TIMESTAMP '2026-09-04'`. Beim Nachsehen an
+        # der lokalen Datenbank stand ein Vertrag von **11:25 desselben
+        # Tages** auf `stripe` — geschlossen Stunden vor der Entscheidung,
+        # und stillschweigend auf Abbuchung gestellt. Ein Datum ist hier der
+        # falsche Massstab; „was es vorher schon gab" ist der richtige, und
+        # den kennt die Spalte selbst.
+        #
+        # Die Vorgabe bleibt auch danach `rechnung`: Ein INSERT, der die
+        # Spalte vergisst, ist ein Vertrag, den niemand abbuchen wollte.
+        # Wer `stripe` will, sagt es — `abo_vertrag.anlegen` tut das.
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS abrechnung VARCHAR(10) NOT NULL DEFAULT 'rechnung'",
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(200) DEFAULT ''",
+        "ALTER TABLE abo_vertraege ADD COLUMN IF NOT EXISTS stripe_price_id VARCHAR(200) DEFAULT ''",
+        # `ck_abo_abrechnung` haelt fest, dass es nur diese beiden Werte
+        # gibt — ein Tippfehler waere sonst ein Vertrag, den weder Stripe
+        # noch die Aufstellung einzieht.
+        """DO $$ BEGIN
+               ALTER TABLE abo_vertraege ADD CONSTRAINT ck_abo_abrechnung
+                   CHECK (abrechnung IN ('rechnung', 'stripe'));
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # ── 04.09.2026: Der Monatsbericht bekommt ein Gedaechtnis (L-160, Rang 2) ──
+        #
+        # Der Bericht laeuft seit Langem und speicherte davon **den letzten
+        # Messwert** — zwei Spalten am Betrieb, die der naechste Lauf
+        # ueberschreibt. Er existierte damit nur im Postfach des Kunden.
+        # ABO-PRO sagt einen monatlichen Leistungsbericht zu; eine geloeschte
+        # Mail ist keine Auskunft mehr.
+        """CREATE TABLE IF NOT EXISTS leistungsberichte (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id),
+               monat VARCHAR(7) NOT NULL,
+               mobile INTEGER,
+               desktop INTEGER,
+               vormonat_mobile INTEGER,
+               versendet BOOLEAN DEFAULT false,
+               erstellt_am TIMESTAMP DEFAULT NOW()
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_leistungsberichte_lead ON leistungsberichte (lead_id)",
+        # **Eine Zeile je Betrieb und Monat.** Ein zweiter Lauf im selben
+        # Monat schreibt sie fort, statt eine zweite anzulegen — sonst
+        # stuende derselbe Monat zweimal im Verlauf und der Vergleich zum
+        # Vormonat waere nicht mehr eindeutig. Die Sperre steht in der
+        # Datenbank und nicht nur im Dienst: Ein zweiter Schreiber (ein
+        # Nachlauf von Hand, eine Einspielung) geht am Dienst vorbei.
+        """DO $$ BEGIN
+               ALTER TABLE leistungsberichte
+                   ADD CONSTRAINT uq_leistungsbericht_monat UNIQUE (lead_id, monat);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
+        # Der Monat muss die Form `JJJJ-MM` haben — dieselbe Regel wie bei
+        # den Abo-Zeiten. Ein „September 2026" in dieser Spalte sortiert
+        # falsch und faellt erst auf, wenn ein Verlauf durcheinander steht.
+        """DO $$ BEGIN
+               ALTER TABLE leistungsberichte ADD CONSTRAINT ck_leistungsbericht_monat
+                   CHECK (monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

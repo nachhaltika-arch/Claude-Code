@@ -52,7 +52,7 @@ export default function AnsichtReiter({ zustand, onWaehlen }) {
 
       {aktiv === null && (
         <span style={{
-          marginLeft: 8, fontSize: 11, color: 'var(--text-tertiary)',
+          marginLeft: 8, fontSize: 12, color: 'var(--text-tertiary)',
           fontFamily: 'var(--font-sans)',
         }}>
           Eigene Auswahl

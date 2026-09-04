@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -195,7 +196,7 @@ export default function AuditTool() {
                 Audit starten
               </button>
             </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '8px', marginBottom: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: '8px', marginBottom: 0 }}>
               Wir analysieren automatisch: Firmenname, Kontaktdaten, Performance, Rechtliches &amp; SEO
             </p>
           </div>
@@ -206,7 +207,7 @@ export default function AuditTool() {
           * nicht (UX-27). */}
         {letzte.length > 0 && (
           <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '600px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>
               Zuletzt geprüft
             </div>
             {letzte.map(a => (
@@ -214,7 +215,7 @@ export default function AuditTool() {
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {a.company_name || a.website_url}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                   {datumKurz(a.created_at, 'Datum unbekannt')}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', minWidth: 26, textAlign: 'right' }}>
@@ -253,7 +254,7 @@ export default function AuditTool() {
               <span style={{
                 width: '24px', height: '24px', borderRadius: 'var(--radius-full)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '11px', fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 background: i < loadingStep ? 'var(--status-success-text)' : i === loadingStep ? 'var(--brand-primary)' : 'var(--border-light)',
                 color: i <= loadingStep ? 'var(--bg-surface)' : 'var(--text-tertiary)',
               }}>
@@ -265,7 +266,7 @@ export default function AuditTool() {
             </div>
           ))}
           <div className="skeleton" style={{ height: '4px', marginTop: '16px' }} />
-          <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
             Die Analyse kann bis zu 30 Sekunden dauern.
           </p>
         </div>
@@ -279,7 +280,7 @@ export default function AuditTool() {
             border: '1px solid #c0d8f0',
           }}>
             <div style={{
-              fontSize: '11px', fontWeight: 700, color: '#2a5aa0',
+              fontSize: 12, fontWeight: 700, color: '#2a5aa0',
               marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
               ✓ Automatisch erkannt
@@ -389,6 +390,12 @@ const LEVEL_STYLES = {
 };
 
 function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  useEscapeKey(onClose);
+
   const { isMobile } = useScreenSize();
   const [saving, setSaving] = useState(false);
   const [leadForm, setLeadForm] = useState({
@@ -503,7 +510,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           }}>
             {ls.icon} {audit.total_score}/100 — {audit.level}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {audit.website_url}
           </span>
         </div>

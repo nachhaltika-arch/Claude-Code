@@ -130,7 +130,7 @@ export default function Projektfreigaben({ leadId, token }) {
                 border: '1px solid var(--border-light)',
                 background: erteilt ? 'var(--status-success-bg)' : 'transparent',
               }}>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
                   {eintrag.phase}
                 </span>
                 <span style={{
@@ -142,7 +142,7 @@ export default function Projektfreigaben({ leadId, token }) {
                 </span>
 
                 {erteilt ? (
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>
                     {stand[eintrag.key].datum}
                     {stand[eintrag.key].uhrzeit ? ` · ${stand[eintrag.key].uhrzeit}` : ''}
                     <br />

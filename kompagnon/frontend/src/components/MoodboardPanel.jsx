@@ -112,7 +112,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
   );
 
   const SectionTitle = ({ children }) => (
-    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-tertiary)', marginBottom: 14 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-tertiary)', marginBottom: 14 }}>
       {children}
     </div>
   );
@@ -177,7 +177,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
             >
               <div style={{ fontSize: 22, marginBottom: 6 }}>{s.emoji}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{s.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{s.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{s.desc}</div>
             </button>
           ))}
         </div>
@@ -208,7 +208,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
                 <div style={{ fontSize: 22, marginBottom: 6 }}>🎨</div>
               )}
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{f.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{f.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{f.desc}</div>
             </button>
           ))}
         </div>
@@ -230,8 +230,8 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
               }}
             >
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{t.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--kc-mid)', marginBottom: 4, fontStyle: 'italic' }}>{t.example}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{t.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-brand)', marginBottom: 4, fontStyle: 'italic' }}>{t.example}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{t.desc}</div>
             </button>
           ))}
         </div>
@@ -254,7 +254,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
             >
               <div style={{ fontSize: 22, marginBottom: 6 }}>{b.icon}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{b.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{b.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{b.desc}</div>
             </button>
           ))}
         </div>
@@ -276,7 +276,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
               background: 'var(--bg-app)', resize: 'vertical', boxSizing: 'border-box',
             }}
           />
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
             Eine URL pro Zeile. Diese Websites dienen als Inspiration für das Design.
           </div>
         </Card>
@@ -335,13 +335,13 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
           </div>
           {preview.color_palette && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Empfohlene Farbpalette</div>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Empfohlene Farbpalette</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {preview.color_palette.map((c, i) => (
                   <div key={i} style={{ textAlign: 'center' }}>
                     <div style={{ width: 52, height: 52, borderRadius: 10, background: c.hex, border: '1px solid rgba(0,0,0,0.1)', marginBottom: 4 }} />
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{c.hex}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600 }}>{c.role}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{c.hex}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>{c.role}</div>
                   </div>
                 ))}
               </div>

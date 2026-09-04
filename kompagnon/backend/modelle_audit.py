@@ -105,6 +105,7 @@ class AuditResult(Base):
     # Die Einzelspalten oberhalb sind Altbestand und werden nicht mehr gefüllt.
     item_scores = Column(Text, default="{}")      # {kriterium: punkte}
     item_sources = Column(Text, default="{}")     # {kriterium: gemessen|abgeleitet|...}
+    item_belege = Column(Text, default="{}")      # {kriterium: gemessener Wert im Klartext}
     category_scores = Column(Text, default="[]")  # [{key, label, score, max, ...}]
     blockers = Column(Text, default="[]")         # K.-o.-Kriterien
     coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %

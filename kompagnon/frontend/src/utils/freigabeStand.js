@@ -125,3 +125,23 @@ export function standJeSeite(roh, seiteId, hatInhalt) {
   }
   return { zustand: 'offen', text: 'Noch nicht angefragt', anfragbar: true };
 }
+
+/**
+ * Welche Seiten warten noch auf eine Entscheidung des Kunden?
+ *
+ * **Warum das hier steht und nicht in der Übersicht (04.09.2026, L-161).**
+ * Die Kundenübersicht soll den nächsten Schritt benennen — „Der Bauplan
+ * liegt zur Freigabe bereit". Dafür muss sie dieselbe Spalte lesen wie die
+ * Freigabenseite, und zwar nach derselben Regel. Genau daran ist diese
+ * Spalte am 22.08.2026 schon einmal gescheitert: zwei Leseorte, zwei
+ * Regeln, beide falsch. Ein dritter Ort mit einer eigenen Zählung wäre
+ * dieselbe Falle ein drittes Mal.
+ *
+ * Gibt die Kennungen der offenen Seiten zurück — leer heißt: nichts liegt
+ * beim Kunden.
+ */
+export function offeneFreigaben(roh) {
+  return Object.entries(leseFreigaben(roh))
+    .filter(([, eintrag]) => !istEntschieden(eintrag))
+    .map(([seite]) => seite);
+}

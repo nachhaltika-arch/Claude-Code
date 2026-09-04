@@ -47,7 +47,7 @@ function SettingRow({ icon, bg, label, val, path }) {
 function GroupLabel({ children }) {
   return (
     <div style={{
-      fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)',
+      fontSize: 12, fontWeight: 900, color: 'var(--text-secondary)',
       textTransform: 'uppercase', letterSpacing: '.1em',
       padding: '10px 14px 4px',
     }}>
@@ -115,7 +115,7 @@ export default function SettingsLayout() {
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-on-brand)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 {user?.first_name} {user?.last_name}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
                 {user?.role || 'Nutzer'}
               </div>
             </div>
@@ -197,34 +197,23 @@ export default function SettingsLayout() {
     );
   }
 
-  return (
-    <div style={{ display: 'flex', gap: 20 }}>
-      <nav style={{ width: 220, flexShrink: 0 }}>
-        <div style={{
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-light)', overflow: 'hidden', padding: 4,
-        }}>
-          {items.map((item) => {
-            const active = location.pathname === item.path;
-            return (
-              <button key={item.path} onClick={() => navigate(item.path)}
-              className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                padding: '7px 12px', borderRadius: 'var(--radius-md)',
-                border: 'none', fontSize: 13, cursor: 'pointer',
-                textAlign: 'left', fontFamily: 'var(--font-sans)',
-              }}
-              >
-                <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Outlet />
-      </div>
-    </div>
-  );
+  // ── Am Rechner: nur der Inhalt ───────────────────────────────────
+  //
+  // **Die Seitenleiste ist am 27.08.2026 entfallen** (Bitte David). Sie stand
+  // neben dem Hauptmenue und wiederholte es zur Haelfte: Profil, Sicherheit,
+  // System, Rollen- und Benutzerverwaltung und die Komponenten-Bibliothek
+  // gab es an **beiden** Stellen — teils sogar mit verschiedenen Zielen.
+  // „System" im Hauptmenue fuehrte auf `/app/settings` und damit auf das
+  // Profil.
+  //
+  // Zwei Navigationen fuer dieselben Seiten sind kein Komfort, sondern eine
+  // Frage, die sich der Mensch bei jedem Klick neu stellt. Alle Eintraege
+  // stehen jetzt im Hauptmenue; `menueZiele.test.js` haelt fest, dass jeder
+  // davon irgendwohin fuehrt.
+  //
+  // **Die mobile Ansicht oben bleibt.** Dort gibt es kein dauerhaft
+  // sichtbares Hauptmenue, und die gruppierte Liste **ist** der
+  // Einstellungsbildschirm — sie zu entfernen hiesse, auf dem Handy einen
+  // Weg zu streichen statt einen doppelten zu schliessen.
+  return <Outlet />;
 }

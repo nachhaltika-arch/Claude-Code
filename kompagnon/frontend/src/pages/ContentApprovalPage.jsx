@@ -105,7 +105,7 @@ export default function ContentApprovalPage() {
           {done ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#059669', marginBottom: 8 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success)', marginBottom: 8 }}>
                 Freigabe erteilt!
               </div>
               <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>

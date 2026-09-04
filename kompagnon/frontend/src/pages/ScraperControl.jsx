@@ -158,7 +158,7 @@ export default function ScraperControl() {
     borderRadius: 'var(--radius-lg)', padding: 20,
   };
   const labelStyle = {
-    display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)',
+    display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)',
     textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6,
   };
   const inputStyle = {
@@ -299,7 +299,7 @@ export default function ScraperControl() {
               <div style={{ fontSize: 28, fontWeight: 800, color: card.color, lineHeight: 1 }}>
                 {card.value}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', marginTop: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginTop: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>
                 {card.label}
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function ScraperControl() {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
                   {['Datum', 'Kammer', 'Gewerk', 'Status', 'Gefunden', 'Gespeichert', 'Fehler'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                       {h}
                     </th>
                   ))}
@@ -346,7 +346,7 @@ export default function ScraperControl() {
                       <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{run.trade || '-'}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{
-                          padding: '3px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
                           background: rCfg.bg, color: rCfg.text,
                         }}>
                           {rCfg.label}

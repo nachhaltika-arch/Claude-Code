@@ -174,7 +174,10 @@ class TestUeberAlleDateien:
                     1260.50, 1680.67, 2352.94}
         # Die Vorlage, aus der `products` beim ersten Start gefuellt wird —
         # sie **ist** die Quelle und darf die Zahlen tragen.
-        AUSNAHMEN = {"main.py", "migrations_runtime.py"}
+        # `main.py` stand hier bis zum 30.08.2026. Die Vorlage liegt seither
+        # in `startphase.py` (L-25) — und damit ist `main.py` **nicht** mehr
+        # ausgenommen: Taucht dort wieder ein Paketbetrag auf, faellt er auf.
+        AUSNAHMEN = {"startphase.py", "migrations_runtime.py"}
 
         wurzel = pathlib.Path(__file__).resolve().parent.parent
         fund = {}

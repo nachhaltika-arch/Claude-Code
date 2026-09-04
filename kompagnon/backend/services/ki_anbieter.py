@@ -44,7 +44,15 @@ import httpx
 logger = logging.getLogger(__name__)
 
 #: Zeitgrenze je Frage. Eine Websuche dauert; ewig darf sie nicht dauern.
-ZEITGRENZE = 45.0
+#:
+#: **90 statt 45 Sekunden seit dem 31.08.2026, und die Zahl ist gemessen.**
+#: Perplexitys Agent API fuehrt mehrere Suchen hintereinander aus und brauchte
+#: in drei echten Laeufen 16,8 s, 14,6 s und 23,7 s — einzeln bequem unter 45.
+#: Im Sammellauf laufen vier Anbieter gleichzeitig, und dort schlug die Grenze
+#: zu. Dieselbe Lehre wie bei `PSI_TIMEOUT` (L-126): Zwischen Normalfall und
+#: Grenze muss Spielraum liegen, sonst sieht ein Abbruch aus wie „nicht
+#: erhoben" statt wie „zu frueh abgebrochen".
+ZEITGRENZE = 90.0
 
 #: Antwortlaenge je Frage. Es geht um die Nennung, nicht um einen Aufsatz.
 MAX_TOKENS = 900
@@ -114,27 +122,66 @@ def lies_openai_antwort(roh: dict) -> Tuple[str, List[str]]:
 
 
 def lies_perplexity_antwort(roh: dict) -> Tuple[str, List[str]]:
-    """Text und Quellen — Agent API **und** die auslaufende Sonar-Form.
+    """Text und Quellen — Agent API, Responses-Form und die auslaufende Sonar-Form.
 
-    Beide Formen stehen hier bewusst nebeneinander: Sonar wird bis zum
-    27.09.2026 unterstuetzt, und ein Schluessel, der heute angelegt wird, kann
-    auf beides zeigen.
+    **Am 31.08.2026 am lebenden Dienst nachgestellt, und die Vermutung von
+    damals war falsch.** Bis heute suchte diese Funktion ein `output_text`
+    ganz oben, sonst `choices[].message.content`, und die Quellen unter
+    `search_results` oder `citations` — alles aus der Herstellerdoku
+    abgeleitet, nie gemessen. Die Agent API antwortet aber in der
+    **Responses-Form**: `output` ist eine **Liste** von Teilen, der Text
+    steckt in `output[type=message].content[type=output_text].text`, und die
+    Quellen stehen in eigenen Teilen mit `type: "search_results"`.
+
+    **Der Aufruf lief dabei durch — Status 200, kein Fehler.** Das Ergebnis
+    war lediglich leer, und ein leeres Ergebnis sieht im Bericht aus wie
+    „kennt den Betrieb nicht". Genau davor warnt der Kopftext dieses Moduls
+    seit dem 22.08.: Der erste echte Lauf zeigt es an einem leeren Ergebnis,
+    nicht an einem falschen. Er hat es gezeigt.
+
+    **Die alten Formen bleiben stehen** — Sonar wird bis zum 27.09.2026
+    unterstuetzt (L-81), und ein Schluessel kann auf beides zeigen.
     """
     if not isinstance(roh, dict):
         return "", []
 
     text = ""
-    direkt = roh.get("output_text")
-    if isinstance(direkt, str) and direkt.strip():
-        text = direkt.strip()
-    else:
+    belege: List[str] = []
+
+    # ── Agent API, Responses-Form (gemessen am 31.08.2026) ──
+    for teil in roh.get("output") or []:
+        if not isinstance(teil, dict):
+            continue
+        art = teil.get("type")
+        if art == "search_results":
+            belege.extend(_urls(teil.get("results")))
+            continue
+        if art != "message":
+            continue
+        for block in teil.get("content") or []:
+            if not isinstance(block, dict):
+                continue
+            stueck = block.get("text")
+            if isinstance(stueck, str) and stueck.strip() and not text:
+                text = stueck.strip()
+            # Zitate am Textblock gab es im gemessenen Lauf nicht — sie sind
+            # in der Responses-Form aber vorgesehen, und ein Beleg, den man
+            # nicht liest, fehlt spaeter im Bericht.
+            belege.extend(_urls(block.get("annotations")))
+
+    # ── aeltere und einfachere Formen ──
+    if not text:
+        direkt = roh.get("output_text")
+        if isinstance(direkt, str) and direkt.strip():
+            text = direkt.strip()
+    if not text:
         for wahl in roh.get("choices") or []:
             inhalt = (wahl or {}).get("message", {}).get("content")
             if isinstance(inhalt, str) and inhalt.strip():
                 text = inhalt.strip()
                 break
 
-    belege = _urls(roh.get("search_results")) + _urls(roh.get("citations"))
+    belege += _urls(roh.get("search_results")) + _urls(roh.get("citations"))
     return text, list(dict.fromkeys(belege))
 
 

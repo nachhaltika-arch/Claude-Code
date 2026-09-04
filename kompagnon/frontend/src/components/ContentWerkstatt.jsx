@@ -211,7 +211,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               }}>
                 <span style={{ fontSize: 18 }}>{tab.icon}</span>
                 <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tab.label}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
               </button>
             );
           })}
@@ -224,14 +224,14 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
         <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', height: 640 }}>
           <div style={{ borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', background: 'var(--bg-app)' }}>
             <div style={{ padding: '8px 10px 8px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{sitemapPages.length} Seiten</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{sitemapPages.length} Seiten</span>
               <button
                 onClick={handleGenerateAll}
                 disabled={generatingAll || !sitemapPages?.length}
                 style={{
                   padding: '4px 8px', borderRadius: 6, border: 'none',
                   background: generatingAll ? '#6B7280' : '#7c3aed',
-                  color: '#fff', fontSize: 10, fontWeight: 700,
+                  color: '#fff', fontSize: 12, fontWeight: 700,
                   cursor: generatingAll ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', gap: 4,
                   fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
@@ -257,11 +257,11 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: isSelected ? 'var(--brand-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</span>
-                      {hasContent && <span style={{ fontSize: 10, color: 'var(--status-success-text)', flexShrink: 0, marginLeft: 4 }}>{'\u2713'}</span>}
+                      {hasContent && <span style={{ fontSize: 12, color: 'var(--status-success-text)', flexShrink: 0, marginLeft: 4 }}>{'\u2713'}</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                     {page.page_type === 'ground' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 9, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                         🤖 GEO / KI-Optimierung
                       </div>
                     )}
@@ -276,13 +276,13 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{selectedPage.page_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{selectedPage.page_type}{selectedPage.ziel_keyword ? ` · ${selectedPage.ziel_keyword}` : ''}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{selectedPage.page_type}{selectedPage.ziel_keyword ? ` · ${selectedPage.ziel_keyword}` : ''}</div>
                 </div>
                 <button onClick={() => generateContent(selectedPage)} disabled={generating}
                   style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : pageContent[selectedPage.id] ? 'Neu generieren' : 'KI generieren'}
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, minWidth: 90 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 90 }}>
                   {saveStatus === 'saving' && (<><span style={{ width: 10, height: 10, border: '1.5px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} /><span style={{ color: 'var(--text-tertiary)' }}>Speichert...</span></>)}
                   {saveStatus === 'saved' && <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>Gespeichert</span>}
                   {saveStatus === 'error' && <span style={{ color: 'var(--status-danger-text)' }}>Speicherfehler</span>}
@@ -341,7 +341,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                       { field: 'intro', label: 'Einleitung', rows: 3 },
                     ].map(({ field, label, rows }) => (
                       <div key={field} style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
                         <textarea aria-label={label} value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)} rows={rows}
                           style={{ width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
                       </div>
@@ -371,7 +371,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     <FieldLabel>SEO</FieldLabel>
                     {[{ field: 'meta_title', label: 'Meta-Titel (max. 60 Z.)' }, { field: 'meta_description', label: 'Meta-Description (max. 155 Z.)' }, { field: 'cta', label: 'Call-to-Action' }].map(({ field, label }) => (
                       <div key={field} style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{label}</div>
                         <input aria-label={label} value={getField(selectedPage.id, field)} onChange={e => setEdit(selectedPage.id, field, e.target.value)}
                           style={{ width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }} />
                       </div>
@@ -404,7 +404,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
             <details key={page.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
               <summary style={{ padding: '12px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, listStyle: 'none', userSelect: 'none' }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{page.page_name}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.page_type}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</span>
               </summary>
               <div style={{ padding: '0 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(() => {
@@ -412,7 +412,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                   const imgs = Array.isArray(pageData?.images) ? pageData.images : [];
                   return imgs.length > 0 ? (
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Gecrawlte Bilder ({imgs.length})</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Gecrawlte Bilder ({imgs.length})</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {imgs.slice(0, 8).map((src, j) => {
                           const imgSrc = typeof src === 'string' ? src : src?.src || '';
@@ -454,9 +454,9 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               <div key={page.id} style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{page.page_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: farbe[0], color: farbe[1] }}>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: farbe[0], color: farbe[1] }}>
                   {stand.text}
                 </span>
                 {stand.anfragbar && (
@@ -465,7 +465,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     onKeyDown={aufTaste(() => freigabeAnfragen(page))}
                     disabled={laeuft}
                     aria-label={`Freigabe f\u00fcr ${page.page_name} beim Kunden anfragen`}
-                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 600, cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 600, cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                     {laeuft ? 'Sendet\u2026' : stand.zustand === 'abgelehnt' ? 'Erneut anfragen' : 'Freigabe anfordern'}
                   </button>
                 )}
@@ -479,5 +479,5 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
 }
 
 function FieldLabel({ children }) {
-  return <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{children}</div>;
 }

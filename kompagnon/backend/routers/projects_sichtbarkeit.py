@@ -112,21 +112,15 @@ def get_bewertungs_url(
     }
 
 
-@router.patch("/{project_id}/gbp-checklist")
-def save_gbp_checklist(
-    project_id: int,
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    import json
-    checked = data.get("checked", {})
-    db.execute(
-        text("UPDATE projects SET gbp_checklist_json=:gj WHERE id=:id"),
-        {"gj": json.dumps(checked, ensure_ascii=False), "id": project_id},
-    )
-    db.commit()
-    return {"success": True}
+# **Hier stand `PATCH /{project_id}/gbp-checklist`** — entfernt am
+# 01.09.2026 (L-105). Es war der **einzige Schreiber** der Spalte
+# `gbp_checklist_json`, und die ist seit dem Umstieg auf
+# `components/QAChecklist.jsx` bewusst eingefroren: Sie wird **gelesen**,
+# damit alte Haken uebernommen werden, und nicht mehr geschrieben.
+#
+# Wer diese Route aufrief, ueberschrieb genau die Quelle, aus der die
+# Uebernahme liest — welche Haken dann mitwandern, entschied sich still
+# neu. Die **Spalte bleibt**; nur ihr Schreiber ist weg.
 
 
 @router.post("/{project_id}/ki-report")

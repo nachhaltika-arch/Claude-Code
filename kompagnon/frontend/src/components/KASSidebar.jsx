@@ -65,8 +65,25 @@ const SCHRITT_FOLGE = [
   // Sitemap: Welche Leistung eine eigene Seite bekommt, entscheidet sich dort.
   { id: 'leistungsseiten',      phase: 'Sitemap',     name: 'Leistungsseiten',        view: null,         component: 'LeistungsseitenWizard', optional: true },
 
-  // Phase 3 — Style Guide + Design (2, mit Gate)
+  // Phase 3 — Style Guide + Entwuerfe + Design (3, mit Gate)
   { id: 'style-guide',          phase: 'Design',      name: 'Style Guide',            view: 'styleguide', component: null, gate: true },
+  // **Am 01.09.2026 eingefuegt (L-105).** Die Erzeugung der drei Entwuerfe
+  // stand seit Langem im Backend und das Kundenportal war darauf fertig
+  // eingerichtet — nur konnte kein Entwurf entstehen, weil niemand
+  // `POST /generate-versions` aufrief. Der Schritt gehoert hierher: Die
+  // Freigabeliste nennt „Design-Entwurf Startseite freigegeben" als 3.0,
+  // das finale Design als 3.2.
+  // **`optional: true` ist hier kein Beiwerk, sondern Pflicht.** Ein Schritt
+  // ohne Heuristik in `computeStepStatus` und ohne diese Kennzeichnung reisst
+  // die Kette: `consecutiveDoneIdx` bleibt an ihm stehen, und alles dahinter
+  // ist gesperrt — auch das finale Design. Genau das ist am 21.08.2026 schon
+  // einmal passiert, steht dort im Kommentar, und ist mir am 01.09. trotzdem
+  // passiert. Der E2E-Lauf hat es gefangen; `schrittkette.test.js` faengt es
+  // jetzt frueher.
+  //
+  // Und es stimmt auch sachlich: Nicht jedes Projekt braucht drei Entwuerfe —
+  // mancher Kunde weiss, was er will.
+  { id: 'entwuerfe',            phase: 'Design',      name: 'Drei Entwürfe',          view: null,         component: 'Entwuerfe', optional: true },
   { id: 'finales-design',       phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
 
   // Phase 4 — Produktion (2)
@@ -201,7 +218,7 @@ export default function KASSidebar({
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>
                 ONLINE-FERTIG
               </div>
-              <div style={{ fontSize: 9, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: 12, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 ProzessFlow v3
               </div>
             </div>
@@ -225,7 +242,7 @@ export default function KASSidebar({
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}>
         {!collapsed && (
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
             Ansicht
           </div>
         )}
@@ -255,7 +272,7 @@ export default function KASSidebar({
                   borderRadius: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
-                  fontSize: 9,
+                  fontSize: 12,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
@@ -301,7 +318,7 @@ export default function KASSidebar({
                   {group.icon}
                 </span>
                 <span style={{
-                  fontSize: 8, fontVariantNumeric: 'tabular-nums',
+                  fontSize: 12, fontVariantNumeric: 'tabular-nums',
                   color: allCompleted ? GREEN : 'rgba(255,255,255,0.55)',
                   fontWeight: 700,
                 }}>
@@ -342,13 +359,13 @@ export default function KASSidebar({
                 aria-expanded={isOpenPhase}
               >
                 <span aria-hidden style={{ fontSize: 14 }}>{group.icon}</span>
-                <span style={{ flex: 1, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {group.label}
                 </span>
-                <span style={{ fontSize: 10, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 12, opacity: 0.55, fontVariantNumeric: 'tabular-nums' }}>
                   {stepsCompleted}/{group.steps.length}
                 </span>
-                <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4, transition: 'transform 0.2s', display: 'inline-block', transform: isOpenPhase ? 'rotate(180deg)' : 'rotate(0)' }}>
+                <span style={{ fontSize: 12, opacity: 0.5, marginLeft: 4, transition: 'transform 0.2s', display: 'inline-block', transform: isOpenPhase ? 'rotate(180deg)' : 'rotate(0)' }}>
                   ▼
                 </span>
               </button>
@@ -385,7 +402,7 @@ export default function KASSidebar({
                             cursor: isLocked ? 'not-allowed' : 'pointer',
                             opacity: isLocked ? 0.55 : 1,
                             textAlign: 'left',
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: isActive ? 700 : 500,
                             transition: 'all 0.12s',
                           }}
@@ -405,16 +422,16 @@ export default function KASSidebar({
                             {step.nr}. {step.name}
                           </span>
                           {status === 'completed' && (
-                            <span aria-label="Abgeschlossen" style={{ fontSize: 9, color: GREEN, fontWeight: 700 }}>✓</span>
+                            <span aria-label="Abgeschlossen" style={{ fontSize: 12, color: GREEN, fontWeight: 700 }}>✓</span>
                           )}
                           {isLocked && (
-                            <span aria-label="Gesperrt" style={{ fontSize: 9, opacity: 0.65 }}>🔒</span>
+                            <span aria-label="Gesperrt" style={{ fontSize: 12, opacity: 0.65 }}>🔒</span>
                           )}
                           {step.optional && !isLocked && status !== 'completed' && (
-                            <span style={{ fontSize: 8, opacity: 0.5, fontStyle: 'italic' }}>opt.</span>
+                            <span style={{ fontSize: 12, opacity: 0.5, fontStyle: 'italic' }}>opt.</span>
                           )}
                           {step.gate && !isLocked && status !== 'completed' && (
-                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 9, opacity: 0.55 }}>⚑</span>
+                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 12, opacity: 0.55 }}>⚑</span>
                           )}
                         </button>
                       </li>
@@ -432,7 +449,7 @@ export default function KASSidebar({
       {/* Fortschrittsleiste */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {!collapsed && (
-          <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
+          <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
             <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fortschritt</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#fff' }}>
               {completedCount}/{SCHRITTE.length}
@@ -473,7 +490,7 @@ export default function KASSidebar({
             {collapsed ? '»' : '«'}
           </span>
           {!collapsed && (
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Einklappen
             </span>
           )}

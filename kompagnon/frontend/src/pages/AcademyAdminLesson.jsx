@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -18,7 +19,7 @@ const S = {
     background: 'var(--bg-surface)', outline: 'none', boxSizing: 'border-box',
   },
   label: {
-    display: 'block', fontSize: 10, fontWeight: 600,
+    display: 'block', fontSize: 12, fontWeight: 600,
     color: 'var(--text-tertiary)', textTransform: 'uppercase',
     letterSpacing: '0.06em', marginBottom: 5,
   },
@@ -62,6 +63,15 @@ function QuizEditor({ questions, setQuestions }) {
 
   const closeModal = () => setModal(null);
 
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(closeModal, Boolean(modal));
+
   const saveModal = () => {
     if (!modal) return;
     const q = modal.data;
@@ -93,7 +103,7 @@ function QuizEditor({ questions, setQuestions }) {
       <div style={S.card}>
         <div style={{ ...S.cardHeader, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Quiz-Fragen</span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 400 }}>
             {questions.length} {questions.length === 1 ? 'Frage' : 'Fragen'}
           </span>
         </div>
@@ -125,7 +135,7 @@ function QuizEditor({ questions, setQuestions }) {
                         <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                           {a.is_correct
                             ? <span style={{ color: 'var(--status-success-text)', fontSize: 13 }}>✓</span>
-                            : <span style={{ color: 'var(--border-medium)', fontSize: 11 }}>○</span>}
+                            : <span style={{ color: 'var(--border-medium)', fontSize: 12 }}>○</span>}
                           <span style={{ color: a.is_correct ? 'var(--status-success-text)' : 'var(--text-secondary)', fontWeight: a.is_correct ? 600 : 400 }}>
                             {a.text || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Leer</span>}
                           </span>
@@ -139,7 +149,7 @@ function QuizEditor({ questions, setQuestions }) {
                       style={{
                         padding: '4px 9px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
                         border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-sm)',
-                        fontSize: 11, cursor: 'pointer',
+                        fontSize: 12, cursor: 'pointer',
                       }}
                     >✏️ Bearbeiten</button>
                     <button
@@ -147,7 +157,7 @@ function QuizEditor({ questions, setQuestions }) {
                       style={{
                         padding: '4px 9px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
                         border: 'none', borderRadius: 'var(--radius-sm)',
-                        fontSize: 11, cursor: 'pointer',
+                        fontSize: 12, cursor: 'pointer',
                       }}
                     >🗑 Löschen</button>
                   </div>

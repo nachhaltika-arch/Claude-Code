@@ -176,12 +176,32 @@ def _angelegt(**felder) -> str:
         db.close()
 
 
+def _meldung(sitzung_id: str, nummer: str, **felder) -> dict:
+    """Eine Zahlungsmeldung, wie Stripe sie wirklich sendet.
+
+    **Bis zum 27.08.2026 stand hier `{"id": ..., "payment_intent": ...}` und
+    sonst nichts** — eine Meldung ohne Metadaten, die es so nie gibt:
+    `POST /api/book/checkout` legt jede Kasse mit `order_number` an.
+
+    Aufgefallen ist es, als der Buchpfad anfing, fremde Kassen auszusortieren
+    (L-138): Diese Meldungen sahen für ihn aus wie Websprint-Käufe. Der Test
+    war also nicht zu streng, sondern zu unbestimmt — und
+    `test_zweimal_dieselbe_meldung_aendert_nichts` war dadurch sogar
+    **inhaltsleer grün**: Er verglich zweimal `None` mit `None`.
+    """
+    return {
+        "id": sitzung_id,
+        "payment_intent": felder.get("payment_intent", "pi_1"),
+        "metadata": {"order_number": nummer, "book_version": "2026.2"},
+    }
+
+
 def test_bezahlt_setzt_abruf_und_verknuepft_den_kaeufer():
     """Der Käufer muss in der Pipeline auftauchen — sonst ist er weg."""
     from database import Lead
 
     nummer = _angelegt(sitzung="cs_hook_2")
-    buch_router._zahlung_verbuchen({"id": "cs_hook_2", "payment_intent": "pi_1"})
+    buch_router._zahlung_verbuchen(_meldung("cs_hook_2", nummer))
 
     db = SessionLocal()
     try:
@@ -200,7 +220,7 @@ def test_bezahlt_setzt_abruf_und_verknuepft_den_kaeufer():
 def test_zweimal_dieselbe_meldung_aendert_nichts():
     """Stripe sendet mehrfach. Ein zweiter Lauf darf kein zweites Mal wirken."""
     nummer = _angelegt(sitzung="cs_hook_3")
-    buch_router._zahlung_verbuchen({"id": "cs_hook_3", "payment_intent": "pi_2"})
+    buch_router._zahlung_verbuchen(_meldung("cs_hook_3", nummer, payment_intent="pi_2"))
 
     db = SessionLocal()
     try:
@@ -209,7 +229,7 @@ def test_zweimal_dieselbe_meldung_aendert_nichts():
     finally:
         db.close()
 
-    buch_router._zahlung_verbuchen({"id": "cs_hook_3", "payment_intent": "pi_2"})
+    buch_router._zahlung_verbuchen(_meldung("cs_hook_3", nummer, payment_intent="pi_2"))
 
     db = SessionLocal()
     try:
@@ -222,7 +242,7 @@ def test_zweimal_dieselbe_meldung_aendert_nichts():
 
 def test_gedruckte_ausgabe_geht_in_die_warteschlange():
     nummer = _angelegt(variant="print", sitzung="cs_hook_4")
-    buch_router._zahlung_verbuchen({"id": "cs_hook_4", "payment_intent": "pi_3"})
+    buch_router._zahlung_verbuchen(_meldung("cs_hook_4", nummer, payment_intent="pi_3"))
     db = SessionLocal()
     try:
         eintrag = db.query(BookOrder).filter(BookOrder.order_number == nummer).first()

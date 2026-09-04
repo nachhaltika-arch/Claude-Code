@@ -24,7 +24,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from services.befund_haeufigkeit import haeufigkeit  # noqa: E402
+from services.befund_haeufigkeit import (  # noqa: E402
+    aufteilen, haeufigkeit, kopfzeilen,
+)
 
 # Unter dieser Zahl ist ein Anteil keine Erhebung, sondern eine Anekdote.
 # Der Wert ist eine Konvention dieses Werkzeugs, keine Regel des Standards —
@@ -50,11 +52,9 @@ def _pruefungen(ab: str = "") -> tuple:
         abfrage = db.query(AuditResult).filter(AuditResult.status == "completed")
         if ab:
             abfrage = abfrage.filter(AuditResult.created_at >= ab)
-        zeilen = abfrage.all()
-        daten = [(_json(z.item_scores), _json(z.item_sources)) for z in zeilen]
-        zeitpunkte = sorted(z.created_at for z in zeilen if z.created_at)
-        fassungen = sorted({(z.standard_version or "ohne Vermerk") for z in zeilen})
-        return daten, zeitpunkte, fassungen
+        zeilen = [(_json(z.item_scores), _json(z.item_sources),
+                   z.created_at, z.standard_version) for z in abfrage.all()]
+        return aufteilen(zeilen)
     finally:
         db.close()
 
@@ -64,21 +64,18 @@ def main() -> int:
     zerleger.add_argument("--ab", default="", help="nur Pruefungen ab diesem Datum")
     argumente = zerleger.parse_args()
 
-    daten, zeitpunkte, fassungen = _pruefungen(argumente.ab)
+    auswertbar, verworfen = _pruefungen(argumente.ab)
 
-    print(f"Grundgesamtheit: {len(daten)} abgeschlossene Pruefungen")
-    if zeitpunkte:
-        print(f"Erhebungszeitraum: {zeitpunkte[0]:%d.%m.%Y} bis "
-              f"{zeitpunkte[-1]:%d.%m.%Y}")
-    print(f"Fassungen des Standards: {', '.join(fassungen) or '—'}")
-    if len(fassungen) > 1:
-        print("  ⚠ Mehrere Fassungen. Die Kriterien haben sich dazwischen "
-              "geaendert; die Anteile mischen zwei Massstaebe.")
+    print(kopfzeilen(auswertbar, verworfen))
     print()
 
+    # `haeufigkeit` bekommt weiterhin nur die beiden JSON-Felder.
+    daten = [(z[0], z[1]) for z in auswertbar]
+
     if not daten:
-        print("Keine Pruefungen — nichts auszuwerten. Diese Auswertung gehoert "
-              "auf den Produktivbestand, nicht auf eine Testdatenbank.")
+        print("Keine **auswertbare** Pruefung — nichts zu rechnen. Zeilen auf "
+              "„abgeschlossen\" ohne Kriterien zaehlen nicht mit; sie sahen "
+              "bis zum 28.08.2026 wie eine Grundgesamtheit aus.")
         return 1
 
     for e in haeufigkeit(daten):

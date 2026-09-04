@@ -224,8 +224,24 @@ für Kundenseiten) · L-16 (Envato-Wireframes) · L-23 · L-15
 | | |
 |---|---|
 | Router | `portal`, `messages`, `cms_connect` |
-| Tabellen | `portal_documents`, `portal_messages`, `messages`, `communications` |
-| Bildschirme | Kundenportal, Freigaben, Meine Rechnungen, Support-Anfragen |
+| Tabellen | `portal_documents`, `portal_messages`, `messages`, `communications`, `mitwirkung_stand`, `inhalts_anfragen` |
+| Bildschirme | Kundenkonto, Freigaben, Meine Rechnungen, Support-Anfragen, Mein Briefing |
+| Dienste | `mitwirkung`, `inhaltsanfrage`, `zahlungsportal` |
+
+**Am 04.09.2026 um drei Fachbereiche gewachsen** — und das Modul ist damit
+nicht mehr nur eine Anzeige, sondern eine Arbeitsflaeche:
+
+* **Mitwirkungsleistungen** (L-159): der Katalog M1–M11 als Daten, Stand je
+  Punkt am Projekt, und daraus der Fristbeginn der Bauzeitgarantie.
+* **Inhaltsaenderungen** (L-160, Rang 1): Kontostand in Minuten aus dem
+  Pflege-Abo, Wunsch anfordern, Verlauf. Die Minuten kommen unveraendert aus
+  `abo_stunden` — hier steht kein zweiter Rechenweg.
+* **Zahlungen** (L-162): Abo, Rechnungen und die Zahlungsart ueber Stripes
+  Billing-Portal. `leads.stripe_customer_id` ist neu.
+
+**Naht:** Das Modul liest jetzt aus M4 (Zahlung), M5 (Projekt) und M9
+(Betreuung). Ein Schalter am Router traefe weiterhin das Richtige — aber ein
+abgeschaltetes M7 nimmt dem Kunden seit dem 04.09. mehr als eine Ansicht.
 
 **Abschaltbar: ja — aber mit Vorsicht.** Kunden haben Zugänge; ein Abschalten
 sperrt Menschen aus, die dafür bezahlt haben.

@@ -12,6 +12,7 @@ Zeilen, was offensichtlich falsch war.
 """
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
+from services import leistungsbericht
 from services.audit_pagespeed import (
     PSI_ENDPOINT,
     api_key as pagespeed_api_key,
@@ -120,6 +121,29 @@ def job_monthly_performance_report():
 
                 ok = _send_report_email(to_email=email, subject=subject, html_body=html_body)
 
+                # **Gemessen ist gemessen — auch wenn die Mail nicht ankam**
+                # (04.09.2026, L-160 Rang 2). Bis hierhin stand die ganze
+                # Speicherung hinter `if ok:`. Eine gescheiterte Zustellung
+                # warf damit die Messung weg, und der naechste Monat verglich
+                # gegen einen veralteten Stand — ein stiller Fehler in einer
+                # Zahl, die der Kunde zu sehen bekommt.
+                #
+                # Der Bericht wird deshalb **immer** geschrieben; ob er
+                # hinausging, steht als eigenes Feld daneben.
+                try:
+                    leistungsbericht.schreibe(
+                        db, lead_id=lead_id,
+                        monat=leistungsbericht.monat_von(),
+                        mobile=new_mobile, desktop=new_desktop,
+                        vormonat_mobile=last_mobile, versendet=bool(ok))
+                except Exception as schreib_err:  # noqa: BLE001
+                    # Ein Fehler beim Ablegen darf den Lauf fuer die anderen
+                    # Betriebe nicht beenden — und er darf auch nicht dazu
+                    # fuehren, dass eine bereits versandte Mail als nicht
+                    # versandt gilt.
+                    logger.warning("Leistungsbericht Lead %s nicht abgelegt: %s",
+                                   lead_id, schreib_err)
+
                 if ok:
                     db.execute(text("""
                         UPDATE leads SET
@@ -137,6 +161,12 @@ def job_monthly_performance_report():
                         f"✓ Performance-Report gesendet: Lead {lead_id} "
                         f"({email}) Score: {new_mobile}/100"
                     )
+                else:
+                    # Die Messung steht, die Mail nicht. Beides gehoert ins
+                    # Protokoll, sonst sieht ein stiller Ausfall wie ein
+                    # uebersprungener Betrieb aus.
+                    logger.warning("Performance-Report NICHT zugestellt: Lead %s (%s) "
+                                   "— Messung ist abgelegt", lead_id, email)
 
             except Exception as lead_err:
                 logger.warning(f"Performance-Report Lead {lead_id} Fehler: {lead_err}")

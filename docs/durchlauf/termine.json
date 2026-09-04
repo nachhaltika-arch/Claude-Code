@@ -1,0 +1,10 @@
+[
+  {
+    "kennung": "perplexity-altform",
+    "datum": "2026-09-27",
+    "was": "Perplexity schaltet die alte Anfrageform ab (L-81)",
+    "quelle": "Herstellerankuendigung; tests/test_perplexity_altform_termin.py wird ab dem Stichtag rot",
+    "folge": "Ab dem Stichtag liefert die KI-Sichtbarkeitsmessung fuer Perplexity keine Antwort mehr. Der Test scheitert mit der Arbeitsanweisung im Text.",
+    "vorlauf_tage": 45
+  }
+]

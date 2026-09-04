@@ -59,13 +59,13 @@ function NennungsBlock({ nennung }) {
       </div>
 
       {verlauf.length > 1 && (
-        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)' }}>
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
           {verlauf.length} Messungen seit{' '}
           {new Date(verlauf[0].am).toLocaleDateString('de-DE')}
         </div>
       )}
 
-      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
         Gefragt wird, was ein Kunde fragen würde — nach Leistung und Ort. Ob ein System Sie
         nennt, entscheidet sein Anbieter; wir messen es und garantieren es nicht.
       </div>
@@ -245,7 +245,7 @@ export default function GeoAddonCard({ projectId }) {
         {score != null && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: scoreColor(score),
               background: 'var(--bg-app)',
@@ -308,7 +308,7 @@ export default function GeoAddonCard({ projectId }) {
               / Monat
             </span>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             Monatlich kündbar · zzgl. MwSt.
           </div>
         </div>

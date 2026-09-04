@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
@@ -55,6 +56,16 @@ export default function AcademyCourse() {
   const [completing,     setCompleting]     = useState(false);
   const [openModules,    setOpenModules]    = useState({});
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setSidebarOpen(false), sidebarOpen);
 
   // Quiz — step-by-step
   const [quizQuestions, setQuizQuestions] = useState([]);
@@ -246,10 +257,10 @@ export default function AcademyCourse() {
 
             {/* Overall progress bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: T.textMuted, fontFamily: T.font }}>
+              <span style={{ fontSize: 12, color: T.textMuted, fontFamily: T.font }}>
                 {completedCount} / {allLessons.length} Lektionen
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: overallPct === 100 ? T.successText : T.primary, fontFamily: T.font }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: overallPct === 100 ? T.successText : T.primary, fontFamily: T.font }}>
                 {overallPct}%
               </span>
             </div>
@@ -293,16 +304,16 @@ export default function AcademyCourse() {
                         {mod.title}
                       </span>
                       {mod.description ? (
-                        <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: T.textMuted, lineHeight: 1.35, fontFamily: T.font }}>
+                        <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: T.textMuted, lineHeight: 1.35, fontFamily: T.font }}>
                           {mod.description}
                         </span>
                       ) : null}
                     </span>
-                    <span style={{ fontSize: 10, color: T.textMuted, marginRight: 8, fontFamily: T.font, flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, color: T.textMuted, marginRight: 8, fontFamily: T.font, flexShrink: 0 }}>
                       {mDone}/{mLessons.length}
                     </span>
                     <span style={{
-                      fontSize: 9, color: T.textMuted, flexShrink: 0,
+                      fontSize: 12, color: T.textMuted, flexShrink: 0,
                       transform: open ? 'rotate(180deg)' : 'none',
                       transition: 'transform 0.2s',
                     }}>▼</span>
@@ -349,7 +360,7 @@ export default function AcademyCourse() {
                             <span style={{ fontSize: 12, color, fontWeight: weight, lineHeight: 1.35, flex: 1, fontFamily: T.font }}>
                               {lesson.title}
                             </span>
-                            <span style={{ fontSize: 10, color: T.textMuted, flexShrink: 0, opacity: 0.7 }}>
+                            <span style={{ fontSize: 12, color: T.textMuted, flexShrink: 0, opacity: 0.7 }}>
                               {(TYPE_BADGE[lesson.type] || TYPE_BADGE.text).icon}
                             </span>
                           </button>
@@ -407,7 +418,7 @@ export default function AcademyCourse() {
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   background: badge.bg, color: badge.color,
                   borderRadius: T.radiusFull, padding: '4px 12px',
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                  fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
                   fontFamily: T.font, marginBottom: 10,
                 }}>
                   {badge.icon} {badge.label}

@@ -15,6 +15,28 @@ import pytest
 
 from services import qualitaetsschleife as qs
 
+@pytest.fixture(autouse=True)
+def _vorschau_ist_sofort_da(monkeypatch):
+    """Die Wartezeit auf die Auslieferung gehoert nicht in diese Datei.
+
+    Seit dem 27.08.2026 wartet `deploye_vorschau`, bis die Vorschau wirklich
+    abrufbar ist (L-40) — sonst sieht der Audit zu frueh hin und meldet
+    „Website nicht erreichbar" als **Befund ueber die Seite**. Die Tests hier
+    pruefen aber, **wohin** deployt und **worauf** der Audit zeigt; sie
+    reichen erfundene Adressen herein, die es nie gibt.
+
+    Ohne diese Attrappe liefen sie je eine volle Wartefrist gegen eine
+    Adresse, die nie antwortet. Geprueft wird das Warten in
+    `tests/test_vorschau_wartet.py`, und zwar samt Gegenprobe, dass
+    `deploye_vorschau` es auch ruft.
+    """
+    async def _sofort(_url):
+        return None
+
+    monkeypatch.setattr(qs, "warte_bis_abrufbar", _sofort)
+
+
+
 
 class SeiteAttrappe:
     def __init__(self, gjs_html="", gjs_css="", mockup_html="",

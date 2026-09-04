@@ -55,7 +55,14 @@ def _quelldateien():
 
 def _huellen(pfad: Path):
     """Jede `<html …>`-Stelle mit ihrer Zeilennummer."""
-    text = pfad.read_text(encoding="utf-8")
+    # **Ohne Kommentare.** `services/html_seite.py` erklaert in einer
+    # Zeile, warum `<html>` und `<head>` **nicht** uebernommen werden —
+    # und wurde dafuer als „erzeugte Seite ohne Sprachangabe" gemeldet
+    # (27.08.2026). Zeichenketten bleiben stehen; in ihnen steht das
+    # HTML, um das es hier geht.
+    from tools.adressen import ohne_python_kommentare
+
+    text = ohne_python_kommentare(pfad.read_text(encoding="utf-8"))
     for treffer in MUSTER_HTML.finditer(text):
         yield text[:treffer.start()].count("\n") + 1, treffer.group(0), text
 

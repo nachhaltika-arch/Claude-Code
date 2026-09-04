@@ -230,7 +230,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       </div>
 
       {/* Token-Chips */}
-      <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
         Klick auf Token zum Bearbeiten
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -247,9 +247,9 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
               fontFamily: 'var(--font-sans)', opacity: t.setter ? 1 : 0.5,
             }}>
             <div style={{ width: 14, height: 14, borderRadius: 3, background: t.color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
-            {!t.setter && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>auto</span>}
-            {t.setter && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>&#9998;</span>}
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.label}</span>
+            {!t.setter && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>auto</span>}
+            {t.setter && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>&#9998;</span>}
           </button>
         ))}
       </div>
@@ -259,7 +259,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         const t = tokens.find(x => x.id === activeToken);
         return (
           <div style={{ border: '1.5px solid var(--brand-primary)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--bg-surface)' }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
               {t.label} bearbeiten
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -272,7 +272,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {brandData?.all_colors?.length > 0 && (
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Von der Website erkannt
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -286,7 +286,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {t.id === 'accent' && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Schnell-Palette
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -300,7 +300,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
             {(t.id === 'primary' || t.id === 'secondary') && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>
                   Varianten
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -318,11 +318,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       {/* 3-Rollen Schriften mit KI-Erkennung */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+          <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Schriften &amp; Textfarben
           </span>
           <button onClick={loadFontSuggestions} disabled={loadingSuggestions}
-            style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
+            style={{ fontSize: 12, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                      border: 'none', borderRadius: 5, padding: '4px 10px', cursor: 'pointer' }}>
             {loadingSuggestions ? '🤖…' : '🤖 KI-Vorschlag'}
           </button>
@@ -338,7 +338,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             color: colorBody, setColor: setColorBody, colorKey: 'body_color',
             detected: brandData?.font_body, suggested: fontSuggestions?.body },
           { role: 'akzent', label: 'Akzent (Buttons·CTA)',      icon: 'A', value: fontAkzent, setter: setFontAkzent,
-            sample: 'JETZT ANFRAGEN', sampleStyle: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
+            sample: 'JETZT ANFRAGEN', sampleStyle: { fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
             color: colorAkzent, setColor: setColorAkzent, colorKey: 'akzent_color',
             detected: brandData?.font_accent, suggested: fontSuggestions?.accent },
         ].map(({ role, label, icon, value, setter, sample, sampleStyle, color, setColor, colorKey, detected, suggested }) => (
@@ -348,18 +348,18 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                           background: 'var(--bg-surface)', borderBottom: '0.5px solid var(--border-light)' }}>
               <div style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--brand-primary)',
                             color: 'var(--text-on-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
+                            fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
               {detected && detected !== value && (
                 <button onClick={() => setter(detected)} title={`Von Website: ${detected}`}
-                  style={{ fontSize: 9, padding: '2px 7px', background: 'var(--surface)',
+                  style={{ fontSize: 12, padding: '2px 7px', background: 'var(--surface)',
                            border: '0.5px solid var(--border-light)', borderRadius: 4,
                            cursor: 'pointer', color: 'var(--text-tertiary)' }}>
                   ↺ {detected}
                 </button>
               )}
               {detected && detected === value && (
-                <span style={{ fontSize: 9, padding: '2px 7px', background: '#E3F6EF',
+                <span style={{ fontSize: 12, padding: '2px 7px', background: '#E3F6EF',
                                color: '#00875A', borderRadius: 4, fontWeight: 700 }}>✓ Von Website</span>
               )}
             </div>
@@ -372,7 +372,16 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                   {GOOGLE_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer',
+                  {/* **Mit der Tastatur bedienbar (30.08.2026, L-17).** Dieselbe
+                      Bauart wie die Farbfelder aus `all_colors` drei Zeilen
+                      tiefer — die hatten sie von Anfang an, diese beiden nicht.
+                      `aria-expanded` sagt dazu, ob die Auswahl offen ist;
+                      sonst hoert ein Screenreader nur „Schaltflaeche". */}
+                  <div role="button" tabIndex={0}
+                    aria-label={`Farbe ${colorKey} waehlen`}
+                    aria-expanded={activeToken === colorKey}
+                    onKeyDown={aufTaste(() => setActiveToken(activeToken === colorKey ? null : colorKey))}
+                    style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer',
                                 border: activeToken === colorKey ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
                     onClick={() => setActiveToken(activeToken === colorKey ? null : colorKey)} />
                   {activeToken === colorKey && (
@@ -383,7 +392,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 4, background: color, flexShrink: 0 }} />
                         <input aria-label="Farbwert als Hex-Code" value={color} onChange={e => setColor(e.target.value)}
-                          style={{ flex: 1, padding: '4px 7px', fontSize: 11, fontFamily: 'monospace',
+                          style={{ flex: 1, padding: '4px 7px', fontSize: 12, fontFamily: 'monospace',
                                    border: '0.5px solid var(--border-light)', borderRadius: 4,
                                    background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
                         <input aria-label="Farbe waehlen" type="color" value={color?.length === 7 ? color : '#ffffff'}
@@ -392,7 +401,10 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       </div>
                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                         {['#FFFFFF', '#000000', 'var(--kc-yellow)', primary, secondary, accent].map((c, i) => (
-                          <div key={i} onClick={() => setColor(c)}
+                          <div key={i} role="button" tabIndex={0}
+                            aria-label={`Farbe ${c} uebernehmen`}
+                            onKeyDown={aufTaste(() => setColor(c))}
+                            onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
@@ -412,11 +424,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                               border: '0.5px solid var(--kc-mid-a-20)', borderRadius: 6,
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-mid)', marginBottom: 2 }}>🤖 {suggested.name}</div>
-                    <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-brand)', marginBottom: 2 }}>🤖 {suggested.name}</div>
+                    <div style={{ fontSize: 12, color: '#4A5A5C' }}>{suggested.reason}</div>
                   </div>
                   <button onClick={() => setter(suggested.name)}
-                    style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
+                    style={{ fontSize: 12, fontWeight: 700, background: 'var(--brand-primary)', color: 'var(--text-on-brand)',
                              border: 'none', borderRadius: 5, padding: '5px 10px',
                              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Übernehmen
@@ -429,7 +441,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
         {fontSuggestions?.pairing_note && (
           <div style={{ padding: '8px 12px', borderRadius: 7, background: 'var(--surface)',
-                        fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                        fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
             💡 {fontSuggestions.pairing_note}
           </div>
         )}
@@ -438,7 +450,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       {/* Stil */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Ecken</div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Ecken</div>
           <div style={{ display: 'flex', gap: 5 }}>
             {[{label:'Eckig',v:0},{label:'Rund',v:6},{label:'Weich',v:14},{label:'Pill',v:99}].map(r => (
               <button key={r.v} onClick={() => setRadius(r.v)} style={{
@@ -448,17 +460,17 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}>
                 <div style={{ width: 24, height: 24, border: `2px solid ${radius === r.v ? 'var(--brand-primary)' : 'var(--border-medium)'}`, borderRadius: r.v === 99 ? 12 : r.v, background: radius === r.v ? 'var(--info-bg)' : 'transparent' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, color: radius === r.v ? 'var(--brand-primary)' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{r.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: radius === r.v ? 'var(--brand-primary)' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{r.label}</span>
               </button>
             ))}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Schatten</div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>Schatten</div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['ohne', 'leicht', 'mittel', 'stark'].map(s => (
               <button key={s} onClick={() => setShadow(s)} style={{
-                flex: 1, padding: '5px 0', fontSize: 9, fontWeight: shadow === s ? 900 : 400,
+                flex: 1, padding: '5px 0', fontSize: 12, fontWeight: shadow === s ? 900 : 400,
                 border: shadow === s ? '1.5px solid var(--brand-primary)' : '0.5px solid var(--border-light)',
                 borderRadius: 5, background: shadow === s ? 'var(--info-bg)' : 'transparent',
                 color: shadow === s ? 'var(--brand-primary)' : 'var(--text-tertiary)',

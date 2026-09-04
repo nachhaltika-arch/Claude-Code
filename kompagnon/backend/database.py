@@ -150,6 +150,14 @@ class Lead(Base):
     display_name = Column(String(255), default="")
 
     customer_token = Column(String, unique=True, nullable=True)
+
+    # **Die Stripe-Kundenkennung gehoert an den Betrieb (04.09.2026).**
+    #
+    # Bis heute stand sie nur an der GEO-Analyse (`modelle_audit`), also am
+    # Erzeugnis eines einzelnen Kaufs. Fuer das Zahlungskonto im Kundenportal
+    # braucht es sie je **Betrieb**: Ein Kunde hat ein Zahlungsmittel, nicht
+    # eines je Produkt.
+    stripe_customer_id = Column(String(200), nullable=True, index=True)
     customer_token_created_at = Column(DateTime, nullable=True)
 
     # PageSpeed Insights (stored per-lead)
@@ -437,6 +445,34 @@ class AutomationLog(Base):
     project = relationship("Project", back_populates="automations")
 
 
+class MitwirkungStand(Base):
+    """Was der Kunde je Mitwirkungspunkt schon geliefert hat (L-159).
+
+    **Eine Zeile je Projekt und Punkt, und nur wenn etwas passiert ist.** Ein
+    Punkt ohne Zeile ist offen; das erspart es, beim Projektanlegen elf leere
+    Zeilen zu schreiben, die nichts sagen.
+
+    **Warum das Datum und nicht nur ein Haken.** Aus diesen Daten wird der
+    Fristbeginn gerechnet — der Tag, an dem der letzte Fristbeginn-Punkt
+    eingegangen ist. Ein Haken ohne Datum koennte das nicht belegen, und genau
+    belegen muessen wir es: Die Bauzeitgarantie haengt daran.
+
+    `bestaetigt_von` haelt fest, wer es eingetragen hat — der Kunde selbst oder
+    der Innendienst. Beim Streit darueber, ab wann die Frist lief, ist das der
+    Unterschied zwischen einer Aussage und einem Nachweis.
+    """
+
+    __tablename__ = "mitwirkung_stand"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    kennung = Column(String(8), nullable=False)          # M1 … M11
+    erledigt_am = Column(DateTime, nullable=True)
+    bestaetigt_von = Column(String(120), default="")
+    notiz = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Customer(Base):
     """Post-project customer management and upsells."""
     __tablename__ = "customers"
@@ -474,12 +510,41 @@ class Customer(Base):
 
 
 class TimeTracking(Base):
-    """Track hours spent on each project phase."""
+    """Erfasste Stunden — auf zwei Achsen, seit dem 31.08.2026.
+
+    **Die Herstellungsachse** (`project_id`, `phase`) zaehlt, was ein Projekt
+    gekostet hat. Daraus rechnet `MarginCalculator` die Marge.
+
+    **Die Pflegeachse** (`lead_id`, `abrechnungsmonat`) zaehlt, was im Rahmen
+    des Pflege-Abos fuer einen Betrieb geleistet wurde. ABO-PRO sagt zwei
+    Stunden **je Monat und Kunde** zu — das ist eine andere Frage als „was hat
+    dieses Projekt gekostet", und ein Abo hat gar kein Projekt, gegen das
+    gebucht wuerde.
+
+    **Warum eine Tabelle und nicht zwei** (Entscheidung David, 31.08.2026):
+    Es ist derselbe Vorgang — jemand hat gearbeitet und traegt Stunden ein.
+    Zwei Tabellen haetten zwei Eingaben, zwei Auswertungen und irgendwann
+    einen Abgleich gebraucht; genau dieses Muster hat hier schon zweimal Zeit
+    gekostet (`customers` neben `usercards`).
+
+    **Genau eine Achse je Zeile.** `project_id` **oder** `lead_id`, nie beides
+    und nie keines — sonst zaehlte eine Stunde doppelt oder gar nicht.
+    Durchgesetzt von `services/abo_stunden.py` und einer Pruefbedingung in der
+    Datenbank.
+
+    **`abrechnungsmonat` ist gesetzt und nicht gerechnet.** Wer am 2. September
+    Stunden vom August eintraegt, bucht sie auf den August. Aus `logged_at`
+    abgeleitet waeren sie im September gelandet, und das Kontingent des
+    Vormonats waere still verfallen.
+    """
     __tablename__ = "time_tracking"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    # Nullable seit dem 31.08.2026: Eine Abo-Zeile haengt an keinem Projekt.
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     phase = Column(Integer)  # 1-7, or NULL for general project work
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True, index=True)
+    abrechnungsmonat = Column(String(7))  # "2026-08" — nur an Abo-Zeilen
     logged_by = Column(String(100), nullable=False)  # Username or "KI"
     hours = Column(Float, nullable=False)
     activity_description = Column(String(255))
@@ -488,98 +553,6 @@ class TimeTracking(Base):
 
     # Relationships
     project = relationship("Project", back_populates="time_trackings")
-
-
-class User(Base):
-    """User accounts with roles and 2FA support."""
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=True)
-
-    # Profile
-    first_name = Column(String(100), default="")
-    last_name = Column(String(100), default="")
-    phone = Column(String(30), default="")
-    avatar_url = Column(String(500), default="")
-
-    # Role: superadmin | admin | mitarbeiter | kunde — siehe
-    # `services/rollen.py`, dort steht die Liste einmal.
-    role = Column(String(20), default="mitarbeiter")
-
-    # Fuer den Pruefer im Audit-Bericht (Innendienst)
-    position = Column(String(100), default="")
-    signature_data = Column(Text, default="")
-
-    # Customer link
-    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
-
-    # 2FA
-    totp_secret = Column(String(64), nullable=True)
-    totp_enabled = Column(Boolean, default=False)
-    backup_codes = Column(Text, default="")
-
-    # OAuth
-    google_id = Column(String(255), nullable=True)
-    apple_id = Column(String(255), nullable=True)
-    oauth_provider = Column(String(50), nullable=True)
-
-    # Status
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    email_verify_token = Column(String(100), nullable=True)
-    password_reset_token = Column(String(100), nullable=True)
-    password_reset_expires = Column(DateTime, nullable=True)
-
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_login = Column(DateTime, nullable=True)
-    created_by = Column(Integer, nullable=True)
-
-
-class UserSession(Base):
-    """Active login sessions."""
-    __tablename__ = "user_sessions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    token = Column(String(500), unique=True)
-    ip_address = Column(String(50), default="")
-    user_agent = Column(String(500), default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime)
-    is_valid = Column(Boolean, default=True)
-
-
-class SystemSettings(Base):
-    """Key-value system settings."""
-    __tablename__ = "system_settings"
-
-    id = Column(Integer, primary_key=True, index=True)
-    key = Column(String(100), unique=True, nullable=False)
-    value = Column(Text, default="")
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_by = Column(Integer, nullable=True)
-
-
-class RolePermission(Base):
-    """Permission assignments per role."""
-    __tablename__ = "role_permissions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    role = Column(String(20), nullable=False)
-    permission = Column(String(50), nullable=False)
-    is_allowed = Column(Boolean, default=True)
-
-    # Ein Recht je Rolle, genau einmal. `services/rechte.hat_recht` liest mit
-    # `.first()` und ohne Sortierung — zwei Zeilen mit verschiedenem
-    # `is_allowed` haetten die Antwort dem Zufall ueberlassen, und ein
-    # entzogenes Recht waere still zurueckgekommen (L-05, 21.08.2026).
-    # Der Bestand wird in `migrations_runtime.py::run_migrations` zusammengefuehrt.
-    __table_args__ = (
-        UniqueConstraint("role", "permission", name="uq_role_permission"),
-    )
 
 
 class UserCard(Base):
@@ -666,71 +639,6 @@ class UserCard(Base):
 
 
 
-
-
-class Message(Base):
-    __tablename__ = "messages"
-    id          = Column(Integer, primary_key=True)
-    lead_id     = Column(Integer, ForeignKey("leads.id"), nullable=False)
-    sender_role = Column(String, nullable=False)   # "admin" | "kunde"
-    sender_name = Column(String)                   # z.B. "David" oder Firmenname
-    channel     = Column(String, default="in_app") # "in_app" | "email"
-    subject     = Column(String)                   # nur bei channel="email"
-    content     = Column(Text, nullable=False)
-    is_read     = Column(Boolean, default=False)
-    read_at     = Column(DateTime, nullable=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
-
-
-class Benachrichtigung(Base):
-    """Was vom Kunden hereinkommt — Ticket, Chatnachricht, spaeter E-Mail.
-
-    **Warum eine eigene Tabelle und nicht „die ungelesenen zusammenzaehlen"
-    (26.08.2026, L-18).** Ein Ticket, eine Chatnachricht und eine Mail liegen
-    in drei Tabellen mit drei Formen. Sie beim Anzeigen zusammenzurechnen
-    hiesse, an jeder Stelle alle drei zu kennen — und die vierte, die
-    dazukommt, wird vergessen.
-
-    Eine Meldung ist ein eigener Vorgang: Sie entsteht einmal, sie wird einmal
-    gelesen, und sie traegt ein **Ziel**, das man anklicken kann. Eine Meldung
-    ohne Weg dorthin verlangt vom Leser, selbst zu suchen.
-    """
-
-    __tablename__ = "benachrichtigungen"
-
-    id         = Column(Integer, primary_key=True)
-    #: "ticket" | "chat" | "mail". Bewusst eine Zeichenkette und kein Enum —
-    #: eine vierte Quelle soll eine Zeile kosten, keine Migration.
-    art        = Column(String(20), nullable=False)
-    lead_id    = Column(Integer, ForeignKey("leads.id"), nullable=True)
-    titel      = Column(String(300), nullable=False)
-    hinweis    = Column(Text)
-    #: Wohin der Klick fuehrt, als Pfad im Werkzeug.
-    ziel       = Column(String(300))
-    erstellt_am = Column(DateTime, default=datetime.utcnow)
-    gelesen_am  = Column(DateTime, nullable=True)
-
-
-class Meldungsvorliebe(Base):
-    """Ob ein Ereignis zusaetzlich per Mail gemeldet wird.
-
-    **Warum eine Zeile je Ereignis und kein Feld je Benutzer
-    (26.08.2026).** KOMPAGNON wird von einer Person bedient; ein
-    Vorlieben-Satz je Konto waere eine Verallgemeinerung auf Vorrat. Kommt
-    ein zweiter Innendienst dazu, kostet die Erweiterung eine Spalte — heute
-    kostet sie Bedienoberflaeche, die niemand braucht.
-
-    **Kein Eintrag heisst nicht „aus".** Fehlt die Zeile, gilt die Vorgabe
-    aus `services/meldungsvorlieben.EREIGNISSE` — und die ist fuer jedes
-    Ereignis genau das Verhalten von heute. Ein leerer Bestand darf keinen
-    Versand heimlich abschalten.
-    """
-
-    __tablename__ = "meldungsvorlieben"
-
-    schluessel  = Column(String(40), primary_key=True)
-    aktiv       = Column(Boolean, nullable=False, default=True)
-    geaendert_am = Column(DateTime, default=datetime.utcnow)
 
 
 # ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
@@ -836,6 +744,8 @@ def _phase_beim_anlegen(mapper, verbindung, ziel):
 # Die `relationship()`-Aufrufe nennen ihre Gegenseite als Zeichenkette,
 # und SQLAlchemy loest den Namen erst beim ersten Zugriff auf. Fehlt eine
 # Datei, faellt das nicht beim Start auf, sondern bei irgendeiner Abfrage.
+from modelle_konten import *        # noqa: E402,F401,F403
+from modelle_meldungen import *     # noqa: E402,F401,F403
 from modelle_akademie import *      # noqa: E402,F401,F403
 from modelle_audit import *         # noqa: E402,F401,F403
 from modelle_briefing import *      # noqa: E402,F401,F403
@@ -844,3 +754,4 @@ from modelle_crawler import *       # noqa: E402,F401,F403
 from modelle_kas import *           # noqa: E402,F401,F403
 from modelle_widget import *        # noqa: E402,F401,F403
 from modelle_buch import *          # noqa: E402,F401,F403
+from modelle_abo import *           # noqa: E402,F401,F403

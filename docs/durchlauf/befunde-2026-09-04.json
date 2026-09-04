@@ -1,0 +1,637 @@
+{
+  "datum": "2026-09-04",
+  "blind": [],
+  "neu": [
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.contact_address",
+      "ebene": "datenbank",
+      "titel": "`contact_address` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "contact_address"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.h2_list",
+      "ebene": "datenbank",
+      "titel": "`h2_list` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "h2_list"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.paragraphs",
+      "ebene": "datenbank",
+      "titel": "`paragraphs` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "paragraphs"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.total_pages",
+      "ebene": "datenbank",
+      "titel": "`total_pages` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "total_pages"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.apple_id",
+      "ebene": "datenbank",
+      "titel": "`apple_id` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "apple_id"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.google_id",
+      "ebene": "datenbank",
+      "titel": "`google_id` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "google_id"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.is_valid",
+      "ebene": "datenbank",
+      "titel": "`is_valid` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "is_valid"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.oauth_provider",
+      "ebene": "datenbank",
+      "titel": "`oauth_provider` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 342 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "oauth_provider"
+    },
+    {
+      "kennung": "sql-unbekannte-tabelle/kompagnon/backend/routers/projects_sichtbarkeit.py",
+      "ebene": "datenbank",
+      "titel": "kompagnon/backend/routers/projects_sichtbarkeit.py schreibt auf website_content — kein Modell fuehrt diese Tabelle",
+      "beleg": "kompagnon/backend/routers/projects_sichtbarkeit.py — INSERT/UPDATE/DELETE auf website_content",
+      "einzelheiten": "Entweder ist der Tabellenname falsch geschrieben — dann scheitert die Anweisung erst zur Laufzeit, an einer Stelle, die selten laeuft —, oder die Tabelle ist ausserhalb der Modelle entstanden und wird von keinem Werkzeug mitgefuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/backend/routers/projects_sichtbarkeit.py"
+    },
+    {
+      "kennung": "stiller-ausfall/auth_router.forgot_password",
+      "ebene": "schnittstelle",
+      "titel": "`forgot_password()` faengt jeden Fehler ab und meldet trotzdem Erfolg",
+      "beleg": "kompagnon/backend/routers/auth_router.py:522",
+      "einzelheiten": "Ein schreibender Endpunkt in einem Bereich, in dem Geld, Konten oder fremde Rueckrufe haengen — mit einem breiten Abfangzweig, der nur protokolliert, keine Vorbelegung auffaengt und keinen Kommentar traegt. Der Aufrufer bekommt Erfolg, die Handlung ist nicht passiert. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "auth_router.py:forgot_password"
+    },
+    {
+      "kennung": "stiller-ausfall/kampagne.audit_anfrage",
+      "ebene": "schnittstelle",
+      "titel": "`audit_anfrage()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/kampagne.py:201",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "kampagne.py:audit_anfrage"
+    },
+    {
+      "kennung": "stiller-ausfall/messages.send_email_endpoint",
+      "ebene": "schnittstelle",
+      "titel": "`send_email_endpoint()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/messages.py:169",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "messages.py:send_email_endpoint"
+    },
+    {
+      "kennung": "stiller-ausfall/payments.stripe_webhook",
+      "ebene": "schnittstelle",
+      "titel": "`stripe_webhook()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/payments.py:348",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Hier haengt Geld daran** — deshalb P0. Familie L-36, L-141.",
+      "vorschlag": "P0",
+      "gegenstand": "payments.py:stripe_webhook"
+    },
+    {
+      "kennung": "stiller-ausfall/projects.request_approval",
+      "ebene": "schnittstelle",
+      "titel": "`request_approval()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/projects.py:712",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "projects.py:request_approval"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_facebook",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_facebook()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:127",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_facebook"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_linkedin",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_linkedin()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:140",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_linkedin"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_google",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_google()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:155",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_google"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_postkarte",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_postkarte()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:167",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_postkarte"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_telefon",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_telefon()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:181",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_telefon"
+    },
+    {
+      "kennung": "stiller-ausfall/sammel",
+      "ebene": "schnittstelle",
+      "titel": "17 schreibende Endpunkte schweigen unerklaert ueber Fehler",
+      "beleg": "audit.py:526 (start_audit) · branddesign_erhebung.py:153 (scrape_brand) · briefings_ki.py:80 (suggest_field) · briefings_ki.py:281 (ki_prefill_seo) · briefings_ki.py:367 (ki_prefill_ziele) · files.py:326 (delete_file)",
+      "einzelheiten": "Breiter Abfangzweig, nur ein Protokolleintrag, keine Vorbelegung, die ihn auffaengt, und kein Kommentar, der ihn begruendet. **Das ist keine Liste von Maengeln, sondern eine Liste von Fragen:** Bei jeder Stelle ist zu klaeren, ob das Schweigen Absicht ist. Ist es Absicht, gehoert der Grund als Kommentar daneben — dann verschwindet die Zeile beim naechsten Lauf von selbst. Ist es keine, gehoert der Fehler an den Aufrufer zurueck. Die Stufe zaehlt bewusst die **unerklaerten**: Wo eine Begruendung steht, meldet sie nichts.",
+      "vorschlag": "P2",
+      "gegenstand": "unerklaert schweigende Schreibpfade"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandDesignEditor.jsx",
+      "ebene": "frontend",
+      "titel": "BrandDesignEditor.jsx: 2 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignEditor.jsx — Zeile 199, 213",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandDesignEditor.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx",
+      "ebene": "frontend",
+      "titel": "BrandDesignWerkstatt.jsx: 2 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx — Zeile 295, 306",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandGuideline.jsx",
+      "ebene": "frontend",
+      "titel": "BrandGuideline.jsx: 4 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandGuideline.jsx — Zeile 377, 466, 486, 493",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandGuideline.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx",
+      "ebene": "frontend",
+      "titel": "styleguideTeile.jsx: 3 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx — Zeile 618, 624, 756",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/Register.jsx",
+      "ebene": "frontend",
+      "titel": "Register.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/Register.jsx — Zeile 117",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/Register.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/Settings.jsx",
+      "ebene": "frontend",
+      "titel": "Settings.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/Settings.jsx — Zeile 352",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/Settings.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/TemplateLibrary.jsx",
+      "ebene": "frontend",
+      "titel": "TemplateLibrary.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/TemplateLibrary.jsx — Zeile 119",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/TemplateLibrary.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/bild-ohne-alt/kompagnon/frontend/src/pages/AcademyAdminLesson.jsx",
+      "ebene": "frontend",
+      "titel": "AcademyAdminLesson.jsx: 1 Bild(er) ohne Alternativtext",
+      "beleg": "kompagnon/frontend/src/pages/AcademyAdminLesson.jsx — Zeile 301",
+      "einzelheiten": "Ein Bild ohne `alt` ist fuer eine Vorlesehilfe nicht vorhanden. Ist das Bild reine Zierde, gehoert `alt=\"\"` hin — das ist die Aussage „hier ist nichts zu lesen\" und etwas anderes als ein fehlendes Attribut. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "bild-ohne-alt/kompagnon/frontend/src/pages/AcademyAdminLesson.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/pages/AcademyAdminLesson.jsx",
+      "ebene": "frontend",
+      "titel": "AcademyAdminLesson.jsx: 5 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/pages/AcademyAdminLesson.jsx — Zeile 229, 572, 595, 617, 642",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/pages/AcademyAdminLesson.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/components/kunde/MitwirkungAktion.jsx",
+      "ebene": "frontend",
+      "titel": "MitwirkungAktion.jsx: 3 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/components/kunde/MitwirkungAktion.jsx — Zeile 94, 105, 180",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/components/kunde/MitwirkungAktion.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/components/betrieb/AboZeiten.jsx",
+      "ebene": "frontend",
+      "titel": "AboZeiten.jsx: 3 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/components/betrieb/AboZeiten.jsx — Zeile 152, 164, 175",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/components/betrieb/AboZeiten.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/pages/AcademyAdminCourse.jsx",
+      "ebene": "frontend",
+      "titel": "AcademyAdminCourse.jsx: 3 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/pages/AcademyAdminCourse.jsx — Zeile 280, 330, 343",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/pages/AcademyAdminCourse.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/pages/ProductEditor.jsx",
+      "ebene": "frontend",
+      "titel": "ProductEditor.jsx: 3 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/pages/ProductEditor.jsx — Zeile 245, 339, 348",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/pages/ProductEditor.jsx"
+    },
+    {
+      "kennung": "barrierefreiheit/feld-ohne-beschriftung/kompagnon/frontend/src/pages/Settings.jsx",
+      "ebene": "frontend",
+      "titel": "Settings.jsx: 3 Eingabefeld(er) ohne Beschriftung",
+      "beleg": "kompagnon/frontend/src/pages/Settings.jsx — Zeile 176, 179, 305",
+      "einzelheiten": "Ein Feld ohne `id`, `aria-label` oder Platzhalter hat fuer eine Vorlesehilfe keinen Namen. Der Nutzer hoert „Eingabefeld\" und nichts weiter. Massstab WCAG AA.",
+      "vorschlag": "P2",
+      "gegenstand": "feld-ohne-beschriftung/kompagnon/frontend/src/pages/Settings.jsx"
+    },
+    {
+      "kennung": "markenfarbe-ohne-vorgabe/#004f59",
+      "ebene": "optik",
+      "titel": "Markenfarbe #004f59 wird 19-mal benutzt, steht aber in keiner Farbvorgabe",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/components/KASSidebar.jsx · kompagnon/frontend/src/components/schritte/marketing.jsx",
+      "einzelheiten": "Die Farbe gehoert zur Marke, aber `tailwind.config.js` kennt sie nicht. Damit ist sie im Werkzeug Handarbeit statt Vorgabe: Sie laesst sich nicht zentral aendern, nicht pruefen und nicht wiederverwenden — und der naechste Bildschirm bekommt einen Ton daneben.",
+      "vorschlag": "P2",
+      "gegenstand": "#004f59"
+    },
+    {
+      "kennung": "markenfarbe-ohne-vorgabe/#fae600",
+      "ebene": "optik",
+      "titel": "Markenfarbe #fae600 wird 15-mal benutzt, steht aber in keiner Farbvorgabe",
+      "beleg": "kompagnon/frontend/src/components/AnrechnungsHinweis.jsx · kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx · kompagnon/frontend/src/components/KASSidebar.jsx · kompagnon/frontend/src/components/Mitwirkung.jsx",
+      "einzelheiten": "Die Farbe gehoert zur Marke, aber `tailwind.config.js` kennt sie nicht. Damit ist sie im Werkzeug Handarbeit statt Vorgabe: Sie laesst sich nicht zentral aendern, nicht pruefen und nicht wiederverwenden — und der naechste Bildschirm bekommt einen Ton daneben.",
+      "vorschlag": "P2",
+      "gegenstand": "#fae600"
+    },
+    {
+      "kennung": "farbe-beinahe/#065f46",
+      "ebene": "optik",
+      "titel": "#065f46 liegt dicht neben der Vorgabe #004f59 (12 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/ContentManager.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/pages/PageManager.jsx · kompagnon/frontend/src/pages/PublicPageEditor.jsx",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#065f46"
+    },
+    {
+      "kennung": "farbe-beinahe/#1a2c32",
+      "ebene": "optik",
+      "titel": "#1a2c32 liegt dicht neben der Vorgabe #002535 (11 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/SitemapPlaner.jsx · kompagnon/frontend/src/components/views/sitemapDialoge.jsx · kompagnon/frontend/src/pages/PageTemplateEditor.jsx · kompagnon/frontend/src/pages/PublicPageEditor.jsx",
+      "einzelheiten": "Abstand 27 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a2c32"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f172a",
+      "ebene": "optik",
+      "titel": "#0f172a liegt dicht neben der Vorgabe #002535 (10 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/components/bibliothek/AiGeneratorModal.jsx · kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx · kompagnon/frontend/src/components/views/StyleGuideView.jsx",
+      "einzelheiten": "Abstand 23 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f172a"
+    },
+    {
+      "kennung": "farbe-beinahe/#003840",
+      "ebene": "optik",
+      "titel": "#003840 liegt dicht neben der Vorgabe #002535 (5 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css · kompagnon/frontend/src/utils/markenfarben.test.js",
+      "einzelheiten": "Abstand 22 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#003840",
+      "luecke": "L-32",
+      "rueckfall": true
+    },
+    {
+      "kennung": "farbe-beinahe/#042f2e",
+      "ebene": "optik",
+      "titel": "#042f2e liegt dicht neben der Vorgabe #002535 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/views/StyleGuideView.jsx · kompagnon/frontend/src/utils/brandOverride.test.js",
+      "einzelheiten": "Abstand 13 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#042f2e"
+    },
+    {
+      "kennung": "farbe-beinahe/#006680",
+      "ebene": "optik",
+      "titel": "#006680 liegt dicht neben der Vorgabe #007090 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/AnalyseCentrale.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/pages/ScraperControl.jsx",
+      "einzelheiten": "Abstand 19 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#006680"
+    },
+    {
+      "kennung": "farbe-beinahe/#006880",
+      "ebene": "optik",
+      "titel": "#006880 liegt dicht neben der Vorgabe #007090 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/OfferTab.jsx · kompagnon/frontend/src/pages/PackageStarter.jsx",
+      "einzelheiten": "Abstand 18 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#006880"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f1c20",
+      "ebene": "optik",
+      "titel": "#0f1c20 liegt dicht neben der Vorgabe #002535 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css",
+      "einzelheiten": "Abstand 27 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f1c20"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f1e3a",
+      "ebene": "optik",
+      "titel": "#0f1e3a liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/OfferTab.jsx · kompagnon/frontend/src/pages/CheckoutSuccess.jsx",
+      "einzelheiten": "Abstand 17 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f1e3a"
+    },
+    {
+      "kennung": "farbe-beinahe/#1a1a2e",
+      "ebene": "optik",
+      "titel": "#1a1a2e liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/BrandGuideline.jsx · kompagnon/frontend/src/components/schritte/marketing.jsx",
+      "einzelheiten": "Abstand 29 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a1a2e"
+    },
+    {
+      "kennung": "farbe-beinahe/#0369a1",
+      "ebene": "optik",
+      "titel": "#0369a1 liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/MoodboardPanel.jsx · kompagnon/frontend/src/components/SecurityChecklist.jsx · kompagnon/frontend/src/pages/QRGenerator.jsx",
+      "einzelheiten": "Abstand 19 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0369a1"
+    },
+    {
+      "kennung": "farbe-beinahe/#0e7490",
+      "ebene": "optik",
+      "titel": "#0e7490 liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/views/StyleGuideView.jsx · kompagnon/frontend/src/components/views/sitemapKarten.jsx",
+      "einzelheiten": "Abstand 15 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0e7490"
+    },
+    {
+      "kennung": "farbe-beinahe/#111827",
+      "ebene": "optik",
+      "titel": "#111827 liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/grapesjs/handwerk-blocks.js",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#111827"
+    },
+    {
+      "kennung": "farbe-beinahe/#00778f",
+      "ebene": "optik",
+      "titel": "#00778f liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css",
+      "einzelheiten": "Abstand 7 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#00778f"
+    },
+    {
+      "kennung": "theme/tokens-ohne-dunkelfassung",
+      "ebene": "optik",
+      "titel": "8 benutzte Farbtokens haben keine Dunkelfassung — sie bleiben beim Umschalten hell",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css — `--text-inverse` (34×), `--kc-mid-a-12` (14×), `--kc-black` (6×), `--kc-mid-a-30` (6×), `--kc-mid-a-25` (5×), `--kc-mid-a-20` (3×), `--kc-mid-a-08` (2×), `--kc-mid-a-50` (2×)",
+      "einzelheiten": "Der Hellsatz in `:root` gilt immer; der Dunkelsatz ueberschreibt nur, was anders sein soll. Was er auslaesst, bleibt hell — eine helle Flaeche oder helle Schrift mitten in einer dunklen Oberflaeche, und niemand sieht es, solange niemand umschaltet. **Nicht jedes davon ist ein Fehler:** Ein Gelb, das in beiden Faellen dasselbe sein soll, gehoert ausgelassen. Die Frage je Token lautet: absichtlich gleich, oder vergessen? Was absichtlich gleich ist, gehoert mit einem Kommentar daneben — dann ist es beim naechsten Mal keine Frage mehr.",
+      "vorschlag": "P2",
+      "gegenstand": "Farbtokens ohne Dunkelfassung"
+    },
+    {
+      "kennung": "theme/farbe-statt-token",
+      "ebene": "optik",
+      "titel": "1037 feste Farbwerte in 127 Dateien gehen beim Umschalten nicht mit",
+      "beleg": "haeufigste: SitemapPlaner.jsx (56×), LeadProfile.jsx (37×), SectionDetailPanel.jsx (35×), TemplateLibrary.jsx (30×), ContentManager.jsx (24×), AiGeneratorModal.jsx (24×), KampagneLandingPage.jsx (21×), PackagePremium.jsx (21×)",
+      "einzelheiten": "Der Dunkelmodus tauscht **Tokens**, keine Zeichenketten. Jede dieser Farben bleibt beim Umschalten stehen. **Das ist eine Entscheidung, nicht tausend:** Entweder die Oberflaeche wird durchgaengig auf Tokens gezogen — dann ist der Dunkelmodus belastbar —, oder es wird festgehalten, welche Bereiche bewusst nur hell gedacht sind. Der heutige Zustand ist der dritte Fall: Es ist nicht entschieden, und man sieht es erst beim Umschalten. Die schlimmsten Dateien stehen einzeln darunter.",
+      "vorschlag": "P1",
+      "gegenstand": "feste Farbwerte im Frontend"
+    },
+    {
+      "kennung": "theme/farbe-statt-token/kompagnon/frontend/src/components/SitemapPlaner.jsx",
+      "ebene": "optik",
+      "titel": "SitemapPlaner.jsx: 56 feste Farbwerte, die beim Umschalten nicht mitgehen",
+      "beleg": "kompagnon/frontend/src/components/SitemapPlaner.jsx — Zeile 11, 14, 15, 16, 59, 59, 62, 102",
+      "einzelheiten": "Der Dunkelmodus tauscht **Tokens**, keine Zeichenketten. Eine Farbe, die als `'#…'` im Bauteil steht, bleibt beim Umschalten stehen: Die Flaeche wird dunkel, die Schrift bleibt fast schwarz. Das ist nicht nur haesslich, es ist unlesbar — und im Hellmodus faellt es nie auf. **Ausnahmen sind haeufig und berechtigt**: eine Markenvorschau, ein Diagramm mit eigener Farbskala, ein Bild in Bildpunkten. Die gehoeren quittiert. Der Rest gehoert an `var(--token)`. Wie L-32, wo dieselbe Aufraeumarbeit 39 Vorkommen in 21 Dateien betraf.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/SitemapPlaner.jsx"
+    },
+    {
+      "kennung": "theme/farbe-statt-token/kompagnon/frontend/src/pages/LeadProfile.jsx",
+      "ebene": "optik",
+      "titel": "LeadProfile.jsx: 37 feste Farbwerte, die beim Umschalten nicht mitgehen",
+      "beleg": "kompagnon/frontend/src/pages/LeadProfile.jsx — Zeile 761, 765, 818, 829, 832, 840, 844, 851",
+      "einzelheiten": "Der Dunkelmodus tauscht **Tokens**, keine Zeichenketten. Eine Farbe, die als `'#…'` im Bauteil steht, bleibt beim Umschalten stehen: Die Flaeche wird dunkel, die Schrift bleibt fast schwarz. Das ist nicht nur haesslich, es ist unlesbar — und im Hellmodus faellt es nie auf. **Ausnahmen sind haeufig und berechtigt**: eine Markenvorschau, ein Diagramm mit eigener Farbskala, ein Bild in Bildpunkten. Die gehoeren quittiert. Der Rest gehoert an `var(--token)`. Wie L-32, wo dieselbe Aufraeumarbeit 39 Vorkommen in 21 Dateien betraf.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/LeadProfile.jsx"
+    },
+    {
+      "kennung": "theme/farbe-statt-token/kompagnon/frontend/src/components/wireframe/SectionDetailPanel.jsx",
+      "ebene": "optik",
+      "titel": "SectionDetailPanel.jsx: 35 feste Farbwerte, die beim Umschalten nicht mitgehen",
+      "beleg": "kompagnon/frontend/src/components/wireframe/SectionDetailPanel.jsx — Zeile 188, 194, 231, 235, 238, 244, 261, 262",
+      "einzelheiten": "Der Dunkelmodus tauscht **Tokens**, keine Zeichenketten. Eine Farbe, die als `'#…'` im Bauteil steht, bleibt beim Umschalten stehen: Die Flaeche wird dunkel, die Schrift bleibt fast schwarz. Das ist nicht nur haesslich, es ist unlesbar — und im Hellmodus faellt es nie auf. **Ausnahmen sind haeufig und berechtigt**: eine Markenvorschau, ein Diagramm mit eigener Farbskala, ein Bild in Bildpunkten. Die gehoeren quittiert. Der Rest gehoert an `var(--token)`. Wie L-32, wo dieselbe Aufraeumarbeit 39 Vorkommen in 21 Dateien betraf.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/wireframe/SectionDetailPanel.jsx"
+    },
+    {
+      "kennung": "theme/farbe-statt-token/kompagnon/frontend/src/pages/TemplateLibrary.jsx",
+      "ebene": "optik",
+      "titel": "TemplateLibrary.jsx: 30 feste Farbwerte, die beim Umschalten nicht mitgehen",
+      "beleg": "kompagnon/frontend/src/pages/TemplateLibrary.jsx — Zeile 145, 146, 147, 148, 149, 150, 256, 257",
+      "einzelheiten": "Der Dunkelmodus tauscht **Tokens**, keine Zeichenketten. Eine Farbe, die als `'#…'` im Bauteil steht, bleibt beim Umschalten stehen: Die Flaeche wird dunkel, die Schrift bleibt fast schwarz. Das ist nicht nur haesslich, es ist unlesbar — und im Hellmodus faellt es nie auf. **Ausnahmen sind haeufig und berechtigt**: eine Markenvorschau, ein Diagramm mit eigener Farbskala, ein Bild in Bildpunkten. Die gehoeren quittiert. Der Rest gehoert an `var(--token)`. Wie L-32, wo dieselbe Aufraeumarbeit 39 Vorkommen in 21 Dateien betraf.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/TemplateLibrary.jsx"
+    },
+    {
+      "kennung": "am-bild/nicht-gemessen",
+      "ebene": "optik",
+      "titel": "2 Messungen am gerenderten Bild sind in diesem Lauf nicht gefahren worden",
+      "beleg": "Schriftgrößen am gerenderten Text (`tools/schriftgroessen_messen.py`) · Kontrast und Fokusreihenfolge (`tools/bedienbarkeit_messen.py`)",
+      "einzelheiten": "Kontrast und Schriftgröße entscheiden über Lesbarkeit, und beide lassen sich am Quelltext nicht beantworten — eine Farbe kann als Token bestehen und auf der Seite trotzdem auf dem falschen Grund landen. **Schriftgrößen am gerenderten Text**: misst gewichtet nach Zeichenmenge, Grenze 12 px wie Lighthouse — die belastbare Fassung der Lesbarkeitsfrage. **Kontrast und Fokusreihenfolge**: misst, was tatsächlich übereinanderliegt, statt Token-Paare zu rechnen; erkennt Text auf Bild und Verlauf aus den Bildpunkten. Beide brauchen ein laufendes Frontend und eine Anmeldung; sie dauern Minuten. **Dieser Eintrag verschwindet, sobald sie gelaufen sind** — er steht hier, damit ein Bericht ohne sie nicht sauberer aussieht als die Lage ist. Und seit dem 04.09. gilt: Beide gehören in **beiden** Themes gefahren, hell und dunkel zählen gleich.",
+      "vorschlag": "P2",
+      "gegenstand": "Messungen am gerenderten Bild"
+    },
+    {
+      "kennung": "umgebung-fehlt/BACKEND_URL",
+      "ebene": "konsistenz",
+      "titel": "`BACKEND_URL` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/projects_anlegen.py · kompagnon/backend/routers/shop.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BACKEND_URL",
+      "luecke": "L-156",
+      "rueckfall": true
+    },
+    {
+      "kennung": "import-ohne-eintrag/botocore",
+      "ebene": "konsistenz",
+      "titel": "`botocore` wird importiert, steht in keiner Anforderungsdatei",
+      "beleg": "kompagnon/backend/services/produktablage.py:84",
+      "einzelheiten": "`requirements.txt` sagt in ihrem eigenen Kopf, sie enthalte „die vollstaendig aufgeloesten Versionen **inklusive aller transitiven Pakete**\". Ein importiertes Modul, das dort fehlt, widerspricht dem — und die Datei gibt es genau deshalb, weil zwei Deploys desselben Commits sonst unterschiedliche Software ergeben. Der laufende Dienst hat das Paket — er wurde damit gebaut. Der **naechste** Neuaufbau hat es nicht. Genau so ist L-57 entstanden: Der Buildbefehl rief `playwright` auf, das in keiner Anforderungsdatei stand; aufgefallen ist es erst beim Umzug, als ein neuer Dienst nach 28 Sekunden scheiterte.",
+      "vorschlag": "P1",
+      "gegenstand": "botocore"
+    },
+    {
+      "kennung": "termin/perplexity-altform",
+      "ebene": "konsistenz",
+      "titel": "in 23 Tagen: Perplexity schaltet die alte Anfrageform ab (L-81)",
+      "beleg": "2026-09-27 — Herstellerankuendigung; tests/test_perplexity_altform_termin.py wird ab dem Stichtag rot",
+      "einzelheiten": "Ab dem Stichtag liefert die KI-Sichtbarkeitsmessung fuer Perplexity keine Antwort mehr. Der Test scheitert mit der Arbeitsanweisung im Text.",
+      "vorschlag": "P1",
+      "gegenstand": "perplexity-altform"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/backend/migrations_runtime.py",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/backend/migrations_runtime.py hat 1882 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/backend/migrations_runtime.py → 1882",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/backend/migrations_runtime.py"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/frontend/src/data/templates_zusatz.js",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/frontend/src/data/templates_zusatz.js hat 3122 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/frontend/src/data/templates_zusatz.js → 3122",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/frontend/src/data/templates_zusatz.js"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/frontend/src/pages/LeadProfile.jsx",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/frontend/src/pages/LeadProfile.jsx hat 1686 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/frontend/src/pages/LeadProfile.jsx → 1686",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/frontend/src/pages/LeadProfile.jsx"
+    },
+    {
+      "kennung": "kontrast/dark/app/dashboard/kc-dark-als-schrift",
+      "ebene": "optik",
+      "titel": "Im Dunkelmodus sind die Dashboard-Überschriften praktisch unsichtbar — 1,29:1",
+      "beleg": "kompagnon/frontend/src/pages/Dashboard.jsx:350 setzt color: var(--kc-dark); im Dunkelsatz ist --kc-dark = #003840 auf --surface #152028 → 1.29:1 bei 28 px (Schwelle 3,0) und 1.36:1 bei 13 px (Schwelle 4,5). Gemessen am 04.09.2026 im Browser gegen Staging, Theme über kas-theme umgeschaltet und Seite neu aufgebaut.",
+      "einzelheiten": "**`--kc-dark` ist eine Flächenfarbe, keine Schriftfarbe.** `tokens.css` benutzt sie als `--bg-sidebar` und als `--brand-primary` im Hellsatz; im Dunkelsatz wird sie auf #003840 gesetzt — noch dunkler, weil sie dort eine dunkle Fläche sein soll. `Dashboard.jsx` setzt sie als `color:`. Im Hellmodus geht das gut aus, weil dunkles Petrol auf hellem Grund liegt; im Dunkelmodus steht dunkles Petrol auf fast schwarzem Grund. Betroffen sind die Überschrift „Dashboard\", die Kennzahl darunter und die Kartentitel „Aktuelle Betriebe\" und „Letzte Audits\" — also genau das, woran man sich auf der Seite orientiert. **Warum die Token-Kontrasttests das nicht fangen:** Sie rechnen eine ausdrückliche Paarliste, und `--kc-dark` als Textfarbe steht zu Recht nicht darin — es soll keine sein. Der Fehler liegt in der Verwendung, und den sieht nur die gerenderte Messung. Das ist der Satz aus `bedienbarkeit_messen.py`, hier belegt: Eine Farbe kann als Token bestehen und auf der Seite trotzdem auf dem falschen Grund landen.",
+      "vorschlag": "P1",
+      "gegenstand": "Dashboard.jsx var(--kc-dark) als Schriftfarbe"
+    },
+    {
+      "kennung": "kontrast/dark/sprunglink-und-schalter",
+      "ebene": "optik",
+      "titel": "Sprunglink und Themenschalter erreichen im Dunkelmodus nur 1,86 bzw. 2,06:1",
+      "beleg": "Weiß rgb(255,255,255) bzw. rgb(240,244,245) auf --kc-mid rgb(64,196,223) — 2.06 bei 14 px (Schwelle 4,5) und 1.86 bei 12 px. Gemessen am 04.09.2026 auf /app/dashboard, Theme dark.",
+      "einzelheiten": "Im Dunkelsatz wird `--kc-mid` auf ein helles Cyan (#40c4df) gehoben, damit es auf dunklem Grund leuchtet. Weiße Schrift darauf hat dann fast keinen Abstand mehr. Betroffen sind der Sprunglink „Zum Inhalt springen\" — ausgerechnet die Hilfe für Tastaturnutzer — und die Sonnenmarke des Themenschalters. Auf hellem Cyan gehört dunkle Schrift; `--text-on-brand` steht im Dunkelsatz bereits auf #0f1c20 und wäre der richtige Wert.",
+      "vorschlag": "P2",
+      "gegenstand": "weiße Schrift auf --kc-mid im Dunkelmodus"
+    }
+  ],
+  "gefuehrt": [
+    {
+      "kennung": "farbe-beinahe/#1a2332",
+      "ebene": "optik",
+      "titel": "#1a2332 liegt dicht neben der Vorgabe #002535 (13 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/GrapesEditor.jsx · kompagnon/frontend/src/components/NewsletterDesigner.jsx · kompagnon/frontend/src/components/OnboardingWizard.jsx · kompagnon/frontend/src/components/betrieb/ReiterSitemap.jsx",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a2332",
+      "luecke": "L-158",
+      "rueckfall": false
+    },
+    {
+      "kennung": "farbe-beinahe/#0891b2",
+      "ebene": "optik",
+      "titel": "#0891b2 liegt dicht neben der Vorgabe #008eaa (5 Stellen)",
+      "beleg": "kompagnon/frontend/src/pages/CustomerProjects.jsx · kompagnon/frontend/src/pages/ProductDevelopment.jsx · kompagnon/frontend/src/pages/Projektpipeline.jsx · kompagnon/frontend/src/utils/statusfarbeAlsText.test.js",
+      "einzelheiten": "Abstand 12 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0891b2",
+      "luecke": "L-158",
+      "rueckfall": false
+    },
+    {
+      "kennung": "farbsystem/zweites-system",
+      "ebene": "optik",
+      "titel": "336 Farben ausserhalb der Vorgabe an 1549 Stellen — ein zweites, ungeschriebenes Farbsystem",
+      "beleg": "53 davon an mindestens 8 Stellen; haeufigste: #7c3aed (51×), #dc2626 (51×), #64748b (45×), #6b7280 (35×), #94a3b8 (33×), #1d9e75 (26×), #92400e (26×), #fef2f2 (24×), #fca5a5 (23×), #00875a (22×)",
+      "einzelheiten": "Es sind ueberwiegend Tailwind-Grundfarben, die direkt als Hexwert im Quelltext stehen. Sie halten kein Umfaerben aus: Wer die Palette aendert, aendert sie hier nicht mit — und wer die Marke prueft, misst eine Oberflaeche, die ihr nur teilweise folgt. Zu entscheiden ist einmal, nicht sechzigmal: Entweder die Statusfarben (Rot, Gruen, Violett fuer Zustaende) kommen als benannte Werte in die Vorgabe, oder sie verschwinden aus dem Quelltext.",
+      "vorschlag": "P2",
+      "gegenstand": "Farben ausserhalb der Vorgabe",
+      "luecke": "L-158",
+      "rueckfall": false
+    }
+  ],
+  "quittiert": [],
+  "nicht_gemessen": [
+    [
+      "Routen ohne Aufrufer / ohne Anmeldung",
+      "kein Interpreter mit den Backend-Abhaengigkeiten gefunden (`kompagnon/backend/venv`). Diese Stufe misst an der geladenen Anwendung und sieht Dinge, die aus dem Quelltext nicht ableitbar sind — sie gehoert nachgeholt, nicht uebergangen."
+    ]
+  ]
+}

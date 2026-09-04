@@ -22,13 +22,17 @@ import path from 'path';
  * Mensch.
  */
 
-const SEITEN = path.join(__dirname, '..', 'pages');
+const WURZEL = path.join(__dirname, '..');
 
-const lies = (datei) => fs.readFileSync(path.join(SEITEN, datei), 'utf8');
+//: Seit dem 30.08.2026 liegen nicht mehr alle Wege unter `pages/`: Die
+//: Bausteine der Kursverwaltung sind nach `components/akademie/` ausgezogen
+//: (L-25), und der Bearbeiten-Knopf einer Lektion ist mitgegangen. Dieser
+//: Test hat den Umzug gemeldet — er fand null `onEdit` statt einem.
+const lies = (datei) => fs.readFileSync(path.join(WURZEL, datei), 'utf8');
 
 describe('Wege im Akademie-Editor', () => {
   test('der Bearbeiten-Knopf an einer Lektion führt zum Lektions-Editor', () => {
-    const quelle = lies('AcademyAdminCourse.jsx');
+    const quelle = lies('components/akademie/kursBausteine.jsx');
 
     const onEdit = quelle.match(/onEdit=\{[^}]*\}/g) || [];
 
@@ -41,7 +45,10 @@ describe('Wege im Akademie-Editor', () => {
   test('niemand navigiert auf die Modul-Adresse, die es nicht gibt', () => {
     // `/app/akademie/admin/modul/…` landet über die Umleitung in der
     // Kursliste. Ein Knopf, der dorthin zeigt, verliert die Arbeitsstelle.
-    const dateien = fs.readdirSync(SEITEN).filter(d => /\.(js|jsx)$/.test(d));
+    const seiten = path.join(WURZEL, 'pages');
+    const dateien = fs.readdirSync(seiten)
+      .filter(d => /\.(js|jsx)$/.test(d))
+      .map(d => `pages/${d}`);
 
     const treffer = dateien.filter(d => lies(d).includes('akademie/admin/modul'));
 

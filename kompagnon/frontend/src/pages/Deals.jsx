@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import AnrechnungsHinweis, { abzugsposition } from '../components/AnrechnungsHinweis';
 import toast from 'react-hot-toast';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -134,7 +135,7 @@ export default function Deals() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {stage.label}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {stage.count} · {fmtEUR(stage.total)}
                   </div>
                 </div>
@@ -142,7 +143,7 @@ export default function Deals() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {stage.deals.length === 0 ? (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '20px 0', fontStyle: 'italic' }}>
                     Keine Deals
                   </div>
                 ) : stage.deals.map(deal => (
@@ -162,7 +163,7 @@ export default function Deals() {
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
                   >
                     {deal.company_name && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 3 }}>
                         {deal.company_name}
                       </div>
                     )}
@@ -173,7 +174,7 @@ export default function Deals() {
                       {fmtEUR(deal.total_value)}
                     </div>
                     {deal.created_at && (
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                         {deal.created_at.slice(0, 10)}
                       </div>
                     )}
@@ -375,6 +376,10 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         company_id: form.company_id || null,
         status: form.status || 'neu',
         notes: form.notes || '',
+        // Welche Anrechnungen in diesem Angebot liegen (ORDERS_08). Das
+        // Backend merkt sie vor und loest sie **bei Annahme** ein; ein
+        // verlorener Deal gibt sie wieder frei.
+        credit_order_numbers: form.credit_order_numbers || [],
         items: form.items
           .filter(i => i.position?.trim())
           .map(i => ({
@@ -430,7 +435,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
     background: 'var(--bg-app)', color: 'var(--text-primary)',
     fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
   };
-  const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block' };
 
   return createPortal(
     <div role="button" tabIndex={0} onKeyDown={aufTaste(e => e.target === e.currentTarget && onClose())}
@@ -470,7 +475,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         {/* Header */}
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               {isEdit ? 'Deal bearbeiten' : 'Neuer Deal'}
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -501,6 +506,47 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               <option value="">— Kein Unternehmen —</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.company_name || `Lead #${c.id}`}</option>)}
             </select>
+
+            {/* Anrechnung auf einen Websprint (L-100, ORDERS_08, 29.08.2026).
+                **Nur eine Ergaenzung, kein Umbau** — die Deal-Logik bleibt,
+                wie sie ist; hier kommt eine Pruefung dazu. Sie haengt an der
+                gewaehlten Firma, weil dieses Formular keine E-Mail-Adresse
+                kennt: Der Deal zeigt auf einen Betrieb, und dessen Adresse
+                ist die, unter der gekauft wurde.
+
+                **Warum das ueberhaupt sichtbar sein muss:** Eine Anrechnung,
+                an die jemand denken muss, wird vergessen. Der Kunde erinnert
+                sich immer, und ein vergessener Abzug im Angebot kostet mehr
+                als die 149 EUR. */}
+            <AnrechnungsHinweis
+              email={(companies.find(c => c.id === form.company_id) || {}).email || ''}
+              kopfzeilen={h}
+              dealId={deal?.id}
+              onUebernehmen={(offene) => {
+                setForm(vorher => ({
+                  ...vorher,
+                  // Nur, was noch nicht drinsteht: Zweimal auf denselben
+                  // Knopf zu tippen darf den Abzug nicht verdoppeln.
+                  items: [
+                    ...vorher.items,
+                    ...offene
+                      .filter(a => !vorher.items.some(
+                        i => (i.position || '').includes(a.order_number)))
+                      .map(abzugsposition),
+                  ],
+                  // **Die Bestellnummern getrennt vom Positionstext**
+                  // (ORDERS_08). Der Text laesst sich umbenennen; die
+                  // Vormerkung darf davon nicht abhaengen.
+                  credit_order_numbers: Array.from(new Set([
+                    ...(vorher.credit_order_numbers || []),
+                    ...offene.map(a => a.order_number),
+                  ])),
+                }));
+                toast.success(offene.length === 1
+                  ? 'Anrechnung als Abzugsposition übernommen'
+                  : `${offene.length} Anrechnungen übernommen`);
+              }}
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
@@ -512,11 +558,11 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           <div style={{ marginTop: 20, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <label style={labelStyle}>Positionen</label>
-              <button onClick={addItem} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
+              <button onClick={addItem} style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
             </div>
 
             <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>
                 <div>Position</div>
                 <div style={{ textAlign: 'right' }}>Menge</div>
                 <div style={{ textAlign: 'right' }}>EP €</div>

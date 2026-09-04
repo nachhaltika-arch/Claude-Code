@@ -48,8 +48,12 @@ from tools.adressen import (  # noqa: E402
     weitere_aufrufer,
 )
 
-#: Adressen, die planmäßig nicht aus dem Frontend gerufen werden.
-#: Jede Gruppe braucht einen Grund — sonst wird die Liste zum Ablagefach.
+#: Adressen, die ein Suchlauf im Frontend planmaessig nicht findet — weil sie
+#: von aussen gerufen werden oder weil der Aufrufer die Adresse zur Laufzeit
+#: zusammensetzt. Jede Gruppe braucht einen Grund, und der Grund muss
+#: **nachgemessen** sein: Am 01.09.2026 stand hier eine Ausnahme, deren
+#: Begruendung nicht mehr zutraf (siehe `AUSSERHALB_DES_REPOS`). Sonst wird
+#: die Liste zum Ablagefach, und ein Ablagefach gibt keinen Alarm.
 ERKLAERT = (
     ("/api/webhooks/", "Webhook — wird von aussen gerufen (Stripe, Brevo, Netlify)"),
     # **Zwei weitere Rufe von aussen (26.08.2026).** Beide standen unter
@@ -71,20 +75,63 @@ ERKLAERT = (
     ("/api/design-canvas/", "Design-Canvas — wird aus Claude Code gerufen (DesignSync), nicht aus dem Browser"),
     ("/api/health", "Betriebspruefung"),
     ("/health", "Betriebspruefung"),
+    ("/api/ping", "Betriebspruefung"),
+    ("/info", "Betriebspruefung — seit 15.08.2026 nur Wahrheitswerte"),
+    ("/robots.txt", "Suchmaschinen"),
     ("/docs", "FastAPIs eigene Oberflaeche"),
     ("/redoc", "FastAPIs eigene Oberflaeche"),
     ("/openapi.json", "FastAPIs eigenes Schema"),
+    # **Vier Stripe-Rueckrufe (01.09.2026).** Sie standen alle vier unter
+    # „ruft niemand auf" — und das ist bei einem Webhook der Normalzustand.
+    # `/api/webhooks/` deckte sie nicht, weil jede Kasse ihren Rueckruf im
+    # eigenen Router traegt. Jeder weist sich mit einer Signatur aus; das
+    # Geheimnis gehoert der jeweils eingetragenen Adresse (siehe den Kopf von
+    # `routers/buch.py`).
+    ("/api/payments/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
+    ("/api/shop/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
+    ("/api/book/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
+    ("/api/geo-payments/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
+    # **Drei Links, die in einer Mail stehen (01.09.2026).** Kein Bildschirm
+    # ruft sie; der Kaeufer klickt sie im Postfach. Belegt an der Stelle, die
+    # sie schreibt: `routers/shop.py:288` und `:304` bauen die beiden ersten
+    # in die Bestellbestaetigung.
+    ("/api/shop/download/", "Abruflink aus der Bestellbestaetigung"),
+    ("/api/shop/orders/", "Auskunft und Rechnung — Link aus der Mail, Token im Pfad"),
+    ("/api/files/portal/", "Kundenportal — haengt am Einmal-Token aus der Mail"),
+    # **Die Basis ist eine Eigenschaft, kein fester Text (01.09.2026).** Das
+    # Werkzeug meldete `/{}/{}/editor` als Aufruf, der auf zwei Routen passt
+    # und ueber keine etwas sagt — und beide Routenpaare standen daneben als
+    # „ruft niemand auf". Nachgesehen: `components/GrapesEditor.jsx` baut
+    # `${endpointBase}/${pageId}/editor`, und `endpointBase` ist ein Parameter
+    # mit der Vorgabe `/api/pages`; `pages/KasWebsite.jsx` uebergibt
+    # `/api/kas/pages`. **Beide Paare werden also wirklich gerufen** — GET zum
+    # Laden, POST zum Speichern. Kein Befund, sondern die Antwort auf die
+    # Frage, die das Werkzeug selbst gestellt hat.
+    ("/api/pages/{page_id}/editor", "GrapesEditor — Basis kommt als Eigenschaft"),
+    ("/api/kas/pages/{page_id}/editor", "GrapesEditor auf der Agenturseite — Basis kommt als Eigenschaft"),
 )
 
 
-#: Ein Aufrufer, den kein Suchlauf hier findet: Die WebSprint-Landingpage
-#: liegt auf fremdem Apache und **nicht in diesem Repo** (L-20). Sie holt ihr
-#: Gratis-Audit über `/api/audit/{id}` und `/api/audit/status/{id}` (L-52).
-#: Solange das so ist, sieht jede Messung von hier aus diese Routen als
-#: ungerufen — sie sind es nicht. Das ist kein Fehler des Werkzeugs, sondern
-#: der Preis dafür, dass eine Verkaufsseite außerhalb der Quellversionierung
-#: lebt.
-AUSSERHALB_DES_REPOS = ("/api/audit/status/", "/api/audit/{audit_id}")
+#: Aufrufer, die kein Suchlauf hier findet, weil sie ausserhalb des Repos
+#: leben.
+#:
+#: **Am 01.09.2026 leer geworden — und das ist ein Befund, kein Aufraeumen.**
+#: Hier standen `/api/audit/status/` und `/api/audit/{audit_id}` mit der
+#: Begruendung, die WebSprint-Landingpage (L-20) hole ihr Gratis-Audit
+#: darueber. **An der Live-Seite nachgemessen stimmt das nicht mehr:**
+#: `https://websprint.kompagnon.eu` enthaelt keinen einzigen `/api/`-Aufruf.
+#: Sie bettet stattdessen `kas.kompagnon.group/embed/audit-widget.html` als
+#: iframe ein, und dieses Widget ruft ausschliesslich `/api/widget/*` — das
+#: ist bereits als „Widget" erklaert. Die beiden Audit-Routen ruft unser
+#: **eigenes** Frontend (`AuditTool.jsx`), sie tauchen also gar nicht mehr in
+#: der Liste auf.
+#:
+#: **Eine Ausnahme, die ihren Grund ueberlebt hat, ist schlimmer als keine:**
+#: Sie nimmt zwei Routen dauerhaft aus der Pruefung heraus, und niemand merkt
+#: es, weil eine Ausnahme keinen Alarm gibt. Wer hier wieder einen Eintrag
+#: setzt, misst vorher an der fremden Seite nach, statt sich auf die
+#: Beschreibung zu verlassen.
+AUSSERHALB_DES_REPOS = ()
 
 
 def _modul_des_handlers(main, methode: str, pfad: str) -> str:

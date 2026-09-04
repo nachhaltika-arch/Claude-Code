@@ -462,3 +462,27 @@ def befunde_nachtragen(
         db.commit()
 
     return {"betroffen": len(betroffen), "betriebe": bericht}
+
+
+# ── Alle auf einmal ───────────────────────────────────────────────────
+#
+# Stand bis zum 30.08.2026 in `leads.py`, waehrend `POST /{lead_id}/enrich`
+# hier lag: **derselbe Vorgang in zwei Dateien**, nur einmal fuer einen
+# Betrieb und einmal fuer alle. Aufgefallen beim Messen der Dateigroessen
+# (L-25) — nicht weil die Datei zu gross war, sondern weil beim Suchen nach
+# einem Schnitt auffiel, dass der Nachbar schon existiert.
+
+@router.post("/enrich/all")
+async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Batch-enrich all leads with score=0. Runs in background."""
+    from services.lead_enrichment import enrich_all_pending
+
+    def _run():
+        _db = SessionLocal()
+        try:
+            asyncio.run(enrich_all_pending(_db))
+        finally:
+            _db.close()
+
+    background_tasks.add_task(_run)
+    return {"message": "Anreicherung gestartet", "status": "processing"}

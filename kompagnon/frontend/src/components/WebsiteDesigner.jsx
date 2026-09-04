@@ -1,4 +1,5 @@
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import '@grapesjs/studio-sdk/style';
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -59,6 +60,11 @@ export default function WebsiteDesigner({
   // Clipboard paste is now handled by useGrapesAssetManager hook
 
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  useEscapeKey(() => setShowImportModal(false), showImportModal);
   const [importing, setImporting]   = useState(false);
   const [importMsg, setImportMsg]   = useState('');
   const [importError, setImportError] = useState('');
@@ -163,12 +169,12 @@ export default function WebsiteDesigner({
         </button>
 
         {importMsg && (
-          <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: '#1D9E75', fontWeight: 500 }}>
             {importMsg}
           </span>
         )}
         {importError && !showImportModal && (
-          <span style={{ fontSize: 11, color: '#E24B4A', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: '#E24B4A', fontWeight: 500 }}>
             ✗ {importError}
           </span>
         )}
@@ -184,7 +190,7 @@ export default function WebsiteDesigner({
             background: 'none', border: '1px solid rgba(255,255,255,0.2)',
             color: assetsRefreshing ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
             borderRadius: 4, padding: '4px 8px', cursor: assetsRefreshing ? 'not-allowed' : 'pointer',
-            fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
+            fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
           }}
         >
           <span style={{ display: 'inline-block', animation: assetsRefreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
@@ -192,8 +198,8 @@ export default function WebsiteDesigner({
         </button>
 
         {/* Paste hint */}
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 9 }}>⌘V</kbd>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 12 }}>⌘V</kbd>
           Bild
         </span>
 

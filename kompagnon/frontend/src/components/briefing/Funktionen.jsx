@@ -127,7 +127,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Externe Tools</span>
               {toolsAuto.length > 0 && (
-                <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
+                <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px', borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                   🤖 {toolsAuto.length} erkannt
                 </span>
               )}
@@ -141,7 +141,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                     key={name}
                     onClick={() => toggleTool(name)}
                     style={{
-                      padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'var(--font-sans)',
                       border: active ? '1.5px solid #00875A' : '1px solid var(--border-light)',
                       background: active ? '#E3F6EF' : 'var(--bg-app)',
@@ -149,7 +149,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}
                   >
-                    {auto && <span style={{ fontSize: 8 }}>🤖</span>}
+                    {auto && <span style={{ fontSize: 12 }}>🤖</span>}
                     {name}
                   </button>
                 );
@@ -160,7 +160,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
       </div>
 
       <div style={{ marginTop: 16, marginBottom: 16 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                         textTransform: 'uppercase', letterSpacing: '.06em',
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Funktionen
@@ -211,19 +211,19 @@ function FnRow({ icon, label, desc, checked, onChange, autoDetected, hint }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
             {autoDetected && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                 🤖 Crawler erkannt
               </span>
             )}
             {!autoDetected && hint && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#FFF7D6', color: '#B45309' }}>
                 💡 {hint}
               </span>
             )}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</div>
         </div>
         <div role="button" tabIndex={0} onKeyDown={aufTaste(() => onChange(!checked))}
           onClick={() => onChange(!checked)}

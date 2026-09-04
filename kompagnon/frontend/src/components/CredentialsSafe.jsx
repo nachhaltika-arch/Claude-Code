@@ -16,6 +16,7 @@
  * gar nicht gemessen werden konnte.
  */
 import { useState, useEffect } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
@@ -28,6 +29,11 @@ export default function CredentialsSafe({ projectId, token }) {
   const [visiblePw, setVisiblePw] = useState({});
   /** Gesetzt, wenn der Safe nicht aufgeht — dann wird nichts über den Bestand behauptet. */
   const [sperre, setSperre] = useState('');
+
+  // **Escape schliesst das Anlegen-Modal (30.08.2026, L-17).** Nur wenn es
+  // offen ist — sonst faengt diese Komponente eine Taste ab, die auf der
+  // Projektseite jemand anderem gehoert.
+  useEscapeKey(() => setShowAdd(false), showAdd);
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -110,7 +116,7 @@ export default function CredentialsSafe({ projectId, token }) {
                 {c.password && <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: 'var(--text-tertiary)' }}>Passwort:</span>
                   <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{visiblePw[c.id] ? c.password : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}</span>
-                  <button onClick={() => setVisiblePw(p => ({ ...p, [c.id]: !p[c.id] }))} style={{ background: 'none', border: 'none', color: 'var(--brand-primary-mid)', cursor: 'pointer', fontSize: 11, padding: 0 }}>{visiblePw[c.id] ? 'Verbergen' : 'Anzeigen'}</button>
+                  <button onClick={() => setVisiblePw(p => ({ ...p, [c.id]: !p[c.id] }))} style={{ background: 'none', border: 'none', color: 'var(--brand-primary-mid)', cursor: 'pointer', fontSize: 12, padding: 0 }}>{visiblePw[c.id] ? 'Verbergen' : 'Anzeigen'}</button>
                 </div>}
                 {c.url && <div style={{ gridColumn: '1 / -1' }}><span style={{ color: 'var(--text-tertiary)' }}>URL:</span> <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary-mid)', fontSize: 12 }}>{c.url}</a></div>}
                 {c.notes && <div style={{ gridColumn: '1 / -1', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{c.notes}</div>}

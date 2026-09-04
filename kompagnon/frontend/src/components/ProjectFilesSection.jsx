@@ -146,7 +146,7 @@ export default function ProjectFilesSection({ leadId }) {
           <span style={{ fontSize: 16 }}>📁</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Projektdateien</span>
           {!loading && files.length > 0 && (
-            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{files.length}</span>
+            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, padding: '2px 8px' }}>{files.length}</span>
           )}
         </div>
         <button
@@ -164,7 +164,7 @@ export default function ProjectFilesSection({ leadId }) {
               <span style={{ fontSize: 20 }}>📄</span>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{pendingFile.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtBytes(pendingFile.size)}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{fmtBytes(pendingFile.size)}</div>
               </div>
               <button onClick={(e) => { e.stopPropagation(); setPendingFile(null); }} style={{ marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16 }}>×</button>
             </div>
@@ -172,7 +172,7 @@ export default function ProjectFilesSection({ leadId }) {
             <>
               <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.3 }}>📂</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Dateien hier ablegen oder klicken</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>JPG, PNG, PDF, DOC, ZIP, SVG, AI, EPS — max. 20 MB</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>JPG, PNG, PDF, DOC, ZIP, SVG, AI, EPS — max. 20 MB</div>
             </>
           )}
         </div>
@@ -211,7 +211,7 @@ export default function ProjectFilesSection({ leadId }) {
           <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Dateien hochgeladen.</div>
         ) : (
           <div style={{ overflowX: 'auto', marginTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
               <span>Typ</span><span>Dateiname</span><span>Größe</span><span>Von</span><span>Datum</span><span>Aktionen</span>
             </div>
             {files.map(f => {
@@ -219,19 +219,19 @@ export default function ProjectFilesSection({ leadId }) {
               const isConfirming = confirmDelete === f.id;
               return (
                 <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '10px 12px', alignItems: 'center', borderBottom: '1px solid var(--border-light)', transition: 'background var(--transition-fast)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color }}>{badge.label}</span>
+                  <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, background: badge.bg, color: badge.color }}>{badge.label}</span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_filename}</div>
-                    {f.note && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{f.note}</div>}
+                    {f.note && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{f.note}</div>}
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{fmtBytes(f.file_size)}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{f.uploaded_by_role === 'admin' ? 'Mitarbeiter' : 'Kunde'}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmtTs(f.uploaded_at)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{fmtTs(f.uploaded_at)}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {isConfirming ? (
                       <>
-                        <button onClick={() => handleDelete(f.id)} disabled={deleting === f.id} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{deleting === f.id ? '…' : 'Löschen'}</button>
-                        <button onClick={() => setConfirmDelete(null)} style={{ fontSize: 11, padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbruch</button>
+                        <button onClick={() => handleDelete(f.id)} disabled={deleting === f.id} style={{ fontSize: 12, padding: '2px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{deleting === f.id ? '…' : 'Löschen'}</button>
+                        <button onClick={() => setConfirmDelete(null)} style={{ fontSize: 12, padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbruch</button>
                       </>
                     ) : (
                       <>
@@ -240,7 +240,7 @@ export default function ProjectFilesSection({ leadId }) {
                         </button>
                         {isImageFile(f.original_filename) && (
                           <button onClick={() => handleSendToEditor(f)} title="In GrapesJS-Editor laden" style={{
-                            padding: '3px 7px', fontSize: 10, fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                            padding: '3px 7px', fontSize: 12, fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
                             background: sentToEditorId === f.id ? 'var(--status-success-bg)' : 'var(--brand-primary-light)',
                             border: `1px solid ${sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-mid, var(--border-light))'}`,
                             color: sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-dark)',

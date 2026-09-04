@@ -19,13 +19,18 @@
  * eine Meldung öffnet, hat sie gesehen; die übrigen bleiben fett stehen.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useEscapeKey } from '../../hooks/useKeyboardShortcuts';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
 import { aufTaste } from '../../utils/tastaturBedienung';
 
 /** Symbol je Quelle — damit man die Art vor dem Lesen erkennt. */
-const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️' };
+// `faellig` kam am 01.09.2026 dazu (L-101): keine Meldung eines Kunden,
+// sondern eine Aufgabe mit Termin — das Quartals-Re-Audit der Pflege-Abos.
+// Ohne eigenes Zeichen faellt sie auf den Punkt zurueck und sieht aus wie
+// etwas, das jemand vergessen hat einzutragen.
+const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️', faellig: '📅' };
 
 function wieLange(roh) {
   if (!roh) return '';
@@ -44,6 +49,16 @@ export default function Glocke() {
   const location = useLocation();
 
   const [offen, setOffen] = useState(false);
+
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Der Hintergrund
+  // reagiert auf einen Klick; mit der Tastatur gab es keinen Weg heraus.
+  // `role="button"` waere hier falsch: Eine Ueberlagerung ist keine
+  // Schaltflaeche, sie ist der Weg zurueck.
+  // **Steht hier und nicht unter der Signatur.** Der Aufruf liest eine
+  // `const`-Bindung von oben; weiter oben eingesetzt waere das ein
+  // ReferenceError beim Rendern — und keiner der 558 Tests rendert
+  // diese Seite, haette ihn also gemeldet.
+  useEscapeKey(() => setOffen(false), offen);
   const [anzahl, setAnzahl] = useState(0);
   const [liste, setListe] = useState(null);
 
@@ -116,7 +131,7 @@ export default function Glocke() {
             position: 'absolute', top: 0, right: 0,
             minWidth: 16, height: 16, padding: '0 4px',
             borderRadius: 8, background: 'var(--status-error-text)',
-            color: '#fff', fontSize: 10, fontWeight: 700,
+            color: '#fff', fontSize: 12, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--font-sans)',
           }}>
@@ -152,7 +167,7 @@ export default function Glocke() {
               {anzahl > 0 && (
                 <button type="button" onClick={alleGelesen} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 11, color: 'var(--text-tertiary)',
+                  fontSize: 12, color: 'var(--text-tertiary)',
                   fontFamily: 'var(--font-sans)',
                 }}>
                   Alle gelesen
@@ -188,7 +203,7 @@ export default function Glocke() {
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{
-                    display: 'block', fontSize: 12.5,
+                    display: 'block', fontSize: 12,
                     fontWeight: eintrag.gelesen ? 400 : 700,
                     color: eintrag.gelesen ? 'var(--text-tertiary)' : 'var(--text-primary)',
                   }}>
@@ -196,13 +211,13 @@ export default function Glocke() {
                   </span>
                   {eintrag.hinweis && (
                     <span style={{
-                      display: 'block', fontSize: 11, color: 'var(--text-tertiary)',
+                      display: 'block', fontSize: 12, color: 'var(--text-tertiary)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {eintrag.hinweis}
                     </span>
                   )}
-                  <span style={{ display: 'block', fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {wieLange(eintrag.erstellt_am)}
                   </span>
                 </span>

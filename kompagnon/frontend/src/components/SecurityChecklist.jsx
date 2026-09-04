@@ -18,7 +18,7 @@ const SECURITY_CHECKS = [
     ],
   },
   {
-    area: 'Aktiver Schutz', icon: '🛡️', color: '#059669', bg: 'var(--status-success-bg)',
+    area: 'Aktiver Schutz', icon: '🛡️', color: 'var(--success)', bg: 'var(--status-success-bg)',
     items: [
       { id: 'waf', label: 'Web Application Firewall (WAF)', desc: 'Filtert boesartige Anfragen wie SQL-Injection bevor sie die Website erreichen', tool: 'Cloudflare', cost: 'Kostenlos', critical: true, auditField: 'si_header', maxScore: 3 },
       { id: 'security_plugin', label: 'Sicherheits-Plugin & Malware-Scan', desc: 'Scannt taeglich auf Schadsoftware und blockiert bekannte Angreifer automatisch', tool: 'Wordfence', cost: 'Kostenlos', critical: false, auditField: 'si_header', maxScore: 3 },
@@ -26,7 +26,7 @@ const SECURITY_CHECKS = [
     ],
   },
   {
-    area: 'Backups', icon: '💾', color: '#d97706', bg: 'var(--status-warning-bg)',
+    area: 'Backups', icon: '💾', color: 'var(--warn)', bg: 'var(--status-warning-bg)',
     items: [
       { id: 'auto_backup', label: 'Taegliches automatisches Backup', desc: 'Backup ausserhalb des Servers speichern (Google Drive, Dropbox). Letzte Verteidigungslinie.', tool: 'UpdraftPlus', cost: 'Kostenlos', critical: true, auditField: 'ho_backup', maxScore: 3 },
       { id: 'hosting_backup', label: 'Hosting mit Backup-Infrastruktur', desc: 'Nur Hoster waehlen die taegliche Server-Backups inkludieren', tool: 'Raidboxes / All-Inkl.', cost: 'Im Hosting enthalten', critical: true, auditField: 'ho_backup', maxScore: 3 },
@@ -45,8 +45,8 @@ function getStatus(field, data, max) {
 }
 
 const S = {
-  ok: { icon: '✓', color: '#059669', bg: 'var(--status-success-bg)', label: 'Umgesetzt' },
-  partial: { icon: '~', color: '#d97706', bg: 'var(--status-warning-bg)', label: 'Teilweise' },
+  ok: { icon: '✓', color: 'var(--success)', bg: 'var(--status-success-bg)', label: 'Umgesetzt' },
+  partial: { icon: '~', color: 'var(--warn)', bg: 'var(--status-warning-bg)', label: 'Teilweise' },
   missing: { icon: '✗', color: '#dc2626', bg: 'var(--status-danger-bg)', label: 'Fehlt' },
   unknown: { icon: '?', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)', label: 'Nicht geprueft' },
 };
@@ -67,8 +67,8 @@ export default function SecurityChecklist({ auditData }) {
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{auditData ? `${okItems} von ${totalItems} Massnahmen umgesetzt` : 'Noch kein Audit durchgefuehrt'}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {criticalMissing > 0 && <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{criticalMissing} kritisch</span>}
-          {auditData && okItems > 0 && <span style={{ background: 'var(--status-success-bg)', color: '#059669', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{okItems} umgesetzt</span>}
+          {criticalMissing > 0 && <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>{criticalMissing} kritisch</span>}
+          {auditData && okItems > 0 && <span style={{ background: 'var(--status-success-bg)', color: 'var(--success)', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>{okItems} umgesetzt</span>}
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export default function SecurityChecklist({ auditData }) {
                 <span style={{ fontSize: 18 }}>{area.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: area.color }}>{area.area}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} umgesetzt</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} umgesetzt</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -107,15 +107,15 @@ export default function SecurityChecklist({ auditData }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
-                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>KRITISCH</span>}
+                          {item.critical && <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>KRITISCH</span>}
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6 }}>{item.desc}</div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
-                          <span style={{ fontSize: 11, color: '#059669', background: 'var(--status-success-bg)', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
+                          <span style={{ fontSize: 12, color: 'var(--brand-primary-mid)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
+                          <span style={{ fontSize: 12, color: 'var(--success)', background: 'var(--status-success-bg)', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
                         </div>
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>
                     </div>
                   );
                 })}
@@ -125,7 +125,7 @@ export default function SecurityChecklist({ auditData }) {
         );
       })}
 
-      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>ℹ️</span> Basierend auf BSI Grundschutz, DSGVO Art. 32 und OWASP Top 10. Stand: 2025.
       </div>
     </div>

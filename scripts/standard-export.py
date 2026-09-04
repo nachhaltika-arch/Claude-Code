@@ -47,9 +47,35 @@ ERHEBUNG = {"gemessen": "gemessen", "abgeleitet": "abgeleitet",
 
 def laden(pfad: Path):
     """Direkt ueber den Pfad importieren — `services/__init__.py` zieht sonst
-    Datenbankmodule mit und das Skript braucht keine Datenbank."""
-    spec = importlib.util.spec_from_file_location("ac", pfad)
+    Datenbankmodule mit und das Skript braucht keine Datenbank.
+
+    **Seit dem 30.08.2026 ein Paket statt einer Datei.** Der Katalog war bis
+    dahin ein einzelnes Modul; mit der Aufteilung (L-25) holt er sich Formen
+    aus `services.audit_kriterium` und Inhalt aus `services.audit_katalog`.
+    Ein Import ueber den blossen Dateipfad kennt den Paketnamen nicht und
+    scheiterte mit `No module named 'services'`.
+
+    Der Ausweg ist **kein** normaler Import: Dafuer muesste
+    `services/__init__.py` laufen, und genau das soll es nicht. Stattdessen
+    wird ein leeres Paket gleichen Namens in `sys.modules` gestellt, dessen
+    `__path__` auf den Ordner zeigt. Der uebliche Importmechanismus findet die
+    Geschwister darueber — und `__init__.py` bleibt ungelesen.
+
+    Gefunden hat das nicht ein Mensch, sondern `test_buch_bloecke_aktuell` und
+    `test_anhang_b_aktuell`: Sie starten dieses Skript wirklich, statt seine
+    Logik nachzubauen.
+    """
+    import types
+
+    ordner = pfad.resolve().parent
+    if "services" not in sys.modules:
+        paket = types.ModuleType("services")
+        paket.__path__ = [str(ordner)]
+        sys.modules["services"] = paket
+
+    spec = importlib.util.spec_from_file_location(f"services.{pfad.stem}", pfad)
     modul = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = modul
     spec.loader.exec_module(modul)
     return modul
 

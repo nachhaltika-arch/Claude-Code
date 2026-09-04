@@ -33,6 +33,32 @@ regexes = [
   # fbc593d. Woertlich wie oben — der naechste hochentropische Testwert soll
   # weiter anschlagen.
   '''einlangesPasswort2026''',
+  # Und noch einmal am selben Abend (27.08.2026, Lauf 33100571929): ein
+  # Testwert in `tests/test_health_zahlungen.py`, der die Praefix-Pruefung
+  # belegen sollte und dabei die Form eines eingeschraenkten
+  # Stripe-Schluessels annahm (Regel `stripe-access-token`).
+  #
+  # Im Arbeitsstand werden die Praefixe seither **zusammengesetzt** statt
+  # geschrieben, es entsteht dort also gar keine Schluesselform mehr. Diese
+  # Zeichenkette steckt nur noch im Commit aecf6c4. Woertlich wie die beiden
+  # darueber — jeder kuenftige `rk_test_…`-Wert soll weiter anschlagen.
+  '''rk_test_ebenfallsGeheim''',
+  # **Der vierte Fall derselben Art** (04.09.2026, Lauf 33905443655), und
+  # diesmal in einem Test, der ausgerechnet pruefte, dass ein Schluessel
+  # **nicht** in der offenen Auskunft landet — `tests/test_stripe_modus.py`.
+  # Er hatte den Wert als eine Zeichenkette in Schluesselform in der Datei;
+  # Regel `stripe-access-token`, Entropie 4,02.
+  #
+  # Im Arbeitsstand wird der Wert seither **zusammengesetzt** (`"sk_" +
+  # "live_" + …`), es entsteht dort also keine Schluesselform mehr. Diese
+  # Zeichenkette steckt nur noch im Commit 6d84646. Woertlich wie die drei
+  # darueber — jeder kuenftige `sk_live_…`-Wert soll weiter anschlagen.
+  #
+  # **Vier Faelle sind kein Zufall mehr, sondern eine Bauregel:** Ein
+  # Testwert, der eine Schluesselform braucht, wird zur Laufzeit gebaut.
+  # Wer ihn hinschreibt, hinterlaesst ihn in der Historie — und die liest
+  # jeder Lauf mit, auch wenn der Arbeitsstand laengst sauber ist.
+  '''sk_live_51SehrGeheimAbcDef''',
 ]
 # Also allowlist by historical commit hash for belt-and-braces:
 commits = [

@@ -27,96 +27,16 @@ from routers.projects_router import router
 logger = logging.getLogger(__name__)
 
 
-@router.post("/{project_id}/scrape")
-async def scrape_project_website(
-    project_id: int,
-    db: Session = Depends(get_db),
-):
-    """Scrapt die Website des Projekts und extrahiert Branddesign-Daten."""
-    import httpx, re, json
-    from datetime import datetime as dt
-
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
-
-    lead = project.lead
-    if not lead or not lead.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    url = lead.website_url
-    if not url.startswith("http"):
-        url = "https://" + url
-    lead_id = lead.id
-
-    # DB-Verbindung vor dem externen Scrape-Call freigeben
-    db.close()
-
-    try:
-        async with httpx.AsyncClient(timeout=15.0, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                          "AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/120.0.0.0 Safari/537.36"
-        }) as client:
-            resp = await client.get(url, follow_redirects=True)
-
-        html = resp.text
-
-        hex_colors = list(set(re.findall(r'#([0-9a-fA-F]{6})\b', html)))[:15]
-        fonts = list(set(re.findall(r"font-family:\s*['\"]?([^;'\"{}]+)", html)))[:5]
-        logo_match = re.search(r'<img[^>]+(logo)[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
-        logo_url = logo_match.group(2) if logo_match else None
-
-        primary = ('#' + hex_colors[0]) if hex_colors else None
-        secondary = ('#' + hex_colors[1]) if len(hex_colors) > 1 else None
-        font_primary = fonts[0].strip() if fonts else None
-
-        # Neue Session zum Speichern
-        db2 = SessionLocal()
-        try:
-            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
-            if lead:
-                lead.brand_primary_color = primary
-                lead.brand_secondary_color = secondary
-                lead.brand_font_primary = font_primary
-                lead.brand_logo_url = logo_url
-                lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
-                lead.brand_fonts = json.dumps(fonts)
-                lead.brand_scrape_failed = False
-                lead.brand_scraped_at = dt.utcnow()
-                db2.commit()
-        finally:
-            db2.close()
-
-        return {
-            "success": True,
-            "primary_color": primary,
-            "secondary_color": secondary,
-            "font_primary": font_primary,
-            "logo_url": logo_url,
-            "all_colors": ['#' + c for c in hex_colors],
-            "all_fonts": fonts,
-            "scrape_failed": False,
-            "scraped_at": dt.utcnow().isoformat(),
-        }
-
-    except Exception as e:
-        db2 = SessionLocal()
-        try:
-            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
-            if lead:
-                lead.brand_scrape_failed = True
-                db2.commit()
-        except Exception:
-            db2.rollback()
-        finally:
-            db2.close()
-        return {
-            "success": False,
-            "scrape_failed": True,
-            "error": str(e),
-            "message": "Website konnte nicht gescrapt werden",
-        }
+# **Hier stand `POST /{project_id}/scrape`** — 88 Zeilen, entfernt am
+# 01.09.2026 (L-105). Ebenfalls ein Doppelweg: Dieselbe Sache — die
+# Website nach Farben, Schriften und Logo absuchen — macht
+# `POST /api/branddesign/{lead_id}/scrape`, und **die** ruft die
+# Markendesign-Werkstatt wirklich auf.
+#
+# **Beim ersten Anlauf haette ich die falsche geloescht:** Der
+# naheliegende Vergleich war `/api/crawler/scrape-content/{id}`, und der
+# holt **Inhalte**, keine Markenfarben. Zwei Routen mit demselben Wort im
+# Namen sind noch lange nicht dieselbe Sache.
 
 
 @router.post("/{project_id}/hosting-scan")

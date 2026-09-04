@@ -3,6 +3,7 @@
  * Props: { leadId, leadName, token, onClose }
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { aufTaste } from '../utils/tastaturBedienung';
@@ -18,7 +19,7 @@ const STATUS_COLOR = {
 function StatusBadge({ status }) {
   const s = STATUS_COLOR[status] || STATUS_COLOR.ausstehend;
   return (
-    <span style={{ background: s.bg, color: s.text, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10, whiteSpace: 'nowrap' }}>
+    <span style={{ background: s.bg, color: s.text, fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 10, whiteSpace: 'nowrap' }}>
       {s.label}
     </span>
   );
@@ -93,13 +94,13 @@ function SectionCard({ section, token, onUpdated }) {
           {section.slot_label}
         </span>
         {section.zeichenlimit && (
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>max. {section.zeichenlimit} Z.</span>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>max. {section.zeichenlimit} Z.</span>
         )}
         <StatusBadge status={section.status} />
         <button
           onClick={generateKI}
           disabled={kiLoading}
-          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand-primary-mid)', background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', cursor: kiLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}
+          style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand-primary-mid)', background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', cursor: kiLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}
         >
           {kiLoading ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--brand-primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Generiere...</> : '🤖 KI-Entwurf'}
         </button>
@@ -107,7 +108,7 @@ function SectionCard({ section, token, onUpdated }) {
 
       {/* Hinweis */}
       {section.hinweis && (
-        <div style={{ padding: '6px 14px', fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', borderBottom: '1px solid var(--border-light)' }}>
+        <div style={{ padding: '6px 14px', fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', borderBottom: '1px solid var(--border-light)' }}>
           {section.hinweis}
         </div>
       )}
@@ -116,13 +117,13 @@ function SectionCard({ section, token, onUpdated }) {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 0 }}>
         {/* KI-Entwurf */}
         <div style={{ background: '#EFF6FF', padding: 12, borderRight: '1px solid var(--border-light)' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#1D4ED8', marginBottom: 6 }}>KI-Entwurf</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#1D4ED8', marginBottom: 6 }}>KI-Entwurf</div>
           {section.inhalt_ki ? (
             <>
               <div style={{ fontSize: 12, color: '#1e3a5f', whiteSpace: 'pre-wrap', lineHeight: 1.5, minHeight: 60 }}>{section.inhalt_ki}</div>
               <button
                 onClick={adoptKI}
-                style={{ marginTop: 8, fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #1D4ED8', background: '#DBEAFE', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                style={{ marginTop: 8, fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #1D4ED8', background: '#DBEAFE', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
               >
                 Übernehmen →
               </button>
@@ -136,7 +137,7 @@ function SectionCard({ section, token, onUpdated }) {
 
         {/* Vom Kunden */}
         <div style={{ background: '#FFFBEB', padding: 12, borderRight: '1px solid var(--border-light)' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#D97706', marginBottom: 6 }}>Vom Kunden</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', marginBottom: 6 }}>Vom Kunden</div>
           <textarea aria-label="Hier den Text des Kunden eintragen..."
             value={kunde}
             onChange={e => { setKunde(e.target.value); saveKunde(e.target.value); }}
@@ -148,7 +149,7 @@ function SectionCard({ section, token, onUpdated }) {
 
         {/* Finaler Text */}
         <div style={{ background: '#F0FDF4', padding: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#065F46', marginBottom: 6 }}>Finaler Text</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#065F46', marginBottom: 6 }}>Finaler Text</div>
           <textarea aria-label="Finaler Text für den Mockup..."
             value={final}
             onChange={e => { setFinal(e.target.value); saveFinal(e.target.value); }}
@@ -159,7 +160,7 @@ function SectionCard({ section, token, onUpdated }) {
           <button
             onClick={approve}
             disabled={approved}
-            style={{ marginTop: 8, fontSize: 11, padding: '4px 10px', borderRadius: 6, border: `1px solid ${approved ? '#A7F3D0' : '#065F46'}`, background: approved ? '#D1FAE5' : '#065F46', color: approved ? '#065F46' : 'white', cursor: approved ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}
+            style={{ marginTop: 8, fontSize: 12, padding: '4px 10px', borderRadius: 6, border: `1px solid ${approved ? '#A7F3D0' : '#065F46'}`, background: approved ? '#D1FAE5' : '#065F46', color: approved ? '#065F46' : 'white', cursor: approved ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}
           >
             {approved ? '✅ Freigegeben' : '✅ Freigeben'}
           </button>
@@ -223,7 +224,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
     <div style={{ border: hasFile ? '1px solid var(--border-light)' : '2px dashed #CBD5E1', borderRadius: 10, padding: 14, background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', textAlign: hasFile ? 'left' : 'center' }}>{media.slot_label}</div>
       {media.hinweis && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: hasFile ? 'left' : 'center' }}>{media.hinweis}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: hasFile ? 'left' : 'center' }}>{media.hinweis}</div>
       )}
 
       {hasFile ? (
@@ -233,23 +234,23 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
             alt={media.dateiname}
             style={{ width: '100%', maxHeight: 150, objectFit: 'cover', borderRadius: 8, display: 'block' }}
           />
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {media.dateiname} · {media.dateigroesse_kb} KB
           </div>
           <StatusBadge status={media.status} />
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {media.status !== 'freigegeben' && (
-              <button onClick={handleApprove} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #065F46', background: '#065F46', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>✅ Freigeben</button>
+              <button onClick={handleApprove} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #065F46', background: '#065F46', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>✅ Freigeben</button>
             )}
-            <button onClick={() => fileRef.current?.click()} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🔄 Ersetzen</button>
+            <button onClick={() => fileRef.current?.click()} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🔄 Ersetzen</button>
             {deleteConfirm ? (
               <>
-                <span style={{ fontSize: 11, color: '#DC2626' }}>Sicher?</span>
-                <button onClick={handleDelete} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #DC2626', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, löschen</button>
-                <button onClick={() => setDeleteConfirm(false)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+                <span style={{ fontSize: 12, color: '#DC2626' }}>Sicher?</span>
+                <button onClick={handleDelete} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #DC2626', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, löschen</button>
+                <button onClick={() => setDeleteConfirm(false)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
               </>
             ) : (
-              <button onClick={handleDelete} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🗑️ Löschen</button>
+              <button onClick={handleDelete} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🗑️ Löschen</button>
             )}
           </div>
         </>
@@ -263,7 +264,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
           >
             <div style={{ fontSize: 28 }}>📤</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Datei hier ablegen oder klicken</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>max. 10 MB · JPG, PNG, WebP, SVG</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>max. 10 MB · JPG, PNG, WebP, SVG</div>
           </div>
           {uploading && (
             <div style={{ height: 4, background: '#E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
@@ -271,7 +272,7 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
             </div>
           )}
           {uploadError && (
-            <div style={{ fontSize: 11, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 12, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>⚠️ {uploadError}</span>
               <button onClick={() => setUploadError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: 14, lineHeight: 1, padding: 0, marginLeft: 8 }}>×</button>
             </div>
@@ -369,7 +370,7 @@ function PageContent({ page, token, onPageUpdated }) {
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>{data.page_name}</h2>
           {page.ziel_keyword && (
-            <span style={{ display: 'inline-block', marginTop: 4, fontSize: 11, background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 10, padding: '2px 8px', fontWeight: 600 }}>{page.ziel_keyword}</span>
+            <span style={{ display: 'inline-block', marginTop: 4, fontSize: 12, background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 10, padding: '2px 8px', fontWeight: 600 }}>{page.ziel_keyword}</span>
           )}
           {page.zweck && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>{page.zweck}</div>}
         </div>
@@ -419,6 +420,13 @@ function PageContent({ page, token, onPageUpdated }) {
 
 // ── Haupt-Komponente ──────────────────────────────────────────────────────────
 export default function ContentManager({ leadId, leadName, token, onClose }) {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // Hier gibt es **gar keinen** Hintergrundklick: Das Fenster fuellt den
+  // Bildschirm, und der einzige Ausgang war bisher das Kreuz oben rechts.
+  useEscapeKey(onClose);
+
   const [pages, setPages] = useState([]);
   const [activePage, setActivePage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -490,7 +498,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                 >
                   <span>{pageIcon(page.page_type)}</span>
                   <span style={{ fontSize: 13, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>{page.page_name}</span>
-                  {total > 0 && <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600 }}>{done}/{total}</span>}
+                  {total > 0 && <span style={{ fontSize: 12, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600 }}>{done}/{total}</span>}
                 </button>
               );
             })}
@@ -503,7 +511,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
           {/* Desktop: Linke Spalte — Seitennavigation */}
           {!isMobile && (
             <div style={{ width: 250, flexShrink: 0, borderRight: '1px solid var(--border-light)', overflowY: 'auto', padding: '12px 0' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
                 Pflichtseiten werden von KOMPAGNON befüllt.
               </div>
               {loading && <div style={{ padding: '20px 14px', color: 'var(--text-tertiary)', fontSize: 12 }}>Lade Seiten…</div>}
@@ -519,7 +527,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
                     <span style={{ fontSize: 14 }}>{pageIcon(page.page_type)}</span>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: isActive ? 500 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</span>
                     {total > 0 && (
-                      <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
                         {done}/{total} {done === total ? '✅' : ''}
                       </span>
                     )}

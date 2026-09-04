@@ -260,15 +260,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#0891b2,#0e4f6b);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#0891b2;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--info);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#0891b2;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--info);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#0891b2;margin-bottom:.5rem;}
+.card h3{color:var(--info);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#0891b2;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--info);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#0891b222,#0891b244);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#0891b2;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}
@@ -1300,15 +1300,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#0891b2,#0e4f6b);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#0891b2;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--info);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#0891b2;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--info);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#0891b2;margin-bottom:.5rem;}
+.card h3{color:var(--info);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#0891b2;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--info);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#0891b222,#0891b244);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#0891b2;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}
@@ -1540,15 +1540,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#0891b2,#0e4f6b);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#0891b2;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--info);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#0891b2;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--info);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#0891b2;margin-bottom:.5rem;}
+.card h3{color:var(--info);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#0891b2;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--info);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#0891b222,#0891b244);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#0891b2;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}
@@ -1620,15 +1620,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#d97706,#78350f);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#d97706;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--warn);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#d97706;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--warn);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#d97706;margin-bottom:.5rem;}
+.card h3{color:var(--warn);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#d97706;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--warn);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#d9770622,#d9770644);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#d97706;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}
@@ -1700,15 +1700,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#16a34a,#14532d);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#16a34a;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--success);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#16a34a;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--success);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#16a34a;margin-bottom:.5rem;}
+.card h3{color:var(--success);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#16a34a;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--success);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#16a34a22,#16a34a44);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#16a34a;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}
@@ -2500,15 +2500,15 @@ nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:1.5rem;font-
 .hero{background:linear-gradient(135deg,#0891b2,#0e4f6b);color:#fff;padding:5rem 2rem;text-align:center;}
 .hero h1{font-size:2.5rem;margin-bottom:1rem;}
 .hero p{font-size:1.15rem;opacity:.9;max-width:600px;margin:0 auto 2rem;}
-.btn{background:#fff;color:#0891b2;padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
+.btn{background:#fff;color:var(--info);padding:.75rem 2rem;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;}
 .services{padding:4rem 2rem;background:#f8f9fa;}
-.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:#0891b2;}
+.services h2{text-align:center;font-size:2rem;margin-bottom:2.5rem;color:var(--info);}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto;}
 .card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center;}
 .card .icon{font-size:2.5rem;margin-bottom:1rem;}
-.card h3{color:#0891b2;margin-bottom:.5rem;}
+.card h3{color:var(--info);margin-bottom:.5rem;}
 .about{padding:4rem 2rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.about h2{font-size:1.8rem;color:#0891b2;margin-bottom:1rem;}
+.about h2{font-size:1.8rem;color:var(--info);margin-bottom:1rem;}
 .about-img{background:linear-gradient(135deg,#0891b222,#0891b244);border-radius:12px;height:250px;display:flex;align-items:center;justify-content:center;font-size:5rem;}
 .contact{background:#0891b2;color:#fff;padding:4rem 2rem;text-align:center;}
 .contact h2{font-size:1.8rem;margin-bottom:1rem;}

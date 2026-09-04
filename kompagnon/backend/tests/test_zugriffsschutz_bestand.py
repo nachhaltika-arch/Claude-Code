@@ -10,7 +10,7 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | Bereich | Zahl | Grund |
 |---|---|---|
 | `academy` | 14 | Kundenweg. Jede Route filtert auf `current_user.id`; die Zertifikatsausstellung nimmt keine Nutzerkennung entgegen. |
-| `portal` | 7 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. |
+| `portal` | 13 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. **Dazu `GET` und `POST /inhalt`:** Guthaben und Aenderungswuensche des eigenen Betriebs. Der `GET` nimmt hoechstens einen Monat (`JJJJ-MM`), der `POST` einen Freitext — keiner von beiden eine Betriebs- oder Anfragekennung. Der Betrieb kommt aus `user.lead_id`, und die Liste ist danach gefiltert. **Seit 04.09.2026 dazu `POST /zahlungen/einzug`:** Sie nimmt **gar keine** Eingabe — kein Rumpf, keine Kennung. Vertrag und Betrieb kommen aus `user.lead_id`; ein Vertrag auf Rechnung wird ausdruecklich abgewiesen, damit niemand ueber diesen Weg eine Abrechnungsart wechselt, der er nicht zugestimmt hat. **Und `GET /leistung` vom selben Tag:** Monatsberichte und der Re-Audit-Termin des eigenen Betriebs, ebenfalls ohne jede Eingabe; ohne laufendes Abo antwortet sie leer. |
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
@@ -55,7 +55,19 @@ import pytest
 #:   **offenen** Liste hierher gewandert: Der Endpunkt las den JWT aus dem
 #:   Rumpf und entschluesselte ihn von Hand; jetzt `get_current_user` wie
 #:   ueberall, dazu Rollen- und Eigentumspruefung. Staerker als vorher.
-ERWARTET = 58
+#: 04.09.2026: 65 — `POST /api/portal/zahlungen/einzug`. Der Kunde richtet
+#:   den Bankeinzug fuer sein **eigenes** Pflege-Abo ein (L-162, Entscheidung
+#:   „ueber Stripe"). Die Route nimmt **ueberhaupt keine Eingabe** entgegen:
+#:   kein Rumpf, keine Kennung, kein Parameter. Betrieb und Vertrag kommen
+#:   aus `user.lead_id`, die Rueckkehradressen aus `public_base_url()`. Sie
+#:   kann damit nichts Fremdes treffen, auch nicht mit geratenen Werten —
+#:   dieselbe Bauart wie `POST /zahlungen/verwalten` daneben.
+#: 04.09.2026, spaeter: 66 — `GET /api/portal/leistung`. Leistungsbericht
+#:   und Re-Audit-Termin des **eigenen** Betriebs (L-160, Rang 2). Nimmt
+#:   ebenfalls keine Eingabe: kein Rumpf, keine Kennung, kein Parameter. Der
+#:   Betrieb kommt aus `user.lead_id`, und ohne laufendes Abo ist die Antwort
+#:   leer statt fremd.
+ERWARTET = 66
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {
@@ -83,7 +95,60 @@ ERLAUBTE_BEREICHE = {
 #:   anders — gedrosselt je Herkunft, und ihre Antwort ist fuer „gibt es
 #:   nicht", „schon bestaetigt" und „gesendet" **dieselbe**, damit sie kein
 #:   Adressverzeichnis wird.
-OFFEN_ERWARTET = 52
+#: 27.08.2026, spaet: 51 — `GET /api/audit/analysen/anzahl` entfernt. Er
+#:   speiste den Werbesatz „Ueber X Handwerksbetriebe analysiert" im Widget;
+#:   der Satz kam am 24.08. weg (L-65/L-95), der Hook dazu am 27.08. Damit
+#:   war der Endpunkt oeffentlich, ungerufen und ohne Zweck.
+#: 27.08.2026, ORDERS_03: 52 — `POST /api/shop/checkout`. Sie **muss** offen
+#:   sein: Wer ein digitales Produkt kauft, hat noch kein Konto; das Konto
+#:   entstuende erst mit dem Kauf. Abgesichert ist sie anders — der Preis
+#:   kommt aus dem Katalog und nie aus der Anfrage, ein Entwurf ist nicht
+#:   bestellbar, und ein Verbraucher ohne Widerrufsverzicht wird abgelehnt.
+#: 29.08.2026, ORDERS_04: 54 — zwei Routen, beide zwingend offen.
+#:   `POST /api/shop/webhook` ruft **Stripe** auf, nicht ein angemeldeter
+#:   Mensch. Eine Anmeldepruefung waere hier keine Sicherung, sondern ein
+#:   Ausfall: Stripe kann sich nicht anmelden und wiederholte die Meldung
+#:   tagelang. Abgesichert ist sie staerker als durch eine Anmeldung — jede
+#:   Anfrage muss eine gueltige Signatur mit **eigenem** Geheimnis tragen
+#:   (`SHOP_STRIPE_WEBHOOK_SECRET`, L-138), sonst 400. Ohne eingerichtetes
+#:   Geheimnis nimmt sie **gar nichts** an.
+#:   `GET /api/shop/orders/{order_number}/status` fragt die Danke-Seite ab,
+#:   waehrend die Zahlung bestaetigt wird — der Kaeufer hat kein Konto. Sie
+#:   gibt genau drei Felder heraus: Bestellnummer, Status, Produktkennung.
+#:   **Keine Mail, kein Betrag, keine Anschrift** — die Bestellnummer steht im
+#:   Browserverlauf und in E-Mails und ist deshalb kein Geheimnis, aus dem
+#:   sich ein Datensatz ableiten darf. Zwei Zusicherungen in
+#:   `tests/test_shop_webhook.py` halten das fest.
+#: 29.08.2026, ORDERS_06: 55 — `GET /api/shop/download/{token}`. Zwingend
+#:   offen: Der Kaeufer hat kein Konto, und eines anzulegen, nur um eine
+#:   gekaufte Datei abzuholen, waere eine Huerde nach der Zahlung.
+#:   **Der Token ist das Geheimnis**, nicht die Anmeldung — 32 Byte aus
+#:   `secrets.token_urlsafe`, eindeutig indiziert, dreissig Tage gueltig.
+#:   Ein unbekannter und ein unbezahlter Abruf antworten **gleich** (404),
+#:   damit der Unterschied nicht verraet, welche Bestellungen es gibt; ein
+#:   abgelaufener bekommt 410 mit eigener Auskunft. Die Datei selbst laeuft
+#:   nicht durch uns: Es wird auf eine signierte R2-Adresse weitergeleitet,
+#:   die Minuten lebt. Zwoelf Zusicherungen in `tests/test_shop_auslieferung.py`.
+#: 29.08.2026, ORDERS_07: 56 — `GET /api/shop/orders/{nr}/invoice`. Zwingend
+#:   offen aus demselben Grund wie der Abruf: Der Kaeufer hat kein Konto.
+#:   **Abgesichert ist sie schaerfer als der Abruf**, weil die Rechnung Name
+#:   und Anschrift traegt: Sie verlangt die Bestellnummer **und** denselben
+#:   Token wie die Datei, und beide muessen zur selben Bestellung gehoeren.
+#:   Die Bestellnummer allein genuegt nicht — sie steht im Browserverlauf und
+#:   in E-Mails, und wer sie kennt, bekaeme sonst einen Datensatz. Ein
+#:   falscher Token ist 404, nicht 403: Auch die Auskunft „diese Bestellung
+#:   gibt es" gehoert nicht heraus.
+#: 01.09.2026, BUCH-09: 57 — `GET /api/health/cors`. Die Diagnose fuer die
+#:   Verbindung Browser→Backend. **Offen mit Absicht:** Wer wissen will, ob
+#:   eine *fremde* Landingpage das Backend erreicht, hat dort kein Token; hinter
+#:   der Anmeldung beantwortete der Endpunkt genau die Frage nicht, fuer die er
+#:   gebaut ist. Heraus gehen nur die erlaubten Herkuenfte, die Herkunft des
+#:   Aufrufs, ob sie passt, und der Deploy-Stand — dieselbe Liste, die ohnehin
+#:   in jeder Preflight-Antwort steht. Eine Zusicherung in
+#:   `test_cors_herkuenfte` haelt fest, dass dort nichts weiter hinzukommt;
+#:   der Anlass dafuer ist der 15.08.2026, als Datenbank-Zugangsdaten auf einem
+#:   Auskunftsendpunkt offenlagen.
+OFFEN_ERWARTET = 57
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
@@ -111,12 +176,22 @@ OFFEN_ERWARTET = 52
 #:                           Nummer, Ausgabe, Zahlungsstand und eine
 #:                           **verkuerzte** Adresse heraus — keine Anschrift,
 #:                           kein Abruftoken.
-#: `health`, `ping`          Betriebsanzeigen ohne Inhalt.
+#: `health`, `ping`          Betriebsanzeigen ohne Inhalt — dazu seit dem
+#:                           01.09.2026 `health/cors`, die Verbindungs-
+#:                           diagnose aus BUCH-09.
+#: `shop`                    Der Bezahlvorgang fuer digitale Produkte
+#:                           (L-100, 27.08.2026). Offen aus demselben Grund
+#:                           wie `payments` und `book`: Wer kauft, hat noch
+#:                           kein Konto. Abgesichert ist er anders — der
+#:                           Preis kommt aus dem Katalog und nie aus der
+#:                           Anfrage, ein Entwurf ist nicht bestellbar, und
+#:                           ein Verbraucher ohne Widerrufsverzicht wird
+#:                           abgelehnt.
 OFFENE_BEREICHE = {
     "widget", "webhooks", "auth", "leads", "payments", "tickets",
     "products", "projects", "audit", "messages", "briefings", "kampagne",
     "academy", "geo-payments", "mail-events", "health", "ping", "book",
-    "posteingang",
+    "posteingang", "shop",
 }
 
 

@@ -63,13 +63,13 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
     <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {colors.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Brand-Farben</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Brand-Farben</div>
           <div style={{ display: 'flex', gap: 10 }}>
             {colors.map(c => (
               <div key={c.role} style={{ textAlign: 'center' }}>
                 <div style={{ width: 52, height: 52, borderRadius: 10, background: c.hex, border: '1px solid var(--border-light)', marginBottom: 4 }} />
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>{c.role}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c.hex}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>{c.role}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c.hex}</div>
               </div>
             ))}
           </div>
@@ -78,12 +78,12 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
 
       {fonts.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Schriftarten</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Schriftarten</div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {fonts.slice(0,4).map((f, i) => (
               <div key={i} style={{ padding: '10px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Aa</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{f}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{f}</div>
               </div>
             ))}
           </div>
@@ -91,7 +91,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
       )}
 
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Stil-Vorlage waehlen</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Stil-Vorlage waehlen</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
           {PRESETS.map(p => (
             <div role="button" tabIndex={0} onKeyDown={aufTaste(() => setSelectedTpl(p.id))} key={p.id} onClick={() => setSelectedTpl(p.id)}
@@ -100,7 +100,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
                 background: selectedTpl === p.id ? `${p.color}12` : 'var(--bg-surface)', transition: 'all .15s' }}>
               <div style={{ width: '100%', height: 6, borderRadius: 3, background: p.color, marginBottom: 8 }} />
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{p.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.desc}</div>
             </div>
           ))}
           {dbTemplates.map(t => (
@@ -108,7 +108,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
               style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 border: `2px solid ${selectedTpl === `db-${t.id}` ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 background: selectedTpl === `db-${t.id}` ? 'var(--bg-active)' : 'var(--bg-surface)' }}>
-              <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 700, marginBottom: 4 }}>Gespeichert</div>
+              <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 700, marginBottom: 4 }}>Gespeichert</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>
             </div>
           ))}
@@ -116,7 +116,7 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
       </div>
 
       <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>KI-Design generieren</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>KI-Design generieren</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <select aria-label="Seite fuer das KI-Design" value={selectedPage?.id || ''} onChange={e => { const p = sitemapPages.find(s => String(s.id) === e.target.value); setSelectedPage(p || null); }}
             style={{ flex: 1, minWidth: 180, padding: '9px 12px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 8, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
@@ -128,13 +128,13 @@ export function DesignStudioEmbed({ project, leadId, token, headers, brandData, 
             {generating ? (<><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', display:'inline-block' }} />Generiert...</>) : 'Design generieren'}
           </button>
         </div>
-        {!selectedTpl && <div style={{ fontSize: 11, color: 'var(--status-warning-text)', marginTop: 6 }}>Bitte zuerst eine Stil-Vorlage waehlen</div>}
+        {!selectedTpl && <div style={{ fontSize: 12, color: 'var(--status-warning-text)', marginTop: 6 }}>Bitte zuerst eine Stil-Vorlage waehlen</div>}
         {error && <div style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 8 }}>{error}</div>}
       </div>
 
       {generatedHtml && (
         <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Vorschau</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Vorschau</div>
           <iframe srcDoc={generatedHtml} style={{ width: '100%', height: 500, border: '1px solid var(--border-light)', borderRadius: 8 }} title="Design-Vorschau" />
           <button onClick={() => window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { html: generatedHtml } }))}
             style={{ marginTop: 10, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
@@ -182,18 +182,18 @@ export function GbpQrEmbed({ project, headers }) {
     <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {gbpData?.review_url && (
         <div style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Google Bewertungs-Link</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Google Bewertungs-Link</div>
           <a href={gbpData.review_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--brand-primary-mid)', wordBreak: 'break-all' }}>{gbpData.review_url}</a>
         </div>
       )}
       {project.gbp_rating && (
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Google Bewertung</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706' }}>⭐ {project.gbp_rating}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Google Bewertung</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--warn)' }}>⭐ {project.gbp_rating}</div>
           </div>
           <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Anzahl Bewertungen</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Anzahl Bewertungen</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{project.gbp_ratings_total}</div>
           </div>
         </div>

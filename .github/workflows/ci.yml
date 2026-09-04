@@ -196,7 +196,10 @@ jobs:
 
       - name: Install backend
         working-directory: kompagnon/backend
-        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt
+        # `requirements-dev.txt` kommt seit dem 28.08. mit: Dieser Job fuehrt
+        # seit L-144 auch einen pytest-Lauf (die Consent-Sperre im Browser),
+        # und ohne die Entwicklungsabhaengigkeiten gibt es hier kein pytest.
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt -r requirements-dev.txt
 
       # Der Editor gibt nur den naechsten Schritt nach der letzten lueckenlosen
       # Kette frei. Ohne dieses Seed sind Sitemap, Wireframe und Style Guide
@@ -262,6 +265,24 @@ jobs:
         run: |
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci
           bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install chromium
+
+      # Die Einwilligungs-Sperre erzeugter Kundenseiten (L-144) laesst sich nur
+      # in einem Browser belegen: Ob eine Adresse **nicht abgerufen** wird,
+      # sagt kein Markup-Test. Sie haengt hier und nicht im pytest-Job, weil
+      # dort kein Chromium liegt — der erste Lauf nach dem Bauen zeigte
+      # `5 skipped` statt `1`, die Tests liefen also nie.
+      #
+      # `BROWSERTESTS_PFLICHT=1` verbietet ihnen genau hier das Ueberspringen:
+      # Fehlt der Browser an der Stelle, die ihn eigens installiert, ist das
+      # ein Fehler und keine Randnotiz.
+      - name: Consent-Sperre und Kontrast im Browser (L-144, L-17)
+        working-directory: kompagnon/backend
+        env:
+          BROWSERTESTS_PFLICHT: "1"
+        run: |
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" python -m playwright install chromium
+          python -m pytest tests/test_einwilligung_im_browser.py \
+                          tests/test_kontrast_auf_bild.py -q -p no:warnings
 
       - name: Run browser tests
         working-directory: kompagnon/e2e
@@ -365,6 +386,43 @@ jobs:
             exit 1
           fi
 
+          # **Ein Netzfehler beim Nachfragen ist kein gescheiterter Deploy**
+          # (04.09.2026). Lauf 33887331917 ist genau daran gestorben:
+          #
+          #     Backend: build_in_progress … (45s)
+          #     curl: (35) Recv failure: Connection reset by peer
+          #
+          # Der Deploy lief unbeirrt weiter und wurde `live` — nur die
+          # Warteschleife war weg. Mit `set -euo pipefail` beendet ein
+          # einzelner Verbindungsabbruch in einer Befehlssubstitution das
+          # ganze Skript, und der Job meldet einen Fehler, den es nicht gibt.
+          # Das ist teurer als es aussieht: Wer den roten Job sieht, sucht den
+          # Fehler danach im eigenen Stand.
+          #
+          # `render_get` wiederholt **lesende** Aufrufe und gibt nur gueltiges
+          # JSON heraus. Wiederholt wird ausdruecklich **nicht** das
+          # Ausloesen: Ein POST auf `/deploys` ist nicht wiederholbar — nach
+          # einem Abbruch weiss niemand, ob der Deploy schon angelegt wurde,
+          # und ein zweiter Versuch startete womoeglich einen zweiten.
+          render_get() {
+            local pfad="$1"
+            local versuche="${2:-4}"
+            local i=1
+            local antwort
+
+            while [ "$i" -le "$versuche" ]; do
+              if antwort="$(curl -sS --max-time 20 "$API/$pfad" \
+                    -H "Authorization: Bearer $RENDER_API_KEY" 2>/dev/null)" \
+                 && printf '%s' "$antwort" | jq -e . > /dev/null 2>&1; then
+                printf '%s' "$antwort"
+                return 0
+              fi
+              i=$((i + 1))
+              if [ "$i" -le "$versuche" ]; then sleep 5; fi
+            done
+            return 1
+          }
+
           # Antwort IMMER auswerten: Bei 401/404 liefert die API kein .id, und ein
           # stilles null führt sonst dazu, dass anschliessend minutenlang ein
           # nicht existierender Deploy abgefragt wird.
@@ -408,12 +466,27 @@ jobs:
 
           wait_for_deploy() {
             local service_id="$1" deploy_id="$2" name="$3"
-            local waited=0 status=""
+            local waited=0 status="" antwort="" stumm=0
 
             while [ "$waited" -lt "$MAX_WAIT_SECONDS" ]; do
-              status="$(curl -sS "$API/services/$service_id/deploys/$deploy_id" \
-                -H "Authorization: Bearer $RENDER_API_KEY" \
-                | jq -r '.status // .deploy.status // "unbekannt"')"
+              if antwort="$(render_get "services/$service_id/deploys/$deploy_id")"; then
+                stumm=0
+              else
+                # Drei Versuchsreihen ohne Antwort sind rund eine Minute. Erst
+                # dann ist es kein Aussetzer mehr, sondern ein Ausfall — und
+                # dann gehoert der Job rot, denn wir wissen nichts mehr.
+                stumm=$((stumm + 1))
+                if [ "$stumm" -ge 3 ]; then
+                  echo "::error::$name: Renders API antwortet seit $stumm Versuchsreihen nicht — Deploy-Zustand unbekannt."
+                  return 1
+                fi
+                echo "  $name: Render gerade nicht erreichbar ($stumm) — warte weiter (${waited}s)"
+                sleep "$POLL_INTERVAL_SECONDS"
+                waited=$((waited + POLL_INTERVAL_SECONDS))
+                continue
+              fi
+
+              status="$(printf '%s' "$antwort" | jq -r '.status // .deploy.status // "unbekannt"')"
 
               case "$status" in
                 live)
@@ -460,9 +533,10 @@ jobs:
           # aus) blieb hier schon einmal monatelang unbemerkt.
           READY_MAX_SECONDS=600
 
-          backend_url="$(curl -sS "$API/services/$BACKEND_SERVICE" \
-            -H "Authorization: Bearer $RENDER_API_KEY" \
-            | jq -r '.serviceDetails.url // empty')"
+          # Auch hier lesend, also wiederholbar — ein Aussetzer an dieser
+          # Stelle haette denselben falschen Fehler erzeugt.
+          backend_url="$(render_get "services/$BACKEND_SERVICE" \
+            | jq -r '.serviceDetails.url // empty' || true)"
 
           if [ -z "$backend_url" ]; then
             echo "::error::Keine URL für $BACKEND_SERVICE — Bereitschaft nicht prüfbar."

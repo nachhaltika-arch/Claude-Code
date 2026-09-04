@@ -59,6 +59,36 @@ def produkte(db):
     except Exception:  # noqa: BLE001
         db.rollback()
 
+    # ── Und danach die **echte** Tabelle wiederherstellen ─────────────
+    #
+    # **Befund vom 27.08.2026, und es ist L-89 zum zweiten Mal.** Das
+    # `CREATE TABLE IF NOT EXISTS` oben legt vier Spalten an — die echte
+    # `products` hat einundzwanzig. Nachdem
+    # `test_ohne_die_tabelle_faellt_nichts_um` sie geloescht hatte, arbeitete
+    # **jeder danach laufende Test** auf diesem Torso: `status`, `short_desc`
+    # und alles Weitere fehlten.
+    #
+    # Der Schaden zeigte sich woanders — in `test_shop_kasse.py`, mit
+    # „column status does not exist". Genau wie am 22.08., als zwei Tests
+    # geteilten Bestand loeschten und der dritte Zugriff rot wurde.
+    #
+    # `run_migrations()` ist mehrfach ausfuehrbar und legt sie richtig an.
+    # Nur wenn noetig, denn es sind ueber vierhundert Anweisungen.
+    try:
+        vollstaendig = db.execute(text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = 'products' AND column_name = 'status'"
+        )).first()
+    except Exception:  # noqa: BLE001
+        db.rollback()
+        vollstaendig = None
+
+    if not vollstaendig:
+        db.execute(text("DROP TABLE IF EXISTS products"))
+        db.commit()
+        from migrations_runtime import run_migrations
+        run_migrations()
+
 
 def _anlegen(db, slug, name, preis):
     db.execute(

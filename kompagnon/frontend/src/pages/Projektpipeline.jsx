@@ -162,7 +162,7 @@ export default function Projektpipeline() {
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Projektpipeline</h1>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
           {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
@@ -219,7 +219,7 @@ export default function Projektpipeline() {
             </div>
             <div style={{ position: 'absolute', right: 0, top: 0, bottom: 8, width: 32, background: 'linear-gradient(to right, transparent, var(--bg-app))', pointerEvents: 'none' }} />
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, textAlign: 'right' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8, textAlign: 'right' }}>
             Phase {activeTab + 1} / {PHASES.length} — wischen zum Wechseln
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -249,10 +249,16 @@ export default function Projektpipeline() {
                   transition: 'all 0.15s', padding: 6,
                 }}>
                 <div style={{ padding: '6px 6px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {ph.icon} {ph.label}
                   </span>
-                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: ph.color, fontWeight: 600 }}>{colCards.length}</span>
+                  {/* **Fläche und Ziffer bekommen nicht dieselbe Farbe** (L-17,
+                    * 31.08.2026). Die Tönung darf die Phasenfarbe tragen, die
+                    * Ziffer darin muss lesbar sein: `#dc7226` auf hellem Grund
+                    * hat 2,93 — das war die orange „0" aus der Browsermessung.
+                    * `color-mix` verdunkelt die Phasenfarbe genau so weit, dass
+                    * sie AA besteht, ohne den Farbton zu wechseln. */}
+                  <span style={{ fontSize: 12, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: `color-mix(in srgb, ${ph.color} 72%, var(--text))`, fontWeight: 600 }}>{colCards.length}</span>
                 </div>
                 <div style={{ height: 2, background: ph.color, margin: '6px 4px', borderRadius: 2 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -304,7 +310,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           {companyName}
         </div>
         {domain && (
-          <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}
           </div>
         )}
@@ -312,7 +318,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
 
       {/* Phase label + progress bar */}
       <div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 3 }}>
           {type === 'lead' ? 'Gewonnen · kein Projekt' : `Phase ${pNum} von 7 · ${phase?.label}`}
         </div>
         <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
@@ -323,12 +329,12 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
       {/* Badges row */}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {scStyle && scM !== null && scM !== undefined && (
-          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
             📱 {scM}
           </span>
         )}
         {certSt && (
-          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
             🏅 {project.audit_level}
           </span>
         )}
@@ -350,7 +356,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
             status={project.margin_status} />
         )}
         {type === 'lead' && !certSt && (
-          <span style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontWeight: 500 }}>→ Projekt anlegen</span>
+          <span style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 500 }}>→ Projekt anlegen</span>
         )}
       </div>
     </div>
@@ -359,7 +365,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
 
 function EmptyCol() {
   return (
-    <div style={{ padding: '16px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+    <div style={{ padding: '16px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
       Keine Projekte
     </div>
   );

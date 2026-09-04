@@ -11,11 +11,25 @@ import { aufTaste } from '../utils/tastaturBedienung';
 // fuehrt seither die Websprint-Produkte (L-97); die Merkmale stammen aus den
 // Leistungsverzeichnissen der Datenblaetter WS-NEU-01 und WS-SYS-01.
 //
-// Alle drei Leistungsverzeichnisse stammen aus den Datenblaettern in
-// docs/produkte/. Das System-Paket steht als Entwurf im Katalog, weil seine
-// Kernleistung nicht lieferbar ist (L-99) — es erscheint deshalb ohne Preis
-// und ohne Kaufweg, aber mit seinem Leistungsumfang.
+// Die Leistungsverzeichnisse stammen aus den Datenblaettern in
+// docs/Buch/Websprint Produkte/files/ (die geltende Fassung; docs/produkte/
+// ist die aeltere und kennt WS-STA-01 nicht — L-164). Ein Paket, das im
+// Katalog als Entwurf steht, erscheint hier ohne Preis und ohne Kaufweg,
+// aber mit seinem Leistungsumfang: Websprint System, weil seine Kernleistung
+// nicht lieferbar war (L-99), und Websprint Start bis zum Meilenstein
+// „Pflege-Abo aktiv" am 24.09.2026.
+//
+// **Am 04.09.2026 ergaenzt:** Websprint Start fehlte hier, obwohl das
+// Datenblatt es seit dem 23.08. beschreibt. Diese Liste ist von Hand
+// gepflegt und laeuft dem Katalog deshalb hinterher — wer ein Produkt
+// anlegt, muss auch hier nachtragen, sonst kann der Innendienst es nicht
+// anbieten. `paketpreise.test.js` haelt beide Listen zusammen.
 const DARSTELLUNG = [
+  {
+    id: 'websprint_start', name: 'Websprint Start', delivery: '7 Kalendertage',
+    accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
+    features: ['Audit nach Homepage-Standard, dokumentiert', 'Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Öffnungszeiten', 'Aufbau aus einer festen Vorlage, responsiv', 'Einpflegen der gelieferten Texte, bis 4.000 Zeichen', 'Bildaufbereitung, bis 10 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Hosting-Einrichtung, SSL, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisungsvideo statt Live-Schulung', 'Pflege Basic für 12 Monate, 30 Minuten Änderungen je Monat', 'Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine'],
+  },
   {
     id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: '14 Kalendertage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
@@ -88,7 +102,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
     const link = `${window.location.origin}/paket/${selectedPkg}`;
     const subject = encodeURIComponent(`Ihr persönliches Angebot für ${company}`);
     const body = encodeURIComponent(
-      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n` : ''}✓ Fertigstellung in ${pkg.delivery}\n✓ Festpreis — keine versteckten Kosten\n\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
+      `Guten Tag,\n\nvielen Dank für Ihr Interesse an KOMPAGNON.\n\nBasierend auf unserer Analyse Ihrer Website empfehlen wir Ihnen das ${pkg.name}-Paket:\n\n${pkg.preisBekannt ? (pkg.preisangabe ? `✓ ${pkg.preisangabe}\n` : `✓ ${pkg.preisLabel} € Gesamtpreis (einmalig)\n`) : ''}✓ Fertigstellung in ${pkg.delivery}\n${pkg.preisangabe ? '' : '✓ Festpreis — keine versteckten Kosten\n'}\nIhr persönlicher Bestelllink:\n${link}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr KOMPAGNON Team\nhttps://kompagnon.eu`
     );
     window.location.href = `mailto:${lead.email || ''}?subject=${subject}&body=${body}`;
   };
@@ -99,14 +113,14 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
       {/* Score Context */}
       {currentScore !== null && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `${scoreColor(currentScore)}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `color-mix(in srgb, ${scoreColor(currentScore)} 9%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: 18, fontWeight: 700, color: scoreColor(currentScore) }}>{currentScore}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
               Aktueller Score: <strong style={{ color: scoreColor(currentScore) }}>{currentScore}/100</strong> — {currentLevel}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Empfehlung basierend auf Audit-Ergebnis</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Empfehlung basierend auf Audit-Ergebnis</div>
           </div>
           <div style={{ background: `${pkg.accentColor}15`, border: `1px solid ${pkg.accentColor}40`, borderRadius: 'var(--radius-md)', padding: '6px 12px', fontSize: 12, fontWeight: 600, color: pkg.accentColor, flexShrink: 0 }}>
             → {pkg.name} empfohlen
@@ -126,14 +140,14 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               borderRadius: 'var(--radius-lg)', padding: 16, cursor: 'pointer', transition: 'all 0.15s', position: 'relative', overflow: 'hidden',
             }}>
               {isRec && (
-                <div style={{ position: 'absolute', top: 8, right: -20, background: p.accentColor, color: 'white', fontSize: 9, fontWeight: 700, padding: '3px 28px', transform: 'rotate(35deg)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Top</div>
+                <div style={{ position: 'absolute', top: 8, right: -20, background: p.accentColor, color: 'white', fontSize: 12, fontWeight: 700, padding: '3px 28px', transform: 'rotate(35deg)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Top</div>
               )}
               <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? p.accentColor : 'var(--border-medium)'}`, background: isSelected ? p.accentColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, transition: 'all 0.15s' }}>
                 {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--bg-surface)' }} />}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{p.name}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: isSelected ? p.accentColor : 'var(--text-primary)', marginBottom: 4, transition: 'color 0.15s' }}>{p.preisBekannt ? `${p.preisLabel} €` : PREIS_UNBEKANNT}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.delivery}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{p.delivery}</div>
             </div>
           );
         })}
@@ -144,13 +158,16 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
         <div style={{ background: 'linear-gradient(135deg, #0f1e3a 0%, #1a3a5c 100%)', padding: isMobile ? '24px 20px' : '28px 32px', color: 'white' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Persönliches Angebot für</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Persönliches Angebot für</div>
               <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: 4 }}>{lead.display_name || lead.company_name}</div>
               {lead.city && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>📍 {lead.city}{lead.trade && ` · ${lead.trade}`}</div>}
             </div>
             <div style={{ background: `${pkg.accentColor}30`, border: `1px solid ${pkg.accentColor}60`, borderRadius: 'var(--radius-lg)', padding: '14px 20px', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
               <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, color: pkg.accentColor === '#d4a017' ? '#f0c040' : 'white', lineHeight: 1 }}>{pkg.preisBekannt ? pkg.preisLabel : PREIS_UNBEKANNT}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>einmalig · Endpreis</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{pkg.preisangabe ? 'Bauleistung · Endpreis' : 'einmalig · Endpreis'}</div>
+              {pkg.preisangabe && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 6, lineHeight: 1.5, fontWeight: 700 }}>{pkg.preisangabe}</div>
+              )}
             </div>
           </div>
         </div>
@@ -162,7 +179,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '6px 20px', marginBottom: 20 }}>
             {pkg.features.map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${pkg.accentColor}18`, color: pkg.accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</div>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${pkg.accentColor}18`, color: pkg.accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</div>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{f}</span>
               </div>
             ))}
@@ -170,10 +187,10 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
           <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>Festpreis — Endpreis</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 2 }}>{pkg.preisangabe ? 'Bauleistung — Endpreis, zzgl. Pflege' : 'Festpreis — Endpreis'}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: pkg.accentColor }}>{pkg.preisBekannt ? `${pkg.preisLabel} € Gesamtpreis` : PREIS_UNBEKANNT}</div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right', lineHeight: 1.6 }}>Vorkasse vor Projektstart<br />Keine laufenden Kosten<br />Keine versteckten Gebühren</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -187,7 +204,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
               ↗ Buchungsseite
             </button>
           </div>
-          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
             💡 Nicht enthalten: Hosting, Domain, Fotografie. Optionales Pflegepaket ab 99 €/Monat verfügbar.
           </div>
         </div>
@@ -195,20 +212,20 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
 
       {/* Comparison Table */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        <div style={{ background: '#0f1e3a', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, fontSize: 11 }}>
+        <div style={{ background: '#0f1e3a', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, fontSize: 12 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Leistung</div>
           {PACKAGES.map(p => (
-            <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 10 }}>{p.name}</div>
+            <div key={p.id} style={{ textAlign: 'center', fontWeight: 700, color: selectedPkg === p.id ? (p.accentColor === '#d4a017' ? '#f0c040' : p.accentColor) : 'rgba(255,255,255,0.5)', fontSize: 12 }}>{p.name}</div>
           ))}
         </div>
         {COMPARE_MIT_PREIS.map((row, i) => (
           <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: i < COMPARE_MIT_PREIS.length - 1 ? '1px solid var(--border-light)' : 'none', background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-app)', alignItems: 'center' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>{row.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{row.label}</div>
             {row.values.map((val, j) => {
               const p = PACKAGES[j];
               const isSel = selectedPkg === p.id;
               return (
-                <div key={j} style={{ textAlign: 'center', fontSize: 11, fontWeight: isSel ? 600 : 400, color: val === '–' ? 'var(--text-tertiary)' : isSel ? p.accentColor : val === '✓' ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>{val}</div>
+                <div key={j} style={{ textAlign: 'center', fontSize: 12, fontWeight: isSel ? 600 : 400, color: val === '–' ? 'var(--text-tertiary)' : isSel ? p.accentColor : val === '✓' ? 'var(--status-success-text)' : 'var(--text-secondary)' }}>{val}</div>
               );
             })}
           </div>

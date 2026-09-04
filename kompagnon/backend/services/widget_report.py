@@ -31,6 +31,22 @@ from services.audit_industry_profiles import massstab_fuer
 # Herkunft eines Werts. Die Farben folgen der CI-Statuspalette statt der
 # früheren freien Töne — gemessen ist Erfolg, abgeleitet und Einschätzung
 # sind die beiden Teal-Stufen, nicht erhoben bleibt stumm.
+#: Quellen, die weder in den Zaehler noch in den Nenner gehen.
+#:
+#: **Am 04.09.2026 am laufenden Bericht gefunden.** `nicht_anwendbar` stand
+#: hier nicht — ein Kriterium, das fuer die Branchenklasse gar nicht gilt,
+#: erschien deshalb als „0 von 3", also als Mangel, den der Betrieb nie
+#: beheben kann. Bei `neovendo.de` (Klasse K4, ueberregionaler Anbieter) traf
+#: es `se_lokal`: Der Bericht zeigte 0 von 3 und daneben den Beleg „erfuellt:
+#: Telefonnummer als Link, Karte…" — die Punktzahl widersprach ihrer eigenen
+#: Begruendung.
+#:
+#: **Die Bewertung rechnete die ganze Zeit richtig** (`score_category` nimmt
+#: beide Quellen heraus); falsch war allein die Darstellung. Genau dafuer ist
+#: der Beleg gebaut worden: Er hat den Widerspruch im ersten echten Lauf
+#: sichtbar gemacht.
+AUSSER_WERTUNG = (Source.NOT_COLLECTED.value, Source.NOT_APPLICABLE.value)
+
 SOURCE_MARKS = {
     Source.MEASURED.value: ("●", brand.SUCCESS),
     Source.DERIVED.value: ("◐", brand.MID),
@@ -187,7 +203,7 @@ def _kategorien(items: dict, sources: dict) -> list:
     for category in CATALOGUE:
         erhoben = [c for c in category.criteria
                    if sources.get(c.key, Source.NOT_COLLECTED.value)
-                   != Source.NOT_COLLECTED.value]
+                   not in AUSSER_WERTUNG]
         punkte = sum(int(items.get(c.key, 0) or 0) for c in erhoben)
         maximum = sum(c.max_points for c in erhoben)
         ergebnis.append({
@@ -195,6 +211,13 @@ def _kategorien(items: dict, sources: dict) -> list:
             "punkte": punkte,
             "maximum": maximum,
             "anteil": round(punkte / maximum * 100) if maximum else 0,
+            # **Wie viele Kriterien ueberhaupt geprueft werden konnten
+            # (L-151).** Ohne diese Zahl liest sich „Barrierefreiheit 0/2" als
+            # Urteil ueber den Betrieb — dabei heisst es: von fuenf Kriterien
+            # konnten wir eines messen. Die Einzelzeilen sagen das seit jeher,
+            # die Ueberschrift nicht, und die liest der Betrieb zuerst.
+            "erhoben": len(erhoben),
+            "kriterien": len(category.criteria),
         })
     return ergebnis
 
@@ -250,8 +273,19 @@ def _hinweis(crit: Criterion, klasse: str) -> str:
 
 
 def _criteria_rows(kategorien: list, items: dict, sources: dict,
-                   klasse: str = "") -> str:
-    """Jedes Kriterium einzeln, gruppiert nach Kategorie."""
+                   klasse: str = "", belege: dict = None) -> str:
+    """Jedes Kriterium einzeln, gruppiert nach Kategorie.
+
+    **Der Beleg steht seit dem 04.09.2026 dabei (L-151).** Vorher trug die
+    Zeile den Katalog-Hinweis — *was* geprueft wird — und die Punktzahl. Was
+    tatsaechlich gemessen wurde, stand nirgends. Ein Fremdleser hat daraus
+    geschlossen, die Cookie-Pruefung sei kaputt; sie hatte nur nie gesagt,
+    welcher Dienst sie ausloest.
+
+    Altbestand hat keine Belege. Dann faellt die Zeile weg — nicht ein leeres
+    Feld, das wie ein Fehler aussieht.
+    """
+    belege = belege or {}
     blocks = []
     for eintrag in kategorien:
         category = eintrag["kategorie"]
@@ -259,7 +293,8 @@ def _criteria_rows(kategorien: list, items: dict, sources: dict,
         for crit in category.criteria:
             source = sources.get(crit.key, Source.NOT_COLLECTED.value)
             mark, colour = SOURCE_MARKS.get(source, ("○", brand.TEXT_30))
-            not_collected = source == Source.NOT_COLLECTED.value
+            not_collected = source in AUSSER_WERTUNG
+            beleg = "" if not_collected else (belege.get(crit.key) or "")
             value = "–" if not_collected else f"{int(items.get(crit.key, 0) or 0)}/{crit.max_points}"
             rows.append(
                 f'<tr style="border-top:1px solid {brand.BORDER};'
@@ -268,7 +303,10 @@ def _criteria_rows(kategorien: list, items: dict, sources: dict,
                 f'<td style="padding:10px 8px">'
                 f'<div style="font-weight:700;color:{brand.TEXT}">{_esc(crit.label)}</div>'
                 f'<div style="font-size:12px;color:{brand.TEXT_60};margin-top:2px">'
-                f'{_esc(_hinweis(crit, klasse))}</div></td>'
+                f'{_esc(_hinweis(crit, klasse))}</div>'
+                + (f'<div style="font-size:12px;color:{brand.DARK};margin-top:4px;'
+                   f'font-weight:600">{_esc(beleg)}</div>' if beleg else "")
+                + '</td>'
                 f'<td style="padding:10px 8px;text-align:right;white-space:nowrap;'
                 f'font-family:{brand.FONT_MONO};font-size:13px;color:{brand.TEXT}">'
                 f'{value}</td>'
@@ -285,7 +323,11 @@ def _criteria_rows(kategorien: list, items: dict, sources: dict,
             f'<span style="font-size:14px;font-weight:900;letter-spacing:.02em">'
             f'{_esc(category.label)}</span>'
             f'<span style="font-family:{brand.FONT_MONO};font-size:13px;'
-            f'color:{brand.YELLOW}">{eintrag["punkte"]}/{eintrag["maximum"]}</span></div>'
+            f'color:{brand.YELLOW}">{eintrag["punkte"]}/{eintrag["maximum"]}'
+            + (f'<span style="opacity:.75;font-size:11px"> · '
+               f'{eintrag["erhoben"]} von {eintrag["kriterien"]} geprüft</span>'
+               if eintrag["erhoben"] < eintrag["kriterien"] else "")
+            + '</span></div>'
             # Vier Spalten, zwei davon umbruchfrei: auf einem schmalen Telefon
             # schöbe die Tabelle sonst die ganze Seite zur Seite. Sie rollt
             # in ihrem eigenen Kasten, der Rest der Seite bleibt stehen.
@@ -407,6 +449,7 @@ def render_report_page(audit, company: str = "", token: str = "",
     """
     items = _json_field(getattr(audit, "item_scores", None), {})
     sources = _json_field(getattr(audit, "item_sources", None), {})
+    belege = _json_field(getattr(audit, "item_belege", None), {})
     blockers = _json_field(getattr(audit, "blockers", None), [])
     issues = _json_field(getattr(audit, "top_issues", None), [])
     recommendations = _json_field(getattr(audit, "recommendations", None), [])
@@ -480,7 +523,7 @@ def render_report_page(audit, company: str = "", token: str = "",
     <span style="color:{brand.DARK}">◇</span> KI-Einschätzung &nbsp;
     <span style="color:{brand.TEXT_30}">○</span> nicht erhoben
     (zählt nicht in die Bewertung)</p>
-  {_criteria_rows(kategorien, items, sources, branchenklasse)}
+  {_criteria_rows(kategorien, items, sources, branchenklasse, belege)}
 
   <footer style="margin-top:44px;padding-top:20px;
                  border-top:1px solid {brand.BORDER};

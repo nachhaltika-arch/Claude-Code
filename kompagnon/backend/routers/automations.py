@@ -6,7 +6,7 @@ POST /api/automations/trigger - Manual trigger
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from routers.auth_router import require_innendienst
-from sqlalchemy import func, text
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
@@ -107,12 +107,19 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
     # auf „Kunde" (`customer`) gesetzt hat, fehlte in der Zahl. Niemand merkt
     # eine Kennzahl, die um eins zu klein ist (19.08.2026).
     leads_won   = db.query(Lead).filter(Lead.lifecycle_phase == KUNDE).count()
-    if leads_total == 0:
-        try:
-            leads_total = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0
-            leads_won   = db.execute(text("SELECT COUNT(*) FROM usercards WHERE status = 'won'")).scalar() or 0
-        except Exception:
-            pass
+    # **Der Rueckfall auf `usercards` ist am 01.09.2026 entfernt worden — er
+    # konnte nie ausloesen.** Hier stand: ist `leads` leer, zaehle stattdessen
+    # in `usercards`. Diese Tabelle wird seit dem Entfernen ihres
+    # Kopierschritts (`migrations_runtime.py:445`) **nie befuellt**; die
+    # einzige Stelle, die eine Zeile anlegt, ist `POST /api/usercards/`, und
+    # die ruft keine Oberflaeche auf (L-105, L-106). Der Zweig lieferte also
+    # zuverlaessig 0 — dieselbe Zahl wie ohne ihn, nur mit zwei Abfragen und
+    # dem Anschein einer zweiten Datenquelle.
+    #
+    # Dazu rechnete er falsch: `WHERE status = 'won'` uebersieht
+    # `status = 'customer'`, was oben drei Zeilen hoeher am 19.08. gerade
+    # korrigiert worden war. Ein Zweig, der nie laeuft, wird auch nicht
+    # mitrepariert.
 
     return {
         "active_projects": margin_summary.get("active_projects", 0),

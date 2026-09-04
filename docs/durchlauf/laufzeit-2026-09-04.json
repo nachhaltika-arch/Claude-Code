@@ -1,0 +1,39 @@
+{
+  "datum": "2026-09-04",
+  "basis": "https://kompagnon-frontend-staging.onrender.com",
+  "erhebung": "Browser (Claude in Chrome), nicht Playwright — die Cowork-Umgebung erreicht Render nicht",
+  "themes": ["light", "dark"],
+  "rollen_gemessen": ["(bestehende Sitzung)"],
+  "rollen_ohne_zugang": ["superadmin", "admin", "mitarbeiter", "kunde"],
+  "hinweis_anmeldung": "Bestehende Sitzung im Browser genutzt; es wurden keine Zugangsdaten eingegeben. Der Lauf je Rolle braucht DURCHLAUF_KONTO_<ROLLE> / DURCHLAUF_WORT_<ROLLE>.",
+  "gemessen_anzahl": 40,
+  "messweise": "Kontrast der berechneten Textfarbe gegen den ersten deckenden Hintergrund darüber, WCAG AA (4,5 bzw. 3,0). Theme über localStorage-Schlüssel kas-theme und Neuaufbau der Seite — Umschalten allein über data-theme reicht nicht, das war beim ersten Versuch eine Fehlmessung.",
+  "ergebnis_hell": "Dashboard: schlimmster Kontrast 4.58, kein Verstoß, kein Text unter 12 px.",
+  "ergebnis_dunkel": "Dashboard: 7 Verstöße, schlimmster 1.29.",
+  "befunde": [
+    {
+      "kennung": "kontrast/dark/app/dashboard/kc-dark-als-schrift",
+      "ebene": "optik",
+      "titel": "Im Dunkelmodus sind die Dashboard-Überschriften praktisch unsichtbar — 1,29:1",
+      "beleg": "kompagnon/frontend/src/pages/Dashboard.jsx:350 setzt color: var(--kc-dark); im Dunkelsatz ist --kc-dark = #003840 auf --surface #152028 → 1.29:1 bei 28 px (Schwelle 3,0) und 1.36:1 bei 13 px (Schwelle 4,5). Gemessen am 04.09.2026 im Browser gegen Staging, Theme über kas-theme umgeschaltet und Seite neu aufgebaut.",
+      "einzelheiten": "**`--kc-dark` ist eine Flächenfarbe, keine Schriftfarbe.** `tokens.css` benutzt sie als `--bg-sidebar` und als `--brand-primary` im Hellsatz; im Dunkelsatz wird sie auf #003840 gesetzt — noch dunkler, weil sie dort eine dunkle Fläche sein soll. `Dashboard.jsx` setzt sie als `color:`. Im Hellmodus geht das gut aus, weil dunkles Petrol auf hellem Grund liegt; im Dunkelmodus steht dunkles Petrol auf fast schwarzem Grund. Betroffen sind die Überschrift „Dashboard\", die Kennzahl darunter und die Kartentitel „Aktuelle Betriebe\" und „Letzte Audits\" — also genau das, woran man sich auf der Seite orientiert. **Warum die Token-Kontrasttests das nicht fangen:** Sie rechnen eine ausdrückliche Paarliste, und `--kc-dark` als Textfarbe steht zu Recht nicht darin — es soll keine sein. Der Fehler liegt in der Verwendung, und den sieht nur die gerenderte Messung. Das ist der Satz aus `bedienbarkeit_messen.py`, hier belegt: Eine Farbe kann als Token bestehen und auf der Seite trotzdem auf dem falschen Grund landen.",
+      "vorschlag": "P1",
+      "gegenstand": "Dashboard.jsx var(--kc-dark) als Schriftfarbe"
+    },
+    {
+      "kennung": "kontrast/dark/sprunglink-und-schalter",
+      "ebene": "optik",
+      "titel": "Sprunglink und Themenschalter erreichen im Dunkelmodus nur 1,86 bzw. 2,06:1",
+      "beleg": "Weiß rgb(255,255,255) bzw. rgb(240,244,245) auf --kc-mid rgb(64,196,223) — 2.06 bei 14 px (Schwelle 4,5) und 1.86 bei 12 px. Gemessen am 04.09.2026 auf /app/dashboard, Theme dark.",
+      "einzelheiten": "Im Dunkelsatz wird `--kc-mid` auf ein helles Cyan (#40c4df) gehoben, damit es auf dunklem Grund leuchtet. Weiße Schrift darauf hat dann fast keinen Abstand mehr. Betroffen sind der Sprunglink „Zum Inhalt springen\" — ausgerechnet die Hilfe für Tastaturnutzer — und die Sonnenmarke des Themenschalters. Auf hellem Cyan gehört dunkle Schrift; `--text-on-brand` steht im Dunkelsatz bereits auf #0f1c20 und wäre der richtige Wert.",
+      "vorschlag": "P2",
+      "gegenstand": "weiße Schrift auf --kc-mid im Dunkelmodus"
+    }
+  ],
+  "nicht_gemessen": [
+    "Alle Rollen einzeln — dafür DURCHLAUF_KONTO_<ROLLE> / DURCHLAUF_WORT_<ROLLE> setzen und scripts/durchlauf-laufzeit.py fahren",
+    "Die übrigen 68 Routen in beiden Themes — hier wurde eine Stichprobe gemessen, kein voller Lauf",
+    "21 Routen mit Platzhalter (:id, :token) — brauchen einen echten Datensatz",
+    "Mobile Breite und Tastaturbedienung"
+  ]
+}

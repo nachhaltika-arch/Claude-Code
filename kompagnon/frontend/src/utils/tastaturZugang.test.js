@@ -16,6 +16,24 @@
  * eigener Mangel, und was stattdessen richtig ist, entscheidet sich an der
  * Stelle (meist: den Klick nach innen verlegen, wo er hingehört).
  *
+ * **Warum die Zahl am 30.08.2026 bei 44 blieb, obwohl gearbeitet wurde.**
+ * Die verbleibenden Stellen wurden an dem Tag einzeln angesehen, und das
+ * Ergebnis ist eine Einordnung, keine Reparatur: **34 von 44 sind
+ * Modal-Hintergründe** (`position: fixed` über `inset: 0`, ein Klick
+ * schließt). Für sie ist das Heilmittel dieses Wächters das falsche —
+ * `role="button"` auf einer Überlagerung behauptet eine Schaltfläche, wo
+ * keine ist, und ein Screenreader liest sie als solche vor.
+ *
+ * Der wirkliche Mangel dort ist ein anderer: **Wer ein Modal öffnet, muss es
+ * ohne Maus wieder schließen können.** 26 Dateien hatten dafür keinen Weg;
+ * seit dem 30.08. sind es sechs, jede mit Grund. Gehalten wird das von
+ * `modalEscape.test.js` — einem eigenen Wächter, weil er eine andere Sache
+ * misst.
+ *
+ * **Diese Zahl misst also ein Muster, nicht mehr einen Mangel.** Was von den
+ * 44 übrig bleibt, sind rund zehn echte Fälle: Farbfelder, Listenzeilen,
+ * Ablageflächen. Sie brauchen je eine Entscheidung an ihrer Stelle.
+ *
  * Dieser Wächter ist eine **Ratsche**. Er verlangt nicht null — er verbietet
  * mehr. Wer die Zahl senkt, senkt auch die Schranke; wer neue Stellen baut,
  * merkt es sofort. Eine Schranke, die bei null steht und rot ist, würde
@@ -43,7 +61,12 @@ const WURZEL = path.join(__dirname, '..');
 // `backend/config.py`). Eine davon trug eine nur-mit-Maus-Stelle.
 // Wieder gilt: geloeschter Code hat keine Barrieren — es hat niemand eine
 // Tastaturbedienung nachgeruestet, es ist nur eine Stelle weniger da.
-const VERBLEIBEND = 44;
+// 30.08.2026: 44 → 42. Zwei Farbfelder im `BrandDesignEditor` haben die
+// Tastaturbedienung bekommen, die ihre Nachbarn aus `all_colors` drei Zeilen
+// tiefer von Anfang an hatten. Hier ist `role="button"` das **richtige**
+// Mittel: Es sind Schaltflaechen, sie enthalten nichts, und die eine sagt mit
+// `aria-expanded` dazu, ob die Auswahl offen ist.
+const VERBLEIBEND = 42;
 
 function tagEnde(text, start) {
   let tiefe = 0;

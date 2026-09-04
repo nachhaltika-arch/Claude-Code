@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GeoAddonCard from '../components/GeoAddonCard';
 import AssistentPanel from '../components/AssistentPanel';
+import Mitwirkung from '../components/Mitwirkung';
+import Zahlungen from '../components/Zahlungen';
 import { datumKurz, datumUndZeit } from '../utils/datum';
 
 // ── Phase card ────────────────────────────────────────────────
@@ -45,8 +47,8 @@ function PhaseCard({ phase, isLast }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phase {phase.number}</span>
-            {isActive && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phase {phase.number}</span>
+            {isActive && <span style={{ fontSize: 12, fontWeight: 600, background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 99, padding: '1px 7px' }}>Aktiv</span>}
           </div>
           {!isLocked && (
             <span style={{ fontSize: 12, fontWeight: 600, color: isDone ? 'var(--status-success-text)' : 'var(--brand-primary)' }}>
@@ -61,7 +63,7 @@ function PhaseCard({ phase, isLast }) {
             <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width 0.6s ease' }} />
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {phase.done} von {phase.total} Schritten erledigt
             </div>
           </>
@@ -307,6 +309,16 @@ export default function KundenPortal() {
         }}
       />
 
+      {/* ── Was wir vom Kunden brauchen (L-159) ──
+          Ganz oben, weil daran der Baubeginn haengt: Solange ein
+          Fristbeginn-Punkt fehlt, laeuft die Bauzeit nicht. Weiter unten
+          waere es eine Nebensache — und die Mahnmail bliebe der einzige Weg,
+          auf dem der Betrieb davon erfaehrt. */}
+      <Mitwirkung token={token} />
+
+      {/* ── Abo, Rechnungen, Zahlungsart ── */}
+      <Zahlungen token={token} />
+
       {/* ── Inspirations-URLs ── */}
       <InspirationsSection project={project} token={token} onSaved={() => {}} />
 
@@ -347,7 +359,7 @@ export default function KundenPortal() {
                 Sie haben diese Anleitung auch per E-Mail erhalten.
               </p>
               <div style={{ background: 'var(--bg-surface)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <span>Typ</span><span>Name</span><span>Wert</span>
                 </div>
                 {(project.netlify.guide?.records || []).map((r, i) => (
@@ -358,7 +370,7 @@ export default function KundenPortal() {
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
                 DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv. Wir benachrichtigen Sie automatisch, sobald Ihre Website live ist.
               </div>
             </>
@@ -382,10 +394,10 @@ export default function KundenPortal() {
               fontSize: 13,
             }}>
               {m.sender_role !== 'kunde' && (
-                <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 3, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Team</div>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Team</div>
               )}
               {m.text}
-              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 3, textAlign: 'right' }}>
+              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 3, textAlign: 'right' }}>
                 {datumUndZeit(m.created_at, '')}
               </div>
             </div>
@@ -433,7 +445,7 @@ export default function KundenPortal() {
                 <span style={{ fontSize: 18, flexShrink: 0 }}>📄</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.filename}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                     {datumKurz(d.created_at, '')}
                   </div>
                 </div>
@@ -542,7 +554,7 @@ function WebsiteVersionsSection({ project, token, onReload }) {
                 />
               </div>
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                   Version {v.version_label}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
@@ -624,7 +636,7 @@ function InspirationsSection({ project, token }) {
       </p>
       {[1, 2, 3].map(n => (
         <div key={n} style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
             Website {n}
           </label>
           <input aria-label={`Website ${n}`}

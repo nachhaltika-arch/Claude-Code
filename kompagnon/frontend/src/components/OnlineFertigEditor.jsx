@@ -514,7 +514,7 @@ export default function OnlineFertigEditor() {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
               {project.company_name || `Projekt #${project.id}`}
-              <span style={{ marginLeft: 4, opacity: 0.4, fontSize: 10 }}>✏</span>
+              <span style={{ marginLeft: 4, opacity: 0.4, fontSize: 12 }}>✏</span>
             </button>
           )}
 
@@ -560,17 +560,17 @@ export default function OnlineFertigEditor() {
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {generateStatus === 'running' && (
-              <span style={{ fontSize: 11, color: KC_MID, fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: KC_MID, fontWeight: 700 }}>
                 ⚙️ KI-Wireframe wird erstellt…
               </span>
             )}
             {generateStatus === 'done' && (
-              <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: '#1D9E75', fontWeight: 700 }}>
                 ✓ Wireframe fertig
               </span>
             )}
             {generateStatus?.error && (
-              <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 700 }}>
                 ✗ {generateStatus.error.slice(0, 60)}
               </span>
             )}
@@ -587,7 +587,7 @@ export default function OnlineFertigEditor() {
                   border: 'none',
                   borderRadius: 6,
                   padding: '6px 14px',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 800,
                   cursor: 'pointer',
                   textTransform: 'uppercase',
@@ -608,7 +608,7 @@ export default function OnlineFertigEditor() {
               // Schritt-Inhalt aus ProzessFlow.SchrittInhalt — braucht die
               // geladenen Daten (lead/briefing/audit/sitemap/marke).
               <div style={{ padding: 20 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                   Phase {activeStepDef.phase} · Schritt {activeStepDef.nr}{activeStepDef.optional ? ' · Optional' : ''}{activeStepDef.gate ? ' · Gate' : ''}
                 </div>
                 <h1 style={{ fontSize: 24, fontWeight: 900, color: KC_DARK, textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
@@ -734,7 +734,7 @@ function StepDetailPanel({ step, project, projectId, navigate }) {
   const status = step.gate ? 'Gate' : step.optional ? 'Optional' : 'Workflow';
   return (
     <div style={{ padding: 40, maxWidth: 720, margin: '0 auto', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
         Phase {step.phase} · Schritt {step.nr} · {status}
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: KC_DARK, textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '-0.02em' }}>

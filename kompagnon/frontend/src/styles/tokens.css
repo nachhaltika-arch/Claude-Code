@@ -5,13 +5,32 @@
   --kc-yellow: #FAE600;   /* Pantone 3945 — Akzent/CTA */
   --kc-black:  #000000;
 
-  /* ── Mid Teal alpha helpers (consolidated 2026-05-09) ───────── */
-  --kc-mid-a-08: var(--kc-mid-a-08);
-  --kc-mid-a-12: var(--kc-mid-a-12);
-  --kc-mid-a-20: var(--kc-mid-a-20);
-  --kc-mid-a-25: var(--kc-mid-a-25);
-  --kc-mid-a-30: var(--kc-mid-a-30);
-  --kc-mid-a-50: var(--kc-mid-a-50);
+  /* ── Mid Teal alpha helpers (consolidated 2026-05-09) ─────────
+     **Sechs Token definierten sich selbst** — `--kc-mid-a-12:
+     var(--kc-mid-a-12);` und fuenf gleichartige. Ein Ringschluss ist nach
+     CSS „invalid at computed-value time": Das Token loest zu **nichts** auf,
+     und jede Deklaration, die es benutzt, faellt ersatzlos weg.
+
+     Gemessen am 2026-08-30 im Browser: alle sechs ergaben `""`. Betroffen
+     waren 41 Verwendungen in 17 Dateien — darunter
+     `input:focus { box-shadow: 0 0 0 3px var(--kc-mid-a-12) }`, also die
+     **einzige** Fokusmarke aller Eingabefelder, denn dieselbe Regel setzt
+     `outline: none` (L-17, WCAG 2.4.7).
+
+     Warum es niemandem auffiel: Ein wegfallender Schatten sieht aus wie
+     „kein Schatten vorgesehen". Nichts wird rot, nichts bricht — die
+     Oberflaeche ist nur stiller, als sie sein sollte.
+
+     Die Werte sind `--kc-mid` (#008EAA = 0,142,170) mit der Deckkraft, die
+     der Name nennt. Sie stehen hier als Zahlen, weil dies die Datei ist, in
+     der Werte stehen duerfen; `tokenSelbstbezug.test.js` verhindert, dass
+     ein Token wieder auf sich selbst zeigt. */
+  --kc-mid-a-08: rgba(0, 142, 170, 0.08);
+  --kc-mid-a-12: rgba(0, 142, 170, 0.12);
+  --kc-mid-a-20: rgba(0, 142, 170, 0.20);
+  --kc-mid-a-25: rgba(0, 142, 170, 0.25);
+  --kc-mid-a-30: rgba(0, 142, 170, 0.30);
+  --kc-mid-a-50: rgba(0, 142, 170, 0.50);
 
   /* ── iOS Safe Area ──────────────────────────────────────────── */
   --safe-area-top:    env(safe-area-inset-top, 0px);
@@ -78,7 +97,14 @@
   --text-tertiary:    var(--text-45);
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
-  --text-brand:       var(--kc-mid);
+  /* **Zeigt seit dem 30.08.2026 auf `--brand-primary-mid`, nicht auf
+     `--kc-mid` (L-17).** Der Token heisst „text" und wird auch so benutzt —
+     als Linkfarbe im Fehlerprotokoll und auf der Portal-Anmeldung. Mit
+     #008EAA erreichte er auf hellem Grund 3.69 und fiel damit durch die
+     AA-Schwelle, ohne dass es jemandem auffiel: Er stand nicht in der
+     Paarliste des Waechters. Steht er jetzt.
+     Im Dunkelmodus bleibt `var(--kc-mid)` richtig — dort ist das #40c4df. */
+  --text-brand:       var(--brand-primary-mid);
   /* Schrift auf einer Flaeche in Markenfarbe (Knopf, Kopfband).
      Nicht dasselbe wie --text-inverse: Im dunklen Modus ist
      --brand-primary das helle Tuerkis, und Weiss darauf erreicht 2.06 —
@@ -96,7 +122,28 @@
      --kc-mid für Lesbarkeit gegen dunklen Background. */
   --brand-primary:        var(--kc-dark);
   --brand-primary-light:  var(--info-bg);
-  --brand-primary-mid:    var(--kc-mid);
+  /* **Nicht `var(--kc-mid)`, seit dem 30.08.2026 (L-17).** Als Schriftfarbe
+     erreicht Mid Teal #008EAA auf `--paper` 3.69 und auf `--surface` 3.48 —
+     beides unter der AA-Schwelle von 4.5. Gemessen an zwei Stellen, die
+     einander nicht kennen: im Browser an der Domainzeile der Betriebsliste
+     (`tools/bedienbarkeit_messen.py`) und im Paar-Waechter, nachdem der
+     gelernt hat, Verweise aufzuloesen — vorher uebersprang er dieses Paar
+     stillschweigend und war deshalb gruen.
+
+     #00778F ist **derselbe Farbton und dieselbe Saettigung** (190°, 100 %),
+     nur dunkler: 4.99 auf `--paper`, 4.70 auf `--surface`. Es ist der
+     hellste Wert dieser Reihe, der beide Gruende besteht — die Farbe wird
+     also so wenig veraendert wie noetig.
+
+     **`--kc-mid` bleibt unangetastet.** Pantone 3135 ist die Markenfarbe
+     fuer Flaechen, Raender und Fuellungen; dort gilt die Textschwelle nicht.
+     Geaendert ist nur die Rolle „mittlere Schriftfarbe auf hellem Grund".
+
+     Der Hellblock weiter unten setzt denselben Wert noch einmal: Er muss
+     jeden Ton zuruecknehmen, den der Dunkelblock ueberschreibt — sonst
+     bekommt ein Rechner mit dunklem System und der Wahl „hell" eine dritte
+     Welt. `tokens.test.js` haelt das fest. */
+  --brand-primary-mid:    #00778F;
   --brand-primary-dark:   var(--kc-dark);
   --brand-primary-deeper: #003840;
 
@@ -162,7 +209,7 @@
   --font-mono:    'DM Mono', ui-monospace, monospace;
   /* Legacy alias kept for compatibility */
   --font-family-base: var(--font-sans);
-  --text-xs:   11px;
+  --text-xs:   12px;
   --text-sm:   13px;
   --text-base: 15px;
   --text-lg:   17px;
@@ -214,7 +261,8 @@
     --brand-primary:        var(--kc-mid);
     --text-on-brand:        #0f1c20;
     --brand-primary-light:  #1a3d4a;
-    --brand-primary-mid:    #2a5a6a;
+    /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
+    --brand-primary-mid:    #3f9fb2;
     --brand-primary-dark:   #30a0b8;
     --brand-primary-deeper: #208898;
 
@@ -262,7 +310,8 @@
   --brand-primary:        var(--kc-mid);
   --text-on-brand:        #0f1c20;
   --brand-primary-light:  #1a3d4a;
-  --brand-primary-mid:    #2a5a6a;
+  /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
+  --brand-primary-mid:    #3f9fb2;
   --brand-primary-dark:   #30a0b8;
   --brand-primary-deeper: #208898;
 
@@ -326,11 +375,13 @@
      auf dem Anmeldeknopf des Kundenportals. `tokens.test.js` haelt fest,
      dass der Hellblock jeden Ton des Dunkelblocks zuruecknimmt. */
   --bg-active:  #e0f4f8;
-  --text-brand: var(--kc-mid);
+  /* Hell wie in `:root` — siehe die Begruendung dort (L-17). */
+  --text-brand: var(--brand-primary-mid);
 
   --brand-primary:        var(--kc-dark);
   --brand-primary-light:  var(--info-bg);
-  --brand-primary-mid:    var(--kc-mid);
+  /* Derselbe Wert wie in `:root` — siehe die Begruendung dort (L-17). */
+  --brand-primary-mid:    #00778F;
   --brand-primary-dark:   var(--kc-dark);
   --brand-primary-deeper: #003840;
 

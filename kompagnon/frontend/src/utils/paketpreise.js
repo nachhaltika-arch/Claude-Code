@@ -58,6 +58,10 @@ export function paketeZusammenfuehren(darstellung, ausApi) {
       // zusammen; ein Paket mit Preis, das nicht verkauft wird, wuerde die
       // beiden trennen.
       verkaeuflich: Boolean(zeile),
+      // Die Pflichtangabe bei gekoppeltem Abo (L-164) — leer, wo keines ist.
+      // Sie kommt fertig gerechnet vom Server; hier wird sie nur
+      // durchgereicht, damit sie nicht an einer zweiten Stelle entsteht.
+      preisangabe: (zeile && zeile.preisangabe) || '',
     };
   });
 }

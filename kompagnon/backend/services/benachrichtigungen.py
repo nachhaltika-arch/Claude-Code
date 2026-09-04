@@ -21,7 +21,11 @@ logger = logging.getLogger(__name__)
 #: Die Quellen, die es gibt. Kein Enum in der Datenbank: Eine vierte soll
 #: eine Zeile kosten und keine Migration. Die Liste hier ist trotzdem
 #: nützlich — sie sagt, was gemeint ist, und ein Test hält sie fest.
-ARTEN = ("ticket", "chat", "mail")
+ARTEN = ("ticket", "chat", "mail", "faellig")
+#: `faellig` kam am 01.09.2026 dazu (L-101): keine Meldung **eines**
+#: Kunden, sondern eine Aufgabe mit Termin — das Quartals-Re-Audit der
+#: Pflege-Abos. Sie steht bewusst in derselben Glocke: Wer zwei Orte
+#: fuer „was ist zu tun" hat, sieht irgendwann in keinen von beiden.
 
 
 def melden(db, art: str, titel: str, hinweis: str = "", ziel: str = "",

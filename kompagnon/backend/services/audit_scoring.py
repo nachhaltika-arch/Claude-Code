@@ -16,6 +16,7 @@ from services.audit_criteria import (
     ist_anwendbar,
     score_all,
 )
+from services import a11y_browser
 from services.audit_industry_map import klasse_fuer_branche
 from services.audit_industry_signals import (
     ORT_IM_TITEL_ERWARTET,
@@ -37,14 +38,60 @@ MIN_CONTENT_WORDS = 300
 LEAN_FORM_FIELDS = 5
 
 
+def zahl(wert) -> str:
+    """Eine Messzahl, wie sie im Bericht steht — deutsches Komma, keine Nullen.
+
+    `3.4` wird zu „3,4", `90.0` zu „90". Der Beleg soll gelesen werden, nicht
+    entziffert.
+    """
+    if isinstance(wert, bool):
+        return "ja" if wert else "nein"
+    if isinstance(wert, float):
+        gerundet = round(wert, 2)
+        text = f"{gerundet:.2f}".rstrip("0").rstrip(".")
+        return text.replace(".", ",")
+    return str(wert)
+
+
+def teile_beleg(paare) -> str:
+    """Beleg fuer ein Kriterium aus mehreren Teilpruefungen.
+
+    `paare` ist eine Folge aus (erfuellt, Bezeichnung). Genannt werden **beide**
+    Seiten: Was zaehlt und was fehlt. Ein Beleg, der nur die Maengel auffuehrt,
+    liest sich als Anklage; einer, der nur die Erfolge nennt, erklaert den
+    Abzug nicht.
+    """
+    ja = [name for erfuellt, name in paare if erfuellt]
+    nein = [name for erfuellt, name in paare if not erfuellt]
+    stuecke = []
+    if ja:
+        stuecke.append("erfüllt: " + ", ".join(ja))
+    if nein:
+        stuecke.append("offen: " + ", ".join(nein))
+    return " · ".join(stuecke)
+
+
 class _Sheet:
-    """Sammelt Punkte und Quellen während der Bewertung."""
+    """Sammelt Punkte, Quellen und Belege während der Bewertung.
+
+    **Der Beleg ist seit dem 04.09.2026 dabei (L-151).** Der Bericht nannte je
+    Kriterium den Katalog-Hinweis — *was* geprueft wird — und die Punktzahl,
+    aber nicht den **gemessenen Wert**. Ein Fremdleser hat das als durchgehende
+    Kritik zurueckgemeldet: „haeufig bleibt unklar, welcher konkrete Messwert
+    zu dem Punktabzug gefuehrt hat."
+
+    Der Beleg entsteht **an der Rechenstelle**, nicht in einem zweiten Modul
+    daneben. Ein Beleg, der die Fakten ein zweites Mal liest, kann von der
+    Punktzahl abweichen — und ein Beleg, der etwas anderes sagt als die Zahl,
+    ist schlimmer als keiner.
+    """
 
     def __init__(self) -> None:
         self.items: Items = {}
         self.sources: Sources = {}
+        self.belege: Dict[str, str] = {}
 
-    def set(self, key: str, points, source: Source) -> None:
+    def set(self, key: str, points, source: Source, beleg: str = "") -> None:
         criterion = find_criterion(key)
         maximum = criterion.max_points if criterion else 1
         try:
@@ -53,26 +100,34 @@ class _Sheet:
             value = 0
         self.items[key] = max(0, min(value, maximum)) if maximum else max(0, value)
         self.sources[key] = source
+        if beleg:
+            self.belege[key] = beleg
+        else:
+            self.belege.pop(key, None)
 
-    def scale(self, key: str, ratio: Optional[float], source: Source) -> None:
+    def scale(self, key: str, ratio: Optional[float], source: Source,
+              beleg: str = "") -> None:
         """Anteilswert (0..1) auf die Punktzahl des Kriteriums abbilden."""
         if ratio is None:
             self.skip(key)
             return
         criterion = find_criterion(key)
-        self.set(key, round(ratio * (criterion.max_points if criterion else 1)), source)
+        self.set(key, round(ratio * (criterion.max_points if criterion else 1)),
+                 source, beleg)
 
     def skip(self, key: str) -> None:
         """Kriterium als nicht erhoben markieren — fällt aus der Normierung."""
         self.items[key] = 0
         self.sources[key] = Source.NOT_COLLECTED
+        self.belege.pop(key, None)
 
 
 def _ok(fact: Optional[dict]) -> bool:
     return bool(fact) and fact.get("collected") is True
 
 
-def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASURED) -> None:
+def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASURED,
+                    einheit: str = "", zusatz: str = "") -> None:
     """Punkte nach der am Kriterium hinterlegten Abstufung vergeben.
 
     Bis zum 25.08.2026 standen die Schwellen hier — teils als Liste (`_tier`),
@@ -91,7 +146,12 @@ def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASU
     criterion = find_criterion(key)
     if criterion is None or criterion.abstufung is None:
         raise ValueError(f"Kriterium ohne hinterlegte Abstufung: {key}")
-    sheet.set(key, criterion.abstufung.punkte_fuer(wert), quelle)
+    stufe = criterion.abstufung.stufe_fuer(wert)
+    beleg = f"Gemessen: {zahl(wert)}{einheit} — {stufe.bedingung}" if stufe.bedingung \
+        else f"Gemessen: {zahl(wert)}{einheit}"
+    if zusatz:
+        beleg += f" · {zusatz}"
+    sheet.set(key, stufe.punkte, quelle, beleg)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -110,26 +170,44 @@ def _score_legal(sheet: _Sheet, facts: dict) -> None:
             points = 0
             if page.get("reachable"):
                 points = 3 + (3 if page.get("complete") else 0)
-            sheet.set(key, points, Source.MEASURED)
-        sheet.set("rc_bfsg", 2 if legal.get("bfsg", {}).get("linked") else 0, Source.MEASURED)
+            sheet.set(key, points, Source.MEASURED, teile_beleg((
+                (page.get("reachable"), "Seite erreichbar"),
+                (page.get("complete"), "Pflichtangaben vollständig"),
+            )))
+            verlinkt = bool(legal.get("bfsg", {}).get("linked"))
+        sheet.set("rc_bfsg", 2 if verlinkt else 0, Source.MEASURED,
+                  "Erklärung zur Barrierefreiheit verlinkt" if verlinkt
+                  else "Keine Erklärung zur Barrierefreiheit gefunden")
     else:
         for key in ("rc_impressum", "rc_datenschutz", "rc_bfsg"):
             sheet.skip(key)
 
     if _ok(consent):
+        dienste = ", ".join(third.get("services") or []) if _ok(third) else ""
         if consent.get("cmp_detected"):
-            sheet.set("rc_cookie", 4, Source.MEASURED)
+            sheet.set("rc_cookie", 4, Source.MEASURED,
+                      "Consent-Tool erkannt: " + ", ".join(consent.get("cmp_names") or []))
         elif _ok(third) and third.get("count", 0) == 0:
             # Ohne einwilligungspflichtige Dienste ist kein Banner nötig.
-            sheet.set("rc_cookie", 4, Source.DERIVED)
+            sheet.set("rc_cookie", 4, Source.DERIVED,
+                      "Kein einwilligungspflichtiger Dienst gefunden — kein Banner nötig")
         else:
-            sheet.set("rc_cookie", 0, Source.MEASURED)
+            # **Der Beleg nennt den Ausloeser (L-151).** Bis zum 04.09.2026 stand
+            # hier nur „0 von 4". Ein Fremdleser hat daraus geschlossen, die
+            # Pruefung sei kaputt — sie hatte nur nie gesagt, welcher Dienst sie
+            # ausloest.
+            sheet.set("rc_cookie", 0, Source.MEASURED,
+                      (f"Gefunden: {dienste} · kein Consent-Tool erkannt" if dienste
+                       else "Kein Consent-Tool erkannt"))
     else:
         sheet.skip("rc_cookie")
 
     if _ok(forms) and forms.get("total", 0) > 0:
+        mit = forms.get("with_consent", 0)
+        gesamt = forms.get("total", 0)
         sheet.set("rc_formular_dsgvo", 2 if forms.get("all_consent")
-                  else (1 if forms.get("with_consent", 0) else 0), Source.MEASURED)
+                  else (1 if mit else 0), Source.MEASURED,
+                  f"{mit} von {gesamt} Formularen mit Einwilligungsfeld")
     else:
         sheet.skip("rc_formular_dsgvo")
 
@@ -147,20 +225,30 @@ def _score_security(sheet: _Sheet, facts: dict) -> None:
 
     if _ok(tls):
         if not tls.get("valid"):
-            sheet.set("si_ssl", 0, Source.MEASURED)
+            sheet.set("si_ssl", 0, Source.MEASURED, "Zertifikat ungültig oder Handshake gescheitert")
         else:
-            sheet.set("si_ssl", 2 if tls.get("expires_soon") else 3, Source.MEASURED)
+            bald = tls.get("expires_soon")
+            sheet.set("si_ssl", 2 if bald else 3, Source.MEASURED,
+                      "Zertifikat gültig, läuft aber bald ab" if bald
+                      else "Zertifikat gültig")
     else:
         sheet.skip("si_ssl")
 
     if _ok(redirect):
-        sheet.set("si_redirect", 2 if redirect.get("redirects") else 0, Source.MEASURED)
+        leitet = bool(redirect.get("redirects"))
+        sheet.set("si_redirect", 2 if leitet else 0, Source.MEASURED,
+                  "http leitet auf https weiter" if leitet
+                  else "Die http-Adresse leitet nicht auf https weiter")
     else:
         sheet.skip("si_redirect")
 
     if _ok(headers):
-        present = sum(1 for k in ("hsts", "csp", "xframe", "xcontent") if headers.get(k))
-        sheet.scale("si_header", present / 4, Source.MEASURED)
+        namen = {"hsts": "HSTS", "csp": "CSP", "xframe": "X-Frame-Options",
+                 "xcontent": "X-Content-Type-Options"}
+        present = sum(1 for k in namen if headers.get(k))
+        sheet.scale("si_header", present / 4, Source.MEASURED,
+                    f"{present} von 4 Headern gesetzt · "
+                    + teile_beleg([(headers.get(k), v) for k, v in namen.items()]))
     else:
         sheet.skip("si_header")
 
@@ -171,7 +259,11 @@ def _score_security(sheet: _Sheet, facts: dict) -> None:
             points -= 1
         if third.get("tracking_services") and not has_cmp:
             points -= 1
-        sheet.set("si_drittanbieter", max(0, points), Source.MEASURED)
+        sheet.set("si_drittanbieter", max(0, points), Source.MEASURED, teile_beleg((
+            (not third.get("external_fonts"), "keine externen Schriften"),
+            (not (third.get("tracking_services") and not has_cmp),
+             "kein Tracking ohne Einwilligung"),
+        )))
     else:
         sheet.skip("si_drittanbieter")
 
@@ -185,11 +277,11 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
     images = facts.get("images") or {}
 
     if _ok(psi):
-        _nach_abstufung(sheet, "tp_lcp", psi.get("lcp_seconds"))
+        _nach_abstufung(sheet, "tp_lcp", psi.get("lcp_seconds"), einheit=" s")
         _nach_abstufung(sheet, "tp_cls", psi.get("cls_value"))
         # INP stammt nur aus CrUX-Felddaten; für kleine Betriebsseiten meist leer.
-        _nach_abstufung(sheet, "tp_inp", psi.get("inp_ms"))
-        _nach_abstufung(sheet, "tp_mobile", psi.get("performance_score"))
+        _nach_abstufung(sheet, "tp_inp", psi.get("inp_ms"), einheit=" ms")
+        _nach_abstufung(sheet, "tp_mobile", psi.get("performance_score"), einheit=" von 100")
     else:
         for key in ("tp_lcp", "tp_cls", "tp_inp", "tp_mobile"):
             sheet.skip(key)
@@ -200,7 +292,14 @@ def _score_performance(sheet: _Sheet, facts: dict) -> None:
             1 if images.get("lazy_share", 0) >= 50 else 0,
             1 if images.get("dimension_share", 0) >= 80 and images.get("oversized", 1) == 0 else 0,
         ])
-        sheet.set("tp_bilder", points, Source.MEASURED)
+        sheet.set("tp_bilder", points, Source.MEASURED, teile_beleg((
+            (images.get("modern_share", 0) >= 50,
+             f"moderne Formate {zahl(images.get('modern_share', 0))} %"),
+            (images.get("lazy_share", 0) >= 50,
+             f"lazy geladen {zahl(images.get('lazy_share', 0))} %"),
+            (images.get("dimension_share", 0) >= 80 and images.get("oversized", 1) == 0,
+             f"Größenangaben {zahl(images.get('dimension_share', 0))} %"),
+        )))
     else:
         sheet.skip("tp_bilder")
 
@@ -217,10 +316,59 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
     _nach_abstufung(sheet, "bf_lighthouse",
                     psi.get("accessibility_score") if _ok(psi) else None)
 
-    sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED)
-    sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED)
+    # **Lighthouse zuerst, der Browserlauf als Ersatz (L-153).** Faellt
+    # PageSpeed aus, hing dieses Kriterium bisher mit ihm — und der Bericht
+    # zeigte „Barrierefreiheit 0/2", weil von fuenf Kriterien eines uebrig
+    # blieb. Die Reihenfolge ist Absicht: Waere die Eigenmessung erste Quelle,
+    # verschoeben sich Punktzahlen im Bestand, ohne dass sich am Massstab
+    # etwas geaendert haette.
+    a11y = facts.get("a11y_browser") or {}
+    if audits.get("kontrast") is not None:
+        sheet.scale("bf_kontrast", audits.get("kontrast"), Source.MEASURED,
+                    "Lighthouse-Prüfung der Farbkontraste bestanden"
+                    if audits.get("kontrast") else
+                    "Lighthouse meldet zu geringe Farbkontraste")
+    else:
+        anteil = a11y_browser.kontrast_anteil(a11y)
+        verstoesse = a11y.get("kontrast_verstoesse") or 0
+        geprueft = a11y.get("kontrast_geprueft") or 0
+        beispiele = ", ".join(a11y.get("kontrast_beispiele") or [])
+        beleg = (f"Am gerenderten Dokument gemessen: {verstoesse} von {geprueft} "
+                 f"Textstellen unter dem geforderten Kontrast")
+        if beispiele:
+            beleg += f" — {beispiele}"
+        if not verstoesse and geprueft:
+            beleg = (f"Am gerenderten Dokument gemessen: alle {geprueft} "
+                     f"Textstellen erreichen den geforderten Kontrast")
+        sheet.scale("bf_kontrast", anteil, Source.MEASURED, beleg)
+    if audits.get("tastatur") is not None:
+        sheet.scale("bf_tastatur", audits.get("tastatur"), Source.DERIVED,
+                    "Lighthouse findet keine Tastaturfalle"
+                    if audits.get("tastatur") else
+                    "Lighthouse meldet Mängel bei der Tastaturbedienung")
+    else:
+        # **Was hier nicht gemessen wird, sagt der Beleg.** Eine echte
+        # Tastaturfalle findet man nur, indem man durchtabbt; geprueft sind
+        # das Sprungziel und die erzwungene Reihenfolge.
+        teile = teile_beleg((
+            (a11y.get("skiplink"), "Sprungziel zum Inhalt"),
+            (not a11y.get("positive_tabindex"), "keine erzwungene Tab-Reihenfolge"),
+        ))
+        sheet.scale("bf_tastatur", a11y_browser.tastatur_anteil(a11y), Source.DERIVED,
+                    f"Am gerenderten Dokument geprüft — {teile}" if teile else "")
 
-    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"))
+    # **Der Zusatz erklaert den Nenner (L-152).** Dekorative Bilder und
+    # Zaehlpixel fallen aus der Zaehlung; ohne diesen Satz wundert sich ein
+    # Betrieb, warum von zwoelf Bildern nur fuenf gewertet wurden.
+    _inhalt = qa.get("bilder_inhalt")
+    _ausgenommen = (qa.get("bilder_dekorativ") or 0) + (qa.get("bilder_pixel") or 0)
+    _zusatz = ""
+    if _inhalt is not None:
+        _zusatz = f"{qa.get('bilder_mit_alt', 0)} von {_inhalt} Inhaltsbildern"
+        if _ausgenommen:
+            _zusatz += f", {_ausgenommen} dekorativ oder Zählpixel (nicht gewertet)"
+    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"), einheit=" %",
+                    zusatz=_zusatz)
 
     # ── bf_semantik: zwei Haelften zu je einem Punkt (S1.1, 24.08.2026) ──
     #
@@ -251,7 +399,10 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
         sheet.set("bf_semantik", sum([
             1 if qa.get("heading_struktur_ok") else 0,
             1 if semantik >= 1.0 else 0,
-        ]), Source.MEASURED)
+        ]), Source.MEASURED, teile_beleg((
+            (qa.get("heading_struktur_ok"), "Überschriftenhierarchie sauber"),
+            (semantik >= 1.0, "Lighthouse-Semantikprüfung bestanden"),
+        )))
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -293,7 +444,14 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
             1 if qa.get("title_vorhanden") and qa.get("title_laenge_ok") else 0,
             1 if qa.get("meta_desc_vorhanden") and qa.get("meta_desc_laenge_ok") else 0,
             1 if _titel_traegt_den_massstab(title, city, klasse) else 0,
-        ]), Source.MEASURED)
+        ]), Source.MEASURED, teile_beleg((
+            (qa.get("title_vorhanden") and qa.get("title_laenge_ok"),
+             "Seitentitel vorhanden und passend lang"),
+            (qa.get("meta_desc_vorhanden") and qa.get("meta_desc_laenge_ok"),
+             "Kurzbeschreibung vorhanden und passend lang"),
+            (_titel_traegt_den_massstab(title, city, klasse),
+             "Titel nennt Ort oder Leistung"),
+        )))
 
         words = facts.get("word_count") or 0
         if nur_geruest:
@@ -302,13 +460,23 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
             sheet.set("se_struktur", sum([
                 1 if qa.get("h1_genau_eins") and qa.get("h2_vorhanden") else 0,
                 1 if words >= MIN_CONTENT_WORDS else 0,
-            ]), Source.MEASURED)
+            ]), Source.MEASURED, teile_beleg((
+                (qa.get("h1_genau_eins") and qa.get("h2_vorhanden"),
+                 "genau eine H1 mit H2-Gliederung"),
+                (words >= MIN_CONTENT_WORDS,
+                 f"Textumfang {words} Wörter (nötig: {MIN_CONTENT_WORDS})"),
+            )))
 
         sheet.set("se_index", sum([
             1 if qa.get("robots_txt") and qa.get("robots_txt_indexiert") else 0,
             1 if qa.get("sitemap_xml") else 0,
             1 if qa.get("canonical_vorhanden") else 0,
-        ]), Source.MEASURED)
+        ]), Source.MEASURED, teile_beleg((
+            (qa.get("robots_txt") and qa.get("robots_txt_indexiert"),
+             "robots.txt vorhanden und ohne Aussperrung"),
+            (qa.get("sitemap_xml"), "sitemap.xml"),
+            (qa.get("canonical_vorhanden"), "Canonical-Angabe"),
+        )))
 
         # Ohne `schema_typen` stammt die Erhebung von vor dem Branchenmodell —
         # dann bleibt es bei LocalBusiness und FAQ, damit ein Altbestand nicht
@@ -325,7 +493,11 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
             1 if qa.get("schema_markup") else 0,
             1 if haupttyp else 0,
             1 if zusatz else 0,
-        ]), Source.MEASURED)
+        ]), Source.MEASURED, teile_beleg((
+            (qa.get("schema_markup"), "JSON-LD vorhanden"),
+            (haupttyp, "passender Haupttyp"),
+            (zusatz, "passender Zusatztyp"),
+        )))
 
         contact = facts.get("contact") or {}
         if nur_geruest:
@@ -335,7 +507,12 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
                 1 if city and (city in title or city in h1) else 0,
                 1 if contact.get("tel_link") else 0,
                 1 if qa.get("google_maps") or qa.get("schema_localbusiness") else 0,
-            ]), Source.MEASURED)
+            ]), Source.MEASURED, teile_beleg((
+                (city and (city in title or city in h1), "Ort in Titel oder H1"),
+                (contact.get("tel_link"), "Telefonnummer als Link"),
+                (qa.get("google_maps") or qa.get("schema_localbusiness"),
+                 "Karte oder LocalBusiness-Auszeichnung"),
+            )))
 
     # KI-Lesbarkeit (L-58 a). Die Werte stehen in `qa`, nicht eine Ebene
     # hoeher: `summarise_facts` hebt sie zwar hoch, aber `routers/audit.py:180`
@@ -357,11 +534,19 @@ def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         sheet.set("se_ki_lesbar", sum([
             2 if not (_gesperrt or []) else 0,
             1 if _llms else 0,
-        ]), Source.MEASURED)
+        ]), Source.MEASURED, teile_beleg((
+            (not (_gesperrt or []),
+             "kein KI-Crawler ausgesperrt" if not (_gesperrt or [])
+             else "ausgesperrt: " + ", ".join(_gesperrt)),
+            (_llms, "llms.txt vorhanden"),
+        )))
 
     links = facts.get("links") or {}
     if links and "broken_links" in links:
-        sheet.set("se_links", 1 if not links.get("broken_links") else 0, Source.MEASURED)
+        kaputt = links.get("broken_links") or []
+        sheet.set("se_links", 0 if kaputt else 1, Source.MEASURED,
+                  f"{len(kaputt)} defekte Links auf der Startseite" if kaputt
+                  else "Keine defekten Links auf der Startseite")
     else:
         sheet.skip("se_links")
 
@@ -376,7 +561,9 @@ def _score_design(sheet: _Sheet, facts: dict) -> None:
     audits = (psi.get("a11y_audits") or {}) if _ok(psi) else {}
 
     if qa:
-        sheet.set("dg_mobil", 1 if qa.get("mobile_viewport") else 0, Source.MEASURED)
+        sheet.set("dg_mobil", 1 if qa.get("mobile_viewport") else 0, Source.MEASURED,
+                  "Viewport-Angabe im Seitenkopf vorhanden"
+                  if qa.get("mobile_viewport") else "Keine Viewport-Angabe im Seitenkopf")
     else:
         sheet.skip("dg_mobil")
 
@@ -387,7 +574,18 @@ def _score_design(sheet: _Sheet, facts: dict) -> None:
     #
     # Die Pruefung ist binaer, also sind es 0 oder 2 Punkte. Dieselbe Bauart
     # wie `bf_kontrast`, das `color-contrast` genauso abbildet.
-    sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED)
+    if audits.get("typografie") is not None:
+        sheet.scale("dg_typografie", audits.get("typografie"), Source.MEASURED,
+                    "Lighthouse-Prüfung der Schriftgröße bestanden"
+                    if audits.get("typografie") else
+                    "Lighthouse meldet zu kleine Schrift auf Mobilgeräten")
+    else:
+        a11y = facts.get("a11y_browser") or {}
+        klein = a11y.get("schrift_zu_klein") or 0
+        geprueft = a11y.get("schrift_geprueft") or 0
+        sheet.scale("dg_typografie", a11y_browser.schrift_anteil(a11y), Source.MEASURED,
+                    (f"Am gerenderten Dokument gemessen: {klein} von {geprueft} "
+                     f"Textstellen unter 12 px") if geprueft else "")
 
     # dg_aktualitaet, dg_farbsystem, dg_bildqualitaet: KI (siehe _apply_ai)
 
@@ -445,10 +643,12 @@ def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
         # der Praxis, Anfahrt im Publikumsbetrieb, Retourenweg im Shop. Vorher
         # verlor jede Praxis den Punkt für die nicht genannte Reaktionszeit —
         # ein Maßstab aus dem Handwerk.
+        merkmale = kontakt_merkmale(klasse)
         sheet.set("cv_kontakt", sum(
-            1 for merkmal in kontakt_merkmale(klasse)
-            if _kontaktmerkmal(contact, merkmal)
-        ), Source.MEASURED)
+            1 for merkmal in merkmale if _kontaktmerkmal(contact, merkmal)
+        ), Source.MEASURED, teile_beleg(
+            [(_kontaktmerkmal(contact, m), str(m)) for m in merkmale]
+        ))
     else:
         sheet.skip("cv_kontakt")
 
@@ -494,7 +694,12 @@ def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
 
     if _ok(freshness):
         current = freshness.get("copyright_current") or freshness.get("has_dated_content")
-        sheet.set("ih_aktualitaet", 1 if current else 0, Source.MEASURED)
+        jahr = freshness.get("copyright_year")
+        sheet.set("ih_aktualitaet", 1 if current else 0, Source.MEASURED, teile_beleg((
+            (freshness.get("copyright_current"),
+             f"Copyright {jahr}" if jahr else "aktuelles Copyright"),
+            (freshness.get("has_dated_content"), "datierte Inhalte"),
+        )))
     else:
         sheet.skip("ih_aktualitaet")
     # ih_textqualitaet: KI (siehe _apply_ai)
@@ -665,6 +870,11 @@ def score_audit(facts: dict, ai: Optional[dict] = None) -> dict:
         "anwendbares_maximum": summary["applicable_max"],
         "items": sheet.items,
         "sources": {k: v.value for k, v in sheet.sources.items()},
+        # **Der Beleg je Kriterium (L-151, 04.09.2026).** Der gemessene Wert,
+        # der zur Punktzahl gefuehrt hat — in Klartext, nicht als Rohwert. Er
+        # entsteht an der Rechenstelle, damit Zahl und Begruendung nicht
+        # auseinanderlaufen koennen.
+        "belege": sheet.belege,
         "blockers": blockers,
         "level": level,
     }

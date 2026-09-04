@@ -1,75 +1,86 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import KundenChat from '../components/kunde/KundenChat';
-import GeoReport from '../components/GeoReport';
+import { aufgabeBestimmen, kachelnBauen, lageBestimmen, verlaufBauen }
+  from '../utils/kundenuebersicht';
 
-// ── Category score config ─────────────────────────────────────────────────────
-const CATEGORIES = [
-  { key: 'rc_score', label: 'Rechtliche Compliance',    max: 30, color: '#3f51b5' },
-  { key: 'tp_score', label: 'Technische Performance',   max: 20, color: '#2196f3' },
-  { key: 'bf_score', label: 'Barrierefreiheit',         max: 20, color: '#9c27b0' },
-  { key: 'si_score', label: 'Sicherheit & Datenschutz', max: 15, color: '#f44336' },
-  { key: 'se_score', label: 'SEO & Sichtbarkeit',       max: 10, color: '#ff9800' },
-  { key: 'ux_score', label: 'Inhalt & Nutzererfahrung', max:  5, color: '#4caf50' },
-];
+/**
+ * Die Übersicht des Kunden — eine Lage, eine Aufgabe, drei Zahlen (L-161).
+ *
+ * **Der Anlass.** Am 04.09.2026 meldete David: „unübersichtlich und
+ * unaufgeräumt". Nachgemessen am laufenden Werkzeug waren es **3.156 px** und
+ * **zehn Überschriften**, davon vier auf derselben Ebene ohne Rangfolge — und
+ * der größte Teil davon war an diesem Tag von mir selbst dazugekommen: drei
+ * Arbeitsflächen (Mitwirkung, Inhaltsänderungen, Zahlungen), jede für sich
+ * richtig, alle zusammen ein Stapel.
+ *
+ * **Die Regel dieser Seite, aus dem abgenommenen Entwurf:** Sie beantwortet
+ * zwei Fragen und sonst keine — *Wo stehen wir?* und *Was liegt bei mir?*
+ * Alles, woran man arbeitet, hat einen Menüpunkt. Was hier steht, ist die
+ * Lage in einem Satz, **eine** Aufgabe, drei Kacheln und der jüngste Verlauf.
+ *
+ * **Ein warmes Zeichen je Bildschirm.** „Offen" ist kein Fehler, sondern ein
+ * Zustand; farbig ausgezeichnet wird nur, was der Kunde jetzt tun soll.
+ * Alles gleichzeitig hervorzuheben heißt, nichts hervorzuheben.
+ *
+ * **Die Werte kommen aus vier Endpunkten, die es schon gibt.** Kein
+ * Sammel-Endpunkt: Er wäre eine zweite Wahrheit über dieselben Zahlen, und
+ * die vier Abrufe laufen nebeneinander.
+ */
 
-// ── Project phases ────────────────────────────────────────────────────────────
-const PHASES = [
-  { key: 'phase_1', label: 'Strategie-Workshop' },
-  { key: 'phase_2', label: 'Texterstellung'      },
-  { key: 'phase_3', label: 'Umsetzung'           },
-  { key: 'phase_4', label: 'Go-Live'             },
-];
-
-// ── Level colors ──────────────────────────────────────────────────────────────
-const LEVEL_COLOR = {
-  'Homepage Standard Platin': '#4a90d9',
-  'Homepage Standard Gold':   '#b8860b',
-  'Homepage Standard Silber': '#708090',
-  'Homepage Standard Bronze': '#cd7f32',
-  'Nicht konform':            '#dc2626',
-};
-
-function scoreBarColor(pct) {
-  if (pct >= 0.7) return '#16a34a';
-  if (pct >= 0.45) return '#f59e0b';
-  return '#dc2626';
-}
-
-// ── Main Component ────────────────────────────────────────────────────────────
+const LEER = { profil: null, mitwirkung: null, inhalt: null, zahlungen: null,
+               portal: null, projekt: null };
 
 export default function CustomerDashboard() {
   const { user, token } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const navigate = useNavigate();
+  const [daten, setDaten] = useState(LEER);
+  const [laedt, setLaedt] = useState(true);
+  const [fehler, setFehler] = useState(null);
 
   useEffect(() => {
-    if (!user?.lead_id) {
-      setLoading(false);
-      setError('no_lead_id');
-      return;
-    }
-    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-    fetch(`${API_BASE_URL}/api/usercards/${user.lead_id}/profile`, { headers: h })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => setProfile(data))
-      .catch(() => setError('Daten konnten nicht geladen werden.'))
-      .finally(() => setLoading(false));
-  }, [user?.lead_id]); // eslint-disable-line
+    if (!user?.lead_id) { setLaedt(false); setFehler('keine_kartei'); return; }
+    const kopf = { Authorization: `Bearer ${token}` };
+    const hol = (pfad) => fetch(`${API_BASE_URL}${pfad}`, { headers: kopf })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
 
-  // ── Loading / error ──────────────────────────────────────────────────────────
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
+    Promise.all([
+      hol(`/api/usercards/${user.lead_id}/profile`),
+      hol('/api/portal/mitwirkung'),
+      hol('/api/portal/inhalt'),
+      hol('/api/portal/zahlungen'),
+      hol('/api/portal/me'),
+    ]).then(async ([profil, mitwirkung, inhalt, zahlungen, portal]) => {
+      // **Nur das Profil ist unverzichtbar.** Die anderen dürfen fehlen — ein
+      // Betrieb ohne Abo hat keine Zahlungen, und eine leere Kachel ist
+      // besser als eine Seite, die wegen einer Nebensache nicht erscheint.
+      if (!profil) { setFehler('Ihre Daten konnten gerade nicht geladen werden.'); setLaedt(false); return; }
+
+      // **Zweiter Zug, weil er von der ersten Antwort abhängt.** Die offenen
+      // Freigaben stehen in `content_freigaben` am Projekt, und das Profil
+      // liefert diese Spalte nicht mit — es führt fünf Projektfelder, die
+      // Spalte ist keines davon. Ohne sie könnte die Übersicht den nächsten
+      // Schritt in der Bauphase nicht benennen, und genau darum geht es hier.
+      const projektId = portal?.project_id || (profil.projects || [])[0]?.id;
+      const projekt = projektId ? await hol(`/api/projects/${projektId}`) : null;
+
+      setDaten({ profil, mitwirkung, inhalt, zahlungen, portal, projekt });
+      setLaedt(false);
+    });
+  }, [user?.lead_id, token]);
+
+  if (laedt) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh', flexDirection: 'column', gap: 12 }}>
       <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
       <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Wird geladen…</span>
     </div>
   );
 
-  if (error === 'no_lead_id') return (
+  if (fehler === 'keine_kartei') return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 16, textAlign: 'center', padding: 24 }}>
-      <div style={{ fontSize: 32 }}>📋</div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kartei noch nicht verknüpft</h2>
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
         Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
@@ -80,306 +91,131 @@ export default function CustomerDashboard() {
     </div>
   );
 
-  if (error || !profile) return (
-    <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
-      {error || 'Keine Daten verfügbar.'}
-    </div>
-  );
+  if (fehler) return <p style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>{fehler}</p>;
 
-  const { lead, current_score, current_level, audits = [], projects = [] } = profile;
-  const latestAudit = audits[0] || null;
-  const project     = projects[0] || null;
-  const levelColor  = LEVEL_COLOR[current_level] || 'var(--text-tertiary)';
-
-  // Recommendations & issues from latest audit
-  let recs   = latestAudit?.recommendations || [];
-  let issues = latestAudit?.top_issues       || [];
-  try { if (typeof recs   === 'string') recs   = JSON.parse(recs);   } catch { recs   = []; }
-  try { if (typeof issues === 'string') issues = JSON.parse(issues); } catch { issues = []; }
-
-  const recText  = (r) => typeof r === 'string' ? r : (r?.title || r?.text || '');
-  const issText  = (i) => typeof i === 'string' ? i : (i?.title || i?.issue || i?.text || '');
-
-  // Count open recommendations
-  const openCount = recs.length + issues.length;
-
-  // ── Phase index ──────────────────────────────────────────────────────────────
-  const currentPhaseIdx = PHASES.findIndex(p => p.key === project?.status);
+  const { profil, mitwirkung, inhalt, zahlungen, portal, projekt } = daten;
+  const lage = lageBestimmen({ profil, mitwirkung });
+  const kacheln = kachelnBauen({ profil, mitwirkung, inhalt, zahlungen, lage });
+  const aufgabe = aufgabeBestimmen({ lage, mitwirkung, inhalt, projekt, portal });
+  const verlauf = verlaufBauen({ inhalt, zahlungen, profil });
+  const betrieb = profil.lead?.display_name || profil.lead?.company_name || '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1100, margin: '0 auto', width: '100%', animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', width: '100%', paddingBottom: 40 }}>
 
-      {/* ── 1. HEADER ── */}
-      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: '24px 28px', color: 'var(--text-on-brand)' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-          Willkommen zurück
-        </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: 0 }}>
-          {lead.display_name || lead.company_name}
-        </h1>
-        {lead.website_url && (
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>
-            {lead.website_url.replace(/^https?:\/\//, '')}
+      <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-.025em', color: 'var(--text-primary)', margin: '0 0 6px' }}>
+        {betrieb}
+      </h1>
+      <p style={{ fontSize: 19, lineHeight: 1.5, color: 'var(--text-primary)', margin: '0 0 4px', maxWidth: '56ch' }}>
+        {lage.satz}
+      </p>
+      <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 28px' }}>{lage.dazu}</p>
+
+      {/* **Das einzige warme Zeichen auf dem Bildschirm.** Es benennt den
+          nächsten Schritt — bei ihm, wenn etwas bei ihm liegt, sonst bei
+          uns. Alles gleichzeitig hervorzuheben heißt, nichts hervorzuheben;
+          deshalb ist dies die einzige farbige Fläche der Seite. */}
+      {aufgabe && (
+        <div style={{
+          background: 'var(--kc-dark)', color: '#fff', borderRadius: 'var(--radius-lg)',
+          padding: '22px 26px', marginBottom: 28, display: 'flex', gap: 20,
+          alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            {/* Der hervorgehobene Teil kommt als eigenes Feld aus
+                `kundenuebersicht.js` — dort steht *was* dasteht, hier *wie*. */}
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5 }}>
+              {aufgabe.vorspann}
+              <b style={{ color: 'var(--kc-yellow)', fontWeight: 900 }}>{aufgabe.hervor}</b>
+              {aufgabe.nachspann || ''}
+            </p>
+            {aufgabe.dazu && (
+              <p style={{ margin: '4px 0 0', fontSize: 14, lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
+                {aufgabe.dazu}
+              </p>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* ── 2. KPIs ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
-        {/* Score */}
-        <KpiCard
-          icon="🏆"
-          label="Homepage Score"
-          value={current_score != null ? `${current_score}/100` : '—'}
-          sub={current_level?.replace('Homepage Standard ', '') || ''}
-          accent={levelColor}
-        />
-        {/* Level */}
-        <KpiCard
-          icon="🎖️"
-          label="Zertifizierungsstufe"
-          value={current_level?.replace('Homepage Standard ', '') || '—'}
-          sub={current_score != null ? `${current_score} Punkte` : ''}
-          accent={levelColor}
-        />
-        {/* Last audit */}
-        <KpiCard
-          icon="📅"
-          label="Letzter Audit"
-          value={latestAudit ? new Date(latestAudit.created_at).toLocaleDateString('de-DE') : '—'}
-          sub={latestAudit ? `Score: ${latestAudit.total_score}/100` : 'Noch kein Audit'}
-          accent="var(--brand-primary)"
-        />
-        {/* Open recommendations */}
-        <KpiCard
-          icon="📋"
-          label="Offene Empfehlungen"
-          value={openCount > 0 ? openCount : '—'}
-          sub={openCount > 0 ? `${issues.length} dringend, ${recs.length} wichtig` : 'Keine Empfehlungen'}
-          accent={openCount > 0 ? '#f59e0b' : '#16a34a'}
-        />
-      </div>
-
-      {/* ── 3. TWO COLUMNS ── */}
-      {latestAudit && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-
-          {/* Left — category score bars */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
-              Kategorie-Scores
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {CATEGORIES.map(cat => {
-                const score = latestAudit[cat.key] ?? 0;
-                const pct   = cat.max > 0 ? score / cat.max : 0;
-                const color = scoreBarColor(pct);
-                return (
-                  <div key={cat.key}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>{cat.label}</span>
-                      <span style={{ fontWeight: 600, color }}>{score}/{cat.max}</span>
-                    </div>
-                    <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 3, transition: 'width 0.8s ease' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right — recommendations */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
-              Top-Empfehlungen
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {issues.slice(0, 3).map((issue, i) => (
-                <RecommendationRow
-                  key={`issue-${i}`}
-                  text={issText(issue)}
-                  badge="Dringend"
-                  badgeColor="#dc2626"
-                  badgeBg="#fef2f2"
-                />
-              ))}
-              {recs.slice(0, 4).map((rec, i) => (
-                <RecommendationRow
-                  key={`rec-${i}`}
-                  text={recText(rec)}
-                  badge="Wichtig"
-                  badgeColor="#d97706"
-                  badgeBg="#fffbeb"
-                />
-              ))}
-              {issues.length === 0 && recs.length === 0 && (
-                <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '16px 0', textAlign: 'center' }}>
-                  ✅ Keine offenen Empfehlungen
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 4. PROJECT PHASES ── */}
-      {(project || true) && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20 }}>
-            Projektstatus
-          </div>
-
-          {/* Phase steps */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, overflowX: 'auto' }}>
-            {PHASES.map((phase, idx) => {
-              const done    = currentPhaseIdx >= 0 && idx < currentPhaseIdx;
-              const active  = idx === currentPhaseIdx;
-              const pending = currentPhaseIdx < 0 ? idx > 0 : idx > currentPhaseIdx;
-              const color   = done ? '#16a34a' : active ? '#f59e0b' : 'var(--border-medium)';
-              const isLast  = idx === PHASES.length - 1;
-
-              return (
-                <div key={phase.key} style={{ display: 'flex', alignItems: 'center', flex: isLast ? '0 0 auto' : 1, minWidth: 120 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 auto' }}>
-                    {/* Circle */}
-                    <div style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      background: done ? '#16a34a' : active ? '#f59e0b' : 'var(--bg-app)',
-                      border: `2px solid ${color}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14, color: (done || active) ? 'white' : 'var(--text-tertiary)',
-                      fontWeight: 700, flexShrink: 0,
-                      transition: 'all 0.3s ease',
-                    }}>
-                      {done ? '✓' : idx + 1}
-                    </div>
-                    {/* Label */}
-                    <div style={{ fontSize: 11, marginTop: 6, textAlign: 'center', whiteSpace: 'nowrap',
-                      color: done ? '#16a34a' : active ? '#f59e0b' : 'var(--text-tertiary)',
-                      fontWeight: active ? 600 : 400,
-                    }}>
-                      {phase.label}
-                    </div>
-                    {active && (
-                      <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, marginTop: 2 }}>Aktuelle Phase</div>
-                    )}
-                  </div>
-                  {/* Connector */}
-                  {!isLast && (
-                    <div style={{ flex: 1, height: 2, background: done ? '#16a34a' : 'var(--border-light)', marginBottom: 28, transition: 'background 0.3s ease' }} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Phase details */}
-          {project && (
-            <div style={{ display: 'flex', gap: 20, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
-              {project.start_date && (
-                <div style={{ fontSize: 12 }}>
-                  <span style={{ color: 'var(--text-tertiary)' }}>Projektstart: </span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{project.start_date}</span>
-                </div>
-              )}
-              {project.target_go_live && (
-                <div style={{ fontSize: 12 }}>
-                  <span style={{ color: 'var(--text-tertiary)' }}>Geplantes Go-Live: </span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{project.target_go_live}</span>
-                </div>
-              )}
-            </div>
-          )}
-          {!project && (
-            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
-              Noch kein Projekt angelegt — Ihr Berater wird Sie kontaktieren.
-            </div>
+          {/* **Kein Knopf, wenn es nichts zu tun gibt.** Ein Streifen, der
+              berichtet, braucht keinen — und eine Schaltfläche ohne Aufgabe
+              dahinter ist die Sorte Knopf, die man einmal drückt und danach
+              nicht mehr ernst nimmt. */}
+          {aufgabe.knopf && (
+            <button
+              onClick={() => navigate(aufgabe.ziel)}
+              style={{
+                font: 'inherit', fontWeight: 900, fontSize: 14, padding: '12px 22px',
+                borderRadius: 'var(--radius-md)', border: 'none',
+                background: 'var(--kc-yellow)', color: '#000', cursor: 'pointer', flex: 'none',
+              }}
+            >
+              {aufgabe.knopf}
+            </button>
           )}
         </div>
       )}
 
-      {/* ── 5. GEO ──
-        * Der KI-Sichtbarkeitswert des Projekts. `GeoReport` gibt es seit
-        * Langem und niemand hat es importiert (L-95); GEO wurde verkauft
-        * und nirgends ausgeliefert. Zeigt sich nur, wenn eine Analyse
-        * vorliegt — die Komponente gibt sonst `null` zurueck. */}
-      {project?.id && <GeoReport projectId={project.id} token={token} />}
+      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', marginBottom: 8 }}>
+        {kacheln.map((k) => (
+          <Kachel key={k.was} {...k} onClick={k.ziel ? () => navigate(k.ziel) : undefined} />
+        ))}
+      </div>
 
-      {/* ── 6. NACHRICHTEN ──
-        * Der Verlauf mit dem Innendienst. Es gab ihn seit jeher in beide
-        * Richtungen — aber im angemeldeten Portal fuehrte der einzige Weg
-        * zum Team ueber den `mailto:`-Link darunter (26.08.2026, L-95). */}
-      {user?.lead_id && <KundenChat leadId={user.lead_id} token={token} />}
+      <h2 style={{ fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-.02em', color: 'var(--text-tertiary)', margin: '32px 0 10px' }}>
+        Zuletzt passiert
+      </h2>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+        {verlauf.length === 0 ? (
+          <p style={{ padding: '14px 18px', margin: 0, fontSize: 14, color: 'var(--text-tertiary)' }}>
+            Hier steht, was zuletzt an Ihrem Auftrag geschehen ist.
+          </p>
+        ) : verlauf.map((z, i) => (
+          <div key={i} style={{
+            display: 'flex', gap: 14, alignItems: 'baseline', padding: '12px 18px',
+            borderTop: i === 0 ? 'none' : '1px solid var(--border-light)', fontSize: 15,
+            color: 'var(--text-primary)',
+          }}>
+            <span>{z.was}</span>
+            <span style={{ marginLeft: 'auto', flex: 'none', fontSize: 13, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+              {z.wann}
+            </span>
+          </div>
+        ))}
+      </div>
 
-      {/* ── 7. CONTACT BANNER ── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-        borderRadius: 'var(--radius-xl)',
-        padding: '20px 24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'white', marginBottom: 4 }}>
-            Fragen zu Ihrem Projekt?
-          </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-            Unser Team steht Ihnen gerne zur Verfügung.
-          </div>
+      {user?.lead_id && (
+        <div style={{ marginTop: 32 }}>
+          <KundenChat leadId={user.lead_id} token={token} />
         </div>
-        <a
-          href={lead.email ? `mailto:${lead.email}` : 'mailto:info@kompagnon.eu'}
-          style={{
-            background: 'white', color: '#16a34a', borderRadius: 'var(--radius-md)',
-            padding: '10px 20px', fontSize: 13, fontWeight: 700,
-            textDecoration: 'none', flexShrink: 0, display: 'inline-block',
-          }}
-        >
-          Kontakt aufnehmen
-        </a>
-      </div>
-
-    </div>
-  );
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function KpiCard({ icon, label, value, sub, accent }) {
-  return (
-    <div style={{
-      background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-      borderRadius: 'var(--radius-lg)', padding: '16px 18px',
-      borderTop: `3px solid ${accent}`,
-    }}>
-      <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
-        {value}
-      </div>
-      {sub && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );
 }
 
-function RecommendationRow({ text, badge, badgeColor, badgeBg }) {
-  if (!text) return null;
+function Kachel({ was, zahl, klein, sagt, hin, betont, gut, onClick }) {
+  const rand = betont ? 'var(--kc-dark)' : gut ? 'var(--success)' : 'var(--border-medium)';
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-      <span style={{
-        flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '2px 7px',
-        borderRadius: 'var(--radius-sm)', background: badgeBg, color: badgeColor,
-        border: `1px solid ${badgeColor}30`, marginTop: 1, whiteSpace: 'nowrap',
-      }}>
-        {badge}
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      style={{
+        background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+        borderTop: `3px solid ${rand}`, borderRadius: 'var(--radius-lg)', padding: 20,
+        textAlign: 'left', cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 700 }}>
+        {was}
+      </p>
+      <span style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+        {zahl}
+        {klein && <small style={{ fontSize: 15, fontWeight: 400, color: 'var(--text-tertiary)', marginLeft: 6 }}>{klein}</small>}
       </span>
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-        {text}
-      </span>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '8px 0 0', lineHeight: 1.45 }}>{sagt}</p>
+      {hin && onClick && (
+        <p style={{ fontSize: 13, color: 'var(--kc-mid)', margin: '10px 0 0', fontWeight: 700 }}>{hin}</p>
+      )}
     </div>
   );
 }

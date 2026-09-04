@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,15 @@ import API_BASE_URL from '../config';
 import NewsletterAnalytics from '../components/newsletter/NewsletterAnalytics';
 
 export default function Newsletter() {
+  // **Escape schliesst — WCAG 2.1.1 (30.08.2026, L-17).** Mit der Tastatur
+  // gab es aus dieser Ueberlagerung keinen Weg heraus ausser dem Suchen
+  // des Abbrechen-Knopfes.
+  // Die Versandabfrage schliesst **abbrechend** — sie fragt nach einer
+  // Handlung, die sich nicht zurueckholen laesst, und Abbrechen ist die
+  // sichere Antwort. Nicht waehrend der Versand laeuft.
+  useEscapeKey(() => { setShowNewList(false); setShowImport(false);
+                       if (!versandLaeuft) setVersand(null); });
+
   const navigate = useNavigate();
   const { token } = useAuth();
   const fetchedRef = useRef(false);
@@ -177,7 +187,7 @@ export default function Newsletter() {
   const sourceBadge = (source) => {
     const isManual = source === 'manual';
     return (
-      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 500, background: isManual ? 'var(--bg-app)' : 'var(--brand-primary-light)', color: isManual ? 'var(--text-secondary)' : 'var(--brand-primary)' }}>
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: isManual ? 'var(--bg-app)' : 'var(--brand-primary-light)', color: isManual ? 'var(--text-secondary)' : 'var(--brand-primary)' }}>
         {isManual ? 'Manuell' : source}
       </span>
     );
@@ -218,7 +228,7 @@ export default function Newsletter() {
           { label: 'Aktive Listen', value: activeLists },
         ].map((s, i) => (
           <div key={i} style={{ ...card, padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{s.label}</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--brand-primary)' }}>{s.value}</div>
           </div>
         ))}
@@ -256,7 +266,7 @@ export default function Newsletter() {
             borderRadius: '8px 8px 0 0',
           }}>
             {['Betreff', 'Status', 'Erstellt', 'Versendet', 'Aktionen'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
+              <span key={h} style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)' }}>{h}</span>
             ))}
           </div>
 
@@ -280,7 +290,7 @@ export default function Newsletter() {
             >
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{c.subject}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.title}</div>
               </div>
               <div>{statusBadge(c.status)}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{fmtDate(c.created_at)}</div>
@@ -370,7 +380,7 @@ export default function Newsletter() {
                     />
                     <span>{l.name}</span>
                     {typeof l.contact_count === 'number' && (
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
                         · {l.contact_count} Empfänger
                       </span>
                     )}
@@ -425,7 +435,7 @@ export default function Newsletter() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--brand-primary)' }}>{l.contact_count}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Kontakte</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Kontakte</div>
                   </div>
                 </div>
                 {l.description && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{l.description}</div>}
@@ -466,7 +476,7 @@ export default function Newsletter() {
           <div style={modal}>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Kontakte importieren</h2>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
-              Eine Zeile pro Kontakt: <code style={{ background: 'var(--bg-app)', padding: '1px 4px', borderRadius: 4, fontSize: 11 }}>email, vorname, nachname</code>
+              Eine Zeile pro Kontakt: <code style={{ background: 'var(--bg-app)', padding: '1px 4px', borderRadius: 4, fontSize: 12 }}>email, vorname, nachname</code>
             </p>
             <textarea aria-label={'max@beispiel.de, Max, Mustermann\nlisa@firma.de, Lisa, Mueller'}
               style={{ ...input, minHeight: 140, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12 }}

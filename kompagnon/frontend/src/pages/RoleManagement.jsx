@@ -121,7 +121,7 @@ export default function RoleManagement() {
                         <span
                           title="Diese Angabe beschreibt die Absicht — eine Sperre hängt noch nicht daran."
                           style={{
-                            fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                            fontSize: 12, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
                             background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)',
                           }}
                         >beschreibend</span>
@@ -160,7 +160,7 @@ export default function RoleManagement() {
                 <span style={{ color: 'var(--text-primary)' }}>
                   {label}
                   {!durchgesetzt.includes(perm) && (
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>
                       — beschreibend, wirkt noch nicht
                     </span>
                   )}

@@ -146,7 +146,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           </div>
           <button
             onClick={loadKi}
-            style={{ fontSize: 10, fontWeight: 700, background: 'transparent',
+            style={{ fontSize: 12, fontWeight: 700, background: 'transparent',
                      border: '0.5px solid #00875A44', borderRadius: 5, padding: '3px 9px',
                      cursor: 'pointer', color: '#00875A', fontFamily: 'var(--font-sans)' }}
           >
@@ -158,12 +158,12 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
       {FIELDS.map(({ key, label, type, placeholder, hint, options, kiKey }) => (
         <div key={key} style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                             textTransform: 'uppercase', letterSpacing: '.06em' }}>
               {label}
             </label>
             {ki && ki[kiKey] && konfidenz(kiKey) > 0.7 && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                 🤖 KI · {Math.round(konfidenz(kiKey) * 100)}%
               </span>
@@ -198,7 +198,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           )}
 
           {hint && (
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</div>
           )}
         </div>
       ))}

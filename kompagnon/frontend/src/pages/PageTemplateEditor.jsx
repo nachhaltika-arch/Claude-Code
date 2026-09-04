@@ -177,14 +177,14 @@ export default function PageTemplateEditor() {
             <span style={{ fontSize: 14 }}>🖼</span>
             <span style={{ fontWeight: 600, color: '#fff' }}>{tplInfo.name}</span>
             <span style={{
-              padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700,
-              background: '#e0f4f8', color: 'var(--kc-mid)',
+              padding: '2px 7px', borderRadius: 3, fontSize: 12, fontWeight: 700,
+              background: '#e0f4f8', color: 'var(--text-brand)',
             }}>
               {tplInfo.category || 'allgemein'}
             </span>
             {tplInfo.is_builtin && (
               <span style={{
-                padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700,
+                padding: '2px 7px', borderRadius: 3, fontSize: 12, fontWeight: 700,
                 background: '#fef3c7', color: '#92400e',
               }}>
                 Built-in (read-only)

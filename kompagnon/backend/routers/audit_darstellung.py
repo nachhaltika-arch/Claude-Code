@@ -32,8 +32,20 @@ def _json_field(raw, fallback):
         return fallback
 
 
-def _catalogue_payload(items: dict, sources: dict) -> list:
-    """Kategorien mit Kriterien, Punkten und Quellen-Kennzeichnung."""
+def _catalogue_payload(items: dict, sources: dict, belege: dict = None) -> list:
+    """Kategorien mit Kriterien, Punkten, Quellen-Kennzeichnung und Beleg.
+
+    **Der Beleg gehoert auch hierher (L-151, 04.09.2026).** Er stand zuerst nur
+    im HTML-Bericht und im PDF — also genau dort **nicht**, wo der Innendienst
+    ihn liest. Aufgefallen beim Vergleichslauf gegen `neovendo.de`: Die
+    API-Antwort trug `items` und `sources`, aber keinen Beleg. Ein Merkmal, das
+    zwei von drei Ausgaben erreicht, ist nicht fertig.
+
+    Zusaetzlich `erhoben` und `kriterien` je Kategorie: „0 von 2" allein liest
+    sich als Urteil ueber den Betrieb, nicht als „von fuenf Kriterien konnten
+    wir eines messen".
+    """
+    belege = belege or {}
     payload = []
     for category in CATALOGUE:
         criteria = []
@@ -47,12 +59,23 @@ def _catalogue_payload(items: dict, sources: dict) -> list:
                 "score": int(items.get(crit.key, 0) or 0),
                 "source": source,
                 "source_label": SOURCE_LABELS.get(Source(source), source),
-                "collected": source != Source.NOT_COLLECTED.value,
+                # `nicht_anwendbar` gehoert wie `nicht_erhoben` aus der
+                # Wertung — sonst liest sich ein Kriterium, das fuer die
+                # Branchenklasse gar nicht gilt, als Mangel (04.09.2026).
+                "collected": source not in (Source.NOT_COLLECTED.value,
+                                            Source.NOT_APPLICABLE.value),
+                "anwendbar": source != Source.NOT_APPLICABLE.value,
+                "beleg": belege.get(crit.key, ""),
             })
+        erhoben = [c for c in criteria if c["collected"]]
         payload.append({
             "key": category.key,
             "label": category.label,
             "nominal_max": category.max_points,
+            "erhoben": len(erhoben),
+            "kriterien": len(criteria),
+            "score": sum(c["score"] for c in erhoben),
+            "max": sum(c["max"] for c in erhoben),
             "criteria": criteria,
         })
     return payload
@@ -70,6 +93,7 @@ def _format_audit(audit: AuditResult) -> dict:
     """Format audit for JSON response."""
     items = _json_field(getattr(audit, "item_scores", None), {})
     sources = _json_field(getattr(audit, "item_sources", None), {})
+    belege = _json_field(getattr(audit, "item_belege", None), {})
     categories = _json_field(getattr(audit, "category_scores", None), [])
     blocker_keys = _json_field(getattr(audit, "blockers", None), [])
 
@@ -102,8 +126,9 @@ def _format_audit(audit: AuditResult) -> dict:
             getattr(audit, "branchenklasse", "")),
         "standard_version": getattr(audit, "standard_version", "") or "",
         "categories": categories,
-        "catalogue": _catalogue_payload(items, sources),
+        "catalogue": _catalogue_payload(items, sources, belege),
         "items": items,
+        "belege": belege,
         "sources": sources,
         "blockers": [
             {"key": k, "label": BLOCKER_LABELS.get(k, k)} for k in blocker_keys

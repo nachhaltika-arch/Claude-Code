@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET_GEO = os.getenv("STRIPE_WEBHOOK_SECRET_GEO", "")
+
+from services.stripe_ereignis import gegenstand as _gegenstand  # noqa: E402
 # siehe payments.py — die Adresse kommt aus services.base_urls
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -76,6 +78,17 @@ async def create_geo_subscription(
 
     if not stripe.api_key:
         raise HTTPException(503, "Stripe nicht eingerichtet (STRIPE_SECRET_KEY fehlt)")
+
+    # **Kein echtes Geld ausserhalb der Produktion** (04.09.2026). Siehe
+    # `services/stripe_modus.py`: Ein Live-Schluessel in einer Umgebung, die
+    # sich ausdruecklich als nicht-produktiv bezeichnet, haelt hier an — sonst
+    # bucht ein Testklick von einer echten Karte ab, und niemand sieht es,
+    # weil auf Staging niemand auf seinen Kontoauszug schaut.
+    from services import stripe_modus
+    try:
+        stripe_modus.pruefe_oder_fehler()
+    except stripe_modus.FalscherModus as fehler:
+        raise HTTPException(503, str(fehler))
 
     analysis = _get_analysis_or_404(project_id, db)
     project, lead = _get_project_lead(project_id, db)
@@ -164,12 +177,14 @@ async def geo_stripe_webhook(
     logger.info("GEO Webhook Event: %s", event_type)
 
     if event_type == "checkout.session.completed":
-        session = event["data"]["object"]
+        # Siehe `services/stripe_ereignis.py`: ein StripeObject ist seit
+        # stripe 15 keine dict-Unterklasse, `.get(...)` wirft.
+        session = _gegenstand(event)
         if session.get("metadata", {}).get("addon_type") == "geo":
             background_tasks.add_task(_handle_geo_subscription_start, session)
 
     elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
-        subscription = event["data"]["object"]
+        subscription = _gegenstand(event)
         if subscription.get("metadata", {}).get("addon_type") == "geo":
             background_tasks.add_task(_handle_subscription_change, subscription)
 
@@ -205,6 +220,20 @@ def _handle_geo_subscription_start(session: dict):
 
         analysis.stripe_subscription_id = subscription_id
         analysis.stripe_customer_id = customer_id
+
+        # **Und dieselbe Kennung an den Betrieb** (04.09.2026). Am Erzeugnis
+        # eines einzelnen Kaufs nuetzt sie dem Zahlungskonto im Kundenportal
+        # nichts: Ein Kunde hat ein Zahlungsmittel, nicht eines je Produkt.
+        try:
+            from database import Lead
+            from services import zahlungsportal
+
+            betrieb = db.query(Lead).filter(Lead.id == analysis.lead_id).first()
+            if betrieb:
+                zahlungsportal.merke_kennung(db, betrieb, customer_id)
+        except Exception as fehler:      # noqa: BLE001
+            logger.warning("Zahlungskonto nicht am Betrieb gemerkt: %s: %s",
+                           type(fehler).__name__, fehler)
         analysis.subscription_status = "active"
         analysis.upsell_active = True
         analysis.subscription_started_at = datetime.utcnow()

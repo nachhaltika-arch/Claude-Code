@@ -94,7 +94,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
                               background: 'var(--bg-app)',
                               border: '0.5px solid var(--border-light)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 10, color: 'var(--text-tertiary)' }}>
+                              fontSize: 12, color: 'var(--text-tertiary)' }}>
                   +{status.fotos.anzahl - 3}
                 </div>
               )}
@@ -115,7 +115,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
       />
 
       <div style={{ marginTop: 16, marginBottom: 16 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
+        <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
                         textTransform: 'uppercase', letterSpacing: '.06em',
                         display: 'block', marginBottom: 5 }}>
           Zusätzliche Hinweise zu Medien
@@ -166,14 +166,14 @@ function AssetRow({ icon, label, checked, onChange, autoDetected, autoLabel, det
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
             {autoDetected && autoLabel && (
-              <span style={{ fontSize: 9, fontWeight: 900, padding: '1px 6px',
+              <span style={{ fontSize: 12, fontWeight: 900, padding: '1px 6px',
                              borderRadius: 3, background: '#E3F6EF', color: '#00875A' }}>
                 🤖 {autoLabel}
               </span>
             )}
           </div>
           {!checked && uncheckedHint && (
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{uncheckedHint}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{uncheckedHint}</div>
           )}
           {detail}
         </div>

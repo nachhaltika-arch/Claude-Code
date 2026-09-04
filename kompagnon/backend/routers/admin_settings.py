@@ -111,10 +111,21 @@ def update_settings(req: SettingsUpdate, admin=Depends(require_admin), db: Sessi
     return {"message": "Einstellungen gespeichert"}
 
 
-@router.post("/settings/test-email")
-def test_email(admin=Depends(require_admin)):
-    # Placeholder — actual email sending would go here
-    return {"message": "Test-E-Mail wird gesendet (nicht implementiert)"}
+# ── `POST /settings/test-email` entfernt am 2026-08-31 (L-105) ────────
+#
+# Er hat **nichts getan und das Gegenteil geantwortet**: „Test-E-Mail wird
+# gesendet (nicht implementiert)". Wer den ersten Halbsatz liest und den
+# zweiten ueberliest — und in einer Antwort liest man den ersten —, haelt den
+# Versand fuer angestossen.
+#
+# Gerufen hat ihn niemand: `tools/unaufgerufene-routen.py` fuehrte ihn am
+# 31.08.2026 unter den 100 Endpunkten ohne Aufrufer. Der **arbeitende** Weg
+# ist `POST /api/automations/test-email?recipient=…`; ihn ruft die
+# Einstellungsseite, und er verschickt wirklich.
+#
+# Zwei Wege zur selben Sache, von denen einer nur so tut, sind schlimmer als
+# einer: Wer den falschen findet, sucht den Fehler danach beim Mailversand.
+# `tests/test_testmail_einer.py` haelt fest, dass es bei einem bleibt.
 
 
 # ═══════════════════════════════════════════════════════════

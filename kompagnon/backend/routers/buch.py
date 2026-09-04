@@ -46,7 +46,20 @@ FRONTEND_BOOK_URL = os.getenv("FRONTEND_BOOK_URL", "").rstrip("/")
 #: Der in Stripe angelegte Steuersatz von sieben Prozent. `automatic_tax`
 #: bleibt aus: Stripe würde sonst 19 % ansetzen, weil es das Buch nicht kennt.
 STRIPE_TAX_RATE_ID_7 = os.getenv("STRIPE_TAX_RATE_ID_7", "")
-WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+#: Das Signaturgeheimnis **dieses** Endpunkts.
+#:
+#: **Jede in Stripe eingetragene Adresse hat ihr eigenes.** Bis zum
+#: 27.08.2026 stand hier `STRIPE_WEBHOOK_SECRET` — dasselbe, das
+#: `routers/payments.py` liest. Sobald `/api/book/webhook` als zweite Adresse
+#: eingetragen wird, prüft diese Zeile jede Meldung gegen das Geheimnis der
+#: **falschen** Adresse: Die Signatur schlägt fehl, der Endpunkt antwortet
+#: mit 400, Stripe wiederholt tagelang, und keine einzige Buchbestellung
+#: würde je auf „bezahlt" gesetzt.
+#:
+#: Der Rückfall auf den alten Namen ist Absicht: Solange nur **eine** Adresse
+#: eingetragen ist, bleibt die bisherige Einrichtung gültig.
+WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET_BUCH")
+                  or os.getenv("STRIPE_WEBHOOK_SECRET", ""))
 
 #: Wie lange ein Abruflink gilt. Lang genug für einen Urlaub, kurz genug,
 #: dass ein weitergereichter Link nicht ewig trägt.
@@ -63,7 +76,7 @@ def konfiguration_pruefen() -> list:
     if not os.getenv("STRIPE_SECRET_KEY"):
         fehlt.append("STRIPE_SECRET_KEY")
     if not WEBHOOK_SECRET:
-        fehlt.append("STRIPE_WEBHOOK_SECRET")
+        fehlt.append("STRIPE_WEBHOOK_SECRET_BUCH")
     if not FRONTEND_BOOK_URL:
         fehlt.append("FRONTEND_BOOK_URL")
     if not STRIPE_TAX_RATE_ID_7:
@@ -195,7 +208,16 @@ def _bestellung_anlegen(db: Session, bestellung: BuchBestellung,
             payment_status="pending",
             waiver_accepted=bestellung.waiver_accepted,
             waiver_accepted_at=jetzt if bestellung.waiver_accepted else None,
-            fulfillment_status=("queued" if bestellung.variant in ("print", "bundle")
+            # **Nicht `queued`, solange niemand bezahlt hat** (01.09.2026,
+            # BUCH-07). Bis hierher stand an dieser Stelle `queued` — gesetzt
+            # beim **Anlegen**, waehrend `payment_status` noch `pending` ist.
+            # Jede abgebrochene Kasse lag damit in der Druckwarteschlange, und
+            # wer sie bei BoD aufgab, verschickte ein bezahltes Buch an
+            # jemanden, der es nie gekauft hat. Der Webhook hebt den Status,
+            # sobald Stripe die Zahlung bestaetigt — die Zeile dafuer stand
+            # schon immer weiter unten in `_zahlung_verbuchen`.
+            fulfillment_status=("awaiting_payment"
+                                if bestellung.variant in ("print", "bundle")
                                 else "not_applicable"),
             utm_source=bestellung.utm_source[:100],
             utm_campaign=bestellung.utm_campaign[:100],
@@ -331,6 +353,19 @@ def auslieferung_anstossen(order_number: str) -> None:
 
 
 def _zahlung_verbuchen(sitzung: dict) -> None:
+    # **Auch hier kommt jede Kasse des Kontos an**, nicht nur die des Buchs
+    # und des Shops (siehe `services/zahlungsweg.py`). Ohne diese Weiche
+    # meldete der Eintrag unten bei **jedem** Websprint-Kauf einen Fehler —
+    # ein Protokoll voller Fehlalarme ist eines, in dem der echte Fehler
+    # untergeht.
+    from services.zahlungsweg import BUCH, weg_der_sitzung
+
+    weg = weg_der_sitzung(sitzung.get("metadata"))
+    if weg != BUCH:
+        logger.info("Buch: Sitzung %s gehoert zum Weg %r — hier uebersprungen",
+                    sitzung.get("id", "?"), weg)
+        return
+
     db = SessionLocal()
     try:
         eintrag = db.query(BookOrder).filter(
@@ -379,7 +414,13 @@ async def webhook(request: Request, hintergrund: BackgroundTasks):
 
     if ereignis["type"] == "checkout.session.completed":
         try:
-            hintergrund.add_task(_zahlung_verbuchen, ereignis["data"]["object"])
+            # Siehe `services/stripe_ereignis.py`. Hier waere der Fehler
+            # noch stiller gewesen als im Zahlungspfad: Der Absturz passiert
+            # im Hintergrund, die Antwort an Stripe bleibt 200 — eine
+            # bezahlte Bestellung, die nie auf „bezahlt" gesetzt wird.
+            from services.stripe_ereignis import gegenstand
+
+            hintergrund.add_task(_zahlung_verbuchen, gegenstand(ereignis))
         except Exception as fehler:                     # pragma: no cover
             logger.exception("Zahlung konnte nicht verbucht werden: %s", fehler)
 

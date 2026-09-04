@@ -100,7 +100,64 @@ passiert ist — nicht, weil sie sich gut liest.
 | Prüftor mit Lücke | Konsistenz | das Tor prüft weniger, als es verspricht | L-78 |
 | Termine fremder Dienste | Konsistenz | angekündigte Abschaltung läuft ab | L-81 |
 | Dateien über der Grenze | Konsistenz | über der doppelten 800-Zeilen-Grenze | L-25 |
-| Laufzeit (Browser) | Browser | Antwortcode, Netzfehler, Konsolenfehler, leere Seite | L-41, L-53 |
+| Rollendrift | mehrere | Rollenname an einer Stelle, an der anderen nicht | L-05, L-133 |
+| Verwaltungsroute ohne Rolle | Frontend | Verwaltungsansicht steht jedem Angemeldeten offen | — |
+| Bild ohne Alt, Feld ohne Beschriftung | Frontend | was eine Vorlesehilfe nicht benennen kann | WCAG AA |
+| Tokens ohne Dunkelfassung | Optik | Farbe nur im Hellsatz — beim Umschalten bleibt sie hell | — |
+| Farbe statt Token | Optik | harter Farbwert im Bauteil, geht beim Umschalten nicht mit | L-32 |
+| Token-Kontrast in beiden Themes | Optik | WCAG AA je Paar, hell und dunkel | L-17 |
+| Messungen am gerenderten Bild | Optik | Kontrast und Schriftgröße am Browser — offen, bis gefahren | L-17 |
+| Laufzeit (Browser) | Browser | Antwortcode, Netzfehler, leere Seite, **Kontrast und Schriftgröße je Theme und Rolle** | L-41, L-53, L-17 |
+
+## Hell und Dunkel, Lesbarkeit, Rollen
+
+**Hell und Dunkel zählen gleich** (Entscheidung 04.09.2026). Der Dunkelmodus
+tauscht Tokens; was nicht als Token vorliegt, bleibt stehen. Drei Stufen
+fragen danach aus verschiedenen Richtungen: welche Farbtokens der Dunkelsatz
+gar nicht überschreibt, welche Farben als Zeichenkette im Bauteil festgeschrieben
+sind, und ob die vorhandenen Token-Kontrasttests in beiden Sätzen bestehen.
+
+**Der Maßstab ist WCAG AA** — Fließtext 4,5:1, große Schrift und
+Bedienelemente 3:1. **Eine Mindestschriftgröße gehört ausdrücklich nicht
+dazu**: WCAG kennt keine; die Richtlinie verlangt, dass Text sich auf 200 %
+vergrößern lässt (1.4.4). Die 12-px-Grenze des Projekts stammt von Lighthouse
+und wird als eigene Entscheidung geführt, nicht als Norm. In einem Haus, das
+Website-Audits verkauft, ist eine falsch zugeschriebene Norm der teuerste
+Fehler von allen.
+
+**Warum die gerenderte Messung unverzichtbar ist**, zeigt der Lauf vom
+04.09. besser als jede Begründung: Die Token-Kontrasttests bestehen — 14
+Prüfungen, beide Sätze — und trotzdem steht die Dashboard-Überschrift im
+Dunkelmodus bei **1,29:1**. `Dashboard.jsx` setzt `color: var(--kc-dark)`,
+und `--kc-dark` ist eine *Flächen*farbe: Sie wird im Dunkelsatz noch dunkler,
+weil sie dort eine dunkle Fläche sein soll. Die Paarliste des Tests kennt
+dieses Paar zu Recht nicht — der Fehler liegt in der Verwendung, nicht im
+Token. Eine Farbe kann als Token bestehen und auf der Seite trotzdem auf dem
+falschen Grund landen.
+
+**Alle Rollen, nacheinander.** Was eine Rolle sieht, ist eine andere Frage
+als was es gibt: Dieselbe Adresse kann für den Admin eine Liste sein und für
+den Kunden eine leere Seite — und eine leere Seite ist die falsche Antwort
+für eine Rolle, die nichts sehen soll; richtig wäre eine Erklärung oder eine
+Umleitung. Das Laufzeitskript meldet sich der Reihe nach als `superadmin`,
+`admin`, `mitarbeiter` und `kunde` an; die Zugangsdaten kommen aus der
+Umgebung:
+
+```bash
+export DURCHLAUF_KONTO_ADMIN=…       DURCHLAUF_WORT_ADMIN=…
+export DURCHLAUF_KONTO_MITARBEITER=… DURCHLAUF_WORT_MITARBEITER=…
+export DURCHLAUF_KONTO_KUNDE=…       DURCHLAUF_WORT_KUNDE=…
+```
+
+Eine Rolle ohne Zugangsdaten läuft nicht und wird als **nicht gemessen**
+geführt — nicht als in Ordnung.
+
+**Zum Umschalten gehört ein Neuaufbau.** `ThemeContext` merkt sich die Wahl
+unter `kas-theme`; nur `data-theme` zu setzen ändert die CSS-Regeln, lässt
+aber alles stehen, was seine Farbe aus JavaScript bezieht. Der erste Versuch
+am 04.09. hat genau so gemessen und ein Ergebnis geliefert, das teils echt und
+teils Artefakt war. Das Skript setzt deshalb den Speicher und baut die Seite
+neu auf.
 
 ## Drei Bedarfsklassen — und warum das im Bericht steht
 
@@ -110,7 +167,8 @@ Nicht jede Stufe läuft überall. Jede nennt deshalb, was sie braucht:
 |---|---|---|
 | `quelltext` | nichts außer dem Repo | Sekunden |
 | `anwendung` | `kompagnon/backend/venv` mit den Abhängigkeiten | ~1 Minute |
-| `dienst` | erreichbarer Dienst, Browser, Anmeldung | Minuten |
+| `frontend` | `kompagnon/frontend/node_modules` (Jest) | ~1 Minute |
+| `dienst` | erreichbarer Dienst, Browser, Anmeldung je Rolle | Minuten |
 
 Die Stufen der Klasse `anwendung` messen an der **geladenen** Anwendung und
 sehen damit, was aus dem Quelltext nicht ableitbar ist: eine Sperre, die am
@@ -164,10 +222,11 @@ python3 -m tools.durchlauf.selbstprobe
 python3 scripts/systemdurchlauf.py
 python3 scripts/systemdurchlauf.py --nur quelltext   # nur, was ohne Umgebung geht
 
-# 2 — die Laufzeitstufe (braucht Netz, Browser und eine Anmeldung)
+# 2 — die Laufzeitstufe: alle Seiten × beide Themes × alle Rollen
 kompagnon/backend/venv/bin/python scripts/durchlauf-laufzeit.py \
-    --basis https://kompagnon-frontend-staging.onrender.com \
-    --konto DEIN_KONTO --wort DEIN_WORT
+    --basis https://kompagnon-frontend-staging.onrender.com
+#   Rollen und Themes lassen sich einschränken:
+#   --rollen admin,kunde   --themes dark
 
 # 3 — beides in einen Bericht
 python3 scripts/systemdurchlauf.py --laufzeit docs/durchlauf/laufzeit-<datum>.json

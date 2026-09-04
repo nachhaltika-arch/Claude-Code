@@ -121,6 +121,80 @@ def laufen() -> list[Befund]:
                 ))
         finally:
             sicherheit.BACKEND, stufen.BACKEND = echt_sicherheit, echt_stufen
+    return befunde + _rollenprobe()
+
+
+# ── Probe für die Rollenstufe ───────────────────────────────────────────────
+#
+# Die Stufe meldet heute null — richtig, denn gueltige Rollen, Rechtematrix
+# und Oberflaeche stimmen ueberein. Ohne diese Probe waere diese Null nicht
+# von einer kaputten Messung zu unterscheiden.
+
+ROLLEN_QUELLE = (
+    'ROLLEN = ("superadmin", "admin", "mitarbeiter", "kunde")\n'
+    'ALTE_ROLLEN = {\n    "auditor": "mitarbeiter",\n}\n'
+)
+
+MATRIX_QUELLE = (
+    'DEFAULT_PERMISSIONS = {\n'
+    '    "superadmin": [],\n    "admin": [],\n'
+    '    "mitarbeiter": [],\n    "kunde": [],\n}\n'
+)
+
+APP_BEISPIEL = (
+    "<Routes>\n"
+    "  <Route path=\"/app/probe\" element={<PrivateRoute roles={['auditor']}>"
+    "<X /></PrivateRoute>} />\n"
+    "</Routes>\n"
+)
+
+
+def _rollenprobe() -> list[Befund]:
+    """Findet die Rollenstufe eine Rolle, die es nicht mehr gibt?"""
+    from . import rollen
+
+    befunde: list[Befund] = []
+    with tempfile.TemporaryDirectory() as ordner:
+        wurzel = pathlib.Path(ordner)
+        (wurzel / "services").mkdir()
+        (wurzel / "routers").mkdir()
+        (wurzel / "services" / "rollen.py").write_text(ROLLEN_QUELLE, encoding="utf-8")
+        (wurzel / "routers" / "admin_settings.py").write_text(
+            MATRIX_QUELLE, encoding="utf-8")
+        app = wurzel / "App.jsx"
+        app.write_text(APP_BEISPIEL, encoding="utf-8")
+
+        echt = (rollen.BACKEND, rollen.FRONTEND, rollen.QUELLE,
+                rollen.MATRIX, rollen.APP_JSX)
+        try:
+            rollen.BACKEND = wurzel
+            rollen.FRONTEND = wurzel
+            rollen.QUELLE = wurzel / "services" / "rollen.py"
+            rollen.MATRIX = wurzel / "routers" / "admin_settings.py"
+            rollen.APP_JSX = app
+            treffer, _notiz = rollen.rollen_drift()
+        except Exception as fehler:                      # noqa: BLE001
+            treffer, grund = [], f"{type(fehler).__name__}: {fehler}"
+        else:
+            grund = "kein Treffer auf dem eigenen Beispiel"
+        finally:
+            (rollen.BACKEND, rollen.FRONTEND, rollen.QUELLE,
+             rollen.MATRIX, rollen.APP_JSX) = echt
+
+        if not treffer:
+            befunde.append(Befund(
+                kennung="selbstprobe/Rollendrift",
+                ebene="konsistenz",
+                titel="Die Stufe „Rollendrift“ findet ihr eigenes Beispiel nicht",
+                beleg=f"tools/durchlauf/selbstprobe.py — {grund}",
+                einzelheiten=(
+                    "Die Probe sperrt eine Route auf die abgeschaffte Rolle "
+                    "`auditor`. Die Stufe hat das nicht gemeldet — ihre Null im "
+                    "Bericht bedeutet damit nichts."
+                ),
+                vorschlag="P0",
+                gegenstand="Stufe Rollendrift",
+            ))
     return befunde
 
 

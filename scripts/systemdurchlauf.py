@@ -65,6 +65,7 @@ EBENEN_TITEL = {
 BEDARF_TEXT = {
     "quelltext": "liest nur den Quelltext",
     "anwendung": "braucht die Backend-Umgebung",
+    "frontend":  "braucht node_modules",
     "dienst":    "braucht einen laufenden Dienst",
 }
 
@@ -235,7 +236,8 @@ def main() -> int:
     p.add_argument("--still", action="store_true", help="nur die Dateipfade ausgeben")
     p.add_argument("--laufzeit", metavar="DATEI",
                    help="Ergebnis von scripts/durchlauf-laufzeit.py mit aufnehmen")
-    p.add_argument("--nur", metavar="BEDARF", choices=("quelltext", "anwendung", "dienst"),
+    p.add_argument("--nur", metavar="BEDARF",
+                   choices=("quelltext", "anwendung", "frontend", "dienst"),
                    help="nur Stufen mit diesem Bedarf ausfuehren")
     args = p.parse_args()
 
@@ -246,12 +248,21 @@ def main() -> int:
             print(f"  BLIND: {b['titel']}", file=sys.stderr)
 
     hat_anwendung = python_der_anwendung() is not None
+    hat_frontend = (WURZEL / "kompagnon" / "frontend" / "node_modules").is_dir()
     befunde: list[Befund] = []
     messungen: list[tuple[str, str, int, str]] = []
     nicht_gemessen: list[tuple[str, str]] = []
 
     for stufe in REGISTER:
         if args.nur and stufe.bedarf != args.nur:
+            continue
+        if stufe.bedarf == "frontend" and not hat_frontend:
+            nicht_gemessen.append((
+                stufe.name,
+                "`kompagnon/frontend/node_modules` fehlt. Diese Stufe laesst die "
+                "vorhandenen Jest-Tests laufen — sie rechnen jedes benutzte Farbpaar "
+                "in **beiden** Tokensaetzen gegen WCAG AA und sind gruendlicher als "
+                "jede Nachbildung."))
             continue
         if stufe.bedarf == "anwendung" and not hat_anwendung:
             nicht_gemessen.append((

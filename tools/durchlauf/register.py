@@ -11,6 +11,7 @@ Jede Stufe nennt deshalb ihren **Bedarf**:
 
     quelltext   — liest Dateien, laeuft ueberall, Sekunden
     anwendung   — braucht die Backend-Umgebung (venv mit den Abhaengigkeiten)
+    frontend    — braucht `kompagnon/frontend/node_modules` (Jest-Tests)
     dienst      — braucht einen erreichbaren Dienst und einen Browser
 
 Der Dirigent fuehrt aus, was moeglich ist, und schreibt fuer den Rest in den
@@ -21,7 +22,8 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Callable
 
-from . import bauwerk, daten, sicherheit, stufen, werkzeuge
+from . import (barrierefreiheit, bauwerk, daten, rollen, sicherheit,
+               stufen, werkzeuge)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -59,9 +61,25 @@ REGISTER: tuple[Stufe, ...] = (
     Stufe("Bedienelement ohne Wirkung", bauwerk.bedienelement_ohne_wirkung, "quelltext",
           "Knopf ohne Handler und ohne Formularrolle — L-79"),
 
-    # ── Optik ───────────────────────────────────────────────────────────
+    Stufe("Rollendrift", rollen.rollen_drift, "quelltext",
+          "Rollenname an einer Stelle, an der anderen nicht — L-05, L-133"),
+    Stufe("Verwaltungsroute ohne Rolle", rollen.route_ohne_sperre, "quelltext",
+          "Verwaltungsansicht steht jedem Angemeldeten offen"),
+    Stufe("Bild ohne Alternativtext, Feld ohne Beschriftung",
+          barrierefreiheit.fehlende_textalternativen, "quelltext",
+          "WCAG AA — was eine Vorlesehilfe nicht benennen kann"),
+
+    # ── Optik, Hell und Dunkel ──────────────────────────────────────────
     Stufe("Farben ausserhalb der Vorgabe", stufen.farben_ausserhalb, "quelltext",
           "Markenfarben ohne Palette, Beinahe-Toene daneben — L-17, L-32, L-158"),
+    Stufe("Tokens ohne Dunkelfassung", barrierefreiheit.tokens_ohne_dunkelfassung,
+          "quelltext", "Farbe nur im Hellsatz — beim Umschalten bleibt sie hell"),
+    Stufe("Farbe statt Token", barrierefreiheit.farbe_statt_token, "quelltext",
+          "harter Farbwert im Bauteil, geht beim Umschalten nicht mit — L-32"),
+    Stufe("Token-Kontrast in beiden Themes", werkzeuge.token_kontrast_tests,
+          "frontend", "WCAG AA je Paar, hell und dunkel — L-17, 28.08."),
+    Stufe("Messungen am gerenderten Bild", werkzeuge.am_bild_offen, "quelltext",
+          "Kontrast und Schriftgroesse am Browser — offen, bis gefahren"),
 
     # ── Konsistenz und Bauwerk ──────────────────────────────────────────
     Stufe("Namensdrift Umgebung", stufen.namensdrift_umgebung, "quelltext",

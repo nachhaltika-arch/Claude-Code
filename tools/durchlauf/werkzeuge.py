@@ -159,3 +159,99 @@ def einzelmessungen() -> tuple[list[Befund], str]:
         notiz += (f", {fehlgeschlagen} ohne verwertbare Ausgabe — "
                   "das Werkzeug von Hand aufrufen und nachsehen")
     return befunde, notiz
+
+#: Messungen am **gerenderten** Bild. Sie brauchen ein laufendes Frontend
+#: (`--basis`), deshalb Bedarf `dienst`. Der Durchlauf ruft sie nicht
+#: automatisch auf — sie dauern Minuten und wollen eine Anmeldung; sie stehen
+#: im Bericht unter „nicht gemessen", bis jemand sie fährt.
+AM_BILD = (
+    ("Schriftgrößen am gerenderten Text", "tools/schriftgroessen_messen.py",
+     "misst gewichtet nach Zeichenmenge, Grenze 12 px wie Lighthouse — die "
+     "belastbare Fassung der Lesbarkeitsfrage"),
+    ("Kontrast und Fokusreihenfolge", "tools/bedienbarkeit_messen.py",
+     "misst, was tatsächlich übereinanderliegt, statt Token-Paare zu rechnen; "
+     "erkennt Text auf Bild und Verlauf aus den Bildpunkten"),
+)
+
+
+def am_bild_offen() -> tuple[list, str]:
+    """Meldet die Messungen am gerenderten Bild als offen, nie als Null.
+
+    **Warum als eigene Stufe und nicht als Fußnote.** Kontrast und
+    Schriftgröße sind die zwei Fragen, die über Lesbarkeit entscheiden, und
+    beide lassen sich am Quelltext nicht beantworten. Ein Bericht, der sie
+    verschweigt, weil sie nicht gelaufen sind, liest sich sauberer als die
+    Lage ist.
+    """
+    from .befund import Befund
+
+    vorhanden = [(name, pfad, warum) for name, pfad, warum in AM_BILD
+                 if (WURZEL / pfad).exists()]
+    if not vorhanden:
+        return [], "keines der Werkzeuge am gerenderten Bild gefunden"
+    zeilen = " · ".join(f"{name} (`{pfad}`)" for name, pfad, _ in vorhanden)
+    return [Befund(
+        kennung="am-bild/nicht-gemessen",
+        ebene="optik",
+        titel=(f"{len(vorhanden)} Messungen am gerenderten Bild sind in diesem Lauf "
+               f"nicht gefahren worden"),
+        beleg=zeilen,
+        einzelheiten=(
+            "Kontrast und Schriftgröße entscheiden über Lesbarkeit, und beide lassen "
+            "sich am Quelltext nicht beantworten — eine Farbe kann als Token bestehen "
+            "und auf der Seite trotzdem auf dem falschen Grund landen. "
+            + " ".join(f"**{name}**: {warum}." for name, _, warum in vorhanden)
+            + " Beide brauchen ein laufendes Frontend und eine Anmeldung; sie dauern "
+            "Minuten. **Dieser Eintrag verschwindet, sobald sie gelaufen sind** — er "
+            "steht hier, damit ein Bericht ohne sie nicht sauberer aussieht als die "
+            "Lage ist. Und seit dem 04.09. gilt: Beide gehören in **beiden** Themes "
+            "gefahren, hell und dunkel zählen gleich."
+        ),
+        vorschlag="P2",
+        gegenstand="Messungen am gerenderten Bild",
+    )], f"{len(vorhanden)} Werkzeuge vorhanden, keines gelaufen"
+
+
+def token_kontrast_tests() -> tuple[list, str]:
+    """Lässt die vorhandenen Token-Kontrasttests laufen.
+
+    `utils/tokenKontrast.test.js` prüft die als Kommentar notierten
+    Kontrastzahlen, `tokenKontrastPaare.test.js` jedes Paar aus einer
+    ausdrücklichen Liste — in **beiden** Tokensätzen. Das ist gründlicher als
+    alles, was der Durchlauf nachbauen würde: Der Test kennt die Paare, die es
+    wirklich gibt, statt ein Kreuzprodukt zu rechnen, das Fehlalarme erzeugt.
+    """
+    from .befund import Befund
+
+    frontend = WURZEL / "kompagnon" / "frontend"
+    if not (frontend / "node_modules").is_dir():
+        return [], "kompagnon/frontend/node_modules fehlt — Tests nicht gelaufen"
+    try:
+        lauf = subprocess.run(
+            ["npx", "--no-install", "react-scripts", "test",
+             "--watchAll=false", "--testPathPattern=tokenKontrast"],
+            cwd=frontend, capture_output=True, text=True, timeout=600)
+    except (OSError, subprocess.SubprocessError) as fehler:
+        return [], f"Testlauf nicht möglich: {type(fehler).__name__}"
+    ausgabe = lauf.stdout + lauf.stderr
+    if lauf.returncode == 0:
+        treffer = re.search(r"Tests:\s+(\d+) passed", ausgabe)
+        return [], (f"Token-Kontrast in beiden Themes bestanden"
+                    + (f" ({treffer.group(1)} Prüfungen)" if treffer else ""))
+    fehlzeilen = [z.strip() for z in ausgabe.splitlines()
+                  if "✕" in z or "●" in z][:4]
+    return [Befund(
+        kennung="theme/token-kontrast-test",
+        ebene="optik",
+        titel="Die Token-Kontrasttests schlagen fehl",
+        beleg=" · ".join(fehlzeilen) or "react-scripts test --testPathPattern=tokenKontrast",
+        einzelheiten=(
+            "`utils/tokenKontrastPaare.test.js` rechnet jedes wirklich benutzte "
+            "Farbpaar in **beiden** Tokensätzen gegen WCAG AA. Ein Fehlschlag heißt: "
+            "Irgendwo steht Text auf einem Grund, auf dem er nicht lesbar ist — im "
+            "Hell- oder im Dunkelmodus. Am 28.08.2026 war es `--brand-primary-mid` mit "
+            "2.18 auf `--surface`, an 78 Stellen als `color:` gesetzt."
+        ),
+        vorschlag="P1",
+        gegenstand="Token-Kontrast",
+    )], "Tests gelaufen, Fehlschlag"

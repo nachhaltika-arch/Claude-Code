@@ -38,6 +38,11 @@ from services.pdf_bausteine import (
     logger, mm, radar_beschriftung, rechtstabelle_zellen,
     roadmap_massnahmen,
 )
+from services.audit_massnahmen import (
+    Massnahme,
+    massnahmen as kriterien_massnahmen,
+    stufenziel,
+)
 
 __all__ = [
     "seite_befunde", "seite_deckblatt", "seite_diagramme", "seite_geo",
@@ -613,10 +618,52 @@ def seite_geo(*,
     return story
 
 
+def _massnahmen_zeile(m: "Massnahme") -> str:
+    """Eine Zeile des Plans, wie sie im Bericht steht.
+
+    Genannt wird der Gewinn des **genannten** Schritts, nicht der Abstand zum
+    Maximum: Wer „+3 Punkte" liest und die beschriebene Sache tut, soll auch
+    drei bekommen. Wo die Teilpruefung nicht eindeutig ist, sagt die Zeile das
+    — sonst laese sie sich als Befund ueber den Betrieb.
+    """
+    punkte = "1 Punkt" if m.schritt_gewinn == 1 else f"{m.schritt_gewinn} Punkte"
+    zusatz = "" if m.eindeutig else " (eine der genannten Teilpr\u00fcfungen)"
+    return f"{m.label} ({m.kategorie}): {m.schritt}{zusatz} \u2014 +{punkte}"
+
+
+def ziel_satz(ziel: dict) -> str:
+    """Der Satz ueber den Kaesten — was die Massnahmen zusammen bewirken."""
+    if ziel["deckel"]:
+        return (
+            f"Solange {ziel['deckel_label'].lower()} besteht, bleibt die "
+            f"Auszeichnung bei \u201e{ziel['aktuelle_stufe']}\u201c \u2014 unabh\u00e4ngig von "
+            f"der Punktzahl. Diese Ma\u00dfnahme hebt den Deckel auf:"
+        )
+    if not ziel["naechste_stufe"]:
+        return (
+            "Die h\u00f6chste Auszeichnungsstufe ist erreicht. Die folgenden "
+            "Punkte halten sie."
+        )
+    anzahl = len(ziel["massnahmen"])
+    wort = "Ma\u00dfnahme" if anzahl == 1 else "Ma\u00dfnahmen"
+    if not ziel["erreichbar"]:
+        return (
+            f"Bis \u201e{ziel['naechste_stufe']}\u201c fehlen {ziel['fehlende_punkte']} Punkte. "
+            f"Die erhobenen Kriterien geben sie nicht vollst\u00e4ndig her; die "
+            f"folgenden Ma\u00dfnahmen bringen den gr\u00f6\u00dften Teil."
+        )
+    return (
+        f"Mit {anzahl} {wort} erreicht die Website \u201e{ziel['naechste_stufe']}\u201c "
+        f"\u2014 es fehlen {ziel['fehlende_punkte']} Punkte."
+    )
+
+
 def seite_roadmap(*,
     styles,
     level,
     items,
+    sources,
+    blocker_keys,
     audit_data,
 ) -> list:
     """Die Massnahmen — aus dem Befund, nicht aus einer Liste.
@@ -636,24 +683,25 @@ def seite_roadmap(*,
     ))
     story.append(Spacer(1, 6*mm))
 
-    # Die Massnahmen kommen aus dem Befund statt aus einer festen Liste:
-    # `roadmap_massnahmen` nennt nur, was gemessen wurde und offen ist. Vorher
-    # stand "robots.txt: GPTBot-Blockierung entfernen" in jedem Bericht, auch
-    # fuer eine robots.txt, die niemanden sperrt.
-    massnahmen = roadmap_massnahmen(audit_data)
+    # **Die Massnahmen kommen aus den 39 Kriterien** — seit dem 03.09.2026.
+    # Vorher speiste sich diese Seite aus `roadmap_massnahmen`: drei
+    # Vorschlaege aus der GEO-Erhebung und drei feste Langfristsaetze, die in
+    # jedem Bericht standen. Die 103 gemessenen Punkte daneben wirkten auf
+    # keine einzige Zeile — ein Betrieb mit 3 von 6 bei `rc_impressum` las
+    # nicht, was die anderen drei kostet.
+    plan = kriterien_massnahmen(items, sources, blocker_keys=blocker_keys)
+    ziel = stufenziel(items, sources, blocker_keys=blocker_keys)
 
-    quick_wins = list(massnahmen["sofort"])
-    mobile_ps = audit_data.get("mobile_score") or 0
-    if mobile_ps and mobile_ps < 50:
-        quick_wins.append("Bilder komprimieren \u0026 Lazy Load aktivieren")
-    if not quick_wins:
-        quick_wins.append("Audit-Score weiter optimieren \u0026 Inhalte aktualisieren")
+    story.append(Paragraph(_clean_text(ziel_satz(ziel)), styles["KCBody"]))
+    story.append(Spacer(1, 6*mm))
 
-    midterm = list(massnahmen["mittelfristig"])
-    if level == "Nicht konform":
-        midterm.append("SSL, Datenschutzerkl\u00e4rung und Impressum pr\u00fcfen \u0026 korrigieren")
+    zuerst = list(ziel["massnahmen"])
+    schon_genannt = {m.key for m in zuerst}
+    danach = [m for m in plan if m.key not in schon_genannt]
 
-    longterm = list(massnahmen["langfristig"])
+    # Die drei Langfristsaetze haengen an keiner Messung und gelten fuer jeden
+    # Betrieb. Sie bleiben — aber in einem Kasten, der genau das sagt.
+    laufend = list(roadmap_massnahmen(audit_data)["langfristig"])
 
     def _roadmap_box(title, items, bg_color, border_color, phase_label):
         """Build a single phase box as a Table."""
@@ -686,19 +734,33 @@ def seite_roadmap(*,
         ]))
         return KeepTogether([header_row, body])
 
+    if zuerst:
+        story.append(_roadmap_box(
+            "Diese Ma\u00dfnahmen heben die Stufe",
+            [_massnahmen_zeile(m) for m in zuerst],
+            bg_color=brand.SUCCESS_BG, border_color=brand.SUCCESS, phase_label="Phase 1",
+        ))
+        story.append(Spacer(1, 5*mm))
+
+    if danach:
+        story.append(_roadmap_box(
+            "Danach, nach Punktgewinn geordnet",
+            [_massnahmen_zeile(m) for m in danach[:8]],
+            bg_color=brand.INFO_BG, border_color=brand.MID, phase_label="Phase 2",
+        ))
+        story.append(Spacer(1, 5*mm))
+
+    if not zuerst and not danach:
+        story.append(_roadmap_box(
+            "Kein offener Punkt in der Messung",
+            ["Alle erhobenen Kriterien sind vollst\u00e4ndig erf\u00fcllt."],
+            bg_color=brand.SUCCESS_BG, border_color=brand.SUCCESS, phase_label="Befund",
+        ))
+        story.append(Spacer(1, 5*mm))
+
     story.append(_roadmap_box(
-        "Quick Wins (Woche 1\u20132)", quick_wins,
-        bg_color=brand.SUCCESS_BG, border_color=brand.SUCCESS, phase_label="Phase 1",
-    ))
-    story.append(Spacer(1, 5*mm))
-    story.append(_roadmap_box(
-        "Mittelfristig (Monat 1\u20133)", midterm,
-        bg_color=brand.INFO_BG, border_color=brand.MID, phase_label="Phase 2",
-    ))
-    story.append(Spacer(1, 5*mm))
-    story.append(_roadmap_box(
-        "Langfristig (Monat 3\u20136)", longterm,
-        bg_color=brand.SURFACE, border_color=brand.DARK, phase_label="Phase 3",
+        "Empfehlungen ohne Messung", laufend,
+        bg_color=brand.SURFACE, border_color=brand.DARK, phase_label="Laufend",
     ))
 
     story.append(PageBreak())

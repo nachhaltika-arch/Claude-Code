@@ -109,6 +109,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
                        recommendations=recommendations, ai_summary=ai_summary),
         *seite_geo(styles=styles, audit_data=audit_data),
         *seite_roadmap(styles=styles, level=level, items=items,
+                       sources=sources, blocker_keys=blocker_keys,
                        audit_data=audit_data),
         *seite_zertifikat(styles=styles, total=total, level=level, url=url,
                           date_str=date_str),

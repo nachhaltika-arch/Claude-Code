@@ -35,6 +35,8 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | **Z3** | Vorkasse per Kreditkarte, SEPA-Lastschrift oder Sofortüberweisung (digitale Produkte, Auslieferung nach Zahlungseingang). |
 | **Z4** | Monatlich im Voraus per SEPA-Lastschrift, Abrechnung zum Monatsersten. |
 | **Z5** | Zahlung an Dritte (BoD/Buchhandel) — kein Zahlungsverkehr über KOMPAGNON. |
+| **Z6** | 100 % bei Auftragserteilung (Vorkasse). Nur für Festpreisprodukte bis 2.000 € netto. |
+| **Z7** | Bauleistung 100 % bei Auftragserteilung, anschließend monatliches Pflegeentgelt per SEPA ab Abnahme. Mindestlaufzeit 12 Monate; bei vorzeitiger Beendigung werden die Entgelte der Restlaufzeit fällig. |
 
 ---
 
@@ -47,6 +49,8 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | **G3** | **Bauplan-Ausstieg** | Bauplan gefällt nach erster Überarbeitung nicht | Ausstieg gegen Zahlung der ersten Rate, keine Folgekosten |
 | **G4** | **Quartals-Garantie** | Score in einem Quartals-Re-Audit unter Schwelle | Nachbesserung im Rahmen der Pflege ohne Berechnung |
 | **G5** | **Anrechnungsgarantie** | Beauftragung eines Websprints innerhalb von 6 Monaten | 100 % Anrechnung des gezahlten Betrags |
+| **G6** | **Upgrade-Garantie** | Wechsel von Start auf Relaunch innerhalb von 12 Monaten ab Abnahme | Aufpreis 2.500 € netto, von Preiserhöhungen unberührt |
+| **G7** | **Ausstiegsgarantie** | Beendigung der Pflege nach Ablauf der Mindestlaufzeit | Herausgabe sämtlicher statischer Dateien der Website zum Download |
 
 🔴 **[SCHWELLE] ist noch nicht belegbar.** Solange `PAGESPEED_API_KEY` auf Render fehlt, sind 18 von 100 Punkten nicht erhebbar; der maximal erreichbare Score liegt bei 82. **G1 darf bis zur Behebung nicht in Angeboten stehen.** Siehe Blocker-Report L2.
 
@@ -73,6 +77,10 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | **A13** | GEO/GAIO-Optimierung (llms.txt, schema.org, Ground Page) |
 | **A14** | Einrichtung und Betrieb von Analysediensten sowie Consent-Management |
 | **A15** | Barrierefreiheit nach BFSG-Konformitätsnachweis (Grundlagen sind enthalten, kein Nachweis) |
+| **A16** | Weitere Unterseiten jeder Art *(nur WS-STA-01)* |
+| **A17** | Texterstellung oder redaktionelle Überarbeitung — Texte werden unverändert übernommen *(nur WS-STA-01)* |
+| **A18** | Persönliche Termine, Telefonberatung, Live-Schulung; Kommunikation ausschließlich schriftlich über das Kundenportal *(nur WS-STA-01)* |
+| **A19** | Individuelle Gestaltung abweichend von der Vorlage *(nur WS-STA-01)* |
 
 ⚠️ **A15 wird 2026 zunehmend nachgefragt.** Das Barrierefreiheitsstärkungsgesetz gilt seit 28.06.2025 für bestimmte B2C-Dienstleistungen. Reine Handwerker-Visitenkartenseiten sind meist nicht erfasst, Betriebe mit Online-Terminbuchung oder Shop können es sein. Das ist eine offene Produktlücke und zugleich eine Verkaufschance — gehört in die anwaltliche Prüfung.
 
@@ -82,6 +90,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 | Art.-Nr. | Produkt | Preis | USt. | Abrechnung |
 |---|---|---|---|---|
+| WS-STA-01 | Websprint Start (Ein-Seiten-Auftritt, inkl. Pflege) | 1.500 € netto einmalig **zzgl. 79 €/Mon., mind. 12 Monate** — Gesamtpreis 1. Jahr **2.448 € netto** | 19 % | Z7 |
 | WS-REL-01 | Websprint Relaunch | 3.500 € netto | 19 % | Z1 |
 | WS-NEU-01 | Websprint Neubau | 7.900 € netto | 19 % | Z2 |
 | WS-SYS-01 | Websprint System | 12.900 € netto | 19 % | Z2 |
@@ -97,6 +106,17 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 ⚠️ **Steuersatz Workbook ungeklärt.** Elektronische Publikationen unterliegen 7 %, digitale Werkzeuge und Vorlagen 19 %. Ein Mischprodukt aus PDF, Excel-Bogen und Druckbeilage ist nicht eindeutig. **Vor Verkaufsstart mit dem Steuerberater klären** — eine falsche Zuordnung wird bei der nächsten Prüfung rückwirkend korrigiert.
 
 ⚠️ **Abo-Preise und GEO-Preis sind Annahmen.** Vor Angebotsversand mit den tatsächlich in Stripe hinterlegten Preisen abgleichen.
+
+---
+
+### ⚠️ Pflichtregel bei gekoppelten Produkten
+
+Bei WS-STA-01 ist das Pflegeabonnement zwingender Bestandteil. **Der Einmalpreis darf niemals allein beworben werden** — weder in Anzeigen noch auf der Preisseite, im Audit-Bericht oder im Angebot. Verbindliche Darstellung:
+
+> 1.500 € netto einmalig zzgl. 79 € netto monatlich, Mindestlaufzeit 12 Monate.
+> **Gesamtpreis erstes Jahr: 2.448 € netto.**
+
+Eine Preisangabe, bei der die Abo-Pflicht erst im Kleingedruckten auftaucht, ist als Vorenthalten einer wesentlichen Information angreifbar.
 
 ---
 

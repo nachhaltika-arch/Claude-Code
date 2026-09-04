@@ -54,6 +54,31 @@ class Kaufanfrage(BaseModel):
     withdrawal_waived: bool = False
 
 
+def _backend_adresse() -> str:
+    """Die Adresse **dieses** Servers — fuer Links, die auf die API zeigen.
+
+    **Der Anlass (L-156, 04.09.2026).** Die Bestellmail baute ihre Links als
+    ``os.getenv("BACKEND_URL", "") or _frontend_adresse()``. Ist die Variable
+    nicht gesetzt — und sie steht in keinem der drei Blueprints —, ging die
+    Mail mit ``<Frontend>/api/shop/download/<token>`` hinaus: an eine Static
+    Site, die keine API kennt. Der Kunde haette den Fehler zuerst gesehen.
+
+    **Dieselbe Frage war schon einmal beantwortet.** `services/base_urls.py`
+    haelt die Kette seit dem Umzug: ``API_BASE_URL``, sonst
+    ``RENDER_EXTERNAL_URL``, das Render je Dienst selbst setzt, sonst die
+    Produktivdomain. Damit stimmt die Adresse in jeder Umgebung, **ohne** dass
+    jemand eine Variable setzen muss. Hier stand eine zweite, halbe Fassung
+    davon — und die halbe war die falsche.
+
+    ``BACKEND_URL`` bleibt als erste Wahl stehen, damit ein bereits gesetzter
+    Wert weiter gilt. Neu gesetzt werden muss sie nicht mehr; deshalb steht
+    sie auch in keinem Blueprint.
+    """
+    from services.base_urls import api_base_url
+
+    return os.getenv("BACKEND_URL", "").strip().rstrip("/") or api_base_url()
+
+
 def _frontend_adresse() -> str:
     """Wohin Stripe zurückleitet.
 
@@ -283,9 +308,7 @@ def _bestaetigung_senden(eintrag) -> bool:
     """
     from services import agb
 
-    basis = _frontend_adresse()
-    abruf = f"{os.getenv('BACKEND_URL', '').strip().rstrip('/') or basis}" \
-            f"/api/shop/download/{eintrag.download_token}"
+    abruf = f"{_backend_adresse()}/api/shop/download/{eintrag.download_token}"
 
     fassung = eintrag.terms_version or agb.fassung() or "—"
     html = (
@@ -300,7 +323,7 @@ def _bestaetigung_senden(eintrag) -> bool:
                  f"{agb.verzichtstext()}</small></p>")
 
     # Die Rechnung haengt am selben Token wie die Datei (ORDERS_07 Schritt 4).
-    rechnungslink = (f"{os.getenv('BACKEND_URL', '').strip().rstrip('/') or basis}"
+    rechnungslink = (f"{_backend_adresse()}"
                      f"/api/shop/orders/{eintrag.order_number}/invoice"
                      f"?token={eintrag.download_token}")
     html += (f'<p><a href="{rechnungslink}">Ihre Rechnung als PDF</a></p>')

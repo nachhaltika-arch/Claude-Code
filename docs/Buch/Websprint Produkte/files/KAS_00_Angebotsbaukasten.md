@@ -52,7 +52,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | **G6** | **Upgrade-Garantie** | Wechsel von Start auf Relaunch innerhalb von 12 Monaten ab Abnahme | Aufpreis 2.500 € netto, von Preiserhöhungen unberührt |
 | **G7** | **Ausstiegsgarantie** | Beendigung der Pflege nach Ablauf der Mindestlaufzeit | Herausgabe sämtlicher statischer Dateien der Website zum Download |
 
-🔴 **[SCHWELLE] ist noch nicht belegbar.** Solange `PAGESPEED_API_KEY` auf Render fehlt, sind 18 von 100 Punkten nicht erhebbar; der maximal erreichbare Score liegt bei 82. **G1 darf bis zur Behebung nicht in Angeboten stehen.** Siehe Blocker-Report L2.
+🔴 **[SCHWELLE] ist noch nicht belegbar.** Solange `PAGESPEED_API_KEY` auf Render fehlt, sind 18 von 100 Punkten nicht erhebbar; der maximal erreichbare Score liegt bei 82. **G1 darf bis zur Behebung nicht in Angeboten stehen.** Siehe **L-165** im Lagebild (früher Blocker-Report L2). **Am 04.09.2026 nachgemessen und neu gefasst:** Die Rechnung „maximal 82 Punkte" gilt nicht mehr — nicht erhobene Kriterien fallen seit § 3.5 aus Zähler **und** Nenner, der Score ist ein Anteil des Geprüften. Der Einwand bleibt trotzdem: Der Produktivbericht vom 04.09. prüft **78 %** der Kriterien, und die ausgefallenen sind ausgerechnet die, die ein Kunde selbst nachmessen kann — Ladezeit und Barrierefreiheit.
 
 **Ausschlüsse zu G4 (verbindlich mitzuschreiben):** kundenseitige Änderungen an der Website, Änderungen des Homepage-Standards selbst, Ausfälle oder Änderungen bei Drittdiensten (Google, Netlify, Analysedienste), höhere Gewalt.
 

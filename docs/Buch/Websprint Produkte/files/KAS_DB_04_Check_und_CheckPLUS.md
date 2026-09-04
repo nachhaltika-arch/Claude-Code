@@ -13,6 +13,14 @@
 | Auslieferung | Automatisiert, PDF-Bericht per E-Mail |
 | Freigabestatus | 🟠 nach Behebung L2, L3 und Double-Opt-in |
 
+> **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
+> **L3 ist geschlossen**, das Double-Opt-in steht seit dem 12.08. **L2 ist offen** und läuft als **L-165** — und trifft dieses Produkt am härtesten: Der kostenlose Check ist das Dokument, das der Kunde als Erstes sieht, und in ihm stehen heute elf Zeilen „nicht erhoben".
+> Der Freigabestatus ist hier **nicht** geändert worden: Eine Verkaufssperre zu
+> lösen ist eine Entscheidung, keine Messung, und sie gehört David. Die
+> Grundlage steht in `docs/soll-ist-analyse.md` (**L-163** bis **L-166**) und im
+> Schlussvermerk des Blocker-Reports; diese Liste wird ab jetzt dort geführt.
+
+
 ## Leistung
 | Pos. | Inhalt |
 |---|---|

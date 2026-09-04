@@ -15,6 +15,14 @@
 | Abgrenzung | **A1–A15** |
 | Freigabestatus | 🟠 nach Behebung L2/L3 und Prozessflow-Erweiterung |
 
+> **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
+> **L3 ist geschlossen.** **L2 ist offen** und läuft als **L-165**. Die Prozessflow-Erweiterung (alt: L9) ist offen und **verschärft** — es sind inzwischen vier Produkte, siehe **L-164**.
+> Der Freigabestatus ist hier **nicht** geändert worden: Eine Verkaufssperre zu
+> lösen ist eine Entscheidung, keine Messung, und sie gehört David. Die
+> Grundlage steht in `docs/soll-ist-analyse.md` (**L-163** bis **L-166**) und im
+> Schlussvermerk des Blocker-Reports; diese Liste wird ab jetzt dort geführt.
+
+
 ---
 
 ## 1. Eignung / Zielkunde

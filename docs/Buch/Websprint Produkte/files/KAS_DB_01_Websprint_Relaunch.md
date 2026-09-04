@@ -15,6 +15,14 @@
 | Abgrenzung | **A1–A15** vollständig |
 | Freigabestatus | 🟠 verkaufbar nach Behebung L2 und L3 |
 
+> **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
+> **L3 ist geschlossen** (eine Schwellenquelle im Backend, Frontend spiegelt sie). **L2 ist offen** und läuft jetzt als **L-165**: Der Produktivbericht vom 04.09. meldet 78 % Abdeckung, elf Kriterien sind nicht erhoben. **L1 ist ebenfalls geschlossen** — die Zeile zu GEO-01 weiter unten stimmt nicht mehr.
+> Der Freigabestatus ist hier **nicht** geändert worden: Eine Verkaufssperre zu
+> lösen ist eine Entscheidung, keine Messung, und sie gehört David. Die
+> Grundlage steht in `docs/soll-ist-analyse.md` (**L-163** bis **L-166**) und im
+> Schlussvermerk des Blocker-Reports; diese Liste wird ab jetzt dort geführt.
+
+
 ---
 
 ## 1. Eignung / Zielkunde

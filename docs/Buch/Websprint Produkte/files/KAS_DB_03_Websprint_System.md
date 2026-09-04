@@ -21,6 +21,14 @@
 | Abgrenzung | **A1–A12, A15** (A13 und A14 sind hier **enthalten**) |
 | Freigabestatus | 🔴 gesperrt |
 
+> **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
+> **Der Sperrgrund L1 ist geschlossen.** Die Auslieferung von `llms.txt` und der `schema.org`-Auszeichnung steht seit L-99, und `services/geo_auslieferung.py` prüft nach der Veröffentlichung **am lebenden Dienst** nach — genau die Verifikation, die der Blocker verlangt hat. Offen bleiben **L-165** (Garantie) und **L-164** (Produktmodell).
+> Der Freigabestatus ist hier **nicht** geändert worden: Eine Verkaufssperre zu
+> lösen ist eine Entscheidung, keine Messung, und sie gehört David. Die
+> Grundlage steht in `docs/soll-ist-analyse.md` (**L-163** bis **L-166**) und im
+> Schlussvermerk des Blocker-Reports; diese Liste wird ab jetzt dort geführt.
+
+
 ---
 
 ## 1. Eignung / Zielkunde

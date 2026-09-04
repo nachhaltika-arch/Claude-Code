@@ -101,3 +101,45 @@ SEC-02 (GrapesJS-Lizenzschlüssel in der Git-Historie) und der `gitleaks`-CI-Feh
 | 10 | SEC-02 + gitleaks | mittel | L11 |
 
 **Schritte 1–3 sind an einem Vormittag machbar und machen Produkt 01 verkaufbar.** Das ist der schnellste Weg zu Umsatz.
+
+---
+
+## Schlussvermerk — 04.09.2026: diese Liste wird nicht mehr eigenständig geführt
+
+**Warum dieser Vermerk hier steht.** Die Produktdatenblätter tragen im Kopf
+einen Freigabestatus, der auf die Nummern dieser Liste verweist — „verkaufbar
+nach Behebung **L2 und L3**". Zugleich führt `docs/soll-ist-analyse.md` eine
+zweite Liste, deren Einträge **L-01 bis L-166** heißen. Zwei Listen mit
+derselben Kennung sind keine Formsache: Am 04.09.2026 wurde die Frage „wo
+stehen wir mit L2 und L3" am Lagebild beantwortet, wo es **kein L-02 gibt** und
+L-03 seit dem 07.08. geschlossen ist. Die Antwort war sauber gemessen und
+betraf die falsche Liste.
+
+**Ab hier gilt das Lagebild.** Diese Datei bleibt als Befund vom 23.08.2026
+stehen — sie ist der Grund, warum die Produktlinie so aussieht, wie sie
+aussieht. Fortgeschrieben wird sie nicht mehr.
+
+**Stand der elf Punkte, am 04.09.2026 am Code nachgemessen statt übernommen:**
+
+| Nr. | Stand | Beleg / Fortsetzung |
+|---|---|---|
+| L1 · GEO wird nicht ausgeliefert | ✅ geschlossen | Einbau seit L-99; `services/geo_auslieferung.py` prüft nach der Veröffentlichung am lebenden Dienst nach |
+| L2 · Garantie nicht messbar | 🔴 **offen** | → **L-165**. Produktiv sind 11 Kriterien „nicht erhoben", Abdeckung 78 %. Die Arithmetik hat sich geändert, der Einwand nicht |
+| L3 · Zwei Standards | ✅ geschlossen | Eine Quelle: `services/audit_katalog.py::LEVELS`; `frontend/src/utils/homepageStandard.js` spiegelt sie mit begründeter Regel |
+| L4 · K1–K6 nur im Buch | ✅ geschlossen | `services/audit_industry_map.py`, wirksam im Scoring |
+| L5 · Buchtabellen konstruiert | ✅ geschlossen | `scripts/buch-bloecke.py`, mit `--pruefen` als Wächter |
+| L6 · Bauzeit ohne Fristbeginn | 🟠 **teilweise** | → **L-166**. Fristbeginn liegt in `services/mitwirkung.py`; die **Fristpause** wird nirgends aufgezeichnet |
+| L7 · Buchpreisbindung | 🟠 **offen** | Rechtsfrage, bei David |
+| L8 · USt und GoBD | 🟠 **teilweise** | Nummernkreis in `services/rechnungsnummer.py`; gemischte Bündel steuerlich ungeklärt |
+| L9 · Datenmodell trägt drei Produkte nicht | 🔴 **offen, verschärft** | → **L-164**. Es sind inzwischen **vier** Produkte, und `websprint_start` kommt im Code null Mal vor |
+| L10 · Kein Bestell-Subsystem | ✅ geschlossen | Orders-Strecke gebaut, siehe L-100 |
+| L11 · Offene Sicherheitspunkte | ✅ geschlossen | GrapesJS siehe L-75; `routers/projects.py` ohne hartkodierte Schlüssel |
+
+**Sieben von elf waren erledigt, ohne dass es jemand eingetragen hatte.** Genau
+das ist der Preis einer zweiten Liste: Sie altert unbemerkt, und ein
+Verkaufsdokument, das auf sie zeigt, meldet eine Sperre, die es nicht mehr gibt
+— oder verschweigt eine, die es noch gibt.
+
+**Was an den Datenblättern zu ändern ist:** Der Freigabestatus nennt künftig die
+Lagebild-Nummer (`L-165`) statt der alten (`L2`). Solange das nicht geschehen
+ist, gilt diese Tabelle als Übersetzung.

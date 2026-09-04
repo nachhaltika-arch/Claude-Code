@@ -92,6 +92,14 @@ Bei der Abnahme ist der Kunde zufrieden, das Ergebnis ist sichtbar, die Beziehun
 | Lieferzeit | 10 Werktage |
 | Freigabestatus | 🔴 **gesperrt — Blocker L1** |
 
+> **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
+> **Der Sperrgrund L1 ist geschlossen** (Einbau seit L-99, Verifikation in `services/geo_auslieferung.py`). Zusätzlich offen und hier nicht vermerkt: Das Pflege-Abo wird laut Entscheidung vom 01.09. **per Rechnung** abgerechnet, nicht per SEPA über Stripe — das Kundenkonto zeigt diesen Kunden deshalb keine Zahlungsart, siehe **L-162**.
+> Der Freigabestatus ist hier **nicht** geändert worden: Eine Verkaufssperre zu
+> lösen ist eine Entscheidung, keine Messung, und sie gehört David. Die
+> Grundlage steht in `docs/soll-ist-analyse.md` (**L-163** bis **L-166**) und im
+> Schlussvermerk des Blocker-Reports; diese Liste wird ab jetzt dort geführt.
+
+
 ## Leistungsverzeichnis
 | Pos. | Leistung |
 |---|---|

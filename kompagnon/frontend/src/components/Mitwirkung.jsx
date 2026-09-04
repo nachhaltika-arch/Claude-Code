@@ -207,7 +207,7 @@ const marke = {
 };
 const S = {
   rahmen: { marginTop: 32 },
-  kopf: { background: 'var(--brand-primary)', color: '#fff', borderRadius: 12, padding: 32, marginBottom: 24 },
+  kopf: { background: 'var(--brand-primary)', color: 'var(--text-on-brand)', borderRadius: 12, padding: 32, marginBottom: 24 },
   h1: { fontWeight: 900, letterSpacing: '-0.025em', fontSize: 24, margin: '0 0 8px' },
   termin: { fontSize: 17, lineHeight: 1.5, margin: 0, maxWidth: '52ch' },
   zaehler: { marginTop: 20, fontFamily: 'var(--font-mono, monospace)', fontSize: 14, opacity: 0.85, margin: '20px 0 0' },
@@ -224,7 +224,7 @@ const S = {
   markeFertig: { ...marke, background: 'var(--status-success-bg)', color: 'var(--status-success)' },
   klapp: { padding: '0 24px 24px 72px', borderTop: '1px solid var(--border-subtle)' },
   klappText: { fontSize: 14, color: 'var(--text-secondary)', margin: '16px 0 12px', maxWidth: '62ch' },
-  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: '#fff' },
+  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: 'var(--text-on-brand)' },
   spaeter: { background: 'var(--bg-app)', borderRadius: 8, padding: 24, marginTop: 16 },
   spaeterText: { fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 16px', maxWidth: '60ch' },
   liste: { margin: 0, paddingLeft: 20, fontSize: 14, color: 'var(--text-secondary)' },

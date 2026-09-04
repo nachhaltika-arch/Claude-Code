@@ -195,6 +195,6 @@ const S = {
   leise: { fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 12px', maxWidth: '60ch', flex: 1 },
   markeOk: { ...marke, background: 'var(--status-success-bg)', color: 'var(--status-success)' },
   markeOffen: { ...marke, background: 'var(--bg-app)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' },
-  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: '#fff' },
+  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: 'var(--text-on-brand)' },
   fehler: { color: 'var(--status-danger-text)', fontSize: 14, marginTop: 12 },
 };

@@ -226,7 +226,7 @@ const S = {
   knopf: {
     fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6,
     border: 'none', cursor: 'pointer', background: 'var(--brand-primary)',
-    color: '#fff', textDecoration: 'none', display: 'inline-block',
+    color: 'var(--text-on-brand)', textDecoration: 'none', display: 'inline-block',
   },
   zweit: {
     font: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '9px 16px',

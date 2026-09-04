@@ -184,7 +184,7 @@ const S = {
   label: { fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginTop: 8 },
   feld: { font: 'inherit', fontSize: 15, padding: '10px 12px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-app)', color: 'var(--text-primary)' },
   reihe: { display: 'flex', gap: 8, marginTop: 12 },
-  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: '#fff' },
+  knopf: { fontWeight: 900, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'var(--brand-primary)', color: 'var(--text-on-brand)' },
   knopfLeise: { fontWeight: 700, fontSize: 14, padding: '12px 20px', borderRadius: 6, border: '1px solid var(--border-subtle)', cursor: 'pointer', background: 'none', color: 'var(--text-secondary)' },
   zeile: { display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap', padding: '10px 0', borderTop: '1px solid var(--border-subtle)' },
   beschreibung: { flex: 1, minWidth: 200, fontSize: 15, color: 'var(--text-primary)' },

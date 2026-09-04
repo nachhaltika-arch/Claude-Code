@@ -31,6 +31,20 @@ WURZEL = pathlib.Path(__file__).resolve().parents[2]
 LUECKENLISTE = WURZEL / "docs" / "soll-ist-analyse.md"
 JOURNAL = WURZEL / "docs" / "durchlauf" / "quittiert.json"
 
+def kurz(pfad: pathlib.Path) -> str:
+    """Der Pfad relativ zur Repo-Wurzel — oder ganz, wenn er ausserhalb liegt.
+
+    `relative_to` wirft, sobald eine Datei ausserhalb des Repos liegt; die
+    Selbstprobe arbeitet aber mit Beispieldateien in einem Zwischenordner.
+    Ein Werkzeug, das an seiner eigenen Probe scheitert, kann nicht sagen, ob
+    es blind ist.
+    """
+    try:
+        return str(pfad.relative_to(WURZEL))
+    except ValueError:
+        return str(pfad)
+
+
 #: Die vier Ebenen des Verbindungs-Checks plus die zwei Querschnitte.
 EBENEN = ("datenbank", "schnittstelle", "frontend", "browser", "optik", "konsistenz")
 

@@ -1,37 +1,7 @@
 {
   "datum": "2026-09-04",
+  "blind": [],
   "neu": [
-    {
-      "kennung": "umgebung-fehlt/BACKEND_URL",
-      "ebene": "konsistenz",
-      "titel": "`BACKEND_URL` wird an 2 Stellen gelesen, steht in keinem Blueprint",
-      "beleg": "kompagnon/backend/routers/projects_anlegen.py · kompagnon/backend/routers/shop.py",
-      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
-      "vorschlag": "P1",
-      "gegenstand": "BACKEND_URL"
-    },
-    {
-      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET",
-      "ebene": "konsistenz",
-      "titel": "`BREVO_INBOUND_SECRET` wird an 2 Stellen gelesen, steht in keinem Blueprint",
-      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
-      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
-      "vorschlag": "P1",
-      "gegenstand": "BREVO_INBOUND_SECRET",
-      "luecke": "L-18",
-      "rueckfall": true
-    },
-    {
-      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET_ALT",
-      "ebene": "konsistenz",
-      "titel": "`BREVO_INBOUND_SECRET_ALT` wird an 2 Stellen gelesen, steht in keinem Blueprint",
-      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
-      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
-      "vorschlag": "P1",
-      "gegenstand": "BREVO_INBOUND_SECRET_ALT",
-      "luecke": "L-18",
-      "rueckfall": true
-    },
     {
       "kennung": "feld-ohne-leser/modelle_crawler.contact_address",
       "ebene": "datenbank",
@@ -105,6 +75,177 @@
       "gegenstand": "oauth_provider"
     },
     {
+      "kennung": "sql-unbekannte-tabelle/kompagnon/backend/routers/projects_sichtbarkeit.py",
+      "ebene": "datenbank",
+      "titel": "kompagnon/backend/routers/projects_sichtbarkeit.py schreibt auf website_content — kein Modell fuehrt diese Tabelle",
+      "beleg": "kompagnon/backend/routers/projects_sichtbarkeit.py — INSERT/UPDATE/DELETE auf website_content",
+      "einzelheiten": "Entweder ist der Tabellenname falsch geschrieben — dann scheitert die Anweisung erst zur Laufzeit, an einer Stelle, die selten laeuft —, oder die Tabelle ist ausserhalb der Modelle entstanden und wird von keinem Werkzeug mitgefuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/backend/routers/projects_sichtbarkeit.py"
+    },
+    {
+      "kennung": "stiller-ausfall/auth_router.forgot_password",
+      "ebene": "schnittstelle",
+      "titel": "`forgot_password()` faengt jeden Fehler ab und meldet trotzdem Erfolg",
+      "beleg": "kompagnon/backend/routers/auth_router.py:522",
+      "einzelheiten": "Ein schreibender Endpunkt in einem Bereich, in dem Geld, Konten oder fremde Rueckrufe haengen — mit einem breiten Abfangzweig, der nur protokolliert, keine Vorbelegung auffaengt und keinen Kommentar traegt. Der Aufrufer bekommt Erfolg, die Handlung ist nicht passiert. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "auth_router.py:forgot_password"
+    },
+    {
+      "kennung": "stiller-ausfall/kampagne.audit_anfrage",
+      "ebene": "schnittstelle",
+      "titel": "`audit_anfrage()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/kampagne.py:201",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "kampagne.py:audit_anfrage"
+    },
+    {
+      "kennung": "stiller-ausfall/messages.send_email_endpoint",
+      "ebene": "schnittstelle",
+      "titel": "`send_email_endpoint()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/messages.py:169",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "messages.py:send_email_endpoint"
+    },
+    {
+      "kennung": "stiller-ausfall/payments.stripe_webhook",
+      "ebene": "schnittstelle",
+      "titel": "`stripe_webhook()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/payments.py:276",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Hier haengt Geld daran** — deshalb P0. Familie L-36, L-141.",
+      "vorschlag": "P0",
+      "gegenstand": "payments.py:stripe_webhook"
+    },
+    {
+      "kennung": "stiller-ausfall/projects.request_approval",
+      "ebene": "schnittstelle",
+      "titel": "`request_approval()` antwortet im Fehlerfall mit Erfolg",
+      "beleg": "kompagnon/backend/routers/projects.py:712",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist nichts. Kein Datenverlust wie beim Rueckruf von aussen — der Vorgang laesst sich wiederholen —, aber niemand weiss, dass er es muss. Die Antwort sollte sagen, was wirklich geschehen ist, wie es `auth_router.register` mit `versandt` vormacht. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "projects.py:request_approval"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_facebook",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_facebook()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:127",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_facebook"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_linkedin",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_linkedin()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:140",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_linkedin"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_google",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_google()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:155",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_google"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_postkarte",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_postkarte()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:167",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_postkarte"
+    },
+    {
+      "kennung": "stiller-ausfall/webhooks.webhook_telefon",
+      "ebene": "schnittstelle",
+      "titel": "`webhook_telefon()` antwortet im Fehlerfall mit Erfolg — der Absender wiederholt nicht",
+      "beleg": "kompagnon/backend/routers/webhooks.py:181",
+      "einzelheiten": "**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem Rueckruf von aussen ist das folgenschwerer als ein verschlucktes Protokoll: Stripe, Brevo und die Anzeigenportale werten 200 als „verarbeitet\" und liefern **nie wieder**. Scheitert die Verarbeitung, ist der Vorgang endgueltig weg — die Zahlung ist gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx beantwortet, damit der Rueckruf wiederholt wird. **Es kann Absicht sein**: Manche Anzeigenportale schalten einen Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, dann meldet der naechste Lauf die Stelle nicht mehr. Familie L-36, L-141.",
+      "vorschlag": "P1",
+      "gegenstand": "webhooks.py:webhook_telefon"
+    },
+    {
+      "kennung": "stiller-ausfall/sammel",
+      "ebene": "schnittstelle",
+      "titel": "17 schreibende Endpunkte schweigen unerklaert ueber Fehler",
+      "beleg": "audit.py:526 (start_audit) · branddesign_erhebung.py:153 (scrape_brand) · briefings_ki.py:80 (suggest_field) · briefings_ki.py:281 (ki_prefill_seo) · briefings_ki.py:367 (ki_prefill_ziele) · files.py:326 (delete_file)",
+      "einzelheiten": "Breiter Abfangzweig, nur ein Protokolleintrag, keine Vorbelegung, die ihn auffaengt, und kein Kommentar, der ihn begruendet. **Das ist keine Liste von Maengeln, sondern eine Liste von Fragen:** Bei jeder Stelle ist zu klaeren, ob das Schweigen Absicht ist. Ist es Absicht, gehoert der Grund als Kommentar daneben — dann verschwindet die Zeile beim naechsten Lauf von selbst. Ist es keine, gehoert der Fehler an den Aufrufer zurueck. Die Stufe zaehlt bewusst die **unerklaerten**: Wo eine Begruendung steht, meldet sie nichts.",
+      "vorschlag": "P2",
+      "gegenstand": "unerklaert schweigende Schreibpfade"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandDesignEditor.jsx",
+      "ebene": "frontend",
+      "titel": "BrandDesignEditor.jsx: 2 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignEditor.jsx — Zeile 199, 213",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandDesignEditor.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx",
+      "ebene": "frontend",
+      "titel": "BrandDesignWerkstatt.jsx: 2 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx — Zeile 295, 306",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/BrandGuideline.jsx",
+      "ebene": "frontend",
+      "titel": "BrandGuideline.jsx: 4 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/BrandGuideline.jsx — Zeile 377, 466, 486, 493",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/BrandGuideline.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx",
+      "ebene": "frontend",
+      "titel": "styleguideTeile.jsx: 3 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx — Zeile 618, 624, 756",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/Register.jsx",
+      "ebene": "frontend",
+      "titel": "Register.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/Register.jsx — Zeile 117",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/Register.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/Settings.jsx",
+      "ebene": "frontend",
+      "titel": "Settings.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/Settings.jsx — Zeile 352",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/Settings.jsx"
+    },
+    {
+      "kennung": "knopf-ohne-wirkung/kompagnon/frontend/src/pages/TemplateLibrary.jsx",
+      "ebene": "frontend",
+      "titel": "TemplateLibrary.jsx: 1 Schaltflaeche(n) ohne Handler und ohne Formularrolle",
+      "beleg": "kompagnon/frontend/src/pages/TemplateLibrary.jsx — Zeile 119",
+      "einzelheiten": "Ein `<button>` ohne `onClick`, ohne `type=\"submit\"` und ohne `form=` kann nichts ausloesen. Das ist keine Vermutung, sondern eine Eigenschaft des Markups — der Knopf sieht aus wie ein Angebot und ist keines. L-79 war genau das. **Zwei Ausnahmen sind haeufig und berechtigt:** ein Knopf in einer Vorschau, die zeigt, wie etwas aussehen wuerde, und einer, der nur als Anzeige dient. Beide gehoeren mit ihrem Grund ins Quittungsjournal — dann meldet der naechste Lauf die Datei nicht mehr, und die Zahl bedeutet wieder etwas.",
+      "vorschlag": "P2",
+      "gegenstand": "kompagnon/frontend/src/pages/TemplateLibrary.jsx"
+    },
+    {
       "kennung": "markenfarbe-ohne-vorgabe/#004f59",
       "ebene": "optik",
       "titel": "Markenfarbe #004f59 wird 19-mal benutzt, steht aber in keiner Farbvorgabe",
@@ -121,15 +262,6 @@
       "einzelheiten": "Die Farbe gehoert zur Marke, aber `tailwind.config.js` kennt sie nicht. Damit ist sie im Werkzeug Handarbeit statt Vorgabe: Sie laesst sich nicht zentral aendern, nicht pruefen und nicht wiederverwenden — und der naechste Bildschirm bekommt einen Ton daneben.",
       "vorschlag": "P2",
       "gegenstand": "#fae600"
-    },
-    {
-      "kennung": "farbe-beinahe/#1a2332",
-      "ebene": "optik",
-      "titel": "#1a2332 liegt dicht neben der Vorgabe #002535 (13 Stellen)",
-      "beleg": "kompagnon/frontend/src/components/GrapesEditor.jsx · kompagnon/frontend/src/components/NewsletterDesigner.jsx · kompagnon/frontend/src/components/OnboardingWizard.jsx · kompagnon/frontend/src/components/betrieb/ReiterSitemap.jsx",
-      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
-      "vorschlag": "P2",
-      "gegenstand": "#1a2332"
     },
     {
       "kennung": "farbe-beinahe/#065f46",
@@ -157,15 +289,6 @@
       "einzelheiten": "Abstand 23 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
       "vorschlag": "P2",
       "gegenstand": "#0f172a"
-    },
-    {
-      "kennung": "farbe-beinahe/#0891b2",
-      "ebene": "optik",
-      "titel": "#0891b2 liegt dicht neben der Vorgabe #008eaa (5 Stellen)",
-      "beleg": "kompagnon/frontend/src/pages/CustomerProjects.jsx · kompagnon/frontend/src/pages/ProductDevelopment.jsx · kompagnon/frontend/src/pages/Projektpipeline.jsx · kompagnon/frontend/src/utils/statusfarbeAlsText.test.js",
-      "einzelheiten": "Abstand 12 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
-      "vorschlag": "P2",
-      "gegenstand": "#0891b2"
     },
     {
       "kennung": "farbe-beinahe/#003840",
@@ -269,13 +392,33 @@
       "gegenstand": "#00778f"
     },
     {
-      "kennung": "farbsystem/zweites-system",
-      "ebene": "optik",
-      "titel": "336 Farben ausserhalb der Vorgabe an 1568 Stellen — ein zweites, ungeschriebenes Farbsystem",
-      "beleg": "53 davon an mindestens 8 Stellen; haeufigste: #dc2626 (53×), #7c3aed (51×), #64748b (45×), #6b7280 (35×), #94a3b8 (33×), #1d9e75 (26×), #92400e (26×), #fef2f2 (25×), #fca5a5 (23×), #00875a (22×)",
-      "einzelheiten": "Es sind ueberwiegend Tailwind-Grundfarben, die direkt als Hexwert im Quelltext stehen. Sie halten kein Umfaerben aus: Wer die Palette aendert, aendert sie hier nicht mit — und wer die Marke prueft, misst eine Oberflaeche, die ihr nur teilweise folgt. Zu entscheiden ist einmal, nicht sechzigmal: Entweder die Statusfarben (Rot, Gruen, Violett fuer Zustaende) kommen als benannte Werte in die Vorgabe, oder sie verschwinden aus dem Quelltext.",
-      "vorschlag": "P2",
-      "gegenstand": "Farben ausserhalb der Vorgabe"
+      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET_ALT",
+      "ebene": "konsistenz",
+      "titel": "`BREVO_INBOUND_SECRET_ALT` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BREVO_INBOUND_SECRET_ALT",
+      "luecke": "L-18",
+      "rueckfall": true
+    },
+    {
+      "kennung": "import-ohne-eintrag/botocore",
+      "ebene": "konsistenz",
+      "titel": "`botocore` wird importiert, steht in keiner Anforderungsdatei",
+      "beleg": "kompagnon/backend/services/produktablage.py:84",
+      "einzelheiten": "`requirements.txt` sagt in ihrem eigenen Kopf, sie enthalte „die vollstaendig aufgeloesten Versionen **inklusive aller transitiven Pakete**\". Ein importiertes Modul, das dort fehlt, widerspricht dem — und die Datei gibt es genau deshalb, weil zwei Deploys desselben Commits sonst unterschiedliche Software ergeben. Der laufende Dienst hat das Paket — er wurde damit gebaut. Der **naechste** Neuaufbau hat es nicht. Genau so ist L-57 entstanden: Der Buildbefehl rief `playwright` auf, das in keiner Anforderungsdatei stand; aufgefallen ist es erst beim Umzug, als ein neuer Dienst nach 28 Sekunden scheiterte.",
+      "vorschlag": "P1",
+      "gegenstand": "botocore"
+    },
+    {
+      "kennung": "termin/perplexity-altform",
+      "ebene": "konsistenz",
+      "titel": "in 23 Tagen: Perplexity schaltet die alte Anfrageform ab (L-81)",
+      "beleg": "2026-09-27 — Herstellerankuendigung; tests/test_perplexity_altform_termin.py wird ab dem Stichtag rot",
+      "einzelheiten": "Ab dem Stichtag liefert die KI-Sichtbarkeitsmessung fuer Perplexity keine Antwort mehr. Der Test scheitert mit der Arbeitsanweisung im Text.",
+      "vorschlag": "P1",
+      "gegenstand": "perplexity-altform"
     },
     {
       "kennung": "dateigroesse/kompagnon/backend/migrations_runtime.py",
@@ -305,6 +448,68 @@
       "gegenstand": "kompagnon/frontend/src/pages/LeadProfile.jsx"
     }
   ],
-  "gefuehrt": [],
-  "quittiert": []
+  "gefuehrt": [
+    {
+      "kennung": "farbe-beinahe/#1a2332",
+      "ebene": "optik",
+      "titel": "#1a2332 liegt dicht neben der Vorgabe #002535 (13 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/GrapesEditor.jsx · kompagnon/frontend/src/components/NewsletterDesigner.jsx · kompagnon/frontend/src/components/OnboardingWizard.jsx · kompagnon/frontend/src/components/betrieb/ReiterSitemap.jsx",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a2332",
+      "luecke": "L-158",
+      "rueckfall": false
+    },
+    {
+      "kennung": "farbe-beinahe/#0891b2",
+      "ebene": "optik",
+      "titel": "#0891b2 liegt dicht neben der Vorgabe #008eaa (5 Stellen)",
+      "beleg": "kompagnon/frontend/src/pages/CustomerProjects.jsx · kompagnon/frontend/src/pages/ProductDevelopment.jsx · kompagnon/frontend/src/pages/Projektpipeline.jsx · kompagnon/frontend/src/utils/statusfarbeAlsText.test.js",
+      "einzelheiten": "Abstand 12 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0891b2",
+      "luecke": "L-158",
+      "rueckfall": false
+    },
+    {
+      "kennung": "farbsystem/zweites-system",
+      "ebene": "optik",
+      "titel": "336 Farben ausserhalb der Vorgabe an 1568 Stellen — ein zweites, ungeschriebenes Farbsystem",
+      "beleg": "53 davon an mindestens 8 Stellen; haeufigste: #dc2626 (53×), #7c3aed (51×), #64748b (45×), #6b7280 (35×), #94a3b8 (33×), #1d9e75 (26×), #92400e (26×), #fef2f2 (25×), #fca5a5 (23×), #00875a (22×)",
+      "einzelheiten": "Es sind ueberwiegend Tailwind-Grundfarben, die direkt als Hexwert im Quelltext stehen. Sie halten kein Umfaerben aus: Wer die Palette aendert, aendert sie hier nicht mit — und wer die Marke prueft, misst eine Oberflaeche, die ihr nur teilweise folgt. Zu entscheiden ist einmal, nicht sechzigmal: Entweder die Statusfarben (Rot, Gruen, Violett fuer Zustaende) kommen als benannte Werte in die Vorgabe, oder sie verschwinden aus dem Quelltext.",
+      "vorschlag": "P2",
+      "gegenstand": "Farben ausserhalb der Vorgabe",
+      "luecke": "L-158",
+      "rueckfall": false
+    },
+    {
+      "kennung": "umgebung-fehlt/BACKEND_URL",
+      "ebene": "konsistenz",
+      "titel": "`BACKEND_URL` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/projects_anlegen.py · kompagnon/backend/routers/shop.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BACKEND_URL",
+      "luecke": "L-156",
+      "rueckfall": false
+    },
+    {
+      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET",
+      "ebene": "konsistenz",
+      "titel": "`BREVO_INBOUND_SECRET` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BREVO_INBOUND_SECRET",
+      "luecke": "L-157",
+      "rueckfall": false
+    }
+  ],
+  "quittiert": [],
+  "nicht_gemessen": [
+    [
+      "Routen ohne Aufrufer / ohne Anmeldung",
+      "kein Interpreter mit den Backend-Abhaengigkeiten gefunden (`kompagnon/backend/venv`). Diese Stufe misst an der geladenen Anwendung und sieht Dinge, die aus dem Quelltext nicht ableitbar sind — sie gehoert nachgeholt, nicht uebergangen."
+    ]
+  ]
 }

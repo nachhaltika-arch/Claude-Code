@@ -25,8 +25,9 @@ Eine vierte Klasse geht **immer** in den Bericht, ganz oben: der
 die Messung wiederfindet. Er ist das Gefährlichste, was ein Durchlauf finden
 kann, weil die Liste in diesem Punkt lügt.
 
-## Die sieben Schritte
+## Die acht Schritte
 
+    0  Selbstprobe findet jede Stufe noch ihr eigenes Beispiel?
     1  Erheben     jede Stufe misst ihre Fehlerklasse
     2  Belegen     ohne Datei:Zeile oder Messwert fällt der Befund raus
     3  Nachprüfen  Stichprobe am Gegenstand, bevor irgendetwas gemeldet wird
@@ -35,6 +36,20 @@ kann, weil die Liste in diesem Punkt lügt.
     6  Berichten   ein Dokument, nach Ebenen sortiert, mit Beleg je Zeile
     7  Übernehmen  von Hand: du entscheidest, was L-Nummer wird
 
+**Schritt 0 steht vor allem anderen, und zwar aus einem Grund, der erst beim
+Bauen sichtbar wurde.** Elf der siebzehn Stufen melden heute null Befunde. Das
+kann Ruhe heißen oder Blindheit — von außen sind beide nicht zu
+unterscheiden, und die zweite ist die gefährliche: Ein Durchlauf, der nichts
+mehr sieht, meldet Frieden. Die Selbstprobe legt deshalb Beispieldateien an,
+die genau die gesuchten Fehler *enthalten*, und lässt jede Stufe darauf los.
+Findet eine ihr eigenes Beispiel nicht, steht das ganz oben im Bericht, vor
+jedem Sachbefund.
+
+Beim ersten Lauf hat sie sofort etwas gefunden: Die Stufe „Geheimnis in der
+Adresse" kannte nur englische Wortteile — `secret`, `key`, `token`. In einem
+Repo, dessen Variablen `schluessel` und `geheimnis` heißen, hätte sie **nie**
+etwas gefunden und trotzdem jede Woche eine beruhigende Null gemeldet.
+
 **Schritt 3 ist nicht optional, und er ist derjenige, der beim Bauen dieses
 Verfahrens am meisten gebracht hat.** Der erste Lauf meldete `GET /` als
 doppelt registriert; nachgesehen lagen die zwei Fundstellen in verschiedenen
@@ -42,8 +57,17 @@ Routern, deren Präfix erst bei der Registrierung entsteht — die Messung hatte
 einen leeren Präfix angenommen. Der zweite Lauf meldete `/app/kas-website`
 als „Seite nicht gefunden"; die Route existiert, sie liegt unter
 `/app/settings/`, und der Pfadaufbau hatte die Verschachtelung ignoriert.
-**Beide Befunde wären als Systemfehler in der Lückenliste gelandet.** Beide
-waren Fehler der Messung.
+Beim Ausbau kamen vier weitere dazu: 34 „stille Ausfälle", von denen die
+ersten beiden bewusst still waren und unter drei Zeilen Begründung standen;
+15 Modelltabellen mit angeblich fehlenden Migrationen, obwohl neue
+Datenbanken über die Modelle selbst entstehen; 30 „unbekannte Tabellen", weil
+die Suche bei `UPDATE x SET feld` das *Feld* für den Tabellennamen hielt; und
+vier fehlende Pakete, die als `dnspython`, `psycopg2-binary` und
+`python-whois` längst eingetragen waren.
+
+**Alle acht wären als Systemfehler in der Lückenliste gelandet.** Alle acht
+waren Fehler der Messung. Das ist die Ausbeute von Schritt 3 an einem
+einzigen Tag — und der Grund, warum er kein Ratschlag ist.
 
 **Schritt 7 ist bewusst nicht automatisch.** Eine Liste, die sich selbst
 verlängert, wächst schneller, als sie jemand abarbeitet; die echten offenen
@@ -59,14 +83,61 @@ passiert ist — nicht, weil sie sich gut liest.
 
 | Stufe | Ebene | Findet | Vorbild |
 |---|---|---|---|
-| Doppelte Routen | Schnittstelle | zwei Verfahren auf einer Adresse; FastAPI bedient die erste und verschweigt die zweite | L-76 |
-| Namensdrift Umgebung | Konsistenz | derselbe Schlüssel unter zwei Namen, einer davon nirgends gesetzt | L-43 |
-| Umgebung ohne Blueprint | Konsistenz | Variable wird gelesen, steht in keinem Blueprint | L-42 |
-| Felder ohne Leser | Datenbank | gespeichert, anklickbar, serialisiert — und von keinem Lesepfad abgefragt | L-05, L-55 |
-| Seiten ohne Route | Frontend | Seitendatei, die `App.jsx` nicht einbindet | — |
-| Farben außerhalb der Vorgabe | Optik | Markenfarben, die die Palette nicht kennt; Beinahe-Töne daneben | L-17, L-32 |
-| Dateien über der Grenze | Konsistenz | Dateien über der doppelten 800-Zeilen-Grenze | L-25 |
-| Laufzeit (Browser) | Browser | Antwortcode, Netzfehler, Konsolenfehler, leere Seite, Bildschirmfoto | L-41, L-53 |
+| Felder ohne Leser | Datenbank | gespeichert, angezeigt, nie gelesen | L-05, L-55 |
+| Modell ohne Migration | Datenbank | Commit ändert das Modell, rührt keine Migration an | L-86, L-93 |
+| SQL nennt unbekannte Tabelle | Datenbank | rohes SQL auf einer Tabelle, die kein Modell führt | L-93 |
+| Doppelte Routen | Schnittstelle | zwei Verfahren auf einer Adresse | L-76 |
+| Wächter lässt ohne Geheimnis durch | Schnittstelle | Prüfung gibt ohne Schlüssel wahr zurück | L-47, L-136 |
+| Geheimnis in der Adresse | Schnittstelle | Schlüssel im Pfad statt im Kopf | L-98, L-103 |
+| Stiller Ausfall im Schreibpfad | Schnittstelle | Fehler geschluckt, Erfolg gemeldet | L-36, L-141 |
+| Routen ohne Aufrufer / ohne Anmeldung | Schnittstelle | an der geladenen Anwendung gemessen | L-105, L-51, L-67 |
+| Seiten ohne Weg | Frontend | weder Route noch Aufrufer | — |
+| Bedienelement ohne Wirkung | Frontend | Knopf ohne Handler und ohne Formularrolle | L-79 |
+| Farben außerhalb der Vorgabe | Optik | Markenfarben ohne Palette, Beinahe-Töne daneben | L-17, L-32, L-158 |
+| Namensdrift Umgebung | Konsistenz | ein Schlüssel unter zwei Namen | L-43 |
+| Umgebung ohne Blueprint | Konsistenz | Variable gelesen, in keinem Blueprint | L-42, L-156, L-157 |
+| Import ohne Eintrag | Konsistenz | der nächste Neuaufbau scheitert | L-57 |
+| Prüftor mit Lücke | Konsistenz | das Tor prüft weniger, als es verspricht | L-78 |
+| Termine fremder Dienste | Konsistenz | angekündigte Abschaltung läuft ab | L-81 |
+| Dateien über der Grenze | Konsistenz | über der doppelten 800-Zeilen-Grenze | L-25 |
+| Laufzeit (Browser) | Browser | Antwortcode, Netzfehler, Konsolenfehler, leere Seite | L-41, L-53 |
+
+## Drei Bedarfsklassen — und warum das im Bericht steht
+
+Nicht jede Stufe läuft überall. Jede nennt deshalb, was sie braucht:
+
+| Bedarf | Was nötig ist | Wie lange |
+|---|---|---|
+| `quelltext` | nichts außer dem Repo | Sekunden |
+| `anwendung` | `kompagnon/backend/venv` mit den Abhängigkeiten | ~1 Minute |
+| `dienst` | erreichbarer Dienst, Browser, Anmeldung | Minuten |
+
+Die Stufen der Klasse `anwendung` messen an der **geladenen** Anwendung und
+sehen damit, was aus dem Quelltext nicht ableitbar ist: eine Sperre, die am
+Router hängt statt am Funktionskopf, und einen Präfix, der erst bei der
+Registrierung entsteht. Sie sind genauer als alles, was eine Textmessung
+könnte — deshalb ruft der Durchlauf die vorhandenen Werkzeuge auf, statt sie
+nachzubauen.
+
+Fehlt eine Voraussetzung, erscheint die Stufe im Bericht unter **„Nicht
+gemessen — und das ist nicht dasselbe wie in Ordnung"**, mit Grund. Eine
+nicht erhobene Zahl darf nie als Null im Bericht stehen.
+
+## Was keine Maschine beantwortet
+
+Vier der siebzehn Fehlerklassen aus der Lückenliste lassen sich nicht messen:
+ob eine Messung misst, was sie verspricht (L-107, L-150 bis L-155); ob eine
+Oberfläche verständlich ist; ob Lizenz und Rechtstexte tragen (L-148, L-149,
+L-122); ob sich eine Sicherung wirklich zurückspielen lässt.
+
+Sie verschwinden deshalb nicht, sondern stehen in
+`docs/durchlauf/pruefliste.json` — jede mit einem Intervall und dem Datum der
+letzten Beantwortung. Der Bericht führt am Ende auf, welche fällig sind. Wer
+eine beantwortet, trägt das Datum ein; dann ist sie bis zum nächsten Mal weg.
+
+Ebenso `docs/durchlauf/termine.json`: angekündigte Abschaltungen fremder
+Dienste. Der Durchlauf ist der Wecker, damit ein Termin nicht als Zettel
+endet, den niemand wiederfindet.
 
 ## Der Verbindungs-Check, auf den Durchlauf abgebildet
 
@@ -86,8 +157,12 @@ Zeichen** je Seite und meldet alles unter der Schwelle als Befund.
 ## So läuft er
 
 ```bash
+# 0 — misst der Durchlauf überhaupt noch? (einzeln aufrufbar)
+python3 -m tools.durchlauf.selbstprobe
+
 # 1 — die statischen Stufen (überall, ohne Netz, Sekunden)
 python3 scripts/systemdurchlauf.py
+python3 scripts/systemdurchlauf.py --nur quelltext   # nur, was ohne Umgebung geht
 
 # 2 — die Laufzeitstufe (braucht Netz, Browser und eine Anmeldung)
 kompagnon/backend/venv/bin/python scripts/durchlauf-laufzeit.py \

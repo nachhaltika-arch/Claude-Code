@@ -19,7 +19,7 @@ import collections
 import pathlib
 import re
 
-from .befund import Befund, WURZEL
+from .befund import Befund, WURZEL, kurz
 
 BACKEND = WURZEL / "kompagnon" / "backend"
 MIGRATIONEN = ("migrations_runtime.py", "migrations.py", "migrate.py")
@@ -243,7 +243,7 @@ def sql_nennt_unbekannte_tabelle() -> list[Befund]:
         for gruppen in _SCHREIBT_SQL.findall(text):
             tabelle = next((g for g in gruppen if g), "")
             if tabelle and tabelle.lower() not in bekannt:
-                treffer[str(datei.relative_to(WURZEL))].add(tabelle)
+                treffer[kurz(datei)].add(tabelle)
 
     befunde = []
     for datei, tabellen in sorted(treffer.items()):

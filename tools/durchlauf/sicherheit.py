@@ -18,12 +18,20 @@ import ast
 import pathlib
 import re
 
-from .befund import Befund, WURZEL
+from .befund import Befund, WURZEL, kurz
 
 BACKEND = WURZEL / "kompagnon" / "backend"
 
 #: Namensteile, die einen Wert als Geheimnis kennzeichnen.
-GEHEIM = ("secret", "key", "token", "password", "passwort", "credential", "api_key")
+#:
+#: **Die deutschen gehoeren dazu, und das war kein Detail.** Der erste Entwurf
+#: kannte nur englische Woerter — in einem Repo, dessen Variablen `schluessel`
+#: und `geheimnis` heissen, haette die Stufe **nie** etwas gefunden und
+#: trotzdem jede Woche „null Befunde" gemeldet. Aufgefallen ist es nicht beim
+#: Lesen, sondern in der Selbstprobe: Sie legte ein Beispiel mit
+#: `schluessel` an, und die Stufe ging daran vorbei.
+GEHEIM = ("secret", "key", "token", "password", "credential", "api_key",
+          "geheim", "schluessel", "passwort", "kennwort", "zugangs")
 
 #: Schreibende HTTP-Methoden — nur dort ist ein verschluckter Fehler ein Verlust.
 SCHREIBT = ("post", "put", "patch", "delete")
@@ -109,7 +117,7 @@ def fail_open_waechter() -> list[Befund]:
                         kennung=f"fail-open/{datei.stem}.{knoten.name}",
                         ebene="schnittstelle",
                         titel=f"`{knoten.name}()` gibt ohne Geheimnis **wahr** zurueck",
-                        beleg=f"{datei.relative_to(WURZEL)}:{satz.lineno}",
+                        beleg=f"{kurz(datei)}:{satz.lineno}",
                         einzelheiten=(
                             "Die Funktion liest ein Geheimnis aus der Umgebung und "
                             "laesst durch, wenn keines gesetzt ist. In der Entwicklung "
@@ -169,7 +177,7 @@ def geheimnis_in_adresse() -> list[Befund]:
                     kennung=f"geheimnis-in-adresse/{datei.stem}:{knoten.lineno}",
                     ebene="schnittstelle",
                     titel=f"`{name}` wird in eine Adresse eingebaut ({datei.name}:{knoten.lineno})",
-                    beleg=f"{datei.relative_to(WURZEL)}:{knoten.lineno} — f-String mit "
+                    beleg=f"{kurz(datei)}:{knoten.lineno} — f-String mit "
                           f"'{fester_teil[:60]}'",
                     einzelheiten=(
                         "Ein Geheimnis in der Adresse landet im Zugriffsprotokoll des "
@@ -334,18 +342,26 @@ def stiller_ausfall() -> list[Befund]:
                 # noch einmal ausloesen.
                 von_aussen = ("webhook" in datei.stem or "webhook" in knoten.name
                               or datei.stem in ("payments", "geo_payments"))
+                # **P0 nur, wo Geld haengt.** Ein Anzeigenportal, dem man 200
+                # antwortet, damit es den Rueckruf nicht abschaltet, kann eine
+                # bewusste Entscheidung sein — dann fehlt nur die Begruendung
+                # im Code. Bei einer Zahlung ist es keine: Was Stripe als
+                # verarbeitet quittiert bekommt, kommt nie wieder.
+                geld = datei.stem in ("payments", "geo_payments", "shop") or \
+                    "stripe" in knoten.name or "payment" in knoten.name
                 fundstellen.append(
                     (datei, knoten.name, zweig.lineno,
                      datei.stem in HEIKEL,
                      _quittiert_erfolg(zweig) and von_aussen,
-                     _quittiert_erfolg(zweig)))
+                     _quittiert_erfolg(zweig),
+                     _quittiert_erfolg(zweig) and von_aussen and geld))
                 break
 
     # **Einzeln nur, wo es weh tut.** Vierunddreissig Zeilen in einem Bericht
     # sind eine Tapete; die Frage dahinter ist eine einzige. Getrennt wird
     # deshalb nach Bereich: Wo Geld, Konten oder fremde Rueckrufe im Spiel
     # sind, steht jede Stelle fuer sich — der Rest ist eine Entscheidung.
-    for datei, funktion, zeile, heikel, rueckruf, quittiert in fundstellen:
+    for datei, funktion, zeile, heikel, rueckruf, quittiert, geld in fundstellen:
         if not (heikel or quittiert):
             continue
         befunde.append(Befund(
@@ -355,7 +371,7 @@ def stiller_ausfall() -> list[Befund]:
                    f"wiederholt nicht" if rueckruf else
                    f"`{funktion}()` antwortet im Fehlerfall mit Erfolg" if quittiert else
                    f"`{funktion}()` faengt jeden Fehler ab und meldet trotzdem Erfolg"),
-            beleg=f"{datei.relative_to(WURZEL)}:{zeile}",
+            beleg=f"{kurz(datei)}:{zeile}",
             einzelheiten=(
                 ("**Der Abfangzweig endet mit einer Erfolgsantwort.** Bei einem "
                  "Rueckruf von aussen ist das folgenschwerer als ein verschlucktes "
@@ -365,7 +381,13 @@ def stiller_ausfall() -> list[Befund]:
                  "gebucht, das Projekt entsteht nicht, und niemand erfaehrt es ausser "
                  "einer Protokollzeile. Der Absender darf nur dann 200 bekommen, wenn "
                  "der Vorgang **festgehalten** ist; alles andere gehoert mit 5xx "
-                 "beantwortet, damit der Rueckruf wiederholt wird."
+                 "beantwortet, damit der Rueckruf wiederholt wird. "
+                 + ("**Hier haengt Geld daran** — deshalb P0."
+                    if geld else
+                    "**Es kann Absicht sein**: Manche Anzeigenportale schalten einen "
+                    "Rueckruf ab, der Fehler liefert. Dann ist die Antwort richtig und "
+                    "es fehlt nur der Satz daneben, der das sagt — schreib ihn hin, "
+                    "dann meldet der naechste Lauf die Stelle nicht mehr.")
                  if rueckruf else
                  "**Der Abfangzweig endet mit einer Erfolgsantwort an das eigene "
                  "Frontend.** Der Nutzer sieht, dass es geklappt hat; passiert ist "
@@ -380,7 +402,7 @@ def stiller_ausfall() -> list[Befund]:
                  "traegt. Der Aufrufer bekommt Erfolg, die Handlung ist nicht passiert.")
                 + " Familie L-36, L-141."
             ),
-            vorschlag="P0" if rueckruf else ("P1" if quittiert else "P1"),
+            vorschlag="P0" if geld else "P1",
             gegenstand=f"{datei.name}:{funktion}",
         ))
     rest = [f for f in fundstellen if not (f[3] or f[5])]

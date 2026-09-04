@@ -18,7 +18,7 @@ import pathlib
 import re
 import sys
 
-from .befund import Befund, WURZEL
+from .befund import Befund, WURZEL, kurz
 
 BACKEND = WURZEL / "kompagnon" / "backend"
 FRONTEND = WURZEL / "kompagnon" / "frontend" / "src"
@@ -112,7 +112,7 @@ def import_ohne_eintrag() -> tuple[list[Befund], str]:
                         or _deckt_ab(schluessel, eingetragen)):
                     continue
                 gefunden.setdefault(name, []).append(
-                    f"{datei.relative_to(WURZEL)}:{knoten.lineno}")
+                    f"{kurz(datei)}:{knoten.lineno}")
 
     befunde = []
     for name, stellen in sorted(gefunden.items()):
@@ -317,7 +317,7 @@ def bedienelement_ohne_wirkung() -> tuple[list[Befund], str]:
                     or "form=" in marke or "{..." in marke):
                 continue
             zeile = text.count("\n", 0, fund.start()) + 1
-            treffer.append((str(datei.relative_to(WURZEL)), zeile, marke[:70]))
+            treffer.append((kurz(datei), zeile, marke[:70]))
 
     # **Je Datei, nicht je Knopf.** Vierzehn Zeilen fuer acht Dateien ist eine
     # Tapete; und quittieren laesst sich nur, was eine Kennung hat, die den

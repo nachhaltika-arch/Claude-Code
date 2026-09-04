@@ -23,7 +23,7 @@ import collections
 import pathlib
 import re
 
-from .befund import Befund, WURZEL
+from .befund import Befund, WURZEL, kurz
 
 BACKEND = WURZEL / "kompagnon" / "backend"
 FRONTEND = WURZEL / "kompagnon" / "frontend" / "src"
@@ -94,7 +94,7 @@ def routen_erheben() -> tuple[dict[tuple[str, str], list[str]], int]:
                 traeger = getattr(f.value, "id", "")
                 if not deko.args or not isinstance(deko.args[0], ast.Constant):
                     continue
-                stelle = f"{datei.relative_to(WURZEL)}:{knoten.lineno}"
+                stelle = f"{kurz(datei)}:{knoten.lineno}"
                 praefix = praefixe.get(traeger)
                 # Ohne eigenen, nicht leeren Praefix ist der absolute Pfad
                 # aus dem Quelltext nicht bestimmbar.
@@ -165,7 +165,7 @@ def namensdrift_umgebung() -> list[Befund]:
         except UnicodeDecodeError:
             continue
         for name in _GETENV.findall(text):
-            fundstellen[name].append(str(datei.relative_to(WURZEL)))
+            fundstellen[name].append(kurz(datei))
 
     # Was steht in den Blueprints?
     gesetzt = set()
@@ -216,7 +216,7 @@ def umgebung_ohne_blueprint() -> list[Befund]:
         except UnicodeDecodeError:
             continue
         for name in _GETENV.findall(text):
-            gelesen[name].append(f"{datei.relative_to(WURZEL)}")
+            gelesen[name].append(f"{kurz(datei)}")
 
     gesetzt = set()
     for name in ("render.yaml", "render-staging.yaml", "render-produktiv.yaml"):
@@ -284,7 +284,7 @@ def felder_ohne_leser() -> list[Befund]:
                 kennung=f"feld-ohne-leser/{modell.stem}.{feld}",
                 ebene="datenbank",
                 titel=f"`{feld}` ({modell.name}) kommt ausserhalb des Modells nirgends vor",
-                beleg=f"{modell.relative_to(WURZEL)} — kein Treffer in Backend ausserhalb der Modelle und in {len(_js_dateien())} Frontend-Dateien",
+                beleg=f"{kurz(modell)} — kein Treffer in Backend ausserhalb der Modelle und in {len(_js_dateien())} Frontend-Dateien",
                 einzelheiten=(
                     "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. "
                     "Dieselbe Familie wie L-55: `AcademyModule.is_locked` war "
@@ -334,7 +334,7 @@ def seiten_ohne_route() -> list[Befund]:
             kennung=f"seite-ohne-weg/{seite.stem}",
             ebene="frontend",
             titel=f"`pages/{seite.name}` hat keine Route und wird nirgends importiert",
-            beleg=f"{seite.relative_to(WURZEL)} — kein Treffer in src/App.jsx und in "
+            beleg=f"{kurz(seite)} — kein Treffer in src/App.jsx und in "
                   f"keiner der {len(_js_dateien())} uebrigen Frontend-Dateien",
             einzelheiten=(
                 "Weder ueber eine Adresse erreichbar noch als Baustein eingebunden. "
@@ -405,7 +405,7 @@ def farben_ausserhalb(mindestens: int = 8, naehe: float = 30.0,
             farbe = roh.lower()
             if farbe in erlaubt:
                 continue
-            treffer[farbe].append(str(datei.relative_to(WURZEL)))
+            treffer[farbe].append(kurz(datei))
 
     if not treffer:
         return []
@@ -506,17 +506,17 @@ def zu_grosse_dateien(grenze: int = 800) -> list[Befund]:
         if zeilen <= grenze * 2:      # nur die deutlichen Faelle, sonst Rauschen
             continue
         befunde.append(Befund(
-            kennung=f"dateigroesse/{datei.relative_to(WURZEL)}",
+            kennung=f"dateigroesse/{kurz(datei)}",
             ebene="konsistenz",
-            titel=f"{datei.relative_to(WURZEL)} hat {zeilen} Zeilen (Grenze {grenze})",
-            beleg=f"wc -l {datei.relative_to(WURZEL)} → {zeilen}",
+            titel=f"{kurz(datei)} hat {zeilen} Zeilen (Grenze {grenze})",
+            beleg=f"wc -l {kurz(datei)} → {zeilen}",
             einzelheiten=(
                 "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von "
                 "Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in "
                 "`tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen."
             ),
             vorschlag="P3",
-            gegenstand=str(datei.relative_to(WURZEL)),
+            gegenstand=kurz(datei),
         ))
     return sorted(befunde, key=lambda b: b.titel)
 

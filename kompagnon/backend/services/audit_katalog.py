@@ -184,7 +184,7 @@ CATALOGUE: Tuple[Category, ...] = (
                       "Lighthouse-Audit 'color-contrast'", buch_code="B2", buch_label="Farbkontraste",
                       abstufung=Abstufung("ANTEIL")),
             Criterion("bf_alt", "Alt-Texte der Inhaltsbilder", 2, Source.MEASURED,
-                      "Anteil der Bilder mit einem Alt-Text", buch_code="B3", buch_label="Alternativtexte für Bilder",
+                      "Anteil der Inhaltsbilder mit Alt-Text — dekorative Bilder und Zählpixel zählen nicht", buch_code="B3", buch_label="Alternativtexte für Bilder",
                       abstufung=Abstufung("SCHWELLE", "ab", (
                           Stufe(2, 95, "Mindestens 95 von 100 Inhaltsbildern haben einen Alternativtext"),
                           Stufe(1, 80, "80 bis unter 95 von 100 Inhaltsbildern haben einen Alternativtext"),

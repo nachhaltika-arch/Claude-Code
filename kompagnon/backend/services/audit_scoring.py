@@ -126,7 +126,7 @@ def _ok(fact: Optional[dict]) -> bool:
 
 
 def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASURED,
-                    einheit: str = "") -> None:
+                    einheit: str = "", zusatz: str = "") -> None:
     """Punkte nach der am Kriterium hinterlegten Abstufung vergeben.
 
     Bis zum 25.08.2026 standen die Schwellen hier — teils als Liste (`_tier`),
@@ -148,6 +148,8 @@ def _nach_abstufung(sheet: _Sheet, key: str, wert, quelle: Source = Source.MEASU
     stufe = criterion.abstufung.stufe_fuer(wert)
     beleg = f"Gemessen: {zahl(wert)}{einheit} — {stufe.bedingung}" if stufe.bedingung \
         else f"Gemessen: {zahl(wert)}{einheit}"
+    if zusatz:
+        beleg += f" · {zusatz}"
     sheet.set(key, stufe.punkte, quelle, beleg)
 
 
@@ -322,7 +324,18 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
                 if audits.get("tastatur") else
                 "Lighthouse meldet Mängel bei der Tastaturbedienung")
 
-    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"), einheit=" %")
+    # **Der Zusatz erklaert den Nenner (L-152).** Dekorative Bilder und
+    # Zaehlpixel fallen aus der Zaehlung; ohne diesen Satz wundert sich ein
+    # Betrieb, warum von zwoelf Bildern nur fuenf gewertet wurden.
+    _inhalt = qa.get("bilder_inhalt")
+    _ausgenommen = (qa.get("bilder_dekorativ") or 0) + (qa.get("bilder_pixel") or 0)
+    _zusatz = ""
+    if _inhalt is not None:
+        _zusatz = f"{qa.get('bilder_mit_alt', 0)} von {_inhalt} Inhaltsbildern"
+        if _ausgenommen:
+            _zusatz += f", {_ausgenommen} dekorativ oder Zählpixel (nicht gewertet)"
+    _nach_abstufung(sheet, "bf_alt", qa.get("alt_texte_quote"), einheit=" %",
+                    zusatz=_zusatz)
 
     # ── bf_semantik: zwei Haelften zu je einem Punkt (S1.1, 24.08.2026) ──
     #

@@ -349,14 +349,14 @@ dann fehlende Belege, dann Maßstabsfragen.**
 | ~~**1**~~ | ✅ **04.09. erledigt** — heutiges Datum im KI-Prompt | beendet die Zukunftsbehauptung | S | nein |
 | ~~**2**~~ | ✅ **04.09. erledigt** — jeder Punktabzug nennt seinen Messwert | beantwortet die Hauptkritik des Fremdlaufs; `rc_cookie` hätte nie zur Rückfrage geführt | M | nein |
 | ~~**3**~~ | ✅ **04.09. erledigt** — Kategoriezeile zeigt „x von y Kriterien erhoben" | „0/2" liest sich nicht mehr als Urteil | S | nein |
-| **4** | Alt-Texte am Browserlauf messen, `alt=""` als korrekt werten | behebt einen belegten Fehlbefund | M | nein |
+| ~~**4**~~ | ✅ **04.09. teilweise** — `alt=""` und Zählpixel zählen nicht mehr; der Browserlauf-Teil wurde zu L-155 | behebt einen belegten Fehlbefund | M | nein |
 | **5** | KI darf keine Aussage über Platzierung machen, solange sie die Seitenstruktur nicht kennt | behebt den zweiten belegten Fehlbefund | M | nein |
 | **6** | Barrierefreiheit vom Browserlauf statt von Lighthouse | 8 Punkte weniger Fremdabhängigkeit, Kategorie fällt nicht mehr komplett aus | L | nein — dieselben Kriterien, andere Quelle |
 | **7** | `maps_embedded` anschließen oder entfernen | ein erhobener Wert ohne Leser | S | ja |
 | **8** | Einigung, was „einwilligungspflichtig" heißt (`rc_cookie` / `si_drittanbieter` / `se_lokal`) | beendet drei Urteile über einen Sachverhalt | M | **ja — Fassung 2027.1** |
 | **9** | `dg_mobil` an der gerenderten Breite messen statt am Viewport-Tag | das Kriterium misst wieder etwas | M | ja |
 
-**Stand 04.09.2026: 1 bis 3 sind erledigt** — zusammen mit der Korrektur der
+**Stand 04.09.2026: 1 bis 3 sind erledigt, 4 zur Hälfte** — zusammen mit der Korrektur der
 Platzierungsaussage aus § 1.1. Keiner davon hat einen Punktwert im Bestand
 verschoben.
 

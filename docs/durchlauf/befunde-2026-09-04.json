@@ -1,0 +1,346 @@
+{
+  "datum": "2026-09-04",
+  "neu": [
+    {
+      "kennung": "umgebung-fehlt/BACKEND_URL",
+      "ebene": "konsistenz",
+      "titel": "`BACKEND_URL` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/projects_anlegen.py · kompagnon/backend/routers/shop.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BACKEND_URL"
+    },
+    {
+      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET",
+      "ebene": "konsistenz",
+      "titel": "`BREVO_INBOUND_SECRET` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BREVO_INBOUND_SECRET",
+      "luecke": "L-18",
+      "rueckfall": true
+    },
+    {
+      "kennung": "umgebung-fehlt/BREVO_INBOUND_SECRET_ALT",
+      "ebene": "konsistenz",
+      "titel": "`BREVO_INBOUND_SECRET_ALT` wird an 2 Stellen gelesen, steht in keinem Blueprint",
+      "beleg": "kompagnon/backend/routers/betriebszustand.py · kompagnon/backend/routers/posteingang.py",
+      "einzelheiten": "Der Blueprint beschreibt die Umgebung. Fehlt der Schluessel dort, haengt der Betrieb an einem Dashboard-Eintrag, den niemand nachlesen kann — die Form von L-42, wo `ENVIRONMENT` produktiv nie gesetzt war und der Vorgabewert `development` griff.",
+      "vorschlag": "P1",
+      "gegenstand": "BREVO_INBOUND_SECRET_ALT",
+      "luecke": "L-18",
+      "rueckfall": true
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.contact_address",
+      "ebene": "datenbank",
+      "titel": "`contact_address` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "contact_address"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.h2_list",
+      "ebene": "datenbank",
+      "titel": "`h2_list` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "h2_list"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.paragraphs",
+      "ebene": "datenbank",
+      "titel": "`paragraphs` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "paragraphs"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_crawler.total_pages",
+      "ebene": "datenbank",
+      "titel": "`total_pages` (modelle_crawler.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_crawler.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "total_pages"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.apple_id",
+      "ebene": "datenbank",
+      "titel": "`apple_id` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "apple_id"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.google_id",
+      "ebene": "datenbank",
+      "titel": "`google_id` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "google_id"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.is_valid",
+      "ebene": "datenbank",
+      "titel": "`is_valid` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "is_valid"
+    },
+    {
+      "kennung": "feld-ohne-leser/modelle_konten.oauth_provider",
+      "ebene": "datenbank",
+      "titel": "`oauth_provider` (modelle_konten.py) kommt ausserhalb des Modells nirgends vor",
+      "beleg": "kompagnon/backend/modelle_konten.py — kein Treffer in Backend ausserhalb der Modelle und in 331 Frontend-Dateien",
+      "einzelheiten": "Entweder ist die Spalte tote Last, oder ein Lesepfad fehlt. Dieselbe Familie wie L-55: `AcademyModule.is_locked` war gespeichert, anklickbar, serialisiert — und nirgends gelesen.",
+      "vorschlag": "P3",
+      "gegenstand": "oauth_provider"
+    },
+    {
+      "kennung": "seite-ohne-route/PackageKompagnon",
+      "ebene": "frontend",
+      "titel": "`pages/PackageKompagnon.jsx` wird in App.jsx nicht eingebunden",
+      "beleg": "kompagnon/frontend/src/pages/PackageKompagnon.jsx — kein Treffer auf 'PackageKompagnon' in src/App.jsx",
+      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
+      "vorschlag": "P3",
+      "gegenstand": "PackageKompagnon.jsx"
+    },
+    {
+      "kennung": "seite-ohne-route/PackagePremium",
+      "ebene": "frontend",
+      "titel": "`pages/PackagePremium.jsx` wird in App.jsx nicht eingebunden",
+      "beleg": "kompagnon/frontend/src/pages/PackagePremium.jsx — kein Treffer auf 'PackagePremium' in src/App.jsx",
+      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
+      "vorschlag": "P3",
+      "gegenstand": "PackagePremium.jsx"
+    },
+    {
+      "kennung": "seite-ohne-route/PackageStarter",
+      "ebene": "frontend",
+      "titel": "`pages/PackageStarter.jsx` wird in App.jsx nicht eingebunden",
+      "beleg": "kompagnon/frontend/src/pages/PackageStarter.jsx — kein Treffer auf 'PackageStarter' in src/App.jsx",
+      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
+      "vorschlag": "P3",
+      "gegenstand": "PackageStarter.jsx"
+    },
+    {
+      "kennung": "seite-ohne-route/Rechtstext",
+      "ebene": "frontend",
+      "titel": "`pages/Rechtstext.jsx` wird in App.jsx nicht eingebunden",
+      "beleg": "kompagnon/frontend/src/pages/Rechtstext.jsx — kein Treffer auf 'Rechtstext' in src/App.jsx",
+      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
+      "vorschlag": "P3",
+      "gegenstand": "Rechtstext.jsx"
+    },
+    {
+      "kennung": "markenfarbe-ohne-vorgabe/#004f59",
+      "ebene": "optik",
+      "titel": "Markenfarbe #004f59 wird 19-mal benutzt, steht aber in keiner Farbvorgabe",
+      "beleg": "kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/components/KASSidebar.jsx · kompagnon/frontend/src/components/schritte/marketing.jsx",
+      "einzelheiten": "Die Farbe gehoert zur Marke, aber `tailwind.config.js` kennt sie nicht. Damit ist sie im Werkzeug Handarbeit statt Vorgabe: Sie laesst sich nicht zentral aendern, nicht pruefen und nicht wiederverwenden — und der naechste Bildschirm bekommt einen Ton daneben.",
+      "vorschlag": "P2",
+      "gegenstand": "#004f59"
+    },
+    {
+      "kennung": "markenfarbe-ohne-vorgabe/#fae600",
+      "ebene": "optik",
+      "titel": "Markenfarbe #fae600 wird 14-mal benutzt, steht aber in keiner Farbvorgabe",
+      "beleg": "kompagnon/frontend/src/components/AnrechnungsHinweis.jsx · kompagnon/frontend/src/components/BrandDesignWerkstatt.jsx · kompagnon/frontend/src/components/KASSidebar.jsx · kompagnon/frontend/src/components/views/StyleGuideView.jsx",
+      "einzelheiten": "Die Farbe gehoert zur Marke, aber `tailwind.config.js` kennt sie nicht. Damit ist sie im Werkzeug Handarbeit statt Vorgabe: Sie laesst sich nicht zentral aendern, nicht pruefen und nicht wiederverwenden — und der naechste Bildschirm bekommt einen Ton daneben.",
+      "vorschlag": "P2",
+      "gegenstand": "#fae600"
+    },
+    {
+      "kennung": "farbe-beinahe/#1a2332",
+      "ebene": "optik",
+      "titel": "#1a2332 liegt dicht neben der Vorgabe #002535 (13 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/GrapesEditor.jsx · kompagnon/frontend/src/components/NewsletterDesigner.jsx · kompagnon/frontend/src/components/OnboardingWizard.jsx · kompagnon/frontend/src/components/betrieb/ReiterSitemap.jsx",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a2332"
+    },
+    {
+      "kennung": "farbe-beinahe/#065f46",
+      "ebene": "optik",
+      "titel": "#065f46 liegt dicht neben der Vorgabe #004f59 (12 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/ContentManager.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/pages/PageManager.jsx · kompagnon/frontend/src/pages/PublicPageEditor.jsx",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#065f46"
+    },
+    {
+      "kennung": "farbe-beinahe/#1a2c32",
+      "ebene": "optik",
+      "titel": "#1a2c32 liegt dicht neben der Vorgabe #002535 (11 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/SitemapPlaner.jsx · kompagnon/frontend/src/components/views/sitemapDialoge.jsx · kompagnon/frontend/src/pages/PageTemplateEditor.jsx · kompagnon/frontend/src/pages/PublicPageEditor.jsx",
+      "einzelheiten": "Abstand 27 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a2c32"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f172a",
+      "ebene": "optik",
+      "titel": "#0f172a liegt dicht neben der Vorgabe #002535 (10 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/components/bibliothek/AiGeneratorModal.jsx · kompagnon/frontend/src/components/styleguide/styleguideTeile.jsx · kompagnon/frontend/src/components/views/StyleGuideView.jsx",
+      "einzelheiten": "Abstand 23 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f172a"
+    },
+    {
+      "kennung": "farbe-beinahe/#0891b2",
+      "ebene": "optik",
+      "titel": "#0891b2 liegt dicht neben der Vorgabe #008eaa (5 Stellen)",
+      "beleg": "kompagnon/frontend/src/pages/CustomerProjects.jsx · kompagnon/frontend/src/pages/ProductDevelopment.jsx · kompagnon/frontend/src/pages/Projektpipeline.jsx · kompagnon/frontend/src/utils/statusfarbeAlsText.test.js",
+      "einzelheiten": "Abstand 12 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0891b2"
+    },
+    {
+      "kennung": "farbe-beinahe/#003840",
+      "ebene": "optik",
+      "titel": "#003840 liegt dicht neben der Vorgabe #002535 (5 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css · kompagnon/frontend/src/utils/markenfarben.test.js",
+      "einzelheiten": "Abstand 22 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#003840",
+      "luecke": "L-32",
+      "rueckfall": true
+    },
+    {
+      "kennung": "farbe-beinahe/#042f2e",
+      "ebene": "optik",
+      "titel": "#042f2e liegt dicht neben der Vorgabe #002535 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/views/StyleGuideView.jsx · kompagnon/frontend/src/utils/brandOverride.test.js",
+      "einzelheiten": "Abstand 13 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#042f2e"
+    },
+    {
+      "kennung": "farbe-beinahe/#006680",
+      "ebene": "optik",
+      "titel": "#006680 liegt dicht neben der Vorgabe #007090 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/AnalyseCentrale.jsx · kompagnon/frontend/src/components/DesignStudio.jsx · kompagnon/frontend/src/pages/ScraperControl.jsx",
+      "einzelheiten": "Abstand 19 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#006680"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f1c20",
+      "ebene": "optik",
+      "titel": "#0f1c20 liegt dicht neben der Vorgabe #002535 (4 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css",
+      "einzelheiten": "Abstand 27 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f1c20"
+    },
+    {
+      "kennung": "farbe-beinahe/#006880",
+      "ebene": "optik",
+      "titel": "#006880 liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/OfferTab.jsx · kompagnon/frontend/src/pages/PackageStarter.jsx",
+      "einzelheiten": "Abstand 18 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#006880"
+    },
+    {
+      "kennung": "farbe-beinahe/#0f1e3a",
+      "ebene": "optik",
+      "titel": "#0f1e3a liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/OfferTab.jsx · kompagnon/frontend/src/pages/CheckoutSuccess.jsx",
+      "einzelheiten": "Abstand 17 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0f1e3a"
+    },
+    {
+      "kennung": "farbe-beinahe/#1a1a2e",
+      "ebene": "optik",
+      "titel": "#1a1a2e liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/BrandGuideline.jsx · kompagnon/frontend/src/components/schritte/marketing.jsx",
+      "einzelheiten": "Abstand 29 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#1a1a2e"
+    },
+    {
+      "kennung": "farbe-beinahe/#0369a1",
+      "ebene": "optik",
+      "titel": "#0369a1 liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/MoodboardPanel.jsx · kompagnon/frontend/src/components/SecurityChecklist.jsx · kompagnon/frontend/src/pages/QRGenerator.jsx",
+      "einzelheiten": "Abstand 19 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0369a1"
+    },
+    {
+      "kennung": "farbe-beinahe/#0e7490",
+      "ebene": "optik",
+      "titel": "#0e7490 liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/components/views/StyleGuideView.jsx · kompagnon/frontend/src/components/views/sitemapKarten.jsx",
+      "einzelheiten": "Abstand 15 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#0e7490"
+    },
+    {
+      "kennung": "farbe-beinahe/#111827",
+      "ebene": "optik",
+      "titel": "#111827 liegt dicht neben der Vorgabe #002535 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/grapesjs/handwerk-blocks.js",
+      "einzelheiten": "Abstand 26 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#111827"
+    },
+    {
+      "kennung": "farbe-beinahe/#00778f",
+      "ebene": "optik",
+      "titel": "#00778f liegt dicht neben der Vorgabe #007090 (3 Stellen)",
+      "beleg": "kompagnon/frontend/src/styles/tokens.css",
+      "einzelheiten": "Abstand 7 von 442 im RGB-Raum. Eine Farbe so dicht an der Marke ist im Bildschirmfoto nicht zu unterscheiden und faellt erst auf, wenn zwei Flaechen nebeneinander liegen. Entweder ist sie ein Tippfehler, oder die Vorgabe kennt einen Ton, den sie nicht fuehrt.",
+      "vorschlag": "P2",
+      "gegenstand": "#00778f"
+    },
+    {
+      "kennung": "farbsystem/zweites-system",
+      "ebene": "optik",
+      "titel": "336 Farben ausserhalb der Vorgabe an 1568 Stellen — ein zweites, ungeschriebenes Farbsystem",
+      "beleg": "53 davon an mindestens 8 Stellen; haeufigste: #dc2626 (53×), #7c3aed (51×), #64748b (45×), #6b7280 (35×), #94a3b8 (33×), #1d9e75 (26×), #92400e (26×), #fef2f2 (25×), #fca5a5 (23×), #00875a (22×)",
+      "einzelheiten": "Es sind ueberwiegend Tailwind-Grundfarben, die direkt als Hexwert im Quelltext stehen. Sie halten kein Umfaerben aus: Wer die Palette aendert, aendert sie hier nicht mit — und wer die Marke prueft, misst eine Oberflaeche, die ihr nur teilweise folgt. Zu entscheiden ist einmal, nicht sechzigmal: Entweder die Statusfarben (Rot, Gruen, Violett fuer Zustaende) kommen als benannte Werte in die Vorgabe, oder sie verschwinden aus dem Quelltext.",
+      "vorschlag": "P2",
+      "gegenstand": "Farben ausserhalb der Vorgabe"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/backend/migrations_runtime.py",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/backend/migrations_runtime.py hat 1712 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/backend/migrations_runtime.py → 1712",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/backend/migrations_runtime.py"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/frontend/src/data/templates_zusatz.js",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/frontend/src/data/templates_zusatz.js hat 3122 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/frontend/src/data/templates_zusatz.js → 3122",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/frontend/src/data/templates_zusatz.js"
+    },
+    {
+      "kennung": "dateigroesse/kompagnon/frontend/src/pages/LeadProfile.jsx",
+      "ebene": "konsistenz",
+      "titel": "kompagnon/frontend/src/pages/LeadProfile.jsx hat 1686 Zeilen (Grenze 800)",
+      "beleg": "wc -l kompagnon/frontend/src/pages/LeadProfile.jsx → 1686",
+      "einzelheiten": "Ueber der doppelten Grenze gemeldet, damit die Liste nicht von Grenzfaellen lebt. Gezaehlt wird mit derselben Methode wie in `tools/grosse-dateien.py` (L-25) — Zeilen, nicht Zeichen.",
+      "vorschlag": "P3",
+      "gegenstand": "kompagnon/frontend/src/pages/LeadProfile.jsx"
+    }
+  ],
+  "gefuehrt": [],
+  "quittiert": []
+}

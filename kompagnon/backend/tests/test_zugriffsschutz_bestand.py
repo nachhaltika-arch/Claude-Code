@@ -10,7 +10,7 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | Bereich | Zahl | Grund |
 |---|---|---|
 | `academy` | 14 | Kundenweg. Jede Route filtert auf `current_user.id`; die Zertifikatsausstellung nimmt keine Nutzerkennung entgegen. |
-| `portal` | 13 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. **Dazu `GET` und `POST /inhalt`:** Guthaben und Aenderungswuensche des eigenen Betriebs. Der `GET` nimmt hoechstens einen Monat (`JJJJ-MM`), der `POST` einen Freitext — keiner von beiden eine Betriebs- oder Anfragekennung. Der Betrieb kommt aus `user.lead_id`, und die Liste ist danach gefiltert. **Seit 04.09.2026 dazu `POST /zahlungen/einzug`:** Sie nimmt **gar keine** Eingabe — kein Rumpf, keine Kennung. Vertrag und Betrieb kommen aus `user.lead_id`; ein Vertrag auf Rechnung wird ausdruecklich abgewiesen, damit niemand ueber diesen Weg eine Abrechnungsart wechselt, der er nicht zugestimmt hat. |
+| `portal` | 13 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. **Dazu `GET` und `POST /inhalt`:** Guthaben und Aenderungswuensche des eigenen Betriebs. Der `GET` nimmt hoechstens einen Monat (`JJJJ-MM`), der `POST` einen Freitext — keiner von beiden eine Betriebs- oder Anfragekennung. Der Betrieb kommt aus `user.lead_id`, und die Liste ist danach gefiltert. **Seit 04.09.2026 dazu `POST /zahlungen/einzug`:** Sie nimmt **gar keine** Eingabe — kein Rumpf, keine Kennung. Vertrag und Betrieb kommen aus `user.lead_id`; ein Vertrag auf Rechnung wird ausdruecklich abgewiesen, damit niemand ueber diesen Weg eine Abrechnungsart wechselt, der er nicht zugestimmt hat. **Und `GET /leistung` vom selben Tag:** Monatsberichte und der Re-Audit-Termin des eigenen Betriebs, ebenfalls ohne jede Eingabe; ohne laufendes Abo antwortet sie leer. |
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
@@ -62,7 +62,12 @@ import pytest
 #:   aus `user.lead_id`, die Rueckkehradressen aus `public_base_url()`. Sie
 #:   kann damit nichts Fremdes treffen, auch nicht mit geratenen Werten —
 #:   dieselbe Bauart wie `POST /zahlungen/verwalten` daneben.
-ERWARTET = 65
+#: 04.09.2026, spaeter: 66 — `GET /api/portal/leistung`. Leistungsbericht
+#:   und Re-Audit-Termin des **eigenen** Betriebs (L-160, Rang 2). Nimmt
+#:   ebenfalls keine Eingabe: kein Rumpf, keine Kennung, kein Parameter. Der
+#:   Betrieb kommt aus `user.lead_id`, und ohne laufendes Abo ist die Antwort
+#:   leer statt fremd.
+ERWARTET = 66
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {

@@ -555,6 +555,38 @@ def zahlungen_einzug(user=Depends(get_current_user), db: Session = Depends(get_d
         raise HTTPException(500, str(fehler))
 
 
+@router.get("/leistung")
+def get_leistung(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Leistungsbericht und Re-Audit — die zwei Zusagen, die automatisch
+    liefen und beim Kunden nie ankamen (L-160, Rang 2).
+
+    **Was hier zusammenkommt und warum ausgerechnet diese zwei.** Beide sind
+    Positionen aus dem Leistungsverzeichnis der Pflege-Abos, für die der Kunde
+    monatlich zahlt. Beide laufen seit Langem als Zeitauftrag. Der Bericht
+    ging als Mail hinaus und war danach nirgends mehr abrufbar; das Re-Audit
+    meldete dem **Innendienst**, wer dran ist, und dem Kunden gar nichts.
+
+    **Ohne Abo bleibt beides leer.** Ein Re-Audit-Termin ohne Vertrag wäre
+    eine Zusage, die niemand gegeben hat — und ein Verlauf, den niemand
+    bestellt hat, sieht aus wie eine Leistung, die ausbleibt.
+    """
+    from services import leistungsbericht, quartals_reaudit
+
+    lead = db.query(Lead).filter(Lead.id == user.lead_id).first() if user.lead_id else None
+    if not lead:
+        return {"berichte": [], "reaudit": None, "abo": None}
+
+    reaudit = quartals_reaudit.naechste_pruefung(db, lead.id)
+    return {
+        "berichte": leistungsbericht.verlauf(db, lead.id),
+        "reaudit": reaudit,
+        # Damit die Oberfläche „noch kein Bericht" von „nicht gebucht"
+        # unterscheiden kann. Das ist derselbe Unterschied wie zwischen
+        # „nicht erhoben" und „null Punkte", und er ist genauso wichtig.
+        "abo": (reaudit or {}).get("produkt"),
+    }
+
+
 # ══════════════════════════════════════════════════════════════════════
 # Inhaltsänderungen: Guthaben und Wünsche (Rang 1, 04.09.2026)
 # ══════════════════════════════════════════════════════════════════════

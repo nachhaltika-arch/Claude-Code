@@ -27,19 +27,44 @@ const KATEGORIEN = [
 const balkenFarbe = (a) => (a >= 0.7 ? '#16a34a' : a >= 0.45 ? '#f59e0b' : '#dc2626');
 const zifferFarbe = (a) => (a >= 0.7 ? 'var(--success)' : a >= 0.45 ? 'var(--warn)' : 'var(--error)');
 
+const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
+                'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+/** `2026-09` → „September 2026". Der Kunde liest Monate, keine Zahlenpaare. */
+function monatName(monat) {
+  const [jahr, nr] = String(monat || '').split('-');
+  return MONATE[Number(nr) - 1] ? `${MONATE[Number(nr) - 1]} ${jahr}` : monat;
+}
+
+function datum(wert) {
+  if (!wert) return '';
+  const d = new Date(wert);
+  return Number.isNaN(d.getTime()) ? String(wert) : d.toLocaleDateString('de-DE');
+}
+
 export default function MeinBericht() {
   const { user, token } = useAuth();
   const [profil, setProfil] = useState(null);
+  const [leistung, setLeistung] = useState(null);
   const [fehler, setFehler] = useState('');
 
   useEffect(() => {
     if (!user?.lead_id) return;
-    fetch(`${API_BASE_URL}/api/usercards/${user.lead_id}/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const kopf = { Authorization: `Bearer ${token}` };
+    fetch(`${API_BASE_URL}/api/usercards/${user.lead_id}/profile`, { headers: kopf })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then(setProfil)
       .catch(() => setFehler('Der Bericht konnte gerade nicht geladen werden.'));
+
+    // **Der Monatsbericht und das Re-Audit** (L-160, Rang 2). Beide laufen
+    // seit Langem als Zeitauftrag und kamen beim Kunden nie an: Der Bericht
+    // ging als Mail hinaus und war danach nirgends abrufbar, das Re-Audit
+    // meldete dem Innendienst, wer dran ist. Ein Ausfall hier nimmt der Seite
+    // nichts, was sie vorher hatte — deshalb kein Fehler, nur kein Block.
+    fetch(`${API_BASE_URL}/api/portal/leistung`, { headers: kopf })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setLeistung)
+      .catch(() => setLeistung(null));
   }, [user?.lead_id, token]);
 
   if (fehler) return <p style={{ color: 'var(--error)', fontSize: 14 }}>{fehler}</p>;
@@ -136,6 +161,70 @@ export default function MeinBericht() {
             </div>
           )}
         </>
+      )}
+
+      {leistung?.reaudit && (
+        <div style={karte}>
+          <h2 style={ueberschrift}>Ihre nächste Prüfung</h2>
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.55 }}>
+            {leistung.reaudit.ist_faellig
+              ? 'Ihre nächste Prüfung steht an — wir melden uns.'
+              : `Die nächste Prüfung ist ab ${datum(leistung.reaudit.faellig_ab)} fällig.`}
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text-tertiary)' }}>
+            {leistung.reaudit.takt_monate === 12
+              ? 'Einmal im Jahr, wie in Ihrem Pflege-Abo vereinbart.'
+              : `Alle ${leistung.reaudit.takt_monate} Monate, wie in Ihrem Pflege-Abo vereinbart.`}
+            {leistung.reaudit.letzte_pruefung
+              ? ` Zuletzt geprüft am ${datum(leistung.reaudit.letzte_pruefung)}.`
+              : ' Eine erste Prüfung steht noch aus.'}
+          </p>
+        </div>
+      )}
+
+      {leistung?.berichte?.length > 0 && (
+        <div style={karte}>
+          <h2 style={ueberschrift}>Ladezeit Monat für Monat</h2>
+          {/* **Der Verlauf, nicht nur der letzte Wert.** Die Frage des
+              Kunden lautet „wird es besser?", und die beantwortet eine Zahl
+              allein nicht. Die Richtung steht als Wort daneben, nicht nur als
+              Farbe — Farbe allein ist keine Information (L-17). */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {leistung.berichte.map((b, i) => (
+              <div key={b.monat} style={{
+                display: 'flex', alignItems: 'baseline', gap: 12, padding: '10px 0',
+                borderTop: i === 0 ? 'none' : '1px solid var(--border-light)',
+              }}>
+                <span style={{ fontSize: 14, color: 'var(--text-secondary)', minWidth: 92,
+                               fontVariantNumeric: 'tabular-nums' }}>{monatName(b.monat)}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+                               fontVariantNumeric: 'tabular-nums' }}>
+                  {b.mobile != null ? `${b.mobile}/100` : 'nicht erhoben'}
+                </span>
+                {b.unterschied != null && b.unterschied !== 0 && (
+                  <span style={{ fontSize: 13, fontWeight: 700,
+                                 color: b.unterschied > 0 ? 'var(--success)' : 'var(--error)' }}>
+                    {b.unterschied > 0 ? `${b.unterschied} besser` : `${Math.abs(b.unterschied)} schlechter`}
+                  </span>
+                )}
+                {b.unterschied === 0 && (
+                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>unverändert</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '12px 0 0', lineHeight: 1.5 }}>
+            Gemessen mit Google PageSpeed Insights, mobil. Den ausführlichen
+            Bericht schicken wir Ihnen zusätzlich per E-Mail.
+          </p>
+        </div>
+      )}
+
+      {leistung && !leistung.abo && (
+        <div style={{ ...karte, fontSize: 14, color: 'var(--text-tertiary)' }}>
+          Monatsbericht und regelmäßige Prüfung gehören zum Pflege-Abo.
+          Sprechen Sie uns an, wenn Sie das dazubuchen möchten.
+        </div>
       )}
 
       {projekt?.id && <GeoReport projectId={projekt.id} token={token} />}

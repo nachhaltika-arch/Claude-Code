@@ -127,6 +127,65 @@ def faellige_betriebe(db, zeitpunkt: Optional[datetime] = None) -> list:
     return faellig
 
 
+def _monate_vor(datum: datetime, monate: int) -> datetime:
+    """Derselbe Tag, `monate` spaeter — Gegenstueck zu `_monate_zurueck`."""
+    gesamt = (datum.year * 12 + datum.month - 1) + monate
+    tag = datum.day
+    # Der 31. existiert nicht in jedem Monat. Auf den 28. zu gehen ist die
+    # ruhige Loesung: Ein Termin, der sich um drei Tage nach vorn schiebt,
+    # ist harmloser als einer, der beim Rechnen scheitert.
+    while tag > 28:
+        try:
+            return datetime(gesamt // 12, gesamt % 12 + 1, tag)
+        except ValueError:
+            tag -= 1
+    return datetime(gesamt // 12, gesamt % 12 + 1, tag)
+
+
+def naechste_pruefung(db, lead_id: int, zeitpunkt: Optional[datetime] = None) -> Optional[dict]:
+    """Wann das Re-Audit dieses Betriebs faellig ist — fuer sein eigenes Konto.
+
+    **Warum das hier steht und nicht im Portal (L-160, Rang 2, 04.09.2026).**
+    Der Takt haengt am Abo: `TAKT_MONATE` sagt ABO-BAS jaehrlich, ABO-PRO
+    vierteljaehrlich — eine Korrektur vom 01.09., weil der erste Entwurf
+    beide Abos jedes Quartal meldete. Diese Zahl ein zweites Mal im Portal zu
+    fuehren hiesse, dem Kunden einen Termin zuzusagen, den der Termingeber
+    nicht kennt. Eine Quelle, zwei Leser.
+
+    Gibt `None` zurueck, wenn kein Abo laeuft — dann ist kein Re-Audit
+    zugesagt, und ein Datum waere eine Zusage ohne Vertrag.
+    """
+    from database import AuditResult
+    from services import abo_vertrag
+
+    jetzt = zeitpunkt or datetime.utcnow()
+    vertrag = abo_vertrag.gilt_im_monat(db, lead_id=lead_id,
+                                        monat=jetzt.strftime("%Y-%m"))
+    if vertrag is None:
+        return None
+
+    takt = TAKT_MONATE.get(vertrag.produkt, 3)
+    letzte = (db.query(AuditResult)
+                .filter(AuditResult.lead_id == lead_id,
+                        AuditResult.status == "completed")
+                .order_by(AuditResult.created_at.desc())
+                .first())
+
+    letzte_am = getattr(letzte, "created_at", None)
+    return {
+        "produkt": vertrag.produkt,
+        "takt_monate": takt,
+        "letzte_pruefung": letzte_am.isoformat() if letzte_am else None,
+        # Ohne vorherige Pruefung ist sie **jetzt** faellig, nicht in einem
+        # Takt: Ein Betrieb, der noch nie geprueft wurde, wartet sonst ein
+        # Jahr auf die erste Leistung, fuer die er zahlt.
+        "faellig_ab": (_monate_vor(letzte_am, takt).isoformat() if letzte_am
+                       else jetzt.isoformat()),
+        "ist_faellig": (letzte_am is None
+                        or _monate_vor(letzte_am, takt) <= jetzt),
+    }
+
+
 def bereits_gemeldet(db, quartal: str) -> bool:
     """Steht die Meldung fuer dieses Quartal schon?
 

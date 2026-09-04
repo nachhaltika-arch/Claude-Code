@@ -1791,6 +1791,43 @@ def run_migrations():
                    CHECK (abrechnung IN ('rechnung', 'stripe'));
            EXCEPTION WHEN duplicate_object THEN NULL;
            END $$""",
+        # ── 04.09.2026: Der Monatsbericht bekommt ein Gedaechtnis (L-160, Rang 2) ──
+        #
+        # Der Bericht laeuft seit Langem und speicherte davon **den letzten
+        # Messwert** — zwei Spalten am Betrieb, die der naechste Lauf
+        # ueberschreibt. Er existierte damit nur im Postfach des Kunden.
+        # ABO-PRO sagt einen monatlichen Leistungsbericht zu; eine geloeschte
+        # Mail ist keine Auskunft mehr.
+        """CREATE TABLE IF NOT EXISTS leistungsberichte (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id),
+               monat VARCHAR(7) NOT NULL,
+               mobile INTEGER,
+               desktop INTEGER,
+               vormonat_mobile INTEGER,
+               versendet BOOLEAN DEFAULT false,
+               erstellt_am TIMESTAMP DEFAULT NOW()
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_leistungsberichte_lead ON leistungsberichte (lead_id)",
+        # **Eine Zeile je Betrieb und Monat.** Ein zweiter Lauf im selben
+        # Monat schreibt sie fort, statt eine zweite anzulegen — sonst
+        # stuende derselbe Monat zweimal im Verlauf und der Vergleich zum
+        # Vormonat waere nicht mehr eindeutig. Die Sperre steht in der
+        # Datenbank und nicht nur im Dienst: Ein zweiter Schreiber (ein
+        # Nachlauf von Hand, eine Einspielung) geht am Dienst vorbei.
+        """DO $$ BEGIN
+               ALTER TABLE leistungsberichte
+                   ADD CONSTRAINT uq_leistungsbericht_monat UNIQUE (lead_id, monat);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
+        # Der Monat muss die Form `JJJJ-MM` haben — dieselbe Regel wie bei
+        # den Abo-Zeiten. Ein „September 2026" in dieser Spalte sortiert
+        # falsch und faellt erst auf, wenn ein Verlauf durcheinander steht.
+        """DO $$ BEGIN
+               ALTER TABLE leistungsberichte ADD CONSTRAINT ck_leistungsbericht_monat
+                   CHECK (monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
+           EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

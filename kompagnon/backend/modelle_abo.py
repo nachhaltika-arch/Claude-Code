@@ -26,7 +26,8 @@ auseinander, und dann rechnet die Rechnung anders als das Angebot.
 """
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
+                        Text)
 
 from database import Base
 
@@ -99,6 +100,54 @@ class AboVertrag(Base):
         dort entsteht der Monat, den keiner berechnet.
         """
         return self.abrechnung == "stripe" and bool(self.stripe_subscription_id)
+
+
+class Leistungsbericht(Base):
+    """Der Monatsbericht eines Betriebs — was gemessen wurde, Monat für Monat.
+
+    **Warum es diese Tabelle gibt (L-160, Rang 2, 04.09.2026).** Der
+    Monatsbericht läuft seit Langem (`automations/scheduler_bericht.py`): Er
+    misst PageSpeed, lässt einen Kommentar schreiben und verschickt eine
+    Mail. **Gespeichert wurde davon nur der letzte Messwert** — in zwei
+    Spalten am Betrieb, die der nächste Lauf überschreibt. Der Bericht
+    existierte damit ausschließlich im Postfach des Kunden; im Kundenkonto,
+    für das er monatlich zahlt, war er nicht abrufbar.
+
+    ABO-PRO sagt einen „monatlichen Leistungsbericht" zu. Eine Mail, die man
+    gelöscht hat, ist keine Auskunft mehr.
+
+    **Eine Zeile je Betrieb und Monat.** Ein zweiter Lauf im selben Monat
+    überschreibt sie, statt eine zweite anzulegen — sonst stünde derselbe
+    Monat zweimal im Verlauf, und der Vergleich zum Vormonat wäre nicht mehr
+    eindeutig.
+    """
+
+    __tablename__ = "leistungsberichte"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+
+    #: `JJJJ-MM` — derselbe Zuschnitt wie bei den Abo-Zeiten.
+    monat = Column(String(7), nullable=False, index=True)
+
+    #: Die Messwerte. `NULL` heißt **nicht erhoben**, nicht null Punkte —
+    #: dieselbe Regel wie im Audit (§ 3.5): Was nicht gemessen wurde, darf
+    #: nicht als schlechtes Ergebnis erscheinen.
+    mobile = Column(Integer, nullable=True)
+    desktop = Column(Integer, nullable=True)
+
+    #: Wogegen verglichen wurde. Steht mit in der Zeile, damit der Verlauf
+    #: auch dann stimmt, wenn ein Monat fehlt.
+    vormonat_mobile = Column(Integer, nullable=True)
+
+    #: Ob die Mail hinausging. **Getrennt vom Messwert, und das ist der
+    #: Punkt:** Bis zum 04.09.2026 wurde überhaupt nur gespeichert, *wenn*
+    #: der Versand geklappt hat. Eine gescheiterte Mail warf damit die
+    #: Messung weg, und der nächste Monat verglich gegen einen veralteten
+    #: Stand. Gemessen ist gemessen.
+    versendet = Column(Boolean, default=False)
+
+    erstellt_am = Column(DateTime, default=datetime.utcnow)
 
 
 class InhaltsAnfrage(Base):

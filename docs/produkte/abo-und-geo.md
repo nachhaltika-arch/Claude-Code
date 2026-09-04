@@ -29,11 +29,17 @@
 >   eingezogen wird; die Migration hat den Bestand ausdrücklich auf
 >   `rechnung` gesetzt. Wer wechselt, wechselt mit Zustimmung — eine
 >   Einzugsermächtigung lässt sich nicht im Innendienst setzen.
-> - **Was der Kunde abgebucht bekommt, ist der Bruttobetrag:** 94,01 € für
->   BAS, 177,31 € für PRO. Das folgt der Entscheidung vom 21.08.2026 (L-61,
->   Endpreise), steht aber neben einem Datenblatt, das „79 €" und „149 €"
->   netto nennt. **Wo der Preis dem Kunden gezeigt wird, gehört der
->   Bruttobetrag hin** — sonst liest er 149 und zahlt 177,31.
+> - **Am 04.09.2026 entschieden (David): die Preise sind NETTO gemeint.**
+>   79 € und 149 € netto, also 94,01 € und 177,31 € brutto — und der
+>   Bruttobetrag ist es, der abgebucht wird. Der Code rechnete bereits so
+>   (`abo_stunden.preis_brutto_cent`); die Entscheidung bestätigt ihn.
+> - **Im Kundenkonto stehen seither beide Zahlen, beschriftet:** „177,31 €
+>   je Monat (149,00 € netto zzgl. 19 % USt.)". Der Betrieb hat „149 € netto"
+>   unterschrieben und bekommt 177,31 € abgebucht — beides richtig, und
+>   nebeneinander ohne Beschriftung genau die Zeile, bei der er anruft.
+> - **Offen bleibt, ob 79 und 149 die richtigen Beträge sind.** Die
+>   ⚠️-Markierung im Datenblatt betrifft die Höhe, nicht die Frage netto oder
+>   brutto; sie steht weiter.
 > - **Gebaut ist der Aufstellungslauf, nicht der Rechnungsdruck**
 >   (`services/abo_abrechnung.py`, monatlich am Ersten um 05:30): Er sagt,
 >   wer was schuldet; die Rechnungsnummer vergibt ein Mensch, weil sie

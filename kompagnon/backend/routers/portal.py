@@ -508,7 +508,14 @@ def get_zahlungen(user=Depends(get_current_user), db: Session = Depends(get_db))
              "end_monat": v.end_monat, "notiz": v.notiz or "",
              "abrechnung": v.abrechnung,
              "einzug_eingerichtet": bool(v.stripe_subscription_id),
+             # **Netto, Steuersatz und brutto — alle drei** (Entscheidung
+             # David, 04.09.2026: die Abo-Preise sind netto gemeint). Der
+             # Betrieb hat „149 € netto" unterschrieben und bekommt 177,31 €
+             # abgebucht. Nur eine der beiden Zahlen zu zeigen erzeugt den
+             # Anruf, der mit „bei mir steht aber etwas anderes" beginnt.
              "brutto_cent": abo_stunden.preis_brutto_cent(v.produkt),
+             "netto_cent": abo_stunden.preis_netto_cent(v.produkt),
+             "steuersatz": abo_stunden.STEUERSATZ_ABO,
              "laeuft": v.end_monat is None}
             for v in abo_vertrag.vertraege(db, lead.id)]
 

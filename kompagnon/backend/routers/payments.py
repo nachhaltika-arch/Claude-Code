@@ -177,6 +177,17 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
     from sqlalchemy import text as _t
     import json as _j
 
+    # **Kein echtes Geld ausserhalb der Produktion** (04.09.2026). Siehe
+    # `services/stripe_modus.py`: Ein Live-Schluessel in einer Umgebung, die
+    # sich ausdruecklich als nicht-produktiv bezeichnet, haelt hier an — sonst
+    # bucht ein Testklick von einer echten Karte ab, und niemand sieht es,
+    # weil auf Staging niemand auf seinen Kontoauszug schaut.
+    from services import stripe_modus
+    try:
+        stripe_modus.pruefe_oder_fehler()
+    except stripe_modus.FalscherModus as fehler:
+        raise HTTPException(503, str(fehler))
+
     body = await request.json()
     # Kein Rueckfall auf einen Paketnamen (L-97, 23.08.2026). Hier stand
     # `body.get("package", "kompagnon")`. Solange KOMPAGNON verkaeuflich war,

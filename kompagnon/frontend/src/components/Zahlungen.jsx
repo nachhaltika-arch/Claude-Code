@@ -106,7 +106,17 @@ export default function Zahlungen({ token, ohneTitel = false }) {
               <div key={i} style={S.zeile}>
                 <span style={S.stark}>{PRODUKT[a.produkt] || a.produkt}</span>
                 <span style={S.leise}>
-                  {euroAusCent(a.brutto_cent)} je Monat · seit {a.start_monat}
+                  {/* **Beide Zahlen, beschriftet** (Entscheidung David,
+                      04.09.2026: die Abo-Preise sind **netto** gemeint).
+                      Der Betrieb hat „149 € netto" unterschrieben und bekommt
+                      177,31 € abgebucht — beides richtig, und nebeneinander
+                      ohne Beschriftung genau die Zeile, bei der er anruft.
+                      Der Bruttobetrag steht vorn, weil er abgebucht wird
+                      (L-61: der Preis, der grossgeschrieben ist, ist der
+                      Endpreis). */}
+                  {euroAusCent(a.brutto_cent)} je Monat
+                  {a.netto_cent ? ` (${euroAusCent(a.netto_cent)} netto zzgl. ${a.steuersatz} % USt.)` : ''}
+                  {' · seit '}{a.start_monat}
                   {a.end_monat ? ` · endet ${a.end_monat}` : ''}
                   {a.abrechnung === 'rechnung' ? ' · per Rechnung' : ''}
                 </span>
@@ -132,7 +142,7 @@ export default function Zahlungen({ token, ohneTitel = false }) {
               {zahlungskonto === 'dienst_fehlt'
                 ? 'Die Zahlungsverwaltung ist gerade nicht erreichbar. Schreiben Sie uns, wir kümmern uns.'
                 : offenerEinzug
-                  ? `Für ${PRODUKT[offenerEinzug.produkt] || offenerEinzug.produkt} ist der Einzug noch nicht eingerichtet. Danach wird ${euroAusCent(offenerEinzug.brutto_cent)} monatlich abgebucht — Sie können jederzeit kündigen.`
+                  ? `Für ${PRODUKT[offenerEinzug.produkt] || offenerEinzug.produkt} ist der Einzug noch nicht eingerichtet. Danach werden ${euroAusCent(offenerEinzug.brutto_cent)} monatlich abgebucht — das sind ${euroAusCent(offenerEinzug.netto_cent)} netto zzgl. ${offenerEinzug.steuersatz} % Umsatzsteuer. Sie können jederzeit kündigen.`
                   : nurRechnung
                     ? 'Ihr Abo wird per Rechnung abgerechnet — Sie brauchen hier nichts zu hinterlegen.'
                     : 'Für Sie ist noch keine Zahlungsart hinterlegt — das entsteht mit der ersten Buchung.'}

@@ -125,6 +125,17 @@ async def kasse(anfrage: Kaufanfrage):
         raise HTTPException(503, "Der Verkauf ist noch nicht eingerichtet")
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
 
+    # **Kein echtes Geld ausserhalb der Produktion** (04.09.2026). Siehe
+    # `services/stripe_modus.py`: Ein Live-Schluessel in einer Umgebung, die
+    # sich ausdruecklich als nicht-produktiv bezeichnet, haelt hier an — sonst
+    # bucht ein Testklick von einer echten Karte ab, und niemand sieht es,
+    # weil auf Staging niemand auf seinen Kontoauszug schaut.
+    from services import stripe_modus
+    try:
+        stripe_modus.pruefe_oder_fehler()
+    except stripe_modus.FalscherModus as fehler:
+        raise HTTPException(503, str(fehler))
+
     # ── 2. Anlegen, Verbindung schliessen ────────────────────
     db = SessionLocal()
     try:

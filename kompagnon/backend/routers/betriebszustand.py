@@ -171,6 +171,19 @@ def _zahlungszustand() -> dict:
         zustand[name] = eintrag
     zustand["bereit"] = all(e.get("gesetzt") and e.get("praefix_stimmt", True)
                             for k, e in zustand.items() if k in _ZAHLUNGSWERTE)
+
+    # **Sandbox oder echtes Geld — und passt das zur Umgebung?** (04.09.2026,
+    # Entscheidung David: Staging bleibt auf der Sandbox, produktiv laeuft
+    # live.) Der Praefix oben prueft `sk_`, nicht `sk_live_` gegen `sk_test_`
+    # — ein vertauschtes Konto sah damit aus wie ein richtiges.
+    #
+    # **Und die Umgebung steht jetzt dabei.** Beim Bauen dieser Pruefung war
+    # von aussen nicht feststellbar, ob `ENVIRONMENT` produktiv ueberhaupt
+    # gesetzt ist; genau diese Frage entscheidet, ob ein Live-Schluessel
+    # richtig oder gefaehrlich ist. Dieselbe Lehre wie bei den Uploads und
+    # dem Browserlauf: am Gegenstand fragen statt im Dashboard ablesen.
+    from services import stripe_modus
+    zustand["modus"] = stripe_modus.befund()
     return zustand
 
 

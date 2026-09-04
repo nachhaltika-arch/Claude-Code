@@ -34,6 +34,7 @@ import os
 
 import stripe
 
+from services import stripe_modus
 from services.abo_stunden import (STEUERSATZ_ABO, preis_brutto_cent,
                                   preis_netto_cent)
 
@@ -76,6 +77,9 @@ def _pruefe(produkt: str) -> str:
     if not stripe.api_key:
         raise StripeNichtEingerichtet(
             "STRIPE_SECRET_KEY fehlt — ohne ihn lässt sich kein Abonnement anlegen")
+    # Ein Live-Schlüssel in einer Umgebung, die kein Geld bewegen darf, hält
+    # hier an. Siehe `services/stripe_modus.py`.
+    stripe_modus.pruefe_oder_fehler()
     return kennung
 
 

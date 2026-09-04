@@ -141,10 +141,18 @@ export default function SidebarNav({ badges }) {
           /* ── Kunde view ── */
           <div style={{ marginTop: 8 }}>
             {[
-              { label: 'Dashboard',     path: '/app/dashboard' },
-              // Zeigte bis zum 26.08.2026 auf den Innendienst-Bildschirm, von dem
-              // `PrivateRoute` einen Kunden sofort zurueckwarf — ein Menuepunkt,
-              // der auf dieselbe Seite fuehrte, von der man kam.
+              // **Direkt auf die eigene Karte (04.09.2026).** Der Punkt zeigte
+              // auf `/app/dashboard`; `DashboardRoute` wirft einen Kunden von
+              // dort sofort auf `/app/usercards/:lead_id`. Der Klick landete
+              // also richtig — aber `isActive('/app/dashboard')` verglich mit
+              // der Adresse **nach** der Umleitung und war nie wahr. Der Punkt
+              // sprang weg und leuchtete nie: von aussen „lässt sich nicht
+              // aktivieren".
+              //
+              // Es ist derselbe Fehler wie eine Zeile darunter, dort am
+              // 26.08.2026 behoben. Ein Menuepunkt soll benennen, wohin er
+              // wirklich fuehrt — nicht auf eine Weiche zeigen.
+              { label: 'Dashboard',     path: user?.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard' },
               { label: 'Meine Daten',   path: '/app/meine-daten' },
               { label: 'Mein Briefing', path: '/app/mein-briefing' },
               { label: 'Freigaben',     path: '/app/freigaben' },

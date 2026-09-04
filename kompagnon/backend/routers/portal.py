@@ -494,3 +494,87 @@ def zahlungen_verwalten(body: PortalZiel, user=Depends(get_current_user),
         raise HTTPException(409, str(fehler))
     except zahlungsportal.StripeNichtEingerichtet:
         raise HTTPException(503, "Der Zahlungsdienst ist gerade nicht erreichbar.")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Inhaltsänderungen: Guthaben und Wünsche (Rang 1, 04.09.2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Der Kontostand kommt aus der Zeiterfassung**, nicht aus einer zweiten
+# Rechnung. `abo_stunden.monatsstand` liefert Kontingent, Verbrauch und Rest
+# seit dem 31.08.; hier wird nur ausgewaehlt, was der Kunde davon sieht.
+#
+# Ein Guthaben ohne Kontostand wird entweder nicht genutzt oder ueberzogen.
+# Das erste kostet Vertrauen, das zweite Geld.
+
+
+@router.get("/inhalt")
+def get_inhalt(monat: str = "", user=Depends(get_current_user),
+               db: Session = Depends(get_db)):
+    """Guthaben des Monats und die eigenen Änderungswünsche."""
+    from services import abo_stunden, inhaltsanfrage
+
+    if not user.lead_id:
+        return {"guthaben": None, "anfragen": []}
+
+    stand = abo_stunden.monatsstand(db, lead_id=user.lead_id,
+                                    monat=monat or abo_stunden.monat_von())
+    kontingent = stand.get("kontingent_stunden")
+    verbraucht = stand.get("verbraucht") or 0
+
+    # **In Minuten, nicht in Stunden.** Das Datenblatt sagt „bis 30 Minuten";
+    # „0,5 h verbleibend" waere dieselbe Zahl in einer Sprache, die der Kunde
+    # nicht spricht. Gerechnet wird weiter in Stunden, wo es immer stand.
+    def minuten(h):
+        return None if h is None else int(round(float(h) * 60))
+
+    guthaben = None
+    if stand.get("abo"):
+        guthaben = {
+            "monat": stand["monat"],
+            "produkt": stand["abo"]["produkt"],
+            "kontingent_minuten": minuten(kontingent),
+            "verbraucht_minuten": minuten(verbraucht),
+            "rest_minuten": max(0, minuten(kontingent) - minuten(verbraucht)),
+            "ueberzogen": bool(stand.get("ueberzogen")),
+            # Nur Zeitpunkt und Dauer — was der Kunde pruefen kann. Der Name
+            # des Bearbeiters ist unsere Betriebsfrage.
+            "eintraege": [{"minuten": minuten(e["stunden"]),
+                           "taetigkeit": e["taetigkeit"],
+                           "erfasst_am": e["erfasst_am"]}
+                          for e in stand.get("eintraege", [])],
+        }
+
+    return {
+        "guthaben": guthaben,
+        "hinweis": stand.get("hinweis", ""),
+        "anfragen": [inhaltsanfrage.nach_aussen(a)
+                     for a in inhaltsanfrage.liste(db, lead_id=user.lead_id)],
+    }
+
+
+class InhaltsWunsch(BaseModel):
+    beschreibung: str
+    seite: str = ""
+
+
+@router.post("/inhalt", status_code=201)
+def post_inhalt(body: InhaltsWunsch, user=Depends(get_current_user),
+                db: Session = Depends(get_db)):
+    """Einen Änderungswunsch aufnehmen.
+
+    **Ueber dem Guthaben wird nicht blockiert.** Der Wunsch wird angenommen und
+    im Bericht als „ueber dem Guthaben" ausgewiesen. Zu blockieren hiesse, eine
+    Zusage zu machen, die im Datenblatt nicht steht.
+    """
+    from services import inhaltsanfrage
+
+    if not user.lead_id:
+        raise HTTPException(404, "Kein Betrieb gefunden")
+    try:
+        anfrage = inhaltsanfrage.anlegen(
+            db, lead_id=user.lead_id, beschreibung=body.beschreibung,
+            seite=body.seite, wer=user.email or "")
+    except inhaltsanfrage.AnfrageFehler as fehler:
+        raise HTTPException(400, str(fehler))
+    return inhaltsanfrage.nach_aussen(anfrage)

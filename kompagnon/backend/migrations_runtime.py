@@ -124,6 +124,25 @@ def run_migrations():
         # nur an der GEO-Analyse.
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)",
         "CREATE INDEX IF NOT EXISTS ix_leads_stripe_customer ON leads (stripe_customer_id)",
+        # Aenderungswuensche des Kunden an seiner Website (04.09.2026).
+        # Die **Minuten** stehen weiter in der Zeiterfassung; hier steht der
+        # Wunsch. `zeit_id` verbindet beide, sobald jemand verbucht hat.
+        """CREATE TABLE IF NOT EXISTS inhalts_anfragen (
+            id SERIAL PRIMARY KEY,
+            lead_id INTEGER NOT NULL REFERENCES leads(id),
+            monat VARCHAR(7) NOT NULL,
+            beschreibung TEXT NOT NULL,
+            seite VARCHAR(300) DEFAULT '',
+            status VARCHAR(20) DEFAULT 'offen',
+            angefragt_am TIMESTAMP DEFAULT NOW(),
+            angefragt_von VARCHAR(120) DEFAULT '',
+            erledigt_am TIMESTAMP,
+            bearbeitet_von VARCHAR(120) DEFAULT '',
+            zeit_id INTEGER,
+            notiz TEXT DEFAULT ''
+        )""",
+        "CREATE INDEX IF NOT EXISTS ix_inhalt_betrieb ON inhalts_anfragen (lead_id)",
+        "CREATE INDEX IF NOT EXISTS ix_inhalt_monat ON inhalts_anfragen (monat)",
         # Ein Punkt kann je Projekt nur einmal stehen — sonst haette ein
         # doppelter Klick zwei Eingangsdaten, und der Fristbeginn haette zwei
         # Antworten.

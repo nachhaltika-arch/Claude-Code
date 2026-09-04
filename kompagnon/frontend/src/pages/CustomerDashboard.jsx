@@ -3,6 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import KundenChat from '../components/kunde/KundenChat';
 import GeoReport from '../components/GeoReport';
+import Mitwirkung from '../components/Mitwirkung';
+import Zahlungen from '../components/Zahlungen';
+import Inhaltsguthaben from '../components/Inhaltsguthaben';
 
 // ── Category score config ─────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -321,6 +324,21 @@ export default function CustomerDashboard() {
         * und nirgends ausgeliefert. Zeigt sich nur, wenn eine Analyse
         * vorliegt — die Komponente gibt sonst `null` zurueck. */}
       {project?.id && <GeoReport projectId={project.id} token={token} />}
+
+      {/* ── Was wir vom Kunden brauchen, und was er zahlt ──
+        * **Hier und nicht nur im Portal (04.09.2026).** Beides stand zuerst
+        * ausschliesslich in `KundenPortal` unter `/app/portal`. Ein
+        * angemeldeter Kunde wird aber nach `/app/usercards/:id` geleitet
+        * (`App.jsx`) — also auf **diese** Seite. Gebaut war es damit, gesehen
+        * hat es niemand: dieselbe Klasse wie „gebaut, nicht angeschlossen",
+        * eine Ebene hoeher, auf der Route.
+        *
+        * Aufgefallen ist es David beim Hinsehen, nicht mir beim Pruefen —
+        * mein Durchlauf ging direkt auf `/app/portal`, statt dem Weg zu
+        * folgen, den ein Kunde nimmt. */}
+      <Mitwirkung token={token} />
+      <Inhaltsguthaben token={token} />
+      <Zahlungen token={token} />
 
       {/* ── 6. NACHRICHTEN ──
         * Der Verlauf mit dem Innendienst. Es gab ihn seit jeher in beide

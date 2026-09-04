@@ -26,7 +26,7 @@ auseinander, und dann rechnet die Rechnung anders als das Angebot.
 """
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 
 from database import Base
 
@@ -63,3 +63,40 @@ class AboVertrag(Base):
     notiz = Column(String(255), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String(120), default="")
+
+
+class InhaltsAnfrage(Base):
+    """Ein Änderungswunsch des Kunden an seiner Website (Rang 1, 04.09.2026).
+
+    **Warum das fehlte.** Position 5 und 8 des Leistungsverzeichnisses sagen
+    „Inhaltsänderungen bis 30 bzw. 90 Minuten je Monat" zu. Die **Zeiterfassung**
+    dafür gibt es seit dem 31.08. (`services/abo_stunden`), die **Abrechnung**
+    auch — nur konnte der Kunde nichts anfordern und sah seinen Stand nirgends.
+    Ein Guthaben ohne Kontostand wird entweder nicht genutzt oder überzogen;
+    das erste kostet Vertrauen, das zweite Geld.
+
+    **Diese Tabelle erfasst keine Zeit.** Sie hält den *Wunsch* — die Minuten
+    stehen weiter in `abo_stunden`, wo sie seit jeher stehen. Zwei Orte für
+    dieselbe Zahl wären ein Ort, an dem sie irgendwann abweicht; `zeit_id`
+    verbindet beide, sobald jemand die Arbeit verbucht hat.
+
+    **`monat` ist der Monat der Anfrage, nicht der Erledigung.** Wer am 30.
+    anfragt und am 2. bedient wird, hat im Guthaben des Folgemonats gearbeitet
+    — die Zuordnung der Minuten macht deshalb die Zeiterfassung, nicht dieser
+    Datensatz. Hier steht der Monat nur, damit die Liste sich gruppieren lässt.
+    """
+
+    __tablename__ = "inhalts_anfragen"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    monat = Column(String(7), nullable=False, index=True)
+    beschreibung = Column(Text, nullable=False)
+    seite = Column(String(300), default="")
+    status = Column(String(20), default="offen", index=True)
+    angefragt_am = Column(DateTime, default=datetime.utcnow)
+    angefragt_von = Column(String(120), default="")
+    erledigt_am = Column(DateTime, nullable=True)
+    bearbeitet_von = Column(String(120), default="")
+    zeit_id = Column(Integer, nullable=True)
+    notiz = Column(Text, default="")

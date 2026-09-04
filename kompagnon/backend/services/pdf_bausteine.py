@@ -284,7 +284,7 @@ def build_scorecard(items: dict, sources: dict, styles: dict,
     for kategorie in CATALOGUE:
         erhoben = [c for c in kategorie.criteria
                    if sources.get(c.key, Source.NOT_COLLECTED.value)
-                   != Source.NOT_COLLECTED.value]
+                   not in (Source.NOT_COLLECTED.value, Source.NOT_APPLICABLE.value)]
         erreicht = sum(int(items.get(c.key, 0) or 0) for c in erhoben)
         moeglich = sum(c.max_points for c in erhoben)
 
@@ -308,7 +308,8 @@ def build_scorecard(items: dict, sources: dict, styles: dict,
         praefix = kategorie.criteria[0].key.split("_")[0].upper()
         for i, crit in enumerate(kategorie.criteria, start=1):
             quelle = sources.get(crit.key, Source.NOT_COLLECTED.value)
-            offen = quelle == Source.NOT_COLLECTED.value
+            offen = quelle in (Source.NOT_COLLECTED.value,
+                               Source.NOT_APPLICABLE.value)
             wert = int(items.get(crit.key, 0) or 0)
             beleg = "" if offen else _clean_text(belege.get(crit.key, "") or "")
             bereich = _clean_text(crit.label)

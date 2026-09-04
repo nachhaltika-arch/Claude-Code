@@ -59,7 +59,12 @@ def _catalogue_payload(items: dict, sources: dict, belege: dict = None) -> list:
                 "score": int(items.get(crit.key, 0) or 0),
                 "source": source,
                 "source_label": SOURCE_LABELS.get(Source(source), source),
-                "collected": source != Source.NOT_COLLECTED.value,
+                # `nicht_anwendbar` gehoert wie `nicht_erhoben` aus der
+                # Wertung — sonst liest sich ein Kriterium, das fuer die
+                # Branchenklasse gar nicht gilt, als Mangel (04.09.2026).
+                "collected": source not in (Source.NOT_COLLECTED.value,
+                                            Source.NOT_APPLICABLE.value),
+                "anwendbar": source != Source.NOT_APPLICABLE.value,
                 "beleg": belege.get(crit.key, ""),
             })
         erhoben = [c for c in criteria if c["collected"]]

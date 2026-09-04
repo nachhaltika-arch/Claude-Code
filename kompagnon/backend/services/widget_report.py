@@ -31,6 +31,22 @@ from services.audit_industry_profiles import massstab_fuer
 # Herkunft eines Werts. Die Farben folgen der CI-Statuspalette statt der
 # früheren freien Töne — gemessen ist Erfolg, abgeleitet und Einschätzung
 # sind die beiden Teal-Stufen, nicht erhoben bleibt stumm.
+#: Quellen, die weder in den Zaehler noch in den Nenner gehen.
+#:
+#: **Am 04.09.2026 am laufenden Bericht gefunden.** `nicht_anwendbar` stand
+#: hier nicht — ein Kriterium, das fuer die Branchenklasse gar nicht gilt,
+#: erschien deshalb als „0 von 3", also als Mangel, den der Betrieb nie
+#: beheben kann. Bei `neovendo.de` (Klasse K4, ueberregionaler Anbieter) traf
+#: es `se_lokal`: Der Bericht zeigte 0 von 3 und daneben den Beleg „erfuellt:
+#: Telefonnummer als Link, Karte…" — die Punktzahl widersprach ihrer eigenen
+#: Begruendung.
+#:
+#: **Die Bewertung rechnete die ganze Zeit richtig** (`score_category` nimmt
+#: beide Quellen heraus); falsch war allein die Darstellung. Genau dafuer ist
+#: der Beleg gebaut worden: Er hat den Widerspruch im ersten echten Lauf
+#: sichtbar gemacht.
+AUSSER_WERTUNG = (Source.NOT_COLLECTED.value, Source.NOT_APPLICABLE.value)
+
 SOURCE_MARKS = {
     Source.MEASURED.value: ("●", brand.SUCCESS),
     Source.DERIVED.value: ("◐", brand.MID),
@@ -187,7 +203,7 @@ def _kategorien(items: dict, sources: dict) -> list:
     for category in CATALOGUE:
         erhoben = [c for c in category.criteria
                    if sources.get(c.key, Source.NOT_COLLECTED.value)
-                   != Source.NOT_COLLECTED.value]
+                   not in AUSSER_WERTUNG]
         punkte = sum(int(items.get(c.key, 0) or 0) for c in erhoben)
         maximum = sum(c.max_points for c in erhoben)
         ergebnis.append({
@@ -277,7 +293,7 @@ def _criteria_rows(kategorien: list, items: dict, sources: dict,
         for crit in category.criteria:
             source = sources.get(crit.key, Source.NOT_COLLECTED.value)
             mark, colour = SOURCE_MARKS.get(source, ("○", brand.TEXT_30))
-            not_collected = source == Source.NOT_COLLECTED.value
+            not_collected = source in AUSSER_WERTUNG
             beleg = "" if not_collected else (belege.get(crit.key) or "")
             value = "–" if not_collected else f"{int(items.get(crit.key, 0) or 0)}/{crit.max_points}"
             rows.append(

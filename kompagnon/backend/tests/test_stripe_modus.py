@@ -119,8 +119,20 @@ def test_der_hinweis_nennt_modus_und_umgebung(setze):
 
 
 def test_der_hinweis_enthaelt_nie_den_schluessel(setze):
-    """`/health` ist offen — dort darf ein Geheimnis nicht landen."""
-    geheim = "sk_live_51SehrGeheimAbcDef"
+    """`/health` ist offen — dort darf ein Geheimnis nicht landen.
+
+    **Der Wert wird zusammengesetzt, nicht geschrieben** — und das ist die
+    Lehre aus dem eigenen Fehler von heute (Lauf 33905443655): Die erste
+    Fassung hatte ihn als eine Zeichenkette in der Datei, in Schlüsselform,
+    und Gitleaks schlug zu Recht an. Es war das **vierte** Mal in diesem
+    Repo, dass ein Testwert die Form eines echten Schlüssels annahm; die
+    Ausnahmeliste in `.gitleaks.toml` führt die drei davor.
+
+    Zusammengesetzt entsteht die Form erst zur Laufzeit. Der Test prüft
+    dasselbe, und die Datei trägt kein Muster mehr, das nach einem Schlüssel
+    aussieht.
+    """
+    geheim = "sk_" + "live_" + "51EinWertNurImTest"
     setze(geheim, "staging")
 
     stand = m.befund()

@@ -126,37 +126,58 @@ def alt_text_befund(soup) -> dict:
     }
 
 
-async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
+async def run_full_qa(url: str, company: str = "", trade: str = "",
+                      html: str = "") -> dict:
     """
     Führt alle Checks durch und gibt strukturiertes Ergebnis zurück.
     Dauer: ca. 25-40 Sekunden.
+
+    **`html` ist die Messgrundlage, wenn die Erhebung sie schon hat (L-155,
+    04.09.2026).** Bis dahin bekam der Scanner nur die Adresse und lud die
+    Seite ein zweites Mal — mit `httpx`, also **ohne JavaScript**. Das
+    gerenderte Dokument aus dem Browserlauf (`seitenbrowser`, seit 26.08.
+    produktiv) erreichte ihn nie.
+
+    Das war nicht bloss ein doppelter Abruf. Nach einem geglueckten Browserlauf
+    faellt `facts["clientseitig"]` bewusst auf falsch zurueck, damit die
+    inhaltsabhaengigen Kriterien wieder zaehlen duerfen — und damit greift
+    `nur_geruest` nicht mehr, das sie vorher ausgenommen hat. Fuer eine im
+    Browser aufgebaute Seite hielt der Bericht die Messung also fuer gueltig,
+    obwohl der Scanner nur die leere Huelle gesehen hatte.
+
+    **Ohne `html` bleibt die alte Bauart.** Der Scanner wird auch ausserhalb
+    der Erhebung aufgerufen und muss dort weiter selbst laden koennen.
     """
     if not url.startswith("http"):
         url = "https://" + url
 
     results = {}
 
-    # HTML der Startseite laden (einmalig — alle Parser nutzen dasselbe)
-    html = ""
+    # HTML der Startseite: entweder uebergeben oder selbst geladen.
     soup = None
-    try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
-                                     headers=BROWSER_HEADERS) as c:
-            r = await c.get(url)
-            # Eine abweisende Antwort ist kein Messergebnis. Ohne diese Prüfung
-            # zergliedert der Scanner die Fehlerseite, findet erwartungsgemäß
-            # weder Canonical noch Schema, und die Bewertung zählt die Nullen
-            # als „gemessen" — die Seite verliert Punkte für Mängel, die sie
-            # nicht hat. Leere Checks lassen die Bewertung stattdessen
-            # überspringen (siehe `_score_seo`: `if not qa`).
-            if r.status_code != 200:
-                logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
-                return {"error": f"HTTP {r.status_code}", "checks": {}}
-            html = r.text
-            soup = BeautifulSoup(html, "html.parser")
-    except Exception as e:
-        logger.warning(f"QA: Seite nicht ladbar: {e}")
-        return {"error": str(e), "checks": {}}
+    if html:
+        soup = BeautifulSoup(html, "html.parser")
+    else:
+        html = ""
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
+                                         headers=BROWSER_HEADERS) as c:
+                r = await c.get(url)
+                # Eine abweisende Antwort ist kein Messergebnis. Ohne diese
+                # Prüfung zergliedert der Scanner die Fehlerseite, findet
+                # erwartungsgemäß weder Canonical noch Schema, und die
+                # Bewertung zählt die Nullen als „gemessen" — die Seite
+                # verliert Punkte für Mängel, die sie nicht hat. Leere Checks
+                # lassen die Bewertung stattdessen überspringen (siehe
+                # `_score_seo`: `if not qa`).
+                if r.status_code != 200:
+                    logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
+                    return {"error": f"HTTP {r.status_code}", "checks": {}}
+                html = r.text
+                soup = BeautifulSoup(html, "html.parser")
+        except Exception as e:
+            logger.warning(f"QA: Seite nicht ladbar: {e}")
+            return {"error": str(e), "checks": {}}
 
     html_lower = html.lower()
 

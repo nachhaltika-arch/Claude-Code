@@ -87,7 +87,14 @@ def bericht(neu: list[dict], gefuehrt: list[dict], quittiert: list[dict],
 
     rueckfaelle = [e for e in neu if e.get("rueckfall")]
     if rueckfaelle:
-        z.append("## Rueckfaelle — die Liste sagt erledigt, die Messung nicht")
+        z.append("## Zu pruefen: Gegenstand steht in einem erledigten Eintrag")
+        z.append("")
+        z.append("Der Abgleich ist ein **Textvergleich**, kein Urteil: Der Gegenstand")
+        z.append("(Pfad, Name, Farbwert) kommt in einer Zeile vor, die als erledigt")
+        z.append("gefuehrt wird. Das ist entweder ein Rueckfall — dann ist es der")
+        z.append("wichtigste Befund des Laufs — oder der Eintrag erwaehnt die Sache nur")
+        z.append("nebenbei. Diese Unterscheidung kann nur ein Mensch treffen, und sie")
+        z.append("steht deshalb hier oben statt in der Liste unten.")
         z.append("")
         z.extend(_tabelle(rueckfaelle, "steht unter"))
         z.append("")

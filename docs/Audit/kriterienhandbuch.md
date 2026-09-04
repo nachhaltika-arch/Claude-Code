@@ -178,10 +178,17 @@ Der Katalog verspricht „Anteil der Bilder mit einem Alt-Text"; gemessen wird
 der Anteil der `<img>`-Tags im Quelltext mit nichtleerem `alt`. Das ist nicht
 dasselbe.
 
-**Besser:** Die Messung an den Browserlauf hängen, der seit dem 26.08. läuft —
-dort steht die gerenderte Seite. Dekorative Bilder (`alt=""`, `role=
-"presentation"`, `aria-hidden`) aus der Grundgesamtheit nehmen statt sie als
-Fehler zu zählen. Beides zusammen macht aus einer Vermutung eine Messung.
+**Behoben am 2026-09-04.** Dekorative Bilder und Zählpixel fallen aus Zähler
+und Nenner (L-152), und der Scanner misst jetzt das HTML, das die Erhebung
+ohnehin hat — nach einem Browserlauf also das gerenderte Dokument (L-155).
+
+> **Dabei kam der schwerere Fund heraus.** Der Scanner lud die Seite bis dahin
+> **selbst ein zweites Mal**, mit `httpx` und ohne JavaScript. Nach einem
+> geglückten Browserlauf fällt `clientseitig` bewusst auf falsch zurück, damit
+> die inhaltsabhängigen Kriterien wieder zählen dürfen — und damit griff auch
+> die Schutzregel nicht mehr, die sie vorher ausgenommen hatte. Der Bericht
+> hielt die Messung für gültig, obwohl der Scanner nur die leere Hülle gesehen
+> hatte. Betraf `bf_alt`, `bf_semantik` und `se_schema`.
 
 ---
 
@@ -349,14 +356,14 @@ dann fehlende Belege, dann Maßstabsfragen.**
 | ~~**1**~~ | ✅ **04.09. erledigt** — heutiges Datum im KI-Prompt | beendet die Zukunftsbehauptung | S | nein |
 | ~~**2**~~ | ✅ **04.09. erledigt** — jeder Punktabzug nennt seinen Messwert | beantwortet die Hauptkritik des Fremdlaufs; `rc_cookie` hätte nie zur Rückfrage geführt | M | nein |
 | ~~**3**~~ | ✅ **04.09. erledigt** — Kategoriezeile zeigt „x von y Kriterien erhoben" | „0/2" liest sich nicht mehr als Urteil | S | nein |
-| ~~**4**~~ | ✅ **04.09. teilweise** — `alt=""` und Zählpixel zählen nicht mehr; der Browserlauf-Teil wurde zu L-155 | behebt einen belegten Fehlbefund | M | nein |
+| ~~**4**~~ | ✅ **04.09. erledigt** — `alt=""` und Zählpixel zählen nicht mehr (L-152); der Scanner misst jetzt das gerenderte HTML (L-155) | behebt einen belegten Fehlbefund | M | nein |
 | **5** | KI darf keine Aussage über Platzierung machen, solange sie die Seitenstruktur nicht kennt | behebt den zweiten belegten Fehlbefund | M | nein |
 | **6** | Barrierefreiheit vom Browserlauf statt von Lighthouse | 8 Punkte weniger Fremdabhängigkeit, Kategorie fällt nicht mehr komplett aus | L | nein — dieselben Kriterien, andere Quelle |
 | **7** | `maps_embedded` anschließen oder entfernen | ein erhobener Wert ohne Leser | S | ja |
 | **8** | Einigung, was „einwilligungspflichtig" heißt (`rc_cookie` / `si_drittanbieter` / `se_lokal`) | beendet drei Urteile über einen Sachverhalt | M | **ja — Fassung 2027.1** |
 | **9** | `dg_mobil` an der gerenderten Breite messen statt am Viewport-Tag | das Kriterium misst wieder etwas | M | ja |
 
-**Stand 04.09.2026: 1 bis 3 sind erledigt, 4 zur Hälfte** — zusammen mit der Korrektur der
+**Stand 04.09.2026: 1 bis 4 sind erledigt** — zusammen mit der Korrektur der
 Platzierungsaussage aus § 1.1. Keiner davon hat einen Punktwert im Bestand
 verschoben.
 

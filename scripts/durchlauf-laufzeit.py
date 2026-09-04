@@ -49,27 +49,69 @@ APP_JSX = WURZEL / "kompagnon" / "frontend" / "src" / "App.jsx"
 STAGING = "https://kompagnon-frontend-staging.onrender.com"
 
 
-def seitenliste() -> list[str]:
-    """Die festen Routen aus `App.jsx` — ohne Platzhalter.
+def seitenliste() -> tuple[list[str], list[str]]:
+    """Die festen Routen aus `App.jsx` — mit aufgeloester Verschachtelung.
 
-    Routen mit `:token` oder `:id` brauchen einen echten Datensatz; sie hier
-    mit erfundenen Werten aufzurufen misst die Fehlerseite, nicht die Seite.
-    Sie werden deshalb uebersprungen und im Bericht als nicht gemessen
-    gefuehrt.
+    **Warum die Verschachtelung zaehlt.** Der erste Entwurf haengte jede
+    relative Route pauschal unter `/app` und meldete darauf `/app/kas-website`
+    und `/app/notifications` als „Seite nicht gefunden". Beide gibt es —
+    unter `/app/settings/`. Der Befund war ein Fehler der Messung, und er
+    haette als Systemfehler in der Lueckenliste gestanden.
+
+    Gelesen wird deshalb der Rahmen: `<Route path="x">` ohne Selbstschluss
+    oeffnet eine Ebene, `</Route>` schliesst sie. Das ist keine vollstaendige
+    JSX-Auswertung, aber es folgt derselben Regel wie React Router.
+
+    Routen mit `:token` oder `:id` brauchen einen echten Datensatz; sie mit
+    erfundenen Werten aufzurufen misst die Fehlerseite, nicht die Seite. Sie
+    werden uebersprungen und als **nicht gemessen** ausgewiesen.
     """
     if not APP_JSX.exists():
-        return []
+        return [], []
     text = APP_JSX.read_text(encoding="utf-8")
-    roh = re.findall(r'path="([^"]+)"', text)
-    fest, offen, eltern = [], [], "/app"
-    for pfad in roh:
-        if ":" in pfad or "*" in pfad:
-            offen.append(pfad)
+    fest: list[str] = []
+    offen: list[str] = []
+    stapel: list[str] = []
+    i = 0
+    while i < len(text):
+        if text.startswith("</Route>", i):
+            if stapel:
+                stapel.pop()
+            i += 8
             continue
+        if not text.startswith("<Route", i):
+            i += 1
+            continue
+        # Das Tag endet beim ersten ">" ausserhalb geschweifter Klammern:
+        # `element={<X />}` enthaelt selbst ">"-Zeichen.
+        tiefe, j = 0, i
+        while j < len(text):
+            z = text[j]
+            if z == "{":
+                tiefe += 1
+            elif z == "}":
+                tiefe -= 1
+            elif z == ">" and tiefe == 0:
+                break
+            j += 1
+        tag = text[i:j]
+        selbstschluss = tag.rstrip().endswith("/")
+        treffer = re.search(r'path="([^"]*)"', tag)
+        pfad = treffer.group(1) if treffer else ""
+        eltern = [t for t in stapel if t]
         if pfad.startswith("/"):
-            fest.append(pfad)
-        else:                       # verschachtelte Route unter /app
-            fest.append(f"{eltern}/{pfad}".replace("//", "/"))
+            voll = pfad
+        elif pfad in ("", "*"):
+            voll = "/" + "/".join(eltern) if eltern else "/"
+        else:
+            voll = "/" + "/".join(eltern + [pfad.strip("/")])
+        voll = re.sub(r"/+", "/", voll)
+        if treffer:
+            (offen if (":" in voll or "*" in voll) else fest).append(voll)
+        if not selbstschluss:
+            stapel.append(pfad.strip("/") if pfad and not pfad.startswith("/")
+                          else pfad.strip("/"))
+        i = j + 1
     return sorted(dict.fromkeys(fest)), sorted(dict.fromkeys(offen))
 
 

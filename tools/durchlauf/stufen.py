@@ -299,24 +299,47 @@ def felder_ohne_leser() -> list[Befund]:
 # ── Kette Frontend → Browser ────────────────────────────────────────────────
 
 def seiten_ohne_route() -> list[Befund]:
-    """Seitenkomponenten, die in `App.jsx` nicht vorkommen."""
+    """Seitendateien, die weder eine Route haben noch irgendwo importiert werden.
+
+    **Warum die zweite Bedingung.** Der erste Lauf meldete vier Seiten als
+    „ohne Route": `PackageStarter`, `PackagePremium`, `PackageKompagnon` und
+    `Rechtstext`. Alle vier gibt es zu Recht — `PaketSeite.jsx` waehlt die
+    ersten drei nach Kuerzel aus, und `Rechtstext` ist das gemeinsame Layout
+    von AGB und Widerrufsbelehrung. Sie liegen im Ordner `pages/`, sind aber
+    Bausteine. Wer nur `App.jsx` befragt, meldet jeden davon als Leiche.
+
+    Uebrig bleibt der echte Fall: eine Datei, die **niemand** einbindet — kein
+    Weg dorthin, kein Aufrufer, und trotzdem Pflegeaufwand.
+    """
     app = FRONTEND / "App.jsx"
     if not app.exists():
         return []
-    text = app.read_text(encoding="utf-8")
+    routen_text = app.read_text(encoding="utf-8")
+    andere = ""
+    for datei in _js_dateien():
+        if datei.name == "App.jsx":
+            continue
+        try:
+            andere += datei.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            pass
+
     befunde = []
     for seite in sorted((FRONTEND / "pages").glob("*.jsx")):
-        if seite.stem in text:
+        if seite.stem in routen_text:
             continue
+        if f"/{seite.stem}'" in andere or f"/{seite.stem}\"" in andere:
+            continue          # wird als Baustein importiert
         befunde.append(Befund(
-            kennung=f"seite-ohne-route/{seite.stem}",
+            kennung=f"seite-ohne-weg/{seite.stem}",
             ebene="frontend",
-            titel=f"`pages/{seite.name}` wird in App.jsx nicht eingebunden",
-            beleg=f"{seite.relative_to(WURZEL)} — kein Treffer auf '{seite.stem}' in src/App.jsx",
+            titel=f"`pages/{seite.name}` hat keine Route und wird nirgends importiert",
+            beleg=f"{seite.relative_to(WURZEL)} — kein Treffer in src/App.jsx und in "
+                  f"keiner der {len(_js_dateien())} uebrigen Frontend-Dateien",
             einzelheiten=(
-                "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder "
-                "fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren "
-                "Fassung und traegt Pflegeaufwand ohne Nutzen."
+                "Weder ueber eine Adresse erreichbar noch als Baustein eingebunden. "
+                "Entweder fehlt der Weg dorthin, oder die Datei ist der Rest einer "
+                "frueheren Fassung und traegt Pflegeaufwand ohne Nutzen."
             ),
             vorschlag="P3",
             gegenstand=seite.name,
@@ -503,7 +526,7 @@ ALLE_STUFEN = (
     ("Namensdrift Umgebung", namensdrift_umgebung),
     ("Umgebung ohne Blueprint", umgebung_ohne_blueprint),
     ("Felder ohne Leser", felder_ohne_leser),
-    ("Seiten ohne Route", seiten_ohne_route),
+    ("Seiten ohne Weg", seiten_ohne_route),
     ("Farben ausserhalb der Vorgabe", farben_ausserhalb),
     ("Dateien ueber der Grenze", zu_grosse_dateien),
 )

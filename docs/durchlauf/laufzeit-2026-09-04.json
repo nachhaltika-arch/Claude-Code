@@ -1,0 +1,27 @@
+{
+  "datum": "2026-09-04",
+  "basis": "https://kompagnon-frontend-staging.onrender.com",
+  "erhebung": "Browser (Claude in Chrome), nicht Playwright — die Cowork-Umgebung erreicht Render nicht",
+  "angemeldet": true,
+  "hinweis_anmeldung": "Bestehende Sitzung im Browser genutzt; es wurden keine Zugangsdaten eingegeben.",
+  "backend_health": {"status": "ok", "database": "connected", "scheduler_running": true, "startup_complete": true, "startup_missing": []},
+  "gemessen_anzahl": 38,
+  "routen_gesamt": 69,
+  "messweise": "In-Page-Navigation (pushState + popstate), 1,2-4 s Wartezeit je Seite, Sichtprüfung auf 404-Text, fetch-Fehler und console.error je Seite einzeln zurückgesetzt",
+  "ergebnis": "Keine 4xx/5xx-Antwort, kein Konsolenfehler, keine leere Seite, keine 404-Seite unter den 38 gemessenen Routen.",
+  "weiterleitungen": [
+    {"von": "/app/companies", "nach": "/app/betriebe"},
+    {"von": "/app/customers", "nach": "/app/betriebe"},
+    {"von": "/app/sales", "nach": "/app/deals"},
+    {"von": "/app/leads", "nach": "/app/projektpipeline"},
+    {"von": "/app/portal", "nach": "/app/dashboard"},
+    {"von": "/login", "nach": "/app/dashboard", "grund": "bestehende Sitzung"}
+  ],
+  "nicht_gemessen": [
+    "31 der 69 festen Routen — die Browsermessung ist eine Stichprobe, kein voller Lauf",
+    "21 Routen mit Platzhalter (:id, :token) — brauchen einen echten Datensatz",
+    "Mobile Breite und Tastaturbedienung",
+    "Kontrast und Schriftgrößen am gerenderten Bild (dafür: tools/bedienbarkeit_messen.py, tools/schriftgroessen_messen.py)"
+  ],
+  "befunde": []
+}

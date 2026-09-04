@@ -105,42 +105,6 @@
       "gegenstand": "oauth_provider"
     },
     {
-      "kennung": "seite-ohne-route/PackageKompagnon",
-      "ebene": "frontend",
-      "titel": "`pages/PackageKompagnon.jsx` wird in App.jsx nicht eingebunden",
-      "beleg": "kompagnon/frontend/src/pages/PackageKompagnon.jsx — kein Treffer auf 'PackageKompagnon' in src/App.jsx",
-      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
-      "vorschlag": "P3",
-      "gegenstand": "PackageKompagnon.jsx"
-    },
-    {
-      "kennung": "seite-ohne-route/PackagePremium",
-      "ebene": "frontend",
-      "titel": "`pages/PackagePremium.jsx` wird in App.jsx nicht eingebunden",
-      "beleg": "kompagnon/frontend/src/pages/PackagePremium.jsx — kein Treffer auf 'PackagePremium' in src/App.jsx",
-      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
-      "vorschlag": "P3",
-      "gegenstand": "PackagePremium.jsx"
-    },
-    {
-      "kennung": "seite-ohne-route/PackageStarter",
-      "ebene": "frontend",
-      "titel": "`pages/PackageStarter.jsx` wird in App.jsx nicht eingebunden",
-      "beleg": "kompagnon/frontend/src/pages/PackageStarter.jsx — kein Treffer auf 'PackageStarter' in src/App.jsx",
-      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
-      "vorschlag": "P3",
-      "gegenstand": "PackageStarter.jsx"
-    },
-    {
-      "kennung": "seite-ohne-route/Rechtstext",
-      "ebene": "frontend",
-      "titel": "`pages/Rechtstext.jsx` wird in App.jsx nicht eingebunden",
-      "beleg": "kompagnon/frontend/src/pages/Rechtstext.jsx — kein Treffer auf 'Rechtstext' in src/App.jsx",
-      "einzelheiten": "Eine Seite ohne Route ist im Browser nicht erreichbar. Entweder fehlt der Weg dorthin, oder die Datei ist Rest einer frueheren Fassung und traegt Pflegeaufwand ohne Nutzen.",
-      "vorschlag": "P3",
-      "gegenstand": "Rechtstext.jsx"
-    },
-    {
       "kennung": "markenfarbe-ohne-vorgabe/#004f59",
       "ebene": "optik",
       "titel": "Markenfarbe #004f59 wird 19-mal benutzt, steht aber in keiner Farbvorgabe",

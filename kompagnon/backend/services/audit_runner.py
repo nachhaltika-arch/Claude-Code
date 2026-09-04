@@ -145,10 +145,19 @@ async def _safe(coro, label: str):
         return {"collected": False, "reason": f"{type(e).__name__}: {e}"[:200]}
 
 
-async def _run_qa_scanner(url: str, company: str, trade: str) -> dict:
+async def _run_qa_scanner(url: str, company: str, trade: str, *, html: str) -> dict:
+    """Der QA-Scanner misst das HTML, das hier schon vorliegt (L-155).
+
+    Bis zum 04.09.2026 bekam er nur die Adresse und lud die Seite ein zweites
+    Mal — ohne JavaScript. Nach einem Browserlauf mass er damit die leere
+    Huelle, waehrend der Bericht die Messung fuer gueltig hielt.
+
+    `html` ist **verpflichtend benannt**: Eine Aufrufstelle, die es vergisst,
+    faellt sofort auf, statt still wieder selbst zu laden.
+    """
     from services.qa_scanner import run_full_qa
 
-    scan = await run_full_qa(url, company, trade)
+    scan = await run_full_qa(url, company, trade, html=html)
     return scan.get("checks", {}) or {}
 
 
@@ -334,7 +343,8 @@ async def collect_facts(
     # weiter an der Startseite und nicht je Unterseite.
     tasks = {
         "psi_mobile": _safe(fetch_pagespeed(base_url, "mobile"), "pagespeed"),
-        "qa": _safe(_run_qa_scanner(base_url, company_name, trade), "qa_scanner"),
+        "qa": _safe(_run_qa_scanner(base_url, company_name, trade, html=html),
+                    "qa_scanner"),
         "hosting": _safe(_run_hosting(base_url), "hosting_scraper"),
         "links": _safe(_run_link_check(base_url), "link_checker"),
         "legal": _safe(collectors.check_legal_pages(base_url, soup), "rechtsseiten"),

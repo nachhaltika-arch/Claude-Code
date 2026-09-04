@@ -104,8 +104,16 @@ class Abstufung:
         return (all(s.grenze is not None for s in self.stufen[:-1])
                 and self.stufen[-1].grenze is None)
 
-    def punkte_fuer(self, wert: float) -> int:
-        """Die Punktzahl fuer einen gemessenen Wert."""
+    def stufe_fuer(self, wert: float) -> "Stufe":
+        """Die Stufe, die ein gemessener Wert erreicht.
+
+        Getrennt von `punkte_fuer`, weil der Bericht seit dem 04.09.2026 nicht
+        nur die Punktzahl braucht, sondern den **Satz** dazu (L-151): „Der
+        Hauptinhalt braucht 4,0 Sekunden oder laenger" sagt dem Betrieb, warum
+        er null Punkte hat. `punkte_fuer` liest von hier, damit Zahl und Satz
+        nicht auseinanderlaufen koennen — zwei Auswahlen desselben Wertes
+        waeren genau die Bauart, die dieses Projekt schon zweimal eingeholt hat.
+        """
         if not self.berechenbar:
             raise ValueError(
                 "Diese Abstufung ist nicht aus einem Zahlenwert berechenbar; "
@@ -113,12 +121,16 @@ class Abstufung:
             )
         for stufe in self.stufen:
             if stufe.grenze is None:
-                return stufe.punkte
+                return stufe
             if self.richtung == "ab" and wert >= stufe.grenze:
-                return stufe.punkte
+                return stufe
             if self.richtung == "bis" and wert < stufe.grenze:
-                return stufe.punkte
-        return 0
+                return stufe
+        return self.stufen[-1]
+
+    def punkte_fuer(self, wert: float) -> int:
+        """Die Punktzahl fuer einen gemessenen Wert."""
+        return self.stufe_fuer(wert).punkte
 
 
 @dataclass(frozen=True)

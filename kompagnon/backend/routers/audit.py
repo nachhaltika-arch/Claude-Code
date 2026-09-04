@@ -202,6 +202,7 @@ def _run_audit_background(audit_id: int):
         audit2.level           = result["level"]
         audit2.item_scores     = json.dumps(result["items"], ensure_ascii=False)
         audit2.item_sources    = json.dumps(result["sources"], ensure_ascii=False)
+        audit2.item_belege     = json.dumps(result.get("belege", {}), ensure_ascii=False)
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]

@@ -266,7 +266,8 @@ def radar_beschriftung(label: str) -> str:
 # Main generator
 # ═══════════════════════════════════════════════════════════
 
-def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
+def build_scorecard(items: dict, sources: dict, styles: dict,
+                    belege: dict = None) -> tuple:
     """Bewertungsmatrix: Kopfzeile je Kategorie plus eine Zeile je Kriterium.
 
     Die Zeilenwerte stammen aus der Einzelbewertung. Früher wurde der
@@ -278,6 +279,7 @@ def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
     """
     header = ["ID", "Pr\u00fcfbereich", "Quelle", "Max.", "Ist", "Status"]
     rows = []
+    belege = belege or {}
 
     for kategorie in CATALOGUE:
         erhoben = [c for c in kategorie.criteria
@@ -288,7 +290,13 @@ def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
 
         kopf = f"{kategorie.label} (max. {kategorie.max_points} Pkt.)"
         if moeglich < kategorie.max_points:
-            kopf += f" \u2013 {moeglich} Pkt. pr\u00fcfbar"
+            # **Nicht nur die Punkte, auch die Zahl der Kriterien (L-151).**
+            # „0 / 2" allein liest sich als Urteil ueber den Betrieb; dass
+            # davon vier von fuenf Kriterien gar nicht erhoben werden konnten,
+            # stand nur in den Einzelzeilen — und die Ueberschrift liest man
+            # zuerst.
+            kopf += (f" \u2013 {len(erhoben)} von {len(kategorie.criteria)} "
+                     f"Kriterien pr\u00fcfbar, {moeglich} Pkt.")
 
         rows.append([
             Paragraph(f'<b>{_clean_text(kopf)}</b>', styles["KCBold"]),
@@ -302,9 +310,16 @@ def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
             quelle = sources.get(crit.key, Source.NOT_COLLECTED.value)
             offen = quelle == Source.NOT_COLLECTED.value
             wert = int(items.get(crit.key, 0) or 0)
+            beleg = "" if offen else _clean_text(belege.get(crit.key, "") or "")
+            bereich = _clean_text(crit.label)
+            if beleg:
+                bereich = Paragraph(
+                    f'{_clean_text(crit.label)}<br/>'
+                    f'<font size="7" color="#4A5A5C">{beleg}</font>',
+                    styles["KCSmall"] if "KCSmall" in styles else styles["KCBody"])
             rows.append([
                 f"{praefix}-{i:02d}",
-                _clean_text(crit.label),
+                bereich,
                 SOURCE_SHORT.get(quelle, quelle),
                 str(crit.max_points),
                 "\u2013" if offen else str(wert),

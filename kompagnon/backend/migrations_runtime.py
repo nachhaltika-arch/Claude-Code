@@ -103,6 +103,10 @@ def run_migrations():
         # Migration brauchen. Die Einzelspalten oben sind Altbestand.
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_scores TEXT DEFAULT '{}'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_sources TEXT DEFAULT '{}'",
+        # Der Beleg je Kriterium (L-151, 04.09.2026): der gemessene Wert, der
+        # zur Punktzahl gefuehrt hat. Altbestand bleibt leer — ein Bericht ohne
+        # Belege zeigt die Zeile schlicht nicht.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_belege TEXT DEFAULT '{}'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS category_scores TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",

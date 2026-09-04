@@ -28,7 +28,7 @@ LUECKEN = {
 }
 
 
-def _bericht(luecken=None, nicht_erhoben=(), blocker=()) -> list:
+def _bericht(luecken=None, nicht_erhoben=(), blocker=(), belege=None) -> list:
     luecken = dict(luecken or {})
     items, sources = {}, {}
     for crit in all_criteria():
@@ -55,6 +55,7 @@ def _bericht(luecken=None, nicht_erhoben=(), blocker=()) -> list:
             for c in CATALOGUE
         ]),
         "blockers": json.dumps(list(blocker)),
+        "item_belege": json.dumps(belege or {}, ensure_ascii=False),
     }
     return inhalt_von(generate_audit_report, daten)
 
@@ -99,3 +100,38 @@ def test_ein_deckel_steht_ueber_den_punkten():
 
     assert "Kein erreichbares Impressum" in inhalt.replace(" ", " ")
     assert "hebt den Deckel auf" in inhalt
+
+
+# ── Der Beleg im PDF (L-151) ──────────────────────────────────────────
+
+def test_der_pdf_bericht_zeigt_den_beleg_zum_kriterium():
+    """Die Grundlage von `test_pdf_unveraendert` ist eine vollstaendig
+    erhobene Seite ohne Belege — sie kann diesen Weg nicht pruefen.
+
+    Ohne diesen Test waere der Beleg im PDF gebaut und ungeprueft: derselbe
+    Fall wie beim Massnahmenplan zwei Commits zuvor.
+    """
+    inhalt = " ".join(_bericht(
+        {"rc_cookie": 0},
+        belege={"rc_cookie": "Gefunden: google_maps · kein Consent-Tool erkannt"},
+    ))
+
+    assert "google_maps" in inhalt
+
+
+def test_die_kategoriezeile_nennt_die_zahl_der_pruefbaren_kriterien():
+    """„Barrierefreiheit 0 / 2" allein liest sich als Urteil ueber den
+    Betrieb — die Ueberschrift sagt jetzt, wie viele Kriterien erhoben
+    werden konnten."""
+    inhalt = " ".join(_bericht(nicht_erhoben=("bf_lighthouse", "bf_kontrast",
+                                              "bf_tastatur", "bf_semantik")))
+
+    assert "1 von 5 Kriterien pr\u00fcfbar" in inhalt or "1 von 5 Kriterien prüfbar" in inhalt
+
+
+def test_ohne_beleg_bleibt_die_zeile_schlicht():
+    """Altbestand traegt keine Belege. Dann steht dort nichts — kein leeres
+    Feld, das wie ein Fehler aussieht."""
+    ohne = " ".join(_bericht({"rc_cookie": 0}))
+
+    assert "kein Consent-Tool erkannt" not in ohne

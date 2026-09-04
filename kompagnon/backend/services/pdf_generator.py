@@ -71,6 +71,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     items = _parse_json_field(audit_data.get("item_scores")) or {}
     sources = _parse_json_field(audit_data.get("item_sources")) or {}
+    belege = _parse_json_field(audit_data.get("item_belege")) or {}
     categories = _parse_json_field(audit_data.get("category_scores")) or []
     blocker_keys = _parse_json_field(audit_data.get("blockers")) or []
     coverage = audit_data.get("coverage")
@@ -99,7 +100,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
                          created=created),
         *seite_recht(styles=styles),
         *seite_scorecard(styles=styles, total=total, level=level, items=items,
-                         sources=sources, blocker_keys=blocker_keys,
+                         sources=sources, belege=belege, blocker_keys=blocker_keys,
                          coverage=coverage, audit_data=audit_data),
         *seite_protokoll(styles=styles, total=total, company=company, url=url,
                          city=city, date_str=date_str, categories=categories,

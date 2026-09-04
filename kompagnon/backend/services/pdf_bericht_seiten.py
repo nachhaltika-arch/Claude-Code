@@ -162,6 +162,7 @@ def seite_scorecard(*,
     level,
     items,
     sources,
+    belege,
     blocker_keys,
     coverage,
     audit_data,
@@ -222,7 +223,7 @@ def seite_scorecard(*,
             styles["KCBody"]))
         story.append(Spacer(1, 3*mm))
 
-    sc_header, sc_rows = build_scorecard(items, sources, styles)
+    sc_header, sc_rows = build_scorecard(items, sources, styles, belege)
 
     # Summenzeile.
     #

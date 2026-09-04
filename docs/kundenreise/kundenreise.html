@@ -1,0 +1,278 @@
+<title>Customer Journey Layers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans:wght@300;400;700;900&display=swap">
+<style>
+:root{
+  --s1:#00434D; --s2:#00606E; --s3:#007D8E; --s4:#3A9DAB; --s5:#79BFC8;
+  --paper:#F7F5EF; --surface:#FFFFFF; --ink:#12211F; --ink-2:#3D4C4A; --ink-3:#6B7A78;
+  --line:#DDD8CB; --line-2:#B9B3A3;
+  --gut:#1F7A4C; --schlecht:#B0442B;
+  --sans:"Noto Sans",system-ui,sans-serif; --mono:"DM Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12181A; --surface:#1A2225; --ink:#E9EFEE; --ink-2:#BCCAC8; --ink-3:#8A9A98;
+  --line:#2A3437; --line-2:#3E4B4E; --gut:#5FD3A3; --schlecht:#E0805F;}}
+:root[data-theme="dark"]{
+  --paper:#12181A; --surface:#1A2225; --ink:#E9EFEE; --ink-2:#BCCAC8; --ink-3:#8A9A98;
+  --line:#2A3437; --line-2:#3E4B4E; --gut:#5FD3A3; --schlecht:#E0805F;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6}
+.blatt{max-width:1240px;margin:0 auto;padding:40px 28px 90px}
+h1{font-weight:900;letter-spacing:-.03em;font-size:clamp(28px,5vw,42px);margin:0 0 4px;line-height:1}
+h1 span{font-weight:300}
+.unter{color:var(--ink-3);font-size:15px;margin:0 0 8px;max-width:70ch}
+.stand{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 36px}
+
+.band{display:grid;grid-template-columns:112px 1fr;gap:20px;align-items:start;
+  padding:22px 0;border-top:1px solid var(--line)}
+.marke{font-weight:900;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);line-height:1.35;padding-top:4px}
+.roll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.spur{min-width:940px}
+
+/* Stufen */
+.stufen{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.stufe{padding:16px 14px;font-weight:900;letter-spacing:.02em;font-size:14px;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%)}
+.stufe small{display:block;font-weight:400;font-size:12px;opacity:.85;letter-spacing:0;margin-top:2px}
+
+/* Schritte */
+.schritte{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.gruppe{display:flex;gap:3px}
+.schritt{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:8px 6px;font-size:11px;line-height:1.3;color:var(--ink-2);min-height:62px}
+
+/* Punkte */
+.punkte{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.pgruppe{border-left:1px solid var(--line);padding:0 6px}
+.kreise{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:24px;align-items:center}
+.kreis{width:11px;height:11px;border-radius:50%;border:2px solid;flex:none}
+.zahl{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:50%;color:#fff;font-family:var(--mono);font-size:13px;font-weight:500}
+.namen{font-size:10px;color:var(--ink-3);line-height:1.45}
+
+/* Module */
+.matrix{width:100%;border-collapse:collapse;font-size:11px}
+.matrix td,.matrix th{padding:3px 2px;text-align:center}
+.matrix th.z{text-align:left;width:120px;font-weight:400;color:var(--ink-2);font-size:11px;white-space:nowrap}
+.matrix tr:nth-child(even){background:rgba(0,0,0,.02)}
+.pkt{width:9px;height:9px;border-radius:50%;display:inline-block}
+.trenn{border-left:1px solid var(--line)}
+
+/* Dauer */
+.dauer{display:flex;height:26px;border-radius:3px;overflow:hidden}
+.dauer div{position:relative}
+.dauerbeschriftung{display:flex;margin-top:6px;font-size:11px;color:var(--ink-3)}
+
+/* Erleben */
+.erleben{position:relative;height:300px;border-left:1px solid var(--line-2)}
+.null{position:absolute;left:0;right:0;top:50%;border-top:1px dashed var(--line-2)}
+.epunkt{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid;transform:translate(-50%,-50%)}
+.enote{position:absolute;font-size:11px;line-height:1.35;max-width:180px;color:var(--ink-2);transform:translateX(-50%)}
+.enote b{display:block;color:var(--ink)}
+.achse{position:absolute;left:-4px;font-size:10px;color:var(--ink-3);font-weight:700}
+
+/* Aufzeichnung */
+.aufz{display:grid;grid-template-columns:150px 1fr;gap:4px 10px;align-items:center;font-size:12px}
+.aufz b{font-weight:700;color:var(--ink-2);font-size:12px}
+.balken{display:flex;gap:3px;flex-wrap:wrap}
+.stueck{height:14px;border-radius:2px}
+.fehlt{background:repeating-linear-gradient(45deg,var(--line),var(--line) 3px,transparent 3px,transparent 6px);
+  border:1px solid var(--line-2)}
+
+.fuss{margin-top:40px;padding-top:20px;border-top:2px solid var(--ink);font-size:13px;color:var(--ink-2);max-width:78ch}
+.fuss b{color:var(--ink)}
+</style>
+
+<div class="blatt">
+  <h1>Customer Journey <span>KOMPAGNON</span></h1>
+  <p class="unter">Vom ersten Kontakt bis zum laufenden Pflege-Abo. Die Berührungspunkte sind am System abgelesen, nicht entworfen; die Erlebnispunkte stammen aus Messungen und einer Fremdrückmeldung.</p>
+  <p class="stand">Stand 04.09.2026 · 38 Berührungspunkte · 11 Module · Stufenfarbe = Reihenfolge, nicht Kategorie</p>
+
+  <!-- STUFEN -->
+  <div class="band">
+    <div class="marke">Stufen</div>
+    <div class="roll"><div class="spur">
+      <div class="stufen">
+        <div class="stufe" style="background:var(--s1);color:#fff">AUFMERKSAMKEIT<small>Wir finden den Betrieb</small></div>
+        <div class="stufe" style="background:var(--s2);color:#fff">ERWÄGUNG<small>Er prüft uns</small></div>
+        <div class="stufe" style="background:var(--s3);color:#fff">KAUF<small>Er entscheidet</small></div>
+        <div class="stufe" style="background:var(--s4);color:#000">BAU<small>Wir liefern</small></div>
+        <div class="stufe" style="background:var(--s5);color:#000">BETREUUNG<small>Es läuft weiter</small></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- SCHRITTE -->
+  <div class="band">
+    <div class="marke">Schritte</div>
+    <div class="roll"><div class="spur">
+      <div class="schritte">
+        <div class="gruppe"><div class="schritt">Betrieb aus dem Register</div><div class="schritt">Widget auf fremder Seite</div></div>
+        <div class="gruppe"><div class="schritt">Analyse anstoßen</div><div class="schritt">Mail bestätigen</div><div class="schritt">Bericht lesen</div></div>
+        <div class="gruppe"><div class="schritt">Paket wählen</div><div class="schritt">Kasse</div><div class="schritt">Zugang erhalten</div></div>
+        <div class="gruppe"><div class="schritt">Angaben liefern</div><div class="schritt">Gespräch &amp; Briefing</div><div class="schritt">Freigaben</div><div class="schritt">Go-live</div></div>
+        <div class="gruppe"><div class="schritt">Änderungen anfordern</div><div class="schritt">Berichte lesen</div><div class="schritt">Störung melden</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- BERÜHRUNGSPUNKTE -->
+  <div class="band">
+    <div class="marke">Berührungs&shy;punkte</div>
+    <div class="roll"><div class="spur">
+      <div class="punkte" id="punkte"></div>
+    </div></div>
+  </div>
+
+  <!-- MODULE -->
+  <div class="band">
+    <div class="marke">Module<br><span style="font-weight:400;text-transform:none;letter-spacing:0">statt Abteilungen — ein Betrieb, elf Module</span></div>
+    <div class="roll"><div class="spur">
+      <table class="matrix" id="matrix"></table>
+    </div></div>
+  </div>
+
+  <!-- DAUER -->
+  <div class="band">
+    <div class="marke">Dauer</div>
+    <div class="roll"><div class="spur">
+      <div class="dauer">
+        <div style="background:var(--s1);flex:2"></div>
+        <div style="background:var(--s2);flex:3"></div>
+        <div style="background:var(--s3);flex:1"></div>
+        <div style="background:var(--s4);flex:6"></div>
+        <div style="background:var(--s5);flex:18"></div>
+      </div>
+      <div class="dauerbeschriftung">
+        <span style="flex:2">Tage bis Wochen</span>
+        <span style="flex:3">1–14 Tage</span>
+        <span style="flex:1">Minuten</span>
+        <span style="flex:6">14 Kalendertage zugesagt</span>
+        <span style="flex:18">12 Monate Mindestlaufzeit, danach monatlich</span>
+      </div>
+      <p style="font-size:12px;color:var(--ink-3);margin:10px 0 0;max-width:74ch">
+        <b>Die Frist beginnt erst mit der letzten Mitwirkungsleistung.</b> Verzögert der Betrieb, ruht sie —
+        das ist der einzige Abschnitt, dessen Länge nicht bei uns liegt.
+      </p>
+    </div></div>
+  </div>
+
+  <!-- ERLEBEN -->
+  <div class="band">
+    <div class="marke">Erleben</div>
+    <div class="roll"><div class="spur">
+      <div class="erleben" id="erleben">
+        <div class="null"></div>
+        <span class="achse" style="top:2px">gut</span>
+        <span class="achse" style="bottom:2px">schlecht</span>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- AUFZEICHNUNG -->
+  <div class="band">
+    <div class="marke">Was auf&shy;gezeichnet wird</div>
+    <div class="roll"><div class="spur">
+      <div class="aufz" id="aufz"></div>
+      <p style="font-size:12px;color:var(--ink-3);margin:14px 0 0;max-width:74ch">
+        Schraffiert = <b>nicht aufgezeichnet</b>. Zwei Lücken sind bekannt und benannt: Das Verhalten auf der
+        erzeugten Kundenwebsite wird nirgends erfasst (Umami, geplant seit 30.04., nie gebaut), und das
+        Verhalten im Kundenkonto ebenso wenig. <b>Und die Mailspur liegt doppelt:</b> `email_logs` und
+        `communications` kennen einander nicht — deshalb wurde zweimal der falsche Absender beschuldigt.
+      </p>
+    </div></div>
+  </div>
+
+  <div class="fuss">
+    <b>Der tiefste Punkt der ganzen Reise liegt nicht im Verkauf, sondern danach.</b>
+    Zwölf Leistungen des Pflege-Abos sind bezahlt und im Konto unsichtbar; die Mahnung „Materialien fehlen"
+    sagte nicht, welche. Beides ist am 04.09.2026 angegangen worden — Guthaben mit Kontostand und
+    Mitwirkungsliste stehen seither im Konto. Die übrigen zehn Positionen stehen als Rang 2 bis 7 in
+    <span style="font-family:var(--mono);font-size:12px">docs/kundenkonto-soll-ist.md</span>.
+  </div>
+</div>
+
+<script>
+const FARBEN = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)'];
+const PUNKTE = [
+  ['HWK-Register','Domain-Import','Analyse-Widget','Landingpage','Kaltakquise-Mail'],
+  ['Widget-Formular','Bestätigungsmail','Bericht im Browser','PDF-Bericht','Erstgespräch','Angebot','Verkaufsseite'],
+  ['Paketseite','Stripe-Kasse','Zahlung','Auftragsbestätigung','Zugangsdaten-Mail','Erste Anmeldung','Kundenkonto'],
+  ['Mitwirkungsliste','Erinnerungsmail','Positionierungsgespräch','Briefing','Bauplan','Entwurfsfreigabe','Textfreigabe','Auslieferung','Domain &amp; Zertifikat','Go-live-Mail','Schlussrechnung'],
+  ['Änderung anfordern','Guthaben','Monatsbericht','Re-Audit','Support-Ticket','Monatsrechnung','KI-Sichtbarkeit','Akademie'],
+];
+document.getElementById('punkte').innerHTML = PUNKTE.map((g,i) => `
+  <div class="pgruppe">
+    <div class="kreise">${g.map(() => `<span class="kreis" style="border-color:${FARBEN[i]}"></span>`).join('')}</div>
+    <span class="zahl" style="background:${FARBEN[i]}">${g.length}</span>
+    <p class="namen">${g.join(' · ')}</p>
+  </div>`).join('');
+
+const MODULE = [
+  ['M1 Akquise',          [1,1,0,0,0]],
+  ['M2 Audit',            [1,1,0,0,1]],
+  ['M3 Vertrieb',         [1,1,1,0,0]],
+  ['M4 Angebot &amp; Zahlung',[0,1,1,1,1]],
+  ['M5 Projekt',          [0,0,1,1,0]],
+  ['M6 Website-Bau',      [0,0,0,1,1]],
+  ['M7 Kundenportal',     [0,0,1,1,1]],
+  ['M8 Akademie',         [0,0,0,0,1]],
+  ['M9 Betreuung',        [0,0,0,0,1]],
+  ['M10 Werbung',         [1,1,0,0,0]],
+  ['M0 Fundament',        [0,0,1,1,1]],
+];
+document.getElementById('matrix').innerHTML = MODULE.map(([name, spalten]) => `
+  <tr><th class="z">${name}</th>${spalten.map((an,i) =>
+    `<td class="${i ? 'trenn' : ''}">${an ? `<span class="pkt" style="background:${FARBEN[i]}"></span>` : ''}</td>`
+  ).join('')}</tr>`).join('') +
+  `<tr><th class="z" style="padding-top:8px;font-weight:700">beteiligt</th>${
+    [0,1,2,3,4].map(i => `<td class="${i ? 'trenn' : ''}" style="padding-top:8px">
+      <span class="zahl" style="background:${FARBEN[i]};width:22px;height:22px;font-size:11px">${
+        MODULE.filter(m => m[1][i]).length}</span></td>`).join('')}</tr>`;
+
+// Erleben: x in Prozent, y von -1 (schlecht) bis +1 (gut)
+const ERLEBEN = [
+  [4,  0.5, ''], [8, 0.6, ''],
+  [12, -0.55, 'Kaltakquise-Mail an einen Betrieb, der uns nicht kennt'],
+  [20, 0.75, 'Der Bericht ist strukturiert und verständlich — so die Rückmeldung'],
+  [24, -0.45, 'Der Bericht kommt erst nach der Bestätigungsmail'],
+  [28, -0.8, 'Drei falsche Befunde im Bericht: Preis, Zukunftsdatum, Alt-Texte (04.09. behoben)'],
+  [34, 0.4, ''], [38, 0.55, ''],
+  [42, 0.8, 'Die Anmeldeseite erklärt, woher die Zugangsdaten kommen'],
+  [47, -0.35, 'Das Konto ist leer: sieben von acht Seiten kürzer als ein Absatz'],
+  [53, -0.9, 'Mahnung „Materialien fehlen" — ohne zu sagen, welche'],
+  [58, 0.7, 'Mitwirkungsliste mit Startdatum (seit 04.09.)'],
+  [64, 0.3, ''], [68, 0.5, ''],
+  [72, -0.4, 'Beim Merge nach produktiv rund 40 Sekunden Ausfall'],
+  [76, 0.85, 'Die Website ist online'],
+  [82, -0.85, 'Zwölf bezahlte Abo-Leistungen sind im Konto unsichtbar'],
+  [88, 0.75, 'Guthaben mit Kontostand (seit 04.09.)'],
+  [92, -0.5, 'Die Akademie steht im Menü und ist leer'],
+  [96, 0.45, ''],
+];
+const stufeVon = x => x < 15 ? 0 : x < 32 ? 1 : x < 45 ? 2 : x < 78 ? 3 : 4;
+document.getElementById('erleben').insertAdjacentHTML('beforeend', ERLEBEN.map(([x,y,text]) => {
+  const oben = 50 - y * 42;
+  const farbe = y >= 0 ? 'var(--gut)' : 'var(--schlecht)';
+  const punkt = `<span class="epunkt" style="left:${x}%;top:${oben}%;border-color:${farbe};
+     background:${Math.abs(y) > 0.7 ? farbe : 'transparent'}"></span>`;
+  if (!text) return punkt;
+  const noteOben = y >= 0 ? oben - 16 : oben + 6;
+  return punkt + `<span class="enote" style="left:${x}%;top:${noteOben}%">${text}</span>`;
+}).join(''));
+
+const AUFZ = [
+  ['Datenbank', [1,1,1,1,1]],
+  ['Mailprotokoll', [1,1,1,1,1]],
+  ['Stripe', [0,0,1,1,1]],
+  ['Prüfergebnisse', [0,1,0,1,1]],
+  ['Besucher der Website', [0,0,0,0,0]],
+  ['Verhalten im Konto', [0,0,0,0,0]],
+];
+document.getElementById('aufz').innerHTML = AUFZ.map(([name, sp]) =>
+  `<b>${name}</b><div class="balken">${sp.map((an,i) =>
+    `<span class="stueck ${an ? '' : 'fehlt'}" style="flex:${PUNKTE[i].length};min-width:${PUNKTE[i].length*11}px;
+      ${an ? `background:${FARBEN[i]}` : ''}"></span>`).join('')}</div>`).join('');
+</script>

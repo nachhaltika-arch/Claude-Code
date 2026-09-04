@@ -93,6 +93,18 @@ import sys
 # Dieselben Seiten wie `schriftgroessen_messen.py`. **Dieselben, mit Absicht:**
 # Zwei Werkzeuge, die verschiedene Seiten messen, ergeben zwei Lagebilder, die
 # sich nicht vergleichen lassen.
+#: **Die Anmeldeseite steht bewusst zuerst und ausserhalb** (04.09.2026).
+#:
+#: Bis heute begann die Messung nach dem Anmelden: sechs Seiten hinter dem
+#: Login, waehrend die eine Seite, die jeder Nichtangemeldete sieht, nur
+#: durchlaufen wurde. Aufgefallen ist es von aussen — die Browsermessung des
+#: Website-Checks (`services/a11y_browser.py`) lief nebenbei gegen die eigene
+#: Anmeldeseite und fand dort zwei Kontrastverstoesse bei 3,7:1, die hier nie
+#: jemand gemessen hatte.
+OEFFENTLICHE_SEITEN = [
+    ("Anmeldung", "/login"),
+]
+
 SEITEN = [
     ("Übersicht", "/app/dashboard"),
     ("Betriebe", "/app/betriebe"),
@@ -105,6 +117,10 @@ SEITEN = [
 #: Trägt eine Seite auffallend wenig Text, ist meist die Route falsch und
 #: nicht die Seite leer. Derselbe Riegel wie bei den Schriftgrößen.
 MINDESTZEICHEN = 400
+
+#: Die Anmeldeseite traegt naturgemaess wenig Text — mit 400 waere sie als
+#: „Route pruefen" durchgefallen, statt gemessen zu werden.
+MINDESTZEICHEN_OEFFENTLICH = 60
 
 ZUGANG = ("admin@kompagnon.local", "lokal-admin-2026")
 
@@ -436,16 +452,15 @@ def messen():
         kontext = browser.new_context(viewport={"width": 1440, "height": 900})
         seite = kontext.new_page()
 
-        try:
-            _anmelden(seite)
-        except Exception as fehler:                      # noqa: BLE001
-            print(f"Anmeldung gescheitert: {fehler}", file=sys.stderr)
-            browser.close()
-            return None
-
         fokus_skript = ERHEBUNG_FOKUS.replace("TOLERANZ", str(ZEILENTOLERANZ))
 
-        for name, pfad in SEITEN:
+        def _eine_seite(name, pfad, mindestzeichen=MINDESTZEICHEN):
+            """Eine Seite messen und das Ergebnis anhaengen.
+
+            Herausgezogen am 04.09.2026, damit die **oeffentlichen** Seiten vor
+            dem Anmelden durch denselben Weg laufen — nicht durch einen
+            zweiten, der auseinanderlaufen kann.
+            """
             try:
                 seite.goto(f"{BASIS}{pfad}", wait_until="networkidle",
                            timeout=30_000)
@@ -463,16 +478,33 @@ def messen():
                 fokus = seite.evaluate(fokus_skript)
             except Exception as fehler:                  # noqa: BLE001
                 je_seite.append((name, pfad, None, None, str(fehler)[:80]))
-                continue
+                return
 
             zeichen = (kontrast["bestanden"] + kontrast["gefallen"]
                        + kontrast["unentscheidbar"])
-            if zeichen < MINDESTZEICHEN:
+            if zeichen < mindestzeichen:
                 je_seite.append((name, pfad, None, None,
                                  f"nur {zeichen} Zeichen — Route pruefen"))
-                continue
+                return
 
             je_seite.append((name, pfad, kontrast, fokus, ""))
+
+        # **Zuerst, was ohne Anmeldung sichtbar ist.** Die Anmeldeseite traegt
+        # weniger Text als eine Arbeitsseite — der Riegel gegen falsche Routen
+        # ist hier entsprechend niedriger, sonst faellt genau die Seite heraus,
+        # derentwegen dieser Abschnitt entstanden ist.
+        for name, pfad in OEFFENTLICHE_SEITEN:
+            _eine_seite(name, pfad, mindestzeichen=MINDESTZEICHEN_OEFFENTLICH)
+
+        try:
+            _anmelden(seite)
+        except Exception as fehler:                      # noqa: BLE001
+            print(f"Anmeldung gescheitert: {fehler}", file=sys.stderr)
+            browser.close()
+            return je_seite or None
+
+        for name, pfad in SEITEN:
+            _eine_seite(name, pfad)
 
         browser.close()
     return je_seite

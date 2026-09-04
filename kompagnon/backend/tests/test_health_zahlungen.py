@@ -89,12 +89,24 @@ def test_beide_schluesselarten_gelten(monkeypatch):
         assert z["STRIPE_SECRET_KEY"]["praefix_stimmt"] is True, praefix
 
 
-def test_bereit_nur_wenn_alle_vier_stehen(monkeypatch):
+def test_bereit_nur_wenn_alle_fuenf_stehen(monkeypatch):
+    """**Es waren vier, seit dem 04.09.2026 sind es fuenf.**
+
+    Beim Einrichten der produktiven Schluessel fiel auf, dass
+    `routers/shop.py` ein viertes Webhook-Geheimnis liest
+    (`SHOP_STRIPE_WEBHOOK_SECRET`), das in der Liste fehlte. `bereit` konnte
+    damit wahr melden, waehrend der Shop-Webhook unkonfiguriert war — genau
+    die blinde Stelle, gegen die diese Auskunft gebaut wurde.
+
+    Die Zahl im Namen ist Absicht: Sie faellt auf, wenn ein weiterer Wert
+    dazukommt und jemand die Liste vergisst.
+    """
     z = _zustand(monkeypatch,
                  STRIPE_SECRET_KEY=_RK + "x" * 20,
                  STRIPE_WEBHOOK_SECRET=_WH + "a" * 32,
                  STRIPE_WEBHOOK_SECRET_BUCH=_WH + "b" * 32,
-                 STRIPE_WEBHOOK_SECRET_GEO=_WH + "c" * 32)
+                 STRIPE_WEBHOOK_SECRET_GEO=_WH + "c" * 32,
+                 SHOP_STRIPE_WEBHOOK_SECRET=_WH + "d" * 32)
 
     assert z["bereit"] is True
 
@@ -105,10 +117,11 @@ def test_und_nicht_wenn_einer_fehlt(monkeypatch):
     z = _zustand(monkeypatch,
                  STRIPE_SECRET_KEY=_RK + "x" * 20,
                  STRIPE_WEBHOOK_SECRET=_WH + "a" * 32,
-                 STRIPE_WEBHOOK_SECRET_BUCH=_WH + "b" * 32)
+                 STRIPE_WEBHOOK_SECRET_BUCH=_WH + "b" * 32,
+                 STRIPE_WEBHOOK_SECRET_GEO=_WH + "c" * 32)
 
     assert z["bereit"] is False
-    assert z["STRIPE_WEBHOOK_SECRET_GEO"]["gesetzt"] is False
+    assert z["SHOP_STRIPE_WEBHOOK_SECRET"]["gesetzt"] is False
 
 
 def test_jede_adresse_ist_benannt(monkeypatch):
@@ -120,6 +133,7 @@ def test_jede_adresse_ist_benannt(monkeypatch):
     assert z["STRIPE_WEBHOOK_SECRET"]["wofuer"] == "/api/payments/webhook"
     assert z["STRIPE_WEBHOOK_SECRET_BUCH"]["wofuer"] == "/api/book/webhook"
     assert z["STRIPE_WEBHOOK_SECRET_GEO"]["wofuer"] == "/api/geo-payments/webhook"
+    assert z["SHOP_STRIPE_WEBHOOK_SECRET"]["wofuer"] == "/api/shop/webhook"
 
 
 # ── Und was nicht gemeldet wird ───────────────────────────────────────

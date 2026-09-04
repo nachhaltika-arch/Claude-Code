@@ -132,6 +132,19 @@ _ZAHLUNGSWERTE = {
     "STRIPE_WEBHOOK_SECRET": "/api/payments/webhook",
     "STRIPE_WEBHOOK_SECRET_BUCH": "/api/book/webhook",
     "STRIPE_WEBHOOK_SECRET_GEO": "/api/geo-payments/webhook",
+    # **Der vierte Webhook fehlte hier** (04.09.2026, beim Einrichten der
+    # produktiven Schluessel aufgefallen). `routers/shop.py` liest
+    # `SHOP_STRIPE_WEBHOOK_SECRET` — und weil dieser Name nicht in der Liste
+    # stand, konnte `bereit: true` melden, waehrend der Shop-Webhook
+    # unkonfiguriert war. Genau die blinde Stelle, gegen die diese Auskunft
+    # gebaut wurde: Wer vier Werte setzt und den fuenften nicht kennt, haelt
+    # die Einrichtung fuer abgeschlossen.
+    #
+    # Der abweichende Name ist Absicht und bleibt: Er stammt aus der
+    # Orders-Strecke und steht so in `render-produktiv.yaml`. Ihn
+    # umzubenennen hiesse, eine gesetzte Variable an zwei Orten gleichzeitig
+    # zu wechseln — dieselbe Falle, vor der L-157 warnt.
+    "SHOP_STRIPE_WEBHOOK_SECRET": "/api/shop/webhook",
 }
 
 

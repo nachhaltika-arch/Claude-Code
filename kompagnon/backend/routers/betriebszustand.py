@@ -200,6 +200,65 @@ def _zahlungszustand() -> dict:
     return zustand
 
 
+def _erhebungszustand() -> dict:
+    """Kann das Audit ueberhaupt vollstaendig messen? (K1 / L-165, 05.09.2026)
+
+    **Der Anlass.** Der Angebotsbaukasten sagt unter G1 „mindestens 85 von
+    100 Punkten bei Abnahme" zu. Der Produktivbericht vom 04.09. meldet
+    **78 % der Kriterien geprueft** — elf tragen „nicht erhoben", darunter
+    alle vier Performance-Werte und sechs zur Barrierefreiheit. Quelle in
+    jeder Zeile: PageSpeed Insights.
+
+    **Am 05.09.2026 an Googles Schnittstelle nachgemessen, nicht vermutet:**
+    Ein anonymer Abruf — also einer ohne Schluessel — antwortet mit
+
+        429 RESOURCE_EXHAUSTED
+        Quota exceeded for quota metric 'Queries' and limit 'Queries per day'
+
+    Der Kommentar in `audit_pagespeed.auth_headers` sagt, ohne Schluessel
+    laufe der Aufruf „nur mit kleinerem Kontingent". Gemessen ist das
+    Kontingent schlicht aufgebraucht. **Ohne Schluessel ist PageSpeed damit
+    nicht kleiner, sondern gar nicht verfuegbar** — und 20 von 103 Punkten
+    fallen aus, an denen die Garantie haengt.
+
+    **Warum das hier steht und nicht nur in der Diagnose.**
+    `/api/diagnostics/config` kennt den Schluessel seit Langem, verlangt aber
+    eine Anmeldung. Genau diese Frage — „kann unsere Zusage heute ueberhaupt
+    gemessen werden?" — musste am 04.09. unbeantwortet bleiben, weil niemand
+    mit Zugang zur Hand war. Dieselbe Lehre wie bei den Uploads, dem
+    Browserlauf und den Zahlungswerten: am Gegenstand fragen statt im
+    Dashboard ablesen.
+
+    **Gemeldet wird, ob ein Schluessel da ist — nie der Schluessel.**
+    """
+    from services.audit_pagespeed import API_KEY_ENV_VARS, api_key
+
+    schluessel = api_key()
+    unter_welchem_namen = next(
+        (n for n in API_KEY_ENV_VARS if (os.getenv(n) or "").strip()), "")
+
+    return {
+        "pagespeed": {
+            "schluessel_gesetzt": bool(schluessel),
+            "laenge": len(schluessel),
+            "variable": unter_welchem_namen,
+            # Beide Schreibweisen gelten (L-98) — welche gesetzt ist, gehoert
+            # in die Auskunft, sonst sucht jemand an der falschen Zeile.
+            "moegliche_variablen": list(API_KEY_ENV_VARS),
+            "wofuer": "20 von 103 Punkten: Ladezeit und Barrierefreiheit",
+            "ohne_schluessel": (
+                "PageSpeed antwortet anonym mit 429 (Tageskontingent "
+                "erschoepft) — die Kriterien gelten dann als nicht erhoben."
+            ),
+        },
+        # **Die Zusage haengt daran, deshalb steht sie dabei.** Ohne
+        # vollstaendige Erhebung ist „mindestens 85 von 100" nicht
+        # nachpruefbar; der Baukasten sagt selbst, G1 duerfe bis zur Behebung
+        # nicht in Angeboten stehen.
+        "garantie_messbar": bool(schluessel),
+    }
+
+
 def _produktablage_zustand() -> dict:
     """Ob die gekaufte Datei ausgeliefert werden kann — von aussen abfragbar.
 
@@ -302,6 +361,8 @@ def health_check():
             # R2 antwortet der Abruf mit 503 — und das faellt sonst erst dem
             # ersten Kaeufer auf.
             "produktablage": _produktablage_zustand(),
+            # Ob die Zusage aus G1 heute ueberhaupt messbar ist (K1/L-165).
+            "erhebung": _erhebungszustand(),
             # Ob eingehende Kundenmails ankommen — und ob gerade ein
             # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
             "posteingang": _posteingang_zustand(),

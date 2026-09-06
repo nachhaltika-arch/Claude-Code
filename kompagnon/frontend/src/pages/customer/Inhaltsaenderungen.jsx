@@ -1,6 +1,7 @@
 import { useAuth } from '../../context/AuthContext';
 import Inhaltsguthaben from '../../components/Inhaltsguthaben';
 import AboZusage from '../../components/kunde/AboZusage';
+import AbrufbareLeistungen from '../../components/kunde/AbrufbareLeistungen';
 
 /**
  * „Leistungen und Guthaben" — was im Abo steckt, und was davon übrig ist.
@@ -31,6 +32,11 @@ export default function Inhaltsaenderungen() {
           neue Unterseite pro Jahr enthalten ist. Die Positionen kommen aus dem
           Katalog; welche hierher gehören, entscheidet ihr `ort`. */}
       <AboZusage token={token} ort="aenderungen" zeigeGrenzen />
+      {/* **Was er abrufen kann** (L-160 Rang 6). Hier und nicht auf einer
+          eigenen Seite: Wer nach „was steht mir zu" sucht, ist genau hier —
+          und die Rücksicherung sucht man im Ernstfall nicht in einem Menü,
+          sondern dort, wo die Abo-Leistungen stehen. */}
+      <AbrufbareLeistungen token={token} />
     </div>
   );
 }

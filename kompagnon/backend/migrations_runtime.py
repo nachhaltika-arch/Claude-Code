@@ -1903,6 +1903,30 @@ def run_migrations():
         # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
         # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
+        # Abgerufene Abo-Leistungen (L-160 Rang 6, 06.09.2026).
+        #
+        # **Der Abruf loest nichts aus, er meldet an.** Eine Ruecksicherung
+        # ist Handarbeit am Datenbestand; sie auf Knopfdruck zu starten waere
+        # die gefaehrlichste Automatik im Haus. Was hier steht, ist der
+        # **Eingang** — mit Zeitpunkt, damit die zugesagte Reaktionszeit
+        # nachweisbar ist.
+        #
+        # Eine offene Zeile je Betrieb und Position: Ein zweiter Klick darf
+        # keinen zweiten Fall anlegen, sonst haette dieselbe Sache beim
+        # Innendienst zwei Anforderungen und zwei Anfangszeitpunkte.
+        """CREATE TABLE IF NOT EXISTS abrufe (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+               position INTEGER NOT NULL,
+               angefordert_von VARCHAR(255) NOT NULL,
+               angefordert_am TIMESTAMP DEFAULT NOW(),
+               notiz TEXT DEFAULT '',
+               zustand VARCHAR(20) DEFAULT 'offen',
+               erledigt_am TIMESTAMP
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_abrufe_betrieb ON abrufe (lead_id)",
+        """CREATE UNIQUE INDEX IF NOT EXISTS ux_abruf_offen
+               ON abrufe (lead_id, position) WHERE zustand = 'offen'""",
         # Loeschantraege nach Art. 17 DSGVO (L-160 Rang 5, 06.09.2026).
         #
         # **Warum eine eigene Tabelle und kein Ticket.** Der Eingang ist der

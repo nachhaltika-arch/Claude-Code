@@ -53,6 +53,19 @@ class Position:
     vertragstext: str     # der Wortlaut aus KAS_DB_07
     frequenz: str
     ort: str
+    #: Was der Knopf sagt, mit dem diese Leistung abgerufen wird — `None`,
+    #: wo es nichts abzurufen gibt (L-160 Rang 6, 06.09.2026).
+    #:
+    #: **Nur zwei Positionen tragen ihn.** Die Ruecksicherung (3) und die
+    #: neue Unterseite (12) kann der Kunde heute nicht anfordern, obwohl er
+    #: sie bezahlt. Die **Stoerungsmeldung** bekommt bewusst keinen: Dafuer
+    #: gibt es den Support, und seit Rang 3 steht die zugesagte Reaktionszeit
+    #: ueber dem Formular. Ein zweiter Knopf, der dasselbe Ticket anlegt,
+    #: waere ein zweiter Weg zur selben Sache.
+    abruf: Optional[str] = None
+    #: Was **nach** dem Klick geschieht. Ein Abruf ohne diesen Satz laesst
+    #: den Kunden raten, ob gleich etwas passiert oder jemand zurueckruft.
+    abruf_danach: Optional[str] = None
     #: Die messbare Zusage als Satzteil, wo es eine gibt — sonst `None`.
     #:
     #: **Ein eigenes Feld und nicht aus dem Titel geschnitten.** Der erste
@@ -74,7 +87,12 @@ KATALOG: Tuple[Position, ...] = (
              "Sicherheits- und Systemaktualisierungen", "laufend", ORT_LAUFEND),
     Position(3, "Tägliche Sicherung",
              "Jede Nacht eine Kopie. Wenn etwas schiefgeht, spielen wir sie auf Ihre Anforderung zurück.",
-             "Tägliche Sicherung, Rücksicherung auf Anforderung", "täglich", ORT_SICHERUNG),
+             "Tägliche Sicherung, Rücksicherung auf Anforderung", "täglich", ORT_SICHERUNG,
+             abruf="Rücksicherung anfordern",
+             abruf_danach="Wir melden uns telefonisch und klären mit Ihnen, "
+                          "auf welchen Stand zurückgesetzt wird — die "
+                          "Rücksicherung überschreibt, was seither entstanden "
+                          "ist."),
     Position(4, "Wir merken es vor Ihnen",
              "Ihre Seite wird laufend auf Erreichbarkeit geprüft; bei einer Störung melden wir uns.",
              "Verfügbarkeitsüberwachung mit Störungsmeldung", "laufend", ORT_LAUFEND),
@@ -113,7 +131,10 @@ KATALOG: Tuple[Position, ...] = (
     Position(12, "Eine neue Unterseite pro Jahr",
              "Ein neuer Leistungsbereich, ein neuer Standort — einmal im Jahr ist eine Seite enthalten.",
              "Eine neue Unterseite pro Jahr enthalten", "1× jährlich",
-             ORT_AENDERUNGEN, produkte=(ABO_PRO,)),
+             ORT_AENDERUNGEN, produkte=(ABO_PRO,),
+             abruf="Unterseite abrufen",
+             abruf_danach="Ihr Betreuer meldet sich und bespricht mit Ihnen, "
+                          "worum es auf der Seite gehen soll."),
 )
 
 NACH_NUMMER = {p.nummer: p for p in KATALOG}

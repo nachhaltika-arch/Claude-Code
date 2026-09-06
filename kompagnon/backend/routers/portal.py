@@ -1069,6 +1069,100 @@ def get_leistungen(user=Depends(get_current_user), db: Session = Depends(get_db)
     }
 
 
+# ══════════════════════════════════════════════════════════════════════
+# Bezahlte Leistungen abrufen (L-160 Rang 6)
+# ══════════════════════════════════════════════════════════════════════
+#
+# Zwei Positionen des Leistungsverzeichnisses konnte der Kunde **nicht
+# anfordern**, obwohl er sie monatlich bezahlt: die Ruecksicherung und die
+# eine neue Unterseite im Jahr. „Selten gebraucht, aber im Ernstfall dringend
+# — und dann sucht niemand nach der Telefonnummer."
+
+
+class AbrufWunsch(BaseModel):
+    notiz: str = ""
+
+
+def _abrufbare(db: Session, user):
+    """Die Positionen, die dieses Abo abrufen laesst — leer ohne Vertrag."""
+    from services import abo_vertrag
+    from services import leistungsverzeichnis as lz
+
+    vertrag = abo_vertrag.laufender(db, user.lead_id) if user.lead_id else None
+    if not vertrag:
+        return []
+    return [p for p in lz.fuer_produkt(vertrag.produkt) if p.abruf]
+
+
+@router.get("/abrufe")
+def get_abrufe(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Was abrufbar ist und was schon angefordert wurde."""
+    positionen = _abrufbare(db, user)
+
+    offen = {}
+    try:
+        for zeile in db.execute(text(
+                "SELECT position, angefordert_am FROM abrufe "
+                "WHERE lead_id = :l AND zustand = 'offen'"),
+                {"l": user.lead_id}).fetchall():
+            offen[int(zeile[0])] = zeile[1]
+    except Exception:  # noqa: BLE001 — ohne Tabelle gibt es keine Abrufe
+        db.rollback()
+
+    return {"abrufe": [{
+        "nummer": p.nummer, "titel": p.titel, "warum": p.warum,
+        "frequenz": p.frequenz, "knopf": p.abruf, "danach": p.abruf_danach,
+        "offen": p.nummer in offen,
+        "angefordert_am": (offen[p.nummer].isoformat()
+                           if p.nummer in offen and offen[p.nummer] else None),
+    } for p in positionen]}
+
+
+@router.post("/abrufe/{position}")
+def fordere_ab(position: int, body: AbrufWunsch,
+               user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Eine bezahlte Leistung anfordern.
+
+    **Der Abruf loest nichts aus, er meldet an.** Eine Ruecksicherung ist
+    Handarbeit am Datenbestand; sie auf Knopfdruck zu starten waere die
+    gefaehrlichste Automatik im Haus.
+    """
+    from services import leistungsverzeichnis as lz
+
+    punkt = lz.NACH_NUMMER.get(position)
+    if not punkt:
+        raise HTTPException(404, f"Unbekannte Position: {position}")
+    if not punkt.abruf:
+        raise HTTPException(400, f"„{punkt.titel}“ wird nicht abgerufen")
+    if punkt not in _abrufbare(db, user):
+        # 403 und nicht 404: Die Position gibt es, sein Vertrag kennt sie
+        # nicht. Der Unterschied steht in der Meldung.
+        raise HTTPException(403, f"„{punkt.titel}“ gehört nicht zu Ihrem Vertrag")
+
+    vorhanden = db.execute(text(
+        "SELECT angefordert_am FROM abrufe WHERE lead_id = :l AND position = :p "
+        "AND zustand = 'offen'"), {"l": user.lead_id, "p": position}).fetchone()
+    if vorhanden:
+        # **Der erste Klick zaehlt.** Sonst stuenden beim Innendienst zwei
+        # Anforderungen fuer dieselbe Sache — mit zwei Anfangszeitpunkten fuer
+        # dieselbe zugesagte Reaktionszeit.
+        return {"ok": True, "angefordert_am": vorhanden[0].isoformat(),
+                "danach": punkt.abruf_danach, "schon_offen": True}
+
+    jetzt = datetime.utcnow()
+    db.execute(text(
+        "INSERT INTO abrufe (lead_id, position, angefordert_von, "
+        "angefordert_am, notiz, zustand) VALUES (:l, :p, :v, :a, :n, 'offen')"),
+        {"l": user.lead_id, "p": position, "v": user.email, "a": jetzt,
+         "n": (body.notiz or "")[:2000]})
+    db.commit()
+    logger.info("Abruf: Betrieb %s fordert Position %s an (%s)",
+                user.lead_id, position, punkt.titel)
+
+    return {"ok": True, "angefordert_am": jetzt.isoformat(),
+            "danach": punkt.abruf_danach, "schon_offen": False}
+
+
 @router.get("/zahlungen")
 def get_zahlungen(user=Depends(verlangt_geldblick), db: Session = Depends(get_db)):
     """Abos, Rechnungen und der Zustand des Zahlungskontos."""

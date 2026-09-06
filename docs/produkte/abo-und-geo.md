@@ -4,10 +4,21 @@
 
 > ## Zum Stand am 23.08.2026
 >
-> - **GEO-01 ist im Lagebild als [L-99] geführt.** Die Leistung wird
+> - ~~**GEO-01 ist im Lagebild als [L-99] geführt.** Die Leistung wird
 >   beschrieben, aber nicht ausgeliefert: `qa_scanner` **prüft** `llms.txt` an
 >   fremden Seiten, wir **erzeugen** es an unseren nicht. Kein Erzeuger, keine
->   Vorlage, kein Deploy-Schritt.
+>   Vorlage, kein Deploy-Schritt.~~
+>
+>   **Überholt, nachgetragen am 06.09.2026.** L-99 ist seit dem 04.09.
+>   geschlossen: Die Auslieferung von `llms.txt` und `schema.org` steht, und
+>   `services/geo_auslieferung.py` prüft nach der Veröffentlichung am lebenden
+>   Dienst nach. **GEO-01 ist verkäuflich** und steht seit dem 06.09. unter
+>   „Dazubuchen" im Kundenkonto.
+>
+>   Aufgefallen beim Bauen dieser Seite — der Hinweis hätte sonst ein Produkt
+>   gesperrt, das seit zwei Tagen lieferbar ist. **Eine Sperre, die widerlegt
+>   ist, kostet dieselbe Glaubwürdigkeit wie eine fehlende:** Wer sie einmal
+>   als falsch erlebt, prüft die nächste nicht mehr.
 > - **ABO-BAS und ABO-PRO stehen als [L-101].** Es fehlen drei Dinge: eine
 >   wiederkehrende Abrechnung (Stripe kann Abonnements, das System nutzt nur
 >   Einmalzahlungen), eine **Zeiterfassung** für die zugesagten Stunden, und

@@ -80,6 +80,7 @@ import MeinKonto from './pages/customer/MeinKonto';
 import Zugaenge from './pages/customer/Zugaenge';
 import Vertragsunterlagen from './pages/customer/Vertragsunterlagen';
 import Nachrichten from './pages/customer/Nachrichten';
+import Dazubuchen from './pages/customer/Dazubuchen';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -418,6 +419,10 @@ function App() {
                 Übersicht und unter „Meine Daten" — zweimal, und beide Male
                 am falschen Ort. */}
             <Route path="nachrichten" element={<PrivateRoute><Nachrichten /></PrivateRoute>} />
+            {/* Dazubuchen: Pflege Pro und GEO/GAIO, mit Bestätigungsschritt.
+                Die Buchung ist eine Erklärung — umgesetzt wird sie vom
+                Innendienst, nicht vom Klick. */}
+            <Route path="dazubuchen" element={<PrivateRoute><Dazubuchen /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

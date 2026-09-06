@@ -1070,6 +1070,129 @@ def get_leistungen(user=Depends(get_current_user), db: Session = Depends(get_db)
 
 
 # ══════════════════════════════════════════════════════════════════════
+# Dazubuchen (Entwurf `kundenkonto-neu`)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Die Buchung ist eine verbindliche Erklaerung, keine Automatik.** Ein
+# Wechsel auf Pflege Pro heisst Lastschrift ueber 177,31 € im Monat. Den
+# Vertrag zu wechseln **und** das Stripe-Abo umzustellen, waeren zwei
+# Eingriffe ins Geld auf einen Klick, ohne dass ein Mensch dazwischen sieht.
+# Was hier entsteht, ist die Erklaerung mit Zeitpunkt, Preis und Wortlaut;
+# umgesetzt wird sie vom Innendienst.
+
+
+class BuchungsWunsch(BaseModel):
+    verstanden: bool = False
+    notiz: str = ""
+
+
+def _folgemonat() -> str:
+    """Der kommende Monatserste, als `JJJJ-MM`.
+
+    Der Wechsel gilt nie im laufenden Monat: `abo_vertrag.wechseln` weist das
+    ausdruecklich ab, weil zwei Vertraege im selben Monat nicht
+    unterscheidbar waeren.
+    """
+    jetzt = datetime.utcnow()
+    jahr, monat = (jetzt.year + 1, 1) if jetzt.month == 12 else (jetzt.year, jetzt.month + 1)
+    return f"{jahr}-{monat:02d}"
+
+
+def _offene_buchungen(db: Session, lead_id: int) -> dict:
+    try:
+        return {z[0]: z[1] for z in db.execute(text(
+            "SELECT kennung, gebucht_am FROM buchungen "
+            "WHERE lead_id = :l AND zustand = 'offen'"), {"l": lead_id}).fetchall()}
+    except Exception:  # noqa: BLE001 — ohne Tabelle gibt es keine Buchungen
+        db.rollback()
+        return {}
+
+
+@router.get("/dazubuchen")
+def get_dazubuchen(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Was dieser Kunde dazubuchen kann — mit Grund, wo nicht."""
+    from services import abo_vertrag
+    from services import dazubuchen as dz
+    from services.kundenzugang import darf_handeln, stufe_von
+
+    vertrag = abo_vertrag.laufender(db, user.lead_id) if user.lead_id else None
+    offen = _offene_buchungen(db, user.lead_id) if user.lead_id else {}
+
+    return {
+        # **Wer nur ansehen darf, sieht die Angebote — und keinen Knopf.**
+        # Eine Preisliste ist keine Handlung; das Buchen ist eine.
+        "darf_buchen": darf_handeln(stufe_von(user)),
+        "ab_monat": _folgemonat(),
+        "angebote": [{
+            "kennung": a.kennung, "titel": a.titel, "nummer": a.nummer,
+            "netto_cent": a.netto_cent, "brutto_cent": a.brutto_cent,
+            "steuersatz": dz.STEUERSATZ, "einmalig": a.einmalig,
+            "dazu": a.dazu, "punkte": list(a.punkte),
+            "zahlung": a.zahlung, "laufzeit": a.laufzeit,
+            "rechtstext": a.rechtstext, "danach": a.danach,
+            "buchbar": buchbar and a.kennung not in offen,
+            "gebucht": a.kennung in offen,
+            "gebucht_am": (offen[a.kennung].isoformat()
+                           if a.kennung in offen and offen[a.kennung] else None),
+            "grund": grund,
+        } for a, buchbar, grund in dz.buchbar_fuer(
+            vertrag.produkt if vertrag else "", offen)],
+    }
+
+
+@router.post("/dazubuchen/{kennung}")
+def buche_dazu(kennung: str, body: BuchungsWunsch,
+               user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Ein Angebot verbindlich buchen.
+
+    **Zwei Hürden vor dem Geld:** die Rechtestufe und die ausdrueckliche
+    Bestaetigung, den Wortlaut gelesen zu haben. Ein Klick ist zu wenig fuer
+    eine Lastschrift.
+
+    **Der Wortlaut und der Preis von heute werden mitgeschrieben.** Aendern wir
+    beides spaeter, belegt die Buchung sonst nur, dass jemand irgendwann
+    geklickt hat — dieselbe Ueberlegung wie bei der AGB-Fassung (ORDERS_05).
+    """
+    from services import abo_vertrag
+    from services import dazubuchen as dz
+    from services.kundenzugang import darf_handeln, stufe_von
+
+    angebot = dz.ANGEBOTE.get(kennung.upper())
+    if not angebot:
+        raise HTTPException(404, f"Unbekanntes Angebot: {kennung}")
+    if not darf_handeln(stufe_von(user)):
+        raise HTTPException(403, "Dieser Zugang darf nichts dazubuchen")
+    if not body.verstanden:
+        raise HTTPException(400, "Bitte bestätigen Sie, dass Sie die Bedingungen gelesen haben")
+    if not user.lead_id:
+        raise HTTPException(400, "Kein Betrieb am Konto")
+
+    vertrag = abo_vertrag.laufender(db, user.lead_id)
+    passend = [a for a, buchbar, _ in dz.buchbar_fuer(
+        vertrag.produkt if vertrag else "", _offene_buchungen(db, user.lead_id))
+        if a.kennung == angebot.kennung and buchbar]
+    if not passend:
+        raise HTTPException(409, "Dieses Angebot steht Ihnen gerade nicht offen")
+
+    ab = _folgemonat() if not angebot.einmalig else ""
+    jetzt = datetime.utcnow()
+    db.execute(text(
+        "INSERT INTO buchungen (lead_id, kennung, gebucht_von, gebucht_am, "
+        "ab_monat, preis_netto_cent, preis_brutto_cent, rechtstext, zustand, notiz) "
+        "VALUES (:l, :k, :v, :g, :ab, :n, :b, :r, 'offen', :no)"),
+        {"l": user.lead_id, "k": angebot.kennung, "v": user.email, "g": jetzt,
+         "ab": ab, "n": angebot.netto_cent, "b": angebot.brutto_cent,
+         "r": angebot.rechtstext, "no": (body.notiz or "")[:1000]})
+    db.commit()
+    logger.warning("Buchung: Betrieb %s bucht %s (%s Cent brutto) durch %s",
+                   user.lead_id, angebot.kennung, angebot.brutto_cent, user.email)
+
+    return {"ok": True, "kennung": angebot.kennung,
+            "gebucht_am": jetzt.isoformat(), "ab_monat": ab or _folgemonat(),
+            "danach": angebot.danach}
+
+
+# ══════════════════════════════════════════════════════════════════════
 # Bezahlte Leistungen abrufen (L-160 Rang 6)
 # ══════════════════════════════════════════════════════════════════════
 #

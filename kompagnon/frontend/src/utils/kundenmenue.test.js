@@ -140,8 +140,12 @@ describe('Was der Entwurf verlangt und noch fehlt', () => {
    * nur andersherum: nicht „gebaut, nicht angeschlossen", sondern
    * „angeschlossen, nicht gebaut". Beides führt jemanden ins Leere.
    */
-  test('jeder fehlende Punkt nennt Grund und Lücke', () => {
-    expect(NOCH_NICHT_GEBAUT.length).toBeGreaterThan(0);
+  test('die Liste ist leer oder jeder Eintrag ist vollständig', () => {
+    // **Leer ist der erwünschte Zustand, nicht der verdächtige.** Der erste
+    // Wurf verlangte hier `length > 0` — und lief auf, sobald der vierte und
+    // letzte Punkt aus dem Entwurf gebaut war (06.09.2026, `Dazubuchen`).
+    // Ein Test, der das Ziel für einen Fehler hält, wird beim Erreichen des
+    // Ziels entfernt statt korrigiert.
     NOCH_NICHT_GEBAUT.forEach((p) => {
       expect(p.luecke).toMatch(/^L-\d+$/);
       expect(p.grund.length).toBeGreaterThan(20);
@@ -154,6 +158,7 @@ describe('Was der Entwurf verlangt und noch fehlt', () => {
   });
 
   test('sobald die Seite existiert, gehört der Punkt ins Menü', () => {
+    // Läuft bei leerer Liste ins Leere — und das ist richtig so.
     // Ein Eintrag, dessen Route es längst gibt, ist keine Lücke mehr — er ist
     // ein vergessener Anschluss.
     const app = lies('App.jsx');

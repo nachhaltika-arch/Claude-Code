@@ -1903,6 +1903,34 @@ def run_migrations():
         # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
         # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
+        # Buchungen aus dem Kundenkonto (06.09.2026, Entwurf kundenkonto-neu).
+        #
+        # **Die Buchung ist eine Erklaerung, keine Automatik.** Ein Wechsel auf
+        # Pflege Pro heisst Lastschrift ueber 177,31 € im Monat; Vertrag und
+        # Stripe-Abo auf einen Klick umzustellen waeren zwei Eingriffe ins Geld
+        # ohne menschliche Gegenprobe. Hier steht die Erklaerung mit Zeitpunkt.
+        #
+        # **`rechtstext` und `preis_brutto_cent` werden mitgeschrieben.**
+        # Aendern wir den Wortlaut oder den Preis spaeter, belegt die Buchung
+        # sonst nur, dass jemand irgendwann geklickt hat — dieselbe Ueberlegung
+        # wie bei der AGB-Fassung (ORDERS_05, `services/agb.py`).
+        """CREATE TABLE IF NOT EXISTS buchungen (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+               kennung VARCHAR(20) NOT NULL,
+               gebucht_von VARCHAR(255) NOT NULL,
+               gebucht_am TIMESTAMP DEFAULT NOW(),
+               ab_monat VARCHAR(7) DEFAULT '',
+               preis_netto_cent INTEGER NOT NULL,
+               preis_brutto_cent INTEGER NOT NULL,
+               rechtstext TEXT NOT NULL,
+               zustand VARCHAR(20) DEFAULT 'offen',
+               erledigt_am TIMESTAMP,
+               notiz TEXT DEFAULT ''
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_buchungen_betrieb ON buchungen (lead_id)",
+        """CREATE UNIQUE INDEX IF NOT EXISTS ux_buchung_offen
+               ON buchungen (lead_id, kennung) WHERE zustand = 'offen'""",
         # Abgerufene Abo-Leistungen (L-160 Rang 6, 06.09.2026).
         #
         # **Der Abruf loest nichts aus, er meldet an.** Eine Ruecksicherung

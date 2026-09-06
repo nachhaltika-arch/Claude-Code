@@ -133,7 +133,7 @@ h2:first-of-type{margin-top:0}
 <div class="blatt">
 
   <header class="kopf">
-    <p class="marke">KOMPAGNON · Kundenreise als Diagnose · Stand 4. September 2026</p>
+    <p class="marke">KOMPAGNON · Kundenreise als Diagnose · Stand 6. September 2026</p>
     <h1>Wo die Reise hängt</h1>
     <p class="unterzeile">Dieselben 38 Berührungspunkte wie in der Reisekarte — aber nicht,
     um sie zu zeigen. Jeder trägt einen <b>gemessenen Zustand</b>, und darunter stehen die
@@ -144,8 +144,9 @@ h2:first-of-type{margin-top:0}
   <div class="band">
     <div><div class="z">38</div><div class="w">Berührungspunkte</div></div>
     <div><div class="z">14</div><div class="w">davon mit benanntem Vorbehalt — sie „hängen"</div></div>
-    <div><div class="z">8</div><div class="w">Konflikte — zwei Aussagen, eine muss weichen</div></div>
-    <div><div class="z">2</div><div class="w">davon kosten unmittelbar Geld</div></div>
+    <div><div class="z">9</div><div class="w">Konflikte — zwei Aussagen, eine muss weichen</div></div>
+    <div><div class="z">3</div><div class="w">davon kosten unmittelbar Geld</div></div>
+    <div><div class="z">1</div><div class="w">gelöst — K3, am 6. September</div></div>
     <div><div class="z">4</div><div class="w">Stellen, an denen der Kunde wartet</div></div>
     <div><div class="z">4</div><div class="w">blinde Flecken — wir messen es nicht</div></div>
   </div>
@@ -226,12 +227,12 @@ const KONFLIKTE = [
     frage:'<b>28,31 € im Monat je Kunde</b> hängen an der Antwort. Bis zum 4. September stellte der Lauf nur auf, und ein Mensch sah die Zahl vor der Rechnung. Seit der Entscheidung zieht Stripe ein — eine Abbuchung holt man schlechter zurück als eine Aufstellung. Und im Datenblatt steht bei beiden Preisen weiterhin „⚠️ Annahme".',
     punkte:['Monatsrechnung','Zahlung','Kundenkonto'], beleg:'L-169' },
 
-  { nr:'K3', art:'recht', tag:'Vertrag', titel:'Die Frist ruht — aufgeschrieben wird es nirgends',
+  { nr:'K3', art:'gelöst', tag:'Gelöst 6. Sept.', titel:'Die Frist ruht — und wird jetzt aufgeschrieben',
     links:{ t:'Was im Angebot steht', s:'„Verzögert sich eine Freigabe nach M7 oder M8, ruht die Frist für die Dauer der Verzögerung."',
             q:'Angebotsfuß, Baukasten' },
-    rechts:{ t:'Was das System führt', s:'Den Fristbeginn je Mitwirkungspunkt — aber <b>kein Feld für eine Pause</b>. Wann etwas vorlag und wann freigegeben wurde, steht nirgends.',
-             q:'services/mitwirkung.py · mitwirkung_stand' },
-    frage:'Ohne die Spanne ist das zugesagte Bauzeitende nicht berechenbar, sondern nur behauptbar — <b>von beiden Seiten</b>. Im Streit steht Aussage gegen Aussage über eine Frist, die wir selbst zugesagt haben.',
+    rechts:{ t:'Was das System jetzt führt', s:'Vorlage- <b>und</b> Freigabezeitpunkt je Freigabe, die Ruhezeit in Werktagen und das errechnete Bauzeitende. Der Innendienst trägt die Vorlage ein, der Kunde liest den zugesagten Tag — <b>beide aus derselben Rechnung</b>.',
+             q:'services/bauzeit.py · mitwirkung_stand.vorgelegt_am' },
+    frage:'<b>Was offen bleibt, ist eine Auslegung und keine Zeile Code:</b> Gerechnet wird, dass die Frist erst ruht, was <b>über</b> die zugesagten fünf Werktage hinausgeht — sonst wäre die Zusage der fünf Tage bedeutungslos. Die Lesart steht an einer Stelle und lässt sich in einer Zeile ändern. <b>Und sie ist nicht dieselbe Frage wie K9</b>: dort geht es um die Einheit der Bauzeit selbst.',
     punkte:['Bauplan','Entwurfsfreigabe','Textfreigabe'], beleg:'L-166' },
 
   { nr:'K4', art:'recht', tag:'Ablauf', titel:'Der Ablauf kennt das Produkt nicht',
@@ -273,6 +274,13 @@ const KONFLIKTE = [
              q:'11 Messungen am Code, 4.9.2026' },
     frage:'Ein Verkaufsdokument, das eine aufgehobene Sperre meldet, kostet Umsatz; eines, das eine bestehende verschweigt, kostet mehr. Die Blocker sind übersetzt und der Report trägt einen Schlussvermerk — <b>die Freigabe selbst ist eine Entscheidung und gehört David.</b>',
     punkte:['Verkaufsseite','Paketseite','Angebot'], beleg:'L-163' },
+  { nr:'K9', art:'geld', tag:'Geld', titel:'28 Kalendertage oder 28 Werktage? Dieselbe Zahl, elf Tage Unterschied',
+    links:{ t:'Was die Datenblätter sagen', s:'<b>Kalendertage.</b> Start 7, Relaunch 14, Neubau 28, System 42 — in der Kopftabelle und noch einmal im Angebotstext.',
+            q:'KAS_DB_01 / 02 / 03 / 08, jeweils Zeile „Bauzeit"' },
+    rechts:{ t:'Was der Kunde vom System hört', s:'<b>Werktage</b> — dieselben Zahlen, an fünf Stellen: Auftragsbestätigung, Angebots-PDF (zweimal), Kassenseite, Willkommensmail. Die Spalte dahinter (<code>products.delivery_days</code>) trägt <b>keine Einheit</b>.',
+             q:'auftragsbestaetigung_pdf.py · angebot_pdf.py · payments.py · email_templates.py' },
+    frage:'28 Kalendertage sind vier Wochen, 28 Werktage knapp sechs. Wer nach dem Datenblatt bindet und nach dem Code plant, <b>reißt die zugesagte Frist um elf Tage</b> — und daran hängt die Verzugspauschale. Umgekehrt verspricht die Auftragsbestätigung heute mehr Zeit, als das Produkt vorsieht. <b>Der Baukasten widerspricht sich dabei selbst:</b> § A sagt Werktage, § G Angebotsfuß sagt Kalendertage. Beides ist vertretbar; der Zwischenzustand nicht.',
+    punkte:['Auftragsbestätigung','Angebot','Bauplan','Auslieferung'], beleg:'L-173' },
 ];
 
 const STILLE = [
@@ -316,7 +324,7 @@ kette.innerHTML = STUFEN.map((s) => `
   </div>`;
 
 document.getElementById('konflikte').innerHTML = KONFLIKTE.map((k) => `
-  <article class="k ${k.art === 'geld' ? 'geld' : ''}" tabindex="0" data-nr="${k.nr}">
+  <article class="k ${k.art === 'recht' ? '' : k.art}" tabindex="0" data-nr="${k.nr}">
     <div class="k-kopf">
       <span class="k-nr">${k.nr}</span>
       <h3 class="k-titel">${k.titel}</h3>

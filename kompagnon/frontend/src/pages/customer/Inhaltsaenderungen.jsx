@@ -3,7 +3,13 @@ import Inhaltsguthaben from '../../components/Inhaltsguthaben';
 import AboZusage from '../../components/kunde/AboZusage';
 
 /**
- * „Inhaltsänderungen" — Guthaben und Wünsche als eigene Seite (L-161).
+ * „Leistungen und Guthaben" — was im Abo steckt, und was davon übrig ist.
+ *
+ * Hiess bis zum 06.09.2026 „Inhaltsänderungen" (L-161) und zeigte auch nur
+ * die: Kontostand in Minuten, Wunsch anfordern, Verlauf. Seit L-160 Rang 3
+ * steht darunter, **wofür der Betrieb monatlich zahlt** — im Wortlaut des
+ * Vertrags, mit Verfallhinweis und Ausschlussliste. Der alte Name nannte
+ * die Hälfte; der Menüpunkt im Entwurf `kundenkonto-neu` nennt beides.
  *
  * Der Kunde kommt hierher mit einer Absicht („die Öffnungszeiten stimmen
  * nicht mehr"), nicht zum Stöbern. Eine eigene Seite ist für so etwas der
@@ -16,7 +22,7 @@ export default function Inhaltsaenderungen() {
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 0 40px' }}>
       <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.02em',
                    color: 'var(--text-primary)', margin: '0 0 16px' }}>
-        Inhaltsänderungen
+        Leistungen und Guthaben
       </h1>
       <Inhaltsguthaben token={token} ohneTitel />
       {/* **Was hier im Abo steckt, im Wortlaut des Vertrags** (L-160, Rang 3).

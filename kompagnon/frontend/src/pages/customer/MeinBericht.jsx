@@ -4,7 +4,12 @@ import API_BASE_URL from '../../config';
 import GeoReport from '../../components/GeoReport';
 
 /**
- * „Mein Bericht" — der Prüfstand der eigenen Website (L-161).
+ * „Berichte und Prüfungen" — der Prüfstand der eigenen Website.
+ *
+ * Hiess bis zum 06.09.2026 „Mein Bericht" (L-161). Die Seite führt seit
+ * L-160 Rang 2 **zwei** Dinge: den monatlichen Leistungsbericht mit dem
+ * Verlauf und den nächsten Re-Audit-Termin aus `quartals_reaudit`. Der
+ * Singular nannte den zweiten nicht.
  *
  * **Warum die Kategoriebalken von der Startseite hierher gewandert sind.**
  * Sie beantworten eine Frage, die ein Kunde einmal im Monat stellt, nicht
@@ -98,7 +103,7 @@ export default function MeinBericht() {
           gesehen, nicht im Quelltext. */}
       <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.02em',
                    color: 'var(--text-primary)', margin: '0 0 16px' }}>
-        Mein Bericht
+        Berichte und Prüfungen
       </h1>
 
       {!audit ? (

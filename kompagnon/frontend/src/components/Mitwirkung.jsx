@@ -87,6 +87,23 @@ export default function Mitwirkung({ token, ohneTitel = false }) {
       <header style={S.kopf}>
         {!ohneTitel && <h2 style={S.h1}>Was wir von Ihnen brauchen</h2>}
         <p style={S.termin}>{satz(daten)}</p>
+        {/* **Das zugesagte Ende, sobald es eines gibt** (L-166, 06.09.2026).
+            Vorher stand hier nur „wir starten am nächsten Werktag" — ein
+            Anfang ohne Ende. Der Angebotsfuß sagt beides zu, und wer die
+            Frist nur behaupten kann, hat sie im Streit nicht. */}
+        {daten.frist?.ende && (
+          <p style={S.ende}>
+            Fertig bis <b>{datumKurz(daten.frist.ende)}</b>
+            {daten.frist.pause_werktage > 0 && (
+              <>
+                {' '}— {WORTE[daten.frist.pause_werktage] || daten.frist.pause_werktage}
+                {daten.frist.pause_werktage === 1 ? ' Werktag' : ' Werktage'} später als
+                zugesagt, weil eine Freigabe auf sich warten ließ
+                (ursprünglich {datumKurz(daten.frist.ende_ohne_pause)}).
+              </>
+            )}
+          </p>
+        )}
         <p style={S.zaehler}>{daten.erledigt} von {daten.gesamt} erledigt</p>
       </header>
 
@@ -122,9 +139,17 @@ export default function Mitwirkung({ token, ohneTitel = false }) {
             Nichts zu tun, solange wir nichts vorgelegt haben. Sie bekommen eine
             Nachricht, und dann haben Sie fünf Werktage.
           </p>
+          {/* **Was vorliegt, steht mit Datum da** (L-166). „Sie haben fünf
+              Werktage" ohne den Tag, an dem sie begannen, ist eine Frist, die
+              der Kunde nicht nachrechnen kann — und die wir im Streit nur
+              behaupten. Wer überzogen hat, liest hier, was es gekostet hat;
+              wer nicht, liest, dass nichts offen ist. */}
           <ul style={S.liste}>
             {daten.spaeter.map(p => (
-              <li key={p.kennung}><b>{p.titel}</b> — {p.warum}</li>
+              <li key={p.kennung} style={S.freigabeZeile}>
+                <b>{p.titel}</b> — {p.warum}
+                {fristSatz(daten.frist, p.kennung)}
+              </li>
             ))}
           </ul>
         </div>
@@ -140,6 +165,38 @@ function satz({ offen, start_moeglich }) {
 }
 
 const WORTE = ['keine', 'eine', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht'];
+
+/**
+ * Was zu einer Freigabe zu sagen ist — vorgelegt, freigegeben, überzogen.
+ *
+ * **Die Zahlen kommen aus der Antwort, nicht aus dieser Datei.** Wie viele
+ * Werktage die Frist läuft und wann sie endet, rechnet das Backend
+ * (`services/bauzeit.py`). Eine zweite Rechnung hier wäre der zweite Ort, an
+ * dem die Auslegung des Angebotstexts gepflegt werden müsste — und der
+ * Bildschirm würde eines Tages etwas anderes sagen als die Akte.
+ */
+function fristSatz(frist, kennung) {
+  const f = frist?.freigaben?.find(x => x.kennung === kennung);
+  if (!f?.vorgelegt_am) return null;
+
+  if (f.freigegeben_am) {
+    return (
+      <span style={S.fristRuhig}>
+        Vorgelegt am {datumKurz(f.vorgelegt_am)}, freigegeben am {datumKurz(f.freigegeben_am)}
+        {f.werktage > 0
+          ? ` — ${f.werktage} ${f.werktage === 1 ? 'Werktag' : 'Werktage'} über der Frist.`
+          : ' — innerhalb der Frist.'}
+      </span>
+    );
+  }
+  return (
+    <span style={f.werktage > 0 ? S.fristOffen : S.fristRuhig}>
+      Vorgelegt am {datumKurz(f.vorgelegt_am)} — bitte bis {datumKurz(f.frist_bis)} freigeben.
+      {f.werktage > 0
+        && ` Die Frist ist seit ${f.werktage} ${f.werktage === 1 ? 'Werktag' : 'Werktagen'} überschritten; die Bauzeit ruht so lange.`}
+    </span>
+  );
+}
 
 function Karte({ punkt, naechst, auf, umschalten, eintragen, laeuft,
                  token, leadId, terminLink, neuLaden }) {
@@ -228,6 +285,12 @@ const S = {
   spaeter: { background: 'var(--bg-app)', borderRadius: 8, padding: 24, marginTop: 16 },
   spaeterText: { fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 16px', maxWidth: '60ch' },
   liste: { margin: 0, paddingLeft: 20, fontSize: 14, color: 'var(--text-secondary)' },
+  freigabeZeile: { marginBottom: 10, lineHeight: 1.6 },
+  ende: { fontSize: 15, lineHeight: 1.6, margin: '12px 0 0', maxWidth: '58ch' },
+  /* Status ist immer Farbe **und** Text — eine überschrittene Frist steht
+     ausgeschrieben da und nicht nur in Rot. */
+  fristRuhig: { display: 'block', marginTop: 4, fontSize: 13, color: 'var(--text-tertiary)' },
+  fristOffen: { display: 'block', marginTop: 4, fontSize: 13, fontWeight: 700, color: 'var(--status-warning-text)' },
   fehler: { color: 'var(--status-danger-text)', fontSize: 14 },
   leise: { color: 'var(--text-tertiary)', fontSize: 14 },
   notiz: { fontSize: 14, color: 'var(--text-primary)', background: 'var(--bg-app)',

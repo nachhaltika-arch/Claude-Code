@@ -339,7 +339,8 @@ def _merkmale(project) -> set:
 
 @router.get("/mitwirkung")
 def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)):
-    """Was wir vom Kunden brauchen — mit Stand und gerechnetem Fristbeginn."""
+    """Was wir vom Kunden brauchen — mit Stand und gerechneter Bauzeit."""
+    from services import bauzeit_projekt
     from services import mitwirkung as kat
 
     project = None
@@ -348,7 +349,7 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
                    .order_by(Project.created_at.desc()).first())
     if not project:
         return {"punkte": [], "spaeter": [], "offen": 0, "erledigt": 0,
-                "gesamt": 0, "start_moeglich": False,
+                "gesamt": 0, "start_moeglich": False, "frist": None,
                 "termin_link": "", "lead_id": user.lead_id}
 
     staende = {s.kennung: s for s in db.query(MitwirkungStand)
@@ -378,6 +379,12 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
                        else [{"wert": w, "text": s} for w, s in kat.WER_SCHREIBT.items()]
                        if p.aktion == kat.AKTION_TEXTE else []),
             "notiz": (stand.notiz or "") if stand else "",
+            # **Wann wir es vorgelegt haben** (L-166, 06.09.2026). Nur bei den
+            # beiden Freigaben belegt. Ohne diesen Zeitpunkt ist die Fuenf-
+            # Werktage-Zusage aus dem Angebot nicht nachpruefbar: Der Kunde
+            # saehe eine Frist, deren Anfang nirgends steht.
+            "vorgelegt_am": (stand.vorgelegt_am.isoformat()
+                             if stand and stand.vorgelegt_am else None),
         }
 
     vor_start = [p for p in punkte if p.wirkung == kat.FRISTBEGINN]
@@ -415,6 +422,13 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
         "erledigt": len([p for p in vor_start if p.kennung in erledigt]),
         "gesamt": len(vor_start),
         "start_moeglich": not offen,
+        # **Die Frist, gerechnet statt behauptet** (L-166, 06.09.2026). Der
+        # Angebotsfuss sagt ein Bauzeitende zu und laesst es ruhen, wenn eine
+        # Freigabe sich verzoegert. Bis heute stand die zweite Haelfte
+        # nirgends — damit war das Ende von beiden Seiten nur behauptbar. Der
+        # Block traegt alle Zwischenschritte, nicht nur das Datum: Wer es
+        # prueft, muss sehen koennen, woraus es entstanden ist.
+        "frist": bauzeit_projekt.frist_stand(db, project, staende=staende),
     }
 
 

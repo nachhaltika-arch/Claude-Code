@@ -465,10 +465,25 @@ class MitwirkungStand(Base):
     __tablename__ = "mitwirkung_stand"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    # **`ON DELETE CASCADE`, gefunden am 06.09.2026.** Seit L-159 (04.09.)
+    # hing diese Tabelle ohne Loeschregel an `projects`: Ein Projekt, zu dem
+    # auch nur ein Mitwirkungspunkt eingetragen war, liess sich nicht mehr
+    # loeschen. Dieselbe Klasse wie bei `UserSession` zwei Tage zuvor — eine
+    # neue Tabelle bekommt einen Fremdschluessel, und niemand fragt, was beim
+    # Loeschen der Gegenseite passiert. Ein Stand ohne Projekt hat keinen
+    # Sinn; er gehoert weg, wenn das Projekt geht.
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
     kennung = Column(String(8), nullable=False)          # M1 … M11
     erledigt_am = Column(DateTime, nullable=True)
     bestaetigt_von = Column(String(120), default="")
+    # **Wann wir es vorgelegt haben** (L-166, 06.09.2026). Nur fuer die
+    # beiden Freigaben M7 und M8 belegt: Aus der Spanne zwischen Vorlage und
+    # Freigabe entsteht die Ruhezeit, die der Angebotsfuss zusagt. Ohne sie
+    # war das Bauzeitende nicht berechenbar, sondern nur behauptbar — und
+    # zwar von beiden Seiten. Leer heisst: nichts vorgelegt, also ruht nichts.
+    vorgelegt_am = Column(DateTime, nullable=True)
+    vorgelegt_von = Column(String(120), default="")
     notiz = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 

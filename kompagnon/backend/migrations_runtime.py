@@ -1878,6 +1878,33 @@ def run_migrations():
                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
            EXCEPTION WHEN others THEN NULL;
            END $$""",
+        # ── 06.09.2026: Wann eine Freigabe vorlag (L-166, K3) ──
+        #
+        # Der Angebotsfuss sagt zu: „Verzoegert sich eine Freigabe nach M7
+        # oder M8, ruht die Frist fuer die Dauer der Verzoegerung." Ohne den
+        # **Vorlagezeitpunkt** gibt es keine Spanne — `erledigt_am` allein
+        # sagt, wann freigegeben wurde, nicht, wie lange es gedauert hat.
+        # Damit war das zugesagte Bauzeitende nicht berechenbar, sondern nur
+        # behauptbar, und zwar von beiden Seiten.
+        #
+        # Nullbar und ohne Standardwert: Ein Altbestand bekommt kein
+        # erfundenes Vorlagedatum. Wo nichts steht, ruht auch nichts — die
+        # Wartezeit liegt dann bei uns, nicht beim Kunden.
+        "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
+        "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
+        # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
+        # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
+        # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich
+        # nicht mehr loeschen — `ForeignKeyViolation`, ueberall dort, wo
+        # Projekte aufgeraeumt werden. Dieselbe Klasse wie bei `user_sessions`
+        # zwei Tage zuvor. Ein Stand ohne Projekt hat keinen Sinn.
+        """DO $$ BEGIN
+               ALTER TABLE mitwirkung_stand
+                   DROP CONSTRAINT IF EXISTS mitwirkung_stand_project_id_fkey;
+               ALTER TABLE mitwirkung_stand ADD CONSTRAINT mitwirkung_stand_project_id_fkey
+                   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -111,6 +111,12 @@
      Text auf dem wichtigsten Knopf der Kundenseiten. Dunkle Tinte
      darauf erreicht 8.43. Gemessen in `utils/kontrast.test.js`. */
   --text-on-brand:    #ffffff;
+  /* Text auf der Warnflaeche (L-180, 06.09.2026). Hier stand an sechs Stellen
+     `--kc-black` fest im Quelltext — und `--warn` wechselt mit dem Satz: hell
+     #9A6000, dunkel #f0b040. Schwarz darauf ergibt hell nur **4.05** bei
+     Schwelle 4.5, Weiss im Dunkelsatz gar 1.91. Die Schriftfarbe muss also
+     mitwechseln, genau wie `--text-on-brand`. Weiss auf hellem Satz: 5.19. */
+  --text-on-warn:     #ffffff;
 
   /* ── Brand Aliases ──────────────────────────────────────────── */
   /* --brand-primary jetzt auf Dark Teal (Guideline-dominante
@@ -260,6 +266,7 @@
 
     --brand-primary:        var(--kc-mid);
     --text-on-brand:        #0f1c20;
+    --text-on-warn:         #000000;   /* auf #f0b040: 10.99 */
     --brand-primary-light:  #1a3d4a;
     /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
     --brand-primary-mid:    #3f9fb2;
@@ -309,6 +316,7 @@
 
   --brand-primary:        var(--kc-mid);
   --text-on-brand:        #0f1c20;
+  --text-on-warn:         #000000;   /* auf #f0b040: 10.99 */
   --brand-primary-light:  #1a3d4a;
   /* 28.08.2026, L-17: war #2a5a6a — als **Textfarbe** auf --surface nur 2.18, Schwelle 4.5. Das Token steht an 78 Stellen als `color:`; im Dunkelmodus war dieser Text unlesbar. #3f9fb2 gibt 5.37 und liegt neben --brand-primary-dark. */
   --brand-primary-mid:    #3f9fb2;
@@ -341,6 +349,7 @@
 /* ── Manual light override ───────────────────────────────────── */
 [data-theme="light"] {
   --text-on-brand: #ffffff;
+  --text-on-warn:  #ffffff;   /* auf #9A6000: 5.19 */
   --paper:   #FAFAFA;
   --surface: #F0F4F5;
   --border:  #D5E0E2;

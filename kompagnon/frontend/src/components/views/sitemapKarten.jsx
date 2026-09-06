@@ -291,7 +291,7 @@ export function PageCard({
             >
               + Section
             </button>
-            <div style={{ fontSize: 12, color: 'var(--border-medium)' }}>oder</div>
+            <div style={{ fontSize: 12, color: 'var(--text-45)' }}>oder</div>
             <button
               type="button"
               onClick={(e) => {
@@ -587,8 +587,8 @@ export function SectionRow({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2,
       }}>
-        <span aria-hidden style={{ color: 'var(--border-medium)', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
-        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
+        <span aria-hidden style={{ color: 'var(--text-45)', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
+        <span style={{ color: 'var(--text-45)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
           {idx + 1}
         </span>
         <span style={{ fontWeight: 700, color: KC_DARK, flex: 1, minWidth: 0,
@@ -653,7 +653,7 @@ export function InheritedSectionRow({ sectionKey, idx }) {
       fontSize: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
+        <span style={{ color: 'var(--text-45)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 12 }}>
           {idx + 1}
         </span>
         <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flex: 1, minWidth: 0,

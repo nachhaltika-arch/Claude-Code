@@ -135,7 +135,7 @@ function QuizEditor({ questions, setQuestions }) {
                         <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                           {a.is_correct
                             ? <span style={{ color: 'var(--status-success-text)', fontSize: 13 }}>✓</span>
-                            : <span style={{ color: 'var(--border-medium)', fontSize: 12 }}>○</span>}
+                            : <span style={{ color: 'var(--text-45)', fontSize: 12 }}>○</span>}
                           <span style={{ color: a.is_correct ? 'var(--status-success-text)' : 'var(--text-secondary)', fontWeight: a.is_correct ? 600 : 400 }}>
                             {a.text || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Leer</span>}
                           </span>
@@ -521,7 +521,7 @@ export default function AcademyAdminLesson() {
           >
             ← {courseTitle ? `${courseTitle} bearbeiten` : 'Kurs bearbeiten'}
           </button>
-          <span style={{ color: 'var(--border-medium)' }}>›</span>
+          <span style={{ color: 'var(--text-45)' }}>›</span>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
             {isNew ? 'Neue Lektion' : form.title || `Lektion #${lessonId}`}
           </span>

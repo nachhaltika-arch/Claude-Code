@@ -214,7 +214,7 @@ function Kachel({ was, zahl, klein, sagt, hin, betont, gut, onClick }) {
       </span>
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '8px 0 0', lineHeight: 1.45 }}>{sagt}</p>
       {hin && onClick && (
-        <p style={{ fontSize: 13, color: 'var(--kc-mid)', margin: '10px 0 0', fontWeight: 700 }}>{hin}</p>
+        <p style={{ fontSize: 13, color: 'var(--brand-primary)', margin: '10px 0 0', fontWeight: 700 }}>{hin}</p>
       )}
     </div>
   );

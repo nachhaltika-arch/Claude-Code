@@ -89,7 +89,7 @@ function Zustand({ ok, children, title }) {
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12,
-        fontWeight: 600, color: ok ? 'var(--kc-success, #1D9E75)' : '#C0392B',
+        fontWeight: 600, color: ok ? 'var(--success)' : 'var(--error)',
       }}
     >
       <span aria-hidden="true" style={{

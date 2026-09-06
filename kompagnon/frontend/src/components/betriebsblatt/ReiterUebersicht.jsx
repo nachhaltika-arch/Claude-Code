@@ -152,7 +152,7 @@ export default function ReiterUebersicht({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {score_history.map((s, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {i > 0 && <span style={{ color: 'var(--border-medium)', fontSize: 12 }}>→</span>}
+                      {i > 0 && <span style={{ color: 'var(--text-45)', fontSize: 12 }}>→</span>}
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: scoreColor(s.score) }}>{s.score}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{s.date}</div>

@@ -225,7 +225,7 @@ export function AddColorTile() {
         padding: '14px',
         minHeight: 130,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--border-medium)', fontSize: 32, fontWeight: 300,
+        color: 'var(--text-45)', fontSize: 32, fontWeight: 300,
         cursor: 'not-allowed',
       }}>+</div>
   );
@@ -315,7 +315,7 @@ export function TypoCard({ label, font, weight }) {
           }} />
           Google
         </span>
-        <span style={{ color: 'var(--border-medium)' }}>|</span>
+        <span style={{ color: 'var(--text-45)' }}>|</span>
         <span style={{ color: 'var(--success)', fontWeight: 700 }}>Free</span>
       </div>
     </div>

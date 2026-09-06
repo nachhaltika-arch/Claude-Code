@@ -107,19 +107,23 @@ const PAARE = [
  * meldet ihn der nächste Systemdurchlauf erneut.
  */
 const BEFUNDE_OFFEN = [
-  { token: '--kc-black', luecke: 'L-180',
-    befund: 'Dunkelmodus 1,27 auf --surface — dieselbe Klasse wie --kc-dark: '
-      + 'eine Palettenfarbe, die als Schrift gesetzt wird.' },
-  { token: '--kc-mid', luecke: 'L-180',
-    befund: 'Hellmodus 3,48 auf --surface, Schwelle 4,5. Im Dunkelsatz ist '
-      + 'sie mit 8,02 richtig — der Mangel steht nur im hellen Satz.' },
-  { token: '--border-medium', luecke: 'L-180',
-    befund: 'Eine Rahmenfarbe als Schrift (Trennzeichen, Platzhaltertext). '
-      + 'rgba auf wechselndem Grund; der Wert ist nicht einmal ausrechenbar.' },
-  { token: '--kc-success', luecke: 'L-180',
-    befund: 'Das Token gibt es in tokens.css **nicht**. Benutzt wird es mit '
-      + 'Rückfall #1D9E75 im Analyse-Widget — also greift immer der feste '
-      + 'Wert, und im Dunkelmodus bleibt die Farbe stehen.' },
+  // **Leer, und das ist ein Zustand, kein Zufall** (L-180, geschlossen am
+  // 06.09.2026). Die vier Eintraege, die dieser Waechter bei seinem ersten
+  // Lauf fand, sind abgearbeitet:
+  //
+  // * `--kc-black` stand an sechs Stellen auf `--warn` — hell nur 4.05 bei
+  //   Schwelle 4.5, dunkel 10.99. Ein **fester** Wert auf einem Grund, der
+  //   mit dem Satz wechselt. Jetzt `--text-on-warn`, das mitwechselt (5.19
+  //   hell, 10.99 dunkel) — dieselbe Bauart wie `--text-on-brand`.
+  // * `--kc-mid` war nur an **einer** Stelle wirklich Schrift
+  //   (`CustomerDashboard`, hell 3.48). Die uebrigen fuenf Fundstellen sind
+  //   Datenfelder, die zufaellig `color` heissen — siehe die Notiz unten.
+  // * `--border-medium` faerbte dreizehn Trennzeichen und Hinweise. Jetzt
+  //   `--text-45`, der dafuer gemachte schwache Textton (4.63 / 6.76).
+  // * `--kc-success` gab es in `tokens.css` **gar nicht**; benutzt wurde es
+  //   mit Rueckfall `#1D9E75` im Analyse-Widget, also griff immer der feste
+  //   Wert. Jetzt `--success` — und der rote Zwilling `#C0392B` daneben
+  //   ebenfalls auf `--error`.
 ];
 
 /**
@@ -160,6 +164,17 @@ const AUSNAHMEN = [
       + '(Knopf mit Markenfüllung). Ihr Gegenstück ist der Grund, nicht --surface.' },
   { token: '--bg-app', pruefeUngenutzt: false,
     grund: 'Wie --bg-surface — umgekehrte Schrift auf farbigem Grund.' },
+  { token: '--kc-mid', pruefeUngenutzt: false,
+    grund: 'Steht in Phasen- und Kanallisten als Datenfeld `color`, nicht als '
+      + 'CSS-Eigenschaft. Wo daraus Schrift wird, geht sie durch '
+      + 'color-mix(… 72%, var(--text)) und erreicht damit AA.' },
+  { token: '--border-medium', pruefeUngenutzt: false,
+    grund: 'Nach L-180 nur noch für **abgeschaltete** Bedienelemente '
+      + '(sitemapWerkzeug, sitemapDialoge, sitemapKarten — je hinter einer '
+      + 'disabled-Bedingung). Von WCAG 1.4.3 ausgenommen, wie --text-30.' },
+  { token: '--text-on-warn', pruefeUngenutzt: false,
+    grund: 'Ist für die Warnfläche gemacht, nicht für --surface: weiß im '
+      + 'hellen Satz (5.19 auf #9A6000), schwarz im dunklen (10.99).' },
 ];
 
 /** Zeilennummern der Blockanfänge — wie in `tokenKontrast.test.js`. */
@@ -355,6 +370,21 @@ describe('Die Liste wächst mit dem Code mit', () => {
     expect(benutzt.size).toBeGreaterThan(5);
   });
 
+  /**
+   * **Was dieser Wächter nicht unterscheiden kann.** Er liest Text, und in
+   * JavaScript heißt ein Datenfeld genauso wie eine CSS-Eigenschaft:
+   *
+   *     { id: 'phase_1', label: 'Onboarding', color: 'var(--kc-mid)' }
+   *
+   * Das ist eine Phasenfarbe in einer Liste, keine Schriftfarbe — wo daraus
+   * Text wird, geht sie durch `color-mix(… 72%, var(--text))`, das
+   * ausdrücklich dafür da ist, AA zu erreichen. Fünf der sechs
+   * `--kc-mid`-Fundstellen waren von dieser Art.
+   *
+   * Ein Fehlalarm ist hier der ruhigere Fehler als eine Lücke: Er kostet
+   * einen Blick und einen Eintrag mit Begründung. Blind zu sein kostete
+   * L-176.
+   */
   test('jedes als Schrift benutzte Token ist geprüft oder begründet', () => {
     const offen = new Set(BEFUNDE_OFFEN.map(b => b.token));
     const ohne = [...benutzt]
@@ -369,10 +399,21 @@ describe('Die Liste wächst mit dem Code mit', () => {
 });
 
 describe('Die offenen Befunde tragen eine Nummer', () => {
-  test.each(BEFUNDE_OFFEN.map(b => [b.token, b]))(
-    '%s verweist auf eine Lücke im Lagebild', (token, eintrag) => {
+  // `test.each` wirft bei einer leeren Tabelle — und leer ist hier der
+  // **erwünschte** Zustand. Der erste Wurf dieses Blocks ließ den Lauf
+  // deshalb auflaufen, kaum dass die vier Befunde abgearbeitet waren.
+  const tabelle = BEFUNDE_OFFEN.map(b => [b.token, b]);
+
+  test('die Liste ist leer oder jeder Eintrag ist vollständig', () => {
+    BEFUNDE_OFFEN.forEach(eintrag => {
       expect(eintrag.luecke).toMatch(/^L-\d+$/);
       expect(eintrag.befund.length).toBeGreaterThan(40);
+    });
+  });
+
+  (tabelle.length ? test.each(tabelle) : test.skip.each([['keiner', {}]]))(
+    '%s verweist auf eine Lücke im Lagebild', (token, eintrag) => {
+      expect(eintrag.luecke).toMatch(/^L-\d+$/);
     });
 
   test('kein Befund steht gleichzeitig als Ausnahme', () => {

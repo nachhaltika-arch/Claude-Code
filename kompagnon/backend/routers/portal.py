@@ -508,19 +508,12 @@ def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
 # Billing-Portal ist dafuer da; wir erzeugen eine Sitzung und leiten weiter.
 
 
-# ══════════════════════════════════════════════════════════════════════
-# Zugaenge fuer Kollegen (L-160 Rang 4, K7)
-# ══════════════════════════════════════════════════════════════════════
+# ── Wer darf ans Geld? (L-160 Rang 4) ─────────────────────────────────
 #
-# **Ein Betrieb ist keine Person.** Bis heute hatte er genau ein Konto; wer
-# einem Kollegen Zugang geben wollte, gab sein Kennwort weiter — und damit den
-# Blick auf Rechnungen und Zahlungsart. Die Routen zum Anlegen von Konten gibt
-# es laengst (`/api/admin/users`), aber sie verlangen `manage_users`, also
-# Innendienst: Jeder Zugang musste bei uns beantragt werden.
-#
-# **Die Stufen und ihre Wirkung stehen in `services/kundenzugang.py`**, nicht
-# hier. Sie gelten an mehreren Stellen, und eine Rechteregel an drei Orten ist
-# eine, die an zweien veraltet.
+# **Steht hier oben, weil drei Bloecke darunter sie brauchen** — Zahlungen,
+# Vertragsunterlagen und Rechnungen. FastAPI wertet die Abhaengigkeit beim
+# Import aus; eine Sperre, die spaeter in der Datei steht, gibt es zu dem
+# Zeitpunkt noch nicht.
 
 
 def _stufe(user) -> str:
@@ -543,6 +536,145 @@ def verlangt_geldblick(user=Depends(get_current_user)):
         raise HTTPException(
             403, "Dieser Zugang darf keine Rechnungen und Zahlungsdaten sehen")
     return user
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Vertragsunterlagen (L-160 Rang 7)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Der Befund:** Angebot, AGB-Fassung und Auftragsbestaetigung liegen im
+# System, und der Kunde kommt nicht heran. Die Auftragsbestaetigung gibt es
+# als PDF am Projekt; ihr einziger Auslieferungsweg verlangt `require_admin`.
+#
+# **Was hier ausdruecklich nicht geschieht: etwas erfinden.** Wo eine
+# Unterlage nicht vorliegt, sagt die Antwort das — mit Grund. Eine Liste mit
+# fuenf Zeilen, von denen drei ins Leere fuehren, ist schlechter als eine mit
+# zwei.
+
+
+@router.get("/vertragsunterlagen")
+def get_vertragsunterlagen(user=Depends(verlangt_geldblick),
+                           db: Session = Depends(get_db)):
+    """Alles, was der Kunde unterschrieben hat — in der Fassung seines Auftrags."""
+    import os as _os
+
+    unterlagen = []
+    projekt = None
+    if user.lead_id:
+        projekt = (db.query(Project).filter(Project.lead_id == user.lead_id)
+                   .order_by(Project.created_at.desc()).first())
+
+    # ── Auftragsbestaetigung ──────────────────────────────────────────
+    pfad = getattr(projekt, "auftragsbestaetigung_pdf", None) if projekt else None
+    hat_datei = bool(pfad and _os.path.exists(pfad))
+    unterlagen.append({
+        "titel": "Auftragsbestätigung",
+        "stand": (projekt.created_at.date().isoformat()
+                  if projekt and projekt.created_at else ""),
+        "vorhanden": hat_datei,
+        # **`art` statt Praefix-Raten in der Oberflaeche.** Die erste Fassung
+        # liess den Bildschirm `adresse.startsWith("/api/")` pruefen — also
+        # aus der Form der Adresse schliessen, wie sie abzurufen ist. Wie
+        # eine Unterlage geholt wird, ist eine Eigenschaft der Unterlage.
+        "art": "pdf" if hat_datei else "",
+        "adresse": (f"/api/portal/vertragsunterlagen/auftragsbestaetigung/{projekt.id}"
+                    if hat_datei else ""),
+        "grund": "" if hat_datei else (
+            "Für diesen Auftrag liegt keine Auftragsbestätigung als PDF vor. "
+            "Sie entsteht beim Kauf über die Kasse; bei älteren oder von Hand "
+            "angelegten Aufträgen fehlt sie. Schreiben Sie uns, dann schicken "
+            "wir sie nach."),
+    })
+
+    # ── AGB-Fassung ───────────────────────────────────────────────────
+    #
+    # **Zwei Quellen, und nur eine trägt.** Der Shop haelt die Fassung je
+    # Bestellung fest (`bestellungen.terms_version`, ORDERS_05). Der
+    # **Websprint**-Kauf ueber Stripe tut das **nicht** — dort entsteht kein
+    # Nachweis, welche Fassung galt. Das steht als eigener Eintrag im
+    # Lagebild; hier wird es benannt statt verschwiegen.
+    fassung, wann = "", ""
+    try:
+        zeile = db.execute(text(
+            "SELECT terms_version, terms_accepted_at FROM bestellungen "
+            "WHERE email = :mail AND terms_version <> '' "
+            "ORDER BY created_at DESC LIMIT 1"), {"mail": user.email}).fetchone()
+        if zeile:
+            fassung = zeile[0] or ""
+            wann = zeile[1].date().isoformat() if zeile[1] else ""
+    except Exception:  # noqa: BLE001 — ohne Shop-Tabelle bleibt es leer
+        db.rollback()
+
+    unterlagen.append({
+        "titel": "AGB-Fassung",
+        "stand": f"{fassung}, zugestimmt am {wann}" if fassung and wann else fassung,
+        "vorhanden": bool(fassung),
+        "art": "seite" if fassung else "",
+        "adresse": "/agb" if fassung else "",
+        "grund": "" if fassung else (
+            "Für Ihren Auftrag ist keine AGB-Fassung festgehalten. Bei Käufen "
+            "über den Shop wird sie mit dem Datum Ihrer Zustimmung gespeichert; "
+            "beim Websprint über die Kasse geschieht das bisher nicht."),
+    })
+
+    # ── Angebot ───────────────────────────────────────────────────────
+    #
+    # Das Angebot entsteht heute **auf Abruf** aus dem Audit
+    # (`routers/audit.py::download_angebot_pdf`) und wird nicht als Dokument
+    # aufbewahrt. Ein Link darauf zeigte also auf ein Erzeugnis von heute,
+    # nicht auf das, was der Kunde damals gelesen hat — und genau darauf
+    # kommt es bei einer Vertragsunterlage an.
+    unterlagen.append({
+        "titel": "Angebot",
+        "stand": "", "vorhanden": False, "art": "", "adresse": "",
+        "grund": ("Ihr Angebot wird bei Bedarf neu aus dem Audit erzeugt und "
+                  "nicht als Dokument aufbewahrt. Ein Abruf hier zeigte ein "
+                  "Angebot von heute, nicht das, dem Sie zugestimmt haben. "
+                  "Fordern Sie es bei uns an — wir schicken die Fassung, die "
+                  "für Ihren Auftrag gilt."),
+    })
+
+    return {"unterlagen": unterlagen, "projekt_id": projekt.id if projekt else None}
+
+
+@router.get("/vertragsunterlagen/auftragsbestaetigung/{projekt_id}")
+def hole_auftragsbestaetigung(projekt_id: int,
+                              user=Depends(verlangt_geldblick),
+                              db: Session = Depends(get_db)):
+    """Die Auftragsbestaetigung des **eigenen** Betriebs.
+
+    **Der Filter steht auf `lead_id`, nicht nur auf der Projektnummer** —
+    sonst waere eine fortlaufende Zahl der Schluessel zu jeder fremden
+    Bestaetigung. 404 statt 403: Ob es die Nummer anderswo gibt, geht diesen
+    Betrieb nichts an.
+    """
+    import os as _os
+
+    from fastapi.responses import FileResponse
+
+    projekt = (db.query(Project).filter(Project.id == projekt_id,
+                                        Project.lead_id == user.lead_id).first())
+    pfad = getattr(projekt, "auftragsbestaetigung_pdf", None) if projekt else None
+    if not pfad or not _os.path.exists(pfad):
+        raise HTTPException(404, "Auftragsbestätigung nicht vorhanden")
+
+    return FileResponse(pfad, media_type="application/pdf",
+                        filename="KOMPAGNON-Auftragsbestaetigung.pdf")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Zugaenge fuer Kollegen (L-160 Rang 4, K7)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Ein Betrieb ist keine Person.** Bis heute hatte er genau ein Konto; wer
+# einem Kollegen Zugang geben wollte, gab sein Kennwort weiter — und damit den
+# Blick auf Rechnungen und Zahlungsart. Die Routen zum Anlegen von Konten gibt
+# es laengst (`/api/admin/users`), aber sie verlangen `manage_users`, also
+# Innendienst: Jeder Zugang musste bei uns beantragt werden.
+#
+# **Die Stufen und ihre Wirkung stehen in `services/kundenzugang.py`**, nicht
+# hier. Sie gelten an mehreren Stellen, und eine Rechteregel an drei Orten ist
+# eine, die an zweien veraltet.
 
 
 class ZugangEinladung(BaseModel):

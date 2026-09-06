@@ -115,7 +115,7 @@ wegprogrammieren lässt. Drei davon kosten unmittelbar Geld (K1 die
 Garantieschwelle, K2 die 28,31 € Differenz je Kunde und Monat, K9 elf Tage
 Bauzeit je Auftrag).
 
-**Stand 06.09.2026: K3 ist gelöst, K9 ist neu.**
+**Stand 06.09.2026: K3 und K7 sind gelöst, K9 ist neu.**
 
 *K3 — die Fristpause.* Das System führte den Fristbeginn, aber kein Feld für
 eine **Pause**: Wann eine Freigabe vorlag und wann der Kunde sie erteilte,
@@ -125,6 +125,12 @@ Innendienst trägt ihn auf der Betriebsübersicht ein, und Kundenkonto wie
 Innendienst lesen **dieselbe** Rechnung (`services/bauzeit.py`, L-166). Offen
 bleibt eine Auslegung, keine Zeile Code: Gerechnet wird, dass nur ruht, was
 **über** die zugesagten fünf Werktage hinausgeht.
+
+*K7 — ein Betrieb ist keine Person.* Ein Zugang je Betrieb hieß: Zugangsdaten
+wandern per WhatsApp durch die Firma, und wir wissen nicht mehr, wer
+freigegeben hat. Seit dem 06.09. richtet der Betrieb Zugänge selbst ein, in
+zwei Rechtestufen — und die Sperre vor Rechnungen, Zahlungsart und
+Vertragsunterlagen ist mitgebaut, nicht vertagt (L-160 Rang 4).
 
 *K9 — die Einheit der Bauzeit.* Beim Bauen von K3 aufgefallen und nicht
 gesucht: Alle vier Produktdatenblätter sagen **Kalendertage** (Start 7,

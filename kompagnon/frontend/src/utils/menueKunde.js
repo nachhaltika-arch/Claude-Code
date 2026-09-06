@@ -57,6 +57,8 @@ export const KUNDEN_MENUE = [
       // den Re-Audit-Termin. „Mein Bericht" nannte den zweiten nicht.
       { label: 'Berichte und Prüfungen',  path: '/app/mein-bericht' },
       { label: 'Rechnungen und Zahlung',  path: '/app/rechnungen' },
+      // Am 06.09.2026 aus `NOCH_NICHT_GEBAUT` hierher (L-160 Rang 7).
+      { label: 'Vertragsunterlagen',      path: '/app/vertragsunterlagen' },
     ],
   },
   {
@@ -98,9 +100,6 @@ export const KUNDEN_MENUE = [
  * ins Menü wandert, sobald seine Route existiert.
  */
 export const NOCH_NICHT_GEBAUT = [
-  { label: 'Vertragsunterlagen', pfad: 'vertragsunterlagen', luecke: 'L-160',
-    grund: 'Rang 7 der Ordnung: Angebot, AGB-Fassung und Auftragsbestätigung '
-      + 'liegen im System, der Kunde kommt nicht heran.' },
   { label: 'Dazubuchen', pfad: 'dazubuchen', luecke: 'L-160',
     grund: 'Der Bestellweg für Zusatzleistungen aus dem laufenden Konto — im '
       + 'Entwurf mit Bestätigungsschritt, ohne Check PLUS und Workbook.' },

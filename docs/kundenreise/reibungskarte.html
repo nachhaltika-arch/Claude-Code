@@ -146,7 +146,7 @@ h2:first-of-type{margin-top:0}
     <div><div class="z">14</div><div class="w">davon mit benanntem Vorbehalt — sie „hängen"</div></div>
     <div><div class="z">9</div><div class="w">Konflikte — zwei Aussagen, eine muss weichen</div></div>
     <div><div class="z">3</div><div class="w">davon kosten unmittelbar Geld</div></div>
-    <div><div class="z">1</div><div class="w">gelöst — K3, am 6. September</div></div>
+    <div><div class="z">2</div><div class="w">gelöst — K3 und K7, am 6. September</div></div>
     <div><div class="z">4</div><div class="w">Stellen, an denen der Kunde wartet</div></div>
     <div><div class="z">4</div><div class="w">blinde Flecken — wir messen es nicht</div></div>
   </div>
@@ -259,12 +259,12 @@ const KONFLIKTE = [
     frage:'Das ist <b>mit Absicht so</b> und kein Fehler — aber es heißt, dass zwei Kunden mit demselben Abo verschiedene Rechnungswege haben. Jeder muss im Konto sehen, in welchem er ist, und der Innendienst muss es beim Anlegen entscheiden statt es geschehen zu lassen.',
     punkte:['Zahlung','Monatsrechnung','Kundenkonto'], beleg:'L-162' },
 
-  { nr:'K7', art:'recht', tag:'Zugang', titel:'Ein Betrieb ist keine Person',
+  { nr:'K7', art:'gelöst', tag:'Gelöst 6. Sept.', titel:'Ein Betrieb ist keine Person — jetzt auch im Konto',
     links:{ t:'Wie Betriebe arbeiten', s:'Der Inhaber entscheidet, die Bürokraft pflegt die Inhalte, der Meister gibt frei.',
             q:'Soll-Ist des Kundenkontos' },
-    rechts:{ t:'Wie das Konto gebaut ist', s:'Ein Zugang je Betrieb. Kollegen einzuladen verlangt <code>manage_users</code> — also Innendienst.',
-             q:'L-160, Rang 4' },
-    frage:'Solange nur einer hineinkommt, wandern Zugangsdaten per WhatsApp durch den Betrieb. <b>Das ist keine Bequemlichkeitsfrage, sondern eine Zugangsfrage:</b> Wir wissen dann nicht mehr, wer freigegeben hat.',
+    rechts:{ t:'Wie das Konto jetzt gebaut ist', s:'Der Betrieb richtet Zugänge <b>selbst</b> ein, in zwei Stufen: „ansehen" sieht Projektstand, Freigaben und Berichte — <b>kein</b> Geld; „alles" darf zusätzlich freigeben, anfordern und Zugänge verwalten.',
+             q:'services/kundenzugang.py · /app/zugaenge' },
+    frage:'<b>Die Sperre ist mitgebaut, nicht vertagt:</b> Rechnungen, Zahlungsart und Vertragsunterlagen liegen hinter derselben Prüfung, und ein Test belegt beide Richtungen. Eine Rechtestufe, die nirgends wirkt, wäre schlimmer als keine — der Betrieb hätte im guten Glauben jemandem Einblick gegeben, den er ausschließen wollte. <b>Was offen bleibt, ist eine Produktfrage:</b> ob zwei Stufen reichen.',
     punkte:['Erste Anmeldung','Kundenkonto','Entwurfsfreigabe'], beleg:'L-160' },
 
   { nr:'K8', art:'recht', tag:'Steuerung', titel:'Zwei Listen heißen „L" — und eine altert unbemerkt',

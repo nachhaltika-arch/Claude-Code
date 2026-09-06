@@ -120,7 +120,12 @@ describe('Das Menü des Kunden', () => {
     const uebersicht = lies('pages', 'CustomerDashboard.jsx');
 
     // Assert
-    ['Mitwirkung', 'Inhaltsguthaben', 'Zahlungen'].forEach((k) => {
+    // **`KundenChat` kam am 06.09.2026 dazu.** Er stand auf der Übersicht
+    // *und* unter „Meine Daten" — zweimal derselbe Verlauf, und auf einer
+    // Seite, die zwei Fragen beantworten soll: *Wo stehen wir?* und *Was
+    // liegt bei mir?* Ein Nachrichtenverlauf beantwortet keine davon; er
+    // macht die Seite lang, wie der Entwurf `kundenkonto-neu` es nennt.
+    ['Mitwirkung', 'Inhaltsguthaben', 'Zahlungen', 'KundenChat'].forEach((k) => {
       expect(uebersicht).not.toContain(`<${k} `);
     });
   });
@@ -172,4 +177,26 @@ describe('Kein Bildschirm ohne Weg dorthin', () => {
   test.each(KUNDENSEITEN)('die Seite %s steht im Menü', (stamm) => {
     expect(kundenpunkte().some((p) => p.pfad.includes(stamm))).toBe(true);
   });
+});
+
+describe('Der Nachrichtenverlauf hat genau einen Ort', () => {
+  /**
+   * **Der Befund vom 06.09.2026.** `KundenChat` stand an **zwei** Stellen:
+   * auf der Übersicht und unter „Meine Daten". Das eine macht die Übersicht
+   * lang, das andere ist sachlich falsch — „Meine Daten" ist die Seite für
+   * Stammdaten, kein Postfach.
+   *
+   * Zwei Orte für denselben Verlauf sind zwei, an denen jemand nachsieht, und
+   * einer, an dem er das Ungelesene übersieht.
+   */
+  const traegtChat = (datei) => lies('pages', datei).includes('<KundenChat');
+
+  test('die eigene Seite trägt ihn', () => {
+    expect(traegtChat(path.join('customer', 'Nachrichten.jsx'))).toBe(true);
+  });
+
+  test.each([['CustomerDashboard.jsx'], ['MeineDaten.jsx']])(
+    '%s trägt ihn nicht mehr', (datei) => {
+      expect(traegtChat(datei)).toBe(false);
+    });
 });

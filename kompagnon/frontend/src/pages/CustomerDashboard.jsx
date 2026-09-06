@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
-import KundenChat from '../components/kunde/KundenChat';
 import { aufgabeBestimmen, kachelnBauen, lageBestimmen, verlaufBauen }
   from '../utils/kundenuebersicht';
 
@@ -182,11 +181,6 @@ export default function CustomerDashboard() {
         ))}
       </div>
 
-      {user?.lead_id && (
-        <div style={{ marginTop: 32 }}>
-          <KundenChat leadId={user.lead_id} token={token} />
-        </div>
-      )}
     </div>
   );
 }

@@ -1828,6 +1828,56 @@ def run_migrations():
                    CHECK (monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
            EXCEPTION WHEN duplicate_object THEN NULL;
            END $$""",
+        # ── 06.09.2026: Kontoverwaltung im Kundenkonto ──────────────────
+        #
+        # **Benachrichtigungen.** Eine Zeile je Nutzer und Art, und nur fuer
+        # das Abgewaehlte noetig — die Vorgabe ist „an". Wer nie etwas
+        # eingestellt hat, bekommt weiter alles; sonst verschwaende mit dieser
+        # Aenderung stillschweigend Post.
+        """CREATE TABLE IF NOT EXISTS benachrichtigungs_wahl (
+               id SERIAL PRIMARY KEY,
+               user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+               schluessel VARCHAR(40) NOT NULL,
+               an BOOLEAN DEFAULT true,
+               geaendert_am TIMESTAMP DEFAULT NOW()
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_benachrichtigungs_wahl_user ON benachrichtigungs_wahl (user_id)",
+        """DO $$ BEGIN
+               ALTER TABLE benachrichtigungs_wahl
+                   ADD CONSTRAINT uq_benachrichtigung_je_nutzer UNIQUE (user_id, schluessel);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
+        # **Geraete.** `user_sessions` gibt es seit Langem, geschrieben hat sie
+        # nie jemand. Ein Index auf den Token-Hash, weil `get_current_user` ihn
+        # jetzt bei **jeder** Anfrage liest — ohne Index waere das ein
+        # Tabellendurchlauf auf dem heissesten Pfad des Systems.
+        "CREATE INDEX IF NOT EXISTS ix_user_sessions_token ON user_sessions (token)",
+        "CREATE INDEX IF NOT EXISTS ix_user_sessions_user ON user_sessions (user_id)",
+        # **Und der Fremdschluessel raeumt mit** — sonst laesst sich ein Nutzer
+        # nicht mehr loeschen, sobald er sich einmal angemeldet hat.
+        #
+        # Aufgefallen beim Testlauf: 13 rote Tests, alle mit
+        # `ForeignKeyViolation ... user_sessions_user_id_fkey`. Das war kein
+        # Testproblem, sondern der Fehler selbst — **die Loeschung nach
+        # Art. 17 DSGVO haette dieselbe Wand getroffen**, nur beim ersten
+        # Kunden, der sie verlangt.
+        #
+        # Eine Sitzung ohne Nutzer hat keinen Sinn; sie gehoert weg, wenn er
+        # geht. Der Weg ueber `ON DELETE CASCADE` und nicht ueber Aufraeumcode
+        # an jeder Loeschstelle: Es gibt mehrere, und die naechste vergisst es.
+        """DO $$ BEGIN
+               ALTER TABLE user_sessions DROP CONSTRAINT IF EXISTS user_sessions_user_id_fkey;
+               ALTER TABLE user_sessions ADD CONSTRAINT user_sessions_user_id_fkey
+                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
+           END $$""",
+        """DO $$ BEGIN
+               ALTER TABLE benachrichtigungs_wahl
+                   DROP CONSTRAINT IF EXISTS benachrichtigungs_wahl_user_id_fkey;
+               ALTER TABLE benachrichtigungs_wahl ADD CONSTRAINT benachrichtigungs_wahl_user_id_fkey
+                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
+           END $$""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

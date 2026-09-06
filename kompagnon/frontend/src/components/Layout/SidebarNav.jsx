@@ -168,6 +168,7 @@ export default function SidebarNav({ badges }) {
               { label: 'Mein Briefing',       path: '/app/mein-briefing' },
               { label: 'Freigaben',           path: '/app/freigaben' },
               { label: 'Support',             path: '/app/support' },
+              { label: 'Mein Konto',          path: '/app/mein-konto' },
               { label: 'Meine Daten',         path: '/app/meine-daten' },
               { label: 'Akademie',            path: '/app/academy' },
               { label: 'Einstellungen',       path: '/app/settings' },

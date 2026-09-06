@@ -76,6 +76,7 @@ import MeineRechnungen from './pages/customer/MeineRechnungen';
 import WasWirBrauchen from './pages/customer/WasWirBrauchen';
 import Inhaltsaenderungen from './pages/customer/Inhaltsaenderungen';
 import MeinBericht from './pages/customer/MeinBericht';
+import MeinKonto from './pages/customer/MeinKonto';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -399,6 +400,9 @@ function App() {
             <Route path="was-wir-brauchen" element={<PrivateRoute><WasWirBrauchen /></PrivateRoute>} />
             <Route path="inhaltsaenderungen" element={<PrivateRoute><Inhaltsaenderungen /></PrivateRoute>} />
             <Route path="mein-bericht" element={<PrivateRoute><MeinBericht /></PrivateRoute>} />
+            {/* Kontoverwaltung: Profil, Zahlung, Geraete, Sicherheit,
+                Benachrichtigungen, Downloads (06.09.2026). */}
+            <Route path="mein-konto" element={<PrivateRoute><MeinKonto /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

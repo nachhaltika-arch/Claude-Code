@@ -17,6 +17,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from database import get_db, MitwirkungStand, Project, ProjectChecklist, Lead
+from auth import oauth2_scheme
 from routers.auth_router import get_current_user
 
 router = APIRouter(prefix="/api/portal", tags=["portal"])
@@ -643,6 +644,125 @@ def get_leistung(user=Depends(get_current_user), db: Session = Depends(get_db)):
         # unterscheiden kann. Das ist derselbe Unterschied wie zwischen
         # „nicht erhoben" und „null Punkte", und er ist genauso wichtig.
         "abo": (reaudit or {}).get("produkt"),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Kontoverwaltung: Geräte, Benachrichtigungen, Downloads (06.09.2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Warum diese drei hier und nicht im Innendienst.** Es sind die Fragen, die
+# ein Kunde an sein eigenes Konto stellt und für die er sonst anrufen muss:
+# Wo bin ich angemeldet? Welche Post bekomme ich? Wo liegt, was mir gehört?
+#
+# Profil, Passwort und zweiter Faktor liegen bewusst **nicht** hier — die
+# bedient `/api/auth/me` und `/api/auth/2fa/*` seit Langem, für alle Rollen
+# gleich. Ein zweiter Weg dorthin wäre ein zweiter Ort mit Passwortlogik.
+
+
+@router.get("/geraete")
+def get_geraete(token: str = Depends(oauth2_scheme),
+                user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Wo dieses Konto angemeldet ist — ohne den Token, mit gekürzter Adresse."""
+    from services import geraete
+
+    return {"geraete": geraete.liste(db, user.id, aktueller_token=token or "")}
+
+
+@router.post("/geraete/{sitzung_id}/abmelden")
+def abmelden_geraet(sitzung_id: int, user=Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Eine Anmeldung beenden — auch die eigene.
+
+    **Die eigene abzumelden ist erlaubt und Absicht:** Wer am fremden Rechner
+    sitzt und merkt, dass er eingeloggt bleibt, soll sich von dort werfen
+    können, ohne zu wissen, welche Zeile das ist.
+    """
+    from services import geraete
+
+    try:
+        return geraete.abmelden(db, user_id=user.id, sitzung_id=sitzung_id)
+    except geraete.NichtGefunden as fehler:
+        # 404 und nicht 403: Wer fremde Nummern durchprobiert, soll nicht
+        # erfahren, welche es gibt.
+        raise HTTPException(404, str(fehler))
+
+
+@router.get("/benachrichtigungen")
+def get_benachrichtigungen(user=Depends(get_current_user),
+                           db: Session = Depends(get_db)):
+    """Welche Mails der Kunde bekommt — und welche er nicht abwählen kann."""
+    from services import benachrichtigungswahl
+
+    return {"arten": benachrichtigungswahl.stand(db, user.id)}
+
+
+class BenachrichtigungWahl(BaseModel):
+    an: bool
+
+
+@router.post("/benachrichtigungen/{schluessel}")
+def setze_benachrichtigung(schluessel: str, body: BenachrichtigungWahl,
+                           user=Depends(get_current_user),
+                           db: Session = Depends(get_db)):
+    """Eine Wahl speichern. Pflichtnachrichten werden abgewiesen."""
+    from services import benachrichtigungswahl
+
+    try:
+        return benachrichtigungswahl.setze(db, user_id=user.id,
+                                           schluessel=schluessel, an=body.an)
+    except benachrichtigungswahl.NichtAbwaehlbar as fehler:
+        # 409 und nicht 400: Die Anfrage ist wohlgeformt, sie widerspricht nur
+        # dem Vertrag. Der Text sagt, warum — er steht im Katalog.
+        raise HTTPException(409, str(fehler))
+    except ValueError as fehler:
+        raise HTTPException(404, str(fehler))
+
+
+@router.get("/downloads")
+def get_downloads(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Alles, was der Kunde herunterladen kann — an einer Stelle.
+
+    **Zwei Quellen, ein Verzeichnis.** Dateien zum Betrieb liegen in
+    `project_files` (Logo, Bilder, Unterlagen — auch die, die er selbst
+    hochgeladen hat); gekaufte Erzeugnisse liegen als Bestellung mit
+    Download-Kennung. Der Kunde denkt beides als „meine Sachen"; dass es
+    zwei Tabellen sind, ist unsere Sache.
+
+    **Die Adressen sind die bestehenden.** Ein eigener Auslieferungsweg wäre
+    eine zweite Stelle mit Rechteprüfung — und eine Grenze, die nur an einer
+    von zwei Türen hängt, ist keine.
+    """
+    if not user.lead_id:
+        return {"dateien": [], "kaeufe": []}
+
+    dateien = db.execute(text(
+        "SELECT id, original_filename, file_type, file_size, uploaded_at, "
+        "uploaded_by_role, note FROM project_files WHERE lead_id = :lid "
+        "ORDER BY uploaded_at DESC LIMIT 100"), {"lid": user.lead_id}).fetchall()
+
+    kaeufe = []
+    try:
+        zeilen = db.execute(text(
+            "SELECT order_number, produkt_slug, download_token, created_at, status "
+            "FROM bestellungen WHERE email = :mail AND status = 'bezahlt' "
+            "ORDER BY created_at DESC LIMIT 50"), {"mail": user.email}).fetchall()
+        kaeufe = [{"nummer": z[0], "produkt": z[1],
+                   "adresse": f"/api/shop/download/{z[2]}" if z[2] else "",
+                   "gekauft_am": z[3].isoformat() if z[3] else None}
+                  for z in zeilen]
+    except Exception:  # noqa: BLE001 — ohne Shop-Tabelle bleibt die Liste leer
+        db.rollback()
+
+    return {
+        "dateien": [{
+            "id": z[0], "name": z[1], "art": z[2], "groesse": z[3],
+            "hochgeladen_am": z[4].isoformat() if z[4] else None,
+            "von": "Ihnen" if z[5] == "kunde" else "uns",
+            "notiz": z[6] or "",
+            "adresse": f"/api/files/mein/download/{z[0]}",
+        } for z in dateien],
+        "kaeufe": kaeufe,
     }
 
 

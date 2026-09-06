@@ -69,12 +69,41 @@ class User(Base):
     created_by = Column(Integer, nullable=True)
 
 
+class BenachrichtigungsWahl(Base):
+    """Welche abwaehlbaren Mails ein Nutzer bekommen moechte (06.09.2026).
+
+    **Eine Zeile je Nutzer und Art, und nur fuer das Abgewaehlte noetig.**
+    Die Vorgabe ist „an": Wer nie etwas eingestellt hat, hat keine Zeile und
+    bekommt alles — sonst verschwaende mit dieser Aenderung stillschweigend
+    Post, die er bisher bekam.
+
+    **Welche Arten es gibt und welche ueberhaupt abwaehlbar sind, steht nicht
+    hier, sondern in `services/benachrichtigungswahl.py`.** Eine Rechnung oder
+    eine Freigabeanfrage mit Fuenf-Tage-Frist ist keine Benachrichtigung,
+    sondern ein Schritt eines Vertrags; sie abwaehlbar zu machen waere im
+    Streitfall teuer. Der Katalog dort entscheidet, diese Tabelle speichert
+    nur.
+    """
+
+    __tablename__ = "benachrichtigungs_wahl"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                     nullable=False, index=True)
+    schluessel = Column(String(40), nullable=False)
+    an = Column(Boolean, default=True)
+    geaendert_am = Column(DateTime, default=datetime.utcnow)
+
+
 class UserSession(Base):
     """Active login sessions."""
     __tablename__ = "user_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # `ondelete="CASCADE"`: Eine Sitzung ohne Nutzer hat keinen Sinn — und ohne
+    # diese Angabe blockiert sie jede Loeschung, auch die nach Art. 17 DSGVO.
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                     nullable=False)
     token = Column(String(500), unique=True)
     ip_address = Column(String(50), default="")
     user_agent = Column(String(500), default="")

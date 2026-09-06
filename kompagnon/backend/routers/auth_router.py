@@ -19,6 +19,7 @@ from services.rollen import INNENDIENST as ROLLEN_INNENDIENST
 from services.rollen import (MIT_UNTERSCHRIFT, SELBSTREGISTRIERUNG, VORGABE,
                              rolle_normalisieren)
 from auth import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
     hash_password, verify_password, create_access_token, decode_token,
     generate_totp_secret, generate_totp_qr, verify_totp,
     generate_backup_codes, generate_temp_token, generate_reset_token,
@@ -48,6 +49,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(503, "Datenbankverbindung temporär nicht verfügbar. Bitte erneut versuchen.")
     if not user or not user.is_active:
         raise HTTPException(401, "Nicht autorisiert")
+
+    # **Abgemeldete Geraete kommen nicht mehr herein** (06.09.2026).
+    #
+    # Eine **Ausschluss**liste, keine Zulassungsliste — und das ist die
+    # wichtigste Entscheidung an dieser Stelle. Wuerde hier verlangt, dass zu
+    # jedem Token eine Zeile existiert, waere beim Ausrollen jeder ausgeloggt,
+    # dessen Token vorher ausgegeben wurde: Kunden wie Innendienst, ohne
+    # Vorwarnung. So wirkt die Sperre nur auf das, was ausdruecklich
+    # abgemeldet wurde.
+    from services import geraete
+    if geraete.ist_abgemeldet(db, token):
+        raise HTTPException(401, "Diese Anmeldung wurde beendet. Bitte neu anmelden.")
+
     return user
 
 
@@ -425,6 +439,18 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # **Die Anmeldung wird als Geraet vermerkt** (06.09.2026). Bis dahin war
+    # `UserSession` ein Modell ohne Schreiber: importiert, nie gefuellt, die
+    # Tabelle leer. Ohne diese Zeile koennte die Kontoverwaltung im
+    # Kundenkonto nicht sagen, wo das Konto offen ist — und „Geraet abmelden"
+    # waere ein Knopf ohne Gegenstand.
+    from services import geraete
+    geraete.anmeldung_merken(
+        db, user_id=user.id, token=token,
+        ip=(request.client.host if request and request.client else ""),
+        user_agent=(request.headers.get("user-agent", "") if request else ""),
+        gueltig_bis=datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -433,7 +459,7 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/login/2fa")
-def login_2fa(req: TwoFARequest, db: Session = Depends(get_db)):
+def login_2fa(req: TwoFARequest, request: Request, db: Session = Depends(get_db)):
     payload = decode_token(req.temp_token)
     if payload.get("type") != "2fa_temp":
         raise HTTPException(401, "Ungueltiger 2FA-Token")
@@ -454,6 +480,18 @@ def login_2fa(req: TwoFARequest, db: Session = Depends(get_db)):
     token = create_access_token({"user_id": user.id, "role": user.role})
     user.last_login = datetime.utcnow()
     db.commit()
+
+    # **Die Anmeldung wird als Geraet vermerkt** (06.09.2026). Bis dahin war
+    # `UserSession` ein Modell ohne Schreiber: importiert, nie gefuellt, die
+    # Tabelle leer. Ohne diese Zeile koennte die Kontoverwaltung im
+    # Kundenkonto nicht sagen, wo das Konto offen ist — und „Geraet abmelden"
+    # waere ein Knopf ohne Gegenstand.
+    from services import geraete
+    geraete.anmeldung_merken(
+        db, user_id=user.id, token=token,
+        ip=(request.client.host if request and request.client else ""),
+        user_agent=(request.headers.get("user-agent", "") if request else ""),
+        gueltig_bis=datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
     return {
         "access_token": token,

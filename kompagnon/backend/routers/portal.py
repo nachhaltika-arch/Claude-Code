@@ -505,6 +505,54 @@ def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
 # Billing-Portal ist dafuer da; wir erzeugen eine Sitzung und leiten weiter.
 
 
+# ══════════════════════════════════════════════════════════════════════
+# Was im Pflege-Abo steckt (L-160, Rang 3)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Der Befund vom 04.09.2026:** Zwoelf Positionen, fuer die der Betrieb
+# monatlich zahlt — und **keine einzige** war im Konto abrufbar. Weder was er
+# bekommt, noch wie viel er genutzt hat, noch wie er es anfordert. Ein Abo,
+# dessen Leistungen man nicht sieht, wird gekuendigt, weil es sich nach nichts
+# anfuehlt.
+#
+# **Die Liste steht im Katalog, nicht hier.** `services/leistungsverzeichnis.py`
+# fuehrt den Wortlaut des Datenblatts; dieser Endpunkt beantwortet nur, welches
+# Abo laeuft und was daraus folgt.
+
+
+@router.get("/leistungen")
+def get_leistungen(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Was der Kunde fuer sein Pflege-Abo bekommt — und was nicht.
+
+    **Ohne laufendes Abo bleibt die Liste leer.** Kein Basic-Umfang als
+    Vorgabe: Wer keinen Pflegevertrag hat, saehe sonst Zusagen, die niemand
+    gegeben hat.
+    """
+    from services import abo_vertrag
+    from services import leistungsverzeichnis as lz
+
+    vertrag = abo_vertrag.laufender(db, user.lead_id) if user.lead_id else None
+    produkt = vertrag.produkt if vertrag else None
+    positionen = lz.fuer_produkt(produkt or "")
+
+    return {
+        "produkt": produkt,
+        "seit": vertrag.start_monat if vertrag else None,
+        # **Die Zusage getrennt herausgegeben**, obwohl sie auch in der Liste
+        # steht. Der Support-Bildschirm braucht genau diesen einen Satz und
+        # soll die zwoelf Positionen dafuer nicht durchsuchen muessen — sonst
+        # entstuende dort eine zweite Auswahllogik.
+        "reaktionszeit": lz.reaktionszeit(produkt or ""),
+        "nicht_enthalten": list(lz.NICHT_ENTHALTEN) if produkt else [],
+        "verfall_hinweis": lz.VERFALL_HINWEIS if produkt else "",
+        "positionen": [{
+            "nummer": p.nummer, "titel": p.titel, "warum": p.warum,
+            "vertragstext": p.vertragstext, "frequenz": p.frequenz,
+            "ort": p.ort, "zusage": p.zusage,
+        } for p in positionen],
+    }
+
+
 @router.get("/zahlungen")
 def get_zahlungen(user=Depends(get_current_user), db: Session = Depends(get_db)):
     """Abos, Rechnungen und der Zustand des Zahlungskontos."""

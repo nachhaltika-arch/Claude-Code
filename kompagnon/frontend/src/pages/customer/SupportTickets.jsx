@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
 import SeitenTitel from '../../components/ui/SeitenTitel';
+import AboZusage from '../../components/kunde/AboZusage';
 
 const statusLabels = { open: 'Offen', in_progress: 'In Bearbeitung', resolved: 'Gelöst' };
 const prioLabels  = { low: 'Niedrig', medium: 'Normal', high: 'Dringend' };
@@ -63,6 +64,13 @@ export default function SupportTickets() {
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         🎫 Support-Tickets
       </div>
+
+      {/* **Die zugesagte Reaktionszeit, bevor er tippt** (L-160, Rang 3).
+          „Antwort innerhalb von 4 Stunden an Werktagen" stand im Datenblatt
+          und nirgends hier — der Kunde schrieb sein Ticket und wusste nicht,
+          wann er mit uns rechnen darf. Ohne laufendes Abo steht der Block
+          nicht da: Eine Zusage ohne Vertrag hat niemand gegeben. */}
+      <AboZusage token={token} ort="support" />
 
       {/* Neues Ticket */}
       <div style={cardStyle}>

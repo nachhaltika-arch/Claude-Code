@@ -1,5 +1,6 @@
 import { useAuth } from '../../context/AuthContext';
 import Inhaltsguthaben from '../../components/Inhaltsguthaben';
+import AboZusage from '../../components/kunde/AboZusage';
 
 /**
  * „Inhaltsänderungen" — Guthaben und Wünsche als eigene Seite (L-161).
@@ -18,6 +19,12 @@ export default function Inhaltsaenderungen() {
         Inhaltsänderungen
       </h1>
       <Inhaltsguthaben token={token} ohneTitel />
+      {/* **Was hier im Abo steckt, im Wortlaut des Vertrags** (L-160, Rang 3).
+          Der Kontostand allein sagt, wie viel übrig ist — nicht, worauf er
+          sich stützt, dass die Minuten am Monatsende verfallen und dass eine
+          neue Unterseite pro Jahr enthalten ist. Die Positionen kommen aus dem
+          Katalog; welche hierher gehören, entscheidet ihr `ort`. */}
+      <AboZusage token={token} ort="aenderungen" zeigeGrenzen />
     </div>
   );
 }

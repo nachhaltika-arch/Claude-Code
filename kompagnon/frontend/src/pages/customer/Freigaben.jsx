@@ -5,6 +5,7 @@ import { saveJson } from '../../utils/apiRequest';
 import { istEntschieden } from '../../utils/freigabeStand';
 import SeitenTitel from '../../components/ui/SeitenTitel';
 import Projektfreigaben from '../../components/kunde/Projektfreigaben';
+import Freigabefrist from '../../components/kunde/Freigabefrist';
 
 export default function Freigaben() {
   const { token, user } = useAuth();
@@ -99,6 +100,12 @@ export default function Freigaben() {
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
         ✅ Freigaben
       </div>
+
+      {/* **Die Frist steht über der Liste** (L-160, Rang 3). „Sie haben fünf
+          Werktage" stand im Angebot und nirgends auf dem Bildschirm, auf dem
+          der Kunde tatsächlich freigibt — er entschied, ohne zu wissen, dass
+          an seiner Entscheidung ein Termin hängt. */}
+      <Freigabefrist token={token} />
 
       {loading && <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen…</div>}
 

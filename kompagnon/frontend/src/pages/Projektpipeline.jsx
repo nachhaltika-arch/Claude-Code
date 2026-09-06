@@ -161,7 +161,7 @@ export default function Projektpipeline() {
     <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Projektpipeline</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Projektpipeline</h1>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
           {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>

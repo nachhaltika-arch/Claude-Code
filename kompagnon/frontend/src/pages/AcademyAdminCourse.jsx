@@ -195,7 +195,7 @@ export default function AcademyAdminCourse() {
           <button onClick={() => navigate('/app/akademie/admin')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-sans)' }}>
             Kurse verwalten
           </button>
-          <span style={{ color: 'var(--border-medium)' }}>›</span>
+          <span style={{ color: 'var(--text-45)' }}>›</span>
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
             {isNew ? 'Neuer Kurs' : form.title || `Kurs #${courseId}`}
           </span>

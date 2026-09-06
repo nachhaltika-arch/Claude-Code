@@ -47,10 +47,19 @@ Zwölf Positionen, für die er **monatlich zahlt** — 79 € (BAS) bzw. 149 €
 | 3 | Tägliche Sicherung, **Rücksicherung auf Anforderung** | ✗ kein Weg, sie anzufordern |
 | 4 | Verfügbarkeitsüberwachung mit Störungsmeldung | ✗ |
 | 5/8 | **Inhaltsänderungen bis 30 bzw. 90 Minuten je Monat** | ✗ kein Weg, sie anzufordern; kein Zähler |
-| 6/11 | Störungsbehebung, Reaktion in 1 Werktag bzw. 4 Stunden | ◐ Support gibt es, die Zusage steht nirgends |
+| 6/11 | Störungsbehebung, Reaktion in 1 Werktag bzw. 4 Stunden | ✓ seit 06.09. über dem Ticketformular, je nach Abo |
 | 7/10 | Re-Audit, jährlich bzw. quartalsweise | ✗ läuft im Hintergrund, kein Ergebnis im Konto |
 | 9 | **Monatlicher Leistungsbericht** (PRO) | ✗ wird versendet, liegt nicht im Konto |
 | 12 | Eine neue Unterseite pro Jahr (PRO) | ✗ kein Weg, sie abzurufen |
+
+> **Zwölf Positionen, aber nicht zwölf Leistungen je Abo** (nachgemessen am
+> 06.09.2026). Drei der Paare in dieser Tabelle **ersetzen** einander, sie
+> addieren nicht: 8 statt 5 („bis 90 Minuten **statt** 30"), 11 statt 6, 10
+> statt 7. Pflege Pro umfasst damit **neun** wirksame Positionen, Pflege Basic
+> sieben. Genau diese Verwechslung hat `abo_stunden` schon einmal gekostet —
+> aus 30 + 90 wurden zwei Stunden Guthaben. Der Katalog
+> `services/leistungsverzeichnis.py` führt die Ersetzungen deshalb als Daten,
+> und ein Test hält sie gegen die Abrechnung.
 
 > **Der schwerste Befund steht in dieser Tabelle, nicht darunter.** Von zwölf
 > bezahlten Positionen ist **keine einzige** im Konto abrufbar. Der Kunde zahlt
@@ -67,7 +76,7 @@ Zwölf Positionen, für die er **monatlich zahlt** — 79 € (BAS) bzw. 149 €
 | Sehen, was von ihm gebraucht wird | ✓ seit heute |
 | Eintragen, was er geliefert hat | ✓ seit heute |
 | Sehen, was das für den Termin heißt | ✓ seit heute |
-| Bauplan und Texte freigeben (M7/M8) mit Fünf-Tage-Frist | ◐ „Freigaben" gibt es, die Frist steht nicht dabei |
+| Bauplan und Texte freigeben (M7/M8) mit Fünf-Tage-Frist | ✓ seit 06.09. über der Freigabenliste, mit Vorlagedatum und errechnetem Bauzeitende (L-166) |
 
 ### 2.3 · Aus dem Vertrag und dem Gesetz
 
@@ -88,7 +97,7 @@ Zwölf Positionen, für die er **monatlich zahlt** — 79 € (BAS) bzw. 149 €
 |---|---|---|
 | **1** | **Inhaltsänderung anfordern, mit Kontostand** | Die meistgenutzte Abo-Leistung, und die einzige mit einem Guthaben. Ohne Zähler streitet man später über Minuten. |
 | **2** | **Leistungsbericht und Re-Audit im Konto** | Beides läuft bereits automatisch — es kommt nur nirgends an. Das ist gebaut und nicht angeschlossen. |
-| **3** | **Die Zusagen benennen**, wo sie gelten (Reaktionszeit am Support, Fünf-Tage-Frist an der Freigabe) | Kostet keine Technik, macht den Vertrag sichtbar. |
+| **3** | ~~**Die Zusagen benennen**, wo sie gelten~~ — **geschlossen am 06.09.2026** | Kostet keine Technik, macht den Vertrag sichtbar. |
 | **4** | **Kollegen Zugang geben** | Ein Betrieb ist keine Person. Heute muss der Innendienst jeden Zugang einrichten. |
 | **5** | **Auskunft und Löschung** | Gesetzlicher Anspruch; heute nur über eine Mail an uns. |
 | **6** | **Rücksicherung anfordern** | Selten gebraucht, aber im Ernstfall dringend — und dann sucht niemand nach der Telefonnummer. |

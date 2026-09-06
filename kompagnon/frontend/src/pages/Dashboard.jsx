@@ -104,7 +104,7 @@ export default function Dashboard() {
       {loadingKpis ? (
         <Skeleton height={32} width={80} />
       ) : (
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: color || 'var(--kc-dark)', lineHeight: 1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: color || 'var(--brand-primary)', lineHeight: 1 }}>
           {value ?? '—'}
         </div>
       )}
@@ -155,7 +155,7 @@ export default function Dashboard() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
             Dashboard
           </h1>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
@@ -347,7 +347,7 @@ export default function Dashboard() {
         {/* Leads */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
               Aktuelle Betriebe
             </span>
             <button
@@ -428,7 +428,7 @@ export default function Dashboard() {
 
         {/* Letzte Audits */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.08em', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 8 }}>
             Letzte Audits
           </div>
 

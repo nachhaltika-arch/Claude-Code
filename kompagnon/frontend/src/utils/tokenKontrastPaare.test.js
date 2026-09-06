@@ -81,6 +81,49 @@ const PAARE = [
   ['--error', '--paper'],
   ['--info', '--surface'],
   ['--info', '--paper'],
+  // Am 06.09.2026 dazugekommen (L-176). `--brand-primary` ist die Farbe, auf
+  // die zwölf Stellen von `--kc-dark` umgestellt wurden — sie *muss* geprüft
+  // sein, sonst hätte die Reparatur denselben blinden Fleck wie der Fehler.
+  // 8,38 hell / 8,02 dunkel. `--brand-primary-dark` stand ebenfalls in keiner
+  // der beiden Listen und wird an mehreren Stellen als Schrift benutzt.
+  ['--brand-primary', '--surface'],
+  ['--brand-primary', '--paper'],
+  ['--brand-primary-dark', '--surface'],
+  ['--brand-primary-dark', '--paper'],
+];
+
+/**
+ * Als Schrift benutzt, **fällt durch** — mit Nummer im Lagebild.
+ *
+ * **Warum eine dritte Kategorie und nicht eine Ausnahme.** Eine Ausnahme sagt
+ * „das ist in Ordnung so". Diese vier sind es nicht: Sie sind der Rest des
+ * Befunds L-176, den derselbe Wächter zutage gefördert hat, als er zum ersten
+ * Mal lief. Sie hier als Ausnahme einzutragen hieße, einen Mangel als
+ * Entscheidung zu tarnen — und genau das ist die Bauart, die dieses Projekt
+ * schon mehrfach Zeit gekostet hat.
+ *
+ * Der Test unten verlangt für jeden Eintrag eine L-Nummer. Ist die Lücke
+ * geschlossen, verschwindet der Eintrag hier — und wenn ihn jemand vergisst,
+ * meldet ihn der nächste Systemdurchlauf erneut.
+ */
+const BEFUNDE_OFFEN = [
+  // **Leer, und das ist ein Zustand, kein Zufall** (L-180, geschlossen am
+  // 06.09.2026). Die vier Eintraege, die dieser Waechter bei seinem ersten
+  // Lauf fand, sind abgearbeitet:
+  //
+  // * `--kc-black` stand an sechs Stellen auf `--warn` — hell nur 4.05 bei
+  //   Schwelle 4.5, dunkel 10.99. Ein **fester** Wert auf einem Grund, der
+  //   mit dem Satz wechselt. Jetzt `--text-on-warn`, das mitwechselt (5.19
+  //   hell, 10.99 dunkel) — dieselbe Bauart wie `--text-on-brand`.
+  // * `--kc-mid` war nur an **einer** Stelle wirklich Schrift
+  //   (`CustomerDashboard`, hell 3.48). Die uebrigen fuenf Fundstellen sind
+  //   Datenfelder, die zufaellig `color` heissen — siehe die Notiz unten.
+  // * `--border-medium` faerbte dreizehn Trennzeichen und Hinweise. Jetzt
+  //   `--text-45`, der dafuer gemachte schwache Textton (4.63 / 6.76).
+  // * `--kc-success` gab es in `tokens.css` **gar nicht**; benutzt wurde es
+  //   mit Rueckfall `#1D9E75` im Analyse-Widget, also griff immer der feste
+  //   Wert. Jetzt `--success` — und der rote Zwilling `#C0392B` daneben
+  //   ebenfalls auf `--error`.
 ];
 
 /**
@@ -97,6 +140,41 @@ const AUSNAHMEN = [
     grund: 'Ist eine Fläche, keine Schriftfarbe — 35 Vorkommen als Hintergrund, null als Text.' },
   { token: '--brand-primary-deeper', pruefeUngenutzt: true,
     grund: 'Ebenfalls Fläche; als Text käme sie auf 3.97 und wäre ein Befund.' },
+  // Am 06.09.2026 dazugekommen (L-176) — und der Anlass war, dass dieses
+  // Token in **keiner** der beiden Listen stand und deshalb nie geprüft
+  // wurde. Es ist die rohe Palettenfarbe: `--bg-sidebar` im Hellsatz,
+  // `--brand-primary` im Hellsatz, und im Dunkelsatz #003840, weil es dort
+  // eine dunkle Fläche sein soll. An dreizehn Stellen stand es als `color:` —
+  // im Dunkelmodus 1,17 bis 1,41, also unlesbar, darunter die Überschrift
+  // „Dashboard" und die Kennzahl darunter.
+  //
+  // Zwölf sind auf `--brand-primary` bzw. `--info` umgestellt. Die
+  // dreizehnte bleibt: der Zähler in der Seitenleiste steht auf
+  // `--kc-yellow` und erreicht dort 9,99 (dunkel) und 7,24 (hell). Deshalb
+  // `pruefeUngenutzt: false` — das Token *darf* als Schrift vorkommen, nur
+  // eben auf Gelb.
+  { token: '--kc-dark', pruefeUngenutzt: false,
+    grund: 'Flächenfarbe (Sidebar, Marke). Die eine verbliebene Verwendung '
+      + 'als Schrift steht auf --kc-yellow und erreicht dort 9,99 bzw. 7,24.' },
+  { token: '--kc-yellow', pruefeUngenutzt: false,
+    grund: 'Signalfarbe für Flächen; als Schrift nur auf dunklem Grund, wo '
+      + 'sie ihre Aufgabe hat — Tool-CI: Gelb höchstens einmal je Bildschirm.' },
+  { token: '--bg-surface', pruefeUngenutzt: false,
+    grund: 'Umgekehrte Schrift: helle Fläche als Textfarbe auf farbigem Grund '
+      + '(Knopf mit Markenfüllung). Ihr Gegenstück ist der Grund, nicht --surface.' },
+  { token: '--bg-app', pruefeUngenutzt: false,
+    grund: 'Wie --bg-surface — umgekehrte Schrift auf farbigem Grund.' },
+  { token: '--kc-mid', pruefeUngenutzt: false,
+    grund: 'Steht in Phasen- und Kanallisten als Datenfeld `color`, nicht als '
+      + 'CSS-Eigenschaft. Wo daraus Schrift wird, geht sie durch '
+      + 'color-mix(… 72%, var(--text)) und erreicht damit AA.' },
+  { token: '--border-medium', pruefeUngenutzt: false,
+    grund: 'Nach L-180 nur noch für **abgeschaltete** Bedienelemente '
+      + '(sitemapWerkzeug, sitemapDialoge, sitemapKarten — je hinter einer '
+      + 'disabled-Bedingung). Von WCAG 1.4.3 ausgenommen, wie --text-30.' },
+  { token: '--text-on-warn', pruefeUngenutzt: false,
+    grund: 'Ist für die Warnfläche gemacht, nicht für --surface: weiß im '
+      + 'hellen Satz (5.19 auf #9A6000), schwarz im dunklen (10.99).' },
 ];
 
 /** Zeilennummern der Blockanfänge — wie in `tokenKontrast.test.js`. */
@@ -236,5 +314,112 @@ describe('Die Ausnahmen halten noch', () => {
 
   test('jede Ausnahme trägt einen Grund', () => {
     AUSNAHMEN.forEach(a => expect(a.grund.length).toBeGreaterThan(30));
+  });
+});
+
+describe('Die Liste wächst mit dem Code mit', () => {
+  /**
+   * **Warum dieser Test der eigentliche Fund vom 06.09.2026 ist.**
+   *
+   * Der Systemdurchlauf meldete `--kc-dark` mit 1,29:1 im Dunkelmodus und
+   * schrieb dazu: „Warum die Token-Kontrasttests das nicht fangen: Sie rechnen
+   * eine ausdrückliche Paarliste, und `--kc-dark` als Textfarbe steht darin zu
+   * Recht nicht — es soll keine sein."
+   *
+   * Das stimmt, und es ist genau die Lücke: Die Paarliste ist **von Hand
+   * gepflegt**. Ein Token, das jemand neu als `color:` einsetzt, steht weder
+   * in `PAARE` noch in `AUSNAHMEN` — und wird deshalb nie geprüft. Dieselbe
+   * Bauart wie bei L-51, wo ein Wächter eine handgepflegte Pfadliste prüfte,
+   * während der Code weiterwuchs.
+   *
+   * Dieser Test dreht die Richtung um: Er liest, was **tatsächlich** als
+   * Schriftfarbe benutzt wird, und verlangt für jedes Token eine Entscheidung
+   * — geprüftes Paar oder begründete Ausnahme. Ein drittes gibt es nicht.
+   */
+  const quellen = [];
+  (function sammle(ordner) {
+    fs.readdirSync(ordner, { withFileTypes: true }).forEach(eintrag => {
+      const voll = path.join(ordner, eintrag.name);
+      if (eintrag.isDirectory()) {
+        if (eintrag.name !== 'node_modules') sammle(voll);
+      } else if (/\.(js|jsx|css)$/.test(eintrag.name) && !/\.test\./.test(eintrag.name)) {
+        quellen.push(voll);
+      }
+    });
+  })(WURZEL);
+
+  const benutzt = new Set();
+  quellen.forEach(datei => {
+    const text = fs.readFileSync(datei, 'utf8');
+    // **`color:`, nicht `*-color:`.** Der erste Wurf dieses Musters fing
+    // `border-color:` und `background-color:` mit und meldete `--border-light`
+    // und `--bg-surface` als angebliche Schriftfarben — vier Fehlalarme von
+    // zehn Treffern. Der Suchbereich muss die Eigenschaft treffen, nicht ihre
+    // Endung.
+    const muster = /(?:^|[;{\s,'"`(])color\s*:\s*['"`]?\s*(?:[\w\s|?:'"`.]*?)?var\(\s*(--[a-z0-9-]+)/g;
+    let treffer;
+    while ((treffer = muster.exec(text)) !== null) benutzt.add(treffer[1]);
+  });
+
+  /** Farben, die als Grund dienen — sie stehen als zweiter Teil eines Paares. */
+  const alsSchriftGepruef = new Set(PAARE.map(([vorne]) => vorne));
+  const begruendet = new Set(AUSNAHMEN.map(a => a.token));
+
+  test('es wird überhaupt etwas gefunden', () => {
+    // Ein Wächter, der seinen Gegenstand nicht findet, ist immer grün.
+    expect(benutzt.size).toBeGreaterThan(5);
+  });
+
+  /**
+   * **Was dieser Wächter nicht unterscheiden kann.** Er liest Text, und in
+   * JavaScript heißt ein Datenfeld genauso wie eine CSS-Eigenschaft:
+   *
+   *     { id: 'phase_1', label: 'Onboarding', color: 'var(--kc-mid)' }
+   *
+   * Das ist eine Phasenfarbe in einer Liste, keine Schriftfarbe — wo daraus
+   * Text wird, geht sie durch `color-mix(… 72%, var(--text))`, das
+   * ausdrücklich dafür da ist, AA zu erreichen. Fünf der sechs
+   * `--kc-mid`-Fundstellen waren von dieser Art.
+   *
+   * Ein Fehlalarm ist hier der ruhigere Fehler als eine Lücke: Er kostet
+   * einen Blick und einen Eintrag mit Begründung. Blind zu sein kostete
+   * L-176.
+   */
+  test('jedes als Schrift benutzte Token ist geprüft oder begründet', () => {
+    const offen = new Set(BEFUNDE_OFFEN.map(b => b.token));
+    const ohne = [...benutzt]
+      .filter(t => !alsSchriftGepruef.has(t) && !begruendet.has(t) && !offen.has(t))
+      // `--text-*` und `--status-*` tragen ihre Rolle im Namen und werden von
+      // `tokenKontrast.test.js` an ihren Kommentarzahlen geprüft.
+      .filter(t => !/^--(text|status|color)-/.test(t))
+      .sort();
+
+    expect({ ungeprueft: ohne }).toEqual({ ungeprueft: [] });
+  });
+});
+
+describe('Die offenen Befunde tragen eine Nummer', () => {
+  // `test.each` wirft bei einer leeren Tabelle — und leer ist hier der
+  // **erwünschte** Zustand. Der erste Wurf dieses Blocks ließ den Lauf
+  // deshalb auflaufen, kaum dass die vier Befunde abgearbeitet waren.
+  const tabelle = BEFUNDE_OFFEN.map(b => [b.token, b]);
+
+  test('die Liste ist leer oder jeder Eintrag ist vollständig', () => {
+    BEFUNDE_OFFEN.forEach(eintrag => {
+      expect(eintrag.luecke).toMatch(/^L-\d+$/);
+      expect(eintrag.befund.length).toBeGreaterThan(40);
+    });
+  });
+
+  (tabelle.length ? test.each(tabelle) : test.skip.each([['keiner', {}]]))(
+    '%s verweist auf eine Lücke im Lagebild', (token, eintrag) => {
+      expect(eintrag.luecke).toMatch(/^L-\d+$/);
+    });
+
+  test('kein Befund steht gleichzeitig als Ausnahme', () => {
+    // Sonst hätte ein Token zwei Aussagen über sich: „ist in Ordnung" und
+    // „ist ein Mangel". Die zweite verlöre, weil die erste zuerst greift.
+    const ausnahmen = new Set(AUSNAHMEN.map(a => a.token));
+    BEFUNDE_OFFEN.forEach(b => expect(ausnahmen.has(b.token)).toBe(false));
   });
 });

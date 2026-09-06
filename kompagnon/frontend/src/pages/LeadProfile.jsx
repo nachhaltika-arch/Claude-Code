@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
+import BauzeitFrist from '../components/BauzeitFrist';
 import BriefingTab from '../components/BriefingTab';
 import BetriebVerlauf from '../components/BetriebVerlauf';
 import BriefingWizard from '../components/BriefingWizard';
@@ -1180,6 +1181,13 @@ export default function LeadProfile() {
           setOpenAudit={setOpenAudit}
         />
       )}
+      {/* **Die zugesagte Bauzeit — und der Knopf, der sie ruhen lässt**
+          (L-166, 06.09.2026). Hier und nicht im eigenen Reiter: Der
+          Innendienst sieht auf der Übersicht nach, wie weit ein Betrieb ist,
+          und genau dort gehört die Frage hin, ob wir die Freigabe schon
+          vorgelegt haben. Ein elfter Reiter für zwei Knöpfe hätte die
+          täglichen Wege verdrängt. Ohne Projekt zeigt der Block nichts. */}
+      {activeTab === 'overview' && <BauzeitFrist leadId={leadId} token={token} />}
       {activeTab === 'contact' && (
         <ReiterKontakt
           lead={lead}

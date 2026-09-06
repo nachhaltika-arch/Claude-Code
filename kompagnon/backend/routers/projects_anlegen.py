@@ -287,10 +287,26 @@ async def _golive_automation(project_id: int):
                 lead_id = project.lead_id
                 if lead_id:
                     import httpx as _httpx
-                    backend_url = os.getenv(
-                        "BACKEND_URL",
-                        "http://localhost:8000"
-                    )
+
+                    # **`self_base_url()` statt `BACKEND_URL`** (L-178,
+                    # 06.09.2026). Hier stand `os.getenv("BACKEND_URL",
+                    # "http://localhost:8000")`. Die Variable steht seit
+                    # L-156 **bewusst** in keinem Blueprint — produktiv galt
+                    # also der Rueckfall, und einen Port 8000 gibt es auf
+                    # Render nicht. Der Aufruf lief ins Leere, `httpx` warf,
+                    # der `except` darunter schrieb eine Warnung, und das
+                    # **Abnahmeaudit entstand nicht** — zugesagt ist es im
+                    # Angebot als „Abnahmeaudit mit schriftlichem Protokoll".
+                    #
+                    # Die dritte Stelle derselben Klasse: `webhooks.py` und
+                    # `leads.py` hatten sie schon, und `self_base_url()` ist
+                    # genau daraus entstanden. Sie nimmt den internen
+                    # Hostnamen samt `PORT`, den Render selbst setzt — kein
+                    # Umweg durch das oeffentliche Netz an die eigene
+                    # Maschine.
+                    from services.base_urls import self_base_url
+
+                    backend_url = self_base_url()
                     async with _httpx.AsyncClient(timeout=5.0) as c:
                         resp = await c.post(
                             f"{backend_url}/api/audit/start",

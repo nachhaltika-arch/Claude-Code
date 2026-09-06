@@ -22,28 +22,42 @@
 import fs from 'fs';
 import path from 'path';
 
+import { KUNDEN_MENUE, NOCH_NICHT_GEBAUT, kundenEintraege } from './menueKunde';
+
 const SRC = path.join(__dirname, '..');
 const lies = (...teile) => fs.readFileSync(path.join(SRC, ...teile), 'utf8');
 
-/** Die Kundenpunkte aus der Seitenleiste — gelesen, nicht abgeschrieben. */
+/**
+ * Die Kundenpunkte — seit dem 06.09.2026 aus `utils/menueKunde.js`.
+ *
+ * **Vorher las diese Funktion das JSX** und zog die Punkte mit einem
+ * regulären Ausdruck aus `SidebarNav.jsx`. Das hielt genau so lange, bis
+ * jemand die Liste anders schrieb — beim Umbau auf Gruppen brach es sofort.
+ * Ein Wächter, dessen Gegenstand nur als Text vorliegt, prüft die
+ * Schreibweise mit; jetzt prüft er die Sache.
+ */
 function kundenpunkte() {
-  const quelle = lies('components', 'Layout', 'SidebarNav.jsx');
-  const block = quelle.slice(quelle.indexOf('/* ── Kunde view ── */'),
-                            quelle.indexOf('/* ── All other roles'));
-  return [...block.matchAll(/\{ label: '([^']+)',\s*path: ([^}]+)\}/g)]
-    .map((m) => ({ label: m[1], pfad: m[2].trim() }));
+  return kundenEintraege().map((e) => ({ label: e.label, pfad: e.path }));
 }
 
 describe('Das Menü des Kunden', () => {
-  test('führt die elf Punkte in der Reihenfolge der Aufmerksamkeit', () => {
-    // Arrange & Act
-    const labels = kundenpunkte().map((p) => p.label);
-
-    // Assert — erst wo er steht, dann was bei ihm liegt, dann was er zahlt.
-    expect(labels.slice(0, 5)).toEqual([
-      'Übersicht', 'Was wir brauchen', 'Inhaltsänderungen',
-      'Mein Bericht', 'Rechnungen und Zahlung',
+  test('ist gruppiert: Übersicht, drei Gruppen, ein Ausgang', () => {
+    // **Geändert am 06.09.2026** (Entwurf `kundenkonto-neu`). Hier standen
+    // zwölf flache Punkte „in der Reihenfolge der Aufmerksamkeit" — eine
+    // Ordnung, die nur beim Lesen von oben nach unten trägt. Zwölf
+    // gleichrangige Zeilen sagen nicht, dass „Freigaben" das laufende
+    // Projekt betrifft und „Rechnungen" den Vertrag.
+    expect(KUNDEN_MENUE.map((g) => g.label)).toEqual([
+      '', 'Mein Projekt', 'Mein Vertrag', 'Mein Konto', '',
     ]);
+    KUNDEN_MENUE.forEach((g) => expect(g.eintraege.length).toBeGreaterThan(0));
+  });
+
+  test('die Gruppen stehen in der Reihenfolge der Projektphase', () => {
+    // Nicht nach Häufigkeit: Vor dem Bau schaut der Kunde auf „Mein
+    // Projekt", danach auf „Mein Vertrag". Eine Reise ist eine Reihenfolge.
+    const mit = KUNDEN_MENUE.filter((g) => g.label).map((g) => g.label);
+    expect(mit).toEqual(['Mein Projekt', 'Mein Vertrag', 'Mein Konto']);
   });
 
   test('jeder Punkt hat eine Route in App.jsx', () => {
@@ -52,12 +66,11 @@ describe('Das Menü des Kunden', () => {
 
     // Act & Assert
     kundenpunkte().forEach(({ label, pfad }) => {
-      // Die Übersicht zeigt auf die eigene Kartei — ein Ausdruck, kein Pfad.
       if (pfad.includes('usercards')) {
         expect(app).toContain('path="usercards/:id"');
         return;
       }
-      const teil = pfad.replace(/['`]/g, '').replace('/app/', '').split('/')[0];
+      const teil = pfad.replace('/app/', '').split('/')[0];
       expect(app.includes(`path="${teil}"`)).toBe(true);
       expect(label.length).toBeGreaterThan(0);
     });
@@ -71,8 +84,7 @@ describe('Das Menü des Kunden', () => {
     // Menüpunkt darauf leuchtet nie, weil „aktiv" gegen die Zieladresse
     // vergleicht. Der Rückfall ohne `lead_id` bleibt erlaubt.
     punkte.forEach(({ pfad }) => {
-      const zeigtNurAufWeiche = /^'\/app\/dashboard'$/.test(pfad);
-      expect(zeigtNurAufWeiche).toBe(false);
+      expect(pfad).not.toBe('/app/dashboard');
     });
   });
 
@@ -83,9 +95,13 @@ describe('Das Menü des Kunden', () => {
     // und kann nicht durch eine Komponente hindurchsehen.
     const paare = [
       ['customer/WasWirBrauchen.jsx', 'Was wir brauchen', 'Mitwirkung'],
-      ['customer/Inhaltsaenderungen.jsx', 'Inhaltsänderungen', 'Inhaltsguthaben'],
+      // **Am 06.09.2026 umbenannt** — und genau dieser Test hat verlangt, dass
+      // die Seiten mitziehen. Wer „Leistungen und Guthaben" klickt und
+      // „Inhaltsänderungen" liest, fragt sich, ob er richtig ist. Beide
+      // Seiten zeigen inzwischen mehr, als ihr alter Name nannte.
+      ['customer/Inhaltsaenderungen.jsx', 'Leistungen und Guthaben', 'Inhaltsguthaben'],
       ['customer/MeineRechnungen.jsx', 'Rechnungen und Zahlung', 'Zahlungen'],
-      ['customer/MeinBericht.jsx', 'Mein Bericht', null],
+      ['customer/MeinBericht.jsx', 'Berichte und Prüfungen', null],
     ];
 
     // Act & Assert
@@ -107,5 +123,53 @@ describe('Das Menü des Kunden', () => {
     ['Mitwirkung', 'Inhaltsguthaben', 'Zahlungen'].forEach((k) => {
       expect(uebersicht).not.toContain(`<${k} `);
     });
+  });
+});
+
+describe('Was der Entwurf verlangt und noch fehlt', () => {
+  /**
+   * **Warum die vier nicht im Menü stehen.** Der Entwurf `kundenkonto-neu`
+   * führt Vertragsunterlagen, Dazubuchen, Zugänge für Kollegen und
+   * Nachrichten. Für keinen davon gibt es eine Seite. Sie ins Menü zu setzen
+   * hieße, vier tote Klicks anzubieten — die Fehlerklasse dieses Projekts,
+   * nur andersherum: nicht „gebaut, nicht angeschlossen", sondern
+   * „angeschlossen, nicht gebaut". Beides führt jemanden ins Leere.
+   */
+  test('jeder fehlende Punkt nennt Grund und Lücke', () => {
+    expect(NOCH_NICHT_GEBAUT.length).toBeGreaterThan(0);
+    NOCH_NICHT_GEBAUT.forEach((p) => {
+      expect(p.luecke).toMatch(/^L-\d+$/);
+      expect(p.grund.length).toBeGreaterThan(20);
+    });
+  });
+
+  test('kein fehlender Punkt steht gleichzeitig im Menü', () => {
+    const labels = kundenpunkte().map((p) => p.label);
+    NOCH_NICHT_GEBAUT.forEach((p) => expect(labels).not.toContain(p.label));
+  });
+
+  test('sobald die Seite existiert, gehört der Punkt ins Menü', () => {
+    // Ein Eintrag, dessen Route es längst gibt, ist keine Lücke mehr — er ist
+    // ein vergessener Anschluss.
+    const app = lies('App.jsx');
+    NOCH_NICHT_GEBAUT.forEach((p) => {
+      expect({ label: p.label, geroutet: new RegExp(`path="${p.pfad}"`).test(app) })
+        .toEqual({ label: p.label, geroutet: false });
+    });
+  });
+});
+
+describe('Kein Bildschirm ohne Weg dorthin', () => {
+  /**
+   * **Die Gegenrichtung, und sie ist die wichtigere.** Ein toter Menüpunkt
+   * fällt beim ersten Klick auf; eine Seite ohne Menüpunkt fällt **nie** auf.
+   */
+  const KUNDENSEITEN = [
+    'was-wir-brauchen', 'inhaltsaenderungen', 'mein-bericht', 'rechnungen',
+    'mein-briefing', 'freigaben', 'support', 'mein-konto', 'meine-daten',
+  ];
+
+  test.each(KUNDENSEITEN)('die Seite %s steht im Menü', (stamm) => {
+    expect(kundenpunkte().some((p) => p.pfad.includes(stamm))).toBe(true);
   });
 });

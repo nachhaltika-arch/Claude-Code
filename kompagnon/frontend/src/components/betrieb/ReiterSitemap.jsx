@@ -73,7 +73,7 @@ export default function ReiterSitemap({
       {kiConfirm && (
         <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: '#92660A', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ flex: 1 }}>⚠️ KI-Vorlage überschreibt alle vorhandenen (Nicht-Pflicht-)Seiten.</span>
-          <button onClick={generateKI} style={{ padding: '6px 14px', background: 'var(--warn)', color: 'var(--kc-black)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
+          <button onClick={generateKI} style={{ padding: '6px 14px', background: 'var(--warn)', color: 'var(--text-on-warn)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
           <button onClick={() => setKiConfirm(false)} style={{ padding: '6px 14px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
         </div>
       )}

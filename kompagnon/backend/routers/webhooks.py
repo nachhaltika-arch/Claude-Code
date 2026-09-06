@@ -49,6 +49,62 @@ def _check_secret(request: Request):
         raise HTTPException(403, "Ungueltiger Webhook-Token")
 
 
+def protokolliere_eingang(quelle: str, email: str, firma: str) -> None:
+    """Einen geglueckten Fremdaufruf festhalten.
+
+    Herausgeloest aus `_upsert_lead`, damit der **Fehlschlag** dieselbe Spur
+    schreiben kann — siehe `protokolliere_fehlschlag`.
+    """
+    _protokoll_schreiben(quelle, email, firma, None)
+
+
+def protokolliere_fehlschlag(quelle: str, grund: str) -> None:
+    """Einen **gescheiterten** Fremdaufruf festhalten (L-174, 06.09.2026).
+
+    **Warum es das gibt.** `webhook_log` wurde nur im geglueckten Pfad
+    beschrieben. Ein Aufruf, der an einem unerwarteten Aufbau scheiterte,
+    stand nirgends ausser im Server-Log — und der Innendienst sah unter
+    „Fremdaufrufe" nur die geglueckten. Die Liste sagte „alles gut", waehrend
+    Interessenten aus bezahlten Anzeigen verloren gingen.
+
+    **Warum die fuenf Aufrufe trotzdem 200 antworten.** Was ihre Abfangzweige
+    fangen, sind ueberwiegend **Formatfehler**: Ein Portal aendert den Aufbau
+    seiner Nachricht. Eine Wiederholung scheitert dann genauso — sie erzeugt
+    nur Last, und Facebook schaltet einen Rueckruf ab, der dauerhaft Fehler
+    liefert. Anders als bei Stripe (`payments.stripe_webhook`) ist die
+    Wiederholung hier **kein** Heilmittel; die Spur ist es.
+    """
+    _protokoll_schreiben(quelle, "", "", (grund or "unbekannt")[:500])
+
+
+def _protokoll_schreiben(quelle: str, email: str, firma: str, fehler) -> None:
+    """Eine Zeile ins Fremdaufruf-Protokoll — auf eigener Sitzung.
+
+    **Eigene Sitzung, weil der Aufrufer eine vergiftete haben kann.** Nach
+    einem Datenbankfehler ist die laufende Transaktion abgebrochen, und jede
+    weitere Anweisung darauf scheitert ebenfalls. Genau dann soll die Spur
+    aber entstehen.
+    """
+    db = SessionLocal()
+    try:
+        db.execute(text(
+            "INSERT INTO webhook_log (source, email, company, fehler, created_at) "
+            "VALUES (:s, :e, :c, :f, NOW())"),
+            {"s": quelle, "e": email or "", "c": firma or "", "f": fehler})
+        db.commit()
+    except Exception as fehler_beim_schreiben:  # noqa: BLE001
+        # Ein Protokoll, das seinerseits den Aufruf kippt, waere schlimmer
+        # als keines — hier endet die Kette.
+        logger.error("Fremdaufruf-Protokoll nicht schreibbar (%s: %s)",
+                     type(fehler_beim_schreiben).__name__, fehler_beim_schreiben)
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+    finally:
+        db.close()
+
+
 def _upsert_lead(source: str, company: str, email: str,
                  phone: str, website: str, notes: str = ""):
     db = SessionLocal()
@@ -81,11 +137,12 @@ def _upsert_lead(source: str, company: str, email: str,
             row = db.execute(text(
                 "SELECT id FROM leads ORDER BY id DESC LIMIT 1"
             )).fetchone()
-            db.execute(text("""
-                INSERT INTO webhook_log (source, email, company, created_at)
-                VALUES (:s, :e, :c, NOW())
-            """), {"s": source, "e": email, "c": company or ""})
-            db.commit()
+            # **Dieselbe Stelle wie beim Fehlschlag** (L-174, 06.09.2026).
+            # Hier stand die einzige `INSERT`-Anweisung ins Protokoll — und
+            # weil sie mitten im geglueckten Pfad steht, trug das Protokoll
+            # ausschliesslich Erfolge. Jetzt schreiben beide Faelle ueber
+            # `_protokoll_schreiben`; `fehler` bleibt hier leer.
+            protokolliere_eingang(source, email, company or "")
 
             # **Der Weg, der bis zum 24.08.2026 fehlte (L-62).** Diese
             # Funktion schreibt mit rohem SQL und laeuft damit an
@@ -126,6 +183,10 @@ async def webhook_facebook(request: Request):
             fields.get("email", ""), fields.get("phone_number", ""), "")
     except Exception as e:
         logger.error(f"Facebook Webhook Fehler: {e}")
+        # **200 bleibt, die Spur kommt dazu** (L-174). Ein Formatfehler
+        # heilt nicht durch Wiederholung; ein verlorener Lead muss trotzdem
+        # auffindbar sein. Begruendung: `protokolliere_fehlschlag`.
+        protokolliere_fehlschlag("facebook", f"{type(e).__name__}: {e}")
         return {"ok": True}
 
 
@@ -139,6 +200,10 @@ async def webhook_linkedin(request: Request):
             b.get("emailAddress", ""), b.get("phoneNumber", ""), "")
     except Exception as e:
         logger.error(f"LinkedIn Webhook Fehler: {e}")
+        # **200 bleibt, die Spur kommt dazu** (L-174). Ein Formatfehler
+        # heilt nicht durch Wiederholung; ein verlorener Lead muss trotzdem
+        # auffindbar sein. Begruendung: `protokolliere_fehlschlag`.
+        protokolliere_fehlschlag("linkedin", f"{type(e).__name__}: {e}")
         return {"ok": True}
 
 
@@ -154,6 +219,10 @@ async def webhook_google(request: Request):
             cols.get("PHONE_NUMBER", ""), "")
     except Exception as e:
         logger.error(f"Google Webhook Fehler: {e}")
+        # **200 bleibt, die Spur kommt dazu** (L-174). Ein Formatfehler
+        # heilt nicht durch Wiederholung; ein verlorener Lead muss trotzdem
+        # auffindbar sein. Begruendung: `protokolliere_fehlschlag`.
+        protokolliere_fehlschlag("google", f"{type(e).__name__}: {e}")
         return {"ok": True}
 
 
@@ -166,6 +235,10 @@ async def webhook_postkarte(request: Request):
             b.get("email", ""), b.get("telefon", ""), b.get("website", ""))
     except Exception as e:
         logger.error(f"Postkarte Webhook Fehler: {e}")
+        # **200 bleibt, die Spur kommt dazu** (L-174). Ein Formatfehler
+        # heilt nicht durch Wiederholung; ein verlorener Lead muss trotzdem
+        # auffindbar sein. Begruendung: `protokolliere_fehlschlag`.
+        protokolliere_fehlschlag("postkarte", f"{type(e).__name__}: {e}")
         return {"ok": True}
 
 
@@ -180,6 +253,10 @@ async def webhook_telefon(request: Request):
             d.get("email", ""), d.get("telefon", ""), "", notes)
     except Exception as e:
         logger.error(f"Telefon Webhook Fehler: {e}")
+        # **200 bleibt, die Spur kommt dazu** (L-174). Ein Formatfehler
+        # heilt nicht durch Wiederholung; ein verlorener Lead muss trotzdem
+        # auffindbar sein. Begruendung: `protokolliere_fehlschlag`.
+        protokolliere_fehlschlag("telefon", f"{type(e).__name__}: {e}")
         return {"ok": True}
 
 
@@ -205,7 +282,7 @@ def get_webhook_log(
     db = SessionLocal()
     try:
         rows = db.execute(text(
-            "SELECT id, source, email, company, created_at "
+            "SELECT id, source, email, company, fehler, created_at "
             "FROM webhook_log ORDER BY created_at DESC LIMIT :l"
         ), {"l": limit}).fetchall()
         return [dict(r._mapping) for r in rows]

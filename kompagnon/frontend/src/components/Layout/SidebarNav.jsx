@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useEscapeKey } from '../../hooks/useKeyboardShortcuts';
 import { MENUE_GRUPPEN, offeneGruppen } from '../../utils/menue';
+import { KUNDEN_MENUE, pfadFuer } from '../../utils/menueKunde';
 import { aufTaste } from '../../utils/tastaturBedienung';
 import KompagnonLogo from '../KompagnonLogo';
 import Logo from '../Logo';
@@ -138,47 +139,36 @@ export default function SidebarNav({ badges }) {
       {/* Navigation */}
       <nav style={{ flex: 1, overflowY: 'auto' }}>
         {user?.role === 'kunde' ? (
-          /* ── Kunde view ── */
+          /* ── Kunde: Übersicht, drei Gruppen, ein Ausgang ──
+             Die Liste stand bis zum 06.09.2026 hier als Feld — zwölf flache
+             Punkte, in denen „Mein Bericht" neben „Akademie" stand wie
+             „Freigaben" neben „Einstellungen". Der Entwurf `kundenkonto-neu`
+             ordnet sie nach dem, worauf sie sich beziehen: das laufende
+             Projekt, der Vertrag, das Konto.
+
+             Die Reihenfolge der Gruppen folgt der Projektphase, nicht der
+             Häufigkeit: Vor dem Bau schaut der Kunde auf „Mein Projekt",
+             danach auf „Mein Vertrag".
+
+             Die Punkte selbst stehen in `utils/menueKunde.js` — dieselbe
+             Bauart wie `utils/menue.js` für den Innendienst, und aus
+             demselben Grund: Eine Liste im Bauteil lässt sich nicht prüfen,
+             und die Mobilansicht müsste sie ein zweites Mal führen. */
           <div style={{ marginTop: 8 }}>
-            {[
-              // **Direkt auf die eigene Karte (04.09.2026).** Der Punkt zeigte
-              // auf `/app/dashboard`; `DashboardRoute` wirft einen Kunden von
-              // dort sofort auf `/app/usercards/:lead_id`. Der Klick landete
-              // also richtig — aber `isActive('/app/dashboard')` verglich mit
-              // der Adresse **nach** der Umleitung und war nie wahr. Der Punkt
-              // sprang weg und leuchtete nie: von aussen „lässt sich nicht
-              // aktivieren".
-              //
-              // Es ist derselbe Fehler wie eine Zeile darunter, dort am
-              // 26.08.2026 behoben. Ein Menuepunkt soll benennen, wohin er
-              // wirklich fuehrt — nicht auf eine Weiche zeigen.
-              // **Die Reihenfolge folgt der Aufmerksamkeit des Kunden**
-              // (04.09.2026, L-161): erst wo er steht, dann was bei ihm
-              // liegt, dann was er beauftragt, dann was er zahlt. Die drei
-              // mittleren Punkte sind neu — ihre Inhalte standen bis dahin
-              // alle auf der Uebersicht untereinander.
-              //
-              // „Uebersicht" statt „Dashboard": Der Punkt heisst, was der
-              // Kunde dort findet, nicht wie das Fach heisst.
-              { label: 'Übersicht',           path: user?.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard' },
-              { label: 'Was wir brauchen',    path: '/app/was-wir-brauchen' },
-              { label: 'Inhaltsänderungen',   path: '/app/inhaltsaenderungen' },
-              { label: 'Mein Bericht',        path: '/app/mein-bericht' },
-              { label: 'Rechnungen und Zahlung', path: '/app/rechnungen' },
-              { label: 'Mein Briefing',       path: '/app/mein-briefing' },
-              { label: 'Freigaben',           path: '/app/freigaben' },
-              { label: 'Support',             path: '/app/support' },
-              { label: 'Meine Daten',         path: '/app/meine-daten' },
-              { label: 'Akademie',            path: '/app/academy' },
-              { label: 'Einstellungen',       path: '/app/settings' },
-            ].map((item) => {
-              const active = isActive(item.path);
-              return (
-                <button key={item.path} onClick={() => navigate(item.path)} style={navItemStyle(active)}>
-                  {item.label}
-                </button>
-              );
-            })}
+            {KUNDEN_MENUE.map((gruppe) => (
+              <div key={gruppe.key}>
+                {gruppe.label && <span style={sectionLabelStyle}>{gruppe.label}</span>}
+                {gruppe.eintraege.map((eintrag) => {
+                  const ziel = pfadFuer(eintrag, user?.lead_id);
+                  return (
+                    <button key={eintrag.label} onClick={() => navigate(ziel)}
+                            style={navItemStyle(isActive(ziel))}>
+                      {eintrag.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         ) : (
           /* ── All other roles: collapsible sections ── */

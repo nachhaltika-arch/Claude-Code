@@ -204,4 +204,13 @@ async def audit_anfrage(
             db.rollback()
         except Exception:
             pass
-        return {"success": False, "error": str(e)}
+        # **Nicht `str(e)`** (L-175, 06.09.2026). Die rohe Ausnahme nennt
+        # Tabellen- und Spaltennamen, ein Verbindungsfehler die Adresse des
+        # Datenbankservers — und diese Adresse ist **ohne Anmeldung**
+        # erreichbar. Der Interessent braucht die Auskunft, dass es
+        # schiefging und was er tun kann; der Grund steht im Server-Log,
+        # zusammen mit der Ausnahmeart.
+        return {"success": False,
+                "error": "Die Anfrage konnte nicht gespeichert werden. "
+                         "Bitte versuchen Sie es in einigen Minuten erneut "
+                         "oder schreiben Sie uns."}

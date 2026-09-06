@@ -424,7 +424,7 @@ export default function CustomerDetail() {
             onClick={() => navigate(-1)}
             style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
           >← Zurück</button>
-          <span style={{ color: 'var(--border-medium)' }}>·</span>
+          <span style={{ color: 'var(--text-45)' }}>·</span>
           <h1 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {customer?.contact_name || customer?.company_name || `Kunde #${customerId}`}
           </h1>

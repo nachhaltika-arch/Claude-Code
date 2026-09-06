@@ -76,6 +76,9 @@ import MeineRechnungen from './pages/customer/MeineRechnungen';
 import WasWirBrauchen from './pages/customer/WasWirBrauchen';
 import Inhaltsaenderungen from './pages/customer/Inhaltsaenderungen';
 import MeinBericht from './pages/customer/MeinBericht';
+import MeinKonto from './pages/customer/MeinKonto';
+import Zugaenge from './pages/customer/Zugaenge';
+import Vertragsunterlagen from './pages/customer/Vertragsunterlagen';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -399,6 +402,17 @@ function App() {
             <Route path="was-wir-brauchen" element={<PrivateRoute><WasWirBrauchen /></PrivateRoute>} />
             <Route path="inhaltsaenderungen" element={<PrivateRoute><Inhaltsaenderungen /></PrivateRoute>} />
             <Route path="mein-bericht" element={<PrivateRoute><MeinBericht /></PrivateRoute>} />
+            {/* Kontoverwaltung: Profil, Zahlung, Geraete, Sicherheit,
+                Benachrichtigungen, Downloads (06.09.2026). */}
+            <Route path="mein-konto" element={<PrivateRoute><MeinKonto /></PrivateRoute>} />
+            {/* Zugaenge fuer Kollegen (L-160 Rang 4, K7): Ein Betrieb ist
+                keine Person. Die Rechtestufe entscheidet im Backend, was
+                sichtbar ist — die Seite selbst darf jeder Zugang sehen. */}
+            <Route path="zugaenge" element={<PrivateRoute><Zugaenge /></PrivateRoute>} />
+            {/* Vertragsunterlagen (L-160 Rang 7): Was der Kunde
+                unterschrieben hat. Liegt hinter derselben Geldsperre wie
+                Rechnungen und Zahlungsart. */}
+            <Route path="vertragsunterlagen" element={<PrivateRoute><Vertragsunterlagen /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

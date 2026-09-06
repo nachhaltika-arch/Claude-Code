@@ -351,7 +351,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 logger.error("Stripe: Abo-Einzug nicht vermerkt fuer Sitzung "
                              "%s: %s", session_obj.get("id", "?"), e,
                              exc_info=True)
-                return {"status": "error_logged"}
+                # **502 und nicht 200** (L-174, 06.09.2026). Hier stand
+                # `return {"status": "error_logged"}` — also eine
+                # Erfolgsantwort. Stripe wertet 200 als *verarbeitet* und
+                # liefert **nie wieder**: Die Karte ist belastet, und bei uns
+                # steht der Vertrag weiter auf Rechnung. Mit 5xx wiederholt
+                # Stripe bis zu drei Tage, und der Fehlschlag steht sichtbar
+                # im Stripe-Protokoll statt nur in unserem Log.
+                #
+                # `_abo_einzug_eingerichtet` committet erst am Ende; bricht es
+                # vorher, ist nichts geschrieben und die Wiederholung faengt
+                # sauber von vorn an.
+                raise HTTPException(
+                    502, "abo_einzug_nicht_vermerkt") from e
             return {"status": "ok"}
 
         try:
@@ -362,7 +374,26 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 f"Session {session_obj.get('id', '?')}: {e}",
                 exc_info=True,
             )
-            return {"status": "error_logged"}
+            # **502 und nicht 200** (L-174, 06.09.2026) — die teuerste der
+            # beiden Stellen. Hier stand eine Erfolgsantwort; scheiterte die
+            # Verarbeitung, war der Vorgang **endgueltig weg**: Die Zahlung
+            # ist gebucht, Lead, Konto und Projekt entstehen nicht, und
+            # niemand erfaehrt es ausser einer Protokollzeile. Genau die
+            # Kette, die L-171 als „produktiv scharf, nie durchlaufen" fuehrt.
+            #
+            # **Warum die Wiederholung gefahrlos ist, nachgesehen statt
+            # vermutet:** `_handle_successful_payment` prueft zuerst, ob zu
+            # dieser Sitzungskennung schon ein Lead steht, und bricht dann ab.
+            # Der einzige `commit()` des Hauptpfads steht am Ende von Schritt
+            # 3; alles danach — Sequenz, Auftragsbestaetigung,
+            # Willkommensmail — faengt seine Fehler selbst ab und wirft nicht
+            # hierher. Greift dieser Zweig, ist also **nichts** geschrieben.
+            #
+            # Dieselbe Regel, die eine Ebene hoeher fuer das fehlende
+            # Geheimnis schon gilt: 5xx, damit Stripe wiederholt und der
+            # Fehler sichtbar bleibt.
+            raise HTTPException(
+                502, "zahlung_nicht_verarbeitet") from e
 
     return {"status": "ok"}
 

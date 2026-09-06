@@ -92,7 +92,7 @@ einander nicht — deshalb wurde zweimal der falsche Absender beschuldigt.
 
 ---
 
-## Die Reibungskarte (04.09.2026)
+## Die Reibungskarte (04.09.2026, fortgeschrieben am 06.09.2026)
 
 `reibungskarte.html` — dieselben 38 Berührungspunkte, aber **nicht zum
 Vorzeigen**. Wunsch David: „ich will, dass wir diese Darstellung nutzen um
@@ -107,12 +107,36 @@ noch hängt."
 | hängt | gebaut, mit benanntem Vorbehalt | 14 |
 | fehlt | im Code nicht auffindbar | 1 |
 
-**Der eigentliche Inhalt sind die acht Konflikte.** Ein Konflikt ist hier
+**Der eigentliche Inhalt sind die neun Konflikte.** Ein Konflikt ist hier
 nicht „etwas ist kaputt", sondern: **zwei Aussagen, die nicht beide wahr sein
 können** — eine aus einem Vertrag oder Datenblatt, eine aus dem laufenden
 System. Jeder nennt beide Quellen und endet mit der Frage, die sich nicht
-wegprogrammieren lässt. Zwei davon kosten unmittelbar Geld (K1 die
-Garantieschwelle, K2 die 28,31 € Differenz je Kunde und Monat).
+wegprogrammieren lässt. Drei davon kosten unmittelbar Geld (K1 die
+Garantieschwelle, K2 die 28,31 € Differenz je Kunde und Monat, K9 elf Tage
+Bauzeit je Auftrag).
+
+**Stand 06.09.2026: K3 und K7 sind gelöst, K9 ist neu.**
+
+*K3 — die Fristpause.* Das System führte den Fristbeginn, aber kein Feld für
+eine **Pause**: Wann eine Freigabe vorlag und wann der Kunde sie erteilte,
+stand nirgends, und damit war das zugesagte Bauzeitende nicht berechenbar.
+Seit dem 06.09. hält `mitwirkung_stand.vorgelegt_am` den Vorlagezeitpunkt, der
+Innendienst trägt ihn auf der Betriebsübersicht ein, und Kundenkonto wie
+Innendienst lesen **dieselbe** Rechnung (`services/bauzeit.py`, L-166). Offen
+bleibt eine Auslegung, keine Zeile Code: Gerechnet wird, dass nur ruht, was
+**über** die zugesagten fünf Werktage hinausgeht.
+
+*K7 — ein Betrieb ist keine Person.* Ein Zugang je Betrieb hieß: Zugangsdaten
+wandern per WhatsApp durch die Firma, und wir wissen nicht mehr, wer
+freigegeben hat. Seit dem 06.09. richtet der Betrieb Zugänge selbst ein, in
+zwei Rechtestufen — und die Sperre vor Rechnungen, Zahlungsart und
+Vertragsunterlagen ist mitgebaut, nicht vertagt (L-160 Rang 4).
+
+*K9 — die Einheit der Bauzeit.* Beim Bauen von K3 aufgefallen und nicht
+gesucht: Alle vier Produktdatenblätter sagen **Kalendertage** (Start 7,
+Relaunch 14, Neubau 28, System 42), der Code gibt dieselben Zahlen an fünf
+Stellen als **Werktage** aus — und die Spalte dahinter trägt keine Einheit.
+Elf Tage Unterschied je Auftrag, und daran hängt die Verzugspauschale (L-173).
 
 **Dazu zwei Listen, die eine Reisekarte sonst verschweigt:** wo der Kunde
 wartet, ohne dass etwas Sichtbares geschieht (vier Stellen, zwei davon am

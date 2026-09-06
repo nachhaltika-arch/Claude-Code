@@ -41,7 +41,27 @@ PSI_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 # PSI-Aufruf (`audit_runner`, `psi_mobile`), und der laeuft parallel zu QA,
 # Hosting, Links, Rechtsseiten und TLS. Die Grenze greift nur, wenn Google
 # wirklich haengt.
-PSI_TIMEOUT = 60.0
+# **Am 05.09.2026 von 60 auf 120 Sekunden angehoben — gemessen, nicht geraten.**
+#
+# Der Prueflauf auf Staging (Audit 4, neovendo.de) zeigt im Protokoll:
+#
+#     08:38:37  Seite im Browser geladen
+#     08:39:39  PageSpeed fehlgeschlagen        ← 62 s spaeter
+#     08:40:11  Audit 4: 83/100, Abdeckung 81%, 108,4s
+#
+# Der Abbruch kam auf die Sekunde mit der Zeitgrenze. Der Schluessel war
+# gesetzt, der Abruf lief — er war nur nicht fertig. Google braucht fuer
+# einen Mobil-Lauf auf einer echten Seite regelmaessig mehr als eine Minute.
+#
+# **Warum 120 und warum das gefahrlos ist:** Der Abruf laeuft **parallel** zu
+# allen anderen Erhebungen (`asyncio.gather`), die zusammen 200 s haben
+# duerfen (`COLLECTION_TIMEOUT`); die Unterseiten allein haben schon 120.
+# PageSpeed war damit die **engste** Grenze im ganzen Feld. Das Gesamtbudget
+# des Audits liegt bei 240 s — der beobachtete Lauf brauchte 108,4 s.
+#
+# Ob 120 reicht, sagt der naechste Lauf. Reicht es nicht, steht der Grund
+# jetzt wenigstens im Protokoll.
+PSI_TIMEOUT = 120.0
 
 # Lighthouse-Audits je Barrierefreiheits-Kriterium.
 #
@@ -174,7 +194,21 @@ async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:
         return result
 
     except Exception as e:  # noqa: BLE001 — Erhebung darf das Audit nie abbrechen
-        logger.warning(f"PageSpeed fehlgeschlagen für {url} ({strategy}): {e}")
+        # **Der Typ gehoert in die Meldung, nicht nur der Text** (05.09.2026).
+        # Bis hierhin stand da nur `{e}` — und `str()` einer
+        # `httpx.ReadTimeout` ist **leer**. Im Protokoll stand deshalb
+        # woertlich:
+        #
+        #     PageSpeed fehlgeschlagen fuer https://neovendo.de/ (mobile):
+        #
+        # Eine Warnung, die ihren eigenen Grund verschweigt. Sie hat den
+        # eigentlichen Fehler wochenlang gedeckt: Alle hielten den fehlenden
+        # API-Schluessel fuer die Ursache, waehrend der Abruf in Wahrheit in
+        # die Zeitgrenze lief. `collection_notes` fuehrte den Typ die ganze
+        # Zeit mit — nur las ihn niemand, weil man dafuer die Datenbank
+        # braucht und nicht das Protokoll.
+        logger.warning("PageSpeed fehlgeschlagen fuer %s (%s): %s: %s",
+                       url, strategy, type(e).__name__, e or "ohne Meldung")
         return {
             "collected": False,
             "strategy": strategy,

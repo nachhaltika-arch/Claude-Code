@@ -1011,6 +1011,14 @@ def run_migrations():
             company VARCHAR(255),
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # **Auch der gescheiterte Aufruf gehoert ins Protokoll** (L-174,
+        # 06.09.2026). Die Zeile stand bisher nur im **geglueckten** Pfad: Ein
+        # Fremdaufruf, der an einem unerwarteten Aufbau scheiterte, hinterliess
+        # keine Spur ausser einer Zeile im Server-Log. Der Innendienst sah
+        # unter „Fremdaufrufe" nur die geglueckten — die Liste sagte „alles
+        # gut", waehrend Interessenten aus bezahlten Anzeigen verloren gingen.
+        # Leer heisst: hat geklappt.
+        "ALTER TABLE webhook_log ADD COLUMN IF NOT EXISTS fehler TEXT",
         # ── Digitale Abnahme + PageSpeed After ─────────────────────
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",
@@ -1827,6 +1835,136 @@ def run_migrations():
                ALTER TABLE leistungsberichte ADD CONSTRAINT ck_leistungsbericht_monat
                    CHECK (monat ~ '^[0-9]{4}-(0[1-9]|1[0-2])$');
            EXCEPTION WHEN duplicate_object THEN NULL;
+           END $$""",
+        # ── 06.09.2026: Kontoverwaltung im Kundenkonto ──────────────────
+        #
+        # **Benachrichtigungen.** Eine Zeile je Nutzer und Art, und nur fuer
+        # das Abgewaehlte noetig — die Vorgabe ist „an". Wer nie etwas
+        # eingestellt hat, bekommt weiter alles; sonst verschwaende mit dieser
+        # Aenderung stillschweigend Post.
+        """CREATE TABLE IF NOT EXISTS benachrichtigungs_wahl (
+               id SERIAL PRIMARY KEY,
+               user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+               schluessel VARCHAR(40) NOT NULL,
+               an BOOLEAN DEFAULT true,
+               geaendert_am TIMESTAMP DEFAULT NOW()
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_benachrichtigungs_wahl_user ON benachrichtigungs_wahl (user_id)",
+        """DO $$ BEGIN
+               ALTER TABLE benachrichtigungs_wahl
+                   ADD CONSTRAINT uq_benachrichtigung_je_nutzer UNIQUE (user_id, schluessel);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
+        # **Geraete.** `user_sessions` gibt es seit Langem, geschrieben hat sie
+        # nie jemand. Ein Index auf den Token-Hash, weil `get_current_user` ihn
+        # jetzt bei **jeder** Anfrage liest — ohne Index waere das ein
+        # Tabellendurchlauf auf dem heissesten Pfad des Systems.
+        "CREATE INDEX IF NOT EXISTS ix_user_sessions_token ON user_sessions (token)",
+        "CREATE INDEX IF NOT EXISTS ix_user_sessions_user ON user_sessions (user_id)",
+        # **Und der Fremdschluessel raeumt mit** — sonst laesst sich ein Nutzer
+        # nicht mehr loeschen, sobald er sich einmal angemeldet hat.
+        #
+        # Aufgefallen beim Testlauf: 13 rote Tests, alle mit
+        # `ForeignKeyViolation ... user_sessions_user_id_fkey`. Das war kein
+        # Testproblem, sondern der Fehler selbst — **die Loeschung nach
+        # Art. 17 DSGVO haette dieselbe Wand getroffen**, nur beim ersten
+        # Kunden, der sie verlangt.
+        #
+        # Eine Sitzung ohne Nutzer hat keinen Sinn; sie gehoert weg, wenn er
+        # geht. Der Weg ueber `ON DELETE CASCADE` und nicht ueber Aufraeumcode
+        # an jeder Loeschstelle: Es gibt mehrere, und die naechste vergisst es.
+        """DO $$ BEGIN
+               ALTER TABLE user_sessions DROP CONSTRAINT IF EXISTS user_sessions_user_id_fkey;
+               ALTER TABLE user_sessions ADD CONSTRAINT user_sessions_user_id_fkey
+                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
+           END $$""",
+        """DO $$ BEGIN
+               ALTER TABLE benachrichtigungs_wahl
+                   DROP CONSTRAINT IF EXISTS benachrichtigungs_wahl_user_id_fkey;
+               ALTER TABLE benachrichtigungs_wahl ADD CONSTRAINT benachrichtigungs_wahl_user_id_fkey
+                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
+           END $$""",
+        # ── 06.09.2026: Wann eine Freigabe vorlag (L-166, K3) ──
+        #
+        # Der Angebotsfuss sagt zu: „Verzoegert sich eine Freigabe nach M7
+        # oder M8, ruht die Frist fuer die Dauer der Verzoegerung." Ohne den
+        # **Vorlagezeitpunkt** gibt es keine Spanne — `erledigt_am` allein
+        # sagt, wann freigegeben wurde, nicht, wie lange es gedauert hat.
+        # Damit war das zugesagte Bauzeitende nicht berechenbar, sondern nur
+        # behauptbar, und zwar von beiden Seiten.
+        #
+        # Nullbar und ohne Standardwert: Ein Altbestand bekommt kein
+        # erfundenes Vorlagedatum. Wo nichts steht, ruht auch nichts — die
+        # Wartezeit liegt dann bei uns, nicht beim Kunden.
+        # Was ein Kundenkonto darf (L-160 Rang 4, 06.09.2026): `ansehen` oder
+        # `alles`. **Nullbar und ohne Standardwert** — leer heisst `alles`,
+        # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
+        # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
+        # Abgerufene Abo-Leistungen (L-160 Rang 6, 06.09.2026).
+        #
+        # **Der Abruf loest nichts aus, er meldet an.** Eine Ruecksicherung
+        # ist Handarbeit am Datenbestand; sie auf Knopfdruck zu starten waere
+        # die gefaehrlichste Automatik im Haus. Was hier steht, ist der
+        # **Eingang** — mit Zeitpunkt, damit die zugesagte Reaktionszeit
+        # nachweisbar ist.
+        #
+        # Eine offene Zeile je Betrieb und Position: Ein zweiter Klick darf
+        # keinen zweiten Fall anlegen, sonst haette dieselbe Sache beim
+        # Innendienst zwei Anforderungen und zwei Anfangszeitpunkte.
+        """CREATE TABLE IF NOT EXISTS abrufe (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+               position INTEGER NOT NULL,
+               angefordert_von VARCHAR(255) NOT NULL,
+               angefordert_am TIMESTAMP DEFAULT NOW(),
+               notiz TEXT DEFAULT '',
+               zustand VARCHAR(20) DEFAULT 'offen',
+               erledigt_am TIMESTAMP
+           )""",
+        "CREATE INDEX IF NOT EXISTS ix_abrufe_betrieb ON abrufe (lead_id)",
+        """CREATE UNIQUE INDEX IF NOT EXISTS ux_abruf_offen
+               ON abrufe (lead_id, position) WHERE zustand = 'offen'""",
+        # Loeschantraege nach Art. 17 DSGVO (L-160 Rang 5, 06.09.2026).
+        #
+        # **Warum eine eigene Tabelle und kein Ticket.** Der Eingang ist der
+        # **Nachweis**: Art. 12 verlangt eine Antwort binnen eines Monats, und
+        # die Frist laeuft ab diesem Zeitpunkt. In einer Ticketliste, die
+        # jemand schliesst, waere sie nicht mehr auffindbar.
+        #
+        # **Eine Zeile je Betrieb** — ein zweiter Klick darf die Frist nicht
+        # neu starten. Das waere zu unseren Gunsten, und niemand saehe es.
+        """CREATE TABLE IF NOT EXISTS loeschantraege (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+               beantragt_von VARCHAR(255) NOT NULL,
+               beantragt_am TIMESTAMP DEFAULT NOW(),
+               frist_bis TIMESTAMP,
+               zustand VARCHAR(20) DEFAULT 'offen',
+               erledigt_am TIMESTAMP,
+               notiz TEXT DEFAULT ''
+           )""",
+        """DO $$ BEGIN
+               ALTER TABLE loeschantraege
+                   ADD CONSTRAINT uq_loeschantrag_betrieb UNIQUE (lead_id);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
+        "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
+        "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
+        # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
+        # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
+        # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich
+        # nicht mehr loeschen — `ForeignKeyViolation`, ueberall dort, wo
+        # Projekte aufgeraeumt werden. Dieselbe Klasse wie bei `user_sessions`
+        # zwei Tage zuvor. Ein Stand ohne Projekt hat keinen Sinn.
+        """DO $$ BEGIN
+               ALTER TABLE mitwirkung_stand
+                   DROP CONSTRAINT IF EXISTS mitwirkung_stand_project_id_fkey;
+               ALTER TABLE mitwirkung_stand ADD CONSTRAINT mitwirkung_stand_project_id_fkey
+                   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+           EXCEPTION WHEN others THEN NULL;
            END $$""",
     ]
     academy_tables = [

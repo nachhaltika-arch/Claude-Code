@@ -62,7 +62,7 @@ export function PageThumb({ page, library, isActive, onClick }) {
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--border-medium)', fontSize: 12, fontStyle: 'italic',
+            color: 'var(--text-45)', fontSize: 12, fontStyle: 'italic',
           }}>leer</div>
         ) : (
           <div style={{

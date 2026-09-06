@@ -483,7 +483,7 @@ function Breadcrumb({ page, sitemapPages }) {
     <span>
       {path.map((p, i) => (
         <span key={p.id}>
-          {i > 0 && <span style={{ color: 'var(--border-medium)', margin: '0 6px' }}>›</span>}
+          {i > 0 && <span style={{ color: 'var(--text-45)', margin: '0 6px' }}>›</span>}
           <span style={{ color: i === path.length - 1 ? KC_DARK : 'var(--text-secondary)', fontWeight: i === path.length - 1 ? 700 : 500 }}>
             {p.page_name}
           </span>

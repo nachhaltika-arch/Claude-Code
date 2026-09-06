@@ -78,6 +78,14 @@ stripe==15.4.0
 # R2 ist S3-kompatibel; boto3 erzeugt die signierten Adressen. Das
 # Dateisystem auf Render ist fluechtig — siehe services/dateiablage.py.
 boto3==1.43.83
+# **Ausdruecklich eingetragen, obwohl boto3 es ohnehin mitbringt** (L-177,
+# 06.09.2026, Systemdurchlauf). `services/produktablage.py` importiert
+# `botocore.config.Config` **direkt** — R2 verlangt SigV4, und mit der Vorgabe
+# von boto3 scheitert die Signatur. Was der eigene Code importiert, gehoert in
+# diese Datei: Sonst haengt der Start an einer Abhaengigkeit zweiter Hand, die
+# verschwinden kann, ohne dass hier etwas rot wird. Auffallen wuerde es beim
+# Installieren auf Render, nicht hier.
+botocore==1.43.83
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzlocal==5.4.4

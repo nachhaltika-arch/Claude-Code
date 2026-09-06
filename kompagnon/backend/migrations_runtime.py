@@ -1903,6 +1903,30 @@ def run_migrations():
         # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
         # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
+        # Loeschantraege nach Art. 17 DSGVO (L-160 Rang 5, 06.09.2026).
+        #
+        # **Warum eine eigene Tabelle und kein Ticket.** Der Eingang ist der
+        # **Nachweis**: Art. 12 verlangt eine Antwort binnen eines Monats, und
+        # die Frist laeuft ab diesem Zeitpunkt. In einer Ticketliste, die
+        # jemand schliesst, waere sie nicht mehr auffindbar.
+        #
+        # **Eine Zeile je Betrieb** — ein zweiter Klick darf die Frist nicht
+        # neu starten. Das waere zu unseren Gunsten, und niemand saehe es.
+        """CREATE TABLE IF NOT EXISTS loeschantraege (
+               id SERIAL PRIMARY KEY,
+               lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+               beantragt_von VARCHAR(255) NOT NULL,
+               beantragt_am TIMESTAMP DEFAULT NOW(),
+               frist_bis TIMESTAMP,
+               zustand VARCHAR(20) DEFAULT 'offen',
+               erledigt_am TIMESTAMP,
+               notiz TEXT DEFAULT ''
+           )""",
+        """DO $$ BEGIN
+               ALTER TABLE loeschantraege
+                   ADD CONSTRAINT uq_loeschantrag_betrieb UNIQUE (lead_id);
+           EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL;
+           END $$""",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../config';
 import SeitenTitel from '../../components/ui/SeitenTitel';
+import MeineDatenRechte from '../../components/kunde/MeineDatenRechte';
 
 /**
  * „Vertragsunterlagen" — alles, was der Kunde unterschrieben hat (L-160 Rang 7).
@@ -91,6 +92,13 @@ export default function Vertragsunterlagen() {
           {!u.vorhanden && <p style={S.grund}>{u.grund}</p>}
         </article>
       ))}
+
+      {/* **Auskunft und Löschung stehen hier** (L-160 Rang 5) — so wie im
+          Entwurf `kundenkonto-neu`. Der Ort ist keine Verlegenheit: Wer seine
+          Vertragsunterlagen ansieht, denkt ohnehin über das Verhältnis nach.
+          Ein eigener Menüpunkt „Meine Rechte" stünde das ganze Jahr da und
+          würde einmal gebraucht. */}
+      <MeineDatenRechte token={token} />
     </div>
   );
 }

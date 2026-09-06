@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { parseApiError } from '../utils/apiError';
 import { apiCall, useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import GeheimnisZeigen from '../components/ui/GeheimnisZeigen';
 
 
 
@@ -26,11 +27,34 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '' });
+  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '', lead_id: null });
   const [creating, setCreating] = useState(false);
   const [tempPw, setTempPw] = useState('');
+  // **Zu wem das Passwort gehoert, gehoert danebengeschrieben.** Wer zwei
+  // Zuruecksetzungen hintereinander macht, verwechselt sie sonst.
+  const [pwFuer, setPwFuer] = useState('');
+  const [betriebe, setBetriebe] = useState([]);
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadUsers(); loadBetriebe(); }, []);
+
+  const loadBetriebe = async () => {
+    try {
+      const res = await apiCall('/api/admin/betriebe');
+      if (res.ok) setBetriebe(await res.json());
+    } catch { /* Ohne Liste bleibt die Zuordnung leer statt die Seite kaputt. */ }
+  };
+
+  const setzeBetrieb = async (userId, wert) => {
+    try {
+      const res = await apiCall(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ lead_id: wert ? Number(wert) : null }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail);
+      toast.success(wert ? 'Betrieb zugeordnet' : 'Zuordnung gelöst');
+      loadUsers();
+    } catch (e) { toast.error(parseApiError(e)); }
+  };
 
   const loadUsers = async () => {
     setLoading(true);
@@ -49,6 +73,7 @@ export default function AdminUsers() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       setTempPw(data.temp_password);
+      setPwFuer(data.user.email);
       toast.success(`Benutzer ${data.user.email} angelegt`);
       loadUsers();
     } catch (e) { toast.error(parseApiError(e)); }
@@ -76,8 +101,12 @@ export default function AdminUsers() {
       const res = await apiCall(`/api/admin/users/${userId}/reset-password`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        toast.success(`Neues Passwort: ${data.temp_password}`);
-        alert(`Neues temporaeres Passwort fuer ${email}:\n\n${data.temp_password}\n\nBitte sicher weitergeben.`);
+        // **Kein `alert` mehr** (06.09.2026). Daraus liess sich das Passwort
+        // je nach Browser nicht markieren, manche blocken den Dialog ganz,
+        // und ein versehentliches „OK" verlor es endgueltig — gespeichert ist
+        // nur der Hash. Jetzt steht es in einem Feld mit Kopieren-Knopf.
+        setTempPw(data.temp_password);
+        setPwFuer(email);
       }
     } catch (e) { toast.error(parseApiError(e)); }
   };
@@ -86,7 +115,7 @@ export default function AdminUsers() {
     <div style={{ width: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Benutzerverwaltung</h1>
-        <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '' }); }} style={{
+        <button onClick={() => { setShowCreate(true); setTempPw(''); setPwFuer(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'mitarbeiter', position: '', lead_id: null }); }} style={{
           background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
         }}>
           + Neuer Benutzer
@@ -110,6 +139,21 @@ export default function AdminUsers() {
                     {!u.is_active && <span style={{ color: '#c03030', fontSize: 12, marginLeft: 8 }}>(deaktiviert)</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{u.email}</div>
+                  {/* **Der Betrieb steht in der Zeile und ist dort aenderbar**
+                      (Wunsch David, 06.09.2026). `users.lead_id` entscheidet
+                      im Kundenkonto ueber alles — welchen Betrieb jemand
+                      sieht, welche Mitwirkung, welche Rechnungen. Ueber die
+                      Oberflaeche liess es sich bis heute weder setzen noch
+                      aendern; es brauchte einen Datenbankzugriff. */}
+                  {u.role === 'kunde' && (
+                    <select value={u.lead_id || ''}
+                            onChange={(e) => setzeBetrieb(u.id, e.target.value)}
+                            aria-label={`Betrieb von ${u.email}`}
+                            style={{ marginTop: 6, maxWidth: 280, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: u.lead_id ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: 12 }}>
+                      <option value="">— kein Betrieb zugeordnet —</option>
+                      {betriebe.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  )}
                 </div>
                 <span style={{ background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
                   {badge.label}
@@ -124,15 +168,34 @@ export default function AdminUsers() {
           })}
         </div>
       )}
+      {/* Nach einem Zuruecksetzen steht das Passwort hier — nicht in einem
+          Dialog, den ein Klick wegnimmt. */}
+      {tempPw && !showCreate && (
+        <GeheimnisZeigen
+          titel={`Neues temporäres Passwort für ${pwFuer}`}
+          wert={tempPw}
+          onSchliessen={() => { setTempPw(''); setPwFuer(''); }}
+        />
+      )}
+
 
       {/* Create User Modal */}
       <ModalSheet open={showCreate} onClose={() => setShowCreate(false)} title={tempPw ? '✓ Benutzer angelegt' : 'Neuen Benutzer anlegen'} maxWidth={440}>
         {tempPw ? (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 14, color: 'var(--status-success-text)', fontWeight: 700, marginBottom: 12 }}>Benutzer angelegt!</div>
-            <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 16, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>{tempPw}</div>
-            <p style={{ fontSize: 12, color: 'var(--status-warning-text)' }}>Bitte dieses temporäre Passwort sicher weitergeben.</p>
-            <button onClick={() => setShowCreate(false)} style={{ background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 12, minHeight: 44 }}>Schließen</button>
+          <div>
+            {/* **Kopierbar statt nur lesbar** (06.09.2026). Der Kasten hier
+                zeigte das Passwort nur an; markieren ging, kopieren nicht auf
+                Knopfdruck. Dasselbe Bauteil steht jetzt auch oben in der
+                Liste, wenn ein Passwort zurueckgesetzt wird. */}
+            <GeheimnisZeigen
+              titel={`Temporäres Passwort für ${pwFuer}`}
+              wert={tempPw}
+              onSchliessen={() => { setTempPw(''); setPwFuer(''); setShowCreate(false); }}
+            />
+            <button onClick={() => { setTempPw(''); setPwFuer(''); setShowCreate(false); }}
+                    style={{ background: 'var(--brand-primary)', color: 'var(--text-on-brand)', border: 'none', borderRadius: 'var(--radius-md)', padding: '11px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Fertig
+            </button>
           </div>
         ) : (
           <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -149,6 +212,18 @@ export default function AdminUsers() {
               )}
               <option value="kunde">Kunde</option>
             </select>
+            {/* **Der Betrieb gleich beim Anlegen** (06.09.2026). Nur bei
+                der Rolle „Kunde": Ein Mitarbeiter gehoert zu KOMPAGNON, nicht
+                zu einem Betrieb — die Auswahl dort waere eine Einladung zum
+                Fehlgriff. */}
+            {newUser.role === 'kunde' && (
+              <select aria-label="Betrieb" value={newUser.lead_id || ''}
+                      onChange={(e) => setNewUser((f) => ({ ...f, lead_id: e.target.value ? Number(e.target.value) : null }))}
+                      style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: 14 }}>
+                <option value="">Betrieb wählen (kann später zugeordnet werden)</option>
+                {betriebe.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            )}
             {newUser.role === 'mitarbeiter' && (
               <input aria-label="Position (erscheint im Audit-Bericht)" value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (erscheint im Audit-Bericht)" style={inpStyle} />
             )}

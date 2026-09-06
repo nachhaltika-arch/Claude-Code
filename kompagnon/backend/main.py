@@ -392,6 +392,9 @@ app.include_router(leads_abo.router)
 # Die zugesagte Bauzeit und die Ruhezeit aus verspaeteten Freigaben (L-166).
 from routers import bauzeit as bauzeit_router
 app.include_router(bauzeit_router.router)
+# Die allgemeine Suche im Werkzeug (06.09.2026) — Innendienst.
+from routers import suche as suche_router
+app.include_router(suche_router.router)
 app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router

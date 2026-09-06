@@ -17,6 +17,7 @@ import { aufTaste } from '../../utils/tastaturBedienung';
 import KompagnonLogo from '../KompagnonLogo';
 import Logo from '../Logo';
 import { icons, VersandHinweis } from './navigationsdaten';
+import Schnellsuche from './Schnellsuche';
 
 // **Die gedaempfte Schrift der Seitenleiste — mit Deckkraft, aber ueber AA.**
 //
@@ -135,6 +136,12 @@ export default function SidebarNav({ badges }) {
       }} onClick={() => navigate('/app/dashboard')}>
         <KompagnonLogo variant="white" height={28} style={{ flexShrink: 0 }} />
       </div>
+
+      {/* **Die Schnellsuche steht über dem Menü** (Wunsch David, 06.09.2026).
+          Wer sie braucht, weiß noch nicht, in welchem Menüpunkt sein Ziel
+          liegt — sie gehört deshalb vor die Punkte, nicht zwischen sie.
+          Für Kunden erscheint sie nicht: Der Endpunkt ist Innendienst. */}
+      <Schnellsuche />
 
       {/* Navigation */}
       <nav style={{ flex: 1, overflowY: 'auto' }}>

@@ -45,6 +45,13 @@ class User(Base):
 
     # Customer link
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    # **Was dieses Kundenkonto darf** (L-160 Rang 4, 06.09.2026). Nur fuer
+    # `role="kunde"` belegt: `ansehen` oder `alles`. **Leer heisst `alles`** —
+    # jedes Bestandskonto gehoert dem Vertragsinhaber, und die Gegenrichtung
+    # haette beim Ausrollen jeden Kunden still entrechtet. Die Auswertung
+    # steht in `services/kundenzugang.py`, nicht hier: Eine Rechteregel an
+    # drei Orten ist eine, die an zweien veraltet.
+    kunde_recht = Column(String(20), nullable=True)
 
     # 2FA
     totp_secret = Column(String(64), nullable=True)

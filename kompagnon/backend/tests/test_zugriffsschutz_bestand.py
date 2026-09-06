@@ -10,7 +10,7 @@ Die 46 sind **einzeln geprueft** und bleiben mit Grund:
 | Bereich | Zahl | Grund |
 |---|---|---|
 | `academy` | 14 | Kundenweg. Jede Route filtert auf `current_user.id`; die Zertifikatsausstellung nimmt keine Nutzerkennung entgegen. |
-| `portal` | 13 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. **Dazu `GET` und `POST /inhalt`:** Guthaben und Aenderungswuensche des eigenen Betriebs. Der `GET` nimmt hoechstens einen Monat (`JJJJ-MM`), der `POST` einen Freitext — keiner von beiden eine Betriebs- oder Anfragekennung. Der Betrieb kommt aus `user.lead_id`, und die Liste ist danach gefiltert. **Seit 04.09.2026 dazu `POST /zahlungen/einzug`:** Sie nimmt **gar keine** Eingabe — kein Rumpf, keine Kennung. Vertrag und Betrieb kommen aus `user.lead_id`; ein Vertrag auf Rechnung wird ausdruecklich abgewiesen, damit niemand ueber diesen Weg eine Abrechnungsart wechselt, der er nicht zugestimmt hat. **Und `GET /leistung` vom selben Tag:** Monatsberichte und der Re-Audit-Termin des eigenen Betriebs, ebenfalls ohne jede Eingabe; ohne laufendes Abo antwortet sie leer. **Seit 06.09.2026 die fuenf Routen der Kontoverwaltung:** Geraete auflisten und abmelden, Benachrichtigungen lesen und setzen, Downloads. Sie arbeiten am eigenen Konto; wo eine Kennung hereinkommt, ist es eine Sitzungsnummer (auf `user_id` gefiltert, 404 statt 403) oder eine Katalogkennung — keine Nutzer- oder Betriebsnummer. **Und vom selben Tag `GET /leistungen`** (L-160, Rang 3): was im Pflege-Abo des eigenen Betriebs steckt. Nimmt wie `GET /leistung` daneben **keine Eingabe** entgegen; ohne laufenden Vertrag ist die Antwort leer statt fremd. |
+| `portal` | 13 | Kundenweg. Fuenf nehmen **gar keine** Fremdkennung entgegen, zwei pruefen den eigenen Betrieb. **Seit dem 04.09.2026 dazu die beiden Mitwirkungsrouten** (L-159): `GET /mitwirkung` nimmt ueberhaupt keine Kennung, und `POST /mitwirkung/{kennung}` nimmt eine **Katalogkennung** (M1…M11), keine Projekt- oder Kundenkennung — das Projekt kommt aus `user.lead_id`. Beide koennen damit nichts Fremdes treffen, auch nicht mit geraetenen Werten. **Und die beiden Zahlungsrouten vom selben Tag:** `GET /zahlungen` nimmt keine Kennung; `POST /zahlungen/verwalten` nimmt einen leeren Rumpf — die Rueckkehradresse kommt **aus der Umgebung**, nicht aus dem Aufruf, sonst waere sie eine offene Weiterleitung. Beide loesen den Betrieb ueber `user.lead_id` auf. **Dazu `GET` und `POST /inhalt`:** Guthaben und Aenderungswuensche des eigenen Betriebs. Der `GET` nimmt hoechstens einen Monat (`JJJJ-MM`), der `POST` einen Freitext — keiner von beiden eine Betriebs- oder Anfragekennung. Der Betrieb kommt aus `user.lead_id`, und die Liste ist danach gefiltert. **Seit 04.09.2026 dazu `POST /zahlungen/einzug`:** Sie nimmt **gar keine** Eingabe — kein Rumpf, keine Kennung. Vertrag und Betrieb kommen aus `user.lead_id`; ein Vertrag auf Rechnung wird ausdruecklich abgewiesen, damit niemand ueber diesen Weg eine Abrechnungsart wechselt, der er nicht zugestimmt hat. **Und `GET /leistung` vom selben Tag:** Monatsberichte und der Re-Audit-Termin des eigenen Betriebs, ebenfalls ohne jede Eingabe; ohne laufendes Abo antwortet sie leer. **Seit 06.09.2026 die fuenf Routen der Kontoverwaltung:** Geraete auflisten und abmelden, Benachrichtigungen lesen und setzen, Downloads. Sie arbeiten am eigenen Konto; wo eine Kennung hereinkommt, ist es eine Sitzungsnummer (auf `user_id` gefiltert, 404 statt 403) oder eine Katalogkennung — keine Nutzer- oder Betriebsnummer. **Und vom selben Tag `GET /leistungen`** (L-160, Rang 3): was im Pflege-Abo des eigenen Betriebs steckt. Nimmt wie `GET /leistung` daneben **keine Eingabe** entgegen; ohne laufenden Vertrag ist die Antwort leer statt fremd. **Und die drei Kollegenzugaenge vom selben Tag** (L-160 Rang 4): Lesen darf jeder Zugang des Betriebs — wer hereinkommt, soll sehen, wer sonst hereinkommt. Einladen und Entfernen verlangen zusaetzlich die starke Rechtestufe (`darf_verwalten`), und der Betrieb kommt in allen dreien aus `user.lead_id`, nie aus dem Aufruf. |
 | `auth` | 7 | Eigene Daten. Keine einzige nimmt eine Fremdkennung entgegen — sie koennen nur den Angemeldeten treffen. |
 | `assistant` | 5 | Kundenweg aus dem Portal; die drei mit Kennung pruefen, die zwei ohne koennen nichts Fremdes treffen. |
 | `projects` | 3 | `eigenes_projekt_pruefen` beziehungsweise Rollenzweig. |
@@ -68,6 +68,15 @@ import pytest
 #:   Betrieb kommt aus `user.lead_id`, und ohne laufendes Abo ist die Antwort
 #:   leer statt fremd.
 #: 06.09.2026: 71 — die Kontoverwaltung im Kundenkonto (fuenf Routen).
+#: 06.09.2026, zuletzt: 75 — die drei Routen der Kollegenzugaenge
+#:   (L-160 Rang 4). `GET /zugaenge` nimmt **keine** Eingabe; `POST`
+#:   nimmt Adresse und Rechtestufe, **keine Betriebskennung** — der
+#:   Betrieb kommt aus `user.lead_id`, und ein bestehendes Konto wird
+#:   ausdruecklich abgewiesen statt umgehaengt. `DELETE /{id}` nimmt
+#:   eine Kennung und filtert sie auf den eigenen Betrieb (404 statt
+#:   403). Die beiden schreibenden pruefen zusaetzlich die Stufe:
+#:   `darf_verwalten`, sonst 403 — ein Mitleser koennte sich sonst
+#:   selbst hochstufen.
 #: 06.09.2026, spaeter: 72 — `GET /api/portal/leistungen`. Was im
 #:   Pflege-Abo des **eigenen** Betriebs steckt (L-160, Rang 3). Nimmt
 #:   wie ihre Nachbarn **keine Eingabe** entgegen: kein Rumpf, keine
@@ -88,7 +97,7 @@ import pytest
 #:     unbekannte werden abgewiesen, Pflichtnachrichten ebenfalls.
 #:
 #:   `GET /downloads` filtert auf `user.lead_id` und `user.email`.
-ERWARTET = 72
+ERWARTET = 75
 
 #: Wo die 46 liegen duerfen. Ein neuer Bereich ist ein Befund, keine Zahl.
 ERLAUBTE_BEREICHE = {

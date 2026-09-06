@@ -77,6 +77,7 @@ import WasWirBrauchen from './pages/customer/WasWirBrauchen';
 import Inhaltsaenderungen from './pages/customer/Inhaltsaenderungen';
 import MeinBericht from './pages/customer/MeinBericht';
 import MeinKonto from './pages/customer/MeinKonto';
+import Zugaenge from './pages/customer/Zugaenge';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
@@ -403,6 +404,10 @@ function App() {
             {/* Kontoverwaltung: Profil, Zahlung, Geraete, Sicherheit,
                 Benachrichtigungen, Downloads (06.09.2026). */}
             <Route path="mein-konto" element={<PrivateRoute><MeinKonto /></PrivateRoute>} />
+            {/* Zugaenge fuer Kollegen (L-160 Rang 4, K7): Ein Betrieb ist
+                keine Person. Die Rechtestufe entscheidet im Backend, was
+                sichtbar ist — die Seite selbst darf jeder Zugang sehen. */}
+            <Route path="zugaenge" element={<PrivateRoute><Zugaenge /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

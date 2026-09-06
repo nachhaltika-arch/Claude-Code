@@ -63,7 +63,10 @@ export const KUNDEN_MENUE = [
     key: 'konto',
     label: 'Mein Konto',
     eintraege: [
-      { label: 'Meine Daten',   path: '/app/meine-daten' },
+      { label: 'Meine Daten',        path: '/app/meine-daten' },
+      // Am 06.09.2026 aus `NOCH_NICHT_GEBAUT` hierher gewandert (L-160
+      // Rang 4, K7): Der Betrieb richtet Zugaenge jetzt selbst ein.
+      { label: 'Zugänge für Kollegen', path: '/app/zugaenge' },
       { label: 'Akademie',      path: '/app/academy' },
       // **`/app/mein-konto`, nicht `/app/settings`.** Beide gab es
       // nebeneinander: `settings/profile|security|notifications` ist die
@@ -101,9 +104,6 @@ export const NOCH_NICHT_GEBAUT = [
   { label: 'Dazubuchen', pfad: 'dazubuchen', luecke: 'L-160',
     grund: 'Der Bestellweg für Zusatzleistungen aus dem laufenden Konto — im '
       + 'Entwurf mit Bestätigungsschritt, ohne Check PLUS und Workbook.' },
-  { label: 'Zugänge für Kollegen', pfad: 'zugaenge', luecke: 'L-160',
-    grund: 'Rang 4 und zugleich K7 der Reibungskarte: Ein Betrieb ist keine '
-      + 'Person. Die Routen verlangen manage_users, also Innendienst.' },
   { label: 'Nachrichten', pfad: 'nachrichten', luecke: 'L-160',
     grund: 'Der Verlauf mit dem Betreuer steht heute auf der Übersicht und '
       + 'macht sie lang; als eigene Seite wäre er auffindbar.' },

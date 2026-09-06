@@ -1898,6 +1898,11 @@ def run_migrations():
         # Nullbar und ohne Standardwert: Ein Altbestand bekommt kein
         # erfundenes Vorlagedatum. Wo nichts steht, ruht auch nichts — die
         # Wartezeit liegt dann bei uns, nicht beim Kunden.
+        # Was ein Kundenkonto darf (L-160 Rang 4, 06.09.2026): `ansehen` oder
+        # `alles`. **Nullbar und ohne Standardwert** — leer heisst `alles`,
+        # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
+        # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159

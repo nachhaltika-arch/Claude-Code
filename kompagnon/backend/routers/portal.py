@@ -7,8 +7,9 @@ POST /api/portal/messages          — send a message
 GET  /api/portal/documents         — list uploaded files
 POST /api/portal/documents/upload  — upload a file (multipart)
 """
+import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -16,9 +17,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel
 
-from database import get_db, MitwirkungStand, Project, ProjectChecklist, Lead
+from database import get_db, MitwirkungStand, Project, ProjectChecklist, Lead, User
 from auth import oauth2_scheme
 from routers.auth_router import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/portal", tags=["portal"])
 
@@ -506,6 +509,176 @@ def setze_mitwirkung(kennung: str, body: MitwirkungEintrag,
 
 
 # ══════════════════════════════════════════════════════════════════════
+# Zugaenge fuer Kollegen (L-160 Rang 4, K7)
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Ein Betrieb ist keine Person.** Bis heute hatte er genau ein Konto; wer
+# einem Kollegen Zugang geben wollte, gab sein Kennwort weiter — und damit den
+# Blick auf Rechnungen und Zahlungsart. Die Routen zum Anlegen von Konten gibt
+# es laengst (`/api/admin/users`), aber sie verlangen `manage_users`, also
+# Innendienst: Jeder Zugang musste bei uns beantragt werden.
+#
+# **Die Stufen und ihre Wirkung stehen in `services/kundenzugang.py`**, nicht
+# hier. Sie gelten an mehreren Stellen, und eine Rechteregel an drei Orten ist
+# eine, die an zweien veraltet.
+
+
+def _stufe(user) -> str:
+    from services.kundenzugang import stufe_von
+    return stufe_von(user)
+
+
+def verlangt_geldblick(user=Depends(get_current_user)):
+    """Sperrt die schwache Stufe vor Rechnungen, Zahlungsart und Unterlagen.
+
+    **Ohne diese Sperre waere die Stufe eine Behauptung.** Der Entwurf sagt
+    dem Betrieb zu: „sieht alles ausser Rechnungen, Zahlungsart und
+    Vertragsunterlagen." Steht die Zusage im Konto und wirkt nicht, ist sie
+    schlimmer als keine — der Betrieb hat dann im guten Glauben jemandem
+    Einblick gegeben, den er ausdruecklich ausschliessen wollte.
+    """
+    from services.kundenzugang import darf_geld_sehen
+
+    if not darf_geld_sehen(_stufe(user)):
+        raise HTTPException(
+            403, "Dieser Zugang darf keine Rechnungen und Zahlungsdaten sehen")
+    return user
+
+
+class ZugangEinladung(BaseModel):
+    email: str
+    recht: str = "ansehen"
+
+
+@router.get("/zugaenge")
+def get_zugaenge(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Wer alles Zugang zu diesem Betrieb hat.
+
+    **Lesen darf jeder Zugang des Betriebs**, auch die schwache Stufe: Wer
+    hereinkommt, soll sehen, wer sonst noch hereinkommt. Verwalten darf nur
+    die starke — sonst koennte ein Mitleser sich selbst hochstufen.
+    """
+    from services.kundenzugang import (BESCHREIBUNG, STUFEN, darf_verwalten,
+                                       stufe_von)
+
+    if not user.lead_id:
+        return {"zugaenge": [], "darf_verwalten": False, "stufen": []}
+
+    konten = (db.query(User).filter(User.lead_id == user.lead_id,
+                                    User.role == "kunde")
+              .order_by(User.created_at.asc()).all())
+
+    return {
+        "darf_verwalten": darf_verwalten(stufe_von(user)),
+        "stufen": [{"wert": s, "text": BESCHREIBUNG[s]} for s in STUFEN],
+        # **Kein Kennwort, kein Token, keine Sitzungskennung.** Diese Liste
+        # steht auf einem Bildschirm, den mehrere Personen sehen.
+        "zugaenge": [{
+            "id": k.id,
+            "email": k.email,
+            "name": f"{k.first_name or ''} {k.last_name or ''}".strip(),
+            "recht": stufe_von(k),
+            "selbst": k.id == user.id,
+            # Ein Konto ohne Kennwort hat die Einladung noch nicht angenommen.
+            "eingeladen": not bool(k.password_hash),
+            "zuletzt": k.last_login.isoformat() if k.last_login else None,
+        } for k in konten],
+    }
+
+
+@router.post("/zugaenge")
+def lade_zugang_ein(body: ZugangEinladung,
+                    user=Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Einen Kollegen einladen — am eigenen Betrieb.
+
+    **Der Betrieb kommt aus der Anmeldung, nicht aus dem Aufruf.** Ein
+    `lead_id` im Rumpf waere die Einladung in einen fremden Betrieb.
+
+    **Ohne Kennwort angelegt.** Es entsteht ueber den Zuruecksetzen-Weg, den
+    es schon gibt — ein zweiter Weg, Kennwoerter zu vergeben, waere ein
+    zweiter, der falsch sein kann.
+    """
+    from services.kundenzugang import darf_verwalten, pruefe_stufe, stufe_von
+
+    if not darf_verwalten(stufe_von(user)):
+        raise HTTPException(403, "Dieser Zugang darf keine weiteren einrichten")
+    if not user.lead_id:
+        raise HTTPException(400, "Kein Betrieb am Konto")
+
+    try:
+        recht = pruefe_stufe(body.recht)
+    except ValueError as fehler:
+        raise HTTPException(400, str(fehler)) from fehler
+
+    adresse = (body.email or "").strip().lower()
+    if "@" not in adresse or len(adresse) < 5:
+        raise HTTPException(400, "Bitte eine gültige E-Mail-Adresse angeben")
+
+    vorhanden = db.query(User).filter(User.email == adresse).first()
+    if vorhanden:
+        # **Kein stilles Umhaengen.** Ein bestehendes Konto einem anderen
+        # Betrieb zuzuschlagen waere ein Zugriff auf fremde Daten per
+        # Einladung.
+        raise HTTPException(400, "Zu dieser Adresse gibt es bereits ein Konto")
+
+    neu = User(email=adresse, role="kunde", lead_id=user.lead_id,
+               is_active=True, kunde_recht=recht, created_by=user.id)
+    db.add(neu)
+    db.commit()
+    db.refresh(neu)
+
+    # **Die Einladungsmail darf den Zugang nicht kosten** — sie ist der
+    # bequeme Teil, das Konto der wesentliche. Scheitert sie, sagt die
+    # Antwort das, statt den ganzen Vorgang zurueckzunehmen.
+    versandt = False
+    try:
+        from services.email import send_password_reset_email
+        from services.qr_service import generate_token
+
+        neu.password_reset_token = generate_token()
+        neu.password_reset_expires = datetime.utcnow() + timedelta(days=7)
+        db.commit()
+        versandt = bool(send_password_reset_email(
+            neu.email, neu.password_reset_token, neu.email))
+    except Exception as fehler:  # noqa: BLE001 — siehe Kommentar
+        logger.warning("Einladung an %s: Mail nicht versandt (%s)",
+                       adresse, type(fehler).__name__)
+
+    return {"ok": True, "id": neu.id, "email": neu.email, "recht": recht,
+            "mail_versandt": versandt}
+
+
+@router.delete("/zugaenge/{zugang_id}")
+def entferne_zugang(zugang_id: int, user=Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Einen Zugang entfernen — nicht den eigenen.
+
+    **Den eigenen nicht**, weil der letzte starke Zugang sonst verschwinden
+    koennte und niemand mehr Zugaenge verwalten duerfte. Der Betrieb waere
+    ausgesperrt und muesste beim Innendienst anrufen.
+    """
+    from services.kundenzugang import darf_verwalten, stufe_von
+
+    if not darf_verwalten(stufe_von(user)):
+        raise HTTPException(403, "Dieser Zugang darf keine anderen entfernen")
+    if zugang_id == user.id:
+        raise HTTPException(400, "Den eigenen Zugang können Sie hier nicht entfernen")
+
+    konto = (db.query(User).filter(User.id == zugang_id,
+                                   User.lead_id == user.lead_id,
+                                   User.role == "kunde").first())
+    if not konto:
+        # 404 und nicht 403: Ob es die Kennung anderswo gibt, geht diesen
+        # Betrieb nichts an.
+        raise HTTPException(404, "Zugang nicht gefunden")
+
+    db.delete(konto)
+    db.commit()
+    return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════════
 # Was im Pflege-Abo steckt (L-160, Rang 3)
 # ══════════════════════════════════════════════════════════════════════
 #
@@ -554,7 +727,7 @@ def get_leistungen(user=Depends(get_current_user), db: Session = Depends(get_db)
 
 
 @router.get("/zahlungen")
-def get_zahlungen(user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_zahlungen(user=Depends(verlangt_geldblick), db: Session = Depends(get_db)):
     """Abos, Rechnungen und der Zustand des Zahlungskontos."""
     from services import abo_vertrag, zahlungsportal
 

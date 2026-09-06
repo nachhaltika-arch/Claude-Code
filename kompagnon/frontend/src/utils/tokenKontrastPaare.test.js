@@ -81,6 +81,45 @@ const PAARE = [
   ['--error', '--paper'],
   ['--info', '--surface'],
   ['--info', '--paper'],
+  // Am 06.09.2026 dazugekommen (L-176). `--brand-primary` ist die Farbe, auf
+  // die zwölf Stellen von `--kc-dark` umgestellt wurden — sie *muss* geprüft
+  // sein, sonst hätte die Reparatur denselben blinden Fleck wie der Fehler.
+  // 8,38 hell / 8,02 dunkel. `--brand-primary-dark` stand ebenfalls in keiner
+  // der beiden Listen und wird an mehreren Stellen als Schrift benutzt.
+  ['--brand-primary', '--surface'],
+  ['--brand-primary', '--paper'],
+  ['--brand-primary-dark', '--surface'],
+  ['--brand-primary-dark', '--paper'],
+];
+
+/**
+ * Als Schrift benutzt, **fällt durch** — mit Nummer im Lagebild.
+ *
+ * **Warum eine dritte Kategorie und nicht eine Ausnahme.** Eine Ausnahme sagt
+ * „das ist in Ordnung so". Diese vier sind es nicht: Sie sind der Rest des
+ * Befunds L-176, den derselbe Wächter zutage gefördert hat, als er zum ersten
+ * Mal lief. Sie hier als Ausnahme einzutragen hieße, einen Mangel als
+ * Entscheidung zu tarnen — und genau das ist die Bauart, die dieses Projekt
+ * schon mehrfach Zeit gekostet hat.
+ *
+ * Der Test unten verlangt für jeden Eintrag eine L-Nummer. Ist die Lücke
+ * geschlossen, verschwindet der Eintrag hier — und wenn ihn jemand vergisst,
+ * meldet ihn der nächste Systemdurchlauf erneut.
+ */
+const BEFUNDE_OFFEN = [
+  { token: '--kc-black', luecke: 'L-180',
+    befund: 'Dunkelmodus 1,27 auf --surface — dieselbe Klasse wie --kc-dark: '
+      + 'eine Palettenfarbe, die als Schrift gesetzt wird.' },
+  { token: '--kc-mid', luecke: 'L-180',
+    befund: 'Hellmodus 3,48 auf --surface, Schwelle 4,5. Im Dunkelsatz ist '
+      + 'sie mit 8,02 richtig — der Mangel steht nur im hellen Satz.' },
+  { token: '--border-medium', luecke: 'L-180',
+    befund: 'Eine Rahmenfarbe als Schrift (Trennzeichen, Platzhaltertext). '
+      + 'rgba auf wechselndem Grund; der Wert ist nicht einmal ausrechenbar.' },
+  { token: '--kc-success', luecke: 'L-180',
+    befund: 'Das Token gibt es in tokens.css **nicht**. Benutzt wird es mit '
+      + 'Rückfall #1D9E75 im Analyse-Widget — also greift immer der feste '
+      + 'Wert, und im Dunkelmodus bleibt die Farbe stehen.' },
 ];
 
 /**
@@ -97,6 +136,30 @@ const AUSNAHMEN = [
     grund: 'Ist eine Fläche, keine Schriftfarbe — 35 Vorkommen als Hintergrund, null als Text.' },
   { token: '--brand-primary-deeper', pruefeUngenutzt: true,
     grund: 'Ebenfalls Fläche; als Text käme sie auf 3.97 und wäre ein Befund.' },
+  // Am 06.09.2026 dazugekommen (L-176) — und der Anlass war, dass dieses
+  // Token in **keiner** der beiden Listen stand und deshalb nie geprüft
+  // wurde. Es ist die rohe Palettenfarbe: `--bg-sidebar` im Hellsatz,
+  // `--brand-primary` im Hellsatz, und im Dunkelsatz #003840, weil es dort
+  // eine dunkle Fläche sein soll. An dreizehn Stellen stand es als `color:` —
+  // im Dunkelmodus 1,17 bis 1,41, also unlesbar, darunter die Überschrift
+  // „Dashboard" und die Kennzahl darunter.
+  //
+  // Zwölf sind auf `--brand-primary` bzw. `--info` umgestellt. Die
+  // dreizehnte bleibt: der Zähler in der Seitenleiste steht auf
+  // `--kc-yellow` und erreicht dort 9,99 (dunkel) und 7,24 (hell). Deshalb
+  // `pruefeUngenutzt: false` — das Token *darf* als Schrift vorkommen, nur
+  // eben auf Gelb.
+  { token: '--kc-dark', pruefeUngenutzt: false,
+    grund: 'Flächenfarbe (Sidebar, Marke). Die eine verbliebene Verwendung '
+      + 'als Schrift steht auf --kc-yellow und erreicht dort 9,99 bzw. 7,24.' },
+  { token: '--kc-yellow', pruefeUngenutzt: false,
+    grund: 'Signalfarbe für Flächen; als Schrift nur auf dunklem Grund, wo '
+      + 'sie ihre Aufgabe hat — Tool-CI: Gelb höchstens einmal je Bildschirm.' },
+  { token: '--bg-surface', pruefeUngenutzt: false,
+    grund: 'Umgekehrte Schrift: helle Fläche als Textfarbe auf farbigem Grund '
+      + '(Knopf mit Markenfüllung). Ihr Gegenstück ist der Grund, nicht --surface.' },
+  { token: '--bg-app', pruefeUngenutzt: false,
+    grund: 'Wie --bg-surface — umgekehrte Schrift auf farbigem Grund.' },
 ];
 
 /** Zeilennummern der Blockanfänge — wie in `tokenKontrast.test.js`. */
@@ -236,5 +299,86 @@ describe('Die Ausnahmen halten noch', () => {
 
   test('jede Ausnahme trägt einen Grund', () => {
     AUSNAHMEN.forEach(a => expect(a.grund.length).toBeGreaterThan(30));
+  });
+});
+
+describe('Die Liste wächst mit dem Code mit', () => {
+  /**
+   * **Warum dieser Test der eigentliche Fund vom 06.09.2026 ist.**
+   *
+   * Der Systemdurchlauf meldete `--kc-dark` mit 1,29:1 im Dunkelmodus und
+   * schrieb dazu: „Warum die Token-Kontrasttests das nicht fangen: Sie rechnen
+   * eine ausdrückliche Paarliste, und `--kc-dark` als Textfarbe steht darin zu
+   * Recht nicht — es soll keine sein."
+   *
+   * Das stimmt, und es ist genau die Lücke: Die Paarliste ist **von Hand
+   * gepflegt**. Ein Token, das jemand neu als `color:` einsetzt, steht weder
+   * in `PAARE` noch in `AUSNAHMEN` — und wird deshalb nie geprüft. Dieselbe
+   * Bauart wie bei L-51, wo ein Wächter eine handgepflegte Pfadliste prüfte,
+   * während der Code weiterwuchs.
+   *
+   * Dieser Test dreht die Richtung um: Er liest, was **tatsächlich** als
+   * Schriftfarbe benutzt wird, und verlangt für jedes Token eine Entscheidung
+   * — geprüftes Paar oder begründete Ausnahme. Ein drittes gibt es nicht.
+   */
+  const quellen = [];
+  (function sammle(ordner) {
+    fs.readdirSync(ordner, { withFileTypes: true }).forEach(eintrag => {
+      const voll = path.join(ordner, eintrag.name);
+      if (eintrag.isDirectory()) {
+        if (eintrag.name !== 'node_modules') sammle(voll);
+      } else if (/\.(js|jsx|css)$/.test(eintrag.name) && !/\.test\./.test(eintrag.name)) {
+        quellen.push(voll);
+      }
+    });
+  })(WURZEL);
+
+  const benutzt = new Set();
+  quellen.forEach(datei => {
+    const text = fs.readFileSync(datei, 'utf8');
+    // **`color:`, nicht `*-color:`.** Der erste Wurf dieses Musters fing
+    // `border-color:` und `background-color:` mit und meldete `--border-light`
+    // und `--bg-surface` als angebliche Schriftfarben — vier Fehlalarme von
+    // zehn Treffern. Der Suchbereich muss die Eigenschaft treffen, nicht ihre
+    // Endung.
+    const muster = /(?:^|[;{\s,'"`(])color\s*:\s*['"`]?\s*(?:[\w\s|?:'"`.]*?)?var\(\s*(--[a-z0-9-]+)/g;
+    let treffer;
+    while ((treffer = muster.exec(text)) !== null) benutzt.add(treffer[1]);
+  });
+
+  /** Farben, die als Grund dienen — sie stehen als zweiter Teil eines Paares. */
+  const alsSchriftGepruef = new Set(PAARE.map(([vorne]) => vorne));
+  const begruendet = new Set(AUSNAHMEN.map(a => a.token));
+
+  test('es wird überhaupt etwas gefunden', () => {
+    // Ein Wächter, der seinen Gegenstand nicht findet, ist immer grün.
+    expect(benutzt.size).toBeGreaterThan(5);
+  });
+
+  test('jedes als Schrift benutzte Token ist geprüft oder begründet', () => {
+    const offen = new Set(BEFUNDE_OFFEN.map(b => b.token));
+    const ohne = [...benutzt]
+      .filter(t => !alsSchriftGepruef.has(t) && !begruendet.has(t) && !offen.has(t))
+      // `--text-*` und `--status-*` tragen ihre Rolle im Namen und werden von
+      // `tokenKontrast.test.js` an ihren Kommentarzahlen geprüft.
+      .filter(t => !/^--(text|status|color)-/.test(t))
+      .sort();
+
+    expect({ ungeprueft: ohne }).toEqual({ ungeprueft: [] });
+  });
+});
+
+describe('Die offenen Befunde tragen eine Nummer', () => {
+  test.each(BEFUNDE_OFFEN.map(b => [b.token, b]))(
+    '%s verweist auf eine Lücke im Lagebild', (token, eintrag) => {
+      expect(eintrag.luecke).toMatch(/^L-\d+$/);
+      expect(eintrag.befund.length).toBeGreaterThan(40);
+    });
+
+  test('kein Befund steht gleichzeitig als Ausnahme', () => {
+    // Sonst hätte ein Token zwei Aussagen über sich: „ist in Ordnung" und
+    // „ist ein Mangel". Die zweite verlöre, weil die erste zuerst greift.
+    const ausnahmen = new Set(AUSNAHMEN.map(a => a.token));
+    BEFUNDE_OFFEN.forEach(b => expect(ausnahmen.has(b.token)).toBe(false));
   });
 });

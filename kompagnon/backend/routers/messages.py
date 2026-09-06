@@ -167,8 +167,14 @@ def send_email_endpoint(
 
         return {"success": True}
     except Exception as e:
-        logger.error(f"send-email Fehler: {e}")
-        return {"success": False, "error": str(e)}
+        logger.error("send-email Fehler (%s): %s", type(e).__name__, e,
+                     exc_info=True)
+        # Die Art des Fehlers reicht dem Innendienst zum Einordnen; der
+        # Wortlaut der Ausnahme gehoert ins Log, nicht in den Browser
+        # (L-175). `exc_info` haelt dort fest, was hier wegfaellt.
+        return {"success": False,
+                "error": f"Versand fehlgeschlagen ({type(e).__name__}). "
+                         f"Einzelheiten stehen im Protokoll."}
 
 
 @router.get("/{lead_id}", dependencies=[Depends(require_innendienst)])

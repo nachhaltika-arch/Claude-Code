@@ -710,8 +710,14 @@ def request_approval(
 </div>"""
         threading.Thread(target=_send_email, args=(to_email, subject, html), daemon=True).start()
     except Exception as exc:
-        logger.warning(f"Freigabe-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
-        return {"success": False, "message": f"E-Mail-Versand fehlgeschlagen: {exc}"}
+        logger.warning("Freigabe-E-Mail fehlgeschlagen fuer Projekt %s (%s): %s",
+                       project_id, type(exc).__name__, exc, exc_info=True)
+        # Die Ausnahme selbst bleibt im Log (L-175) — hier steht, was
+        # geschehen ist und was zu tun ist.
+        return {"success": False,
+                "message": f"E-Mail-Versand fehlgeschlagen "
+                           f"({type(exc).__name__}). Die Freigabe ist "
+                           f"angelegt; die Nachricht bitte erneut senden."}
 
     return {"success": True, "message": "Freigabe-E-Mail gesendet", "token": token}
 

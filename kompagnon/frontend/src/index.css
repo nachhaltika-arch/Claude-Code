@@ -760,8 +760,13 @@ button[aria-pressed]:focus-visible {
 /* OUTLINE — Transparent mit Rahmen */
 .kc-btn-outline {
   background: transparent;
-  color: var(--kc-dark);
-  border-color: var(--kc-dark);
+  /* **`--brand-primary` statt `--kc-dark`** (L-176, 06.09.2026).
+     `--kc-dark` ist eine Flaechenfarbe: im Dunkelsatz steht sie auf #003840,
+     weil sie dort eine dunkle Flaeche sein soll. Als Schrift auf --surface
+     ergab das **1,29:1**. `--brand-primary` ist im Hellsatz derselbe Wert
+     und im Dunkelsatz die Marken-Textfarbe (8,02:1). */
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
 }
 .kc-btn-outline:hover { background: var(--surface); }
 
@@ -806,7 +811,7 @@ button[aria-pressed]:focus-visible {
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 700;
-  color: var(--kc-dark);
+  color: var(--brand-primary);   /* L-176: --kc-dark ist eine Flaeche, keine Schrift */
   text-transform: uppercase;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -834,7 +839,7 @@ button[aria-pressed]:focus-visible {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  color: var(--kc-dark);
+  color: var(--brand-primary);   /* L-176 */
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 14px;
@@ -909,7 +914,7 @@ button[aria-pressed]:focus-visible {
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 700;
-  color: var(--kc-dark);
+  color: var(--brand-primary);   /* L-176 */
   line-height: 1;
 }
 .kc-kpi-label {
@@ -989,7 +994,10 @@ button[aria-pressed]:focus-visible {
 .kc-badge-success { background: var(--success-bg); color: var(--success); }
 .kc-badge-warn    { background: var(--warn-bg);    color: var(--warn); }
 .kc-badge-error   { background: var(--error-bg);   color: var(--error); }
-.kc-badge-info    { background: var(--info-bg);    color: var(--kc-dark); }
+/* `--info`, nicht `--kc-dark` (L-176): auf --info-bg ergab das im
+   Dunkelsatz **1,17:1**. Die drei Nachbarn machen es laengst richtig — jede
+   Statusfarbe hat ihre eigene Schriftfarbe neben ihrem Grund. */
+.kc-badge-info    { background: var(--info-bg);    color: var(--info); }
 .kc-badge-neutral { background: var(--surface);    color: var(--text-60); }
 .kc-badge-yellow  { background: var(--kc-yellow);  color: #000; }
 
@@ -1014,4 +1022,4 @@ button[aria-pressed]:focus-visible {
 .kc-toast-success { background: var(--success-bg); color: var(--success); border-color: rgba(0,135,90,0.3); }
 .kc-toast-warn    { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(184,134,11,0.3); }
 .kc-toast-error   { background: var(--error-bg);   color: var(--error);   border-color: rgba(192,57,43,0.3); }
-.kc-toast-info    { background: var(--info-bg);    color: var(--kc-dark); border-color: var(--kc-mid-a-30); }
+.kc-toast-info    { background: var(--info-bg);    color: var(--info); border-color: var(--kc-mid-a-30); }

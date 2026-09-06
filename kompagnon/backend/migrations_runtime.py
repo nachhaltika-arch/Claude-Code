@@ -1011,6 +1011,14 @@ def run_migrations():
             company VARCHAR(255),
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # **Auch der gescheiterte Aufruf gehoert ins Protokoll** (L-174,
+        # 06.09.2026). Die Zeile stand bisher nur im **geglueckten** Pfad: Ein
+        # Fremdaufruf, der an einem unerwarteten Aufbau scheiterte, hinterliess
+        # keine Spur ausser einer Zeile im Server-Log. Der Innendienst sah
+        # unter „Fremdaufrufe" nur die geglueckten — die Liste sagte „alles
+        # gut", waehrend Interessenten aus bezahlten Anzeigen verloren gingen.
+        # Leer heisst: hat geklappt.
+        "ALTER TABLE webhook_log ADD COLUMN IF NOT EXISTS fehler TEXT",
         # ── Digitale Abnahme + PageSpeed After ─────────────────────
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",

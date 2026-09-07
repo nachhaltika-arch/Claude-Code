@@ -175,6 +175,25 @@ ERKLAERT = (
      "`courses/{id}/modules` an, was einen Kurs erzwingt"),
     ("/api/academy/lessons$", "Doppelung — die Oberflaeche legt ueber "
      "`modules/{id}/lessons` an, was ein Modul erzwingt"),
+
+    # **Vorlagen (07.09.2026).** Der Sammelimport ist ein Wartungsaufruf: Die
+    # Oberflaeche laedt einzeln hoch (`/upload`) oder holt aus einer Adresse
+    # (`/import-url`); mehrere ZIPs auf einmal ist Bestandspflege. Am Router
+    # `require_innendienst`, an der Route zusaetzlich `require_admin`.
+    ("/api/templates/import-bulk$",
+     "Wartung von Hand — mehrere ZIP-Vorlagen auf einmal (Innendienst + Admin)"),
+
+    # **KI-Sichtbarkeit (07.09.2026).** Der Wochenlauf ist geplant; diese
+    # Route loest ihn ausserhalb des Plans aus — dieselbe Gattung wie
+    # `trigger-performance-reports`. `require_innendienst` am Router,
+    # `require_admin` an der Route.
+    ("/api/geo/admin/run-monitoring-now$",
+     "Wartung von Hand — loest den Wochenlauf ausserhalb des Plans aus"),
+    # „Welche KI-Systeme angebunden sind — und welcher Schluessel fehlt."
+    # Das ist Betriebsdiagnose wie `/api/diagnostics/*`: Man fragt sie, wenn
+    # ein Anbieter nichts liefert, nicht aus einem Bildschirm.
+    ("/api/geo/ki-anbieter$",
+     "Betriebsdiagnose — welcher Anbieterschluessel fehlt (Innendienst)"),
 )
 
 
@@ -281,6 +300,21 @@ ENTSCHEIDUNG = (
      "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
     ("/api/academy/progress$",
      "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
+
+    # **Vorlagen am Projekt statt am Betrieb (07.09.2026).** Zwei Routen
+    # bilden die Projekt-Fassung dessen, was die Oberflaeche am **Betrieb**
+    # tut: `assign-project` neben `assign-lead`, `project/{id}` neben
+    # `lead/{id}`. Das Werkzeug ordnet seit dem 26.08. alles am Betrieb
+    # (`leads`) — ein Projekt gehoert zu einem Betrieb, nicht umgekehrt.
+    #
+    # Beide Formen stehen im Kopf der Datei nebeneinander, als waeren sie
+    # gleichrangig. Die Frage ist eine: Bleibt die Zuordnung am Betrieb, dann
+    # fallen diese zwei; oder gibt es Faelle, in denen eine Vorlage nur fuer
+    # **ein** Projekt eines Betriebs gilt — dann fehlt ihnen eine Oberflaeche.
+    ("/api/templates/{template_id}/assign-project$",
+     "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
+    ("/api/templates/project/{project_id}$",
+     "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
 )
 
 

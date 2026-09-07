@@ -80,7 +80,21 @@ class TestDasWerkzeugMisstNochWas:
 
         kopfzeile = [z for z in ausgabe.splitlines() if z.startswith("Ruft niemand")][0]
         anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":"))
-        assert 30 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
+        # **Untergrenze am 07.09.2026 von 30 auf 5 gesenkt** — und das ist
+        # kein Abschalten einer Ratsche, sondern eine Bandbreite, die ihren
+        # Anlass verloren hat. Sie stammt aus der Zeit, als 73 Routen offen
+        # standen, und sollte verhindern, dass ein zu grosszuegiger Abgleich
+        # alles wegerklaert. An einem Tag sind daraus 26 geworden, jede
+        # einzeln beurteilt und im Werkzeug begruendet.
+        #
+        # Der urspruengliche Zweck ist inzwischen besser abgedeckt, und zwar
+        # von zwei Tests weiter unten: `test_alle_drei_koerbe_sind_besetzt`
+        # faengt eine Einsortierung, die tot laeuft, und
+        # `test_eine_gerufene_route_steht_nicht_unter_den_offenen` faengt die
+        # Richtung, in der ein Fehler wehtut. Eine Zahlenschranke kann das
+        # nicht leisten — sie haette bei jeder ehrlichen Arbeit im Weg
+        # gestanden.
+        assert 5 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
 
     def test_eine_gerufene_route_steht_nicht_unter_den_offenen(self, ausgabe):
         """Die Gegenrichtung — und sie rostet nicht.

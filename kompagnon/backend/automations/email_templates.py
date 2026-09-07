@@ -29,17 +29,15 @@ Ihr KOMPAGNON-Team""",
         "subject": "Erinnerung: Materialien für Ihre Website — {company_name}",
         "body": """Lieber {contact_name},
 
-damit wir Ihre neue Website pünktlich fertigstellen können, benötigen wir noch einige Unterlagen von Ihnen.
+damit wir Ihre neue Website pünktlich fertigstellen können, brauchen wir noch etwas von Ihnen.
 
-Bitte stellen Sie uns folgende Materialien zur Verfügung:
+Offen ist:
 
-✓ Unternehmensfotos (mind. 3 aktuelle Fotos)
-✓ Leistungsbeschreibung (was machen Sie genau?)
-✓ Team-Informationen (Mitarbeiterzahl, Expertise)
-✓ Öffnungszeiten
-✓ Kontaktdaten (Telefon, E-Mail, Adresse)
+{fehlende_punkte}
 
-Bitte bis zum {review_deadline} einreichen.
+Solange diese Punkte fehlen, läuft die Bauzeit nicht — sie beginnt an dem
+Werktag, an dem alles vorliegt. Sie können alles in Ihrem Konto unter
+„Was wir brauchen" eintragen und dort auch sehen, was schon da ist.
 
 Upload-Link: {upload_link}
 

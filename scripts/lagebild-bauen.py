@@ -160,6 +160,81 @@ HANDGESETZT = {
 }
 
 
+def produkte_lesen() -> list:
+    """Der Produktkatalog — aus den Seeds gelesen, nicht abgeschrieben.
+
+    **Der Anlass (07.09.2026, Wunsch David).** Der Produktabschnitt des
+    Lagebilds zeigte „Starter 1.500 €, KOMPAGNON 2.000 €, Premium 2.800 €" —
+    die Pakete, die seit **L-97 (23.08.)** durch die Websprint-Linie ersetzt
+    sind. Zwei Wochen lang stand in Davids Entscheidungsgrundlage ein
+    Sortiment, das es nicht mehr gibt.
+
+    **Warum aus `migrations_runtime.py` und nicht aus den Datenblaettern.**
+    Die Seeds sind das, was **produktiv in `products` steht** — und aus dieser
+    Tabelle zieht die Stripe-Sitzung ihren Betrag. Die Datenblaetter sagen,
+    was gelten *soll*; die Seeds, was gilt. Fuer eine Lagebeurteilung zaehlt
+    das Zweite. (Wo beide auseinandergehen, ist das ein Befund fuer sich —
+    siehe L-182.)
+
+    **Die Abos stehen nicht in `products`** und kommen deshalb aus
+    `services/abo_stunden.py`, das GEO-Add-on aus `services/dazubuchen.py`.
+    Drei Quellen, aber jede ist die, aus der auch der Code rechnet.
+    """
+    quelle = (WURZEL / "kompagnon" / "backend" / "migrations_runtime.py").read_text(encoding="utf-8")
+    muster = re.compile(
+        r"\('(?P<slug>[a-z_0-9]+)',\s*\n?\s*'(?P<name>[^']+)',\s*\n?\s*"
+        r"'(?P<kurz>[^']*)',\s*\n?\s*"
+        r"(?P<brutto>[\d.]+|\{[^}]+\}), (?P<netto>[\d.]+|\{[^}]+\}), (?P<steuer>\d+|\{[^}]+\}), "
+        r"'(?P<art>\w+)', (?P<tage>\d+), '(?P<status>\w+)'", re.S)
+
+    heraus = []
+    for t in muster.finditer(quelle):
+        d = t.groupdict()
+        # Werte, die im Seed als Platzhalter stehen (Buchpreise kommen aus
+        # `services/buch_preise.py`), werden **nicht geraten**.
+        zahl = lambda w: None if w.startswith("{") else float(w)  # noqa: E731
+        heraus.append({
+            "slug": d["slug"], "name": d["name"], "kurz": d["kurz"],
+            "brutto": zahl(d["brutto"]), "netto": zahl(d["netto"]),
+            "tage": int(d["tage"]), "art": d["art"], "status": d["status"],
+            "einheit": "Werktage",
+        })
+
+    # ── Die Pflege-Abos: nicht in `products`, sondern im Abrechnungsdienst ──
+    abo = (WURZEL / "kompagnon" / "backend" / "services" / "abo_stunden.py").read_text(encoding="utf-8")
+    def abo_wert(name):
+        t = re.search(rf"^{name} = (\d+)", abo, re.M)
+        return int(t.group(1)) / 100 if t else None
+    satz = re.search(r"^STEUERSATZ_ABO = ([\d.]+)", abo, re.M)
+    steuer = float(satz.group(1)) if satz else 19.0
+    for slug, name, konstante, kurz in (
+        ("abo_bas", "Pflege Basic", "PREIS_ABO_BAS_NETTO_CENT",
+         "Sieben Positionen: Hosting, Aktualisierungen, Sicherung, 30 Min. Änderungen, Re-Audit jährlich"),
+        ("abo_pro", "Pflege Pro", "PREIS_ABO_PRO_NETTO_CENT",
+         "Neun Positionen: zusätzlich 90 Min. Änderungen, Monatsbericht, Re-Audit quartalsweise, 4-Stunden-Reaktion"),
+    ):
+        netto = abo_wert(konstante)
+        heraus.append({
+            "slug": slug, "name": name, "kurz": kurz,
+            "netto": netto,
+            "brutto": round(netto * (1 + steuer / 100), 2) if netto else None,
+            "tage": 0, "art": "monatlich", "status": "live", "einheit": "",
+        })
+
+    # ── Das GEO-Add-on: im Buchungskatalog ──
+    dz = (WURZEL / "kompagnon" / "backend" / "services" / "dazubuchen.py").read_text(encoding="utf-8")
+    g = re.search(r"^GEO_NETTO_CENT = (\d+)", dz, re.M)
+    if g:
+        netto = int(g.group(1)) / 100
+        heraus.append({
+            "slug": "geo_01", "name": "GEO/GAIO Add-on",
+            "kurz": "llms.txt, schema.org, Ground Page, Nachschau nach der Veröffentlichung",
+            "netto": netto, "brutto": round(netto * (1 + steuer / 100), 2),
+            "tage": 10, "art": "once", "status": "live", "einheit": "Werktage",
+        })
+    return heraus
+
+
 def _status(text: str, aufwand: str) -> str:
     """offen · teilweise · geschlossen — aus Durchstreichung und Aufwand.
 
@@ -486,6 +561,7 @@ def main() -> int:
     ersetzungen = {
         "/*__LUECKEN__*/[]": json.dumps(luecken, ensure_ascii=False),
         "/*__PLAN__*/{}": json.dumps(plan, ensure_ascii=False),
+        "/*__PRODUKTE__*/[]": json.dumps(produkte_lesen(), ensure_ascii=False),
         "<!--__ZAHLEN__-->": zahlen_block(luecken),
         "<!--__STAND__-->": stand(),
     }

@@ -205,6 +205,21 @@ main{padding:30px 0 72px}
 }
 
 /* ── Produkte ──────────────────────────────────────────── */
+.produkte{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));margin:20px 0 28px}
+.produkt{background:var(--flaeche);border:1px solid var(--linie);border-radius:12px;
+  padding:18px 20px;border-top:3px solid var(--linie-2)}
+.produkt.p-live{border-top-color:var(--traegt)}
+.produkt.p-draft{border-top-color:var(--haengt)}
+.p-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+.p-name{font-size:16px;font-weight:900;letter-spacing:-.015em}
+.p-status{font-size:11.5px;font-weight:700;color:var(--ink-3);white-space:nowrap}
+.p-preis{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.p-preis b{font-size:19px;font-weight:900}
+.p-preis span{font-size:12.5px;color:var(--ink-3)}
+.p-kurz{font-size:13px;line-height:1.55;color:var(--ink-2);margin:0 0 12px}
+.p-fuss{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3);align-items:center}
+.p-fuss code{font-family:var(--mono);font-size:11px}
+
 .pakete{display:grid; grid-template-columns:repeat(auto-fit,minmax(252px,1fr)); gap:12px; margin-bottom:14px}
 .paket{
   background:var(--karte); border:1px solid var(--linie); border-radius:var(--r);
@@ -409,68 +424,21 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
 
   <!-- ══ Produkte ══════════════════════════════════════ -->
   <section class="blatt" id="b-produkte" role="tabpanel" aria-labelledby="t-produkte" hidden>
-    <p class="vorwort">Drei Pakete, einmalige Zahlung, plus ein monatliches GEO-Zusatzprodukt mit Preis je Analyse. Die Preise stehen <b>nicht im Code</b>, sondern in der Tabelle <code>products</code> — dieselbe Zeile, aus der die Stripe-Sitzung ihren Betrag zieht.</p>
+    <p class="vorwort">Was <b>produktiv im Katalog steht</b> — gelesen aus
+    <code>migrations_runtime.py</code> (Tabelle <code>products</code>, dieselbe Zeile,
+    aus der die Stripe-Sitzung ihren Betrag zieht), den Pflege-Abos in
+    <code>services/abo_stunden.py</code> und dem GEO-Add-on in
+    <code>services/dazubuchen.py</code>. <b>Nicht abgeschrieben:</b> Bis zum
+    07.09.2026 standen hier „Starter 1.500 €, KOMPAGNON 2.000 €, Premium 2.800 €" —
+    Pakete, die seit L-97 (23.08.) durch die Websprint-Linie ersetzt sind.
+    Zwei Wochen lang zeigte die Entscheidungsgrundlage ein Sortiment, das es
+    nicht mehr gab.</p>
 
-    <div class="pakete">
-      <div class="paket">
-        <h3>Starter-Paket</h3>
-        <div class="preis"><span class="gross">1.500 €</span><span class="klein">Endpreis · 1.260,50 netto</span></div>
-        <ul>
-          <li>5-seitige WordPress-Website</li>
-          <li>Mobile-First Design</li>
-          <li>SEO-Grundoptimierung</li>
-          <li>SSL &amp; DSGVO-konform</li>
-          <li>Kontaktformular</li>
-          <li>30 Tage Support</li>
-        </ul>
-        <div class="liefer">14 Tage Lieferzeit · einmalig · <b>live</b></div>
-      </div>
+  <div class="produkte" id="produkte"></div>
 
-      <div class="paket empfohlen">
-        <span class="fahne">Empfehlung</span>
-        <h3>KOMPAGNON-Paket</h3>
-        <div class="preis"><span class="gross">2.000 €</span><span class="klein">Endpreis · 1.680,67 netto</span></div>
-        <ul>
-          <li>8-seitige WordPress-Website</li>
-          <li>SEO + GEO-Optimierung</li>
-          <li>Strategy Workshop (60 Min.)</li>
-          <li>Schema Markup &amp; KI-Optimierung</li>
-          <li>Google-Business-Verknüpfung</li>
-          <li>30 Tage Support</li>
-        </ul>
-        <div class="liefer">14 Tage Lieferzeit · einmalig · <b>live</b></div>
-      </div>
-
-      <div class="paket">
-        <h3>Premium-Paket</h3>
-        <div class="preis"><span class="gross">2.800 €</span><span class="klein">Endpreis · 2.352,94 netto</span></div>
-        <ul>
-          <li>12-seitige WordPress-Website</li>
-          <li>Individual-Design nach CI</li>
-          <li>SEO + GEO + KI-Volloptimierung</li>
-          <li>Strategy Workshop (90 Min.)</li>
-          <li>Professioneller Fotoshooting-Tag</li>
-          <li>Google Ads Einrichtung</li>
-          <li>3 Monate Support</li>
-        </ul>
-        <div class="liefer">21 Tage Lieferzeit · einmalig · <b>live</b></div>
-      </div>
-
-      <div class="paket">
-        <h3>GEO-Zusatz</h3>
-        <div class="preis"><span class="gross">variabel</span><span class="klein">monatlich</span></div>
-        <ul>
-          <li>Preis je Analyse ermittelt (<code>upsell_price</code>)</li>
-          <li>Stripe-Preis wird bei Bedarf angelegt</li>
-          <li>Abonnement, nicht einmalig</li>
-          <li><b>Neu 22.08.:</b> fragt ChatGPT, Perplexity und Claude, ob sie den Betrieb nennen</li>
-        </ul>
-        <div class="liefer">eigener Weg über <code>/api/geo-payments</code> · Preis für die KI-Sichtbarkeit noch offen</div>
-      </div>
-    </div>
 
     <div class="tafel">
-      <h3>Zahlungsweg — funktioniert, mit zwei Bedingungen</h3>
+      <h3>Zahlungsweg — produktiv scharf, einmal noch nicht durchlaufen</h3>
       <div class="weg">
         <span class="st">Paket wählen<code>GET /api/payments/packages</code></span>
         <span class="pf">→</span>
@@ -484,13 +452,15 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
       </div>
       <div class="roll">
         <table class="tabelle">
-          <thead><tr><th>Punkt</th><th>Stand</th></tr></thead>
+          <thead><tr><th>Punkt</th><th>Stand am 07.09.2026</th></tr></thead>
           <tbody>
-            <tr><td>Stripe-Kasse</td><td>Vorhanden. Braucht <code>STRIPE_SECRET_KEY</code> — fehlt er, schlagen alle Aufrufe fehl und der Start protokolliert es.</td></tr>
-            <tr><td>Webhook-Prüfung</td><td>Braucht <code>STRIPE_WEBHOOK_SECRET</code>. Fehlt er, werden <b>Zahlungen nicht verarbeitet</b> — kein Projekt, kein Konto, keine Mail.</td></tr>
-            <tr><td>Steuer</td><td><b>Endpreise.</b> Entscheidung vom 21.08.2026: <code>price_brutto</code> ist, was abgebucht wird. Kein <code>automatic_tax</code>, keine <code>tax_rates</code> — „netto“ und „zzgl. MwSt.“ sind aus Verkaufsseiten, Kasse und Angebotsmail entfernt (L-61).</td></tr>
-            <tr><td>Bestellweg</td><td>Läuft seit dem 21.08. durch (M4). Vorher endete er auf der Anmeldeseite — jeder von ihnen (L-64, L-71).</td></tr>
-            <tr><td>Projektumsatz</td><td>Kommt aus der gezahlten Summe, nicht mehr aus einer zweiten festen Liste. Darauf rechnet die Margenkalkulation (L-29).</td></tr>
+            <tr><td>Schlüssel produktiv</td><td><b>Gesetzt.</b> Am 07.09. an <code>/health</code> nachgemessen: <code>modus: live</code> bei <code>umgebung: production</code>, alle Präfixe stimmen, <code>bereit: true</code>. Vier Live-Webhooks eingerichtet (L-171).</td></tr>
+            <tr><td>Gescheiterte Verarbeitung</td><td><b>Seit 06.09. ehrlich (L-174).</b> Beide Abfangzweige antworteten mit <b>200</b> — Stripe wertet das als „verarbeitet" und liefert <b>nie wieder</b>. Jetzt <code>502</code>: Stripe wiederholt bis zu drei Tage, und der Fehlschlag steht sichtbar im Stripe-Protokoll. Geprüft, dass eine Wiederholung gefahrlos ist: Der Idempotenz-Guard greift, und der einzige <code>commit()</code> liegt hinter dem Zweig.</td></tr>
+            <tr><td>AGB-Nachweis</td><td><b>Seit 07.09. gebaut (L-181), Gegenstand fehlt.</b> Die geltende Fassung wandert in die Kassen-Metadaten und wird ans Projekt geschrieben (<code>agb_fassung</code>). <b>Es gibt aber keine AGB:</b> <code>rechtstexte.js</code> führt neun Gliederungspunkte mit <code>ausstehend: true</code>. Ohne Fassung wird <b>nicht gesperrt</b> — das hielte den Verkauf an —, sondern in <code>/health</code> vermerkt.</td></tr>
+            <tr><td>Steuer</td><td><b>Endpreise.</b> Entscheidung vom 21.08.2026: <code>price_brutto</code> ist, was abgebucht wird. Kein <code>automatic_tax</code>. <b>Die Abo-Preise sind netto</b> (Entscheidung 04.09.): 79/149 € netto = 94,01/177,31 € brutto, beides beschriftet angezeigt.</td></tr>
+            <tr><td>Bauzeit</td><td><b>Werktage</b> (Entscheidung David, 07.09., L-173). Die Datenblätter sagten „Kalendertage", der Code seit jeher „Werktage" — 24 Stellen in 15 Dateien berichtigt. Seit 06.09. wird das Ende <b>gerechnet</b>, samt Ruhezeiten aus verspäteten Freigaben (L-166).</td></tr>
+            <tr><td>Projektumsatz</td><td>Kommt aus der gezahlten Summe, nicht aus einer zweiten festen Liste. Darauf rechnet die Margenkalkulation.</td></tr>
+            <tr><td><b>Nie durchlaufen</b></td><td><b>Der wesentliche Punkt (L-171).</b> Geprüft sind Einrichtung und Zurückweisung — <b>nicht</b>, ob nach einer echten Zahlung Lead, Konto, Projekt, Mail und PDF sauber entstehen. Genau dort lagen 2026 vier Produktionsfehler. Ein Zahlungsweg, der eingerichtet, aber nie gelaufen ist, fällt beim <b>ersten echten Kunden</b> auf — und der bezahlt dann für den Test.</td></tr>
           </tbody>
         </table>
       </div>
@@ -498,7 +468,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
 
     <div class="notiz">
       <span class="z">!</span>
-      <div><b>Herkunft dieser Zahlen:</b> Sie stammen aus dem Seed in <code>main.py</code>, der die <code>products</code>-Tabelle beim ersten Start füllt. Die <b>Produktiv-Datenbank wurde nicht abgefragt</b> — der Render-Zugang meldet weiterhin <code>unauthorized</code>. Wurde ein Preis seither im Produktverwalter geändert, weicht der echte Wert ab. Maßgeblich ist immer die Zeile in <code>products</code> mit <code>status='live'</code>.</div>
+      <div><b>Herkunft dieser Zahlen:</b> Sie werden beim Bauen dieses Lagebilds aus <code>migrations_runtime.py</code> gelesen — den Seeds, die die <code>products</code>-Tabelle füllen und aus denen die Stripe-Sitzung ihren Betrag zieht. Die Pflege-Abos kommen aus <code>services/abo_stunden.py</code>, das GEO-Add-on aus <code>services/dazubuchen.py</code>. <b>Abgeschrieben wird nichts mehr:</b> Bis zum 07.09.2026 standen hier von Hand gepflegte Kacheln mit Paketen, die es seit dem 23.08. nicht mehr gibt. <b>Was die Datenblätter sagen, kann davon abweichen</b> — sie liegen in vier Fassungen (L-182); hier steht, was gilt, nicht was gelten soll.</div>
     </div>
   </section>
 
@@ -543,6 +513,43 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
 
 <script>
 const LUECKEN = /*__LUECKEN__*/[];
+
+const PRODUKTE = /*__PRODUKTE__*/[];
+
+/**
+ * Der Produktkatalog — erzeugt, nicht abgeschrieben (07.09.2026).
+ *
+ * Netto **und** brutto stehen beide da: Der Betrieb unterschreibt netto und
+ * bekommt brutto abgebucht (Entscheidung David, 04.09.2026). Nur eine der
+ * beiden Zahlen zu zeigen erzeugt den Anruf, der mit „bei mir steht aber
+ * etwas anderes" beginnt.
+ *
+ * `draft` heißt: im Katalog, aber nicht verkäuflich — der Grund steht je
+ * Produkt in der Migration daneben.
+ */
+function geld(wert) {
+  return wert === null || wert === undefined
+    ? "—"
+    : wert.toLocaleString("de-DE", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " €";
+}
+
+document.getElementById("produkte").innerHTML = PRODUKTE.map((p) => `
+  <article class="produkt ${p.status === "live" ? "p-live" : "p-draft"}">
+    <div class="p-kopf">
+      <span class="p-name">${schutz(p.name)}</span>
+      <span class="p-status">${p.status === "live" ? "verkäuflich" : "draft"}</span>
+    </div>
+    <div class="p-preis">
+      <b>${geld(p.brutto)}</b>
+      <span>${geld(p.netto)} netto${p.art === "monatlich" ? " je Monat" : ""}</span>
+    </div>
+    <p class="p-kurz">${schutz(p.kurz)}</p>
+    <div class="p-fuss">
+      <code>${schutz(p.slug)}</code>
+      ${p.tage ? `<span>${p.tage} ${schutz(p.einheit)}</span>` : ""}
+      <span>${p.art === "monatlich" ? "monatlich" : "einmalig"}</span>
+    </div>
+  </article>`).join("");
 
 const MODULE = [
   {nr:"M0", name:"Fundament", ampel:"a-gruen", stand:"trägt", ab:"nein", hangt:"—",

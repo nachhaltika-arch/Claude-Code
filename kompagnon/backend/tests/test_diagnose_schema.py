@@ -74,3 +74,50 @@ class TestSchemaBericht:
                 f"Der Bericht enthaelt {verboten!r} — das riecht nach einem "
                 "Datenwert. Er soll nur Form und Anzahl melden."
             )
+
+
+class TestVerwaisteTabellen:
+    """Die drei Tabellen aus L-146 — messbar, ohne die Datenbank zu oeffnen.
+
+    **Warum ein Endpunkt und kein Test.** Der Befund vom 28.08.2026 (produktiv
+    73 Tabellen, frisch aufgebautes Staging 70) laesst sich lokal gar nicht
+    reproduzieren: Die Entwicklungsdatenbank entsteht aus Migrationen und
+    `create_all`, also **hat** sie die drei nie. Ein Test waere hier dauerhaft
+    gruen und wuerde nichts pruefen — die Frage stellt sich nur an der
+    laufenden Produktivdatenbank.
+
+    Gemessen wurde sie damals im Rahmen einer Wiederherstellungsprobe. Das ist
+    ein halber Tag Arbeit fuer eine Frage, die eine Abfrage beantwortet; seit
+    dem 07.09.2026 beantwortet sie dieser Endpunkt, hinter `require_admin`.
+
+    Was hier geprueft wird, ist deshalb die **Auskunftsfaehigkeit**: dass der
+    Bericht die drei Tabellen ueberhaupt nennt und je Tabelle sagt, ob sie da
+    ist und wie viele Zeilen sie traegt. Das beantwortet die Vorbedingung aus
+    dem Eintrag — „vorher pruefen, ob die 25 Zeilen irgendwo als Beleg
+    gebraucht werden" — ohne einen Datenbankzugang zu vergeben.
+    """
+
+    ERWARTET = {"revoked_tokens", "seo_analyses", "schema_migrations"}
+
+    def test_der_bericht_nennt_alle_drei(self, client, auth_headers):
+        daten = client.get("/api/diagnostics/schema", headers=auth_headers).json()
+        genannt = {e["tabelle"] for e in daten.get("verwaiste_tabellen", [])}
+        assert self.ERWARTET <= genannt, (
+            f"fehlend: {sorted(self.ERWARTET - genannt)}")
+
+    def test_je_tabelle_steht_vorhanden_und_zeilenzahl(self, client, auth_headers):
+        daten = client.get("/api/diagnostics/schema", headers=auth_headers).json()
+        for eintrag in daten["verwaiste_tabellen"]:
+            assert "vorhanden" in eintrag and "zeilen" in eintrag, eintrag
+            # Lokal gibt es sie nicht — dann muss das auch so dastehen und
+            # nicht als „0 Zeilen" getarnt sein. „Nicht da" und „leer" sind
+            # zwei verschiedene Auskuenfte.
+            if not eintrag["vorhanden"]:
+                assert eintrag["zeilen"] is None, (
+                    f"{eintrag['tabelle']}: nicht vorhanden, aber eine "
+                    f"Zeilenzahl gemeldet — das taeuscht Messung vor.")
+
+    def test_die_bewertung_sagt_einen_satz_dazu(self, client, auth_headers):
+        """Ein Bericht, der ueber eine Frage schweigt, laesst den Leser raten."""
+        daten = client.get("/api/diagnostics/schema", headers=auth_headers).json()
+        assert "L-146" in daten["bewertung"]

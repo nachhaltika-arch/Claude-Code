@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 
 export const SOURCES = [
   { key: 'facebook',   label: 'Facebook',   icon: '📘', color: '#1877F2' },
@@ -249,6 +250,13 @@ function QrCodePanel({ campaign, color }) {
 
 
 function NewCampaignModal({ onClose, onCreated, token }) {
+  // **Escape schliesst das Fenster** (L-17, 07.09.2026). Es fehlte, und
+  // `utils/modalEscape.test.js` hat es nicht bemerkt: Der Waechter erkannte
+  // nur `inset: 0`, hier steht die Langform `top/right/bottom/left: 0` —
+  // dieselbe Eigenschaft, andere Schreibweise. Die Erkennung ist am selben
+  // Tag erweitert worden.
+  useEscapeKey(onClose);
+
   const [name, setName] = useState('');
   const [source, setSource] = useState('facebook');
   const [description, setDescription] = useState('');

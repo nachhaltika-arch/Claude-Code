@@ -63,10 +63,31 @@ function jsxDateien(verzeichnis, treffer = []) {
   return treffer;
 }
 
-/** Eine bildschirmfüllende Überlagerung: `position: fixed` und `inset: 0`. */
+/**
+ * Eine bildschirmfüllende Überlagerung — in beiden Schreibweisen.
+ *
+ * **Am 07.09.2026 um die Langform erweitert (L-17).** Erkannt wurde nur
+ * `inset: 0`. `pages/Deals.jsx` schreibt stattdessen
+ * `top: 0, right: 0, bottom: 0, left: 0` — dasselbe Ergebnis, andere
+ * Schreibweise —, und war deshalb für diesen Wächter unsichtbar. Dahinter
+ * saß ein **Löschen-Bestätigen-Dialog ohne jeden Tastaturausweg**: die
+ * unangenehmste Sorte, weil man ohne Maus weder bestätigen noch abbrechen
+ * kann.
+ *
+ * Ein Wächter, der eine Schreibweise prüft statt einer Eigenschaft, hat
+ * genau dieses Loch — im Projekt heute schon dreimal aufgefallen. Deshalb
+ * hier beide Formen, und `flaechendeckend` prüft die vier Kanten
+ * unabhängig von ihrer Reihenfolge.
+ */
+function flaechendeckend(quelle) {
+  return ['top', 'right', 'bottom', 'left']
+    .every((kante) => new RegExp(`${kante}:\\s*0\\b`).test(quelle));
+}
+
 function hatUeberlagerung(quelle) {
   return /position:\s*['"]fixed['"][^}]{0,120}inset:\s*0/.test(quelle)
-      || /inset:\s*0[^}]{0,120}position:\s*['"]fixed['"]/.test(quelle);
+      || /inset:\s*0[^}]{0,120}position:\s*['"]fixed['"]/.test(quelle)
+      || (/position:\s*['"]fixed['"]/.test(quelle) && flaechendeckend(quelle));
 }
 
 function hatEscapeWeg(quelle) {

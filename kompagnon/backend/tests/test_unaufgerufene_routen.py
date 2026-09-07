@@ -82,21 +82,41 @@ class TestDasWerkzeugMisstNochWas:
         anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":"))
         assert 30 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
 
-    def test_eine_route_ohne_jeden_aufrufer_bleibt_gemeldet(self, ausgabe):
-        """Ein benannter Fall, der stehen bleiben muss.
+    def test_eine_gerufene_route_steht_nicht_unter_den_offenen(self, ausgabe):
+        """Die Gegenrichtung — und sie rostet nicht.
 
-        **Der Kanarienvogel ist am 07.09.2026 zweimal umgezogen, und beide
-        Male aus demselben Grund: Ich hatte ihn selbst beurteilt.** Erst stand
-        er auf `/api/projects/seed`, das am selben Tag als „Erstbefuellung,
-        Schutz am Router" erklaert wurde. Dann auf `/api/usercards/{card_id}`
-        — das eine Stunde spaeter in die neue Kategorie „wartet auf eine
-        Entscheidung" wanderte, zusammen mit siebzehn Geschwistern.
+        **Hier stand dreimal an einem Tag ein anderer Kanarienvogel, und
+        jedes Mal habe ich ihn selbst erlegt.** Erst `/api/projects/seed`
+        (Stunden spaeter als „Wartung von Hand" erklaert), dann
+        `/api/usercards/{card_id}` (in die Kategorie „wartet auf eine
+        Entscheidung" gewandert), dann `/api/academy/modules` (als Doppelung
+        erklaert). Ein Test, der eine **einzelne** Route beim Namen nennt,
+        misst nicht das Werkzeug, sondern den Stand der Beurteilung — und der
+        aendert sich genau dann, wenn jemand arbeitet.
 
-        **Die Lehre steht jetzt im Testnamen:** Ein Kanarienvogel taugt nur so
-        lange, wie niemand ihn anfasst. `/api/academy/modules` ist deshalb der
-        bessere: Ein Schreibzugriff auf die Modulebene der Akademie, den keine
-        Oberflaeche ruft — und er bleibt es, solange L-60 offen ist, denn dort
-        fehlt der **Lehrplan**, nicht die Technik. Das ist eine inhaltliche
-        Entscheidung von David und keine, die beim Aufraeumen nebenbei faellt.
+        Deshalb jetzt eine Eigenschaft statt eines Namens: Eine Route, die das
+        Frontend nachweislich **ruft**, darf nicht unter den offenen stehen.
+        Das ist die Richtung, in der ein Fehler wehtut — eine Falschmeldung
+        schickt jemanden auf die Suche nach einem Knopf, den es gibt. Und sie
+        bleibt wahr, egal wie viele Routen noch beurteilt werden.
         """
-        assert "/api/academy/modules" in ausgabe
+        offener_teil = ausgabe.split("Ruft niemand")[1].split("\n\n")[0]
+        # `/api/auth/login` ruft jede Anmeldung; `/api/leads/` die Betriebsliste.
+        for gerufen in ("/api/auth/login", "/api/leads/{lead_id}/notes"):
+            assert gerufen not in offener_teil, (
+                f"{gerufen} steht unter den offenen Routen, wird aber gerufen — "
+                f"eine Falschmeldung schickt jemanden auf die Suche nach einem "
+                f"Knopf, den es gibt.")
+
+    def test_alle_drei_koerbe_sind_besetzt(self, ausgabe):
+        """Jeder Korb muss etwas enthalten, sonst ist eine Einsortierung tot.
+
+        Faellt „wartet auf eine Entscheidung" auf null, ist entweder alles
+        entschieden — dann gehoert die Kategorie weg — oder die Zuordnung
+        greift nicht mehr. Beides gehoert bemerkt.
+        """
+        for korb in ("Ruft niemand", "Wartet auf eine Entscheidung", "Erklaert"):
+            assert korb in ausgabe, f"Korb fehlt: {korb}"
+            kopfzeile = [z for z in ausgabe.splitlines() if z.startswith(korb)][0]
+            anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":").split()[0])
+            assert anzahl > 0, f"{korb} ist leer"

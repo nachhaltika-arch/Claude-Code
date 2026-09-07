@@ -159,6 +159,22 @@ ERKLAERT = (
     # `public_router` und traegt bewusst keine Anmeldung.
     ("/api/leads/public",
      "Formular der Landingpage — liegt ausserhalb dieses Frontends (L-20)"),
+
+    # **Zwei Doppelungen in der Akademie (07.09.2026).** Fuer Modul und
+    # Lektion gibt es je **zwei** Anlege-Routen: eine freie und eine an ihren
+    # Ort gebundene. Die Oberflaeche nutzt die gebundene, weil ein Modul ohne
+    # Kurs und eine Lektion ohne Modul keinen Sinn ergeben — die freie Form
+    # koennte sogar eine Waise anlegen. Sie sind damit nicht bloss ungenutzt,
+    # sondern die schlechtere der beiden Formen.
+    #
+    # Hier als „erklaert" gefuehrt und nicht als offen: Es gibt keinen
+    # fehlenden Knopf, es gibt einen besseren Weg daneben. Ob sie fallen, ist
+    # eine Entscheidung ueber eine oeffentliche Schnittstelle und gehoert
+    # David — wie bei `/api/invoices/my`.
+    ("/api/academy/modules$", "Doppelung — die Oberflaeche legt ueber "
+     "`courses/{id}/modules` an, was einen Kurs erzwingt"),
+    ("/api/academy/lessons$", "Doppelung — die Oberflaeche legt ueber "
+     "`modules/{id}/lessons` an, was ein Modul erzwingt"),
 )
 
 
@@ -251,19 +267,48 @@ ENTSCHEIDUNG = (
      "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
     ("/api/sitemap/{lead_id}/import-existing",
      "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+
+    # **Die Kundensicht der Akademie (07.09.2026).** `GET /certificates` und
+    # `GET /progress` liefern die **eigenen** Zeugnisse und den **eigenen**
+    # Fortschritt. Die Oberflaeche ruft stattdessen die Innendienst-Formen
+    # (`/progress/all?user_id=`, `/certificates/{code}/verify`).
+    #
+    # Beide koennen heute ohnehin nichts zeigen: `seed_academy_courses` legt
+    # fuenf Kurse und **null Module** an (L-60). Solange kein Lehrplan
+    # entschieden ist, gibt es weder Fortschritt noch Zeugnis. Sie fallen oder
+    # bleiben mit dieser Frage.
+    ("/api/academy/certificates$",
+     "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
+    ("/api/academy/progress$",
+     "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
 )
 
 
+def _passt(pfad: str, muster: str) -> bool:
+    """Praefix — oder **genau dieser Pfad**, wenn das Muster auf `$` endet.
+
+    **Am 07.09.2026 ergaenzt (L-105).** Bis dahin gab es nur „beginnt mit".
+    Fuer `/api/academy/modules` reicht das nicht: Ein Praefix wuerde auch
+    `/api/academy/modules/{module_id}/lessons` treffen, und die **wird**
+    gerufen. Ein Eintrag, der mehr erklaert als gemeint, macht den naechsten
+    echten Fund unsichtbar — genau die Bauart, die dieses Werkzeug aufdecken
+    soll, nur im Werkzeug selbst.
+    """
+    if muster.endswith("$"):
+        return pfad == muster[:-1]
+    return pfad.startswith(muster)
+
+
 def _wartet_auf_entscheidung(pfad: str):
-    for anfang, grund in ENTSCHEIDUNG:
-        if pfad.startswith(anfang):
+    for muster, grund in ENTSCHEIDUNG:
+        if _passt(pfad, muster):
             return grund
     return None
 
 
 def _erklaerung(pfad: str):
-    for anfang, grund in ERKLAERT:
-        if pfad.startswith(anfang):
+    for muster, grund in ERKLAERT:
+        if _passt(pfad, muster):
             return grund
     return None
 

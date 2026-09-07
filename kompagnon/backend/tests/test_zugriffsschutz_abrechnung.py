@@ -30,6 +30,14 @@ wirksam — zwei der zehn offenen Rechte aus L-05 weniger.
 **Was das Kundenportal betrifft: nichts.** Gemessen vor der Aenderung:
 `customer/MeineRechnungen.jsx` ruft ausschliesslich `/api/invoices/my` auf,
 alles Uebrige kommt aus `RetainerDashboard.jsx` — dem Innendienst-Bildschirm.
+
+**Nachtrag 07.09.2026 (L-105).** Der Satz darueber stimmt fuer den 22.08. und
+nicht mehr fuer heute: Seit dem Umbau des Kundenkontos am 04.09. ruft
+`MeineRechnungen.jsx` die Komponente `Zahlungen` auf, und die liest
+`GET /api/portal/zahlungen`. `/api/invoices/my` hat damit **keinen** Aufrufer
+mehr. Diese Tests bleiben trotzdem: Solange die Route erreichbar ist, muss sie
+zugesperrt sein — eine Route ohne Oberflaeche ist nicht dieselbe wie eine
+Route ohne Zugang.
 """
 import pytest
 

@@ -9,6 +9,15 @@ schrieben sogar (`POST /api/invoices`, `PUT /api/retainer/{id}`).
 Die Absicht war eine andere — `GET /api/invoices/my` filtert nach der eigenen
 E-Mail und ist der Kundenweg. Die Innendienst-Routen waren nur nie zugesperrt.
 
+**Nachtrag 07.09.2026 (L-105): der Kundenweg ist es nicht mehr.** Seit dem
+Umbau des Kundenkontos am 04.09. ruft `/api/invoices/my` **niemand**; die
+Rechnungen kommen aus `GET /api/portal/zahlungen`, das dieselben Zeilen liest
+— nur mit benannten Spalten und `LIMIT 24` statt `SELECT *` ohne Grenze. Zwei
+Wege zu denselben Daten, und sie sind bereits auseinandergelaufen. Ob die
+Route entfaellt, ist eine Entscheidung ueber eine oeffentliche Schnittstelle
+und gehoert David; bis dahin bleibt sie stehen und ist ueber
+`tests/test_zugriffsschutz_abrechnung.py` weiter zugesperrt.
+
 Jetzt haengen sie an `view_billing` und `manage_billing`. Bewusst am **Recht**
 und nicht an `require_innendienst`: Die Rechtematrix gibt beide an admin und
 superadmin, nicht an den Auditor. So stimmt der Haken im Bildschirm „Rollen"

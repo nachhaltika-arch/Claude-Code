@@ -17,8 +17,18 @@ import Zahlungen from '../../components/Zahlungen';
  * Fragen, die neben „was habe ich bezahlt" stehen. Der Kunde denkt sie als
  * eines; deshalb stehen sie jetzt auch auf einer Seite.
  *
- * Der Abruf `/api/invoices/my` bleibt bestehen — er hat andere Aufrufer.
- * Verschwunden ist nur die **zweite Darstellung** derselben Zeilen.
+ * **Der Satz „`/api/invoices/my` bleibt bestehen — er hat andere Aufrufer"
+ * stand hier bis zum 07.09.2026 und war falsch.** Er war eine Annahme, keine
+ * Messung: Mit dem Umbau am 04.09. verlor die Route ihren letzten Aufrufer,
+ * und `tools/unaufgerufene-routen.py` führt sie seither unter „ruft niemand".
+ * Sie tut dasselbe wie die Rechnungshälfte von `GET /api/portal/zahlungen` —
+ * nur mit `SELECT *` und ohne Grenze, während der Portalweg benannte Spalten
+ * mit `LIMIT 24` liest. Zwei Wege zu denselben Zeilen, schon auseinander-
+ * gelaufen.
+ *
+ * Ob die Route weg soll, ist eine Entscheidung über eine öffentliche
+ * Schnittstelle und steht als solche im Lagebild unter L-105. Verschwunden
+ * ist hier nur die **zweite Darstellung** derselben Zeilen.
  */
 export default function MeineRechnungen() {
   const { token } = useAuth();

@@ -137,7 +137,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 ## G · Standard-Angebotsfuß (Textbaustein)
 
-> **Bauzeit.** [X] Kalendertage ab dem Werktag, an dem sämtliche Mitwirkungsleistungen [M-LISTE] vollständig vorliegen. Freigabeverzögerungen nach M7/M8 lassen die Frist ruhen.
+> **Bauzeit.** [X] Werktage ab dem Werktag, an dem sämtliche Mitwirkungsleistungen [M-LISTE] vollständig vorliegen. Freigabeverzögerungen nach M7/M8 lassen die Frist ruhen.
 >
 > **Abnahme.** Die Abnahme erfolgt auf Grundlage eines dokumentierten Audits nach dem Homepage-Standard. Sie erhalten ein schriftliches Abnahmeprotokoll mit Punktbewertung je Kategorie.
 >

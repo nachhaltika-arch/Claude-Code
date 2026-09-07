@@ -1903,6 +1903,10 @@ def run_migrations():
         # weil jedes Bestandskonto dem Vertragsinhaber gehoert. Ein Standard
         # `ansehen` haette beim Ausrollen jeden Kunden still entrechtet.
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS kunde_recht VARCHAR(20)",
+        # Der AGB-Nachweis am Websprint-Auftrag (L-181, 06.09.2026). Leer
+        # heisst: Beim Kauf war keine Fassung hinterlegt.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS agb_fassung VARCHAR(20) DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS agb_akzeptiert_am TIMESTAMP",
         # Buchungen aus dem Kundenkonto (06.09.2026, Entwurf kundenkonto-neu).
         #
         # **Die Buchung ist eine Erklaerung, keine Automatik.** Ein Wechsel auf

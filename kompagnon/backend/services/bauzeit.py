@@ -28,6 +28,10 @@ Wartezeit. Beide Saetze stehen im selben Vertrag: „Freigabe innerhalb von
 die Frist ab dem ersten Tag, waere die Zusage der fuenf Tage bedeutungslos —
 der Kunde haette sie nur nominell. Die Lesart steht in `FREIGABEFRIST_WERKTAGE`
 an **einer** Stelle; wer sie aendert, aendert sie ueberall.
+
+**Am 07.09.2026 von David bestaetigt.** Sie war bis dahin die Setzung dessen,
+der sie gebaut hat — jetzt ist sie eine Entscheidung. Der Unterschied zaehlt
+im Streit: Eine Auslegung, die niemand getroffen hat, ist keine.
 """
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta

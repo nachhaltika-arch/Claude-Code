@@ -15,7 +15,7 @@
 | Preis | **12.900 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z2** (40/30/30) |
-| Bauzeit | **42 Kalendertage** |
+| Bauzeit | **42 Werktage** |
 | Mitwirkung | **M1, M3, M4, M5, M6, M7, M8, M10**, ggf. M9 |
 | Garantien | **G1, G2** (gedeckelt 2.000 €), **G3, G4** |
 | Abgrenzung | **A1–A12, A15** (A13 und A14 sind hier **enthalten**) |
@@ -101,7 +101,7 @@ Wie WS-NEU-01, erweitert:
 >
 > Leistungsumfang: vollständiger Neuaufbau nach Homepage-Standard mit bis zu 20 Seiten, Karriereseite mit Bewerbungsformular, GEO/GAIO-Layer für die Auffindbarkeit in KI-Assistenten, datenschutzkonforme Messgrundlage mit Consent-Layer und Auftragsverarbeitungsvertrag, zwölf Monate Pflege sowie vier dokumentierte Quartalsprüfungen mit Maßnahmenliste.
 >
-> **Festpreis 12.900 € netto.** Bauzeit 42 Kalendertage ab Vorliegen Ihrer Mitwirkungsleistungen.
+> **Festpreis 12.900 € netto.** Bauzeit 42 Werktage ab Vorliegen Ihrer Mitwirkungsleistungen.
 
 ---
 

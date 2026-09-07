@@ -18,7 +18,7 @@
 | **Aufmerksamkeit** — wir finden den Betrieb | Tage bis Wochen | 5 |
 | **Erwägung** — er prüft uns | 1–14 Tage | 7 |
 | **Kauf** — er entscheidet | Minuten | 7 |
-| **Bau** — wir liefern | 14 Kalendertage zugesagt | 11 |
+| **Bau** — wir liefern | 14 Werktage zugesagt | 11 |
 | **Betreuung** — es läuft weiter | 12 Monate, dann monatlich | 8 |
 
 **Aufmerksamkeit:** HWK-Register · Domain-Import · Analyse-Widget auf fremder
@@ -133,7 +133,7 @@ zwei Rechtestufen — und die Sperre vor Rechnungen, Zahlungsart und
 Vertragsunterlagen ist mitgebaut, nicht vertagt (L-160 Rang 4).
 
 *K9 — die Einheit der Bauzeit.* Beim Bauen von K3 aufgefallen und nicht
-gesucht: Alle vier Produktdatenblätter sagen **Kalendertage** (Start 7,
+gesucht: Alle vier Produktdatenblätter sagen **Werktage** (Start 7,
 Relaunch 14, Neubau 28, System 42), der Code gibt dieselben Zahlen an fünf
 Stellen als **Werktage** aus — und die Spalte dahinter trägt keine Einheit.
 Elf Tage Unterschied je Auftrag, und daran hängt die Verzugspauschale (L-173).

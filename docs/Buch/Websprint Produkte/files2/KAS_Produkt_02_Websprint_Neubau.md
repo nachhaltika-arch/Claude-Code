@@ -31,7 +31,7 @@ Alles aus Produkt 01, zusätzlich:
 Die dreigeteilte Zahlung ist bewusst gewählt: Der Bauplan ist der Punkt, an dem der Kunde inhaltlich mitgearbeitet hat und aussteigen könnte. Eine Zahlung an dieser Stelle bindet.
 
 ## 5. Bauzeit
-**28 Kalendertage** ab vollständiger Mitwirkung. Zusätzlich zu Produkt 01 gehört zur Mitwirkung:
+**28 Werktage** ab vollständiger Mitwirkung. Zusätzlich zu Produkt 01 gehört zur Mitwirkung:
 5. Teilnahme am Positionierungsgespräch
 6. Freigabe des Bauplans innerhalb von 5 Werktagen
 

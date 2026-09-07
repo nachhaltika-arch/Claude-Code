@@ -9,7 +9,7 @@
 | Preis | **7.900 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z2** (40/30/30) |
-| Bauzeit | **28 Kalendertage** |
+| Bauzeit | **28 Werktage** |
 | Mitwirkung | **M1, M3, M4, M5, M6, M7, M8**, bei Migration zusätzlich M9 |
 | Garantien | **G1, G2** (gedeckelt 1.500 €), **G3** |
 | Abgrenzung | **A1–A15** |
@@ -99,7 +99,7 @@ Betrieb **ohne brauchbare Website** oder mit einer, die inhaltlich nicht mehr tr
 >
 > **Die Fotoproduktion ist nicht enthalten.** Wir erstellen das Briefing; die Aufnahmen macht Ihr Fotograf — oder wir vermitteln einen (Pos. ZUS-FOTO).
 >
-> **Festpreis 7.900 € netto.** Bauzeit 28 Kalendertage ab Vorliegen Ihrer Mitwirkungsleistungen; Freigabezeiten auf Ihrer Seite verlängern die Frist entsprechend.
+> **Festpreis 7.900 € netto.** Bauzeit 28 Werktage ab Vorliegen Ihrer Mitwirkungsleistungen; Freigabezeiten auf Ihrer Seite verlängern die Frist entsprechend.
 >
 > **Ihre Sicherheit:** Gefällt Ihnen der Bauplan nach der Überarbeitung nicht, steigen Sie gegen Zahlung der ersten Rate aus. Es entstehen keine weiteren Kosten.
 

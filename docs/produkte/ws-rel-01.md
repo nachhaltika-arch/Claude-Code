@@ -32,7 +32,7 @@
 | Preis | **3.500 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z1** (50/50) |
-| Bauzeit | **14 Kalendertage** |
+| Bauzeit | **14 Werktage** |
 | Mitwirkung | **M1, M2, M3, M4, M5**, bei Migration zusätzlich M9 |
 | Garantien | **G1, G2** (G2 gedeckelt auf 1.000 €) |
 | Abgrenzung | **A1–A15** vollständig |
@@ -112,7 +112,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 >
 > Leistungsumfang: bis zu 6 Seiten, Übernahme und Überarbeitung Ihrer Texte, Aufbereitung Ihres Bildmaterials, Kontaktformular, Einbindung Ihrer Rechtstexte, technische Optimierung, Hosting-Einrichtung, Umstellung Ihrer Domain, Abnahmeaudit mit schriftlichem Protokoll sowie eine Einweisung.
 >
-> **Festpreis 3.500 € netto.** Bauzeit 14 Kalendertage ab Vorliegen Ihrer Mitwirkungsleistungen. Eine Korrekturschleife ist enthalten.
+> **Festpreis 3.500 € netto.** Bauzeit 14 Werktage ab Vorliegen Ihrer Mitwirkungsleistungen. Eine Korrekturschleife ist enthalten.
 
 ---
 

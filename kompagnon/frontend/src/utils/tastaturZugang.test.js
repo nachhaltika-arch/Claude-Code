@@ -66,7 +66,13 @@ const WURZEL = path.join(__dirname, '..');
 // tiefer von Anfang an hatten. Hier ist `role="button"` das **richtige**
 // Mittel: Es sind Schaltflaechen, sie enthalten nichts, und die eine sagt mit
 // `aria-expanded` dazu, ob die Auswahl offen ist.
-const VERBLEIBEND = 42;
+// 07.09.2026: 42 → 17. **Keine Reparatur, sondern eine Abgrenzung** — das
+// gehoert dazugesagt. Es sind 25 Modal-Hintergruende weniger, weil sie in
+// `utils/modalEscape.test.js` geprueft werden und nicht mehr hier. Am
+// Bestand hat sich dadurch nichts geaendert; geaendert hat sich, was diese
+// Zahl bedeutet: vorher zu 60 % Rauschen, jetzt 17 Bedienelemente, an denen
+// wirklich eine Entscheidung aussteht.
+const VERBLEIBEND = 17;
 
 function tagEnde(text, start) {
   let tiefe = 0;
@@ -105,7 +111,7 @@ function nurMitMaus() {
         const attrs = text.slice(muster.lastIndex, ende);
         const klickbar = attrs.includes('onClick');
         const tastatur = /onKey(Down|Press|Up)/.test(attrs);
-        if (klickbar && !tastatur) {
+        if (klickbar && !tastatur && !istModalHintergrund(attrs)) {
           const zeile = text.slice(0, treffer.index).split('\n').length;
           fund.push(`${path.relative(WURZEL, datei).split(path.sep).join('/')}:${zeile}`);
         }
@@ -114,6 +120,34 @@ function nurMitMaus() {
     }
   }
   return fund;
+}
+
+/**
+ * Ein bildschirmfüllender Modal-Hintergrund — nicht die Frage dieses Tests.
+ *
+ * **Am 07.09.2026 herausgenommen (L-17).** 25 der bis dahin 42 gezählten
+ * Fälle waren `position: fixed; inset: 0` — der Hintergrund eines Fensters,
+ * dessen Klick es schließt. Der Kopf von `modalEscape.test.js` sagt seit dem
+ * 30.08. genau, warum das Heilmittel dieses Tests dort falsch wäre:
+ * `role="button"` auf einer Überlagerung „behauptet eine Schaltfläche, wo
+ * keine ist". Er zieht daraus den Schluss, die Ratsche bewege sich eben
+ * nicht — „die Zahl misst ein Muster, nicht einen Mangel."
+ *
+ * **Die Diagnose war richtig, die Folgerung eine halbe.** Eine Ratsche, die
+ * zu 60 % aus Nicht-Mängeln besteht, kann ihre eigene Aufgabe nicht mehr
+ * erfüllen: Sie soll einen **neuen** mausgebundenen Knopf auffallen lassen,
+ * und der geht im Rauschen unter. Deshalb zählt sie hier nicht mehr mit.
+ *
+ * **Weggezählt heißt nicht ungeprüft.** Genau diese Überlagerungen sind der
+ * Gegenstand von `utils/modalEscape.test.js`: Es verlangt für jede einen
+ * Escape-Weg oder eine begründete Ausnahme, erkennt dabei auch den Fall, dass
+ * der Haken in der **aufrufenden** Seite sitzt, wo der Zustand liegt, und
+ * prüft die Ausnahmen darauf nach, ob sie noch gelten. Die Frage ist also
+ * nicht verschwunden, sie steht am richtigen Ort — und nur an einem, statt
+ * halb hier und halb dort.
+ */
+function istModalHintergrund(attrs) {
+  return /position\s*:\s*['"]fixed['"]/.test(attrs) && /inset\s*:\s*0/.test(attrs);
 }
 
 test('kein neues Bedienelement, das nur die Maus erreicht', () => {

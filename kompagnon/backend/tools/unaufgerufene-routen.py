@@ -194,6 +194,29 @@ ERKLAERT = (
     # ein Anbieter nichts liefert, nicht aus einem Bildschirm.
     ("/api/geo/ki-anbieter$",
      "Betriebsdiagnose — welcher Anbieterschluessel fehlt (Innendienst)"),
+
+    # „Get list of active scheduled jobs." — Betriebsdiagnose wie
+    # `/api/scheduler/status`, am Router `require_innendienst`.
+    ("/api/automations/jobs$",
+     "Betriebsdiagnose — welche geplanten Laeufe aktiv sind (Innendienst)"),
+
+    # **Zwei Wege zu derselben Tafel.** Die Route ist laut Kopfzeile „for
+    # kanban view" gebaut; `pages/Projektpipeline.jsx` baut ihre Tafel aber
+    # aus `/api/leads/` und `/api/projects/` selbst zusammen. Die eigens
+    # gebaute Gruppierung ist damit die ungenutzte der beiden Formen —
+    # dieselbe Lage wie bei `/api/invoices/my`.
+    ("/api/dashboard/projects-by-phase$",
+     "Doppelung — Projektpipeline baut ihre Tafel aus leads und projects selbst"),
+
+    # **Der Kundenweg fuer Rechnungen, seit dem 04.09. ohne Aufrufer.** Das
+    # Kundenkonto liest sie aus `GET /api/portal/zahlungen`, das dieselben
+    # Zeilen holt — mit benannten Spalten und `LIMIT 24` statt `SELECT *`
+    # ohne Grenze. Zwei Wege zu denselben Daten, und sie sind bereits
+    # auseinandergelaufen. Ob die Route entfaellt, ist eine Entscheidung ueber
+    # eine oeffentliche Schnittstelle und gehoert David; zugesperrt bleibt sie
+    # (`tests/test_zugriffsschutz_abrechnung.py`).
+    ("/api/invoices/my$",
+     "Doppelung — das Kundenkonto liest Rechnungen aus /api/portal/zahlungen"),
 )
 
 
@@ -347,6 +370,16 @@ KNOPF_FEHLT = (
     # Admin-Uebersicht". Beides gibt es nicht.
     ("/api/affiliate-conversions$",
      "Knopf fehlt — laut eigener Kopfzeile fuer ein Dashboard, das es nicht gibt"),
+    # **Zwei Faktoren lassen sich einschalten und nie wieder aus.** Die
+    # Profilseite fuehrt zu `/app/2fa-setup`, die Oberflaeche ruft `2fa/setup`
+    # und `2fa/verify-setup` — fuer `DELETE /2fa/disable` gibt es nichts.
+    #
+    # **Kein Aussperrfall**, das gehoert dazugesagt: Die Route verlangt
+    # Passwort **und** gueltigen Code, sie hilft also niemandem, der sein
+    # Geraet verloren hat (dafuer braucht es ohnehin den Innendienst). Es ist
+    # das freiwillige Abschalten, und das fehlt.
+    ("/api/auth/2fa/disable$",
+     "Knopf fehlt — 2FA laesst sich einschalten, aber nicht wieder abschalten"),
 )
 
 

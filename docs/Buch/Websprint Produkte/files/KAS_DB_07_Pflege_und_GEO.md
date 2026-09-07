@@ -14,6 +14,15 @@
 | Laufzeit | 12 Monate, danach monatlich kündbar mit 1 Monat Frist |
 | Freigabestatus | 🟠 Angebotszeitpunkt und Abwicklung unklar |
 
+> **Nummern am 07.09.2026 umgestellt (L-163).** Hier standen die Nummern der
+> **zweiten** L-Liste (`KAS_Blocker_Report_Produktversprechen_v1.0.md`, L1–L11).
+> Genau daran ist am 04.09. jemand getreten: Die Frage „wo stehen wir mit L2 und
+> L3" wurde am Lagebild beantwortet — wo es **kein L-02 gibt** und L-03 seit dem
+> 07.08. geschlossen ist. Zwei Listen mit derselben Kennung sind kein
+> Schönheitsfehler, sondern eine Falle. Ab jetzt steht hier die Lagebild-Nummer;
+> die Übersetzungstabelle bleibt im Schlussvermerk des Blocker-Reports.
+
+
 > **Die Abwicklung ist am 04.09.2026 entschieden (David): über Stripe.**
 > Damit gilt Z4 oben — monatlich im Voraus per SEPA-Lastschrift. Gebaut ist
 > der Weg in `services/abo_stripe.py`: Preis je Tarif, Kaufweg als
@@ -102,7 +111,7 @@ Bei der Abnahme ist der Kunde zufrieden, das Ergebnis ist sichtbar, die Beziehun
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z1** |
 | Lieferzeit | 10 Werktage |
-| Freigabestatus | 🔴 **gesperrt — Blocker L1** |
+| Freigabestatus | 🟢 **verkäuflich seit 04.09.2026** — der Blocker L1 lief als **L-99** und ist geschlossen; `services/geo_auslieferung.py` prüft die Auslieferung am lebenden Dienst nach |
 
 > **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
 > **Der Sperrgrund L1 ist geschlossen** (Einbau seit L-99, Verifikation in `services/geo_auslieferung.py`). Zusätzlich offen und hier nicht vermerkt: Das Pflege-Abo wird laut Entscheidung vom 01.09. **per Rechnung** abgerechnet, nicht per SEPA über Stripe — das Kundenkonto zeigt diesen Kunden deshalb keine Zahlungsart, siehe **L-162**.

@@ -13,7 +13,16 @@
 | Mitwirkung | **M1, M3, M4, M5, M6, M7, M8**, bei Migration zusätzlich M9 |
 | Garantien | **G1, G2** (gedeckelt 1.500 €), **G3** |
 | Abgrenzung | **A1–A15** |
-| Freigabestatus | 🟠 nach Behebung L2/L3 und Prozessflow-Erweiterung |
+| Freigabestatus | 🟠 nach Behebung **L-165** (vormals L2) und **L-168** (Prozessflow) · L3 ist geschlossen |
+
+> **Nummern am 07.09.2026 umgestellt (L-163).** Hier standen die Nummern der
+> **zweiten** L-Liste (`KAS_Blocker_Report_Produktversprechen_v1.0.md`, L1–L11).
+> Genau daran ist am 04.09. jemand getreten: Die Frage „wo stehen wir mit L2 und
+> L3" wurde am Lagebild beantwortet — wo es **kein L-02 gibt** und L-03 seit dem
+> 07.08. geschlossen ist. Zwei Listen mit derselben Kennung sind kein
+> Schönheitsfehler, sondern eine Falle. Ab jetzt steht hier die Lagebild-Nummer;
+> die Übersetzungstabelle bleibt im Schlussvermerk des Blocker-Reports.
+
 
 ---
 

@@ -36,6 +36,99 @@ VORLAGE = WURZEL / "docs" / "lagebild" / "vorlage.html"
 PLANDATEN = WURZEL / "docs" / "lagebild" / "plan.json"
 ZIEL = WURZEL / "docs" / "lagebild" / "kompagnon-lagebild.html"
 
+#: Wer eine Lücke schließen kann — Wunsch David, 07.09.2026.
+#:
+#: **Warum das ins Lagebild gehört.** Die Liste beantwortete bisher „was ist
+#: offen", nicht „was kann ich davon selbst anstoßen". Zwischen einem Punkt,
+#: den ein Nachmittag Programmierarbeit erledigt, und einem, der auf eine
+#: Kanzlei, einen Fremdzugang oder eine Produktentscheidung wartet, liegt für
+#: die Planung alles — und in der bisherigen Ansicht sahen beide gleich aus.
+#:
+#: Drei Werte, und die Grenze zwischen ihnen ist scharf:
+#:
+#:   system  Reine Arbeit am Code. Niemand muss vorher etwas entscheiden,
+#:           freischalten, schreiben oder bezahlen.
+#:   extern  Der Schlüssel liegt außerhalb: eine Entscheidung, eine
+#:           Rechtsberatung, ein Zugang zu einem Fremdsystem, ein Inhalt, den
+#:           jemand verfassen muss, oder Geld.
+#:   beides  Ein Teil ist gebaut oder baubar, ein anderer wartet draußen.
+#:           Diese sind die gefährlichsten: Sie sehen nach Arbeit aus, und die
+#:           Arbeit endet vor der Ziellinie.
+#:
+#: **Ohne Eintrag gilt `system`** — die Vorgabe ist die ehrlichere: Wer eine
+#: externe Abhängigkeit hat, weiß es und schreibt sie hin; wer keine hat,
+#: soll nicht dadurch eine bekommen, dass jemand die Liste nicht gepflegt hat.
+ZUSTAENDIGKEIT = {
+    # ── Recht und Vertrag ─────────────────────────────────────────────
+    "L-148": ("extern", "Anwaltliche Einordnung des maschinell erzeugten Codes. "
+                        "Kein Code ändert daran etwas."),
+    "L-149": ("extern", "Lizenztext des Studio-SDK lesen und gegen unseren "
+                        "Gebrauch halten — juristische Prüfung."),
+    "L-100": ("beides", "Gebaut ist die Strecke. Draußen warten: die vier "
+                        "R2-Werte, die Workbook-Datei im Bucket und AGB samt "
+                        "Widerrufsbelehrung von der Kanzlei (ORDERS_05)."),
+
+    # ── Zugänge, Werte, Fremddienste ──────────────────────────────────
+    "L-115": ("extern", "`CORS_ALLOWED_ORIGINS` an den Render-Diensten "
+                        "ergänzen, sobald BUCH-08 eine Adresse hat."),
+    "L-103": ("extern", "Ohne Zugang zum Google-Projekt nicht prüfbar — die "
+                        "neue Schnittstelle muss dort erst freigeschaltet sein."),
+    "L-146": ("extern", "Drei Tabellen produktiv fallen lassen. Die "
+                        "Produktivdatenbank ist von hier nicht abfragbar."),
+    "L-58":  ("extern", "`OPENAI_API_KEY` und `PERPLEXITY_API_KEY` fehlen, und "
+                        "es gibt keine Ausgabengrenze — eine Geldfrage."),
+    "L-85":  ("extern", "Hängt an denselben Schlüsseln wie L-58: Gebaut und "
+                        "belegt ist die Rechnung, nicht die Erhebung."),
+    "L-126": ("extern", "Die Zahlen liegen in der Produktivdatenbank, die von "
+                        "hier nicht abfragbar ist."),
+    "L-14":  ("extern", "Fachliche Beurteilung durch David — und die Daten "
+                        "hängen an derselben Sperre wie L-126."),
+
+    # ── Entscheidungen, die keine Programmierfrage sind ────────────────
+    "L-114": ("extern", "Elf Befunde am Maßstab warten auf eine "
+                        "Produktentscheidung, nicht auf Code."),
+    "L-142": ("extern", "Neu zu entscheiden, sobald ein Kunde danach fragt — "
+                        "vorher wäre jeder Bau Vorrat."),
+    "L-143": ("extern", "Wunsch, aber die Reihenfolge steht: L-144 vor L-142 "
+                        "vor diesem. Vorher gibt es keinen Speicher."),
+    "L-144": ("extern", "Neu zu entscheiden, sobald das erste Tracking-Skript "
+                        "auf eine Kundenseite kommt."),
+    "L-16":  ("extern", "Neu zu entscheiden, sobald eine Kundenseite eine "
+                        "Anordnung braucht, die die zwei Wireframes nicht hergeben."),
+    "L-21":  ("extern", "Neu zu entscheiden, sobald ein Kunde Werbung "
+                        "beauftragt — und dann lautet die Frage „selbst "
+                        "schalten oder vermitteln?“"),
+    "L-23":  ("extern", "Neu zu entscheiden, sobald eine Kundenseite eine "
+                        "Komponente braucht, die der Katalog nicht hat."),
+    "L-20":  ("extern", "Das Produktivprotokoll beantwortet die Frage in einer "
+                        "Minute — schließen entscheidet David."),
+    "L-182": ("extern", "Entscheiden, welcher der vier Datenblatt-Ordner gilt. "
+                        "Die anderen entfernen ist danach ein Handgriff."),
+    "L-60":  ("extern", "Lehrplan und Inhalte — jemand muss sie verfassen und "
+                        "verantworten. Ausgedachte Schulungen wären schlimmer "
+                        "als keine Akademie."),
+    "L-171": ("extern", "Ein Kauf über die Kasse mit echter Karte, danach "
+                        "erstatten. Das kann nur ein Mensch mit Karte."),
+
+    # ── Beides: gebaut bis zur Grenze, dahinter wartet etwas ───────────
+    "L-165": ("beides", "Der PageSpeed-Schlüssel ist produktiv gesetzt "
+                        "(am 07.09. an `/health` nachgemessen). Was bleibt, "
+                        "ist die Produktentscheidung aus K1: Zusage "
+                        "zuschneiden oder die fehlenden Kriterien erheben."),
+    "L-179": ("beides", "Erst zu klären, ob `website_content` produktiv "
+                        "überhaupt existiert — dafür braucht es die "
+                        "Produktivdatenbank. Danach ist es Code."),
+    "L-95":  ("beides", "Messen und benennen ist Code; die Löschung der 174 "
+                        "Zeilen wäre eine Entscheidung."),
+    "L-106": ("beides", "Die Zusammenlegung zu Ende bringen ist Code — sie "
+                        "fallen zu lassen verändert Daten und gehört zu L-105."),
+    "L-154": ("beides", "Zwei der drei Kriterien sind im Code zu berichtigen; "
+                        "was „einwilligungspflichtig“ heißen soll, ist eine "
+                        "Produktentscheidung."),
+
+    # Alles Übrige ist reine Arbeit am Code — siehe Vorgabe oben.
+}
+
 #: Lücken, deren Zustand sich nicht aus der Tabellenform ablesen lässt.
 #: Jede braucht einen Grund — sonst wird die Liste zum Ablagefach.
 HANDGESETZT = {
@@ -195,6 +288,9 @@ def luecken_lesen() -> list:
             "aufwand": aufwand if aufwand not in ("—", "-", "") else "",
             "beleg": re.sub(r"`", "", beleg),
             "status": HANDGESETZT.get(id_, _status(inhalt, aufwand)),
+            # Wer sie schliessen kann (07.09.2026) — siehe `ZUSTAENDIGKEIT`.
+            "zustaendig": ZUSTAENDIGKEIT.get(id_, ("system", ""))[0],
+            "zustaendig_grund": ZUSTAENDIGKEIT.get(id_, ("system", ""))[1],
             "titel": _titel(inhalt),
             "text": _fliesstext(inhalt),
             # Der **ungekuerzte** Zelleninhalt, nur zum Pruefen. Siehe die

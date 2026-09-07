@@ -150,6 +150,17 @@ main{padding:30px 0 72px}
 .p-geschlossen{background:var(--gut-bg); color:var(--gut)}
 .quelle{font-size:11.5px; color:var(--ink-3)}
 .quelle b{font-weight:600; color:var(--ink-2)}
+/* **Wer die Lücke schließen kann** (07.09.2026). Die Farbe trägt keine
+   Wertung — extern ist nicht schlechter als System, nur anders zu planen.
+   Deshalb Umrandung statt Fläche: Sie ordnet ein, ohne zu alarmieren. */
+.zust{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  white-space:nowrap;letter-spacing:.02em}
+.z-system{box-shadow:inset 0 0 0 1px var(--linie-2);color:var(--ink-2)}
+.z-extern{box-shadow:inset 0 0 0 1px var(--haengt);color:var(--haengt)}
+.z-beides{box-shadow:inset 0 0 0 1px var(--mid);color:var(--mid)}
+.zust-grund{font-size:13px;line-height:1.6;color:var(--ink-2);margin:10px 0 0;
+  padding:10px 14px;background:var(--flaeche);border-radius:8px;max-width:70ch}
+
 .aufwand{
   font-family:"Noto Sans Mono",monospace; font-size:11px; font-weight:600;
   color:var(--ink-2); border:1px solid var(--linie-stark); border-radius:4px;
@@ -369,6 +380,10 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
       <button class="chip" data-f="status" data-w="terminiert" aria-pressed="false" title="Entschieden und datiert — ein Test wird rot, wenn der Termin eintritt">terminiert</button>
       <button class="chip" data-f="status" data-w="geschlossen" aria-pressed="false">geschlossen</button>
       <span class="trenner"></span>
+      <button class="chip" data-f="zustaendig" data-w="system" aria-pressed="false" title="Reine Arbeit am Code — niemand muss vorher entscheiden, freischalten oder schreiben.">im System</button>
+      <button class="chip" data-f="zustaendig" data-w="extern" aria-pressed="false" title="Der Schlüssel liegt außerhalb: Entscheidung, Rechtsberatung, Fremdzugang, Inhalt oder Geld.">extern</button>
+      <button class="chip" data-f="zustaendig" data-w="beides" aria-pressed="false" title="Ein Teil ist baubar, ein anderer wartet draußen — die gefährlichsten: Sie sehen nach Arbeit aus, und die Arbeit endet vor der Ziellinie.">beides</button>
+      <span class="trenner"></span>
       <input class="suche" type="search" placeholder="Suchen — Text, Kennung, Herkunft …" aria-label="Offene Punkte durchsuchen">
     </div>
 
@@ -569,12 +584,14 @@ document.getElementById("module").innerHTML = MODULE.map(m => `
 /* ── Lücken rendern ──────────────────────────────────── */
 const BEREICHE = {P0:"Sofort — produktiv defekt oder Sicherheitsrisiko", P1:"Betrieb und Prozess",
                   P2:"Produktentwicklung", P3:"Schulden und Konsistenz"};
-const zustand = {prio:new Set(), status:new Set(["offen","teilweise"]), suche:""};
+const ZUST_TEXT = {system: "im System", extern: "extern", beides: "beides"};
+const zustand = {prio:new Set(), status:new Set(["offen","teilweise"]), zustaendig:new Set(), suche:""};
 const schutz = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function zeichnen(){
   const treffer = LUECKEN.filter(e => {
     if (zustand.prio.size && !zustand.prio.has(e.prio)) return false;
+    if (zustand.zustaendig.size && !zustand.zustaendig.has(e.zustaendig)) return false;
     if (zustand.status.size && !zustand.status.has(e.status)) return false;
     if (zustand.suche) {
       const heu = (e.id+" "+e.titel+" "+e.text+" "+e.herkunft+" "+e.beleg).toLowerCase();
@@ -595,6 +612,7 @@ function zeichnen(){
             <span class="meta">
               <span class="pille p-${e.status}">${e.status}</span>
               ${e.aufwand ? `<span class="aufwand">${schutz(e.aufwand)}</span>` : ""}
+              ${e.status !== "geschlossen" && e.zustaendig ? `<span class="zust z-${e.zustaendig}" title="${schutz(e.zustaendig_grund || "")}">${ZUST_TEXT[e.zustaendig] || e.zustaendig}</span>` : ""}
               <span class="quelle">Herkunft: <b>${schutz(e.herkunft)}</b></span>
             </span>
           </span>
@@ -602,6 +620,7 @@ function zeichnen(){
         </summary>
         <div class="rumpf">
           ${schutz(e.text)}
+          ${e.status !== "geschlossen" && e.zustaendig_grund ? `<div class="zust-grund"><b>${ZUST_TEXT[e.zustaendig]}:</b> ${schutz(e.zustaendig_grund)}</div>` : ""}
           <div class="beleg">Nachweis: ${schutz(e.beleg) || "—"}${e.datum ? " · erfasst " + schutz(e.datum) : ""}</div>
         </div>
       </details>`;

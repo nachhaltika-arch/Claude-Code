@@ -136,6 +136,29 @@ ERKLAERT = (
     ("/api/book/checkout", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
     ("/api/book/varianten", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
     ("/api/book/order/{", "Danke-Seite des Buchverkaufs — liegt unter FRONTEND_BOOK_URL"),
+
+    # **Fuenf weitere beurteilt am 07.09.2026 (L-105), Gruppe `leads`.**
+    #
+    # Vier sind **Wartungsaufrufe von Hand** — dieselbe Gattung wie
+    # `/api/projects/seed`: Man ruft sie einmal, wenn ein Bestand nachgezogen
+    # werden muss, nicht aus einem Bildschirm. Alle vier haengen am Router an
+    # `require_innendienst`, `namen-nachtragen` und `befunde-nachtragen`
+    # zusaetzlich an `require_admin` — geprueft, nicht angenommen.
+    ("/api/leads/namen-nachtragen",
+     "Wartung von Hand — holt fehlende Betriebsnamen nach (Innendienst + Admin)"),
+    ("/api/leads/befunde-nachtragen",
+     "Wartung von Hand — holt SSL, Impressum und PageSpeed aus der alten "
+     "Notizzeile in die Spalten (Innendienst + Admin)"),
+    ("/api/leads/enrich/all",
+     "Wartung von Hand — reichert Betriebe mit Punktzahl 0 im Hintergrund an"),
+    ("/api/leads/admin/trigger-performance-reports",
+     "Wartung von Hand — loest den monatlichen Bericht ausserhalb des Plans aus"),
+    # Das Formular der Landingpage. Dieselbe Lage wie beim Widget: Der
+    # Aufrufer existiert, nur nicht in diesem Quellbaum — er steht unter
+    # `websprint.kompagnon.eu` (siehe L-20). Der Router heisst deshalb
+    # `public_router` und traegt bewusst keine Anmeldung.
+    ("/api/leads/public",
+     "Formular der Landingpage — liegt ausserhalb dieses Frontends (L-20)"),
 )
 
 
@@ -203,6 +226,31 @@ def _modul_des_handlers(main, methode: str, pfad: str) -> str:
 ENTSCHEIDUNG = (
     ("/api/usercards/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
     ("/api/customers/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+
+    # **Der Sitemap-Variantenablauf (07.09.2026).** Vier Routen bilden einen
+    # vollstaendigen Vorgang: eine zweite Fassung erzeugen, den Bestand
+    # danebenlegen, sie uebernehmen oder verwerfen. Dazu gehoert eine Spalte
+    # `sitemap_pages.variant`.
+    #
+    # **Benutzt hat ihn nie jemand.** Das Frontend kennt das Wort „variant"
+    # nur als Abzeichen-Farbe in `leadStatus.js`; in der Datenbank stehen alle
+    # Seiten auf `primary`, es hat also noch keine einzige Variante gegeben.
+    # Das ist „gebaut, nicht angeschlossen" — im Projekt die siebte Auflage
+    # derselben Familie (L-55, L-79, L-11, `projects/{id}/time` …).
+    #
+    # **Deshalb keine Einzelurteile:** Die Frage ist, ob der Gedanke gewollt
+    # ist. Wenn ja, fehlt eine Oberflaeche; wenn nein, fallen vier Routen und
+    # eine Spalte. Loeschen waere hier der Fehler von L-11 noch einmal — dort
+    # ist etwas als „ueberfluessig" entfernt worden, das nur nicht
+    # angeschlossen war.
+    ("/api/sitemap/{lead_id}/generate-more",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/promote-variant",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/discard-variant",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/import-existing",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
 )
 
 

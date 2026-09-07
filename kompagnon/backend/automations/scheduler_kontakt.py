@@ -227,11 +227,8 @@ def _offene_mitwirkung(db, project):
     from database import MitwirkungStand
     from services import mitwirkung as kat
 
-    merkmale = set()
-    if getattr(project, "migration_noetig", False):
-        merkmale.add("migration")
-    if getattr(project, "karriereseite", False):
-        merkmale.add("karriereseite")
+    # Produkt und Projektmerkmale in einem — siehe `mitwirkung.fuer_projekt`.
+    punkte = kat.fuer_projekt(project)
 
     try:
         erledigt = {z.kennung for z in db.query(MitwirkungStand)
@@ -239,10 +236,10 @@ def _offene_mitwirkung(db, project):
                     if z.erledigt_am}
     except Exception:  # noqa: BLE001 — ohne Tabelle mahnen wir wie bisher
         db.rollback()
-        return tuple(p for p in kat.gilt_fuer(merkmale)
+        return tuple(p for p in punkte
                      if p.wirkung == kat.FRISTBEGINN)
 
-    return kat.fristbeginn_offen(kat.gilt_fuer(merkmale), erledigt)
+    return kat.fristbeginn_offen(punkte, erledigt)
 
 
 def job_check_missing_materials():

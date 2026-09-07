@@ -152,3 +152,38 @@ describe('Neue Schritte', () => {
     expect(status['briefing-website']).toBe('locked');
   });
 });
+
+describe('Ein Schritt, den das Produkt nicht kennt, sperrt nichts (L-168)', () => {
+  // Der Fall aus dem Lagebild: Websprint Start enthaelt weder Sitemap noch
+  // Wireframe (A16), weder Style Guide noch drei Entwuerfe (A19), und keine
+  // Texterstellung (A17).
+  const start = {
+    id: 1,
+    package_type: 'websprint_start',
+    has_briefing: true,
+    audit_score: 82,
+    content_analysiert_am: '2026-09-01T10:00:00Z',
+  };
+
+  test('die ausgeschlossenen Schritte kommen gar nicht erst vor', () => {
+    const status = computeStepStatus(start, null, {});
+    ['sitemap-ki', 'wireframe-ki', 'style-guide', 'entwuerfe', 'ki-content',
+      'leistungsseiten'].forEach((id) => {
+      expect(Object.prototype.hasOwnProperty.call(status, id)).toBe(false);
+    });
+  });
+
+  test('die Kette laeuft weiter, statt an ihnen haengen zu bleiben', () => {
+    // **Das ist der eigentliche Schaden gewesen.** `sitemap-ki` haette ohne
+    // Wireframe-Daten auf 'pending' gestanden — ein Schritt, den bei diesem
+    // Produkt niemand je abhakt. Alles dahinter war damit 'locked', und der
+    // Kunde sah eine Sperre auf Leistungen, die er nie gekauft hat.
+    const status = computeStepStatus(start, null, {});
+    expect(status['finales-design']).not.toBe('locked');
+  });
+
+  test('bei einem Produkt ohne Ausschluss bleibt alles wie bisher', () => {
+    const neubau = { ...start, package_type: 'websprint_neubau' };
+    expect(computeStepStatus(neubau, null, {})['sitemap-ki']).toBeDefined();
+  });
+});

@@ -27,6 +27,7 @@
  *   #1D9E75 GREEN       - 'completed' Dot
  */
 import { useEffect, useMemo, useState } from 'react';
+import { schritteFuerProdukt } from '../utils/produktSchritte';
 
 // Phase D: localStorage-Key fuer den Collapse-State, damit das Setting
 // ueber Reloads erhalten bleibt.
@@ -147,16 +148,27 @@ export default function KASSidebar({
   activeStep,
   onStepClick,
   stepStatus = {},
+  //: Der Paket-Slug des Projekts (`project.package_type`). Ohne Angabe steht
+  //: die ganze Kette — siehe `utils/produktSchritte`.
+  packageType = null,
   isOpen = true,
   onClose,
 }) {
-  const phaseGroups = useMemo(() => groupByPhase(SCHRITTE), []);
+  // **Was das Produkt nicht enthaelt, steht hier nicht** (07.09.2026, L-168).
+  // Ein Websprint Start zeigte Sitemap, Wireframe, Style Guide und drei
+  // Entwuerfe — Schritte, die sein Datenblatt unter A16, A17 und A19
+  // ausdruecklich abgrenzt. Weggelassen, nicht ausgegraut: Eine Liste mit
+  // zwanzig Zeilen, von denen sechs grau sind, ist eine Liste mit zwanzig
+  // Zeilen.
+  const schritte = useMemo(
+    () => schritteFuerProdukt(SCHRITTE, packageType), [packageType]);
+  const phaseGroups = useMemo(() => groupByPhase(schritte), [schritte]);
 
   // Phase auf, in der sich der active Step befindet — sonst Default die erste
   const initialOpenPhase = useMemo(() => {
-    const found = SCHRITTE.find((s) => s.id === activeStep);
+    const found = schritte.find((s) => s.id === activeStep);
     return found?.phase || phaseGroups[0]?.phase;
-  }, [activeStep, phaseGroups]);
+  }, [activeStep, phaseGroups, schritte]);
 
   const [openPhase, setOpenPhase] = useState(initialOpenPhase);
 
@@ -174,8 +186,11 @@ export default function KASSidebar({
     });
   };
 
-  const completedCount = SCHRITTE.filter((s) => stepStatus[s.id] === 'completed').length;
-  const progressPct = Math.round((completedCount / SCHRITTE.length) * 100);
+  // Der Fortschritt zaehlt gegen die Schritte **dieses** Projekts. Gegen alle
+  // zwanzig zu zaehlen hiesse, einem Start-Kunden dauerhaft 70 % anzuzeigen.
+  const completedCount = schritte.filter((s) => stepStatus[s.id] === 'completed').length;
+  const progressPct = schritte.length
+    ? Math.round((completedCount / schritte.length) * 100) : 0;
 
   if (!isOpen) return null;
 
@@ -452,12 +467,12 @@ export default function KASSidebar({
           <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
             <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fortschritt</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#fff' }}>
-              {completedCount}/{SCHRITTE.length}
+              {completedCount}/{schritte.length}
             </span>
           </div>
         )}
         <div
-          title={collapsed ? `Fortschritt: ${completedCount}/${SCHRITTE.length}` : undefined}
+          title={collapsed ? `Fortschritt: ${completedCount}/${schritte.length}` : undefined}
           style={{ height: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}
         >
           <div

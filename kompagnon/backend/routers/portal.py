@@ -325,21 +325,6 @@ def portal_version_preview(
 # unverbindlich oder ruinoes (Blocker L6).
 
 
-def _merkmale(project) -> set:
-    """Welche bedingten Punkte fuer dieses Projekt gelten.
-
-    Vorerst aus dem Projekt selbst abgeleitet. Sobald der Auftrag die
-    Leistungen einzeln fuehrt, kommt es von dort — die Stelle ist bewusst
-    **eine**, damit die Ableitung nicht an drei Orten auseinanderlaeuft.
-    """
-    merkmale = set()
-    if getattr(project, "migration_noetig", False):
-        merkmale.add("migration")
-    if getattr(project, "karriereseite", False):
-        merkmale.add("karriereseite")
-    return merkmale
-
-
 @router.get("/mitwirkung")
 def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)):
     """Was wir vom Kunden brauchen — mit Stand und gerechneter Bauzeit."""
@@ -357,7 +342,7 @@ def get_mitwirkung(user=Depends(get_current_user), db: Session = Depends(get_db)
 
     staende = {s.kennung: s for s in db.query(MitwirkungStand)
                .filter(MitwirkungStand.project_id == project.id).all()}
-    punkte = kat.gilt_fuer(_merkmale(project))
+    punkte = kat.fuer_projekt(project)
     erledigt = {k for k, s in staende.items() if s.erledigt_am}
 
     def zeile(p):

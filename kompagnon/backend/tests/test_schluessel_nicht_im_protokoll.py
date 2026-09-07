@@ -269,3 +269,79 @@ class TestSchwaerzung:
 
         # Assert — Vorlage und Argumente unverändert, nicht vorformatiert.
         assert satz.args == ("https://kunde.de",)
+
+
+class TestTracebackTraegtDenSchluesselNicht:
+    """Auch der Traceback, nicht nur die Meldung (L-103).
+
+    **Der Befund vom 07.09.2026.** `Schwaerzung.filter` fasst `record.msg` und
+    `record.args` an — und sonst nichts. Ein Traceback steht aber in
+    `record.exc_info` und wird vom **Formatter** angehaengt, also **nach** dem
+    Filter. Wer `logger.exception(...)` in einem `except` um einen
+    `httpx`-Aufruf schreibt, bekommt die vollstaendige Adresse ins Protokoll,
+    `key=` eingeschlossen.
+
+    Genau diese Restgefahr nennt L-103: „Der Schluessel steht weiter in der
+    Adresse und kann in einem Traceback oder einem fremden Proxy-Protokoll
+    auftauchen." Der saubere Riegel — Places API (New) mit `X-Goog-Api-Key` —
+    braucht Zugang zum Google-Projekt und bleibt offen. **Das hier braucht
+    ihn nicht.**
+    """
+
+    GEHEIM = "AIzaSyTestNurImTest-nicht-echt"
+
+    def _protokoll(self, ausloeser):
+        """Einen Satz durch Filter **und** Formatter schicken.
+
+        Am Formatter gemessen, nicht am Filter: Der Filter kann gruen sein und
+        der Schluessel trotzdem im Protokoll stehen — er wird ja erst danach
+        angehaengt. Das ist dieselbe Sorte Irrtum wie „der Test prueft die
+        Zwischenausgabe statt das Erzeugnis".
+        """
+        import logging as _logging
+        from services.protokoll_schwaerzung import Schwaerzung
+
+        aufzeichnung = []
+
+        class Sammler(_logging.Handler):
+            def emit(self, satz):
+                aufzeichnung.append(self.format(satz))
+
+        griff = Sammler()
+        griff.setFormatter(_logging.Formatter("%(message)s"))
+        griff.addFilter(Schwaerzung())
+        protokoll = _logging.getLogger("pruefung.traceback")
+        protokoll.handlers = [griff]
+        protokoll.propagate = False
+        protokoll.setLevel(_logging.DEBUG)
+
+        try:
+            ausloeser()
+        except Exception:
+            protokoll.exception("Abruf fehlgeschlagen")
+        return "\n".join(aufzeichnung)
+
+    def test_der_schluessel_steht_nicht_im_traceback(self):
+        adresse = (f"https://maps.googleapis.com/maps/api/place/"
+                   f"findplacefromtext/json?input=a&key={self.GEHEIM}")
+
+        def ausloeser():
+            raise RuntimeError(f"Verbindung zu {adresse} fehlgeschlagen")
+
+        ausgabe = self._protokoll(ausloeser)
+        assert self.GEHEIM not in ausgabe, (
+            "Der Places-Schluessel steht im Traceback. Der Filter fasst nur "
+            "`msg` und `args` an; `exc_info` haengt der Formatter danach an.")
+        assert "***geschwaerzt***" in ausgabe
+        # Der Traceback selbst muss lesbar bleiben — ein geschwaerztes
+        # Protokoll, das die Fehlerstelle verliert, ist kein Fortschritt.
+        assert "RuntimeError" in ausgabe and "Abruf fehlgeschlagen" in ausgabe
+
+    def test_ein_traceback_ohne_geheimnis_bleibt_unveraendert(self):
+        """Die Gegenprobe — sonst schwaerzte der Filter bald alles."""
+        def ausloeser():
+            raise ValueError("gewoehnlicher Fehler ohne Geheimnis")
+
+        ausgabe = self._protokoll(ausloeser)
+        assert "gewoehnlicher Fehler ohne Geheimnis" in ausgabe
+        assert "geschwaerzt" not in ausgabe

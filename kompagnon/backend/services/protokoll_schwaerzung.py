@@ -26,6 +26,7 @@ Der Filter hängt an der Wurzel, nicht an ``httpx``: Eine Bibliothek, die
 morgen dazukommt, soll nicht erst wieder auffallen müssen.
 """
 import logging
+import traceback
 import re
 
 #: Abfrageparameter, deren Wert nie ins Protokoll gehört.
@@ -123,6 +124,30 @@ class Schwaerzung(logging.Filter):
     """
 
     def filter(self, satz: logging.LogRecord) -> bool:
+        # ── Zuerst der Traceback (L-103, 07.09.2026) ──────────────────────
+        #
+        # **Er lief bis heute an der Schwaerzung vorbei.** Dieser Filter fasst
+        # `msg` und `args` an; ein Traceback steht in `exc_info` und wird vom
+        # **Formatter** angehaengt — also *nach* dem Filter. Wer
+        # `logger.exception(...)` in einem `except` um einen `httpx`-Aufruf
+        # schreibt, bekam die vollstaendige Adresse ins Protokoll, `key=`
+        # eingeschlossen.
+        #
+        # Genau diese Restgefahr nennt L-103: „Der Schluessel steht weiter in
+        # der Adresse und kann in einem Traceback auftauchen." Der saubere
+        # Riegel — Places API (New) mit `X-Goog-Api-Key` — braucht Zugang zum
+        # Google-Projekt und bleibt offen; **das hier braucht ihn nicht.**
+        #
+        # Geschrieben wird in `exc_text`: Der Formatter benutzt den Wert, wenn
+        # er schon dasteht, und formatiert `exc_info` nur sonst. Der Traceback
+        # bleibt damit vollstaendig lesbar — bloss ohne den Schluessel. Ein
+        # geschwaerztes Protokoll, das die Fehlerstelle verliert, waere kein
+        # Fortschritt; das ist am 31.08. schon einmal passiert.
+        if satz.exc_info and not satz.exc_text:
+            satz.exc_text = "".join(traceback.format_exception(*satz.exc_info))
+        if satz.exc_text:
+            satz.exc_text = schwaerzen(satz.exc_text)
+
         roh = str(satz.msg)
         if satz.args:
             roh = f"{roh} {satz.args}"

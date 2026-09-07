@@ -72,6 +72,21 @@ const WURZEL = path.join(__dirname, '..');
 // Bestand hat sich dadurch nichts geaendert; geaendert hat sich, was diese
 // Zahl bedeutet: vorher zu 60 % Rauschen, jetzt 17 Bedienelemente, an denen
 // wirklich eine Entscheidung aussteht.
+// 07.09.2026, zweiter Teil: **Die Zahl bleibt bei 17, zwei Maengel sind
+// trotzdem behoben** — und das gehoert dazugesagt, sonst liest jemand die
+// stehende Zahl als Stillstand. `pages/CustomerProjects.jsx` (Projektkarte)
+// und `components/schritte/sitemap.jsx` (Seitenzeile) haben ihre Handlung
+// jetzt auf einem echten `<button>`: dem Namen, der ohnehin ihre
+// Beschriftung ist. Vorher war die Handlung mit der Tastatur **gar nicht**
+// erreichbar — in der Karte kam man nur an den Auswahlhaken, in der Zeile
+// nur an die zwei Verschiebepfeile.
+//
+// Das `onClick` der Zeile bleibt als **Mausbequemlichkeit** bestehen, und
+// genau deshalb zaehlt dieser Test sie weiter mit: Er sieht ein Muster, nicht
+// die Erreichbarkeit. Wer die Zahl senken will, muss dem Zaehler beibringen,
+// eine Zeile mit eigenem Bedienelement von einer ohne zu unterscheiden — das
+// ist die Zweiteilung, die der Lagebild-Eintrag als „54 verschachtelte Faelle"
+// ohnehin schon macht.
 const VERBLEIBEND = 17;
 
 function tagEnde(text, start) {

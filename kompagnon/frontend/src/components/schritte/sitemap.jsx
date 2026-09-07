@@ -152,7 +152,34 @@ export function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                   {p.parent_id && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>↳</span>}
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.page_name}</span>
+                  {/* **Der Seitenname ist der Knopf** (L-17, 07.09.2026).
+                    *
+                    * Die Zeile trägt ein `onClick`, das die Seite auswählt —
+                    * mit der Maus. Für die Tastatur gab es diesen Weg nicht;
+                    * erreichbar waren allein die zwei Pfeile zum Verschieben,
+                    * und die verschieben nur. WCAG 2.1.1, Stufe A.
+                    *
+                    * `role="button"` auf der Zeile wäre falsch, weil die zwei
+                    * Pfeile schon darin sitzen — ein Bedienelement in einem
+                    * Bedienelement ist ein eigener Mangel. Der Name ist
+                    * ohnehin die Beschriftung der Handlung; als Knopf sagt
+                    * eine Vorlesehilfe ihn an, vorher schwieg sie.
+                    *
+                    * `aria-pressed` sagt dazu, ob diese Seite gerade gewählt
+                    * ist — sichtbar ist das an der Färbung, hörbar war es
+                    * bisher gar nicht. */}
+                  <button
+                    type="button"
+                    aria-pressed={isSel}
+                    onClick={(e) => { e.stopPropagation(); setSelectedId(p.id); }}
+                    style={{
+                      background: 'none', border: 'none', padding: 0, margin: 0,
+                      textAlign: 'left', font: 'inherit', cursor: 'pointer',
+                      fontSize: 12, fontWeight: 600, color: 'var(--text-primary)',
+                      flex: 1, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                  >{p.page_name}</button>
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                     <button onClick={e => { e.stopPropagation(); moveUp(idx); }} disabled={idx === 0} style={{ ...btnSm, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↑</button>
                     <button onClick={e => { e.stopPropagation(); moveDown(idx); }} disabled={idx >= contentPages.length - 1} style={{ ...btnSm, background: 'transparent', color: idx >= contentPages.length - 1 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↓</button>

@@ -318,6 +318,45 @@ ENTSCHEIDUNG = (
 )
 
 
+#: Routen, bei denen der Befund **feststeht**: Die Leistung ist gebaut, die
+#: Oberflaeche dazu fehlt. Das ist etwas anderes als „noch nicht beurteilt"
+#: (Korb „ruft niemand") und etwas anderes als eine offene Grundsatzfrage
+#: (Korb „wartet auf eine Entscheidung"). Hier ist die Arbeit benannt und
+#: wartet nur darauf, getan zu werden.
+#:
+#: **Warum das einen eigenen Korb verdient (07.09.2026).** Solange alles in
+#: einem Topf liegt, sieht eine Zahl wie „26 offen" nach 26 Fragen aus. Drei
+#: davon sind keine Fragen, sondern Aufgaben — und eine betrifft Geld.
+KNOPF_FEHLT = (
+    # **Die Anrechnung laesst sich zeigen, aber nie buchen.** Die Oberflaeche
+    # ruft `GET /api/shop/credit-check` — sie sieht also, dass ein Guthaben
+    # besteht. `POST /credit-redeem`, das es auf einen Deal bucht, ruft
+    # niemand. Halbes Merkmal an einer Geldbuchung; die Route ist bewusst
+    # unumkehrbar gebaut („Endgueltig ist woertlich gemeint"), was den
+    # fehlenden Knopf nicht besser macht, sondern die Sorgfalt beim Bauen
+    # erklaert.
+    ("/api/shop/credit-redeem$",
+     "Knopf fehlt — die Oberflaeche zeigt das Guthaben (credit-check), "
+     "bucht es aber nie (ORDERS_08)"),
+    # Der Bericht aus L-84. Der Eintrag ist **geschlossen** und beschreibt
+    # ihn als vorhanden: „gibt je Kanal Betriebe, Kunden und Quote". Gebaut
+    # ist er, gezeigt wird er nirgends.
+    ("/api/leads/quellen/wirkung$",
+     "Knopf fehlt — der Kanalbericht aus L-84 wird nirgends angezeigt"),
+    # Die Kopfzeile nennt den Zweck selbst: „fuer Dashboard und
+    # Admin-Uebersicht". Beides gibt es nicht.
+    ("/api/affiliate-conversions$",
+     "Knopf fehlt — laut eigener Kopfzeile fuer ein Dashboard, das es nicht gibt"),
+)
+
+
+def _knopf_fehlt(pfad: str):
+    for muster, grund in KNOPF_FEHLT:
+        if _passt(pfad, muster):
+            return grund
+    return None
+
+
 def _passt(pfad: str, muster: str) -> bool:
     """Praefix — oder **genau dieser Pfad**, wenn das Muster auf `$` endet.
 
@@ -456,7 +495,7 @@ def main(argv: list) -> int:
             mehrdeutige.append((gerufene, len(set(treffer))))
 
     offen, intern, nur_rand, erklaert, ueber_variable = [], [], [], [], []
-    wartend = []
+    wartend, ohne_knopf = [], []
     for methode, pfad in routen:
         adresse = normalisieren(pfad)
         if adresse in gerufen:
@@ -473,6 +512,10 @@ def main(argv: list) -> int:
         if offene_frage:
             wartend.append((methode, pfad, offene_frage))
             continue
+        aufgabe = _knopf_fehlt(pfad)
+        if aufgabe:
+            ohne_knopf.append((methode, pfad, aufgabe))
+            continue
         woher = _intern(methode, pfad)
         if woher:
             intern.append((methode, pfad, woher))
@@ -481,12 +524,20 @@ def main(argv: list) -> int:
         else:
             offen.append((methode, pfad, None))
 
-    for liste in (offen, nur_rand, erklaert, ueber_variable, wartend):
+    for liste in (offen, nur_rand, erklaert, ueber_variable, wartend,
+                  ohne_knopf):
         liste.sort(key=lambda e: (e[1], e[0]))
 
     print(f"Backend: {len(routen)} Endpunkte · Frontend ruft "
           f"{len(gerufen)} verschiedene Adressen, "
           f"Widget und E2E weitere {len(weitere)}")
+
+    if ohne_knopf:
+        print(f"\nDer Knopf fehlt — {len(ohne_knopf)}:")
+        for _m, pfad, grund in ohne_knopf:
+            print(f"  {pfad}\n      {grund}")
+        print("  Keine Frage, sondern eine Aufgabe: Die Leistung ist gebaut, "
+              "die Bedienung fehlt.")
 
     if wartend:
         gruende = sorted({g for _, _, g in wartend})

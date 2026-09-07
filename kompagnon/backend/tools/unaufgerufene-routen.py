@@ -183,6 +183,36 @@ def _modul_des_handlers(main, methode: str, pfad: str) -> str:
     return suchen(main.app.routes)
 
 
+#: Routen, die **eine gemeinsame Entscheidung** abwarten. Sie sind nicht
+#: erklaert — es ruft sie wirklich niemand —, aber sie einzeln zu beurteilen
+#: waere irrefuehrend: **Achtzehn** Routen haengen an einer Frage.
+#:
+#: **Gemessen am 07.09.2026 (L-105/L-106).** `usercards` und `customers` sind
+#: die zwei fertiggebauten Haelften einer Zusammenlegung von `leads` und
+#: `customers`, die nie zu Ende ging — der Kopf von `routers/usercards.py`
+#: nennt sich selbst „Part 1/3", die weiteren zwei kamen nie. Beide Tabellen
+#: sind **leer** (lokal: `leads` 3, `customers` 0, `usercards` 0), und beide
+#: koennen sich nicht fuellen: Der einzige Schreiber fuer `customers` sitzt in
+#: `POST /api/customers/{project_id}/create`, und die ruft niemand; die
+#: Massenkopie fuer `usercards` ist am 24.08. entfernt worden
+#: (`migrations_runtime.py:445`, „caused DB lock on startup").
+#:
+#: **Die Frage ist eine:** Wird die Zusammenlegung zu Ende gebracht oder
+#: zurueckgebaut? Achtzehn Routen fallen mit ihr. Sie hier zu fuehren haelt die
+#: offene Liste ehrlich — sie sind nicht vergessen, sie warten.
+ENTSCHEIDUNG = (
+    ("/api/usercards/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+    ("/api/customers/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+)
+
+
+def _wartet_auf_entscheidung(pfad: str):
+    for anfang, grund in ENTSCHEIDUNG:
+        if pfad.startswith(anfang):
+            return grund
+    return None
+
+
 def _erklaerung(pfad: str):
     for anfang, grund in ERKLAERT:
         if pfad.startswith(anfang):
@@ -299,6 +329,7 @@ def main(argv: list) -> int:
             mehrdeutige.append((gerufene, len(set(treffer))))
 
     offen, intern, nur_rand, erklaert, ueber_variable = [], [], [], [], []
+    wartend = []
     for methode, pfad in routen:
         adresse = normalisieren(pfad)
         if adresse in gerufen:
@@ -311,6 +342,10 @@ def main(argv: list) -> int:
         if grund:
             erklaert.append((methode, pfad, grund))
             continue
+        offene_frage = _wartet_auf_entscheidung(pfad)
+        if offene_frage:
+            wartend.append((methode, pfad, offene_frage))
+            continue
         woher = _intern(methode, pfad)
         if woher:
             intern.append((methode, pfad, woher))
@@ -319,12 +354,21 @@ def main(argv: list) -> int:
         else:
             offen.append((methode, pfad, None))
 
-    for liste in (offen, nur_rand, erklaert, ueber_variable):
+    for liste in (offen, nur_rand, erklaert, ueber_variable, wartend):
         liste.sort(key=lambda e: (e[1], e[0]))
 
     print(f"Backend: {len(routen)} Endpunkte · Frontend ruft "
           f"{len(gerufen)} verschiedene Adressen, "
           f"Widget und E2E weitere {len(weitere)}")
+
+    if wartend:
+        gruende = sorted({g for _, _, g in wartend})
+        print(f"\nWartet auf eine Entscheidung — {len(wartend)}:")
+        for grund in gruende:
+            pfade = [p for _, p, g in wartend if g == grund]
+            print(f"  {len(pfade):>3}  {grund}")
+        print("  Nicht vergessen, sondern gebunden: Diese Routen fallen oder "
+              "bleiben\n  gemeinsam mit einer einzigen Frage.")
 
     print(f"\nRuft niemand — {len(offen)}:")
     if not offen:

@@ -85,17 +85,18 @@ class TestDasWerkzeugMisstNochWas:
     def test_eine_route_ohne_jeden_aufrufer_bleibt_gemeldet(self, ausgabe):
         """Ein benannter Fall, der stehen bleiben muss.
 
-        **Der Kanarienvogel ist am 07.09.2026 umgezogen.** Hier stand
-        `/api/projects/seed` — und wurde am selben Tag als „Erstbefuellung,
-        Schutz am Router" **erklaert**. Damit war der Waechter blind: Er
-        prueft, ob das Werkzeug noch etwas findet, und sein Beispiel war
-        gerade aus der Liste genommen worden. Ein Kanarienvogel, den man
-        selbst beurteilt, taugt nicht mehr als Kanarienvogel.
+        **Der Kanarienvogel ist am 07.09.2026 zweimal umgezogen, und beide
+        Male aus demselben Grund: Ich hatte ihn selbst beurteilt.** Erst stand
+        er auf `/api/projects/seed`, das am selben Tag als „Erstbefuellung,
+        Schutz am Router" erklaert wurde. Dann auf `/api/usercards/{card_id}`
+        — das eine Stunde spaeter in die neue Kategorie „wartet auf eine
+        Entscheidung" wanderte, zusammen mit siebzehn Geschwistern.
 
-        `/api/usercards/{card_id}` ist der bessere Fall: Der Kopf von
-        `routers/usercards.py` nennt das Modul selbst „einen
-        Zusammenlegungsversuch, der nie zu Ende ging", und das Frontend ruft
-        `/api/usercards/{}/profile` — die Kartenroute selbst nie. Das ist eine
-        offene Frage an David, keine Sache, die sich erklaeren laesst.
+        **Die Lehre steht jetzt im Testnamen:** Ein Kanarienvogel taugt nur so
+        lange, wie niemand ihn anfasst. `/api/academy/modules` ist deshalb der
+        bessere: Ein Schreibzugriff auf die Modulebene der Akademie, den keine
+        Oberflaeche ruft — und er bleibt es, solange L-60 offen ist, denn dort
+        fehlt der **Lehrplan**, nicht die Technik. Das ist eine inhaltliche
+        Entscheidung von David und keine, die beim Aufraeumen nebenbei faellt.
         """
-        assert "/api/usercards/{card_id}" in ausgabe
+        assert "/api/academy/modules" in ausgabe

@@ -28,8 +28,27 @@ module.exports = {
           400: "#f8b060",
           600: "#e07020",
         },
+        /* **Die Markenfarben — dieselben Werte wie in `styles/tokens.css`**
+           (L-158, 07.09.2026). Sie fehlten hier: `#004F59` kam an 19 Stellen
+           im Quelltext vor, `#FAE600` an 14, und die Vorgabe kannte beide
+           nicht. Damit waren die Markenfarben Handarbeit statt Vorgabe —
+           nicht zentral änderbar, nicht prüfbar, nicht wiederverwendbar.
+
+           `tokens.css` gilt zur Laufzeit, diese Datei beim Bauen. Zwei Orte
+           für dieselbe Farbe laufen auseinander; `markenfarbenVorgabe.test.js`
+           hält sie zusammen und wird rot, sobald ein `--kc-*`-Ton hier
+           fehlt. */
+        marke: {
+          dark:   '#004F59',   /* Pantone 3165 — dominiert (UI-Guidelines v1.0) */
+          mid:    '#008EAA',   /* Pantone 3135 — sekundär */
+          yellow: '#FAE600',   /* Pantone 3945 — Akzent, höchstens einmal je Bildschirm */
+          black:  '#000000',
+        },
+
         /* Legacy kc- aliases for backwards compatibility */
         kc: {
+          dark:           '#004F59',
+          gelb:           '#FAE600',
           anthrazit:      '#002535',
           'anthrazit-80': '#003d52',
           'anthrazit-20': '#a0e0ea',

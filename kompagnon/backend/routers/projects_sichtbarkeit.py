@@ -612,26 +612,54 @@ Gib NUR das JSON zurück, keine Erklärung, kein Markdown."""
             gruendungsjahr, mitarbeiter, leistungen,
         )
 
-        # Persist to website_content of the ground sitemap page
-        ground_page = db.execute(
-            text("SELECT id FROM sitemap_pages WHERE lead_id = :lid AND page_type = 'ground' LIMIT 1"),
-            {"lid": lead_id},
-        ).fetchone()
-        if ground_page:
-            db.execute(
-                text("""
-                    INSERT INTO website_content (sitemap_page_id, ki_content, content_generated, updated_at)
-                    VALUES (:pid, :content, TRUE, NOW())
-                    ON CONFLICT (sitemap_page_id)
-                    DO UPDATE SET ki_content = EXCLUDED.ki_content,
-                                  content_generated = TRUE,
-                                  updated_at = NOW()
-                """),
-                {"pid": ground_page[0], "content": json.dumps(ground_data, ensure_ascii=False)},
-            )
-            db.commit()
+        # ── Ablegen: eigener Fehlerweg, weil hier nichts mehr scheitern
+        #    darf, was den KI-Aufruf entwertet (L-179, 07.09.2026).
+        #
+        # Bis heute lag dieser Schritt im grossen `try` der ganzen Funktion.
+        # Er ist aber der **letzte**: Claude ist gefragt, die Antwort zerlegt,
+        # das JSON-LD gebaut. Schlug er fehl — und er schlug **immer** fehl,
+        # weil `website_content` nirgends angelegt war —, dann verwarf der
+        # gemeinsame `except` das fertige, bezahlte Ergebnis und meldete
+        # „Ground Page Generierung fehlgeschlagen". Die Generierung hatte
+        # funktioniert; nur das Ablegen nicht. Eine Fehlermeldung, die auf den
+        # falschen Schritt zeigt, kostet die Suche danach.
+        gespeichert, ablage_fehler = False, None
+        try:
+            ground_page = db.execute(
+                text("SELECT id FROM sitemap_pages WHERE lead_id = :lid AND page_type = 'ground' LIMIT 1"),
+                {"lid": lead_id},
+            ).fetchone()
+            if ground_page:
+                db.execute(
+                    text("""
+                        INSERT INTO website_content (sitemap_page_id, ki_content, content_generated, updated_at)
+                        VALUES (:pid, :content, TRUE, NOW())
+                        ON CONFLICT (sitemap_page_id)
+                        DO UPDATE SET ki_content = EXCLUDED.ki_content,
+                                      content_generated = TRUE,
+                                      updated_at = NOW()
+                    """),
+                    {"pid": ground_page[0], "content": json.dumps(ground_data, ensure_ascii=False)},
+                )
+                db.commit()
+                gespeichert = True
+            else:
+                ablage_fehler = "Keine Ground-Seite in der Sitemap — nichts abzulegen"
+        except Exception as fehler:  # noqa: BLE001 — das Ergebnis ist zu teuer zum Wegwerfen
+            db.rollback()
+            ablage_fehler = f"{type(fehler).__name__}: {str(fehler).split(chr(10))[0][:200]}"
+            # Vollstaendig ins Protokoll, damit das Ergebnis auch dann noch
+            # auffindbar ist, wenn der Anrufer den Bildschirm schliesst.
+            logger.error("Ground Page erzeugt, aber nicht abgelegt (lead %s): %s — Inhalt: %s",
+                         lead_id, ablage_fehler,
+                         json.dumps(ground_data, ensure_ascii=False)[:4000])
 
-        return {"ok": True, "ground_page": ground_data}
+        # **Das Ergebnis wird zurueckgegeben, auch wenn die Ablage ausfiel** —
+        # und die Ablage wird dabei nicht verschwiegen. Wer sie stillschweigend
+        # als Erfolg meldete, erzeugte einen Kunden, der beim naechsten Aufruf
+        # eine leere Seite sieht und niemanden hat, den er fragen kann.
+        return {"ok": True, "ground_page": ground_data,
+                "gespeichert": gespeichert, "ablage_fehler": ablage_fehler}
 
     except json.JSONDecodeError:
         raise HTTPException(500, "KI-Antwort konnte nicht verarbeitet werden")

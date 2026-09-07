@@ -870,6 +870,48 @@ def run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_notes TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_content TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP",
+        # ── Ground Page: der GEO-Steckbrief einer Seite (L-179, 07.09.2026) ──
+        #
+        # **Diese Tabelle fehlte, obwohl Code auf sie schreibt.**
+        # `routers/projects_sichtbarkeit.py` legt hier das Ergebnis der
+        # Ground-Page-Erzeugung ab — und die Ablage ist der **letzte** Schritt:
+        # Claude fragen, Antwort zerlegen, JSON-LD bauen, dann schreiben. Fiel
+        # sie aus, war der KI-Aufruf bereits bezahlt und das Ergebnis fertig;
+        # es ging nur verloren. Der Anrufer bekam „Ground Page Generierung
+        # fehlgeschlagen" — eine falsche Diagnose, denn die Generierung hatte
+        # funktioniert.
+        #
+        # **Nicht mit `website_content_cache` darunter verwechseln.** Das ist
+        # der Crawler-Zwischenspeicher fremder Seiten, nach Betrieb und
+        # Adresse. Hier steht ein erzeugtes Dokument je Sitemap-Seite. Zwei
+        # Tabellen mit aehnlichem Namen und gegensaetzlicher Aufgabe — der
+        # Grund, warum der Befund erst wie ein Tippfehler aussah.
+        #
+        # **`ki_content` bleibt ein JSON-Text und wird nicht in Spalten
+        # zerlegt.** Das Dokument fuehrt Fakten, fuenf Fragen und Antworten,
+        # Vertrauensangaben und JSON-LD; die Nachbarspalten in `sitemap_pages`
+        # (`ki_h1`, `ki_cta` …) tragen die Texte einer gewoehnlichen Seite und
+        # sind etwas anderes.
+        """CREATE TABLE IF NOT EXISTS website_content (
+          id                SERIAL PRIMARY KEY,
+          sitemap_page_id   INTEGER NOT NULL REFERENCES sitemap_pages(id) ON DELETE CASCADE,
+          ki_content        TEXT,
+          content_generated BOOLEAN DEFAULT FALSE,
+          updated_at        TIMESTAMP DEFAULT NOW()
+        )""",
+        # Bestehende Installationen nachruesten — falls die Tabelle irgendwo
+        # von Hand angelegt wurde, fehlen ihr vielleicht Spalten.
+        "ALTER TABLE website_content ADD COLUMN IF NOT EXISTS ki_content TEXT",
+        "ALTER TABLE website_content ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE website_content ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
+        # **Ohne diesen Index scheitert `ON CONFLICT (sitemap_page_id)`** mit
+        # „no unique or exclusion constraint matching the ON CONFLICT
+        # specification" — und zwar erst zur Laufzeit, nach dem KI-Aufruf.
+        # Die Tabelle anzulegen und das zu vergessen waere derselbe Fehler
+        # eine Ebene tiefer.
+        """CREATE UNIQUE INDEX IF NOT EXISTS idx_website_content_seite
+           ON website_content(sitemap_page_id)""",
+
         # Website-Content-Cache für Crawler-Scraping
         """CREATE TABLE IF NOT EXISTS website_content_cache (
           id               SERIAL PRIMARY KEY,

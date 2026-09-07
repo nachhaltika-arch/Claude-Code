@@ -49,14 +49,22 @@ def _vorlage():
     `startphase.py` (L-25, Schnitt nach Zuständigkeit). Dieser Test hat den
     Umzug gemeldet, statt ihn stillschweigend mitzumachen: Er fand keine
     Vorlage mehr und wurde rot. Genau das soll er.
+
+    **Am 07.09.2026 zum zweiten Mal so gemeldet (L-167).** Hier stand
+    `ast.literal_eval` auf der `SEED`-Zuweisung — es las den **Quelltext**,
+    und ein Literal ist alles, was das lesen kann. Seit der Buchpreis aus
+    `services/buch_preise.py` abgeleitet wird (damit er nicht an zwei Stellen
+    steht), ist die Vorlage kein Literal mehr, und der Test brach beim
+    Einsammeln mit „malformed node".
+
+    Er ruft sie jetzt auf, wie `test_produktvorlage.py` — und prüft damit,
+    was wirklich entsteht statt wie es geschrieben ist.
     """
-    baum = ast.parse((WURZEL / "startphase.py").read_text(encoding="utf-8"))
-    listen = [ast.literal_eval(k.value)
-              for k in ast.walk(baum)
-              if isinstance(k, ast.Assign)
-              and any(getattr(z, "id", "") == "SEED" for z in k.targets)]
-    assert listen, "keine Produktvorlage in main.py gefunden"
-    return listen[0]
+    from startphase import produkt_vorlage
+
+    listen = produkt_vorlage()
+    assert listen, "keine Produktvorlage in startphase.py gefunden"
+    return listen
 
 
 class TestBruttoUndNettoBleibenEineZahl:

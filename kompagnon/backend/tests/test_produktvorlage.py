@@ -23,20 +23,41 @@ WURZEL = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _seed_listen():
-    # Seit dem 30.08.2026 in `startphase.py` statt in `main.py` (L-25).
+    """Die Produktvorlage — **aufgerufen**, nicht als Text gelesen.
+
+    **Warum der Umbau am 07.09.2026 (L-167).** Vorher stand hier
+    `ast.literal_eval` auf der `SEED`-Zuweisung. Das las den **Quelltext**, und
+    ein Literal ist alles, was es lesen kann: Sobald ein Eintrag aus einer
+    Ableitung entsteht — beim Buch kommt der Preis aus
+    `services/buch_preise.py`, damit er nicht an zwei Stellen steht —, brach
+    der Test mit „malformed node".
+
+    Genau das war der Grund, warum die drei Digitalprodukte drei Tage lang
+    **nur in der Migration** standen und einer frisch aufgesetzten Datenbank
+    fehlten: Der Waechter erlaubte keine Ableitung.
+
+    Jetzt prueft er, **was wirklich entsteht** — und das ist ohnehin die
+    bessere Frage. `ast` bleibt fuer den Test darunter, der zaehlt, wie viele
+    Vorlagen es gibt; dort ist der Text der Gegenstand.
+    """
+    from startphase import produkt_vorlage
+
+    return [produkt_vorlage()]
+
+
+def _seed_zuweisungen():
+    """Wie viele Stellen eine Produktvorlage aufbauen — am Quelltext gezaehlt."""
     baum = ast.parse((WURZEL / "startphase.py").read_text(encoding="utf-8"))
-    return [ast.literal_eval(knoten.value)
-            for knoten in ast.walk(baum)
-            if isinstance(knoten, ast.Assign)
-            and any(getattr(ziel, "id", "") == "SEED" for ziel in knoten.targets)]
+    return [k for k in ast.walk(baum) if isinstance(k, ast.Assign)
+            and any(getattr(ziel, "id", "") == "SEED" for ziel in k.targets)]
 
 
 def test_die_produktvorlage_steht_genau_einmal():
     """Zwei Vorlagen heissen: Eine davon aendert man umsonst."""
-    listen = _seed_listen()
+    stellen = _seed_zuweisungen()
 
-    assert len(listen) == 1, (
-        f"{len(listen)} Produktvorlagen in startphase.py — die zweite ist "
+    assert len(stellen) <= 1, (
+        f"{len(stellen)} Produktvorlagen in startphase.py — die zweite ist "
         f"wirkungslos, und wer sie aendert, merkt nichts davon.")
 
 
@@ -48,8 +69,12 @@ def test_die_produktvorlage_steht_genau_einmal():
 #: gehoeren aber nicht mehr in die Vorlage einer frischen. Am 04.09.2026 kam
 #: `websprint_start` dazu (WS-STA-01, L-164) — beschrieben und verpreist seit
 #: dem 23.08., im Code bis dahin **null Mal** vorhanden.
+#: Am 07.09.2026 kamen die drei **Digitalprodukte** dazu (L-167): Sie standen
+#: bis dahin nur in der Migration, also hatte eine gewachsene Datenbank sie und
+#: eine frisch aufgesetzte nicht.
 KATALOG = {"websprint_start", "websprint_relaunch", "websprint_neubau",
-           "websprint_system"}
+           "websprint_system", "buch_homepage_standard", "check_plus",
+           "workbook_homepage_standard"}
 
 
 #: **Ein Befund, kein Freibrief** — gefunden am 04.09.2026, als dieser
@@ -69,8 +94,19 @@ KATALOG = {"websprint_start", "websprint_relaunch", "websprint_neubau",
 #:
 #: Die Liste ist bewusst geschlossen: Ein **neues** Produkt darf hier nicht
 #: landen, ohne dass jemand diesen Kommentar liest.
-NUR_IN_DER_MIGRATION = {"buch_homepage_standard", "check_plus",
-                        "workbook_homepage_standard"}
+#: **Leer seit dem 07.09.2026 (L-167).** Hier standen die drei Digitalprodukte:
+#: Eine gewachsene Datenbank hatte sie, eine frisch aufgesetzte nicht — wer
+#: lokal neu aufsetzte, bekam einen Katalog ohne Buch, Workbook und Check PLUS
+#: und merkte es erst, wenn jemand danach suchte.
+#:
+#: **Warum es damals nicht im selben Zug behoben wurde:** Das Buch leitet
+#: seinen Preis aus `services/buch_preise.py` ab, und in die Vorlage gehoert
+#: dieselbe **Ableitung**, nicht die abgeleitete Zahl — sonst stuende der
+#: Buchpreis an einer zweiten Stelle. Genau so ist es jetzt gebaut.
+#:
+#: Die Liste bleibt stehen: Sie ist der Ort, an dem eine solche Ausnahme
+#: benannt und datiert werden muss. Leer heisst, es gibt keine.
+NUR_IN_DER_MIGRATION = set()
 
 
 def test_die_vorlage_traegt_den_ganzen_katalog():

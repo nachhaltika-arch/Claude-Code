@@ -21,6 +21,222 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+def produkt_vorlage() -> list:
+    """Der Produktkatalog, den eine **frische** Datenbank bekommt.
+
+    **Als Funktion statt als Liste im Rumpf** (L-167, 07.09.2026). Der
+    Waechter `test_produktvorlage.py` las sie vorher als Quelltext mit
+    `ast.literal_eval` — und ein Literal ist alles, was das lesen kann.
+    Sobald ein Eintrag aus einer **Ableitung** entsteht (der Buchpreis
+    kommt aus `services/buch_preise.py`, damit er nicht an zwei Stellen
+    steht), brach er. Genau deshalb fehlten die drei Digitalprodukte hier
+    drei Tage lang und standen nur in der Migration: Eine gewachsene
+    Datenbank hatte sie, eine frisch aufgesetzte nicht.
+
+    Jetzt ruft der Waechter auf, statt zu lesen — und prueft damit, was
+    wirklich entsteht.
+    """
+    return [
+        {
+            # WS-STA-01, aufgenommen am 04.09.2026 (L-164). Steht
+            # **vor** dem Relaunch: Die Leiter beginnt beim kleinsten
+            # Paket. `draft`, weil das Datenblatt als Freigabe den
+            # Meilenstein „Pflege-Abo aktiv, 24.09.2026" nennt — ohne
+            # laufende Abrechnung verkauft es eine Leistung, die
+            # niemand in Rechnung stellt.
+            #
+            # `gekoppeltes_abo` haelt nur **welches** Abo dazugehoert,
+            # nicht seinen Preis: Der steht in `services/abo_stunden.py`
+            # und wird in `services/preisangabe.py` verrechnet. § 4.1
+            # des Datenblatts verlangt den Gesamtpreis der
+            # Mindestlaufzeit in **jeder** Preisangabe; eine getippte
+            # Zahl waere falsch, sobald jemand das Entgelt aendert.
+            "slug": "websprint_start", "name": "Websprint Start",
+            "sort_order": 0,
+            "short_desc": "Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege",
+            "price_brutto": 1785.00, "price_netto": 1500.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 7, "status": "draft",
+            "gekoppeltes_abo": "ABO-BAS", "abo_mindestlaufzeit": 12,
+            "features": [
+                "Audit nach Homepage-Standard, dokumentiert",
+                "Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten",
+                "Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv",
+                "Einpflegen der gelieferten Texte, bis 4.000 Zeichen",
+                "Bildaufbereitung, bis 10 Bilder",
+                "Kontaktformular mit Spam-Schutz",
+                "Grundlagen der Barrierefreiheit",
+                "Technische Optimierung und strukturierte Auszeichnung",
+                "Hosting-Einrichtung, SSL, Domainumstellung",
+                "Eine Korrekturschleife",
+                "Abnahmeaudit mit schriftlichem Protokoll",
+                "Einweisungsvideo statt Live-Schulung",
+                "Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat",
+                "Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"],
+            "checkout_fields": ["name", "company", "email", "phone"],
+            "webhook_actions": ["create_lead", "create_user",
+                "create_project", "send_welcome_email", "send_pdf"],
+        },
+        {
+            "slug": "websprint_relaunch", "name": "Websprint Relaunch",
+            "sort_order": 1,
+            "short_desc": "Bestehende Website auf den Homepage-Standard heben",
+            "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 14, "status": "live",
+            # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
+            # docs/produkte/ws-rel-01.md. Das Blatt nannte als
+            # Freigabebedingung „nach Behebung L2 und L3".
+            #
+            # **Am 04.09.2026 richtiggestellt.** Hier stand, beides sei
+            # am 23.08. widerlegt — „der PageSpeed-Schluessel
+            # arbeitet". Die Haelfte stimmt: Die Score-Schwellen sind
+            # beidseitig gleich (L3 geschlossen). Der Schluessel
+            # arbeitet **nicht**: Der Produktivbericht vom 04.09.
+            # meldet 78 % Abdeckung, elf Kriterien tragen „nicht
+            # erhoben", darunter alle vier Performance-Werte. Das
+            # Paket bleibt verkaufbar — die zugesicherten 85 Punkte
+            # der Standard-Garantie sind es nicht, siehe L-165.
+            "features": [
+                "Eingangsaudit nach Homepage-Standard, 100 Punkte",
+                "Strukturabgleich und Seitenplan",
+                "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
+                "Redaktionelle Ueberarbeitung der vorhandenen Texte",
+                "Bildaufbereitung, bis 30 Bilder",
+                "Kontaktformular mit Spam-Schutz",
+                "Grundlagen der Barrierefreiheit",
+                "Technische Grundoptimierung",
+                "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                "Eine Korrekturschleife",
+                "Abnahmeaudit mit schriftlichem Protokoll",
+                "Einweisung, 30 Minuten"],
+            "checkout_fields": ["name", "company", "email", "phone"],
+            "webhook_actions": ["create_lead", "create_user",
+                "create_project", "send_welcome_email", "send_pdf"],
+        },
+        {
+            "slug": "websprint_neubau", "name": "Websprint Neubau",
+            "sort_order": 2,
+            "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
+            "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 28, "status": "live",
+            "highlighted": True, "highlight_label": "Empfehlung",
+            "features": ["Positionierungsgespraech, 90 Minuten",
+                "Bauplan als Freigabedokument, eine Ueberarbeitung",
+                "Texterstellung fuer bis zu 12 Seiten",
+                "Bildkonzept und Fotobriefing",
+                "Aufbau im KOMPAGNON-Komponentensystem, responsiv",
+                "Technische Optimierung und strukturierte Auszeichnung",
+                "Hosting, SSL, Weiterleitungen, Domainumstellung",
+                "Zwei Korrekturschleifen",
+                "Abnahmeaudit mit schriftlichem Protokoll",
+                "Einweisung, 60 Minuten",
+                "Pflege Basic fuer 3 Monate",
+                "Re-Audit nach 3 Monaten"],
+            "checkout_fields": ["name", "company", "email", "phone"],
+            "webhook_actions": ["create_lead", "create_user",
+                "create_project", "send_welcome_email", "send_pdf"],
+        },
+        {
+            "slug": "websprint_system", "name": "Websprint System",
+            "sort_order": 3,
+            "short_desc": "Neubau mit GEO/GAIO, Karriereseite und Messgrundlage",
+            "price_brutto": 15351.00, "price_netto": 12900.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 42, "status": "draft",
+            # `draft`, nicht `live`: Die Kernleistung dieses Pakets —
+            # Auslieferung von llms.txt, schema.org und Ground Page an
+            # die Kundenseite — ist nicht implementiert (L-99). Das
+            # Datenblatt WS-SYS-01 fuehrt es selbst als 🔴 gesperrt.
+            "features": ["Alles aus dem Websprint Neubau",
+                "Erweiterter Seitenumfang, bis 20 Seiten",
+                "Karriereseite mit Bewerbungsformular",
+                "GEO/GAIO-Layer: llms.txt, schema.org, Ground Page",
+                "Messgrundlage mit Consent-Layer und EU-Datenhaltung",
+                "Auftragsverarbeitungsvertrag",
+                "Pflege Pro fuer 12 Monate",
+                "Quartalsweises Re-Audit mit Massnahmenliste",
+                "Jahresgespraech, 90 Minuten"],
+            "checkout_fields": ["name", "company", "email", "phone"],
+            "webhook_actions": ["create_lead", "create_user",
+                "create_project", "send_welcome_email", "send_pdf"],
+        },
+        # ── Die drei Digitalprodukte (L-167, 07.09.2026) ──────────
+        #
+        # **Sie fehlten hier und standen nur in der Migration.** Eine
+        # gewachsene Datenbank hatte sie, eine frisch aufgesetzte
+        # nicht — wer lokal neu aufsetzte oder eine neue Umgebung
+        # baute, bekam einen Katalog ohne Buch, Workbook und Check
+        # PLUS und merkte es erst, wenn jemand danach suchte.
+        #
+        # **Der Buchpreis kommt aus der Ableitung, nicht als Zahl.**
+        # `services/buch_preise.py` ist die eine Stelle; eine hier
+        # eingetragene 49,00 waere die zweite, und genau das
+        # verhindert `test_buchpreis_eine_stelle.py`. Deshalb steht
+        # der Buch-Eintrag weiter unten, nachdem die Varianten
+        # gelesen sind.
+        {
+            "slug": "workbook_homepage_standard",
+            "name": "Workbook Homepage-Standard",
+            "sort_order": 10,
+            "short_desc": "Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten",
+            "price_brutto": 149.00, "price_netto": 139.25, "tax_rate": 7,
+            "payment_type": "once", "delivery_days": 0, "status": "draft",
+            "features": ["Arbeitsbuch als PDF, sofort nach Zahlung",
+                "30 Schritte entlang des Homepage-Standards",
+                "89 Ankreuzkaesten zum Abhaken",
+                "Anrechenbar auf einen Websprint, 6 Monate"],
+            "checkout_fields": ["name", "company", "email"],
+            "webhook_actions": [],
+        },
+        {
+            "slug": "check_plus",
+            "name": "Check PLUS",
+            "sort_order": 11,
+            "short_desc": "Der Homepage-Standard-Check mit persoenlicher Auswertung",
+            "price_brutto": 249.00, "price_netto": 209.24, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 7, "status": "draft",
+            "features": ["Vollpruefung nach dem Homepage-Standard, 100 Punkte",
+                "Schriftlicher Befundbericht",
+                "Persoenliche Auswertung, 45 Minuten",
+                "Anrechenbar auf einen Websprint, 6 Monate"],
+            "checkout_fields": ["name", "company", "email"],
+            "webhook_actions": [],
+        },
+        _buch_eintrag(),
+    ]
+
+
+def _buch_eintrag() -> dict:
+    """Das Buch — **Preis aus der Ableitung, nicht als Zahl** (L-167).
+
+    `services/buch_preise.py` ist die eine Stelle, an der der Buchpreis steht.
+    Eine hier eingetragene 49,00 waere die zweite, und `test_buchpreis_eine_
+    stelle.py` faengt genau das. Die Migration macht es seit jeher so; die
+    Vorlage tut es jetzt auch.
+    """
+    from services.buch_preise import STEUERSATZ, VARIANTEN
+
+    brutto = VARIANTEN["print"]["brutto_cents"] / 100
+    steuer = float(STEUERSATZ)
+    versand = VARIANTEN["print"]["versand_cents"] / 100
+    pdf = VARIANTEN["pdf"]["brutto_cents"] / 100
+    buendel = VARIANTEN["bundle"]["brutto_cents"] / 100
+    return {
+        "slug": "buch_homepage_standard",
+        "name": "Der Homepage Standard (Buch)",
+        "sort_order": 12,
+        "short_desc": (f"Gedruckt {brutto:.2f} EUR zzgl. {versand:.2f} Versand · "
+                       f"als PDF {pdf:.2f} EUR · als Buendel {buendel:.2f} EUR"),
+        "price_brutto": brutto,
+        "price_netto": round(brutto / (1 + steuer / 100), 2),
+        "tax_rate": int(steuer),
+        "payment_type": "once", "delivery_days": 5, "status": "draft",
+        "features": ["Der vollstaendige Homepage-Standard, 100 Punkte",
+                     "Drei Ausgaben: gedruckt, als PDF, als Buendel",
+                     "Preis und Steuersatz kommen aus services/buch_preise.py"],
+        "checkout_fields": ["name", "company", "email"],
+        "webhook_actions": [],
+    }
+
+
 def _kurse_zusammenfuehren():
     """Startphase: die alte Kurstabelle in die Akademie überführen."""
     from services.kurse_zusammenfuehren import zusammenfuehren_beim_start
@@ -206,129 +422,7 @@ def _create_default_admin():
             # vorsteuerabzugsberechtigt); `price_brutto` ist der Betrag, den
             # Stripe abbucht, und muss dazu passen — `test_produktkatalog`
             # rechnet es nach.
-            SEED = [
-                {
-                    # WS-STA-01, aufgenommen am 04.09.2026 (L-164). Steht
-                    # **vor** dem Relaunch: Die Leiter beginnt beim kleinsten
-                    # Paket. `draft`, weil das Datenblatt als Freigabe den
-                    # Meilenstein „Pflege-Abo aktiv, 24.09.2026" nennt — ohne
-                    # laufende Abrechnung verkauft es eine Leistung, die
-                    # niemand in Rechnung stellt.
-                    #
-                    # `gekoppeltes_abo` haelt nur **welches** Abo dazugehoert,
-                    # nicht seinen Preis: Der steht in `services/abo_stunden.py`
-                    # und wird in `services/preisangabe.py` verrechnet. § 4.1
-                    # des Datenblatts verlangt den Gesamtpreis der
-                    # Mindestlaufzeit in **jeder** Preisangabe; eine getippte
-                    # Zahl waere falsch, sobald jemand das Entgelt aendert.
-                    "slug": "websprint_start", "name": "Websprint Start",
-                    "sort_order": 0,
-                    "short_desc": "Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege",
-                    "price_brutto": 1785.00, "price_netto": 1500.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 7, "status": "draft",
-                    "gekoppeltes_abo": "ABO-BAS", "abo_mindestlaufzeit": 12,
-                    "features": [
-                        "Audit nach Homepage-Standard, dokumentiert",
-                        "Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten",
-                        "Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv",
-                        "Einpflegen der gelieferten Texte, bis 4.000 Zeichen",
-                        "Bildaufbereitung, bis 10 Bilder",
-                        "Kontaktformular mit Spam-Schutz",
-                        "Grundlagen der Barrierefreiheit",
-                        "Technische Optimierung und strukturierte Auszeichnung",
-                        "Hosting-Einrichtung, SSL, Domainumstellung",
-                        "Eine Korrekturschleife",
-                        "Abnahmeaudit mit schriftlichem Protokoll",
-                        "Einweisungsvideo statt Live-Schulung",
-                        "Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat",
-                        "Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-                {
-                    "slug": "websprint_relaunch", "name": "Websprint Relaunch",
-                    "sort_order": 1,
-                    "short_desc": "Bestehende Website auf den Homepage-Standard heben",
-                    "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 14, "status": "live",
-                    # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
-                    # docs/produkte/ws-rel-01.md. Das Blatt nannte als
-                    # Freigabebedingung „nach Behebung L2 und L3".
-                    #
-                    # **Am 04.09.2026 richtiggestellt.** Hier stand, beides sei
-                    # am 23.08. widerlegt — „der PageSpeed-Schluessel
-                    # arbeitet". Die Haelfte stimmt: Die Score-Schwellen sind
-                    # beidseitig gleich (L3 geschlossen). Der Schluessel
-                    # arbeitet **nicht**: Der Produktivbericht vom 04.09.
-                    # meldet 78 % Abdeckung, elf Kriterien tragen „nicht
-                    # erhoben", darunter alle vier Performance-Werte. Das
-                    # Paket bleibt verkaufbar — die zugesicherten 85 Punkte
-                    # der Standard-Garantie sind es nicht, siehe L-165.
-                    "features": [
-                        "Eingangsaudit nach Homepage-Standard, 100 Punkte",
-                        "Strukturabgleich und Seitenplan",
-                        "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
-                        "Redaktionelle Ueberarbeitung der vorhandenen Texte",
-                        "Bildaufbereitung, bis 30 Bilder",
-                        "Kontaktformular mit Spam-Schutz",
-                        "Grundlagen der Barrierefreiheit",
-                        "Technische Grundoptimierung",
-                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
-                        "Eine Korrekturschleife",
-                        "Abnahmeaudit mit schriftlichem Protokoll",
-                        "Einweisung, 30 Minuten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-                {
-                    "slug": "websprint_neubau", "name": "Websprint Neubau",
-                    "sort_order": 2,
-                    "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
-                    "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 28, "status": "live",
-                    "highlighted": True, "highlight_label": "Empfehlung",
-                    "features": ["Positionierungsgespraech, 90 Minuten",
-                        "Bauplan als Freigabedokument, eine Ueberarbeitung",
-                        "Texterstellung fuer bis zu 12 Seiten",
-                        "Bildkonzept und Fotobriefing",
-                        "Aufbau im KOMPAGNON-Komponentensystem, responsiv",
-                        "Technische Optimierung und strukturierte Auszeichnung",
-                        "Hosting, SSL, Weiterleitungen, Domainumstellung",
-                        "Zwei Korrekturschleifen",
-                        "Abnahmeaudit mit schriftlichem Protokoll",
-                        "Einweisung, 60 Minuten",
-                        "Pflege Basic fuer 3 Monate",
-                        "Re-Audit nach 3 Monaten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-                {
-                    "slug": "websprint_system", "name": "Websprint System",
-                    "sort_order": 3,
-                    "short_desc": "Neubau mit GEO/GAIO, Karriereseite und Messgrundlage",
-                    "price_brutto": 15351.00, "price_netto": 12900.00, "tax_rate": 19,
-                    "payment_type": "once", "delivery_days": 42, "status": "draft",
-                    # `draft`, nicht `live`: Die Kernleistung dieses Pakets —
-                    # Auslieferung von llms.txt, schema.org und Ground Page an
-                    # die Kundenseite — ist nicht implementiert (L-99). Das
-                    # Datenblatt WS-SYS-01 fuehrt es selbst als 🔴 gesperrt.
-                    "features": ["Alles aus dem Websprint Neubau",
-                        "Erweiterter Seitenumfang, bis 20 Seiten",
-                        "Karriereseite mit Bewerbungsformular",
-                        "GEO/GAIO-Layer: llms.txt, schema.org, Ground Page",
-                        "Messgrundlage mit Consent-Layer und EU-Datenhaltung",
-                        "Auftragsverarbeitungsvertrag",
-                        "Pflege Pro fuer 12 Monate",
-                        "Quartalsweises Re-Audit mit Massnahmenliste",
-                        "Jahresgespraech, 90 Minuten"],
-                    "checkout_fields": ["name", "company", "email", "phone"],
-                    "webhook_actions": ["create_lead", "create_user",
-                        "create_project", "send_welcome_email", "send_pdf"],
-                },
-            ]
+            SEED = produkt_vorlage()
             import json as _j
             for p in SEED:
                 _db3.execute(_t("""

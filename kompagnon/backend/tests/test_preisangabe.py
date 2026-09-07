@@ -98,13 +98,15 @@ def test_die_produktzeile_traegt_die_kopplung():
     1.785 EUR ohne ein Wort ueber zwoelf Monate Pflege — genau der Fall, den
     § 4.1 verbietet.
     """
-    import ast
+    # **Aufgerufen, nicht als Text gelesen** (07.09.2026, L-167). Hier stand
+    # ein `ast.literal_eval` auf die SEED-Liste. Das ging genau so lange gut,
+    # wie jeder Wert woertlich dastand — seit der Buchpreis aus
+    # `services/buch_preise.py` abgeleitet wird, steht dort ein Aufruf, und
+    # `literal_eval` bricht mit „malformed node" ab. Der dritte Waechter
+    # derselben Bauart; die anderen zwei sind am selben Tag umgestellt worden.
+    from startphase import produkt_vorlage
 
-    baum = ast.parse((WURZEL / "startphase.py").read_text(encoding="utf-8"))
-    seed = next(ast.literal_eval(k.value) for k in ast.walk(baum)
-                if isinstance(k, ast.Assign)
-                and any(getattr(z, "id", "") == "SEED" for z in k.targets))
-    start = next(e for e in seed if e["slug"] == "websprint_start")
+    start = next(e for e in produkt_vorlage() if e["slug"] == "websprint_start")
 
     assert start["gekoppeltes_abo"] == "ABO-BAS"
     assert start["abo_mindestlaufzeit"] == 12

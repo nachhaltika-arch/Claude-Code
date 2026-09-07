@@ -59,6 +59,8 @@ export const KUNDEN_MENUE = [
       { label: 'Rechnungen und Zahlung',  path: '/app/rechnungen' },
       // Am 06.09.2026 aus `NOCH_NICHT_GEBAUT` hierher (L-160 Rang 7).
       { label: 'Vertragsunterlagen',      path: '/app/vertragsunterlagen' },
+      // Am 06.09.2026 aus `NOCH_NICHT_GEBAUT` hierher.
+      { label: 'Dazubuchen',              path: '/app/dazubuchen' },
     ],
   },
   {
@@ -84,7 +86,10 @@ export const KUNDEN_MENUE = [
     key: 'ausgaenge',
     label: '',
     eintraege: [
-      { label: 'Support', path: '/app/support' },
+      // Am 06.09.2026 aus `NOCH_NICHT_GEBAUT` hierher: Der Verlauf stand auf
+      // der Übersicht und unter „Meine Daten", also zweimal am falschen Ort.
+      { label: 'Nachrichten', path: '/app/nachrichten' },
+      { label: 'Support',     path: '/app/support' },
     ],
   },
 ];
@@ -100,12 +105,6 @@ export const KUNDEN_MENUE = [
  * ins Menü wandert, sobald seine Route existiert.
  */
 export const NOCH_NICHT_GEBAUT = [
-  { label: 'Dazubuchen', pfad: 'dazubuchen', luecke: 'L-160',
-    grund: 'Der Bestellweg für Zusatzleistungen aus dem laufenden Konto — im '
-      + 'Entwurf mit Bestätigungsschritt, ohne Check PLUS und Workbook.' },
-  { label: 'Nachrichten', pfad: 'nachrichten', luecke: 'L-160',
-    grund: 'Der Verlauf mit dem Betreuer steht heute auf der Übersicht und '
-      + 'macht sie lang; als eigene Seite wäre er auffindbar.' },
 ];
 
 /** Alle Einträge quer über die Gruppen — für Prüfungen und die Mobilansicht. */

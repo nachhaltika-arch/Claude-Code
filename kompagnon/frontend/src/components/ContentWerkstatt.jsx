@@ -313,8 +313,23 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                             page_id: selectedPage.id,
                           },
                         }));
-                        toast.success('Ground Page generiert ✓');
-                      } catch (e) { toast.error('Ground Page Generierung fehlgeschlagen'); }
+                        // **Erzeugen und Ablegen sind zweierlei** (L-179,
+                        // 07.09.2026). Die Ablage schlug bis heute immer fehl
+                        // — die Zieltabelle war nirgends angelegt —, und der
+                        // Server meldete dafür „Generierung fehlgeschlagen".
+                        // Wer den falschen Schritt genannt bekommt, sucht am
+                        // falschen Ort.
+                        if (data.gespeichert === false) {
+                          toast.error(
+                            `Ground Page erzeugt, aber nicht gespeichert: ${data.ablage_fehler || 'unbekannter Grund'}`,
+                          );
+                        } else {
+                          toast.success('Ground Page generiert ✓');
+                        }
+                      } catch (e) {
+                        // Den echten Grund zeigen statt eines festen Satzes.
+                        toast.error(`Ground Page fehlgeschlagen: ${String(e.message || e).slice(0, 200)}`);
+                      }
                       finally { setGenerating(false); }
                     }}
                     disabled={generating}

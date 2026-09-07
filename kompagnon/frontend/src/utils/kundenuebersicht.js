@@ -28,6 +28,7 @@ export function lageBestimmen({ profil, mitwirkung }) {
   const projekt = (profil?.projects || [])[0] || null;
   const offen = mitwirkung?.offen ?? 0;
   const live = projekt?.status === 'phase_4' || projekt?.status === 'completed';
+  const frist = mitwirkung?.frist || null;
 
   if (live) {
     return {
@@ -50,9 +51,7 @@ export function lageBestimmen({ profil, mitwirkung }) {
     return {
       zustand: 'bau',
       satz: 'Wir bauen. Bei Ihnen liegt gerade nichts.',
-      dazu: projekt.target_go_live
-        ? `Geplante Fertigstellung: ${datum(projekt.target_go_live)}.`
-        : 'Wir melden uns, sobald es etwas freizugeben gibt.',
+      dazu: fertigstellung(frist, projekt),
     };
   }
   return {
@@ -60,6 +59,47 @@ export function lageBestimmen({ profil, mitwirkung }) {
     satz: 'Willkommen bei KOMPAGNON.',
     dazu: 'Sobald Ihr Auftrag angelegt ist, steht hier, woran wir gerade arbeiten.',
   };
+}
+
+/**
+ * Wann es fertig ist — die **Zusage**, nicht die interne Planung.
+ *
+ * **Der Befund vom 06.09.2026.** Seit L-166 rechnet das Backend ein
+ * Bauzeitende: Fristbeginn plus die Bauzeit des gekauften Pakets plus die
+ * Ruhezeiten aus verspäteten Freigaben. Es liegt seither in der Antwort von
+ * `/api/portal/mitwirkung` — die diese Seite ohnehin abruft. **Benutzt wurde
+ * es nicht:** Hier stand weiter `projekt.target_go_live`, ein Feld, das
+ * jemand von Hand setzt. Zwei Daten für dieselbe Zusage, und das von Hand
+ * gesetzte gewann.
+ *
+ * **Warum das gerechnete gewinnt.** Der Kunde fragt „wann ist es fertig?",
+ * und die Antwort darauf ist die Zusage aus seinem Vertrag. Eine interne
+ * Planung, die früher liegt, wäre ein Versprechen, das niemand gegeben hat;
+ * eine, die später liegt, verschweigt die Zusage.
+ *
+ * **Und die Ruhezeit wird benannt, nicht stillschweigend eingerechnet.** Sonst
+ * verschöbe sich der Tag, und der Kunde läse nur ein neues Datum — ohne zu
+ * erfahren, dass seine eigene späte Freigabe es verschoben hat. Im Streit ist
+ * genau das der Unterschied.
+ */
+function fertigstellung(frist, projekt) {
+  if (frist?.ende) {
+    const tage = frist.pause_werktage || 0;
+    if (tage > 0) {
+      const wort = zahlwort(tage);
+      return `Zugesagt fertig: ${datum(frist.ende)} — ${wort} `
+           + `${tage === 1 ? 'Werktag' : 'Werktage'} später, weil eine Freigabe `
+           + 'auf sich warten ließ.';
+    }
+    // **Kein Satzpunkt dahinter.** `datum()` gibt „30. Sept." zurück — die
+    // Abkürzung trägt ihren eigenen. Der zweite ergab „30. Sept..", und
+    // gefunden hat es der Test, nicht das Auge.
+    return `Zugesagt fertig: ${datum(frist.ende)}`;
+  }
+  if (projekt?.target_go_live) {
+    return `Geplante Fertigstellung: ${datum(projekt.target_go_live)}`;
+  }
+  return 'Wir melden uns, sobald es etwas freizugeben gibt.';
 }
 
 // ── Der nächste Schritt ──────────────────────────────────────────────────

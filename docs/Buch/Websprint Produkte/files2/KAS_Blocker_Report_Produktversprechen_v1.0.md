@@ -124,22 +124,42 @@ aussieht. Fortgeschrieben wird sie nicht mehr.
 | Nr. | Stand | Beleg / Fortsetzung |
 |---|---|---|
 | L1 · GEO wird nicht ausgeliefert | ✅ geschlossen | Einbau seit L-99; `services/geo_auslieferung.py` prüft nach der Veröffentlichung am lebenden Dienst nach |
-| L2 · Garantie nicht messbar | 🔴 **offen** | → **L-165**. Produktiv sind 11 Kriterien „nicht erhoben", Abdeckung 78 %. Die Arithmetik hat sich geändert, der Einwand nicht |
+| L2 · Garantie nicht messbar | 🟠 **teilweise** | → **L-165**. Der PageSpeed-Schluessel ist produktiv **gesetzt** (am 07.09.2026 an `/health` nachgemessen, Laenge 39) — die Messbarkeit steht. Offen ist die Produktentscheidung aus **K1**: die Zusage auf das zuschneiden, was wirklich geprueft wird, oder die fehlenden Kriterien erheben. |
 | L3 · Zwei Standards | ✅ geschlossen | Eine Quelle: `services/audit_katalog.py::LEVELS`; `frontend/src/utils/homepageStandard.js` spiegelt sie mit begründeter Regel |
 | L4 · K1–K6 nur im Buch | ✅ geschlossen | `services/audit_industry_map.py`, wirksam im Scoring |
 | L5 · Buchtabellen konstruiert | ✅ geschlossen | `scripts/buch-bloecke.py`, mit `--pruefen` als Wächter |
-| L6 · Bauzeit ohne Fristbeginn | 🟠 **teilweise** | → **L-166**. Fristbeginn liegt in `services/mitwirkung.py`; die **Fristpause** wird nirgends aufgezeichnet |
+| L6 · Bauzeit ohne Fristbeginn | ✅ **geschlossen** | → **L-166**, am 06.09.2026. Fristbeginn **und** Fristpause liegen in `services/bauzeit.py`; `mitwirkung_stand.vorgelegt_am` haelt den Vorlagezeitpunkt, und Kundenkonto wie Innendienst lesen dieselbe Rechnung. Die Auslegung — Verzoegerung ist, was ueber die fuenf Werktage hinausgeht — hat David am 07.09. bestaetigt. |
 | L7 · Buchpreisbindung | 🟠 **offen** | Rechtsfrage, bei David |
 | L8 · USt und GoBD | 🟠 **teilweise** | Nummernkreis in `services/rechnungsnummer.py`; gemischte Bündel steuerlich ungeklärt |
-| L9 · Datenmodell trägt drei Produkte nicht | 🔴 **offen, verschärft** | → **L-164**. Es sind inzwischen **vier** Produkte, und `websprint_start` kommt im Code null Mal vor |
+| L9 · Datenmodell trägt drei Produkte nicht | ✅ **geschlossen** | → **L-164**. Websprint Start steht seit dem 04.09. im Katalog; dass die Schrittkette das Produkt noch nicht kennt, laeuft getrennt als **L-168**. |
 | L10 · Kein Bestell-Subsystem | ✅ geschlossen | Orders-Strecke gebaut, siehe L-100 |
 | L11 · Offene Sicherheitspunkte | ✅ geschlossen | GrapesJS siehe L-75; `routers/projects.py` ohne hartkodierte Schlüssel |
+
+> ## Fortgeschrieben am 07.09.2026 — jetzt neun von elf
+>
+> **L6 und L9 sind geschlossen**, L2 ist von „offen“ auf „teilweise“ gerückt.
+> Offen bleiben genau zwei, und **keiner davon ist Programmierarbeit**:
+>
+> * **L7 · Buchpreisbindung** — Rechtsfrage, bei David.
+> * **L8 · USt und GoBD** — der Nummernkreis liegt in
+>   `services/rechnungsnummer.py`; die steuerliche Klärung gemischter Bündel
+>   gehört zum Steuerberater.
+>
+> **L2** ist der dritte Rest und ein Zwitter: Gemessen werden kann, entschieden
+> ist nicht. Im Lagebild trägt er deshalb die Kennzeichnung `beides`.
 
 **Sieben von elf waren erledigt, ohne dass es jemand eingetragen hatte.** Genau
 das ist der Preis einer zweiten Liste: Sie altert unbemerkt, und ein
 Verkaufsdokument, das auf sie zeigt, meldet eine Sperre, die es nicht mehr gibt
 — oder verschweigt eine, die es noch gibt.
 
-**Was an den Datenblättern zu ändern ist:** Der Freigabestatus nennt künftig die
-Lagebild-Nummer (`L-165`) statt der alten (`L2`). Solange das nicht geschehen
-ist, gilt diese Tabelle als Übersetzung.
+**Was an den Datenblättern zu ändern war, ist am 07.09.2026 geändert:** Der
+Freigabestatus nennt jetzt die Lagebild-Nummer statt der alten. Diese Tabelle
+bleibt als Übersetzung stehen — wer die alten Nummern im Kopf hat oder sie in
+einem älteren Dokument liest, findet hier die Entsprechung.
+
+**Die Lehre dieses Reports in einem Satz:** Eine zweite Liste altert unbemerkt,
+und ein Verkaufsdokument, das auf sie zeigt, meldet eine Sperre, die es nicht
+mehr gibt — oder verschweigt eine, die es noch gibt. Ab jetzt wird sie im
+Lagebild geführt; dieser Report wird nicht mehr fortgeschrieben, er übersetzt
+nur noch.

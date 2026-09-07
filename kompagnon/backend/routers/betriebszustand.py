@@ -200,6 +200,28 @@ def _zahlungszustand() -> dict:
     return zustand
 
 
+def _agb_zustand() -> dict:
+    """Ob eine AGB-Fassung hinterlegt ist — der Nachweis am Kauf haengt daran.
+
+    **Warum das in den Gesundheitsbericht gehoert.** Ohne Fassung entsteht bei
+    jedem Websprint-Kauf ein Auftrag ohne Nachweis, welcher Fassung der Kunde
+    zugestimmt hat. Das faellt nicht auf — bis es im Streit darauf ankommt.
+    """
+    from services import agb
+
+    gesetzt = agb.fassung()
+    return {
+        "fassung_gesetzt": bool(gesetzt),
+        "fassung": gesetzt or "",
+        "variable": "AGB_FASSUNG",
+        "wofuer": ("Nachweis, welcher AGB-Fassung ein Kaeufer zugestimmt hat "
+                   "(L-181). Ohne sie entsteht der Auftrag trotzdem — aber "
+                   "ohne Nachweis. Der Shop weist ohne Fassung jede Bestellung "
+                   "ab; beim Websprint waere dieselbe Sperre ein Verkaufsstopp."),
+        "schwere": "ok" if gesetzt else "hinweis",
+    }
+
+
 def _erhebungszustand() -> dict:
     """Kann das Audit ueberhaupt vollstaendig messen? (K1 / L-165, 05.09.2026)
 
@@ -363,6 +385,13 @@ def health_check():
             "produktablage": _produktablage_zustand(),
             # Ob die Zusage aus G1 heute ueberhaupt messbar ist (K1/L-165).
             "erhebung": _erhebungszustand(),
+            # Ob nachweisbar ist, welcher AGB-Fassung ein Kaeufer zugestimmt
+            # hat (L-181). **Sichtbar statt gesperrt:** Der Shop weist ohne
+            # Fassung jede Bestellung ab — beim Websprint haelte dieselbe
+            # Sperre den Verkauf sofort an, und geschriebene AGB gibt es
+            # bis heute nicht. Also steht der Zustand hier, neben den
+            # Stripe-Schluesseln, statt beim ersten Streit aufzufallen.
+            "agb": _agb_zustand(),
             # Ob eingehende Kundenmails ankommen — und ob gerade ein
             # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
             "posteingang": _posteingang_zustand(),

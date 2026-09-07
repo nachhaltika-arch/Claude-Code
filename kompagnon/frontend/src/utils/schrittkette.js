@@ -11,6 +11,7 @@
  * plus der naechste. Alles dahinter ist gesperrt, bis der Nutzer aufholt.
  */
 import { SCHRITTE } from '../components/KASSidebar';
+import { schritteFuerProdukt } from './produktSchritte';
 
 export function computeStepStatus(project, wireframeData, confirmedSteps) {
   if (!project) return {};
@@ -81,16 +82,34 @@ export function computeStepStatus(project, wireframeData, confirmedSteps) {
   // Pflichtschritt fuer Fortschritt" gilt, darf den Fortschritt nicht
   // aufhalten. Ohne diese Korrektur haetten die beiden am selben Tag
   // eingefuegten Legacy-Schritte jedes laufende Projekt an Schritt 3 gesperrt.
+  //
+  // **Und ein Schritt, den das Produkt nicht kennt, reisst sie ebenfalls ab**
+  // (07.09.2026, L-168). Ein Websprint Start enthaelt weder Sitemap noch
+  // Wireframe, Style Guide, drei Entwuerfe oder KI-Content — das Datenblatt
+  // grenzt sie unter A16, A17 und A19 ausdruecklich aus. Trotzdem standen sie
+  // in seiner Kette, ohne Heuristik und ohne dass sie je jemand abhakt: Der
+  // Fortschritt blieb bei `sitemap-ki` stehen, und alles dahinter war
+  // gesperrt. Der Kunde sah eine Sperre auf Leistungen, die er nie gekauft
+  // hat.
+  const anwendbar = schritteFuerProdukt(SCHRITTE, project.package_type);
+
   let consecutiveDoneIdx = -1;
-  for (let i = 0; i < SCHRITTE.length; i++) {
-    if (status[SCHRITTE[i].id] === 'completed' || SCHRITTE[i].optional) consecutiveDoneIdx = i;
+  for (let i = 0; i < anwendbar.length; i++) {
+    if (status[anwendbar[i].id] === 'completed' || anwendbar[i].optional) consecutiveDoneIdx = i;
     else break;
   }
-  SCHRITTE.forEach((s, idx) => {
+  anwendbar.forEach((s, idx) => {
     if (status[s.id] === 'completed') return;
     if (idx <= consecutiveDoneIdx + 1) status[s.id] = 'ready';
     else status[s.id] = 'locked';
   });
+
+  // Was das Produkt nicht kennt, bekommt keinen Zustand. **Nicht ausgegraut:**
+  // Eine Liste mit zwanzig Zeilen, von denen sechs grau sind, ist eine Liste
+  // mit zwanzig Zeilen — dieselbe Regel, nach der `mitwirkung.gilt_fuer`
+  // seine Punkte weglaesst statt sie zu sperren.
+  const gilt = new Set(anwendbar.map((s) => s.id));
+  Object.keys(status).forEach((id) => { if (!gilt.has(id)) delete status[id]; });
 
   return status;
 }

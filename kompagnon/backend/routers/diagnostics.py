@@ -153,6 +153,33 @@ VERDACHTSSPALTEN = (
 )
 
 #: Tabellen, deren blosse Zeilenzahl eine Frage beantwortet.
+#: Tabellen, die produktiv stehen und die **kein** Verweis im Quelltext mehr
+#: kennt (L-146). Gemessen am 28.08.2026 bei der Wiederherstellungsprobe:
+#: produktiv 73 Tabellen, ein frisch aufgebautes Staging 70.
+#:
+#: **Warum sie hier stehen und nicht in einem Test.** Lokal und im frisch
+#: aufgebauten Staging gibt es sie gar nicht — die Datenbank entsteht dort aus
+#: Migrationen und `create_all`. Ein Test waere dauerhaft gruen. Sichtbar wird
+#: die Differenz nur an der laufenden Produktivdatenbank, und dorthin fuehrt
+#: kein Weg ausser diesem Endpunkt: Das Render-Werkzeug scheitert am
+#: Verbindungsaufbau, die Staging-Abfrage an der Berechtigung.
+#:
+#: **`schema_migrations` ist die gefaehrlichste der drei.** Sie ist die
+#: Buchfuehrung eines Migrationsverfahrens, das beim Start gar nicht laeuft —
+#: es laeuft allein `migrations_runtime.run_migrations`. Wer dort den
+#: Migrationsstand ablesen will, liest Zeilen, die seit Monaten nichts mehr
+#: abbilden. Eine veraltete Auskunft ist schlechter als gar keine, weil sie
+#: beantwortet aussieht.
+VERWAISTE_TABELLEN = (
+    {"tabelle": "schema_migrations", "luecke": "L-146",
+     "warum": "Buchfuehrung eines Verfahrens, das beim Start nicht laeuft — "
+              "wer hier den Migrationsstand abliest, liest Fiktion"},
+    {"tabelle": "revoked_tokens", "luecke": "L-146",
+     "warum": "kein Verweis im Quelltext; beim Zaehlen am 28.08. leer"},
+    {"tabelle": "seo_analyses", "luecke": "L-146",
+     "warum": "kein Verweis im Quelltext; beim Zaehlen am 28.08. leer"},
+)
+
 ZAEHLTABELLEN = (
     {
         "tabelle": "usercards",
@@ -236,6 +263,34 @@ def schema_bericht(_: User = Depends(require_admin),
             hinweise.append(
                 f"{eintrag['luecke']}: {eintrag['bedeutung_wenn_leer']}")
 
+    # ── Verwaiste Tabellen (L-146) ────────────────────────────────────
+    #
+    # Getrennt nach „vorhanden" und „Zeilen": **„nicht da" und „leer" sind
+    # zwei verschiedene Auskuenfte.** Eine fehlende Tabelle als „0 Zeilen" zu
+    # melden taeuschte eine Messung vor, die nicht stattgefunden hat.
+    verwaist = []
+    for eintrag in VERWAISTE_TABELLEN:
+        vorhanden = bool(db.execute(text(
+            "SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
+            {"t": eintrag["tabelle"]}).fetchone())
+        anzahl = None
+        if vorhanden:
+            try:
+                anzahl = db.execute(text(
+                    f"SELECT count(*) FROM {eintrag['tabelle']}"  # noqa: S608
+                )).scalar()
+            except Exception:  # noqa: BLE001 — eine unlesbare Tabelle ist selbst der Befund
+                db.rollback()
+        verwaist.append({**eintrag, "vorhanden": vorhanden, "zeilen": anzahl})
+
+    stehen = [e for e in verwaist if e["vorhanden"]]
+    if stehen:
+        hinweise.append(
+            "L-146: " + ", ".join(
+                f"`{e['tabelle']}` steht ({e['zeilen']} Zeilen)" for e in stehen)
+            + ". Der Quelltext kennt keine davon. Bevor sie fallen: pruefen, ob "
+              "die Zeilen irgendwo als Beleg gebraucht werden.")
+
     # **Je Luecke ein Satz, auch wenn nichts auffaellt.** Ein Bericht, der
     # ueber eine Frage schweigt, laesst den Leser raten, ob sie ueberhaupt
     # geprueft wurde — dieselbe Sorte Luecke, die dieser Endpunkt schliesst.
@@ -251,10 +306,16 @@ def schema_bericht(_: User = Depends(require_admin),
         "L-106: `usercards` traegt Zeilen — das Kundendashboard findet "
         "also etwas."
     ))
+    l146 = [h for h in hinweise if h.startswith("L-146")]
+    saetze.append(" ".join(l146) if l146 else (
+        "L-146: Keine der drei verwaisten Tabellen steht in dieser Datenbank — "
+        "hier ist nichts fallen zu lassen."
+    ))
     bewertung = " ".join(saetze)
 
     return {
         "spalten": spalten,
         "zeilenzahlen": zeilenzahlen,
+        "verwaiste_tabellen": verwaist,
         "bewertung": bewertung,
     }

@@ -11,7 +11,7 @@
 | **Gesamtpreis erstes Jahr** | **2.448 € netto** |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z7** (neu, siehe Baukasten) |
-| Bauzeit | **7 Kalendertage** |
+| Bauzeit | **7 Werktage** |
 | Mitwirkung | **M1, M2, M3, M4, M5** |
 | Garantien | **G1, G2** (G2 gedeckelt auf 300 €), **G6** |
 | Abgrenzung | **A1–A15** sowie **A16–A19** |

@@ -75,6 +75,26 @@ def frontend_importiert(stamm: str, text: str) -> bool:
     return re.search(muster, text) is not None
 
 
+#: Dieselben drei Formen wie in `frontend_importiert`, nur ohne festen Namen —
+#: fuer den **Graphen**, der einmal gebaut wird statt bei jedem Vergleich neu.
+_FRONTEND_PFADE = re.compile(
+    r"""from\s+['"]([^'"]+)['"]"""
+    r"""|import\s*\(\s*['"]([^'"]+)['"]"""
+    r"""|require\s*\(\s*['"]([^'"]+)['"]""")
+
+
+def frontend_zielstaemme(text: str) -> set:
+    """Die Dateinamen ohne Endung, die diese Datei importiert."""
+    staemme = set()
+    for treffer in _FRONTEND_PFADE.finditer(text):
+        pfad = next(g for g in treffer.groups() if g)
+        if "/" not in pfad:        # Paket aus node_modules, keine eigene Datei
+            continue
+        name = pfad.rsplit("/", 1)[-1]
+        staemme.add(re.sub(r"\.jsx?$", "", name))
+    return staemme
+
+
 def frontend_ist_test(pfad: pathlib.Path) -> bool:
     return ".test." in pfad.name or ".spec." in pfad.name
 
@@ -240,16 +260,85 @@ def _pruefe(bereich: dict) -> tuple:
             return backend_erreicht_von(pfad, inhalte, quellen, wurzel)
         return frontend_erreicht_von(pfad, inhalte, quellen)
 
+    def ist_einstieg(pfad) -> bool:
+        return (pfad.stem in bereich["einstiege"]
+                or any(o in pfad.parts for o in bereich["einstiegs_ordner"]))
+
+    def graph() -> dict:
+        """Einmal `Quelle → Ziele`, statt bei jedem Sprung alles zu vergleichen.
+
+        Der erste Anlauf am 07.09.2026 verglich in jedem Schritt jede Datei
+        mit jeder — bei 359 Frontend- und 608 Backend-Dateien lief er nach
+        zwei Minuten noch. Ein Werkzeug, das niemand abwartet, wird nicht
+        benutzt.
+        """
+        kanten = {p: set() for p in inhalte}
+        if bereich["sprache"] == "python":
+            nach_modulpfad, nach_name = {}, {}
+            for ziel in inhalte:
+                mp = backend_modulpfad(ziel, wurzel)
+                nach_modulpfad[mp] = ziel
+                if mp:
+                    nach_name.setdefault(mp[-1], []).append(ziel)
+            for quelle, text in inhalte.items():
+                for mp in backend_ziele(quelle, wurzel, text):
+                    if mp in nach_modulpfad:
+                        kanten[quelle].add(nach_modulpfad[mp])
+                for name in backend_dynamische_namen(text):
+                    kanten[quelle].update(nach_name.get(name, ()))
+        else:
+            nach_stamm = {}
+            for ziel in inhalte:
+                nach_stamm.setdefault(ziel.stem, []).append(ziel)
+            for quelle, text in inhalte.items():
+                for stamm in frontend_zielstaemme(text):
+                    kanten[quelle].update(nach_stamm.get(stamm, ()))
+        for quelle in kanten:
+            kanten[quelle].discard(quelle)
+        return kanten
+
+    kanten = graph()
+
+    def erreichbar_ab(start: list) -> set:
+        """Alles, was von `start` aus ueber Importe zu erreichen ist.
+
+        **Am 07.09.2026 von einem Sprung auf die ganze Kette umgestellt
+        (L-95).** Vorher fragte die Messung, ob **irgendeine** Anwendungsdatei
+        die gepruefte importiert. Dass die importierende Datei selbst niemanden
+        hat, der sie ruft, blieb ungeprueft — eine Kette unerreichbarer
+        Dateien deckte sich damit gegenseitig zu, und je laenger sie war,
+        desto weniger fiel auf.
+
+        Gemessen hat es der Vorlagenstrang: `allTemplates.js` (3 Zeilen)
+        importiert `templates.js` (146) und `templates_zusatz.js` (**3.121**),
+        und `allTemplates.js` importiert **niemand**. Gemeldet wurden drei
+        Zeilen statt 3.270 — und `templates_zusatz.js` ist zugleich die
+        groesste Datei im Frontend und steht in L-25 ueber der
+        800-Zeilen-Grenze. Ohne diese Umstellung waere sie aufgeteilt worden
+        statt entschieden.
+        """
+        gefunden, offen = set(start), list(start)
+        while offen:
+            for ziel in kanten.get(offen.pop(), ()):
+                if ziel not in gefunden:
+                    gefunden.add(ziel)
+                    offen.append(ziel)
+        return gefunden
+
+    einstiege = [p for p in anwendung if ist_einstieg(p)]
+    von_der_anwendung = erreichbar_ab(einstiege)
+    # Tests sind selbst Einstiegspunkte — sie werden ausgefuehrt, nicht
+    # importiert. Was sie erreichen, ist Pruefwerkzeug und kein toter Code.
+    von_tests = erreichbar_ab(tests)
+
     nur_tests, unerreichbar = [], []
     for pfad, text in inhalte.items():
-        if pfad.stem in bereich["einstiege"] or ist_test(pfad):
+        if ist_einstieg(pfad) or ist_test(pfad):
             continue
-        if any(o in pfad.parts for o in bereich["einstiegs_ordner"]):
-            continue
-        if erreicht(pfad, anwendung):
+        if pfad in von_der_anwendung:
             continue
         eintrag = (len(text.splitlines()), pfad)
-        ziel = nur_tests if erreicht(pfad, tests) else unerreichbar
+        ziel = nur_tests if pfad in von_tests else unerreichbar
         ziel.append(eintrag)
 
     nur_tests.sort(reverse=True)

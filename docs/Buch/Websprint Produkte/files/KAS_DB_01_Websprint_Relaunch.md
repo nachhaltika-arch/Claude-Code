@@ -9,11 +9,20 @@
 | Preis | **3.500 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z1** (50/50) |
-| Bauzeit | **14 Kalendertage** |
+| Bauzeit | **14 Werktage** |
 | Mitwirkung | **M1, M2, M3, M4, M5**, bei Migration zusätzlich M9 |
 | Garantien | **G1, G2** (G2 gedeckelt auf 1.000 €) |
 | Abgrenzung | **A1–A15** vollständig |
-| Freigabestatus | 🟠 verkaufbar nach Behebung L2 und L3 |
+| Freigabestatus | 🟠 verkaufbar nach Behebung **L-165** (vormals L2) · L3 ist geschlossen |
+
+> **Nummern am 07.09.2026 umgestellt (L-163).** Hier standen die Nummern der
+> **zweiten** L-Liste (`KAS_Blocker_Report_Produktversprechen_v1.0.md`, L1–L11).
+> Genau daran ist am 04.09. jemand getreten: Die Frage „wo stehen wir mit L2 und
+> L3" wurde am Lagebild beantwortet — wo es **kein L-02 gibt** und L-03 seit dem
+> 07.08. geschlossen ist. Zwei Listen mit derselben Kennung sind kein
+> Schönheitsfehler, sondern eine Falle. Ab jetzt steht hier die Lagebild-Nummer;
+> die Übersetzungstabelle bleibt im Schlussvermerk des Blocker-Reports.
+
 
 > **Nachgemessen am 04.09.2026 — der Freigabestatus oben ist überholt.**
 > **L3 ist geschlossen** (eine Schwellenquelle im Backend, Frontend spiegelt sie). **L2 ist offen** und läuft jetzt als **L-165**: Der Produktivbericht vom 04.09. meldet 78 % Abdeckung, elf Kriterien sind nicht erhoben. **L1 ist ebenfalls geschlossen** — die Zeile zu GEO-01 weiter unten stimmt nicht mehr.
@@ -69,7 +78,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 | ABO-BAS | Pflege Basic ab Abnahme | 79 €/Mon. |
 | ABO-PRO | Pflege Pro ab Abnahme | 149 €/Mon. |
 
-🔴 GEO-01 derzeit nicht anbietbar, siehe Blocker L1.
+🟢 GEO-01 ist seit dem 04.09.2026 anbietbar — der Blocker L1 lief als **L-99** und ist geschlossen; die Auslieferung von `llms.txt` und `schema.org` steht und wird nach der Veröffentlichung am lebenden Dienst nachgeprüft. *(Nummer und Stand am 07.09.2026 nachgezogen, L-163.)*
 
 ---
 
@@ -97,7 +106,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 >
 > Leistungsumfang: bis zu 6 Seiten, Übernahme und Überarbeitung Ihrer Texte, Aufbereitung Ihres Bildmaterials, Kontaktformular, Einbindung Ihrer Rechtstexte, technische Optimierung, Hosting-Einrichtung, Umstellung Ihrer Domain, Abnahmeaudit mit schriftlichem Protokoll sowie eine Einweisung.
 >
-> **Festpreis 3.500 € netto.** Bauzeit 14 Kalendertage ab Vorliegen Ihrer Mitwirkungsleistungen. Eine Korrekturschleife ist enthalten.
+> **Festpreis 3.500 € netto.** Bauzeit 14 Werktage ab Vorliegen Ihrer Mitwirkungsleistungen. Eine Korrekturschleife ist enthalten.
 
 ---
 

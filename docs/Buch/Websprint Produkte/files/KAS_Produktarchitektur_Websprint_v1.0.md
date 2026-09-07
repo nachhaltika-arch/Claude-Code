@@ -77,7 +77,21 @@ Alle drei nutzen denselben Mechanismus (HS-100 + Festpreis + Bauzeitgarantie + A
 | GEO/GAIO | Add-on | Add-on | **enthalten** |
 | Pflege | Add-on | 3 Monate enthalten | **12 Monate Pro enthalten** |
 | Re-Audit | — | nach 3 Monaten | **quartalsweise, 12 Monate** |
-| Bauzeit | **14 Tage** | 28 Tage | 42 Tage |
+| Bauzeit | **14 Werktage** | 28 Werktage | 42 Werktage |
+
+> **Werktage, seit dem 07.09.2026 (L-173/L-182).** Hier stand „14 Tage | 28
+> Tage | 42 Tage“, waehrend die acht Datenblaetter daneben schon Werktage
+> sagten. An dieser Zahl haengt die Verzugspauschale von 100 € je
+> angefangenem Verzugstag: 28 Kalendertage sind vier Wochen, 28 Werktage
+> knapp sechs — wer nach dem einen bindet und nach dem anderen plant,
+> reisst die Frist um elf Kalendertage.
+>
+> Diese Uebersicht ist das Dokument, das jemand **zuerst** liest, wenn er
+> wissen will, was die drei Produkte unterscheiden. Dass sie als einzige
+> nicht nachgezogen war, ist deshalb kein kleiner Rest.
+> `kompagnon/backend/tests/test_datenblatt_bauzeit.py` prueft die Zahlen
+> jetzt gegen `products.delivery_days` — also gegen das, womit das
+> Kundenkonto das zugesagte Ende ausrechnet.
 | **Preis netto (Vorschlag)** | **3.500 €** | **7.900 €** | **12.900 €** |
 
 **Preislogik:** Der RELAUNCH bleibt der bekannte Anker. NEUBAU ist knapp das Doppelte — nachvollziehbar, weil Text und Struktur echte Zusatzarbeit sind. SYSTEM ist bewusst so gesetzt, dass NEUBAU als vernünftige Mitte erscheint. Erwartete Verteilung: 60 % RELAUNCH · 30 % NEUBAU · 10 % SYSTEM.
@@ -88,7 +102,7 @@ Alle drei nutzen denselben Mechanismus (HS-100 + Festpreis + Bauzeitgarantie + A
 
 ### Die Einstiegsstufe: WEBSPRINT START (WS-STA-01)
 
-Seit dem 23.08.2026 ergänzt ein viertes Produkt die Leiter nach unten: der **Ein-Seiten-Auftritt zu 1.500 € netto einmalig zzgl. 79 € monatlich bei 12 Monaten Mindestlaufzeit** — Gesamtpreis erstes Jahr **2.448 € netto**, 7 Tage Bauzeit.
+Seit dem 23.08.2026 ergänzt ein viertes Produkt die Leiter nach unten: der **Ein-Seiten-Auftritt zu 1.500 € netto einmalig zzgl. 79 € monatlich bei 12 Monaten Mindestlaufzeit** — Gesamtpreis erstes Jahr **2.448 € netto**, 7 Werktage Bauzeit.
 
 **Er ist bewusst keine billigere Variante des Relaunch, sondern eine eigene Kategorie.** Ein Produkt namens „Relaunch Light" hätte die Frage aufgeworfen, warum der Relaunch 3.500 € kostet — und jede Antwort darauf wäre eine Rechtfertigung gewesen. „Eine Seite gegen sechs" ist dagegen sachlich und braucht keine Verteidigung.
 

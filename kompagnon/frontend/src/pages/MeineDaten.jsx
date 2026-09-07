@@ -21,7 +21,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import SeitenTitel from '../components/ui/SeitenTitel';
-import KundenChat from '../components/kunde/KundenChat';
 
 /**
  * Die Felder in der Reihenfolge, in der ein Mensch sie im Kopf hat: erst der
@@ -221,7 +220,6 @@ export default function MeineDaten() {
         <div style={meldung('success')}>{hinweis}</div>
       )}
 
-      <KundenChat leadId={leadId} token={token} />
     </div>
   );
 }

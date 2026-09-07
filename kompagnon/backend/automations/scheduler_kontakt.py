@@ -48,8 +48,14 @@ def _do_send_email(to_email: str, subject: str, html_body: str) -> bool:
     return _send_email_canonical(to_email=to_email, subject=subject, html_body=html_body)
 
 
-def _send_phase_email(project_id: int, template_key: str):
-    """Send template email for a project (standalone function)."""
+def _send_phase_email(project_id: int, template_key: str, zusatz: dict = None):
+    """Send template email for a project (standalone function).
+
+    `zusatz` ergaenzt den Kontext um Angaben, die nur diese eine Mail kennt —
+    etwa die **fehlenden Mitwirkungspunkte** in der Materialmahnung (L-159).
+    Sie stehen bewusst nicht im festen Kontext: Was fehlt, ist eine Aussage
+    ueber **dieses** Projekt und gehoert dorthin, wo sie ermittelt wird.
+    """
     db = SessionLocal()
     try:
         project = db.query(Project).filter(Project.id == project_id).first()
@@ -83,6 +89,7 @@ def _send_phase_email(project_id: int, template_key: str):
             "review_link":          "https://g.page/r/kompagnon",
         }
 
+        context.update(zusatz or {})
         rendered = render_template(template_key, context)
         success = _do_send_email(
             to_email=lead.email,
@@ -208,6 +215,33 @@ def job_check_overdue_phases():
         db.close()
 
 
+def _offene_mitwirkung(db, project):
+    """Die fristbegruendenden Punkte, die dieses Projekt noch schuldet.
+
+    **Aus dem Katalog, nicht aus einer zweiten Liste** (L-159). Welche Punkte
+    fuer dieses Projekt ueberhaupt gelten, entscheidet `gilt_fuer`; welche
+    davon vorliegen, steht in `mitwirkung_stand`. Die Freigaben M7 und M8
+    zaehlen nicht mit: Sie pausieren eine laufende Frist, sie halten den Start
+    nicht auf.
+    """
+    from database import MitwirkungStand
+    from services import mitwirkung as kat
+
+    # Produkt und Projektmerkmale in einem — siehe `mitwirkung.fuer_projekt`.
+    punkte = kat.fuer_projekt(project)
+
+    try:
+        erledigt = {z.kennung for z in db.query(MitwirkungStand)
+                    .filter(MitwirkungStand.project_id == project.id).all()
+                    if z.erledigt_am}
+    except Exception:  # noqa: BLE001 — ohne Tabelle mahnen wir wie bisher
+        db.rollback()
+        return tuple(p for p in punkte
+                     if p.wirkung == kat.FRISTBEGINN)
+
+    return kat.fristbeginn_offen(punkte, erledigt)
+
+
 def job_check_missing_materials():
     """Erinnert einmal an fehlende Materialien — nicht jeden Morgen.
 
@@ -227,6 +261,15 @@ def job_check_missing_materials():
             if not project.lead or not project.lead.email:
                 continue
 
+            # **Erst nachsehen, ob ueberhaupt etwas fehlt** (L-159 Schritt 5,
+            # 07.09.2026). Bis hierher mahnte der Job nach **Tagen**, nicht
+            # nach Sachlage: Ein Betrieb, der alles geliefert hatte, bekam die
+            # Mahnung trotzdem — und das ist die Sorte Mail, nach der niemand
+            # mehr eine Mail von uns ernst nimmt.
+            offen = _offene_mitwirkung(db, project)
+            if not offen:
+                continue
+
             tage = (datetime.utcnow() - project.start_date).days
             vorlage = faellige_erinnerung(
                 tage, MATERIAL_STUFEN, _bereits_gesendet(db, project.id)
@@ -235,10 +278,17 @@ def job_check_missing_materials():
                 continue
 
             logger.info(
-                f"📧 Material-Erinnerung ({vorlage}) für Projekt {project.id} "
-                f"(Tag {tage} ohne Materialien)"
+                "📧 Material-Erinnerung (%s) für Projekt %s (Tag %s, offen: %s)",
+                vorlage, project.id, tage, ", ".join(p.kennung for p in offen)
             )
-            _send_phase_email(project.id, vorlage)
+            # **Und sie sagt, welche.** „Materialien fehlen" ohne die Liste
+            # laesst den Betrieb raten — und raten tut er nicht, er legt die
+            # Mail weg. Die Punkte kommen aus dem Katalog, in Kundensprache:
+            # „M3" sagt ihm nichts.
+            _send_phase_email(project.id, vorlage, zusatz={
+                "fehlende_punkte": "\n".join(
+                    f"• {p.titel} — {p.warum}" for p in offen),
+            })
     finally:
         db.close()
 

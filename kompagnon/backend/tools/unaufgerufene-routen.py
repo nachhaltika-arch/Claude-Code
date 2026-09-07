@@ -109,6 +109,33 @@ ERKLAERT = (
     # Frage, die das Werkzeug selbst gestellt hat.
     ("/api/pages/{page_id}/editor", "GrapesEditor — Basis kommt als Eigenschaft"),
     ("/api/kas/pages/{page_id}/editor", "GrapesEditor auf der Agenturseite — Basis kommt als Eigenschaft"),
+
+    # **Zehn weitere beurteilt am 07.09.2026 (L-105).** Keine davon ist eine
+    # fehlende Schaltflaeche; jede hat einen Aufrufer, der kein Browser ist.
+    #
+    # Betriebsdiagnose: von Hand abgefragt, wenn etwas nicht stimmt — dieselbe
+    # Gattung wie `/health`. Alle drei haengen an `require_admin`; geprueft,
+    # nicht angenommen.
+    ("/api/diagnostics/", "Betriebsdiagnose — von Hand abgefragt, nicht aus der Oberflaeche"),
+    ("/api/scheduler/", "Zeitsteuerung — Betrieb, haengt an require_innendienst"),
+    # `debug` und `seed` sind Diagnose und Erstbefuellung. **Der Handler
+    # allein sieht ungeschuetzt aus** — `debug_projects(db=Depends(get_db))`,
+    # ohne Nutzer, und er gibt Firmennamen von Leads heraus. Der Schutz sitzt
+    # eine Ebene hoeher: `projects_router.router` traegt `require_innendienst`
+    # und `verlangt_recht("manage_projects")`. An der Produktivadresse
+    # nachgemessen: **401**. Wer nur den Handler liest, meldet hier eine
+    # Luecke, die es nicht gibt.
+    ("/api/projects/debug", "Diagnose — Schutz am Router, produktiv mit 401 nachgemessen"),
+    ("/api/projects/seed", "Erstbefuellung — Schutz am Router (Innendienst)"),
+    # Das Buch wird nicht aus diesem Werkzeug verkauft: Die Kaufseite liegt
+    # unter `FRONTEND_BOOK_URL`, einer eigenen Adresse. Dieselbe Lage wie beim
+    # Widget — der Aufrufer existiert, nur nicht in diesem Quellbaum. Die
+    # Innendienst-Sicht auf die Bestellungen (`/api/book/orders`) ruft
+    # `BuchBestellungen.jsx` sehr wohl; deshalb hier drei genaue Pfade statt
+    # eines Praefixes `/api/book/`.
+    ("/api/book/checkout", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
+    ("/api/book/varianten", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
+    ("/api/book/order/{", "Danke-Seite des Buchverkaufs — liegt unter FRONTEND_BOOK_URL"),
 )
 
 

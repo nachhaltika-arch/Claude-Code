@@ -174,6 +174,7 @@ def get_packages(db: Session = Depends(get_db)):
 
 @router.post("/create-checkout")
 async def create_checkout(request: Request, db: Session = Depends(get_db)):
+    from services.zahlungsweg import merkmale_mit_agb
     from sqlalchemy import text as _t
     import json as _j
 
@@ -243,14 +244,19 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
             line_items=line_items_param,
             mode="payment",
             customer_email=customer_email or None,
-            metadata={
+            # **Die geltende AGB-Fassung wandert mit** (L-181, 06.09.2026).
+            # Sie kommt mit dem Rueckruf zurueck und wird ans Projekt
+            # geschrieben — der Nachweis, welcher Fassung dieser Kaeufer
+            # zugestimmt hat. Ohne hinterlegte Fassung bleibt das Feld leer,
+            # und `/health` sagt es.
+            metadata=merkmale_mit_agb({
                 "package":          package_id,
                 "company_name":     company_name,
                 "customer_name":    customer_name,
                 "customer_email":   customer_email,
                 "website_url":      website_url,
                 "phone":            phone,
-            },
+            }),
             success_url=f"{public_base_url()}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{public_base_url()}/checkout?cancelled=1",
             locale="de",
@@ -598,6 +604,13 @@ def _handle_successful_payment(session: dict, db: Session):
             # Der Preis kommt aus der Produktzeile, sonst aus dem, was
             # Stripe tatsaechlich abgebucht hat (L-29).
             festpreis = projekt_festpreis(db, package_id, amount)
+            # **Die AGB-Fassung aus der Kassensitzung** (L-181, 06.09.2026).
+            # Sie stammt aus den Stripe-Metadaten, die der Server beim
+            # Anlegen der Sitzung gesetzt hat — also die Fassung, die **beim
+            # Kauf** galt, nicht die von heute. Ist sie leer, war damals
+            # keine hinterlegt; das ist die ehrliche Antwort und steht so in
+            # der Spalte.
+            agb_fassung = (meta.get("agb_fassung") or "").strip()
             project = Project(
                 lead_id        = lead.id,
                 status         = "phase_1",
@@ -606,6 +619,8 @@ def _handle_successful_payment(session: dict, db: Session):
                 fixed_price    = festpreis,
                 hourly_rate    = 45.0,
                 ai_tool_costs  = 50.0,
+                agb_fassung    = agb_fassung,
+                agb_akzeptiert_am = datetime.utcnow() if agb_fassung else None,
             )
             db.add(project)
             db.flush()

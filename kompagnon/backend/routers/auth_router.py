@@ -236,12 +236,25 @@ class AdminCreateUser(BaseModel):
     role: str = VORGABE
     position: str = ""
     send_invite: bool = False
+    #: Der Betrieb, zu dem dieses Konto gehoert (Wunsch David, 06.09.2026).
+    #: Entscheidet im Kundenkonto ueber **alles**: welchen Betrieb jemand
+    #: sieht, welche Mitwirkung, welche Rechnungen.
+    lead_id: Optional[int] = None
 
 
 class AdminUpdateUser(BaseModel):
     role: str = None
     is_active: bool = None
     position: str = None
+    #: **Nachtraeglich zuordnen und wieder loesen** (06.09.2026). Bis dahin
+    #: liess sich `users.lead_id` ueber die Oberflaeche weder setzen noch
+    #: aendern — wer einen Zugang einem Betrieb zuordnen musste, brauchte
+    #: einen Datenbankzugriff.
+    #:
+    #: **`None` heisst hier „loesen", nicht „unveraendert".** Den Unterschied
+    #: macht `model_fields_set`: Wer nur die Rolle schickt, darf die
+    #: Betriebszuordnung nicht nebenbei verlieren.
+    lead_id: Optional[int] = None
 
 
 # ═══════════════════════════════════════════════════════════
@@ -647,6 +660,9 @@ def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: 
     user = User(
         email=req.email.lower().strip(),
         password_hash=hash_password(temp_password),
+        # Der Betrieb kann gleich beim Anlegen mitkommen — sonst muesste der
+        # Innendienst zweimal hin (06.09.2026).
+        lead_id=_geprueftes_lead(db, req.lead_id),
         first_name=req.first_name.strip(),
         last_name=req.last_name.strip(),
         role=rolle_normalisieren(req.role) or VORGABE,
@@ -680,6 +696,11 @@ def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(requir
         user.is_active = req.is_active
     if req.position is not None:
         user.position = req.position.strip()
+    # **Nur anfassen, wenn das Feld wirklich mitkam.** `req.lead_id is None`
+    # allein hiesse auch „nicht geschickt" — und ein Rollenwechsel wuerde
+    # nebenbei die Betriebszuordnung loeschen.
+    if "lead_id" in req.model_fields_set:
+        user.lead_id = _geprueftes_lead(db, req.lead_id)
     db.commit()
     return _user_dict(user)
 
@@ -714,14 +735,50 @@ def admin_reset_password(user_id: int, admin: User = Depends(require_admin), db:
 # Helpers
 # ═══════════════════════════════════════════════════════════
 
+def _geprueftes_lead(db: Session, lead_id):
+    """Die Betriebskennung — oder `None`, wenn geloest werden soll.
+
+    **Eine Kennung, die es nicht gibt, waere ein Zugang ins Nichts** und
+    fiele erst auf, wenn sich jemand anmeldet und eine leere Seite sieht.
+    """
+    if lead_id in (None, 0, ""):
+        return None
+    from database import Lead
+
+    if not db.query(Lead).filter(Lead.id == int(lead_id)).first():
+        raise HTTPException(400, f"Betrieb {lead_id} gibt es nicht")
+    return int(lead_id)
+
+
+@admin_router.get("/betriebe", dependencies=[Depends(verlangt_recht("manage_users"))])
+def admin_betriebe(db: Session = Depends(get_db)):
+    """Die Betriebe zur Auswahl — Kennung und Name.
+
+    **Ohne Liste keine Zuordnung.** Der Innendienst kennt die Kennungen nicht
+    auswendig; er sucht den Namen. Bewusst schlank: nur was die Auswahl
+    braucht, keine Kundendaten.
+    """
+    from database import Lead
+
+    zeilen = (db.query(Lead.id, Lead.company_name, Lead.email)
+              .order_by(Lead.company_name.asc()).limit(2000).all())
+    return [{"id": z[0], "name": z[1] or z[2] or f"Betrieb {z[0]}"} for z in zeilen]
+
+
 def _user_dict(user: User) -> dict:
     onboarding_done = False
+    # **Der Name, nicht nur die Kennung** (06.09.2026). `lead_id: 34` sagt
+    # niemandem, um welchen Betrieb es geht — und die Zeile wird ohnehin
+    # gelesen, um `onboarding_completed` zu holen.
+    betrieb = ""
     if user.lead_id:
         try:
             from database import SessionLocal, Lead
             _db = SessionLocal()
             lead = _db.query(Lead).filter(Lead.id == user.lead_id).first()
             onboarding_done = bool(getattr(lead, 'onboarding_completed', False)) if lead else False
+            if lead:
+                betrieb = lead.company_name or lead.email or f"Betrieb {lead.id}"
             _db.close()
         except Exception:
             pass
@@ -739,6 +796,7 @@ def _user_dict(user: User) -> dict:
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "lead_id": user.lead_id,
+        "betrieb": betrieb,
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "onboarding_completed": onboarding_done,

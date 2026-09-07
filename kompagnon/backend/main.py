@@ -392,6 +392,9 @@ app.include_router(leads_abo.router)
 # Die zugesagte Bauzeit und die Ruhezeit aus verspaeteten Freigaben (L-166).
 from routers import bauzeit as bauzeit_router
 app.include_router(bauzeit_router.router)
+# Die allgemeine Suche im Werkzeug (06.09.2026) — Innendienst.
+from routers import suche as suche_router
+app.include_router(suche_router.router)
 app.include_router(leads_nachfassen.router)
 # Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
 from routers.leads_portal import kunden_router as leads_kunden_router
@@ -429,6 +432,20 @@ app.include_router(agents_router)
 app.include_router(automations_router)
 app.include_router(cms_connect_router)
 app.include_router(portal_router)
+
+# **Vier Geschwister desselben Praefixes (07.09.2026, L-25).** `portal.py` war
+# auf 1.630 Zeilen gewachsen und ist nach Zustaendigkeit geschnitten; jedes
+# Stueck bringt seinen eigenen Router mit demselben Praefix mit. Die Routen
+# sind Pfad fuer Pfad dieselben geblieben — vor und nach dem Schnitt gezaehlt.
+from routers.portal_dsgvo import router as portal_dsgvo_router
+from routers.portal_vertrag import router as portal_vertrag_router
+from routers.portal_leistungen import router as portal_leistungen_router
+from routers.portal_geld import router as portal_geld_router
+
+app.include_router(portal_dsgvo_router)
+app.include_router(portal_vertrag_router)
+app.include_router(portal_leistungen_router)
+app.include_router(portal_geld_router)
 app.include_router(audit_router)
 app.include_router(buch_router)
 # Die Warteschlange der Druckbestellungen (BUCH-07). Eigenes Modul, weil

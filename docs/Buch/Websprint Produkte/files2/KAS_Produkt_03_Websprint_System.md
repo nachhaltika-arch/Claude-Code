@@ -37,7 +37,7 @@ Alles aus Produkt 02, zusätzlich:
 **Preisbegründung gegenüber dem Kunden:** Der reine Bauanteil entspricht dem NEUBAU. Die Differenz von 6.000 € entfällt auf Recruitingseite, GEO-Layer und zwölf Monate begleitete Instandhaltung mit vier dokumentierten Prüfungen. Das ist rechenbar, nicht gefühlt.
 
 ## 5. Bauzeit
-**42 Kalendertage** ab vollständiger Mitwirkung.
+**42 Werktage** ab vollständiger Mitwirkung.
 
 ## 6. Garantien
 - Standard-Garantie 85/100 bei Abnahme

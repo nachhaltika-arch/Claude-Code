@@ -77,3 +77,26 @@ def weg_der_sitzung(metadaten) -> str:
 def gehoert_hierher(erwartet: str, metadaten) -> bool:
     """Ob diese Sitzung von dem Weg verarbeitet werden soll, der fragt."""
     return weg_der_sitzung(metadaten) == erwartet
+
+
+def merkmale_mit_agb(merkmale: dict) -> dict:
+    """Die Metadaten der Kassensitzung, ergaenzt um die geltende AGB-Fassung.
+
+    **Der Punkt, den fast alle vergessen** (L-181, 06.09.2026). Aendern sich
+    die AGB, muss nachweisbar bleiben, **welche Fassung** der Kaeufer
+    akzeptiert hat — sonst belegt die Zustimmung nur, dass jemand irgendwann
+    irgendetwas angehakt hat. Der Shop haelt sie seit ORDERS_05 fest
+    (`bestellungen.terms_version`); beim **Websprint** ueber Stripe kam `agb`
+    bis heute **null Mal** vor, und das ist der teurere der beiden Wege.
+
+    **Der Server bestimmt die Fassung, nicht der Browser.** Kaeme sie aus dem
+    Aufruf, koennte der Absender bestimmen, welcher Fassung er zugestimmt
+    haben will.
+
+    **Ohne hinterlegte Fassung steht ein leeres Feld da** — nicht eine
+    erfundene Kennung. Ein Nachweis ueber nichts waere schlechter als die
+    sichtbare Luecke; sie steht dafuer in `/health`.
+    """
+    from services import agb
+
+    return {**(merkmale or {}), "agb_fassung": agb.fassung() or ""}

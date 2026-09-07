@@ -175,3 +175,66 @@ describe('Zuletzt passiert', () => {
     expect(verlaufBauen({ inhalt: null, zahlungen: null, profil: null })).toEqual([]);
   });
 });
+
+describe('Der zugesagte Fertigstellungstag kommt aus der Frist, nicht aus der Planung', () => {
+  /**
+   * **Der Befund vom 06.09.2026.** Seit L-166 rechnet das Backend ein
+   * Bauzeitende — Fristbeginn plus die Bauzeit des gekauften Pakets plus die
+   * Ruhezeiten aus verspäteten Freigaben. Es liegt seither in der Antwort von
+   * `/api/portal/mitwirkung`, die diese Seite ohnehin abruft.
+   *
+   * **Benutzt wurde es nicht.** Die Übersicht zeigte weiter
+   * `projekt.target_go_live` — ein Feld, das jemand von Hand setzt. Zwei
+   * Daten für dieselbe Zusage, und das von Hand gesetzte gewinnt: genau die
+   * Klasse „gebaut, nicht angeschlossen", diesmal an meiner eigenen Arbeit
+   * von heute Morgen.
+   *
+   * **Warum das gerechnete gewinnt.** Der Kunde fragt „wann ist es fertig?",
+   * und die Antwort darauf ist die **Zusage** aus seinem Vertrag. Eine
+   * interne Planung, die früher liegt, wäre ein Versprechen, das niemand
+   * gegeben hat; eine, die später liegt, verschweigt die Zusage.
+   */
+  const projektMitPlanung = {
+    profil: { projects: [{ status: 'phase_2', target_go_live: '2026-10-14T00:00:00' }] },
+  };
+
+  test('das gerechnete Ende schlägt die von Hand gesetzte Planung', () => {
+    const lage = lageBestimmen({
+      ...projektMitPlanung,
+      mitwirkung: { offen: 0, erledigt: 8, gesamt: 8,
+                    frist: { ende: '2026-09-30', pause_werktage: 0 } },
+    });
+
+    expect(lage.zustand).toBe('bau');
+    // `datum()` schreibt „30. Sept." — meine erste Erwartung stand auf
+    // „30.09.2026" und war schlicht falsch abgelesen.
+    expect(lage.dazu).toContain('30. Sept');
+    expect(lage.dazu).not.toContain('Okt');
+    expect(lage.dazu).not.toContain('..');
+  });
+
+  test('ohne gerechnetes Ende bleibt die Planung stehen', () => {
+    // Kein Rückschritt für Projekte, deren Mitwirkung noch nicht vollständig
+    // erfasst ist — dort gibt es keinen Fristbeginn und also kein Ende.
+    const lage = lageBestimmen({
+      ...projektMitPlanung,
+      mitwirkung: { offen: 0, erledigt: 8, gesamt: 8, frist: { ende: null } },
+    });
+
+    expect(lage.dazu).toContain('14. Okt');
+  });
+
+  test('eine Ruhezeit wird benannt, nicht stillschweigend eingerechnet', () => {
+    // Sonst verschöbe sich der zugesagte Tag, und der Kunde läse nur ein
+    // neues Datum — ohne zu erfahren, dass seine eigene späte Freigabe es
+    // verschoben hat.
+    const lage = lageBestimmen({
+      ...projektMitPlanung,
+      mitwirkung: { offen: 0, erledigt: 8, gesamt: 8,
+                    frist: { ende: '2026-10-03', pause_werktage: 3 } },
+    });
+
+    expect(lage.dazu).toContain('3. Okt');
+    expect(lage.dazu).toMatch(/drei Werktage|3 Werktage/);
+  });
+});

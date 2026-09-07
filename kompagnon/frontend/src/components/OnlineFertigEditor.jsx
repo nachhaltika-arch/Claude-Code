@@ -455,6 +455,7 @@ export default function OnlineFertigEditor() {
         activeStep={activeStep}
         onStepClick={handleStepClick}
         stepStatus={stepStatus}
+        packageType={project?.package_type}
       />
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

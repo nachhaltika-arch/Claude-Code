@@ -133,7 +133,7 @@ h2:first-of-type{margin-top:0}
 <div class="blatt">
 
   <header class="kopf">
-    <p class="marke">KOMPAGNON · Kundenreise als Diagnose · Stand 6. September 2026</p>
+    <p class="marke">KOMPAGNON · Kundenreise als Diagnose · Stand 7. September 2026</p>
     <h1>Wo die Reise hängt</h1>
     <p class="unterzeile">Dieselben 38 Berührungspunkte wie in der Reisekarte — aber nicht,
     um sie zu zeigen. Jeder trägt einen <b>gemessenen Zustand</b>, und darunter stehen die
@@ -145,8 +145,8 @@ h2:first-of-type{margin-top:0}
     <div><div class="z">38</div><div class="w">Berührungspunkte</div></div>
     <div><div class="z">14</div><div class="w">davon mit benanntem Vorbehalt — sie „hängen"</div></div>
     <div><div class="z">9</div><div class="w">Konflikte — zwei Aussagen, eine muss weichen</div></div>
-    <div><div class="z">3</div><div class="w">davon kosten unmittelbar Geld</div></div>
-    <div><div class="z">2</div><div class="w">gelöst — K3 und K7, am 6. September</div></div>
+    <div><div class="z">2</div><div class="w">davon kosten noch unmittelbar Geld</div></div>
+    <div><div class="z">3</div><div class="w">gelöst — K3, K7 und K9</div></div>
     <div><div class="z">4</div><div class="w">Stellen, an denen der Kunde wartet</div></div>
     <div><div class="z">4</div><div class="w">blinde Flecken — wir messen es nicht</div></div>
   </div>
@@ -274,12 +274,12 @@ const KONFLIKTE = [
              q:'11 Messungen am Code, 4.9.2026' },
     frage:'Ein Verkaufsdokument, das eine aufgehobene Sperre meldet, kostet Umsatz; eines, das eine bestehende verschweigt, kostet mehr. Die Blocker sind übersetzt und der Report trägt einen Schlussvermerk — <b>die Freigabe selbst ist eine Entscheidung und gehört David.</b>',
     punkte:['Verkaufsseite','Paketseite','Angebot'], beleg:'L-163' },
-  { nr:'K9', art:'geld', tag:'Geld', titel:'28 Kalendertage oder 28 Werktage? Dieselbe Zahl, elf Tage Unterschied',
+  { nr:'K9', art:'gelöst', tag:'Gelöst 7. Sept.', titel:'28 Werktage — die Einheit ist entschieden',
     links:{ t:'Was die Datenblätter sagen', s:'<b>Kalendertage.</b> Start 7, Relaunch 14, Neubau 28, System 42 — in der Kopftabelle und noch einmal im Angebotstext.',
             q:'KAS_DB_01 / 02 / 03 / 08, jeweils Zeile „Bauzeit"' },
     rechts:{ t:'Was der Kunde vom System hört', s:'<b>Werktage</b> — dieselben Zahlen, an fünf Stellen: Auftragsbestätigung, Angebots-PDF (zweimal), Kassenseite, Willkommensmail. Die Spalte dahinter (<code>products.delivery_days</code>) trägt <b>keine Einheit</b>.',
              q:'auftragsbestaetigung_pdf.py · angebot_pdf.py · payments.py · email_templates.py' },
-    frage:'28 Kalendertage sind vier Wochen, 28 Werktage knapp sechs. Wer nach dem Datenblatt bindet und nach dem Code plant, <b>reißt die zugesagte Frist um elf Tage</b> — und daran hängt die Verzugspauschale. Umgekehrt verspricht die Auftragsbestätigung heute mehr Zeit, als das Produkt vorsieht. <b>Der Baukasten widerspricht sich dabei selbst:</b> § A sagt Werktage, § G Angebotsfuß sagt Kalendertage. Beides ist vertretbar; der Zwischenzustand nicht.',
+    frage:'<b>Entschieden am 7. September (David): es sind Werktage.</b> Die Zahl bleibt, die Einheit wird berichtigt — das ist die ruhigere der beiden Lesarten, weil der Kunde in jeder Auftragsbestätigung und jeder Willkommensmail „28 Werktage" gelesen hat. Geändert wurden die Dokumente, nicht der Code: <b>24 Stellen in 15 Dateien</b>, danach null. <b>Dabei fiel auf, was bleibt:</b> Die Datenblätter liegen in vier Fassungen und unterscheiden sich — L-182.',
     punkte:['Auftragsbestätigung','Angebot','Bauplan','Auslieferung'], beleg:'L-173' },
 ];
 

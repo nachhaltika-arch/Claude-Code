@@ -328,6 +328,13 @@ class Project(Base):
     screenshot_url_before   = Column(String(500))
     screenshot_url_after    = Column(String(500))
 
+    # **Welcher AGB-Fassung dieser Kunde zugestimmt hat** (L-181, 06.09.2026).
+    # Der Auftrag ist der Vertrag, deshalb steht es am Projekt und nicht am
+    # Betrieb. Leer heisst: Beim Kauf war keine Fassung hinterlegt — die
+    # ehrliche Antwort, nicht eine erfundene Kennung.
+    agb_fassung             = Column(String(20), default="")
+    agb_akzeptiert_am       = Column(DateTime, nullable=True)
+
     # Freigabe-Gates
     briefing_approved_at    = Column(DateTime)
     content_approval_token  = Column(String(255))

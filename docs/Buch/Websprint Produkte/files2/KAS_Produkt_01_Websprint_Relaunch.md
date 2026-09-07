@@ -30,7 +30,7 @@ Handwerks- oder KMU-Betrieb mit **vorhandener Website**, die inhaltlich im Kern 
 **3.500 € netto**, Festpreis. Zahlung: 50 % bei Auftrag, 50 % bei Abnahme.
 
 ## 5. Bauzeit und Fristbeginn ⚠️
-**14 Kalendertage** — Fristbeginn ist **nicht** der Auftragseingang, sondern der Tag, an dem **alle Mitwirkungsleistungen** des Kunden vollständig vorliegen:
+**14 Werktage** — Fristbeginn ist **nicht** der Auftragseingang, sondern der Tag, an dem **alle Mitwirkungsleistungen** des Kunden vollständig vorliegen:
 1. Zugang zur Domain/DNS-Verwaltung
 2. Freigabe der zu übernehmenden Inhalte
 3. Logo und Bildmaterial in verwendbarer Auflösung

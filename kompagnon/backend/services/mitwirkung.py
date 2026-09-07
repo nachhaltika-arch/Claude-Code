@@ -27,7 +27,7 @@ die zehn Punkte zeigt und acht ausgraut, hat trotzdem zehn gezeigt — deshalb
 entscheidet `fuer_produkt` mit, was ueberhaupt erscheint.
 """
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 #: Wirkung auf die Bauzeit.
 FRISTBEGINN = "fristbeginn"
@@ -63,8 +63,12 @@ class Punkt:
     warum: str                 # ein Satz: wozu wir das brauchen
     wirkung: str
     vertragstext: str          # der Wortlaut aus dem Angebotsbaukasten
-    #: Leere Menge heisst: gilt fuer jedes Produkt.
-    produkte: Tuple[str, ...] = ()
+    #: **Entfernt am 07.09.2026 (L-168).** Hier stand ein Feld `produkte` mit
+    #: dem Kommentar „Leere Menge heisst: gilt fuer jedes Produkt". Kein
+    #: einziger Punkt setzte es, und `gilt_fuer` las es nie — ein totes Feld
+    #: mit dokumentierter Bedeutung, was schlimmer ist als gar keins: Wer es
+    #: sah, hielt die Produktabhaengigkeit fuer erledigt. Die Zuordnung steht
+    #: jetzt in `PRODUKT_PUNKTE`, an **einer** Stelle statt verteilt auf elf.
     #: Bedingt geltende Punkte — nur wenn das Projekt das Merkmal traegt.
     bedingung: Optional[str] = None
     #: Was der Kunde hier tun kann. Vorgabe: bestaetigen.
@@ -219,20 +223,97 @@ def notiz_bauen(kennung: str, angaben: dict) -> str:
     return " · ".join(zeilen)[:255]
 
 
-def gilt_fuer(projektmerkmale) -> Tuple[Punkt, ...]:
+#: Welche Punkte ein Produkt ueberhaupt kennt — abgeschrieben aus der Zeile
+#: „| Mitwirkung |" des jeweiligen Produktdatenblatts, nicht hergeleitet.
+#:
+#: **Warum das noetig wurde.** Bis zum 07.09.2026 bekam jedes Projekt alle elf
+#: Punkte. M6 (Positionierungsgespraech) traegt `FRISTBEGINN` — ein Websprint
+#: Start konnte seine Bauzeit-Uhr also erst starten, wenn ein Gespraech
+#: stattgefunden hat, das sein Vertrag nicht enthaelt; Abgrenzung A18
+#: schliesst persoenliche Termine dort sogar ausdruecklich aus. An dieser Uhr
+#: haengt die Verzugspauschale.
+#:
+#: **Der Fehler ging in beide Richtungen.** Nicht nur Start war betroffen:
+#: Relaunch hat ebenfalls kein M6/M7/M8, und Neubau und System haben kein M2 —
+#: dort schreiben wir die Texte selbst, der Kunde liefert sie nicht.
+#:
+#: Nicht enthalten sind **M9** und **M10**: Die haengen ueber `bedingung` am
+#: Projekt (Migration, Karriereseite), nicht am Produkt. **M11** steht in
+#: keiner Kopfzeile und gilt ueberall — ohne Rechnungsdaten keine Rechnung.
+PRODUKT_PUNKTE: Dict[str, Tuple[str, ...]] = {
+    "websprint_start":    ("M1", "M2", "M3", "M4", "M5"),
+    "websprint_relaunch": ("M1", "M2", "M3", "M4", "M5"),
+    "websprint_neubau":   ("M1", "M3", "M4", "M5", "M6", "M7", "M8"),
+    "websprint_system":   ("M1", "M3", "M4", "M5", "M6", "M7", "M8"),
+}
+
+#: Punkte ohne Produktbindung — sie stehen in keiner Kopfzeile, weil sie
+#: selbstverstaendlich sind.
+UNABHAENGIG: Tuple[str, ...] = ("M11",)
+
+
+def gilt_fuer(projektmerkmale, produkt: Optional[str] = None) -> Tuple[Punkt, ...]:
     """Die Punkte, die fuer dieses Projekt ueberhaupt gelten.
 
-    `projektmerkmale` ist eine Menge von Kennworten wie ``{"migration"}``. Ein
-    Punkt ohne Bedingung gilt immer; ein bedingter nur, wenn sein Kennwort
-    dabei ist.
+    Zwei Filter, die verschiedene Fragen beantworten:
+
+    * `produkt` ist der Paket-Slug (``project.package_type``) und sagt, was
+      **der Vertrag** kennt — nach `PRODUKT_PUNKTE`.
+    * `projektmerkmale` ist eine Menge von Kennworten wie ``{"migration"}``
+      und sagt, was **dieses eine Projekt** zusaetzlich braucht.
+
+    **Ein unbekanntes oder fehlendes Produkt filtert nicht.** Dann gilt wieder
+    der ganze Katalog. Das ist Absicht: Der Fehler soll in die sichtbare
+    Richtung fallen — lieber ein Punkt zu viel, den jemand wegklickt, als ein
+    fehlender, den niemand bemerkt. `test_jedes_katalogprodukt_ist_zugeordnet`
+    sorgt dafuer, dass ein neues Produkt trotzdem nicht still durchfaellt.
 
     **Was hier nicht erscheint, existiert fuer diesen Kunden nicht** — es wird
     nicht ausgegraut. Eine Liste mit zehn Zeilen, von denen acht grau sind, ist
     eine Liste mit zehn Zeilen.
     """
     merkmale = set(projektmerkmale or ())
-    return tuple(p for p in KATALOG
-                 if p.bedingung is None or p.bedingung in merkmale)
+    erlaubt = PRODUKT_PUNKTE.get((produkt or "").strip())
+    zulaessig = set(erlaubt) | set(UNABHAENGIG) if erlaubt else None
+
+    def passt(p: Punkt) -> bool:
+        if p.bedingung is not None:
+            # Bedingte Punkte kommen aus dem Projekt und werden vom Produkt
+            # nicht ueberstimmt — eine Migration bleibt eine Migration.
+            return p.bedingung in merkmale
+        return zulaessig is None or p.kennung in zulaessig
+
+    return tuple(p for p in KATALOG if passt(p))
+
+
+def merkmale_von(project) -> set:
+    """Welche bedingten Punkte fuer dieses Projekt gelten.
+
+    **Am 07.09.2026 aus drei Kopien zusammengelegt** (L-168). Dieselben acht
+    Zeilen standen in `routers/portal.py`, `services/bauzeit_projekt.py` und
+    `automations/scheduler_kontakt.py`. Die Kopie im Portal trug dabei den
+    Kommentar „die Stelle ist bewusst **eine**, damit die Ableitung nicht an
+    drei Orten auseinanderlaeuft" — sie war zu dem Zeitpunkt die dritte.
+
+    Eine Absichtserklaerung im Kommentar haelt nichts zusammen; ein
+    gemeinsamer Aufruf tut es.
+    """
+    merkmale = set()
+    if getattr(project, "migration_noetig", False):
+        merkmale.add("migration")
+    if getattr(project, "karriereseite", False):
+        merkmale.add("karriereseite")
+    return merkmale
+
+
+def fuer_projekt(project) -> Tuple[Punkt, ...]:
+    """Die geltenden Punkte eines Projekts — Produkt und Merkmale in einem.
+
+    Der Aufruf, den alle drei Stellen brauchen. Wer `gilt_fuer` direkt ruft,
+    muss an das Paket denken; hier kann man es nicht vergessen.
+    """
+    return gilt_fuer(merkmale_von(project),
+                     produkt=getattr(project, "package_type", None))
 
 
 def fristbeginn_offen(punkte, erledigt) -> Tuple[Punkt, ...]:

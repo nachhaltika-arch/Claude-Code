@@ -83,6 +83,19 @@ class TestDasWerkzeugMisstNochWas:
         assert 30 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
 
     def test_eine_route_ohne_jeden_aufrufer_bleibt_gemeldet(self, ausgabe):
-        """`/api/projects/seed` legt Beispieldaten an und wird von keiner
-        Oberflaeche gerufen — ein Fall, der stehen bleiben muss."""
-        assert "/api/projects/seed" in ausgabe
+        """Ein benannter Fall, der stehen bleiben muss.
+
+        **Der Kanarienvogel ist am 07.09.2026 umgezogen.** Hier stand
+        `/api/projects/seed` — und wurde am selben Tag als „Erstbefuellung,
+        Schutz am Router" **erklaert**. Damit war der Waechter blind: Er
+        prueft, ob das Werkzeug noch etwas findet, und sein Beispiel war
+        gerade aus der Liste genommen worden. Ein Kanarienvogel, den man
+        selbst beurteilt, taugt nicht mehr als Kanarienvogel.
+
+        `/api/usercards/{card_id}` ist der bessere Fall: Der Kopf von
+        `routers/usercards.py` nennt das Modul selbst „einen
+        Zusammenlegungsversuch, der nie zu Ende ging", und das Frontend ruft
+        `/api/usercards/{}/profile` — die Kartenroute selbst nie. Das ist eine
+        offene Frage an David, keine Sache, die sich erklaeren laesst.
+        """
+        assert "/api/usercards/{card_id}" in ausgabe

@@ -244,8 +244,79 @@ def farbe_statt_token() -> tuple[list[Befund], str]:
 # es schlechter nachzubauen.
 
 
-_IMG_OHNE_ALT = re.compile(r"<img\b(?![^>]*\balt\s*=)[^>]*>")
-_INPUT = re.compile(r"<input\b[^>]*>")
+_IMG = re.compile(r"<img\b")
+_INPUT = re.compile(r"<input\b")
+_LABEL_AUF = re.compile(r"<label\b")
+_LABEL_ZU = re.compile(r"</label>")
+#: JSX-Kommentare `{/* … */}` und gewoehnliche Blockkommentare.
+_KOMMENTAR = re.compile(r"\{?/\*.*?\*/\}?", re.S)
+
+
+def tag_ende(text: str, start: int) -> int:
+    """Das Ende eines JSX-Tags, ohne an `=>` zu zerbrechen.
+
+    **Am 07.09.2026 nachgezogen (L-17).** Hier stand `<input\b[^>]*>`. Bei
+    `onChange={() => set(x)}` findet das `>` des Pfeils zuerst, und das Tag
+    wird mittendrin abgeschnitten — `aria-label`, `id` und `placeholder`
+    dahinter sind fuer die Messung unsichtbar. `bauwerk._tag_ende` zaehlt seit
+    dem 26.08. Klammern mit und haelt in seinem eigenen Kommentar fest, dass
+    genau dieser Fehler „fuenfzehn Knoepfe ohne Handler" meldete, „von denen
+    der erste einen hatte". Diese Stufe hat die Korrektur nie bekommen.
+    """
+    tiefe = 0
+    for i in range(start, len(text)):
+        z = text[i]
+        if z == "{":
+            tiefe += 1
+        elif z == "}":
+            tiefe -= 1
+        elif z == ">" and tiefe == 0:
+            return i + 1
+    return len(text)
+
+
+def _ohne_kommentare(text: str) -> str:
+    """Kommentare durch Leerzeichen ersetzen, Laengen und Zeilen erhalten.
+
+    **Der Fund vom 07.09.2026.** In `Checklists.jsx` stand die Meldung „Feld
+    ohne Beschriftung" auf einem **Kommentar**, der ausdruecklich erklaert,
+    dass dort *kein* `<input>` sitzt. Eine Messung, die ihre eigene Erklaerung
+    mitzaehlt, ist derselbe Fehler wie ein Waechter, der seinen eigenen
+    Kommentar liest — im Projekt schon zweimal passiert.
+
+    Ersetzt wird zeichenweise, damit Zeilennummern und Fundstellen weiter
+    stimmen; ein Ausschneiden wuerde jede spaetere Angabe verschieben.
+    """
+    return _KOMMENTAR.sub(lambda m: " " * len(m.group(0)), text)
+
+
+def _label_bereiche(text: str) -> list[tuple[int, int]]:
+    """Von wo bis wo ein `<label>` reicht.
+
+    **Ein Feld in einem `<label>` hat einen Namen** — `<label><span>Firma
+    </span><input/></label>` wird vorgelesen, ganz ohne `htmlFor`. L-17 hat
+    diesen Messfehler am 21.08. schon einmal korrigiert: „23 der angeblich
+    namenlosen Felder stehen innerhalb eines `<label>` — die richtige Zahl war
+    358, nicht 381." Der Durchlauf-Pruefer wiederholte ihn bis heute und
+    meldete darauf 54 Felder, von denen beim Nachsehen keines echt war.
+
+    Verschachtelte `<label>` gibt es im Bestand nicht; gezaehlt wird trotzdem
+    mit Tiefe, damit ein spaeteres Vorkommen die Bereiche nicht verschiebt.
+    """
+    marken = sorted(
+        [(m.start(), 1) for m in _LABEL_AUF.finditer(text)]
+        + [(m.start(), -1) for m in _LABEL_ZU.finditer(text)])
+    bereiche, tiefe, beginn = [], 0, 0
+    for stelle, richtung in marken:
+        if richtung == 1:
+            if tiefe == 0:
+                beginn = stelle
+            tiefe += 1
+        elif tiefe > 0:
+            tiefe -= 1
+            if tiefe == 0:
+                bereiche.append((beginn, stelle))
+    return bereiche
 
 
 def fehlende_textalternativen() -> tuple[list[Befund], str]:
@@ -264,14 +335,30 @@ def fehlende_textalternativen() -> tuple[list[Befund], str]:
             text = datei.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        for fund in _IMG_OHNE_ALT.finditer(text):
+        text = _ohne_kommentare(text)
+        for fund in _IMG.finditer(text):
+            marke = text[fund.start():tag_ende(text, fund.start())]
+            # **Ohne `src` ist es kein Bild.** In `AcademyAdminLesson.jsx`
+            # steht „Fuege Bilder mit <img>-Tags ein." als Hilfetext — L-17
+            # hat diesen Falschtreffer am 24.08. bereits aufgeloest.
+            if "src" not in marke or "alt" in marke:
+                continue
             ohne_alt.setdefault(kurz(datei), []).append(
                 text.count("\n", 0, fund.start()) + 1)
+
+        bereiche = _label_bereiche(text)
         for fund in _INPUT.finditer(text):
-            marke = fund.group(0)
+            marke = text[fund.start():tag_ende(text, fund.start())]
             if ("aria-label" in marke or "aria-labelledby" in marke
                     or "placeholder" in marke or "id=" in marke
-                    or 'type="hidden"' in marke):
+                    or 'type="hidden"' in marke
+                    # **Durchgereichte Eigenschaften.** `<input {...props} />`
+                    # in einer Huelle bekommt seinen Namen zur Laufzeit vom
+                    # Aufrufer. L-17 hat genau diese vier Ausnahmen am 21.08.
+                    # einzeln nachgesehen und als richtig bewertet.
+                    or "{...props}" in marke or "{...rest}" in marke):
+                continue
+            if any(a < fund.start() < e for a, e in bereiche):
                 continue
             ohne_label.setdefault(kurz(datei), []).append(
                 text.count("\n", 0, fund.start()) + 1)

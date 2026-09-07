@@ -74,17 +74,6 @@ def bauzeit_werktage(db, project) -> int:
     return bauzeit.BAUZEIT_STANDARD_WERKTAGE
 
 
-def _merkmale(project) -> set:
-    """Dieselbe Ableitung wie im Portal — bedingte Punkte gelten nur, wenn das
-    Projekt ihr Merkmal traegt."""
-    merkmale = set()
-    if getattr(project, "migration_noetig", False):
-        merkmale.add("migration")
-    if getattr(project, "karriereseite", False):
-        merkmale.add("karriereseite")
-    return merkmale
-
-
 def frist_stand(db, project, heute: Optional[date] = None,
                 staende: Optional[dict] = None) -> dict:
     """Beginn, Ruhezeiten und das zugesagte Ende — als eine Antwort.
@@ -102,7 +91,7 @@ def frist_stand(db, project, heute: Optional[date] = None,
                   .filter(MitwirkungStand.project_id == project.id).all())
         staende = {z.kennung: z for z in zeilen}
 
-    punkte = kat.gilt_fuer(_merkmale(project))
+    punkte = kat.fuer_projekt(project)
     vor_start = [p for p in punkte if p.wirkung == kat.FRISTBEGINN]
     freigaben = [p for p in punkte if p.wirkung == kat.FRISTPAUSE]
 

@@ -104,7 +104,7 @@ export default function Kanalwirkung({ token }) {
                             schreibt ihn jemand ungepflegt, oder der Wortschatz
                             hinkt hinterher. Beides will man wissen. */}
                         {!k.bekannt && (
-                          <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--text-tertiary)' }}>
                             (unbekannte Herkunft)
                           </span>
                         )}

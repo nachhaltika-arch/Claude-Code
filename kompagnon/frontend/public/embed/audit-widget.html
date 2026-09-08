@@ -383,7 +383,47 @@
   var FB_PIXEL_ID = '';
   var leadGemeldet = false;
 
-  function meldeLead() {
+  /* ── Was die Trägerseite durchreicht ──
+     Das Widget steht in einem iframe auf fremder Domain und sieht die
+     Adresszeile der Seite darüber nicht. Alles, was von dort gebraucht wird,
+     muss im iframe-Aufruf mitgegeben werden. Die Einbettung tut das (siehe
+     README): `...audit-widget.html?fbclid=…&consent=1`.
+
+     `consent`:  1 = Marketing erlaubt, 0 = ausdrücklich abgelehnt,
+                 fehlt = die Seite sagt nichts. Ein ausdrückliches Nein wird
+                 respektiert; bei „sagt nichts" bleibt es beim bisherigen
+                 Verhalten, damit diese Änderung keine Rechtslage still
+                 verschiebt. */
+  var TRAEGER = new URLSearchParams(location.search);
+
+  function traegerParam(name) {
+    var wert = (TRAEGER.get(name) || '').trim();
+    /* Was von hier direkt in ein fremdes Skript und in unser Backend geht,
+       wird am Rand begrenzt — Länge und Zeichenvorrat. */
+    return /^[A-Za-z0-9._\-]{0,300}$/.test(wert) ? wert : '';
+  }
+
+  var FBCLID = traegerParam('fbclid');
+  var FBC    = traegerParam('fbc');
+  var FBP    = traegerParam('fbp');
+
+  var einwilligungRoh = (TRAEGER.get('consent') || '').trim().toLowerCase();
+  var EINWILLIGUNG_NEIN = (einwilligungRoh === '0' || einwilligungRoh === 'false');
+
+  /* `eventId` ist die Klammer zwischen Browser- und Servermeldung. Beide
+     melden denselben Lead mit derselben Kennung; Meta verwirft die zweite.
+     Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
+     halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
+     weil die Zahl gut aussieht. */
+  function meldeLead(eventId, email) {
+    /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
+       hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
+       Klick-ID, die nur sie kennt. Dann ist die Zuordnung endlich vollständig. */
+    try {
+      parent.postMessage({ type: 'kpg-audit-lead', eventId: eventId || '' }, '*');
+    } catch (e) { /* no-op */ }
+
+    if (EINWILLIGUNG_NEIN) return;
     if (!FB_PIXEL_ID || leadGemeldet) return;
     leadGemeldet = true;   /* Doppelklick, zweiter Versuch: ein Lead bleibt einer. */
     try {
@@ -396,8 +436,15 @@
         n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
         s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
       }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-      window.fbq('init', FB_PIXEL_ID);
-      window.fbq('track', 'Lead');
+      /* Erweiterter Abgleich: Die Adresse wird von Metas Skript im Browser
+         gehasht, bevor sie das Gerät verlässt. Ohne sie lag die gemessene
+         Abgleichqualität bei 6,1 von 10 — „keine Event-Parameter erkannt". */
+      if (email) {
+        window.fbq('init', FB_PIXEL_ID, { em: String(email).trim().toLowerCase() });
+      } else {
+        window.fbq('init', FB_PIXEL_ID);
+      }
+      window.fbq('track', 'Lead', {}, eventId ? { eventID: eventId } : undefined);
     } catch (e) {
       /* Ein blockiertes Skript (Adblocker, kein Netz) darf die Analyse nicht
          anhalten — der Besucher hat mit Facebook nichts zu schaffen. */
@@ -566,7 +613,18 @@
         email: email,
         website_url: cleanUrl,
         consent_marketing: consentMarketing,
-        referrer: document.referrer || ''
+        referrer: document.referrer || '',
+        /* Weitergereicht, damit der Serverweg dieselbe Herkunft kennt wie der
+           Browser. `document.referrer` ist bei fremder Domain auf die Herkunft
+           gekürzt — für die Quell-URL reicht das, für die Klick-ID nicht.
+           Deshalb kommt die Klick-ID aus dem iframe-Aufruf. */
+        fbclid: FBCLID,
+        fbc: FBC,
+        fbp: FBP,
+        page_url: document.referrer || '',
+        /* Damit der Serverweg dieselbe Grenze zieht wie der Browser: Ein
+           ausdrueckliches Nein der Traegerseite gilt fuer beide Wege. */
+        consent_tracking: EINWILLIGUNG_NEIN ? '0' : (einwilligungRoh || '')
       })
     })
     .then(function (r) {
@@ -579,7 +637,7 @@
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
       /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
          Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
-      meldeLead();
+      meldeLead('kpg-widget-' + start.request_id, email);
       pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {

@@ -76,6 +76,19 @@ class WidgetAuditRequest(BaseModel):
     website_url: str
     consent_marketing: bool = False
     referrer: str = ""
+    # Die Klick-Kennungen der Traegerseite. Das Widget selbst kann sie nicht
+    # lesen — es steht in einem iframe auf fremder Domain und sieht deren
+    # Adresszeile nicht. Die Einbettung reicht sie im iframe-Aufruf durch;
+    # fehlen sie, bleibt die gehashte E-Mail der einzige Abgleichschluessel.
+    fbclid: str = ""
+    fbc: str = ""
+    fbp: str = ""
+    page_url: str = ""
+    # Das Einwilligungssignal des Consent-Banners der Traegerseite:
+    # "0"/"false" heisst ausdrueckliches Nein, alles andere heisst, die Seite
+    # hat nichts gesagt. Ein Nein gilt fuer den Serverweg genauso wie fuer den
+    # Browser — sonst haette das Abschalten im Banner keine Wirkung.
+    consent_tracking: str = ""
 
 
 def _normalise_url(url: str) -> str:
@@ -211,6 +224,27 @@ async def start_widget_audit(
     db.add(widget_request)
     db.commit()
     db.refresh(widget_request)
+
+    # Serverseitige Meldung an Meta. Sie traegt dieselbe Kennung wie die
+    # Browsermeldung des Widgets, damit Meta die zweite verwirft statt doppelt
+    # zu zaehlen. Als Hintergrundaufgabe, weil eine Analyse nicht auf einen
+    # fremden Dienst warten darf — und weil ein Ausfall dort hier nichts
+    # anhalten soll.
+    from services import meta_conversions
+
+    tracking_abgelehnt = (payload.consent_tracking or "").strip().lower() in ("0", "false")
+    if not tracking_abgelehnt:
+        background_tasks.add_task(
+            meta_conversions.sende_lead,
+            email=email,
+            event_id=f"kpg-widget-{widget_request.id}",
+            quell_url=(payload.page_url or payload.referrer or ""),
+            ip=ip,
+            user_agent=request.headers.get("user-agent", "")[:400],
+            fbclid=payload.fbclid,
+            fbc=payload.fbc,
+            fbp=payload.fbp,
+        )
 
     from routers.audit import start_audit, AuditRequest
 

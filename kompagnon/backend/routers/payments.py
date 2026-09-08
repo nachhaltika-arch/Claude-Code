@@ -23,8 +23,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 # Kein Modul-Konstantenwert mehr: der wird beim Import gelesen, und der
 # Startvorgang setzt Variablen nach. public_base_url() liest bei jedem Aufruf.
 

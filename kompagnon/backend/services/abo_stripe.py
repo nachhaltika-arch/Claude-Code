@@ -40,7 +40,7 @@ from services.abo_stunden import (STEUERSATZ_ABO, preis_brutto_cent,
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
 
 #: Wie das Produkt in Stripe und auf dem Kontoauszug des Kunden heißt.
 PRODUKT_NAME = {

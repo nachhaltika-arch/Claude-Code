@@ -44,7 +44,7 @@ class StripeNichtEingerichtet(Exception):
 
 
 def _stripe():
-    schluessel = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
+    schluessel = os.getenv("STRIPE_SECRET_KEY", "").strip()
     if not schluessel:
         raise StripeNichtEingerichtet("STRIPE_SECRET_KEY ist nicht gesetzt")
     import stripe

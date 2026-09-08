@@ -188,7 +188,7 @@ def delete_product(slug: str, db: Session = Depends(get_db),
 def stripe_sync(slug: str, db: Session = Depends(get_db),
                 _=Depends(require_admin)):
     import stripe as _stripe
-    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
     if not _stripe.api_key:
         raise HTTPException(422, "STRIPE_SECRET_KEY nicht gesetzt")
 

@@ -1,0 +1,1397 @@
+<title>Ausschreibung Branchenplattform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    /* Blaupause auf kühlem Papier. Kein Creme, kein Verlauf — die
+       Formsprache ist die technische Zeichnung. */
+    --paper:      #F6F8FA;
+    --surface:    #FFFFFF;
+    --ink:        #111820;
+    --ink-70:     #3D4855;
+    --ink-50:     #5C6675;
+    --rule:       #D3DBE4;
+    --rule-soft:  #E6EBF1;
+    --blau:       #17457E;
+    --blau-soft:  #EBF1F9;
+    --ocker:      #97600F;
+    --ocker-soft: #FAF2E4;
+    --gruen:      #1F6B4A;
+
+    --mass: 68ch;
+    --oz-spalte: 7.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0F141A;
+      --surface:    #161D25;
+      --ink:        #E7ECF2;
+      --ink-70:     #B3BECB;
+      --ink-50:     #8794A3;
+      --rule:       #2B3641;
+      --rule-soft:  #212B34;
+      --blau:       #7FB0EA;
+      --blau-soft:  #17222F;
+      --ocker:      #D9A64B;
+      --ocker-soft: #241D10;
+      --gruen:      #5FBE90;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0F141A;
+    --surface:    #161D25;
+    --ink:        #E7ECF2;
+    --ink-70:     #B3BECB;
+    --ink-50:     #8794A3;
+    --rule:       #2B3641;
+    --rule-soft:  #212B34;
+    --blau:       #7FB0EA;
+    --blau-soft:  #17222F;
+    --ocker:      #D9A64B;
+    --ocker-soft: #241D10;
+    --gruen:      #5FBE90;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 16.5px;
+    line-height: 1.65;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .blatt {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.1rem, 4vw, 3rem) 5rem;
+  }
+
+  /* ── Kopf ────────────────────────────────────────────────── */
+
+  .kopf {
+    border-top: 3px solid var(--ink);
+    padding-top: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .kopf-zeile {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blau);
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 1.4rem;
+  }
+
+  h1 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: clamp(1.9rem, 5vw, 3.1rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 0.6rem;
+  }
+
+  .untertitel {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
+    font-weight: 400;
+    color: var(--ink-70);
+    margin: 0 0 2rem;
+    max-width: 44ch;
+  }
+
+  /* ── Kenndaten ───────────────────────────────────────────── */
+
+  .kenndaten {
+    display: grid;
+    grid-template-columns: minmax(11rem, 15rem) 1fr;
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    font-size: 0.92rem;
+  }
+  .kenndaten dt,
+  .kenndaten dd {
+    border-bottom: 1px solid var(--rule-soft);
+    padding: 0.6rem 0.9rem 0.6rem 0;
+    margin: 0;
+  }
+  .kenndaten dt {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-50);
+    padding-top: 0.78rem;
+  }
+  .kenndaten dd { color: var(--ink-70); }
+  .luecke {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--ink-50);
+    border-bottom: 1px dotted var(--ink-50);
+    padding: 0 3rem 0 0.2rem;
+  }
+
+  /* ── Textbau ─────────────────────────────────────────────── */
+
+  section { margin-top: 3.2rem; }
+
+  h2 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+  }
+  h2 .nr {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--blau);
+    flex: none;
+  }
+
+  h3 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 2.2rem 0 0.5rem;
+    text-wrap: balance;
+  }
+
+  p, li { max-width: var(--mass); }
+  p { margin: 0 0 1rem; }
+
+  ul { margin: 0 0 1.1rem; padding-left: 1.15rem; }
+  li { margin-bottom: 0.42rem; }
+  li::marker { color: var(--blau); }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-70); }
+
+  .fuehrung {
+    font-size: 1.05rem;
+    color: var(--ink-70);
+    max-width: 60ch;
+    margin-bottom: 1.6rem;
+  }
+
+  /* ── Merksatz ────────────────────────────────────────────── */
+
+  .merksatz {
+    border-left: 3px solid var(--blau);
+    background: var(--blau-soft);
+    padding: 0.95rem 1.2rem;
+    margin: 1.5rem 0;
+    max-width: var(--mass);
+    font-size: 0.95rem;
+  }
+  .merksatz p:last-child { margin-bottom: 0; }
+  .merksatz.warn { border-left-color: var(--ocker); background: var(--ocker-soft); }
+
+  /* ── Leistungsposition ───────────────────────────────────── */
+
+  .pos {
+    display: grid;
+    grid-template-columns: var(--oz-spalte) 1fr;
+    gap: 0 1.6rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.4rem;
+    margin-top: 2.4rem;
+  }
+  .pos-oz {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--blau);
+    line-height: 1.4;
+  }
+  .pos-oz .stufe {
+    display: block;
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-50);
+    margin-top: 0.5rem;
+  }
+  .pos-oz .stufe.bedarf { color: var(--ocker); }
+  .pos-kopf {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 1.18rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin: 0 0 0.7rem;
+    text-wrap: balance;
+  }
+  .pos-inhalt > *:first-child { margin-top: 0; }
+
+  .umfang {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--ink-50);
+    letter-spacing: 0.02em;
+    margin: -0.35rem 0 0.9rem;
+  }
+  .umfang b {
+    font-weight: 600;
+    color: var(--ink-70);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .abnahme {
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 0.7rem;
+    margin-top: 1rem;
+    font-size: 0.93rem;
+    max-width: var(--mass);
+  }
+  .abnahme b {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gruen);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  /* ── Preiszeile zum Ausfüllen ────────────────────────────── */
+
+  .preiszeile {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.1rem;
+    padding: 0.75rem 0 0.2rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .feld {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-50);
+  }
+  .feld span {
+    display: inline-block;
+    min-width: 8rem;
+    border-bottom: 1px solid var(--ink-50);
+    height: 1.35rem;
+  }
+
+  /* ── Tabellen ────────────────────────────────────────────── */
+
+  .tabellenrahmen { overflow-x: auto; margin: 1.2rem 0 1.6rem; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 30rem;
+    font-size: 0.9rem;
+  }
+  caption {
+    text-align: left;
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-50);
+    padding-bottom: 0.5rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.9rem 0.5rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-50);
+    border-bottom: 1px solid var(--ink);
+  }
+  td.zahl, th.zahl {
+    text-align: right;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    padding-right: 0;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tr.summe td {
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+    font-weight: 600;
+    padding-top: 0.6rem;
+  }
+
+  /* ── Ausbaustufen ────────────────────────────────────────── */
+
+  .stufen {
+    display: grid;
+    gap: 0;
+    margin: 1.6rem 0 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .stufe-zeile {
+    display: grid;
+    grid-template-columns: var(--oz-spalte) 1fr;
+    gap: 0 1.6rem;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .stufe-marke {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blau);
+  }
+  .stufe-marke small {
+    display: block;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--ink-50);
+    font-size: 0.72rem;
+    margin-top: 0.25rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  .stufe-zeile h4 {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+  }
+  .stufe-zeile p { font-size: 0.94rem; margin-bottom: 0.5rem; }
+  .stufe-zeile .enthaelt {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-50);
+  }
+
+  /* ── Drucken ─────────────────────────────────────────────── */
+
+  .drucken {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--paper);
+    padding: 0.7rem 0;
+    margin-bottom: -0.7rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .drucken button {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--surface);
+    background: var(--blau);
+    border: none;
+    border-radius: 2px;
+    padding: 0.5rem 0.95rem;
+    cursor: pointer;
+    min-height: 2.1rem;
+  }
+  .drucken button:hover { filter: brightness(1.1); }
+  .drucken button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .drucken .hinweis {
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: var(--ink-50);
+  }
+  .drucken .hinweis kbd {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0.05rem 0.3rem;
+  }
+
+  .fuss {
+    margin-top: 4rem;
+    padding-top: 1.2rem;
+    border-top: 3px solid var(--ink);
+    font-family: Archivo, system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--ink-50);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ── Druckbild ───────────────────────────────────────────── */
+
+  @page {
+    size: A4;
+    margin: 19mm 16mm 18mm;
+  }
+
+  @media print {
+    /* Im Druck gilt immer der helle Satz — ein dunkler Grund
+       verbraucht Toner und liest sich auf Papier schlechter. */
+    :root, :root[data-theme="dark"] {
+      --paper: #FFFFFF; --surface: #FFFFFF;
+      --ink: #000000; --ink-70: #333333; --ink-50: #555555;
+      --rule: #999999; --rule-soft: #CCCCCC;
+      --blau: #17457E; --blau-soft: #F2F5FA;
+      --ocker: #7A4E0A; --ocker-soft: #FAF6EE;
+      --gruen: #14563A;
+    }
+    body { font-size: 10.2pt; line-height: 1.45; background: #fff; }
+    .blatt { max-width: none; padding: 0; }
+    .drucken { display: none; }
+    :root { --mass: none; --oz-spalte: 6rem; }
+    p, li { max-width: none; }
+
+    section { margin-top: 1.6rem; }
+    h2 { font-size: 1.15rem; break-after: avoid; }
+    h3 { break-after: avoid; }
+    .pos { break-inside: avoid; margin-top: 1rem; padding-top: 0.7rem; }
+    .stufe-zeile, .merksatz, tr { break-inside: avoid; }
+    thead { display: table-header-group; }
+    .kopf { break-after: page; }
+    .anlage { break-before: page; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+
+<div class="blatt">
+
+  <div class="drucken">
+    <button type="button" id="druckknopf">Drucken / als PDF sichern</button>
+    <span class="hinweis" id="druckhinweis">Tut der Knopf nichts, weil die Vorschau ihn sperrt: Seite in einem eigenen Browser-Tab öffnen und <kbd>Cmd</kbd>/<kbd>Strg</kbd> + <kbd>P</kbd> drücken.</span>
+  </div>
+
+  <header class="kopf">
+    <div class="kopf-zeile">
+      <span>Ausschreibungsunterlage · Vergabe eines Entwicklungsauftrags</span>
+      <span>Vertraulich</span>
+    </div>
+
+    <h1>Branchenplattform für das Bauhandwerk</h1>
+    <p class="untertitel">Leistungsverzeichnis zur Neuentwicklung einer integrierten Software für Akquise, Bewertung, Verkauf, Herstellung und Betreuung von Internetauftritten.</p>
+
+    <dl class="kenndaten">
+      <dt>Gegenstand</dt>
+      <dd>Neuentwicklung einer webbasierten Branchenplattform nach dem in diesem Verzeichnis beschriebenen Funktionsumfang, einschließlich Inbetriebnahme und Übergabe</dd>
+
+      <dt>Zweck der Anfrage</dt>
+      <dd>Einholung verbindlicher Angebote zur Vergabe des Entwicklungsauftrags</dd>
+
+      <dt>Auftraggeber</dt>
+      <dd><span class="luecke">wird im Vergabeverfahren benannt</span></dd>
+
+      <dt>Erwartete Rückmeldung</dt>
+      <dd>Aufwand je Leistungsposition in Personentagen und Preis, getrennt nach Ausbaustufen (Abschnitt 3)</dd>
+
+      <dt>Angebotsfrist</dt>
+      <dd><span class="luecke"></span></dd>
+
+      <dt>Rückfragen bis</dt>
+      <dd><span class="luecke"></span></dd>
+
+      <dt>Vertraulichkeit</dt>
+      <dd>Diese Unterlage und alle daraus abgeleiteten Angaben sind vertraulich zu behandeln und nicht an Dritte weiterzugeben.</dd>
+    </dl>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">0</span> Zur Lesart</h2>
+
+    <p class="fuehrung">Beschrieben ist ein <strong>Zielsystem</strong>, das noch nicht existiert. Jede Position nennt, was das fertige System können muss, und ein Abnahmekriterium, an dem sich das überprüfen lässt.</p>
+
+    <p>Die Unterlage ist bewusst nicht als Wunschliste geschrieben. Sie beschreibt eine Fachanwendung mit eigenem Regelwerk — kein Redaktionssystem mit angehängtem Adressbuch. Zwei Positionen tragen den fachlichen Kern und damit das Projektrisiko: das <strong>Bewertungswerk</strong> (LV&nbsp;300), das Websites nach einem festen Kriterienkatalog maschinell prüft, und die <strong>Erzeugungsstrecke</strong> (LV&nbsp;700), die das verkaufte Erzeugnis selbst herstellt und ausliefert.</p>
+
+    <div class="merksatz">
+      <p><strong>Wo eine Position aufwendiger ist, als sie klingt, sagen Sie es bitte, statt sie kleinzurechnen.</strong> Ein Angebot, das den Kern unterschätzt, hilft keiner Seite — es verschiebt die Auseinandersetzung nur an die Stelle, an der sie teuer wird.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">1</span> Ausgangslage und Zielbild</h2>
+
+    <p>Der Auftraggeber verkauft Internetauftritte an Betriebe des Bauhandwerks, Schwerpunkt Heizung, Sanitär und Elektro. Die Arbeit läuft heute über getrennte Werkzeuge und Handarbeit. Das Zielsystem soll die vollständige Wertschöpfungskette in einer Anwendung abbilden:</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <caption>Wertschöpfungskette im Zielsystem</caption>
+        <thead>
+          <tr><th>Schritt</th><th>Was das System leistet</th><th>Position</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Betrieb finden</td><td>Recherche aus öffentlichen Verzeichnissen, Import, eingebettetes Analyse-Widget auf fremden Seiten</td><td>LV 200</td></tr>
+          <tr><td>Website prüfen</td><td>Maschinelle Bewertung nach festem Kriterienkatalog, Bericht als PDF</td><td>LV 300</td></tr>
+          <tr><td>Angebot und Zahlung</td><td>Produktkatalog, öffentliche Verkaufsseiten, Kasse, Rechnung</td><td>LV 400, 500</td></tr>
+          <tr><td>Projekt abwickeln</td><td>Projektakte mit Phasen, Briefing, Fristen, Zeiterfassung</td><td>LV 600</td></tr>
+          <tr><td>Website erzeugen</td><td>Planung, Gestaltung, Inhalte, Auslieferung, Qualitätsschleife</td><td>LV 700</td></tr>
+          <tr><td>Kunde betreuen</td><td>Kundenportal, Schulung, Tickets, Wartung</td><td>LV 800–1000</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Der Unterschied zu einer klassischen CRM- oder Agentursoftware liegt in zwei Eigenschaften: Das System <strong>erzeugt das verkaufte Erzeugnis selbst</strong> und <strong>prüft es maschinell</strong>, bevor es ausgeliefert wird. Beide Teile sind Fachanwendungen mit eigenem Regelwerk, keine Verwaltungsmasken.</p>
+
+    <p>Das System ist <strong>einsprachig deutsch</strong>, <strong>einmandantig</strong> (ein Betreiber, viele Endkunden) und rollenbasiert.</p>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">2</span> Vergabeverfahren</h2>
+
+    <p>Die Vergabe erfolgt freihändig in zwei Runden.</p>
+
+    <ul>
+      <li><strong>Runde 1 — Angebot auf dieser Unterlage.</strong> Aufwand und Preis je Position, Annahmen benannt, Rückfragen gestellt. Rückfragen werden gesammelt und allen Bietern gleichlautend beantwortet.</li>
+      <li><strong>Runde 2 — Fachgespräch</strong> mit den Bietern der engeren Wahl. Gegenstand sind LV&nbsp;300 und LV&nbsp;700; erwartet wird eine Aussage dazu, <em>wie</em> Sie das Regelwerk und die Erzeugungsstrecke bauen würden, nicht nur was es kostet.</li>
+    </ul>
+
+    <p>Zuschlagskriterien, in dieser Gewichtung:</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Kriterium</th><th class="zahl">Gewicht</th><th>Woran es gemessen wird</th></tr></thead>
+        <tbody>
+          <tr><td>Fachliche Durchdringung</td><td class="zahl">40 %</td><td>Qualität der Rückfragen und der benannten Annahmen; Aussage zu LV 300 und LV 700 im Fachgespräch</td></tr>
+          <tr><td>Preis</td><td class="zahl">30 %</td><td>Gesamtpreis Stufe 1 und 2, Tagessätze, Nachvollziehbarkeit der Aufteilung</td></tr>
+          <tr><td>Termine</td><td class="zahl">20 %</td><td>Datum der Betriebsbereitschaft von Stufe 1, Teamverfügbarkeit</td></tr>
+          <tr><td>Referenzen</td><td class="zahl">10 %</td><td>Vergleichbare Fachanwendungen, nicht Websites</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz warn">
+      <p><strong>Ein Angebot über ein „vergleichbares" oder vereinfachtes System ist nicht verwertbar.</strong> Ebenso wenig eine Gesamtsumme ohne Aufteilung: Ohne Aufwand je Position lassen sich weder Ausbaustufen schneiden noch Nachträge prüfen.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">3</span> Ausbaustufen und Meilensteine</h2>
+
+    <p class="fuehrung">Das System wird nicht in einem Zug gebaut, sondern in vier Stufen. Jede Stufe endet mit einem <strong>betriebsbereiten Stand</strong> — nicht mit einem Zwischenbericht.</p>
+
+    <p>Maßgeblich ist Stufe&nbsp;1: Sie ist erreicht, wenn der Auftraggeber einen echten Kunden vollständig über das System bearbeiten kann — vom gefundenen Betrieb bis zur ausgelieferten Website. Alles Weitere baut darauf auf und ist einzeln abwählbar.</p>
+
+    <div class="stufen">
+      <div class="stufe-zeile">
+        <div class="stufe-marke">Stufe 1<small>M1–M3</small></div>
+        <div>
+          <h4>Betriebsbereiter Kern</h4>
+          <p>Ein Kunde lässt sich vollständig bearbeiten. Ohne diese Stufe ist das System wertlos; mit ihr allein ist es bereits einsetzbar.</p>
+          <p class="enthaelt">LV 100 · 200 · 300 · 400 · 500 · 600 · 700 · 2000 · 2100 · 2200 · 2300 · 2500 · 2600</p>
+        </div>
+      </div>
+
+      <div class="stufe-zeile">
+        <div class="stufe-marke">Stufe 2<small>M4</small></div>
+        <div>
+          <h4>Kundenseite</h4>
+          <p>Der Endkunde bekommt einen eigenen Zugang: Entwürfe freigeben, Rechnungen einsehen, Anfragen stellen. Bis dahin läuft das über den Innendienst.</p>
+          <p class="enthaelt">LV 800 · 1000 · 2400 (restliche Anbindungen)</p>
+        </div>
+      </div>
+
+      <div class="stufe-zeile">
+        <div class="stufe-marke">Stufe 3<small>M5</small></div>
+        <div>
+          <h4>Ausbau</h4>
+          <p>Schulungsbereich und Aussendungen. Beides steigert den Umsatz je Kunde, keines ist Voraussetzung für den Verkauf.</p>
+          <p class="enthaelt">LV 900 · 1100</p>
+        </div>
+      </div>
+
+      <div class="stufe-zeile">
+        <div class="stufe-marke bedarf" style="color: var(--ocker)">Bedarf<small>optional</small></div>
+        <div>
+          <h4>Publikations- und Satzstrecke</h4>
+          <p>Eigenständiges Teilsystem, gesondert anzubieten und gesondert abwählbar. Wird nur beauftragt, wenn die Kalkulation es trägt.</p>
+          <p class="enthaelt">LV 1200</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabellenrahmen">
+      <table>
+        <caption>Meilensteine — Termine trägt der Bieter ein</caption>
+        <thead><tr><th>Nr.</th><th>Meilenstein</th><th>Nachweis</th><th class="zahl">Woche</th></tr></thead>
+        <tbody>
+          <tr><td>M0</td><td>Feinkonzept abgenommen</td><td>Datenmodell, Schnittstellenverzeichnis, Kriterienkatalog als Datenbestand</td><td class="zahl">—</td></tr>
+          <tr><td>M1</td><td>Fundament steht</td><td>Anmeldung, Rechtewerk, zwei Umgebungen, Auslieferungskette grün</td><td class="zahl">—</td></tr>
+          <tr><td>M2</td><td>Bewertungswerk misst</td><td>Lauf gegen die Referenzseite liefert reproduzierbar dieselbe Punktzahl</td><td class="zahl">—</td></tr>
+          <tr><td>M3</td><td>Stufe 1 betriebsbereit</td><td>Ein echter Kunde vollständig bearbeitet, Website ausgeliefert und erreichbar</td><td class="zahl">—</td></tr>
+          <tr><td>M4</td><td>Stufe 2 betriebsbereit</td><td>Kunde gibt einen Entwurf im Portal frei, ohne Innendienstdaten zu sehen</td><td class="zahl">—</td></tr>
+          <tr><td>M5</td><td>Stufe 3 betriebsbereit</td><td>Schulungsmodul zugewiesen, Aussendung versendet und ausgewertet</td><td class="zahl">—</td></tr>
+          <tr><td>M6</td><td>Übergabe</td><td>Quellcode, Dokumentation, Betriebshandbuch, Einweisung erfolgt</td><td class="zahl">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz">
+      <p><strong>M2 liegt bewusst vor M3.</strong> Das Bewertungswerk ist die Position mit dem größten fachlichen Risiko und zugleich die, deren Ergebnis sich am frühesten überprüfen lässt. Wer es ans Ende schiebt, entdeckt seine Überraschungen dann, wenn kein Puffer mehr da ist.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">4</span> Technischer Rahmen</h2>
+
+    <p>Die nachstehende Zusammensetzung ist die <strong>Erwartung des Auftraggebers</strong>, keine Vorschrift. Ein Angebot darf eine gleichwertige Zusammensetzung vorschlagen; in diesem Fall bitte unter „Annahmen" begründen.</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Ebene</th><th>Erwartung</th></tr></thead>
+        <tbody>
+          <tr><td>Backend</td><td>Typisierte Sprache mit ausgereiftem Web- und ORM-Werk, asynchrone Verarbeitung</td></tr>
+          <tr><td>Datenhaltung</td><td>Relationale Datenbank mit Transaktionen und Migrationsweg</td></tr>
+          <tr><td>Frontend</td><td>Single-Page-Anwendung mit eigenem Gestaltungssystem auf Variablenbasis</td></tr>
+          <tr><td>Dokumente</td><td>Serverseitige PDF-Erzeugung mit eigenem Satz- und Diagrammwerk</td></tr>
+          <tr><td>Zeitsteuerung</td><td>Auftragsplaner im Anwendungsprozess oder als eigener Dienst</td></tr>
+          <tr><td>Betrieb</td><td>Zwei getrennte Umgebungen (Test und Produktiv), persistente Dateiablage, Auslieferung aus der CI</td></tr>
+          <tr><td>Prüfstrecke</td><td>Unit- und Integrationstests, Browsertests über die Oberfläche, Prüfjobs in der CI</td></tr>
+          <tr><td>KI-Anbindung</td><td>Mehrere Sprachmodellanbieter für Textbewertung, Texterzeugung und Sichtbarkeitsmessung, austauschbar hinter einer eigenen Schnittstelle</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz">
+      <p><strong>Eine Anbieterbindung an ein einzelnes Sprachmodell wird nicht akzeptiert.</strong> Die drei Anwendungsfälle greifen auf verschiedene Anbieter zu, und die Anbieterlandschaft ändert sich schneller als diese Software. Der Wechsel eines Anbieters muss eine Konfigurationsänderung sein, kein Umbau.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">5</span> Zielumfang</h2>
+
+    <p>Planungsgrößen aus dem Fachkonzept. Sie sind <strong>Größenordnung für die Kalkulation</strong>, nicht Abnahmegegenstand: Maßgeblich ist der beschriebene Funktionsumfang, nicht die Anzahl der Endpunkte, mit der er erreicht wird.</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <caption>Planungsgrößen des Zielsystems</caption>
+        <thead><tr><th>Größe</th><th class="zahl">Umfang</th><th>Anmerkung</th></tr></thead>
+        <tbody>
+          <tr><td>Fachmodule</td><td class="zahl">11</td><td>je einzeln abschaltbar (NF-10)</td></tr>
+          <tr><td>Datenendpunkte</td><td class="zahl">rd. 450</td><td>davon rd. 380 an die Oberfläche angebunden</td></tr>
+          <tr><td>Datenbanktabellen</td><td class="zahl">rd. 70</td><td>—</td></tr>
+          <tr><td>Bildschirme</td><td class="zahl">rd. 77</td><td>davon 65 über die Navigation erreichbar</td></tr>
+          <tr><td>Wiederverwendbare Oberflächenbausteine</td><td class="zahl">rd. 140</td><td>Gestaltungssystem, nicht Seitenbausteine aus LV 700</td></tr>
+          <tr><td>Rollen im Rechtewerk</td><td class="zahl">4</td><td>Rechtematrix, keine Rollenabfragen im Code</td></tr>
+          <tr><td>Prüfkriterien im Bewertungswerk</td><td class="zahl">39</td><td>in 8 Kategorien, dazu 4 Infrastrukturangaben</td></tr>
+          <tr><td>Projektphasen im Ablaufmodell</td><td class="zahl">7</td><td>—</td></tr>
+          <tr><td>PDF-Dokumentarten</td><td class="zahl">6</td><td>gemeinsames Satzwerk</td></tr>
+          <tr><td>Zeitgesteuerte Aufträge</td><td class="zahl">rd. 27</td><td>Viertelstunden- bis Monatslauf</td></tr>
+          <tr><td>Anzubindende Fremddienste</td><td class="zahl">12</td><td>Aufstellung in LV 2400</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">6</span> Leistungspositionen — Fachmodule</h2>
+
+    <p class="fuehrung">Bitte je Position Aufwand in Personentagen und Preis eintragen. Die Angabe unter „Umfang" nennt die Planungsgröße der Position.</p>
+
+    <!-- LV 100 -->
+    <div class="pos">
+      <div class="pos-oz">LV 100<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Fundament, Anmeldung, Rechtewerk</h3>
+        <p class="umfang">Umfang: <b>rd. 60</b> Endpunkte · <b>6</b> Bildschirme · <b>6</b> Kerntabellen</p>
+        <p>Nicht abschaltbarer Unterbau, auf dem alle übrigen Positionen aufsetzen.</p>
+        <ul>
+          <li>Anmeldung, Sitzungsverwaltung mit serverseitigem Sitzungsbestand, Abmeldung aller Geräte</li>
+          <li>Benutzerverwaltung: Anlage, Sperrung, Kennwortwechsel, Zwei-Faktor-Anmeldung <strong>einschließlich Abschalten</strong></li>
+          <li><strong>Rollen- und Rechtewerk mit 4 Rollen und einer Rechtematrix.</strong> Die Rechteprüfung liest die Matrix, statt Rollennamen aufzuzählen; Rollennamen stehen an einer einzigen Stelle im Code</li>
+          <li>Systemeinstellungen als Schlüssel-Wert-Bestand mit Oberfläche, darunter Betriebsschalter je Fachmodul auf drei Ebenen (Menü, Endpunkt, Zeitsteuerung)</li>
+          <li>Zentrales Fehlerprotokoll mit Oberfläche, Filterung und Auswertung</li>
+          <li>Dateiablage mit Zugriffsschutz, Typ- und Größenprüfung, persistentem Datenträger</li>
+          <li>Mailversand mit <strong>Versandsperre</strong>: ein Schalter hält jeden automatischen Versand an; sichere Vorgabe ist „aus"</li>
+          <li>Diagnoseendpunkte für die Betriebsprüfung, die den Zustand melden, <strong>ohne Konfigurationswerte preiszugeben</strong></li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Konto je Rolle kommt genau an die vorgesehenen Bildschirme und an keinen weiteren; ein gesperrter Endpunkt antwortet mit 404, nicht 403.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 200 -->
+    <div class="pos">
+      <div class="pos-oz">LV 200<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Akquise und Leadgewinnung</h3>
+        <p class="umfang">Umfang: <b>rd. 56</b> Endpunkte · <b>5</b> Bildschirme · <b>4</b> Tabellen · <b>3</b> Zeitaufträge</p>
+        <ul>
+          <li><strong>Registerrecherche:</strong> automatisierte Erfassung von Betrieben aus öffentlichen Verzeichnissen, mit Entdopplung, Wochenlauf und eigenem Betriebsschalter</li>
+          <li><strong>Domain-Import:</strong> Massenimport von Adresslisten, Erreichbarkeitsprüfung, Anreicherung aus einem Wirtschaftsdatendienst</li>
+          <li><strong>Einbettbares Analyse-Widget</strong> für fremde Websites: eigenständiges JavaScript-Bündel, automatische Höhenanpassung im iframe, Einwilligungsabfrage, Double-Opt-in vor Ausgabe des Ergebnisses, getrennte Auslieferung vom Hauptfrontend</li>
+          <li><strong>11 Webhook-Eingänge</strong> für externe Quellen, mit Signaturprüfung je Quelle</li>
+          <li>Kampagnenzuordnung und Herkunftsverfolgung je Interessent, auswertbar nach Kanal</li>
+          <li>Tages- und Sechsstundenläufe zur Anreicherung und Domainprüfung</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein auf einer fremden Domain eingebettetes Widget liefert ein Ergebnis, das erst nach bestätigter Einwilligung zugestellt wird.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 300 -->
+    <div class="pos">
+      <div class="pos-oz">LV 300<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Prüf- und Bewertungswerk</h3>
+        <p class="umfang">Umfang: <b>rd. 26</b> Endpunkte · <b>39</b> bewertete Kriterien in <b>8</b> Kategorien · <b>2</b> Tabellen</p>
+        <p>Fachanwendung mit eigenem Regelwerk und eine der beiden Positionen, die das Projektrisiko tragen. Der Kriterienkatalog ist die einzige Wahrheitsquelle; <strong>Punktabstufungen liegen als Daten am Kriterium, nicht im Code</strong>.</p>
+        <ul>
+          <li><strong>Erhebung</strong> je geprüfter Website: Seitenabruf und Auswertung des Auslieferungsstands, Zertifikatsprüfung, Ladezeitmessung über einen Geschwindigkeitsdienst, Erkennung fremder Dienste und Einwilligungswerkzeuge, Pflichtangaben (Anbieterkennzeichnung, Datenschutzerklärung), strukturierte Daten, Barrierefreiheitsmerkmale, Bild- und Textprüfung</li>
+          <li><strong>KI-gestützte Bewertung</strong> der inhaltlichen Kriterien über einen Sprachmodellanbieter, mit festgelegtem Ausgabeschema und Kennzeichnung der Erhebungsart je Kriterium (gemessen oder eingeschätzt)</li>
+          <li><strong>Punktmodell</strong> mit Kategoriegewichtung, Klassenzuordnung und Deckelregeln bei rechtlichen Verstößen</li>
+          <li><strong>Branchenprofile:</strong> je Gewerk abweichende Gewichtung und Schwellen</li>
+          <li><strong>Sichtbarkeitsmessung in KI-Antwortsystemen</strong> gegen vier Anbieter, Monatslauf, Auswertung und Verlaufsdarstellung</li>
+          <li><strong>PDF-Bericht</strong> mit Diagrammen, Kriterienerläuterung und Handlungsempfehlungen</li>
+          <li><strong>Eingefrorene Referenz-Website als Regressionsanker.</strong> Jede Verschiebung im Punktmodell wird von der Prüfstrecke gefangen, statt erst beim Kunden aufzufallen</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Drei Läufe gegen die Referenzseite ergeben dieselbe Punktzahl auf einen Punkt genau; jede Kriterienbeschreibung deckt sich mit dem, was tatsächlich gemessen wird.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 400 -->
+    <div class="pos">
+      <div class="pos-oz">LV 400<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Vertrieb und Betriebsbestand</h3>
+        <p class="umfang">Umfang: <b>rd. 51</b> Endpunkte · <b>4</b> Bildschirme · <b>5</b> Tabellen · Stammsatz mit rd. <b>100</b> Feldern</p>
+        <ul>
+          <li>Betriebsstamm mit Suche, Filterung, Mehrfachauswahl und Massenaktionen</li>
+          <li>Betriebsblatt als Einzelansicht mit Verlauf, Dokumenten und Kommunikationshistorie</li>
+          <li>Verkaufsvorgänge mit Positionen, Stufen und Wahrscheinlichkeiten</li>
+          <li>Lebenszyklus vom Interessenten zum Kunden, mit Übergabe der Stammdaten <strong>ohne zweite Erfassung</strong></li>
+          <li>Export in Tabellenformate mit Feldauswahl</li>
+          <li>Umgang mit unbekannten Werten: nie roh, nie getarnt — auch nicht im Filter</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Betrieb durchläuft alle Stufen bis zum Kunden, ohne dass Daten doppelt erfasst werden müssen.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 500 -->
+    <div class="pos">
+      <div class="pos-oz">LV 500<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Angebot, Kasse, Rechnungsstellung</h3>
+        <p class="umfang">Umfang: <b>rd. 34</b> Endpunkte · <b>2</b> Bildschirme · <b>5</b> Tabellen · <b>4</b> getrennte Webhook-Strecken</p>
+        <ul>
+          <li><strong>Produktkatalog</strong> als Datenbestand mit Status (Entwurf, live, stillgelegt), Netto- und Bruttopreis, Steuersatz und Leistungsverzeichnis je Paket. Stillgelegte Produkte bleiben lesbar, damit Altvorgänge ihre Preise behalten</li>
+          <li><strong>Öffentliche Verkaufsseiten</strong> mit Preisen aus der Datenbank, ohne Anmeldung erreichbar</li>
+          <li><strong>Kassenstrecke</strong> mit Zahlungsanbieter: Sitzungserzeugung, vorgewähltes Paket, Rücksprung mit serverseitig bestätigtem Ergebnis</li>
+          <li><strong>Vier getrennte Webhook-Strecken</strong> mit je eigenem Signaturgeheimnis für unterschiedliche Erzeugnisarten</li>
+          <li><strong>Rechnung und Auftragsbestätigung</strong> als PDF mit Nummernkreis und Archivierung</li>
+          <li><strong>Anrechnung:</strong> ein zuvor gekauftes Kleinprodukt wird auf einen späteren Auftrag angerechnet — mit den drei Zuständen frei, vorgemerkt, eingelöst, und einem Rückweg für den verlorenen Auftrag</li>
+          <li><strong>Partnervergütung:</strong> Erfassung vermittelter Abschlüsse über einen Fremddienst</li>
+          <li>Preisdarstellung durchgängig als Endpreis; <strong>ein einziges Verständnis von brutto und netto im ganzen System</strong></li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Kauf läuft im Browser von der Verkaufsseite bis zur Auftragsbestätigung durch, ohne Anmeldung, mit korrektem Betrag beim Zahlungsanbieter.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 600 -->
+    <div class="pos">
+      <div class="pos-oz">LV 600<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Projektabwicklung</h3>
+        <p class="umfang">Umfang: <b>rd. 71</b> Endpunkte · <b>6</b> Tabellen · <b>7</b> Phasen · <b>5</b> Tagesläufe</p>
+        <ul>
+          <li><strong>Projektakte</strong> mit 7 Phasen, Fristen, Zuständigkeiten und automatischem Phasenübergang nach Inbetriebnahme</li>
+          <li><strong>Fristenrechnung in Werktagen</strong>, nicht in Kalendertagen, mit Feiertagen und Fristpause bei fehlender Kundenrückmeldung. An dieser Uhr hängt eine Verzugspauschale — sie muss stimmen</li>
+          <li><strong>Checklisten</strong> je Phase, aus Vorlagen erzeugt, mit Fortschrittsanzeige</li>
+          <li><strong>Kundenbriefing:</strong> strukturierte Erhebung über einen Fragebogen, Erinnerungsläufe bei ausbleibender Rückmeldung, Prüfung auf fehlende Materialien, PDF-Ausgabe</li>
+          <li><strong>Zeiterfassung</strong> je Projekt und Mitarbeiter</li>
+          <li><strong>Margenrechnung</strong> mit Tageslauf: geleistete Zeit gegen vereinnahmten Betrag, einschließlich der Reststunden bis zur Zielmarge</li>
+          <li><strong>Dateiablage und Zugangsdatenverwaltung</strong> je Projekt, Zugangsdaten verschlüsselt gespeichert</li>
+          <li><strong>Projekt-Assistent:</strong> KI-gestützte Unterstützung auf dem Projektbestand, mit Verbrauchsgrenze je Tag</li>
+          <li>Inhaltsübernahme von der Altwebsite des Kunden als Ausgangsmaterial</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Projekt durchläuft alle Phasen; überfällige Phasen und fehlende Kundenmaterialien werden ohne manuelles Zutun gemeldet.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 700 -->
+    <div class="pos">
+      <div class="pos-oz">LV 700<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Website-Erzeugung und Auslieferung</h3>
+        <p class="umfang">Umfang: <b>rd. 69</b> Endpunkte · <b>9</b> Tabellen · <b>rd. 140</b> Seitenbausteine · <b>2</b> Überwachungsläufe</p>
+        <p>Kernstück und aufwendigste Position. Aus dem Briefing entsteht eine auslieferungsfertige Website.</p>
+        <ul>
+          <li><strong>Seitenplanung:</strong> Sitemap je Kunde mit Seitentypen, Zielen und Gliederung</li>
+          <li><strong>Wireframe-Stufe:</strong> Grobstruktur je Seite vor der Gestaltung</li>
+          <li><strong>Gestaltungsrichtlinie je Kunde:</strong> Farbwelt, Schriften und Abstände aus dem Briefing abgeleitet, als Variablensatz gespeichert und vom Kunden freizugeben</li>
+          <li><strong>Visueller Editor</strong> mit Arbeitsfläche und mehreren Zeichenflächen nebeneinander (je Kundenseite eine), Auswahl einzelner Elemente, Eigenschaftsbereich, Textbearbeitung an Ort und Stelle, Rückgängig/Wiederherstellen und <strong>Versionierung jedes Standes</strong></li>
+          <li><strong>Bausteinbibliothek</strong> mit rd. 140 wiederverwendbaren Abschnitten (Kopfbereiche, Leistungsraster, Referenzen, Formulare, Fußbereiche) aus <strong>lizenzrechtlich geprüften Quellen</strong>, mit Aufräumroutine für entfernte Bestände</li>
+          <li><strong>Vorlagen je Gewerk</strong> mit branchenspezifischer Ansprache</li>
+          <li><strong>Inhaltserzeugung:</strong> KI-gestützte Texte nach einer verbindlichen Angebots- und Conversion-Spezifikation, je Abschnitt gesondert, mit Medienverwaltung und Bildzuordnung</li>
+          <li><strong>Auslieferung</strong> an einen statischen Hosting-Anbieter über dessen Schnittstelle, mit Domainanbindung, Überwachung der Namensauflösung (Viertelstundenlauf) und der Zertifikatsausstellung</li>
+          <li><strong>Qualitätsschleife:</strong> das erzeugte Erzeugnis wird durch das Bewertungswerk aus LV 300 geprüft, <em>bevor</em> es freigegeben wird</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Aus einem ausgefüllten Briefing entsteht ohne Handarbeit eine ausgelieferte, erreichbare Website, die die Qualitätsschleife besteht.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 800 -->
+    <div class="pos">
+      <div class="pos-oz">LV 800<span class="stufe">Stufe 2</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Kundenportal</h3>
+        <p class="umfang">Umfang: <b>rd. 13</b> Endpunkte · <b>4</b> Bildschirme · <b>4</b> Tabellen</p>
+        <ul>
+          <li>Eigener Zugang für Endkunden, getrennt vom Innendienst</li>
+          <li>Dokumentenablage mit Freigabeverfahren — der Kunde bestätigt Entwürfe verbindlich</li>
+          <li>Nachrichtenkanal zwischen Kunde und Innendienst, mit Mailbenachrichtigung</li>
+          <li>Rechnungsübersicht mit Download, Zahlungen und laufenden Verträgen</li>
+          <li>Auskunft und Löschung nach Art. 15 und 17 DSGVO durch den Kunden selbst auslösbar</li>
+          <li>Support-Anfragen mit Statusverfolgung</li>
+          <li>Anbindung an das Redaktionssystem der ausgelieferten Website</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Kunde meldet sich an, gibt einen Entwurf frei und stellt eine Anfrage, ohne Zugriff auf Innendienstdaten zu erhalten.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 900 -->
+    <div class="pos">
+      <div class="pos-oz">LV 900<span class="stufe">Stufe 3</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Schulungsbereich</h3>
+        <p class="umfang">Umfang: <b>rd. 34</b> Endpunkte · <b>8</b> Tabellen</p>
+        <ul>
+          <li>Kurse, Module und Lektionen als dreistufige Struktur</li>
+          <li>Zugriffssteuerung je Modul und Kunde (freigeschaltet oder gesperrt)</li>
+          <li>Fortschrittsverfolgung, Abschlussprüfung, Zertifikatserzeugung als PDF</li>
+          <li>Medieneinbindung (Video, Dokument) mit Zugriffsschutz</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein freigeschaltetes Modul ist für den zugewiesenen Kunden sichtbar und für alle anderen nicht.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 1000 -->
+    <div class="pos">
+      <div class="pos-oz">LV 1000<span class="stufe">Stufe 2</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Betreuung nach Inbetriebnahme</h3>
+        <p class="umfang">Umfang: <b>rd. 12</b> Endpunkte · <b>2</b> Tabellen · <b>1</b> Monatslauf</p>
+        <ul>
+          <li>Ticketsystem mit Prioritäten, Zuständigkeit und Reaktionsfristen</li>
+          <li>Wartungsverträge mit Leistungsumfang und Abrechnungsintervall</li>
+          <li>Monatlicher Leistungsbericht je Kunde, automatisch erzeugt und versendet</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 1100 -->
+    <div class="pos">
+      <div class="pos-oz">LV 1100<span class="stufe">Stufe 3</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Aussendungen und Kampagnen</h3>
+        <p class="umfang">Umfang: <b>rd. 18</b> Endpunkte · <b>6</b> Tabellen · <b>1</b> Sequenzlauf</p>
+        <ul>
+          <li>Newsletterverwaltung mit Listen, Kontakten und Abmeldeverfahren</li>
+          <li>Kampagnen mit Vorlagen und Zeitplanung</li>
+          <li>Mehrstufige Mailsequenzen mit Auslösern</li>
+          <li>Auswertung der Zustellereignisse (zugestellt, geöffnet, angeklickt, abgewiesen) über die Rückmeldungen des Versanddienstes</li>
+          <li>Vollständiges Versandprotokoll als Nachweis</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 1200 -->
+    <div class="pos">
+      <div class="pos-oz">LV 1200<span class="stufe bedarf">Bedarf</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Publikations- und Satzstrecke</h3>
+        <p class="umfang">Umfang: <b>rd. 7</b> Endpunkte · eigenständiges Satzwerk</p>
+        <p>Eigenständiges Teilsystem, <strong>gesondert anzubieten und gesondert abwählbar</strong>.</p>
+        <ul>
+          <li>Satzsystem zur Erzeugung eines druckfähigen Fachbuchs aus Quelldateien</li>
+          <li>Export des Prüfkatalogs aus LV 300 in die Buchfassung, damit gedruckte Angaben und Software nicht auseinanderlaufen</li>
+          <li>Abgleichwächter über mehrere Ebenen zwischen Katalog und Manuskript</li>
+          <li>Bestell- und Versandabwicklung für das gedruckte Werk</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">7</span> Leistungspositionen — Querschnitt</h2>
+
+    <p class="fuehrung">Diese Positionen laufen durch alle Fachmodule. Sie sind <strong>nicht abwählbar</strong> und gehören vollständig in Stufe 1, auch wenn die Fachmodule gestaffelt entstehen.</p>
+
+    <!-- LV 2000 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2000<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Sicherheit</h3>
+        <ul>
+          <li>Sitzungsverwaltung mit serverseitiger Ungültigkeitserklärung</li>
+          <li>Verschlüsselte Ablage von Kundenzugangsdaten und Redaktionssystem-Zugängen</li>
+          <li>Signaturprüfung aller eingehenden Webhooks</li>
+          <li>Ratenbegrenzung auf öffentlichen Endpunkten</li>
+          <li>Keine Existenzbestätigung bei fehlender Berechtigung — 404 statt 403</li>
+          <li>Kein Konfigurationswert in einer Antwort, keine Zugangsdaten im Quellcode</li>
+          <li>Automatische Geheimnissuche als Prüfjob in der CI</li>
+          <li>Zugriffsschutz auf allen Datenendpunkten — ausdrücklich einschließlich der öffentlich erreichbaren Teilstrecken</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Ein Sicherheitstest durch einen Dritten findet keinen Zugriff auf fremde Bestände über direkte Adresseingabe oder Hochzählen von Nummern.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2100 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2100<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Datenschutz und Nachweispflichten</h3>
+        <ul>
+          <li>Double-Opt-in vor jeder Zustellung an nicht bestätigte Adressen</li>
+          <li>Löschfunktion für personenbezogene Bestände, mit Protokoll</li>
+          <li>Auskunftsfunktion (Datenexport je betroffener Person)</li>
+          <li>Rechtsgrundlage je Datenquelle dokumentiert und im System hinterlegt</li>
+          <li>Verarbeitungsnachweise, Aufbewahrungsfristen, Einwilligungsverwaltung</li>
+          <li>Anbieterkennzeichnung und Datenschutzerklärung für alle öffentlichen Teile, einschließlich des eingebetteten Widgets aus LV 200</li>
+          <li><strong>Kein Tracking ohne Einwilligung</strong> — auch nicht im eingebetteten Widget auf einer fremden Seite</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2200 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2200<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Dokumenterzeugung</h3>
+        <p class="umfang">Umfang: <b>6</b> Dokumentarten mit gemeinsamem Satzwerk</p>
+        <p>Prüfbericht · Angebot · Auftragsbestätigung · Rechnung · Briefing · Zertifikat. Gemeinsame Grundlage: eigenes Satzwerk mit Bausteinen, Diagrammerzeugung, Farb- und Typografievorgabe, Kopf- und Fußzeilen, Seitenzählung.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2300 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2300<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Zeitsteuerung und Abläufe</h3>
+        <p class="umfang">Umfang: <b>rd. 27</b> zeitgesteuerte Aufträge, Viertelstunden- bis Monatslauf</p>
+        <ul>
+          <li>Zentraler Auftragsplaner mit Zeitzonenbehandlung</li>
+          <li>Protokollierung jedes Laufs mit Ergebnis und Dauer</li>
+          <li><strong>Sperrschalter je Modul, der auch die Läufe anhält.</strong> Ein abgeschaltetes Modul, dessen Nachtlauf weiter Mails verschickt, gilt als nicht abgeschaltet</li>
+          <li>Wiederanlauf ohne Doppelversand nach einem Neustart</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2400 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2400<span class="stufe">Stufe 1–2</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Anbindung von Fremddiensten</h3>
+        <div class="tabellenrahmen">
+          <table>
+            <thead><tr><th>Art des Dienstes</th><th class="zahl">Anzahl</th><th>Anforderung</th></tr></thead>
+            <tbody>
+              <tr><td>Sprachmodellanbieter</td><td class="zahl">3</td><td>Textbewertung, Texterzeugung, Sichtbarkeitsmessung</td></tr>
+              <tr><td>Zahlungsanbieter</td><td class="zahl">1</td><td>Kasse, 4 getrennte Webhook-Strecken, Rückerstattung</td></tr>
+              <tr><td>Mailversanddienst</td><td class="zahl">1</td><td>Versand, Ereignisrückmeldung, Listenpflege</td></tr>
+              <tr><td>Statisches Hosting</td><td class="zahl">1</td><td>Auslieferung, Domain, Zertifikat, Überwachung</td></tr>
+              <tr><td>Geschwindigkeits- und Ortsdienste</td><td class="zahl">2</td><td>Ladezeitmessung, Betriebsdaten</td></tr>
+              <tr><td>Wirtschaftsdatendienst</td><td class="zahl">1</td><td>Anreicherung von Betriebsdaten</td></tr>
+              <tr><td>Partnerprogramm</td><td class="zahl">1</td><td>Vermittlungsnachweis</td></tr>
+              <tr><td>Plattformbetrieb und Datenbank</td><td class="zahl">2</td><td>Betrieb beider Umgebungen</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Für jede Anbindung gefordert:</strong> Fehlerbehandlung ohne stillen Abbruch, Wiederholung mit Wartezeit, Zeitüberschreitung, <strong>kein blockierender Aufruf im asynchronen Anwendungsprozess</strong>, Attrappenbetrieb für die Prüfstrecke.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2500 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2500<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Prüfstrecke</h3>
+        <ul>
+          <li>Unit- und Integrationstests gegen eine <strong>echte Datenbank</strong>, nicht gegen Attrappen</li>
+          <li>Testdatenbank mit <strong>demselben</strong> Migrationsweg wie die Produktivdatenbank</li>
+          <li>Browsertests über die Oberfläche für jeden Hauptweg</li>
+          <li><strong>Wächtertests</strong> gegen wiederkehrende Fehlerklassen, mindestens: jeder Frontend-Aufruf wird gegen die tatsächlich geladenen Endpunkte geprüft; kein synchroner Fremdaufruf in einer asynchronen Funktion; der Prüfkatalog wird gegen eine eingefrorene Referenzseite gerechnet</li>
+          <li>Mindestabdeckung 80 %, in der CI durchgesetzt</li>
+          <li><strong>Ein Test, der nur die Abwesenheit von etwas zusichert, gilt nicht als Nachweis.</strong> Zu jeder Abwesenheitsprüfung gehört eine positive Gegenprobe, die belegt, dass die Prüfung überhaupt etwas finden kann</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Die Prüfstrecke läuft auf einem frischen Rechner ohne Handarbeit durch und meldet einen absichtlich eingebauten Fehler.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2600 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2600<span class="stufe">Stufe 1</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Betrieb, Auslieferung, Datensicherung</h3>
+        <ul>
+          <li><strong>Zwei vollständig getrennte Umgebungen</strong> (Test und Produktiv) mit eigener Datenbank, eigenen Zugangsdaten und eigener Konfiguration</li>
+          <li>Infrastruktur als Datei beschrieben, je Umgebung eine</li>
+          <li><strong>CI mit mindestens fünf Prüfjobs:</strong> Stilprüfung, Startprüfung, Tests, Frontend-Bau, Geheimnissuche. Auslieferung erst nach grüner Prüfung</li>
+          <li>Automatische Auslieferung bei Änderung des jeweiligen Zweigs</li>
+          <li><strong>Migrationen laufen beim Start</strong>, über einen einzigen Weg, nachrüstbar für bestehende Spalten</li>
+          <li><strong>Datensicherung mit geprobter Wiederherstellung.</strong> Eine Sicherung, die nie zurückgespielt wurde, gilt als nicht vorhanden</li>
+          <li>Persistente Dateiablage für Uploads und erzeugte Dokumente</li>
+        </ul>
+        <p class="abnahme"><b>Abnahme</b>Eine Wiederherstellung aus der Sicherung wird im Beisein des Auftraggebers durchgeführt und führt zu einem lauffähigen Stand.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2700 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2700<span class="stufe">M6</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Dokumentation und Übergabe</h3>
+        <ul>
+          <li>Technische Dokumentation: Architektur, Datenmodell, Schnittstellenverzeichnis</li>
+          <li>Betriebshandbuch: Einrichtung, Konfigurationswerte, Sicherung, Störungsfälle</li>
+          <li>Fachdokumentation: Kriterienkatalog, Angebotsbaukasten, Gestaltungsrichtlinie</li>
+          <li>Einweisung der Anwender, mindestens zwei Termine</li>
+        </ul>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LV 2800 -->
+    <div class="pos">
+      <div class="pos-oz">LV 2800<span class="stufe">durchgehend</span></div>
+      <div class="pos-inhalt">
+        <h3 class="pos-kopf">Projektleitung und Qualitätssicherung</h3>
+        <p>Anforderungsaufnahme, Feinkonzept, Abstimmung, Abnahmebegleitung, Änderungsverwaltung. Bitte als Prozentsatz auf die Summe der Fachpositionen oder als eigenen Aufwand ausweisen.</p>
+        <div class="preiszeile">
+          <span class="feld">Aufwand (PT) <span></span></span>
+          <span class="feld">Preis (€) <span></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">8</span> Nichtfunktionale Anforderungen</h2>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Nr.</th><th>Anforderung</th></tr></thead>
+        <tbody>
+          <tr><td>NF-1</td><td>Oberfläche vollständig deutsch, Fachbegriffe einheitlich über alle Bildschirme</td></tr>
+          <tr><td>NF-2</td><td>Bedienbar auf Bildschirm und Tablet; öffentliche Teile und Kundenportal zusätzlich auf dem Telefon</td></tr>
+          <tr><td>NF-3</td><td>Barrierefreiheit: Tastaturbedienbarkeit durchgängig, sichtbarer Fokus, Kontrastverhältnis mindestens 4,5:1, Dialoge über Escape verlassbar, Mindestschriftgröße 12&nbsp;px</td></tr>
+          <tr><td>NF-4</td><td>Antwortzeit der Fachendpunkte unter 500&nbsp;ms im Regelfall; kein Fremdaufruf blockiert den Anwendungsprozess</td></tr>
+          <tr><td>NF-5</td><td>Fehler werden nie stillschweigend verschluckt; jede Fehlermeldung ist für den Anwender verständlich und serverseitig mit Kontext protokolliert</td></tr>
+          <tr><td>NF-6</td><td>Eingaben werden an jeder Systemgrenze schemagestützt geprüft</td></tr>
+          <tr><td>NF-7</td><td>Unbekannte Werte werden als unbekannt dargestellt — weder als Null noch als Leerstring getarnt</td></tr>
+          <tr><td>NF-8</td><td>Quelltextorganisation: Dateien unter 800 Zeilen, Funktionen unter 50 Zeilen, keine Verschachtelung über vier Ebenen</td></tr>
+          <tr><td>NF-9</td><td>Öffentliche Teile ohne Anmeldung erreichbar, interne Bestände ohne Anmeldung <strong>nicht</strong> erreichbar — auch nicht über direkte Adresseingabe</td></tr>
+          <tr><td>NF-10</td><td>Jedes Fachmodul einzeln abschaltbar, ohne Datenverlust</td></tr>
+          <tr><td>NF-11</td><td>Kein Merkmal gilt als fertig, solange es keine Bedienung hat. Ein Endpunkt ohne Aufrufer ist keine Leistung</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz">
+      <p><strong>NF-11 ist ernst gemeint und wird bei der Abnahme geprüft.</strong> Ein automatisierter Abgleich zwischen den vorhandenen Endpunkten und den tatsächlich aufgerufenen ist Teil von LV 2500 und muss zur Abnahme ohne unerklärte Reste durchlaufen.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">9</span> Mitwirkung des Auftraggebers</h2>
+
+    <p>Damit der Zeitplan trägt, stellt der Auftraggeber verbindlich bereit:</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Leistung</th><th>Bis wann</th></tr></thead>
+        <tbody>
+          <tr><td>Fachliche Ansprechperson, erreichbar innerhalb von zwei Werktagen</td><td>durchgehend</td></tr>
+          <tr><td>Marke, Gestaltungsvorgaben, Schriftlizenzen</td><td>vor M1</td></tr>
+          <tr><td>Kriterienkatalog des Bewertungswerks als Fachvorgabe</td><td>vor M0-Abnahme</td></tr>
+          <tr><td>Angebots- und Conversion-Spezifikation für die Inhaltserzeugung</td><td>vor M3</td></tr>
+          <tr><td>Anbieterkonten und Zugangsdaten aller Fremddienste aus LV 2400</td><td>je Anbindung, spätestens vier Wochen vorher</td></tr>
+          <tr><td>Domains und DNS-Verwaltung</td><td>vor M3</td></tr>
+          <tr><td>Anwaltlich geprüfte Rechtstexte (Datenschutz, AGB, Widerruf)</td><td>vor M3</td></tr>
+          <tr><td>Inhalte für den Schulungsbereich</td><td>vor M5</td></tr>
+          <tr><td>Testbetrieb: ein echter Kunde für die Abnahme von Stufe 1</td><td>vor M3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz warn">
+      <p><strong>Verzögert sich eine Mitwirkungsleistung, verschiebt sich der zugehörige Meilenstein</strong> — ohne Mehrkosten, sofern der Auftragnehmer die Verzögerung schriftlich anzeigt, sobald sie absehbar ist. Diese Regel gilt in beide Richtungen.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">10</span> Rechte am Werk</h2>
+
+    <ul>
+      <li><strong>Ausschließliche, zeitlich und räumlich unbeschränkte Nutzungsrechte</strong> am gesamten erstellten Werk gehen mit vollständiger Bezahlung des jeweiligen Meilensteins auf den Auftraggeber über — einschließlich des Rechts zur Bearbeitung, Weiterentwicklung und Weitergabe an Dritte.</li>
+      <li><strong>Quellcode-Übergabe fortlaufend</strong>, nicht erst zur Abnahme: Der Auftraggeber erhält vom ersten Tag an Lesezugriff auf die Versionsverwaltung. Ein Werk, das man erst am Ende sieht, kann man erst am Ende ablehnen.</li>
+      <li><strong>Fremdbestandteile sind vollständig aufzulisten</strong>, mit Lizenz und Fundstelle. Bestandteile unter einer Lizenz, die kommerzielle Nutzung, Bearbeitung oder Weitergabe einschränkt, sind vorab freizugeben — <em>vor</em> dem Einbau, nicht danach.</li>
+      <li><strong>KI-erzeugter Code ist offenzulegen.</strong> Setzt der Auftragnehmer Werkzeuge zur maschinellen Codeerzeugung ein, ist das anzugeben. Der Auftragnehmer sichert zu, dass er die übertragenen Rechte auch an diesen Teilen einräumen kann, und stellt den Auftraggeber von Ansprüchen Dritter frei. <em>Der Einsatz solcher Werkzeuge ist ausdrücklich erlaubt — verschwiegen werden darf er nicht.</em></li>
+      <li><strong>Hinterlegung:</strong> Bei einem Auftragswert über <span class="luecke"></span> € hinterlegt der Auftragnehmer den Quellstand bei einem Treuhänder, mit Herausgabe bei Insolvenz oder Vertragsende.</li>
+    </ul>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">11</span> Abnahme, Gewährleistung, Zahlung</h2>
+
+    <h3>Abnahme</h3>
+    <p>Abgenommen wird je Meilenstein gegen die Abnahmekriterien der enthaltenen Positionen — nicht gegen eine Vorführung. Ein Meilenstein gilt als erreicht, wenn die Kriterien <strong>auf der Produktivumgebung</strong> erfüllt sind und die Prüfstrecke grün ist. Für die Prüfung stehen dem Auftraggeber zehn Werktage zu.</p>
+
+    <h3>Gewährleistung</h3>
+    <p>24 Monate ab Abnahme des jeweiligen Meilensteins. Mängel, die den Betrieb verhindern, sind innerhalb von zwei Werktagen zu beheben; übrige innerhalb von zehn.</p>
+
+    <h3>Zahlungsplan</h3>
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Zeitpunkt</th><th class="zahl">Anteil</th><th>Bemerkung</th></tr></thead>
+        <tbody>
+          <tr><td>Bei Beauftragung</td><td class="zahl">10 %</td><td>—</td></tr>
+          <tr><td>M0 Feinkonzept abgenommen</td><td class="zahl">10 %</td><td>—</td></tr>
+          <tr><td>M2 Bewertungswerk misst</td><td class="zahl">20 %</td><td>reproduzierbare Punktzahl nachgewiesen</td></tr>
+          <tr><td>M3 Stufe 1 betriebsbereit</td><td class="zahl">30 %</td><td>ein echter Kunde vollständig bearbeitet</td></tr>
+          <tr><td>M4/M5 Stufe 2 und 3</td><td class="zahl">20 %</td><td>anteilig je Stufe</td></tr>
+          <tr class="summe"><td>M6 Übergabe, Ende Gewährleistungseinbehalt</td><td class="zahl">10 %</td><td>Einbehalt bis 6 Monate nach M6</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">12</span> Abgrenzung</h2>
+
+    <p>Nicht Bestandteil dieser Ausschreibung:</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>Position</th><th>Anmerkung</th></tr></thead>
+        <tbody>
+          <tr><td>Inhalte</td><td>Kurstexte, Buchmanuskript, Marketingtexte — nur die Technik ist Gegenstand</td></tr>
+          <tr><td>Marke und Gestaltungsvorgaben</td><td>werden gestellt (Abschnitt 9)</td></tr>
+          <tr><td>Fremdlizenzen</td><td>Editor-Baukasten und gekaufte Vorlagen werden gestellt oder gesondert beschafft</td></tr>
+          <tr><td>Laufende Betriebs- und Nutzungsentgelte</td><td>Hosting, Sprachmodelle, Versanddienst — trägt der Auftraggeber</td></tr>
+          <tr><td>Domains und Anbieterkonten</td><td>werden vom Auftraggeber gestellt</td></tr>
+          <tr><td>Rechtsberatung</td><td>Datenschutzdokumente werden anwaltlich geprüft, nicht vom Anbieter erstellt</td></tr>
+          <tr><td>Betrieb nach Abnahme</td><td>gesondert anzubieten, siehe Abschnitt 13 Punkt 8</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section>
+    <h2><span class="nr">13</span> Anforderungen an das Angebot</h2>
+
+    <ul>
+      <li><strong>Aufwand je Leistungsposition</strong> in Personentagen, in der Gliederung dieses Verzeichnisses. Eine Gesamtsumme ohne Aufteilung ist nicht verwertbar.</li>
+      <li><strong>Getrennte Summen je Ausbaustufe</strong> (Stufe 1, 2, 3 und Bedarfsposition), damit sich der Umfang bei Bedarf schneiden lässt.</li>
+      <li><strong>Tagessatz und Rollenmix</strong> — Projektleitung, Architektur, Backend, Frontend, Test, Betrieb — getrennt ausweisen.</li>
+      <li><strong>Annahmen und Ausschlüsse</strong> ausdrücklich benennen, insbesondere dort, wo eine Position aus Ihrer Sicht unterbestimmt ist.</li>
+      <li><strong>Abweichende technische Zusammensetzung</strong> ist zulässig, aber zu begründen.</li>
+      <li><strong>Termine:</strong> Datum je Meilenstein aus Abschnitt 3, Teamgröße, Verfügbarkeit ab Beauftragung.</li>
+      <li><strong>Referenzen:</strong> zwei vergleichbare Fachanwendungen mit Ansprechpartner.</li>
+      <li><strong>Optionales Angebot für den Betrieb nach Abnahme:</strong> Störungsbehebung, Aktualisierung der Abhängigkeiten, Weiterentwicklung — als Monatspauschale und als Tagessatz.</li>
+      <li><strong>Gewährleistung und Zahlungsplan</strong>, sofern abweichend von Abschnitt 11.</li>
+    </ul>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section class="anlage">
+    <h2><span class="nr">A</span> Anlage · Preisblatt</h2>
+
+    <p>Zusammenstellung zur Übertragung der Einzelpreise. Alle Beträge netto.</p>
+
+    <div class="tabellenrahmen">
+      <table>
+        <thead><tr><th>OZ</th><th>Position</th><th>Stufe</th><th class="zahl">Aufwand (PT)</th><th class="zahl">Preis (€)</th></tr></thead>
+        <tbody>
+          <tr><td>LV 100</td><td>Fundament, Anmeldung, Rechtewerk</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 200</td><td>Akquise und Leadgewinnung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 300</td><td>Prüf- und Bewertungswerk</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 400</td><td>Vertrieb und Betriebsbestand</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 500</td><td>Angebot, Kasse, Rechnungsstellung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 600</td><td>Projektabwicklung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 700</td><td>Website-Erzeugung und Auslieferung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 800</td><td>Kundenportal</td><td>2</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 900</td><td>Schulungsbereich</td><td>3</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 1000</td><td>Betreuung nach Inbetriebnahme</td><td>2</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 1100</td><td>Aussendungen und Kampagnen</td><td>3</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 1200</td><td>Publikations- und Satzstrecke</td><td>Bedarf</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2000</td><td>Sicherheit</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2100</td><td>Datenschutz und Nachweispflichten</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2200</td><td>Dokumenterzeugung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2300</td><td>Zeitsteuerung und Abläufe</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2400</td><td>Anbindung von Fremddiensten</td><td>1–2</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2500</td><td>Prüfstrecke</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2600</td><td>Betrieb, Auslieferung, Datensicherung</td><td>1</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2700</td><td>Dokumentation und Übergabe</td><td>M6</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr><td>LV 2800</td><td>Projektleitung und Qualitätssicherung</td><td>durchgehend</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr class="summe"><td colspan="3">Summe Stufe 1 (betriebsbereiter Kern)</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr class="summe"><td colspan="3">Summe Stufe 1 + 2 + 3</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+          <tr class="summe"><td colspan="3">Summe einschließlich Bedarfsposition</td><td class="zahl">—</td><td class="zahl">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="merksatz">
+      <p><strong>Zur Herkunft der Planungsgrößen.</strong> Die Umfangsangaben je Position (Endpunkte, Tabellen, Bildschirme) stammen aus dem Fachkonzept des Auftraggebers und dienen der Kalkulation. Sie sind keine Abnahmegegenstände: Wer denselben Funktionsumfang mit weniger Endpunkten erreicht, hat die Leistung erbracht.</p>
+    </div>
+  </section>
+
+  <footer class="fuss">
+    <span>Ausschreibungsunterlage · Neuentwicklung Branchenplattform</span>
+    <span>Vertraulich · Seite <span class="luecke" style="padding-right:1.5rem"></span></span>
+  </footer>
+</div>
+
+<script>
+  // Der Knopf ruft das Druckdialogfeld des Browsers. In eingebetteten
+  // Vorschauen ist das gesperrt — dann bleibt der Hinweis daneben stehen,
+  // statt dass ein Knopf wortlos nichts tut.
+  (function () {
+    var knopf = document.getElementById('druckknopf');
+    var hinweis = document.getElementById('druckhinweis');
+    if (!knopf) return;
+    knopf.addEventListener('click', function () {
+      try {
+        window.print();
+      } catch (e) {
+        if (hinweis) hinweis.style.color = 'var(--ocker)';
+      }
+    });
+  })();
+</script>

@@ -69,7 +69,33 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
         for a in reversed(audits)
     ]
 
+    def _json_feld(roh, rueckfall):
+        """JSON-Text aus der Datenbank, oder der Rueckfall — wirft nie."""
+        try:
+            return json.loads(roh) if roh else rueckfall
+        except (json.JSONDecodeError, TypeError):
+            return rueckfall
+
     def _audit_dict(a):
+        """Ein Audit, wie die Oberflaeche es lesen kann.
+
+        **Die Kriterienwerte kommen aus `item_scores`, nicht aus Spalten**
+        (korrigiert am 08.09.2026). Hier standen 33 fest aufgezaehlte
+        Schluessel aus dem Katalog vor dem 11.08.2026 — dem Tag, an dem auf
+        JSON umgestellt wurde. Das Datenmodell sagt seither woertlich, die
+        Einzelspalten wuerden „nicht mehr gefuellt"; das Betriebsblatt las
+        sie trotzdem und zeigte darum Nullen. Betroffen waren zwei Reiter:
+        „Audits" und „Checklisten".
+
+        **Was nicht gemessen wurde, fehlt — es steht nicht auf 0.** Eine 0
+        heisst „geprueft und nicht erfuellt"; die Checklisten machen daraus
+        einen gemeldeten Mangel. `getStatus` dort kennt fuer `null` laengst
+        ein „unbekannt" — es bekam nur nie eines zu sehen.
+
+        **Aufgezaehlt wird nichts mehr.** Was der Katalog fuehrt, entscheidet
+        `services/audit_criteria.py`; eine zweite Liste hier waere die
+        naechste, die stehen bleibt.
+        """
         d = {
             "id": a.id,
             "created_at": a.created_at.strftime("%d.%m.%Y %H:%M") if a.created_at else "",
@@ -81,40 +107,33 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "trade": a.trade,
             "city": a.city,
             "ai_summary": a.ai_summary,
+            # Rohmessungen — keine Katalogkriterien, sondern die Werte, aus
+            # denen einzelne Kriterien entstehen. Sie stehen weiter in
+            # eigenen Spalten und werden weiter gefuellt.
             "ssl_ok": a.ssl_ok,
             "mobile_score": a.mobile_score,
             "lcp_value": a.lcp_value,
             "cls_value": a.cls_value,
             "inp_value": a.inp_value,
-            "rc_score": a.rc_score, "tp_score": a.tp_score,
-            "bf_score": a.bf_score, "si_score": a.si_score,
-            "se_score": a.se_score, "ux_score": a.ux_score,
         }
-        # Item-level scores
-        for key in [
-            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
-            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
-            "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
-            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
-            "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
-            "se_seo", "se_schema", "se_lokal",
-            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-        ]:
-            d[key] = getattr(a, key, 0) or 0
-        # GEO / KI-Sichtbarkeit fields
-        d["llms_txt"] = getattr(a, "llms_txt", False) or False
-        d["robots_ai_friendly"] = getattr(a, "robots_ai_friendly", False) or False
-        d["structured_data"] = getattr(a, "structured_data", False) or False
-        d["ai_mentions"] = getattr(a, "ai_mentions", 0) or 0
-        # JSON fields
-        try:
-            d["top_issues"] = json.loads(a.top_issues) if a.top_issues else []
-        except (json.JSONDecodeError, TypeError):
-            d["top_issues"] = []
-        try:
-            d["recommendations"] = json.loads(a.recommendations) if a.recommendations else []
-        except (json.JSONDecodeError, TypeError):
-            d["recommendations"] = []
+
+        werte = _json_feld(a.item_scores, {})
+        # Die gemessenen Kriterien flach danebenlegen, damit die Checklisten
+        # sie unter ihrem Katalognamen finden. Nicht Erhobenes fehlt.
+        d.update({k: v for k, v in werte.items() if v is not None})
+
+        d["item_scores"] = werte
+        d["item_belege"] = _json_feld(a.item_belege, {})
+        d["item_sources"] = _json_feld(a.item_sources, {})
+        d["category_scores"] = _json_feld(a.category_scores, [])
+        d["blockers"] = _json_feld(a.blockers, [])
+        d["collection_notes"] = _json_feld(a.collection_notes, {})
+        d["coverage"] = getattr(a, "coverage", 0) or 0
+        d["seiten_geprueft"] = getattr(a, "seiten_geprueft", None)
+        d["branchenklasse"] = getattr(a, "branchenklasse", "") or ""
+        d["standard_version"] = getattr(a, "standard_version", "") or ""
+        d["top_issues"] = _json_feld(a.top_issues, [])
+        d["recommendations"] = _json_feld(a.recommendations, [])
         return d
 
     return {

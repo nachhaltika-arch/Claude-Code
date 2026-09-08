@@ -86,7 +86,36 @@ export default function LeadProfile() {
   const [editingName, setEditingName] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [openAudit, setOpenAudit] = useState(null);
+  const [auditLaedt, setAuditLaedt] = useState(false);
   const [deleteAuditId, setDeleteAuditId] = useState(null);
+
+  /**
+   * Den vollständigen Audit nachladen, bevor der Bericht ihn zeigt.
+   *
+   * **Warum nicht das Objekt aus der Liste** (08.09.2026): Die Liste trägt
+   * Punktzahl, Stufe und Datum — genug für eine Zeile, zu wenig für einen
+   * Bericht. `GET /api/audit/{id}` liefert dieselbe Zeile durch
+   * `_format_audit`: Kriterien, Belege, Kategorien, Deckung, K.-o.-Punkte
+   * und den Katalog mit Beschriftungen. `AuditReport` ist auf genau diese
+   * Form gebaut (`r.items`, `buildViewCategories`) — sie kam nur nie an.
+   *
+   * Schlägt das Laden fehl, wird der Bericht trotzdem geöffnet, mit dem
+   * Listenobjekt. Weniger zu zeigen ist besser, als einen Klick wortlos
+   * verpuffen zu lassen.
+   */
+  const auditOeffnen = async (audit) => {
+    setAuditLaedt(true);
+    try {
+      const voll = await loadJson(
+        `${API_BASE_URL}/api/audit/${audit.id}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        { context: 'Auditbericht', fallback: null, quiet: true },
+      );
+      setOpenAudit(voll || audit);
+    } finally {
+      setAuditLaedt(false);
+    }
+  };
 
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1255,7 +1284,10 @@ export default function LeadProfile() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                      <Button variant="secondary" size="sm" onClick={() => setOpenAudit(audit)}>Details</Button>
+                      <Button variant="secondary" size="sm" disabled={auditLaedt}
+                              onClick={() => auditOeffnen(audit)}>
+                        {auditLaedt ? 'Wird geladen…' : 'Details'}
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteAuditId(audit.id)}>🗑️</Button>
                     </div>
                   </div>

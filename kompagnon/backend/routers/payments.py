@@ -9,6 +9,7 @@ import threading
 from datetime import datetime
 
 import stripe
+from services import stripe_fremd
 from services.base_urls import public_base_url
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -22,8 +23,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 # Kein Modul-Konstantenwert mehr: der wird beim Import gelesen, und der
 # Startvorgang setzt Variablen nach. public_base_url() liest bei jedem Aufruf.
 
@@ -223,25 +224,23 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
     if not stripe.api_key:
         raise HTTPException(503, "Stripe nicht eingerichtet")
 
+    # **Der Einzelposten wird immer gebaut, auch wenn eine Preis-ID
+    # vorliegt** (08.09.2026, Kontowechsel auf WEBSPRINT). Er ist der
+    # Rueckfall: Preise gehoeren genau einem Stripe-Konto, und eine ID aus
+    # dem alten Konto laesst den Checkout mit „No such price" abbrechen —
+    # an der teuersten Stelle, naemlich unter dem Knopf „Jetzt kaufen".
+    einzelposten = stripe_fremd.einzelposten(
+        f"KOMPAGNON {package['name']}", package["description"], price_cents)
+
     if row["stripe_price_id"]:
         line_items_param = [{"price": row["stripe_price_id"], "quantity": 1}]
     else:
-        line_items_param = [{
-            "price_data": {
-                "currency": "eur",
-                "product_data": {
-                    "name":        f"KOMPAGNON {package['name']}",
-                    "description": package["description"],
-                },
-                "unit_amount": price_cents,
-            },
-            "quantity": 1,
-        }]
+        line_items_param = [einzelposten]
 
-    try:
-        session = stripe.checkout.Session.create(
+    def _sitzung(posten):
+        return stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=line_items_param,
+            line_items=posten,
             mode="payment",
             customer_email=customer_email or None,
             # **Die geltende AGB-Fassung wandert mit** (L-181, 06.09.2026).
@@ -261,10 +260,28 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
             cancel_url=f"{public_base_url()}/checkout?cancelled=1",
             locale="de",
         )
-        return {"checkout_url": session.url, "session_id": session.id}
+
+    try:
+        session = _sitzung(line_items_param)
     except stripe.error.StripeError as e:
-        logger.error(f"Stripe error: {e}")
-        raise HTTPException(400, str(e))
+        # **Nur der eine Fall, und nur einmal.** `objekt_fehlt` ist eng
+        # gefasst: Eine abgelehnte Karte oder ein falscher Schluessel darf
+        # hier nicht durchrutschen, sonst verwandelte der Rueckfall einen
+        # echten Fehler in ein Ergebnis. Und der zweite Versuch laeuft ohne
+        # Preis-ID, kann also nicht wieder daran scheitern.
+        if not (row["stripe_price_id"] and stripe_fremd.objekt_fehlt(e)):
+            logger.error(f"Stripe error: {e}")
+            raise HTTPException(400, str(e))
+
+        stripe_fremd.melde_veraltete_id(
+            "Preis", row["stripe_price_id"], package_id)
+        try:
+            session = _sitzung([einzelposten])
+        except stripe.error.StripeError as zweiter:
+            logger.error(f"Stripe error: {zweiter}")
+            raise HTTPException(400, str(zweiter))
+
+    return {"checkout_url": session.url, "session_id": session.id}
 
 
 def _abo_einzug_eingerichtet(session, db: Session):

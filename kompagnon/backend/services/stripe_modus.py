@@ -76,7 +76,7 @@ def modus_von(schluessel: str) -> str:
 
 def modus() -> str:
     """Der Modus des Schlüssels, mit dem dieser Prozess wirklich arbeitet."""
-    return modus_von(os.getenv("STRIPE_SECRET_KEY", ""))
+    return modus_von(os.getenv("STRIPE_SECRET_KEY", "").strip())
 
 
 def erwarteter_modus() -> str:

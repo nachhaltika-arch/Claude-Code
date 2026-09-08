@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
+from services import stripe_fremd
 from services.preisangabe import preisangabe
 from routers.auth_router import require_admin, get_current_user
 from datetime import datetime
@@ -187,7 +188,7 @@ def delete_product(slug: str, db: Session = Depends(get_db),
 def stripe_sync(slug: str, db: Session = Depends(get_db),
                 _=Depends(require_admin)):
     import stripe as _stripe
-    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
     if not _stripe.api_key:
         raise HTTPException(422, "STRIPE_SECRET_KEY nicht gesetzt")
 
@@ -197,19 +198,37 @@ def stripe_sync(slug: str, db: Session = Depends(get_db),
     if not row:
         raise HTTPException(404, "Produkt nicht gefunden")
 
+    def _neu_anlegen():
+        return _stripe.Product.create(
+            name=row["name"],
+            description=row["short_desc"] or "",
+            metadata={"slug": slug},
+        )
+
     try:
         if row["stripe_product_id"]:
-            sp = _stripe.Product.modify(
-                row["stripe_product_id"],
-                name=row["name"],
-                description=row["short_desc"] or "",
-            )
+            try:
+                sp = _stripe.Product.modify(
+                    row["stripe_product_id"],
+                    name=row["name"],
+                    description=row["short_desc"] or "",
+                )
+            except _stripe.error.StripeError as fehler:
+                # **Der Kontowechsel (08.09.2026).** Ein Produkt gehoert
+                # genau einem Stripe-Konto. Nach dem Wechsel auf WEBSPRINT
+                # zeigt die gespeicherte ID ins Leere, und „Nach Stripe
+                # spiegeln" antwortete mit 400 — also genau der Knopf, mit
+                # dem man den Zustand haette reparieren wollen.
+                #
+                # Statt zu scheitern wird neu angelegt und die neue ID unten
+                # gespeichert: Der Knopf tut damit das, was sein Name sagt.
+                if not stripe_fremd.objekt_fehlt(fehler):
+                    raise
+                stripe_fremd.melde_veraltete_id(
+                    "Produkt", row["stripe_product_id"], slug)
+                sp = _neu_anlegen()
         else:
-            sp = _stripe.Product.create(
-                name=row["name"],
-                description=row["short_desc"] or "",
-                metadata={"slug": slug},
-            )
+            sp = _neu_anlegen()
 
         price_cents = int(float(row["price_brutto"]) * 100)
         price_params = {

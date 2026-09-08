@@ -28,8 +28,8 @@ from routers.projects_helfer import eigenes_projekt_pruefen
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET_GEO = os.getenv("STRIPE_WEBHOOK_SECRET_GEO", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+STRIPE_WEBHOOK_SECRET_GEO = os.getenv("STRIPE_WEBHOOK_SECRET_GEO", "").strip()
 
 from services.stripe_ereignis import gegenstand as _gegenstand  # noqa: E402
 # siehe payments.py — die Adresse kommt aus services.base_urls

@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
 
 GEO_PRODUCT_NAME = "KOMPAGNON KI-Sichtbarkeit Add-on"
 GEO_PRODUCT_DESCRIPTION = "Monatliches GEO/GAIO Monitoring: llms.txt, schema.org, KI-Sichtbarkeits-Report"

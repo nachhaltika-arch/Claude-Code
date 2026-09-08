@@ -45,7 +45,7 @@ router = APIRouter(prefix="/api/book", tags=["book"])
 FRONTEND_BOOK_URL = os.getenv("FRONTEND_BOOK_URL", "").rstrip("/")
 #: Der in Stripe angelegte Steuersatz von sieben Prozent. `automatic_tax`
 #: bleibt aus: Stripe würde sonst 19 % ansetzen, weil es das Buch nicht kennt.
-STRIPE_TAX_RATE_ID_7 = os.getenv("STRIPE_TAX_RATE_ID_7", "")
+STRIPE_TAX_RATE_ID_7 = os.getenv("STRIPE_TAX_RATE_ID_7", "").strip()
 #: Das Signaturgeheimnis **dieses** Endpunkts.
 #:
 #: **Jede in Stripe eingetragene Adresse hat ihr eigenes.** Bis zum
@@ -58,8 +58,8 @@ STRIPE_TAX_RATE_ID_7 = os.getenv("STRIPE_TAX_RATE_ID_7", "")
 #:
 #: Der Rückfall auf den alten Namen ist Absicht: Solange nur **eine** Adresse
 #: eingetragen ist, bleibt die bisherige Einrichtung gültig.
-WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET_BUCH")
-                  or os.getenv("STRIPE_WEBHOOK_SECRET", ""))
+WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET_BUCH", "").strip()
+                  or os.getenv("STRIPE_WEBHOOK_SECRET", "").strip())
 
 #: Wie lange ein Abruflink gilt. Lang genug für einen Urlaub, kurz genug,
 #: dass ein weitergereichter Link nicht ewig trägt.
@@ -73,7 +73,7 @@ def konfiguration_pruefen() -> list:
     funktionsfähig aus und schlüge erst beim ersten Käufer fehl.
     """
     fehlt = []
-    if not os.getenv("STRIPE_SECRET_KEY"):
+    if not os.getenv("STRIPE_SECRET_KEY", "").strip():
         fehlt.append("STRIPE_SECRET_KEY")
     if not WEBHOOK_SECRET:
         fehlt.append("STRIPE_WEBHOOK_SECRET_BUCH")

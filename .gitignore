@@ -45,3 +45,13 @@ __pycache__/
 # gebaut (BUCH-03); im Repo lägen sie nur als veraltete Kopien.
 buch/build/*.pdf
 buch/venv/
+
+# Hochgeladene Dateien (08.09.2026).
+#
+# Die Regel stand nur in `kompagnon/backend/.gitignore` und galt damit nur
+# unterhalb jenes Verzeichnisses — die Anwendung legt ihre Dateien aber in
+# `uploads/` an der Wurzel ab. Zwei Test-PDFs waren so schon im Diff nach
+# `main`, und dieses Repository ist oeffentlich. Was heute eine
+# Probe-Auftragsbestaetigung ist, ist beim naechsten Mal die eines echten
+# Kunden. Gehalten von `tests/test_uploads_nicht_versioniert.py`.
+uploads/

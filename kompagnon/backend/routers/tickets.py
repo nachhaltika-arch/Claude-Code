@@ -20,9 +20,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
 
+#: Wie viele Nummern gezogen werden, bevor aufgegeben wird.
+#:
+#: **Begrenzt mit Absicht.** Unbegrenzt zu ziehen machte aus einem kaputten
+#: Nummernkreis eine haengende Anfrage — schlimmer als ein ehrlicher Fehler.
+NUMMER_VERSUCHE = 5
+
+#: Stellen im zufaelligen Teil der Ticketnummer.
+#:
+#: **Am 08.09.2026 von 4 auf 6 erhoeht.** Vier Stellen sind 10.000 Nummern je
+#: Monat; nach dem Geburtstagsparadoxon ist bei 100 Tickets im Monat schon
+#: mit rund 39 Prozent Wahrscheinlichkeit eine doppelt. Genau das ist in der
+#: Testreihe passiert (`TKT-2609-2503`), und produktiv waere es ein 500 fuer
+#: den Kunden gewesen, der gerade eine Stoerung melden wollte.
+NUMMER_STELLEN = 6
+
+
 def _gen_ticket_nr():
     d = datetime.now().strftime("%y%m")
-    r = "".join(random.choices(string.digits, k=4))
+    r = "".join(random.choices(string.digits, k=NUMMER_STELLEN))
     return f"TKT-{d}-{r}"
 
 
@@ -46,13 +62,36 @@ class TicketUpdate(BaseModel):
 
 @router.post("/")
 def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
-    nr = _gen_ticket_nr()
-    db.execute(text(
-        "INSERT INTO support_tickets (ticket_number, user_email, user_name, type, priority, status, title, description, page_url, browser_info, screenshot_base64) "
-        "VALUES (:nr, :email, :name, :type, :prio, 'open', :title, :desc, :page, :browser, :screenshot)"
-    ), {"nr": nr, "email": req.user_email, "name": req.user_name, "type": req.type, "prio": req.priority,
-        "title": req.title, "desc": req.description, "page": req.page_url, "browser": req.browser_info, "screenshot": req.screenshot_base64})
-    db.commit()
+    # **Bei einer belegten Nummer wird eine neue gezogen** (08.09.2026).
+    # Vorher endete eine Doppelung als unbehandelte `IntegrityError` — also
+    # mit 500 fuer denjenigen, der gerade eine Stoerung melden wollte. Die
+    # breitere Nummer macht Kollisionen selten, diese Schleife macht sie
+    # folgenlos; auf eines von beidem allein waere Verlass auf Glueck.
+    from sqlalchemy.exc import IntegrityError
+
+    for versuch in range(NUMMER_VERSUCHE):
+        nr = _gen_ticket_nr()
+        try:
+            db.execute(text(
+                "INSERT INTO support_tickets (ticket_number, user_email, user_name, type, priority, status, title, description, page_url, browser_info, screenshot_base64) "
+                "VALUES (:nr, :email, :name, :type, :prio, 'open', :title, :desc, :page, :browser, :screenshot)"
+            ), {"nr": nr, "email": req.user_email, "name": req.user_name, "type": req.type, "prio": req.priority,
+                "title": req.title, "desc": req.description, "page": req.page_url, "browser": req.browser_info, "screenshot": req.screenshot_base64})
+            db.commit()
+            break
+        except IntegrityError:
+            # Die Sitzung ist nach einem Verstoss unbrauchbar, bis sie
+            # zurueckgerollt ist — ohne das scheitert auch der naechste
+            # Versuch, und zwar mit einer irrefuehrenden Meldung.
+            db.rollback()
+            logger.warning("Ticketnummer %s war belegt (Versuch %d von %d)",
+                           nr, versuch + 1, NUMMER_VERSUCHE)
+    else:
+        logger.error("Keine freie Ticketnummer nach %d Versuchen",
+                     NUMMER_VERSUCHE)
+        raise HTTPException(
+            503, "Die Meldung konnte gerade nicht angelegt werden. "
+                 "Bitte in einem Moment noch einmal versuchen.")
 
     # Bis zum 26.08.2026 schrieb diese Route eine Zeile und schwieg. Wer ein
     # Ticket aufgab, bekam eine Nummer — und im Innendienst passierte nichts,

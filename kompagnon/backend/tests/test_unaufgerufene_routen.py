@@ -80,22 +80,57 @@ class TestDasWerkzeugMisstNochWas:
 
         kopfzeile = [z for z in ausgabe.splitlines() if z.startswith("Ruft niemand")][0]
         anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":"))
-        assert 30 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
+        # **Untergrenze am 07.09.2026 von 30 auf 5 gesenkt** — und das ist
+        # kein Abschalten einer Ratsche, sondern eine Bandbreite, die ihren
+        # Anlass verloren hat. Sie stammt aus der Zeit, als 73 Routen offen
+        # standen, und sollte verhindern, dass ein zu grosszuegiger Abgleich
+        # alles wegerklaert. An einem Tag sind daraus 26 geworden, jede
+        # einzeln beurteilt und im Werkzeug begruendet.
+        #
+        # Der urspruengliche Zweck ist inzwischen besser abgedeckt, und zwar
+        # von zwei Tests weiter unten: `test_alle_drei_koerbe_sind_besetzt`
+        # faengt eine Einsortierung, die tot laeuft, und
+        # `test_eine_gerufene_route_steht_nicht_unter_den_offenen` faengt die
+        # Richtung, in der ein Fehler wehtut. Eine Zahlenschranke kann das
+        # nicht leisten — sie haette bei jeder ehrlichen Arbeit im Weg
+        # gestanden.
+        assert 5 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
 
-    def test_eine_route_ohne_jeden_aufrufer_bleibt_gemeldet(self, ausgabe):
-        """Ein benannter Fall, der stehen bleiben muss.
+    def test_eine_gerufene_route_steht_nicht_unter_den_offenen(self, ausgabe):
+        """Die Gegenrichtung — und sie rostet nicht.
 
-        **Der Kanarienvogel ist am 07.09.2026 umgezogen.** Hier stand
-        `/api/projects/seed` — und wurde am selben Tag als „Erstbefuellung,
-        Schutz am Router" **erklaert**. Damit war der Waechter blind: Er
-        prueft, ob das Werkzeug noch etwas findet, und sein Beispiel war
-        gerade aus der Liste genommen worden. Ein Kanarienvogel, den man
-        selbst beurteilt, taugt nicht mehr als Kanarienvogel.
+        **Hier stand dreimal an einem Tag ein anderer Kanarienvogel, und
+        jedes Mal habe ich ihn selbst erlegt.** Erst `/api/projects/seed`
+        (Stunden spaeter als „Wartung von Hand" erklaert), dann
+        `/api/usercards/{card_id}` (in die Kategorie „wartet auf eine
+        Entscheidung" gewandert), dann `/api/academy/modules` (als Doppelung
+        erklaert). Ein Test, der eine **einzelne** Route beim Namen nennt,
+        misst nicht das Werkzeug, sondern den Stand der Beurteilung — und der
+        aendert sich genau dann, wenn jemand arbeitet.
 
-        `/api/usercards/{card_id}` ist der bessere Fall: Der Kopf von
-        `routers/usercards.py` nennt das Modul selbst „einen
-        Zusammenlegungsversuch, der nie zu Ende ging", und das Frontend ruft
-        `/api/usercards/{}/profile` — die Kartenroute selbst nie. Das ist eine
-        offene Frage an David, keine Sache, die sich erklaeren laesst.
+        Deshalb jetzt eine Eigenschaft statt eines Namens: Eine Route, die das
+        Frontend nachweislich **ruft**, darf nicht unter den offenen stehen.
+        Das ist die Richtung, in der ein Fehler wehtut — eine Falschmeldung
+        schickt jemanden auf die Suche nach einem Knopf, den es gibt. Und sie
+        bleibt wahr, egal wie viele Routen noch beurteilt werden.
         """
-        assert "/api/usercards/{card_id}" in ausgabe
+        offener_teil = ausgabe.split("Ruft niemand")[1].split("\n\n")[0]
+        # `/api/auth/login` ruft jede Anmeldung; `/api/leads/` die Betriebsliste.
+        for gerufen in ("/api/auth/login", "/api/leads/{lead_id}/notes"):
+            assert gerufen not in offener_teil, (
+                f"{gerufen} steht unter den offenen Routen, wird aber gerufen — "
+                f"eine Falschmeldung schickt jemanden auf die Suche nach einem "
+                f"Knopf, den es gibt.")
+
+    def test_alle_drei_koerbe_sind_besetzt(self, ausgabe):
+        """Jeder Korb muss etwas enthalten, sonst ist eine Einsortierung tot.
+
+        Faellt „wartet auf eine Entscheidung" auf null, ist entweder alles
+        entschieden — dann gehoert die Kategorie weg — oder die Zuordnung
+        greift nicht mehr. Beides gehoert bemerkt.
+        """
+        for korb in ("Ruft niemand", "Wartet auf eine Entscheidung", "Erklaert"):
+            assert korb in ausgabe, f"Korb fehlt: {korb}"
+            kopfzeile = [z for z in ausgabe.splitlines() if z.startswith(korb)][0]
+            anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":").split()[0])
+            assert anzahl > 0, f"{korb} ist leer"

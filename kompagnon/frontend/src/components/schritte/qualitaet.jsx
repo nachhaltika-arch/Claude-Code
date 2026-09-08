@@ -39,6 +39,38 @@ export function QAEmbed({ project, headers, qaResult: initialResult }) {
     { key:'pagespeed', label:'PageSpeed > 70' },
   ];
 
+  // **Das gespeicherte Ergebnis beim Oeffnen holen** (L-105, 07.09.2026).
+  //
+  // `GET /api/projects/{id}/qa/result` gibt zurueck, was der letzte Lauf in
+  // `projects.qa_result` abgelegt hat — und **niemand rief es auf**. Der
+  // Bildschirm hielt das Ergebnis allein im Arbeitsspeicher: Ein Neuladen,
+  // ein Wechsel des Schritts, und die Pruefung sah aus, als haette sie nie
+  // stattgefunden. Der Wert lag die ganze Zeit in der Datenbank.
+  //
+  // Die Antwort hat dieselbe Form wie die von `qa/run` (`score`,
+  // `golive_ok`, `result`), deshalb genuegt derselbe Zustand. Steht noch
+  // nichts, meldet die Route `status: "no_result"` — dann bleibt der
+  // Bildschirm wie bisher leer, und zwar **ohne** Fehlermeldung: „noch nicht
+  // geprueft" ist kein Fehler.
+  useEffect(() => {
+    if (initialResult || !project?.id) return;
+    let abgemeldet = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/projects/${project.id}/qa/result`, { headers });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!abgemeldet && d && !d.status && d.result) setResult(d);
+      } catch {
+        // Ein fehlgeschlagener Abruf des **alten** Ergebnisses darf den
+        // Bildschirm nicht mit einem Fehler begruessen — der Knopf zum
+        // Pruefen steht ja daneben.
+      }
+    })();
+    return () => { abgemeldet = true; };
+  }, [project?.id, initialResult, headers]);
+
   const run = async () => {
     setRunning(true); setError('');
     try {

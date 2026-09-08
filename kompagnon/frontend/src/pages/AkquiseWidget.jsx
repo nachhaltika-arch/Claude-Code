@@ -319,6 +319,7 @@ export default function AkquiseWidget() {
           privacy_url: widget.privacy_url || '',
           checkout_url: widget.checkout_url || '',
           headline: widget.headline || '',
+          facebook_pixel_id: widget.facebook_pixel_id || '',
         }),
       });
       toast.success('Widget-Einstellungen gespeichert');
@@ -436,6 +437,17 @@ export default function AkquiseWidget() {
                 value={widget.checkout_url || ''}
                 onChange={(e) => setWidget({ ...widget, checkout_url: e.target.value })}
                 placeholder="https://kompagnon.de/angebot"
+              />
+              {/* Nur die Nummer, nicht der Schnipsel — das Backend weist
+                  alles andere ab, statt es stumm zu speichern. */}
+              <Feld
+                label="Facebook-Pixel-ID"
+                value={widget.facebook_pixel_id || ''}
+                onChange={(e) => setWidget({ ...widget, facebook_pixel_id: e.target.value })}
+                placeholder="1234567890123456"
+                hinweis="Nur die Nummer aus dem Meta Events Manager, nicht der Skript-Code.
+                         Der Pixel lädt erst, wenn jemand das Formular abschickt, und meldet
+                         genau ein Ereignis (Lead) — leer lassen schaltet ihn ab."
               />
               <button className="kc-btn" type="submit" disabled={speichert === 'widget'}>
                 {speichert === 'widget' ? 'Speichert…' : 'Speichern'}

@@ -85,10 +85,23 @@ def test_gespeicherter_wert_sticht_die_umgebungsvariable(monkeypatch, db):
     assert app_settings.get(db, "smtp_host") == "smtp.aus-der-datenbank.de"
 
 
+#: Was das Widget aus der Konfiguration bekommt — abschliessend.
+#:
+#: **Die Liste steht hier fest, damit ein neuer Wert eine Entscheidung ist.**
+#: Das Widget laeuft ohne Login auf fremden Seiten; alles, was hier
+#: dazukommt, ist damit oeffentlich. `facebook_pixel_id` kam am 08.09.2026
+#: dazu und ist unbedenklich: Eine Pixel-Nummer steht in jeder Seite, die
+#: den Pixel laedt, und ist ohne das Werbekonto wertlos.
+WIDGET_KONFIGURATION = {"privacy_url", "checkout_url", "headline",
+                        "criteria_count", "facebook_pixel_id"}
+
+
 def test_widget_konfiguration_hat_sinnvolle_vorgaben(db):
     config = app_settings.widget_config(db)
-    assert set(config) == {"privacy_url", "checkout_url", "headline", "criteria_count"}
+    assert set(config) == WIDGET_KONFIGURATION
     assert config["headline"]
+    # Ohne hinterlegte Nummer laedt das Widget kein fremdes Skript.
+    assert config["facebook_pixel_id"] == ""
 
 
 def test_kriterienzahl_stammt_aus_dem_katalog(db):
@@ -124,4 +137,4 @@ def test_widget_konfiguration_ist_oeffentlich_aber_ohne_geheimnisse(client):
     """Das Widget läuft auf fremden Seiten und braucht diese Werte ohne Login."""
     r = client.get("/api/widget/config")
     assert r.status_code == 200
-    assert set(r.json()) == {"privacy_url", "checkout_url", "headline", "criteria_count"}
+    assert set(r.json()) == WIDGET_KONFIGURATION

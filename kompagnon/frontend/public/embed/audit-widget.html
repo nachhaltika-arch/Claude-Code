@@ -271,17 +271,27 @@
       <p class="kpg-eyebrow">Gratis · Sofortergebnis · Kein Login</p>
       <h2 class="kpg-h">Ihre Webseite<br>jetzt analysieren</h2>
 
-      <div class="kpg-field">
-        <label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>
-        <input class="kpg-input" id="kpg-email" type="email" required
-               autocomplete="email" placeholder="name@firma.de" />
-        <p class="kpg-hint">Wir erkennen Ihre Webseite automatisch</p>
-      </div>
+      <!-- Erst die Adresse, dann die E-Mail (Wunsch David, 08.09.2026).
+           Die Adresse ist das, wonach der Besucher gekommen ist; die E-Mail
+           ist der Preis dafür. Wer zuerst nach dem Preis fragt, verliert
+           denjenigen, der noch nicht weiß, was er bekommt.
 
+           Der Hinweis „Wir erkennen Ihre Webseite automatisch" stand unter
+           dem E-Mail-Feld und ist mit der Reihenfolge weggefallen: Er
+           versprach etwas über ein Feld, das jetzt schon ausgefüllt ist.
+           Die Ableitung selbst bleibt — sie greift, solange niemand das
+           Adressfeld angefasst hat, und das ist jetzt der seltenere Fall. -->
       <div class="kpg-field">
         <label class="kpg-label" for="kpg-url">Webseiten-Adresse</label>
         <input class="kpg-input" id="kpg-url" type="text" required
                autocomplete="url" placeholder="www.ihr-betrieb.de" />
+      </div>
+
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>
+        <input class="kpg-input" id="kpg-email" type="email" required
+               autocomplete="email" placeholder="name@firma.de" />
+        <p class="kpg-hint">Dorthin schicken wir Ihren Bericht</p>
       </div>
 
       <label class="kpg-consent" for="kpg-consent">
@@ -351,6 +361,49 @@
      Konfiguration geladen ist, wird die Zahl gar nicht erst genannt. */
   var CRITERIA_COUNT = 0;
 
+  /* ── Facebook-Pixel (Wunsch David, 08.09.2026) ──
+
+     **Er lädt erst beim Absenden, nicht beim Anzeigen** (Entscheidung David,
+     08.09.2026). Das Widget läuft eingebettet auf fremden Seiten und bringt
+     keinen Cookie-Banner mit; ein Pixel, der beim Aufruf lädt, setzt Tracking
+     ohne Einwilligung (§ 25 TTDSG). Wer das Formular abschickt, handelt —
+     und genau dieser Moment ist das, was gemessen werden soll.
+
+     Gefeuert wird **ein** Ereignis, `Lead`, und zwar erst, wenn das Backend
+     die Anfrage angenommen hat. Ein Lead, den der Server abgelehnt hat, steht
+     in keinem Bestand; ihn trotzdem zu melden hiesse, dass Metas Zahl und die
+     Anfragenliste im Werkzeug auseinanderlaufen — und dann glaubt man
+     irgendwann keiner von beiden.
+
+     **Grenze, die man kennen muss:** Der Pixel läuft hier im iframe. Er sieht
+     die `fbclid` der Trägerseite nicht, also ist die Zuordnung zur einzelnen
+     Anzeige schwächer als bei einem Pixel auf der Landingpage selbst. Für das
+     Zählen der Abschlüsse reicht es; wer je Anzeige optimieren will, braucht
+     den Pixel oben auf der Seite. */
+  var FB_PIXEL_ID = '';
+  var leadGemeldet = false;
+
+  function meldeLead() {
+    if (!FB_PIXEL_ID || leadGemeldet) return;
+    leadGemeldet = true;   /* Doppelklick, zweiter Versuch: ein Lead bleibt einer. */
+    try {
+      /* Der Standard-Schnipsel von Meta, unverändert bis auf die Einrückung. */
+      !function (f, b, e, v, n, t, s) {
+        if (f.fbq) return; n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+        n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
+        s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+      }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+      window.fbq('init', FB_PIXEL_ID);
+      window.fbq('track', 'Lead');
+    } catch (e) {
+      /* Ein blockiertes Skript (Adblocker, kein Netz) darf die Analyse nicht
+         anhalten — der Besucher hat mit Facebook nichts zu schaffen. */
+    }
+  }
+
   /* Datenschutz-Link und CTA-Ziel kommen aus den Einstellungen im Tool
      (Akquise → Widget), damit sie ohne neuen Einbaucode änderbar sind. */
   function loadConfig() {
@@ -360,6 +413,12 @@
         if (!cfg) return;
         if (safeHref(cfg.checkout_url)) CHECKOUT_URL = safeHref(cfg.checkout_url);
         if (cfg.criteria_count > 0) CRITERIA_COUNT = cfg.criteria_count;
+        /* Nur Ziffern durchlassen: Die Prüfung steht im Backend, aber
+           was hier ankommt, geht in ein fremdes Skript — eine zweite
+           Schranke am Rand kostet nichts. */
+        if (cfg.facebook_pixel_id && /^\d{10,20}$/.test(cfg.facebook_pixel_id)) {
+          FB_PIXEL_ID = cfg.facebook_pixel_id;
+        }
         var link = document.getElementById('kpg-privacy');
         var datenschutz = safeHref(cfg.privacy_url);
         if (link && datenschutz) {
@@ -518,6 +577,9 @@
     })
     .then(function (start) {
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
+      /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
+         Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
+      meldeLead();
       pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {

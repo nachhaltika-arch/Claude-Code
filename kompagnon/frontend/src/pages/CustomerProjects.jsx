@@ -109,9 +109,39 @@ function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
 
       {/* Name + domain */}
       <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* **Der Name ist der Knopf** (L-17, 07.09.2026).
+          *
+          * Die ganze Karte trägt ein `onClick`, das das Projekt öffnet — mit
+          * der Maus. Für die Tastatur gab es diesen Weg **nicht**: Erreichbar
+          * war allein der Auswahlhaken für Admins, und der wählt nur aus.
+          * WCAG 2.1.1, Stufe A.
+          *
+          * `role="button"` auf der Karte wäre falsch, weil in ihr schon ein
+          * Bedienelement sitzt — ein Bedienelement in einem Bedienelement ist
+          * ein eigener Mangel. Stattdessen wird der Name selbst zum Knopf:
+          * Er ist ohnehin die Beschriftung der Handlung, und eine Vorlesehilfe
+          * sagt jetzt „Müller Sanitär GmbH, Schaltfläche" statt gar nichts.
+          *
+          * Optisch ändert sich nichts — der Knopf trägt keine eigene
+          * Gestaltung. `stopPropagation`, damit der Klick nicht zusätzlich
+          * über die Karte läuft und `onClick` zweimal auslöst. */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          style={{
+            // **Kein `all: unset`.** Das nähme auch den Fokusrahmen mit, und
+            // eine Inline-Angabe schlägt die globale `:focus-visible`-Regel.
+            // Ein Knopf ohne sichtbaren Fokus wäre genau der Mangel, den
+            // dieser Umbau beheben soll — nur eine Ebene tiefer.
+            background: 'none', border: 'none', padding: 0, margin: 0,
+            textAlign: 'left', font: 'inherit', cursor: 'pointer',
+            display: 'block', width: '100%',
+            fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
           {lead?.company_name || project.company_name || `Projekt #${project.id}`}
-        </div>
+        </button>
         {domain && (
           <div style={{ fontSize: 12, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}

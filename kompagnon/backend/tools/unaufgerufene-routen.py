@@ -136,6 +136,87 @@ ERKLAERT = (
     ("/api/book/checkout", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
     ("/api/book/varianten", "Buchverkauf — die Kaufseite liegt unter FRONTEND_BOOK_URL"),
     ("/api/book/order/{", "Danke-Seite des Buchverkaufs — liegt unter FRONTEND_BOOK_URL"),
+
+    # **Fuenf weitere beurteilt am 07.09.2026 (L-105), Gruppe `leads`.**
+    #
+    # Vier sind **Wartungsaufrufe von Hand** — dieselbe Gattung wie
+    # `/api/projects/seed`: Man ruft sie einmal, wenn ein Bestand nachgezogen
+    # werden muss, nicht aus einem Bildschirm. Alle vier haengen am Router an
+    # `require_innendienst`, `namen-nachtragen` und `befunde-nachtragen`
+    # zusaetzlich an `require_admin` — geprueft, nicht angenommen.
+    ("/api/leads/namen-nachtragen",
+     "Wartung von Hand — holt fehlende Betriebsnamen nach (Innendienst + Admin)"),
+    ("/api/leads/befunde-nachtragen",
+     "Wartung von Hand — holt SSL, Impressum und PageSpeed aus der alten "
+     "Notizzeile in die Spalten (Innendienst + Admin)"),
+    ("/api/leads/enrich/all",
+     "Wartung von Hand — reichert Betriebe mit Punktzahl 0 im Hintergrund an"),
+    ("/api/leads/admin/trigger-performance-reports",
+     "Wartung von Hand — loest den monatlichen Bericht ausserhalb des Plans aus"),
+    # Das Formular der Landingpage. Dieselbe Lage wie beim Widget: Der
+    # Aufrufer existiert, nur nicht in diesem Quellbaum — er steht unter
+    # `websprint.kompagnon.eu` (siehe L-20). Der Router heisst deshalb
+    # `public_router` und traegt bewusst keine Anmeldung.
+    ("/api/leads/public",
+     "Formular der Landingpage — liegt ausserhalb dieses Frontends (L-20)"),
+
+    # **Zwei Doppelungen in der Akademie (07.09.2026).** Fuer Modul und
+    # Lektion gibt es je **zwei** Anlege-Routen: eine freie und eine an ihren
+    # Ort gebundene. Die Oberflaeche nutzt die gebundene, weil ein Modul ohne
+    # Kurs und eine Lektion ohne Modul keinen Sinn ergeben — die freie Form
+    # koennte sogar eine Waise anlegen. Sie sind damit nicht bloss ungenutzt,
+    # sondern die schlechtere der beiden Formen.
+    #
+    # Hier als „erklaert" gefuehrt und nicht als offen: Es gibt keinen
+    # fehlenden Knopf, es gibt einen besseren Weg daneben. Ob sie fallen, ist
+    # eine Entscheidung ueber eine oeffentliche Schnittstelle und gehoert
+    # David — wie bei `/api/invoices/my`.
+    ("/api/academy/modules$", "Doppelung — die Oberflaeche legt ueber "
+     "`courses/{id}/modules` an, was einen Kurs erzwingt"),
+    ("/api/academy/lessons$", "Doppelung — die Oberflaeche legt ueber "
+     "`modules/{id}/lessons` an, was ein Modul erzwingt"),
+
+    # **Vorlagen (07.09.2026).** Der Sammelimport ist ein Wartungsaufruf: Die
+    # Oberflaeche laedt einzeln hoch (`/upload`) oder holt aus einer Adresse
+    # (`/import-url`); mehrere ZIPs auf einmal ist Bestandspflege. Am Router
+    # `require_innendienst`, an der Route zusaetzlich `require_admin`.
+    ("/api/templates/import-bulk$",
+     "Wartung von Hand — mehrere ZIP-Vorlagen auf einmal (Innendienst + Admin)"),
+
+    # **KI-Sichtbarkeit (07.09.2026).** Der Wochenlauf ist geplant; diese
+    # Route loest ihn ausserhalb des Plans aus — dieselbe Gattung wie
+    # `trigger-performance-reports`. `require_innendienst` am Router,
+    # `require_admin` an der Route.
+    ("/api/geo/admin/run-monitoring-now$",
+     "Wartung von Hand — loest den Wochenlauf ausserhalb des Plans aus"),
+    # „Welche KI-Systeme angebunden sind — und welcher Schluessel fehlt."
+    # Das ist Betriebsdiagnose wie `/api/diagnostics/*`: Man fragt sie, wenn
+    # ein Anbieter nichts liefert, nicht aus einem Bildschirm.
+    ("/api/geo/ki-anbieter$",
+     "Betriebsdiagnose — welcher Anbieterschluessel fehlt (Innendienst)"),
+
+    # „Get list of active scheduled jobs." — Betriebsdiagnose wie
+    # `/api/scheduler/status`, am Router `require_innendienst`.
+    ("/api/automations/jobs$",
+     "Betriebsdiagnose — welche geplanten Laeufe aktiv sind (Innendienst)"),
+
+    # **Zwei Wege zu derselben Tafel.** Die Route ist laut Kopfzeile „for
+    # kanban view" gebaut; `pages/Projektpipeline.jsx` baut ihre Tafel aber
+    # aus `/api/leads/` und `/api/projects/` selbst zusammen. Die eigens
+    # gebaute Gruppierung ist damit die ungenutzte der beiden Formen —
+    # dieselbe Lage wie bei `/api/invoices/my`.
+    ("/api/dashboard/projects-by-phase$",
+     "Doppelung — Projektpipeline baut ihre Tafel aus leads und projects selbst"),
+
+    # **Der Kundenweg fuer Rechnungen, seit dem 04.09. ohne Aufrufer.** Das
+    # Kundenkonto liest sie aus `GET /api/portal/zahlungen`, das dieselben
+    # Zeilen holt — mit benannten Spalten und `LIMIT 24` statt `SELECT *`
+    # ohne Grenze. Zwei Wege zu denselben Daten, und sie sind bereits
+    # auseinandergelaufen. Ob die Route entfaellt, ist eine Entscheidung ueber
+    # eine oeffentliche Schnittstelle und gehoert David; zugesperrt bleibt sie
+    # (`tests/test_zugriffsschutz_abrechnung.py`).
+    ("/api/invoices/my$",
+     "Doppelung — das Kundenkonto liest Rechnungen aus /api/portal/zahlungen"),
 )
 
 
@@ -183,9 +264,154 @@ def _modul_des_handlers(main, methode: str, pfad: str) -> str:
     return suchen(main.app.routes)
 
 
+#: Routen, die **eine gemeinsame Entscheidung** abwarten. Sie sind nicht
+#: erklaert — es ruft sie wirklich niemand —, aber sie einzeln zu beurteilen
+#: waere irrefuehrend: **Achtzehn** Routen haengen an einer Frage.
+#:
+#: **Gemessen am 07.09.2026 (L-105/L-106).** `usercards` und `customers` sind
+#: die zwei fertiggebauten Haelften einer Zusammenlegung von `leads` und
+#: `customers`, die nie zu Ende ging — der Kopf von `routers/usercards.py`
+#: nennt sich selbst „Part 1/3", die weiteren zwei kamen nie. Beide Tabellen
+#: sind **leer** (lokal: `leads` 3, `customers` 0, `usercards` 0), und beide
+#: koennen sich nicht fuellen: Der einzige Schreiber fuer `customers` sitzt in
+#: `POST /api/customers/{project_id}/create`, und die ruft niemand; die
+#: Massenkopie fuer `usercards` ist am 24.08. entfernt worden
+#: (`migrations_runtime.py:445`, „caused DB lock on startup").
+#:
+#: **Die Frage ist eine:** Wird die Zusammenlegung zu Ende gebracht oder
+#: zurueckgebaut? Achtzehn Routen fallen mit ihr. Sie hier zu fuehren haelt die
+#: offene Liste ehrlich — sie sind nicht vergessen, sie warten.
+ENTSCHEIDUNG = (
+    ("/api/usercards/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+    ("/api/customers/", "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+
+    # **Der Sitemap-Variantenablauf (07.09.2026).** Vier Routen bilden einen
+    # vollstaendigen Vorgang: eine zweite Fassung erzeugen, den Bestand
+    # danebenlegen, sie uebernehmen oder verwerfen. Dazu gehoert eine Spalte
+    # `sitemap_pages.variant`.
+    #
+    # **Benutzt hat ihn nie jemand.** Das Frontend kennt das Wort „variant"
+    # nur als Abzeichen-Farbe in `leadStatus.js`; in der Datenbank stehen alle
+    # Seiten auf `primary`, es hat also noch keine einzige Variante gegeben.
+    # Das ist „gebaut, nicht angeschlossen" — im Projekt die siebte Auflage
+    # derselben Familie (L-55, L-79, L-11, `projects/{id}/time` …).
+    #
+    # **Deshalb keine Einzelurteile:** Die Frage ist, ob der Gedanke gewollt
+    # ist. Wenn ja, fehlt eine Oberflaeche; wenn nein, fallen vier Routen und
+    # eine Spalte. Loeschen waere hier der Fehler von L-11 noch einmal — dort
+    # ist etwas als „ueberfluessig" entfernt worden, das nur nicht
+    # angeschlossen war.
+    ("/api/sitemap/{lead_id}/generate-more",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/promote-variant",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/discard-variant",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+    ("/api/sitemap/{lead_id}/import-existing",
+     "Sitemap-Varianten — vollstaendiger Ablauf ohne Oberflaeche"),
+
+    # **Die Kundensicht der Akademie (07.09.2026).** `GET /certificates` und
+    # `GET /progress` liefern die **eigenen** Zeugnisse und den **eigenen**
+    # Fortschritt. Die Oberflaeche ruft stattdessen die Innendienst-Formen
+    # (`/progress/all?user_id=`, `/certificates/{code}/verify`).
+    #
+    # Beide koennen heute ohnehin nichts zeigen: `seed_academy_courses` legt
+    # fuenf Kurse und **null Module** an (L-60). Solange kein Lehrplan
+    # entschieden ist, gibt es weder Fortschritt noch Zeugnis. Sie fallen oder
+    # bleiben mit dieser Frage.
+    ("/api/academy/certificates$",
+     "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
+    ("/api/academy/progress$",
+     "L-60 — Kundensicht der Akademie, wartet auf den Lehrplan"),
+
+    # **Vorlagen am Projekt statt am Betrieb (07.09.2026).** Zwei Routen
+    # bilden die Projekt-Fassung dessen, was die Oberflaeche am **Betrieb**
+    # tut: `assign-project` neben `assign-lead`, `project/{id}` neben
+    # `lead/{id}`. Das Werkzeug ordnet seit dem 26.08. alles am Betrieb
+    # (`leads`) — ein Projekt gehoert zu einem Betrieb, nicht umgekehrt.
+    #
+    # Beide Formen stehen im Kopf der Datei nebeneinander, als waeren sie
+    # gleichrangig. Die Frage ist eine: Bleibt die Zuordnung am Betrieb, dann
+    # fallen diese zwei; oder gibt es Faelle, in denen eine Vorlage nur fuer
+    # **ein** Projekt eines Betriebs gilt — dann fehlt ihnen eine Oberflaeche.
+    ("/api/templates/{template_id}/assign-project$",
+     "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
+    ("/api/templates/project/{project_id}$",
+     "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
+
+    # **`credit-redeem` stand hier faelschlich unter „der Knopf fehlt"
+    # (korrigiert am 08.09.2026).** Der Eintrag lautete „die Oberflaeche zeigt
+    # das Guthaben, bucht es aber nie" — und das stimmt nicht: Gebucht wird
+    # sehr wohl, nur ueber einen anderen Weg. Der Statuswechsel auf „gewonnen"
+    # in `PATCH /api/deals/{id}` ruft `anrechnung.einloesen_fuer_deal`, und
+    # das ist genau die Entscheidung vom 29.08.2026 („eingeloest bei
+    # Annahme").
+    #
+    # `POST /credit-redeem` stammt vom **selben Tag** und wurde drei Commits
+    # spaeter von dieser Entscheidung ueberholt: Es bucht direkt und raeumt
+    # dabei die Vormerkung nicht ab — `credit_reserved_deal_id` bliebe auf
+    # einem fremden Deal stehen, wo sie niemand mehr findet.
+    #
+    # Die Frage ist deshalb nicht „wo ist der Knopf", sondern: **loeschen
+    # oder als Handbuchung behalten?** Eine Anrechnung von Hand auf einen
+    # Deal zu buchen, ohne dass ein Angebot dahintersteht, kann ein
+    # berechtigter Sonderfall sein — dann braucht die Route aber dieselbe
+    # Aufraeumzeile wie `einloesen_fuer_deal`.
+    ("/api/shop/credit-redeem$",
+     "Ueberholter Direktweg der Anrechnung — loeschen oder als Handbuchung "
+     "behalten? (gebucht wird bei Annahme des Deals)"),
+)
+
+
+#: Routen, bei denen der Befund **feststeht**: Die Leistung ist gebaut, die
+#: Oberflaeche dazu fehlt. Das ist etwas anderes als „noch nicht beurteilt"
+#: (Korb „ruft niemand") und etwas anderes als eine offene Grundsatzfrage
+#: (Korb „wartet auf eine Entscheidung"). Hier ist die Arbeit benannt und
+#: wartet nur darauf, getan zu werden.
+#:
+#: **Warum das einen eigenen Korb verdient (07.09.2026).** Solange alles in
+#: einem Topf liegt, sieht eine Zahl wie „26 offen" nach 26 Fragen aus. Drei
+#: davon sind keine Fragen, sondern Aufgaben — und eine betrifft Geld.
+KNOPF_FEHLT = (
+    # Die Kopfzeile nennt den Zweck selbst: „fuer Dashboard und
+    # Admin-Uebersicht". Beides gibt es nicht.
+    ("/api/affiliate-conversions$",
+     "Knopf fehlt — laut eigener Kopfzeile fuer ein Dashboard, das es nicht gibt"),
+)
+
+
+def _knopf_fehlt(pfad: str):
+    for muster, grund in KNOPF_FEHLT:
+        if _passt(pfad, muster):
+            return grund
+    return None
+
+
+def _passt(pfad: str, muster: str) -> bool:
+    """Praefix — oder **genau dieser Pfad**, wenn das Muster auf `$` endet.
+
+    **Am 07.09.2026 ergaenzt (L-105).** Bis dahin gab es nur „beginnt mit".
+    Fuer `/api/academy/modules` reicht das nicht: Ein Praefix wuerde auch
+    `/api/academy/modules/{module_id}/lessons` treffen, und die **wird**
+    gerufen. Ein Eintrag, der mehr erklaert als gemeint, macht den naechsten
+    echten Fund unsichtbar — genau die Bauart, die dieses Werkzeug aufdecken
+    soll, nur im Werkzeug selbst.
+    """
+    if muster.endswith("$"):
+        return pfad == muster[:-1]
+    return pfad.startswith(muster)
+
+
+def _wartet_auf_entscheidung(pfad: str):
+    for muster, grund in ENTSCHEIDUNG:
+        if _passt(pfad, muster):
+            return grund
+    return None
+
+
 def _erklaerung(pfad: str):
-    for anfang, grund in ERKLAERT:
-        if pfad.startswith(anfang):
+    for muster, grund in ERKLAERT:
+        if _passt(pfad, muster):
             return grund
     return None
 
@@ -299,6 +525,7 @@ def main(argv: list) -> int:
             mehrdeutige.append((gerufene, len(set(treffer))))
 
     offen, intern, nur_rand, erklaert, ueber_variable = [], [], [], [], []
+    wartend, ohne_knopf = [], []
     for methode, pfad in routen:
         adresse = normalisieren(pfad)
         if adresse in gerufen:
@@ -311,6 +538,14 @@ def main(argv: list) -> int:
         if grund:
             erklaert.append((methode, pfad, grund))
             continue
+        offene_frage = _wartet_auf_entscheidung(pfad)
+        if offene_frage:
+            wartend.append((methode, pfad, offene_frage))
+            continue
+        aufgabe = _knopf_fehlt(pfad)
+        if aufgabe:
+            ohne_knopf.append((methode, pfad, aufgabe))
+            continue
         woher = _intern(methode, pfad)
         if woher:
             intern.append((methode, pfad, woher))
@@ -319,12 +554,29 @@ def main(argv: list) -> int:
         else:
             offen.append((methode, pfad, None))
 
-    for liste in (offen, nur_rand, erklaert, ueber_variable):
+    for liste in (offen, nur_rand, erklaert, ueber_variable, wartend,
+                  ohne_knopf):
         liste.sort(key=lambda e: (e[1], e[0]))
 
     print(f"Backend: {len(routen)} Endpunkte · Frontend ruft "
           f"{len(gerufen)} verschiedene Adressen, "
           f"Widget und E2E weitere {len(weitere)}")
+
+    if ohne_knopf:
+        print(f"\nDer Knopf fehlt — {len(ohne_knopf)}:")
+        for _m, pfad, grund in ohne_knopf:
+            print(f"  {pfad}\n      {grund}")
+        print("  Keine Frage, sondern eine Aufgabe: Die Leistung ist gebaut, "
+              "die Bedienung fehlt.")
+
+    if wartend:
+        gruende = sorted({g for _, _, g in wartend})
+        print(f"\nWartet auf eine Entscheidung — {len(wartend)}:")
+        for grund in gruende:
+            pfade = [p for _, p, g in wartend if g == grund]
+            print(f"  {len(pfade):>3}  {grund}")
+        print("  Nicht vergessen, sondern gebunden: Diese Routen fallen oder "
+              "bleiben\n  gemeinsam mit einer einzigen Frage.")
 
     print(f"\nRuft niemand — {len(offen)}:")
     if not offen:

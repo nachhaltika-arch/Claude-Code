@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from database import User, WidgetRequest, get_db
 from routers.auth_router import require_admin
-from services import app_settings
+from services import app_settings, pixel
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,9 @@ class WidgetSettings(BaseModel):
     privacy_url: str = ""
     checkout_url: str = ""
     headline: str = ""
+    #: Facebook-Pixel des Widgets. Leer heisst abgeschaltet — dann laedt das
+    #: Widget kein fremdes Skript. Geprueft wird in `services/pixel.py`.
+    facebook_pixel_id: str = ""
 
 
 class TestEmailRequest(BaseModel):
@@ -76,10 +79,20 @@ def write_widget_settings(
         if value and not value.startswith(("http://", "https://", "/")):
             raise HTTPException(400, f"'{value}' ist keine gültige Adresse.")
 
+    # Die Pixel-ID wird geprueft und nicht bloss durchgereicht: Wer den
+    # Skript-Schnipsel aus dem Events Manager einfuegt, bekaeme sonst ein
+    # Widget, das nichts meldet — und ein Pixel, der nicht feuert, meldet
+    # auch nicht, dass er nicht feuert.
+    try:
+        pixel_id = pixel.geprueft(payload.facebook_pixel_id)
+    except ValueError as fehler:
+        raise HTTPException(400, str(fehler))
+
     app_settings.set_many(db, {
         "widget_privacy_url": payload.privacy_url,
         "widget_checkout_url": payload.checkout_url,
         "widget_headline": payload.headline,
+        "widget_facebook_pixel_id": pixel_id,
     }, admin.id)
     return {"message": "Widget-Einstellungen gespeichert"}
 

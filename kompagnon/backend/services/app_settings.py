@@ -192,4 +192,8 @@ def widget_config(db) -> dict:
         "checkout_url": termin_url(get(db, "widget_booking_url")),
         "headline": get(db, "widget_headline"),
         "criteria_count": len(all_criteria()),
+        # **Leer heisst abgeschaltet.** Das Widget laedt den Pixel erst beim
+        # Absenden des Formulars und nur, wenn hier eine Nummer steht — ohne
+        # sie geht kein fremdes Skript auf die Seite des Kunden.
+        "facebook_pixel_id": get(db, "widget_facebook_pixel_id") or "",
     }

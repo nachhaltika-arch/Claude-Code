@@ -6,6 +6,7 @@ import AnrechnungsHinweis, { abzugsposition } from '../components/AnrechnungsHin
 import toast from 'react-hot-toast';
 import SeitenTitel from '../components/ui/SeitenTitel';
 import { aufTaste } from '../utils/tastaturBedienung';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 
 const STAGES = [
   { key: 'neu',              label: 'Neu',              color: 'var(--text-tertiary)' },
@@ -18,6 +19,7 @@ const STAGES = [
 const fmtEUR = (v) => Number(v || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
 export default function Deals() {
+
   const { token } = useAuth();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +27,12 @@ export default function Deals() {
   const [editingDeal, setEditingDeal] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // **Escape schliesst das Fenster** (L-17, 07.09.2026). Es fehlte, und
+  // `utils/modalEscape.test.js` hat es nicht bemerkt: Der Waechter erkannte
+  // nur `inset: 0`, hier steht die Langform `top/right/bottom/left: 0` —
+  // dieselbe Eigenschaft, andere Schreibweise. Die Erkennung ist am selben
+  // Tag erweitert worden.
+  useEscapeKey(() => setDeleteConfirm(null), Boolean(deleteConfirm));
   const h = { Authorization: `Bearer ${token}` };
 
   const handleDeleteDeal = async () => {
@@ -331,6 +339,13 @@ export default function Deals() {
 
 
 function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
+  // **Escape schliesst das Fenster** (L-17, 07.09.2026). Es fehlte, und
+  // `utils/modalEscape.test.js` hat es nicht bemerkt: Der Waechter erkannte
+  // nur `inset: 0`, hier steht die Langform `top/right/bottom/left: 0` —
+  // dieselbe Eigenschaft, andere Schreibweise. Die Erkennung ist am selben
+  // Tag erweitert worden.
+  useEscapeKey(onClose);
+
   const { token } = useAuth();
   const [form, setForm] = useState(deal);
   const [companies, setCompanies] = useState([]);

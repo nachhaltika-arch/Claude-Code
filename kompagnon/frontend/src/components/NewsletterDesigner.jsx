@@ -3,6 +3,7 @@ import 'grapesjs/dist/css/grapes.min.css';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 
 const DEFAULT_TEMPLATE = `
 <table style="width:100%;max-width:650px;margin:0 auto;font-family:Arial,sans-serif">
@@ -32,6 +33,16 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
   const { token } = useAuth();
   const editorRef = useRef(null);
   const [showSendModal, setShowSendModal] = useState(false);
+
+  // **Escape schliesst das Fenster** (L-17, 07.09.2026). Es fehlte, und
+  // `utils/modalEscape.test.js` hat es nicht bemerkt: Der Waechter erkannte
+  // nur `inset: 0`, hier steht die Langform `top/right/bottom/left: 0`.
+  //
+  // **Der Aufruf steht bewusst unter der `useState`-Zeile, die er liest.**
+  // Darueber waere `showSendModal` noch nicht deklariert und die Komponente
+  // rendete gar nicht — genau der Fehler, den der Kopf von `modalEscape`
+  // vom Einbau am 30.08. berichtet, und den ich heute wiederholt habe.
+  useEscapeKey(() => setShowSendModal(false), showSendModal);
   const [sendTo, setSendTo] = useState('');
   const [subject, setSubject] = useState('');
   const [sending, setSending] = useState(false);

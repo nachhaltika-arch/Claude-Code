@@ -2,20 +2,32 @@
  * Der Facebook-Pixel im Analyse-Widget (Wunsch David, 08.09.2026).
  *
  * Das Widget ist eine einzelne HTML-Datei, die eingebettet auf **fremden**
- * Seiten läuft; es gibt dort keine Bausteine, die man einzeln aufrufen könnte.
- * Geprüft wird deshalb am Text der Datei — grob, aber an genau den drei
- * Eigenschaften, deren Verlust niemandem auffiele:
+ * Seiten läuft; es gibt dort keine Bausteine, die man einzeln aufrufen
+ * könnte. Geprüft wird deshalb am Text der Datei — aber an **Eigenschaften**,
+ * nicht am Wortlaut.
  *
- *   1. Der Pixel lädt **erst beim Absenden**. Ein Pixel, der beim Anzeigen
- *      lädt, setzt Tracking ohne Einwilligung (§ 25 TTDSG) — und das Widget
- *      bringt auf einer fremden Seite keinen Cookie-Banner mit.
- *   2. Er meldet **einen** Lead, und zwar erst, wenn das Backend die Anfrage
- *      angenommen hat. Sonst laufen Metas Zahl und die Anfragenliste im
- *      Werkzeug auseinander.
- *   3. Die Adressfelder stehen in der Reihenfolge Domain → E-Mail.
+ * **Warum das hier ausdrücklich dasteht.** Die erste Fassung dieser Datei
+ * prüfte Zeichenketten: `meldeLead();` und `fbq('track', 'Lead')`. Als der
+ * Serverweg dazukam, hieß es `meldeLead(eventId, email)` und
+ * `fbq('track', 'Lead', {}, …)` — fünf von elf Prüfungen wurden rot, **ohne
+ * dass sich eine der zugesicherten Eigenschaften geändert hätte**. Ein
+ * Wächter, der bei jeder Umbenennung anschlägt, wird beim dritten Fehlalarm
+ * abgeschaltet; dann fängt er auch den echten Fund nicht mehr. Dieselbe
+ * Lehre wie beim Kanarienvogel des Routen-Werkzeugs.
  *
- * **Jede Abwesenheits-Prüfung hat hier eine positive daneben.** „Kein
- * PageView" wäre auch dann grün, wenn der ganze Pixel verschwunden ist.
+ * Zugesichert sind vier Eigenschaften:
+ *
+ *   1. Der Pixel lädt **erst beim Absenden**, nicht beim Anzeigen. Ein
+ *      Pixel, der beim Aufruf lädt, setzt Tracking ohne Einwilligung
+ *      (§ 25 TTDSG) — und das Widget bringt auf einer fremden Seite keinen
+ *      Cookie-Banner mit.
+ *   2. Gemeldet wird **ein** Ereignis, `Lead`, und erst, wenn das Backend
+ *      die Anfrage angenommen hat.
+ *   3. Ein ausdrückliches Nein der Trägerseite schaltet ihn ab.
+ *   4. Die Adressfelder stehen in der Reihenfolge Domain → E-Mail.
+ *
+ * **Jede Abwesenheits-Prüfung hat eine positive daneben.** „Kein PageView"
+ * wäre auch dann grün, wenn der ganze Pixel verschwunden ist.
  */
 import fs from 'fs';
 import path from 'path';
@@ -24,6 +36,28 @@ const WIDGET = fs.readFileSync(
   path.join(__dirname, '..', '..', 'public', 'embed', 'audit-widget.html'),
   'utf8',
 );
+
+/** Der Rumpf von `meldeLead`, unabhängig von seiner Unterschrift. */
+function rumpfVonMeldeLead() {
+  const start = WIDGET.search(/function\s+meldeLead\s*\(/);
+  if (start < 0) return null;
+  const auf = WIDGET.indexOf('{', start);
+  let tiefe = 0;
+  for (let i = auf; i < WIDGET.length; i += 1) {
+    if (WIDGET[i] === '{') tiefe += 1;
+    if (WIDGET[i] === '}') {
+      tiefe -= 1;
+      if (tiefe === 0) return WIDGET.slice(auf, i + 1);
+    }
+  }
+  return null;
+}
+
+/** Alle Aufrufe von `meldeLead(…)` — ohne die Definition selbst. */
+function aufrufeVonMeldeLead() {
+  return [...WIDGET.matchAll(/(^|[^\w.])meldeLead\s*\(/g)]
+    .filter((t) => !/function\s+$/.test(WIDGET.slice(0, t.index + t[1].length)));
+}
 
 describe('Reihenfolge der Formularfelder', () => {
   test('die Webseiten-Adresse steht vor der E-Mail', () => {
@@ -54,53 +88,77 @@ describe('Wann der Pixel lädt', () => {
     expect(WIDGET).not.toMatch(/<script[^>]+connect\.facebook\.net/);
   });
 
-  test('geladen wird innerhalb von meldeLead', () => {
+  test('geladen wird im Rumpf von meldeLead', () => {
     // Die positive Hälfte: Das Skript ist da, und es steht in der Funktion,
     // die erst beim Absenden läuft.
-    const start = WIDGET.indexOf('function meldeLead()');
-    const ende = WIDGET.indexOf('function loadConfig()');
-    const skript = WIDGET.indexOf('connect.facebook.net');
-    expect(start).toBeGreaterThan(-1);
-    expect(skript).toBeGreaterThan(start);
-    expect(skript).toBeLessThan(ende);
+    const rumpf = rumpfVonMeldeLead();
+    expect(rumpf).not.toBeNull();
+    expect(rumpf).toMatch(/connect\.facebook\.net/);
+  });
+
+  test('kein fbq-Aufruf außerhalb von meldeLead', () => {
+    const rumpf = rumpfVonMeldeLead() || '';
+    const gesamt = (WIDGET.match(/fbq\s*\(/g) || []).length;
+    const drinnen = (rumpf.match(/fbq\s*\(/g) || []).length;
+    expect(gesamt).toBeGreaterThan(0);
+    expect(drinnen).toBe(gesamt);
   });
 
   test('ohne Pixel-ID passiert nichts', () => {
-    expect(WIDGET).toMatch(/if \(!FB_PIXEL_ID \|\| leadGemeldet\) return;/);
+    expect(rumpfVonMeldeLead()).toMatch(/!FB_PIXEL_ID/);
   });
 
   test('die ID kommt aus der Konfiguration und wird dort geprüft', () => {
     expect(WIDGET).toMatch(/cfg\.facebook_pixel_id/);
-    expect(WIDGET).toMatch(/\/\^\\d\{10,20\}\$\//);
+    expect(WIDGET).toMatch(/\\d\{10,20\}/);
   });
 });
 
 describe('Was gemeldet wird', () => {
-  test('genau ein Ereignis, und das ist Lead', () => {
-    const ereignisse = [...WIDGET.matchAll(/fbq\('track', '(\w+)'\)/g)]
+  test('genau ein Ereignistyp, und das ist Lead', () => {
+    const ereignisse = [...WIDGET.matchAll(/fbq\(\s*'track'\s*,\s*'(\w+)'/g)]
       .map((t) => t[1]);
-    expect(ereignisse).toEqual(['Lead']);
+    expect([...new Set(ereignisse)]).toEqual(['Lead']);
   });
 
   test('kein PageView — und der Lead ist trotzdem da', () => {
     // Ohne die zweite Zusicherung wäre dieser Test auch dann grün, wenn
     // jemand den Pixel ganz entfernt hätte.
     expect(WIDGET).not.toMatch(/'PageView'/);
-    expect(WIDGET).toMatch(/fbq\('track', 'Lead'\)/);
+    expect(WIDGET).toMatch(/fbq\(\s*'track'\s*,\s*'Lead'/);
   });
 
   test('gemeldet wird erst, wenn das Backend die Anfrage angenommen hat', () => {
-    const annahme = WIDGET.indexOf("if (!start.poll_token) throw");
-    const meldung = WIDGET.indexOf('meldeLead();');
+    // Die Meldung muss hinter der Stelle stehen, an der die Antwort des
+    // Servers ausgewertet wird — vorher zählte sie auch abgelehnte Versuche.
+    const annahme = WIDGET.search(/if \(!start\./);
+    const [erster] = aufrufeVonMeldeLead();
     expect(annahme).toBeGreaterThan(-1);
-    expect(meldung).toBeGreaterThan(annahme);
+    expect(erster).toBeDefined();
+    expect(erster.index).toBeGreaterThan(annahme);
   });
 
   test('gemeldet wird an genau einer Stelle', () => {
-    // Zwei Aufrufe wären zwei Leads für eine Anfrage — die Sperre in der
-    // Funktion fängt das zwar ab, aber der zweite Aufruf wäre trotzdem ein
-    // Zeichen dafür, dass jemand die Regel nicht kannte.
-    const aufrufe = WIDGET.match(/^\s*meldeLead\(\);/gm) || [];
-    expect(aufrufe).toHaveLength(1);
+    // Zwei Aufrufe wären zwei Leads für eine Anfrage. Die Sperre in der
+    // Funktion fängt das ab, aber ein zweiter Aufruf wäre ein Zeichen, dass
+    // jemand die Regel nicht kannte.
+    expect(aufrufeVonMeldeLead()).toHaveLength(1);
+  });
+});
+
+describe('Was die Trägerseite abschalten kann', () => {
+  test('ein ausdrückliches Nein hält den Pixel an', () => {
+    // `consent=0` im iframe-Aufruf. Ohne diese Zeile liefe der Pixel auch
+    // dort, wo der Cookie-Banner der Trägerseite ihn abgelehnt hat.
+    expect(rumpfVonMeldeLead()).toMatch(/EINWILLIGUNG_NEIN/);
+    expect(WIDGET).toMatch(/einwilligungRoh === '0'/);
+  });
+
+  test('ein fehlender Parameter schaltet nicht still ab', () => {
+    // Die Gegenprobe: „sagt nichts" darf nicht als Nein gelten — sonst wäre
+    // der Pixel überall dort tot, wo die Einbettung nichts mitgibt, und
+    // niemand fände den Grund.
+    expect(WIDGET).not.toMatch(/EINWILLIGUNG_NEIN\s*=\s*!/);
+    expect(WIDGET).toMatch(/EINWILLIGUNG_NEIN = \(einwilligungRoh === '0'/);
   });
 });

@@ -338,6 +338,28 @@ ENTSCHEIDUNG = (
      "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
     ("/api/templates/project/{project_id}$",
      "Vorlagen am Projekt statt am Betrieb — eine Frage fuer beide Routen"),
+
+    # **`credit-redeem` stand hier faelschlich unter „der Knopf fehlt"
+    # (korrigiert am 08.09.2026).** Der Eintrag lautete „die Oberflaeche zeigt
+    # das Guthaben, bucht es aber nie" — und das stimmt nicht: Gebucht wird
+    # sehr wohl, nur ueber einen anderen Weg. Der Statuswechsel auf „gewonnen"
+    # in `PATCH /api/deals/{id}` ruft `anrechnung.einloesen_fuer_deal`, und
+    # das ist genau die Entscheidung vom 29.08.2026 („eingeloest bei
+    # Annahme").
+    #
+    # `POST /credit-redeem` stammt vom **selben Tag** und wurde drei Commits
+    # spaeter von dieser Entscheidung ueberholt: Es bucht direkt und raeumt
+    # dabei die Vormerkung nicht ab — `credit_reserved_deal_id` bliebe auf
+    # einem fremden Deal stehen, wo sie niemand mehr findet.
+    #
+    # Die Frage ist deshalb nicht „wo ist der Knopf", sondern: **loeschen
+    # oder als Handbuchung behalten?** Eine Anrechnung von Hand auf einen
+    # Deal zu buchen, ohne dass ein Angebot dahintersteht, kann ein
+    # berechtigter Sonderfall sein — dann braucht die Route aber dieselbe
+    # Aufraeumzeile wie `einloesen_fuer_deal`.
+    ("/api/shop/credit-redeem$",
+     "Ueberholter Direktweg der Anrechnung — loeschen oder als Handbuchung "
+     "behalten? (gebucht wird bei Annahme des Deals)"),
 )
 
 
@@ -351,35 +373,10 @@ ENTSCHEIDUNG = (
 #: einem Topf liegt, sieht eine Zahl wie „26 offen" nach 26 Fragen aus. Drei
 #: davon sind keine Fragen, sondern Aufgaben — und eine betrifft Geld.
 KNOPF_FEHLT = (
-    # **Die Anrechnung laesst sich zeigen, aber nie buchen.** Die Oberflaeche
-    # ruft `GET /api/shop/credit-check` — sie sieht also, dass ein Guthaben
-    # besteht. `POST /credit-redeem`, das es auf einen Deal bucht, ruft
-    # niemand. Halbes Merkmal an einer Geldbuchung; die Route ist bewusst
-    # unumkehrbar gebaut („Endgueltig ist woertlich gemeint"), was den
-    # fehlenden Knopf nicht besser macht, sondern die Sorgfalt beim Bauen
-    # erklaert.
-    ("/api/shop/credit-redeem$",
-     "Knopf fehlt — die Oberflaeche zeigt das Guthaben (credit-check), "
-     "bucht es aber nie (ORDERS_08)"),
-    # Der Bericht aus L-84. Der Eintrag ist **geschlossen** und beschreibt
-    # ihn als vorhanden: „gibt je Kanal Betriebe, Kunden und Quote". Gebaut
-    # ist er, gezeigt wird er nirgends.
-    ("/api/leads/quellen/wirkung$",
-     "Knopf fehlt — der Kanalbericht aus L-84 wird nirgends angezeigt"),
     # Die Kopfzeile nennt den Zweck selbst: „fuer Dashboard und
     # Admin-Uebersicht". Beides gibt es nicht.
     ("/api/affiliate-conversions$",
      "Knopf fehlt — laut eigener Kopfzeile fuer ein Dashboard, das es nicht gibt"),
-    # **Zwei Faktoren lassen sich einschalten und nie wieder aus.** Die
-    # Profilseite fuehrt zu `/app/2fa-setup`, die Oberflaeche ruft `2fa/setup`
-    # und `2fa/verify-setup` — fuer `DELETE /2fa/disable` gibt es nichts.
-    #
-    # **Kein Aussperrfall**, das gehoert dazugesagt: Die Route verlangt
-    # Passwort **und** gueltigen Code, sie hilft also niemandem, der sein
-    # Geraet verloren hat (dafuer braucht es ohnehin den Innendienst). Es ist
-    # das freiwillige Abschalten, und das fehlt.
-    ("/api/auth/2fa/disable$",
-     "Knopf fehlt — 2FA laesst sich einschalten, aber nicht wieder abschalten"),
 )
 
 

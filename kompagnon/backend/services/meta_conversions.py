@@ -105,6 +105,35 @@ def klick_kennung(fbclid: str, fbc: str = "") -> Optional[str]:
     return FBC_MUSTER.format(zeit=int(time.time() * 1000), klick_id=kennung)
 
 
+#: Werte, die als ausdrueckliches Nein der Traegerseite gelten.
+NEIN = ("0", "false")
+
+
+def darf_melden(consent_tracking, consent_marketing) -> bool:
+    """Darf dieser Lead an Meta gemeldet werden?
+
+    **Es braucht ein Ja, und es darf kein Nein geben** (08.09.2026).
+
+    Bis dahin pruefte der Serverweg nur `consent_tracking` — den Parameter
+    der **Traegerseite**. Das Haekchen, das der Besucher im Formular selbst
+    setzt, wurde nicht gelesen. Wer es wegliess, weil er keine Werbepost
+    will, wurde trotzdem gemeldet; und auf jeder Einbettung ohne den
+    Parameter griff gar keine Bremse.
+
+    **Zwei Quellen, zwei Rollen.** Das Haekchen ist die Zustimmung der
+    Person, der Parameter das Votum des Cookie-Banners der Seite. Ein Nein
+    von oben sticht das Haekchen: Wer im Banner Marketing ablehnt, hat
+    abgelehnt.
+
+    **Ein unbekannter Wert ist kein Nein.** Sonst waere jeder Tippfehler in
+    der Einbettung eine stille Abschaltung, die niemand findet — dieselbe
+    Bauart wie ein Waechter, der immer gruen ist, nur andersherum.
+    """
+    if (str(consent_tracking or "").strip().lower()) in NEIN:
+        return False
+    return bool(consent_marketing)
+
+
 def sende_lead(
     *,
     email: str,

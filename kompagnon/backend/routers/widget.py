@@ -232,8 +232,12 @@ async def start_widget_audit(
     # anhalten soll.
     from services import meta_conversions
 
-    tracking_abgelehnt = (payload.consent_tracking or "").strip().lower() in ("0", "false")
-    if not tracking_abgelehnt:
+    # **Zwei Quellen, zwei Rollen** (08.09.2026): das Haekchen im Formular
+    # als Zustimmung der Person, der Parameter als Votum des Cookie-Banners
+    # der Traegerseite. Die Regel steht in `meta_conversions.darf_melden`,
+    # damit sie pruefbar ist und nicht an zwei Stellen auseinanderlaeuft.
+    if meta_conversions.darf_melden(payload.consent_tracking,
+                                    payload.consent_marketing):
         background_tasks.add_task(
             meta_conversions.sende_lead,
             email=email,

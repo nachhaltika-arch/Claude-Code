@@ -146,11 +146,57 @@ describe('Was gemeldet wird', () => {
   });
 });
 
+describe('Wer zugestimmt haben muss', () => {
+  test('ohne Häkchen im Formular feuert der Pixel nicht', () => {
+    // Der Fund vom 08.09.2026: Der Pixel hing allein am Parameter der
+    // Trägerseite. Wer das Häkchen wegließ, weil er keine Werbepost will,
+    // wurde trotzdem an Meta gemeldet.
+    expect(rumpfVonMeldeLead()).toMatch(/!haekchenGesetzt/);
+  });
+
+  test('das Häkchen wird von der Absendestelle durchgereicht', () => {
+    // Die Gegenprobe: Ein Riegel, dem niemand den Wert gibt, wäre entweder
+    // immer zu oder immer offen — beides unbemerkt.
+    expect(WIDGET).toMatch(/meldeLead\([^)]*consentMarketing\)/);
+  });
+
+  test('das Nein der Trägerseite geht auch an den Server', () => {
+    // Sonst hielte der Browserweg an und der Serverweg meldete weiter.
+    expect(WIDGET).toMatch(/consent_tracking: einwilligungVerweigert\(\)/);
+  });
+});
+
+describe('Was die Trägerseite nachträglich sagen kann', () => {
+  test('das Widget hört auf eine Einwilligungsnachricht', () => {
+    expect(WIDGET).toMatch(/'kpg-consent'/);
+    expect(WIDGET).toMatch(/addEventListener\('message'/);
+  });
+
+  test('nur das eigene Elternfenster wird gehört', () => {
+    // Ohne diese Prüfung könnte jedes eingebettete Fenster eine
+    // Einwilligung behaupten, die niemand gegeben hat.
+    expect(WIDGET).toMatch(/e\.source !== parent/);
+  });
+
+  test('es wird einmal nachgefragt', () => {
+    // Wer das iframe vor seinem Banner rendert, verpasst die Antwort sonst.
+    expect(WIDGET).toMatch(/'kpg-consent-request'/);
+  });
+
+  test('nur ein echter Wahrheitswert zählt als Antwort', () => {
+    // „marketing: 'nein'" ist eine Zeichenkette und in JavaScript wahr —
+    // ein Nein, das als Ja durchginge.
+    expect(WIDGET).toMatch(/typeof n\.marketing !== 'boolean'/);
+  });
+});
+
 describe('Was die Trägerseite abschalten kann', () => {
   test('ein ausdrückliches Nein hält den Pixel an', () => {
-    // `consent=0` im iframe-Aufruf. Ohne diese Zeile liefe der Pixel auch
-    // dort, wo der Cookie-Banner der Trägerseite ihn abgelehnt hat.
-    expect(rumpfVonMeldeLead()).toMatch(/EINWILLIGUNG_NEIN/);
+    // Geprüft wird die Kette, nicht ein Name: Der Rumpf fragt die
+    // Ablehnung ab, und die Ablehnung kennt beide Quellen — den
+    // Aufrufparameter und die nachträgliche Nachricht der Trägerseite.
+    expect(rumpfVonMeldeLead()).toMatch(/einwilligungVerweigert\(\)/);
+    expect(WIDGET).toMatch(/traegerMarketing === false/);
     expect(WIDGET).toMatch(/einwilligungRoh === '0'/);
   });
 

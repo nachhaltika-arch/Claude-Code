@@ -410,12 +410,49 @@
   var einwilligungRoh = (TRAEGER.get('consent') || '').trim().toLowerCase();
   var EINWILLIGUNG_NEIN = (einwilligungRoh === '0' || einwilligungRoh === 'false');
 
+  /* ── Was die Trägerseite nachträglich sagt ──
+
+     Der Aufrufparameter steht fest, sobald das iframe geladen ist. Ein
+     Cookie-Banner entscheidet aber **später** — der Besucher klickt erst,
+     wenn die Seite schon steht. Deshalb hört das Widget zusätzlich auf eine
+     Nachricht von oben:
+
+         { type: 'kpg-consent', statistik: bool, marketing: bool }
+
+     Der Parameter bleibt als Rückfall für Einbettungen auf fremden Seiten,
+     die kein solches Banner haben.
+
+     **Nur vom eigenen Elternfenster.** `event.source === parent` ist hier
+     die belastbare Prüfung: Die Trägerdomains sind Kundenseiten und stehen
+     nicht im Voraus fest, eine Liste erlaubter Herkünfte gäbe es also gar
+     nicht zu pflegen. Ohne diese Prüfung könnte jedes eingebettete Fenster
+     eine Einwilligung behaupten, die niemand gegeben hat. */
+  var traegerMarketing = null;   /* null = die Seite hat nichts gesagt */
+
+  function einwilligungVerweigert() {
+    if (traegerMarketing === false) return true;
+    return EINWILLIGUNG_NEIN;
+  }
+
+  try {
+    window.addEventListener('message', function (e) {
+      if (e.source !== parent) return;
+      var n = e.data;
+      if (!n || typeof n !== 'object' || n.type !== 'kpg-consent') return;
+      if (typeof n.marketing !== 'boolean') return;
+      traegerMarketing = n.marketing;
+    });
+    /* Einmal nachfragen: Wer das iframe vor seinem Banner rendert, hat die
+       Antwort sonst verpasst, bevor der Empfänger stand. */
+    parent.postMessage({ type: 'kpg-consent-request' }, '*');
+  } catch (e) { /* ohne Elternfenster (direkter Aufruf) gibt es nichts zu tun */ }
+
   /* `eventId` ist die Klammer zwischen Browser- und Servermeldung. Beide
      melden denselben Lead mit derselben Kennung; Meta verwirft die zweite.
      Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
      halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
      weil die Zahl gut aussieht. */
-  function meldeLead(eventId, email) {
+  function meldeLead(eventId, email, haekchenGesetzt) {
     /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
        hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
        Klick-ID, die nur sie kennt. Dann ist die Zuordnung endlich vollständig. */
@@ -423,7 +460,11 @@
       parent.postMessage({ type: 'kpg-audit-lead', eventId: eventId || '' }, '*');
     } catch (e) { /* no-op */ }
 
-    if (EINWILLIGUNG_NEIN) return;
+    /* **Es braucht ein Ja, und es darf kein Nein geben** (08.09.2026).
+       Bis dahin hing der Pixel allein am Parameter der Trägerseite — das
+       Häkchen im Formular wurde nicht gelesen. Wer es wegließ, weil er
+       keine Werbepost will, wurde trotzdem gemeldet. */
+    if (!haekchenGesetzt || einwilligungVerweigert()) return;
     if (!FB_PIXEL_ID || leadGemeldet) return;
     leadGemeldet = true;   /* Doppelklick, zweiter Versuch: ein Lead bleibt einer. */
     try {
@@ -624,7 +665,7 @@
         page_url: document.referrer || '',
         /* Damit der Serverweg dieselbe Grenze zieht wie der Browser: Ein
            ausdrueckliches Nein der Traegerseite gilt fuer beide Wege. */
-        consent_tracking: EINWILLIGUNG_NEIN ? '0' : (einwilligungRoh || '')
+        consent_tracking: einwilligungVerweigert() ? '0' : (einwilligungRoh || '')
       })
     })
     .then(function (r) {
@@ -637,7 +678,7 @@
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
       /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
          Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
-      meldeLead('kpg-widget-' + start.request_id, email);
+      meldeLead('kpg-widget-' + start.request_id, email, consentMarketing);
       pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {

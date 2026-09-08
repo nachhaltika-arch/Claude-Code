@@ -24,6 +24,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import BetriebAnlegenModal from '../components/BetriebAnlegenModal';
+import Kanalwirkung from '../components/Kanalwirkung';
 import { leadStatusLabel, leadStatusVariant } from '../utils/leadStatus';
 import { stufeFuerScore, stufeKurz } from '../utils/homepageStandard';
 import {
@@ -306,6 +307,11 @@ export default function Betriebe() {
           );
         })}
       </div>
+
+      {/* Der Kanalbericht (L-84) — hier, weil „Herkunft" auf diesem
+        * Bildschirm schon ein Filter ist und die Frage offen liess,
+        * welcher dieser Filter etwas wert ist. */}
+      <Kanalwirkung token={token} />
 
       {/* Was gerade gezeigt wird — und warum es weniger sein kann */}
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

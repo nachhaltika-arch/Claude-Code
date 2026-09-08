@@ -52,7 +52,11 @@ export function AuthProvider({ children }) {
   const isSuperadmin = () => user?.role === 'superadmin';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole, isSuperadmin }}>
+    // `refreshUser` gibt es, seit die Zwei-Faktor-Anmeldung sich abschalten
+    // laesst (L-105): Ohne ihn stuende `totp_enabled` nach dem Abschalten
+    // weiter auf `true`, bis jemand die Seite neu laedt — die Anzeige wuerde
+    // also das Gegenteil dessen behaupten, was gerade passiert ist.
+    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole, isSuperadmin, refreshUser: loadUser }}>
       {children}
     </AuthContext.Provider>
   );

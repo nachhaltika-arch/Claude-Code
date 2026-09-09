@@ -30,11 +30,26 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 | Kürzel | Regelung |
 |---|---|
-| **Z1** | 50 % bei Auftragserteilung, 50 % bei Abnahme. Zahlungsziel je 14 Tage netto. |
+| **Z1** | Vollzahlung bei Auftragserteilung. Die Leistung beginnt nach Zahlungseingang. |
 | **Z2** | 40 % bei Auftragserteilung, 30 % bei Freigabe des Bauplans, 30 % bei Abnahme. Zahlungsziel je 14 Tage netto. |
 | **Z3** | Vorkasse per Kreditkarte, SEPA-Lastschrift oder Sofortüberweisung (digitale Produkte, Auslieferung nach Zahlungseingang). |
 | **Z4** | Monatlich im Voraus per SEPA-Lastschrift, Abrechnung zum Monatsersten. |
 | **Z5** | Zahlung an Dritte (BoD/Buchhandel) — kein Zahlungsverkehr über KOMPAGNON. |
+
+> **Geändert am 2026-09-09.** Z1 lautete „50 % bei Auftragserteilung, 50 % bei
+> Abnahme. Zahlungsziel je 14 Tage netto." Diese Bedingung stand seit ihrer
+> Aufnahme **nur auf Papier**: Weder die Kasse noch die Auftragsbestätigung
+> kannten je eine Teilzahlung — `create_checkout` bucht den vollen Betrag bei
+> Auftragserteilung ab, und `Zahlungsbedingung` kommt im gesamten Backend nicht
+> vor. Entscheidung David am 09.09.2026: **Die Bedingung folgt dem System, nicht
+> umgekehrt.** Ein Ratenplan über 1.000 / 1.000 / 1.500 € war erwogen und wurde
+> verworfen.
+>
+> **Z1 gilt auch für GEO-01** (GEO/GAIO Add-on, 1.200 € netto) — auch dort ist
+> damit Vollzahlung bei Auftragserteilung dokumentiert. **Z2 ist unberührt**
+> (Websprint Neubau, 40/30/30) und hat dasselbe Problem: Auch sie kennt das
+> System nicht.
+
 | **Z6** | 100 % bei Auftragserteilung (Vorkasse). Nur für Festpreisprodukte bis 2.000 € netto. |
 | **Z7** | Bauleistung 100 % bei Auftragserteilung, anschließend monatliches Pflegeentgelt per SEPA ab Abnahme. Mindestlaufzeit 12 Monate; bei vorzeitiger Beendigung werden die Entgelte der Restlaufzeit fällig. |
 

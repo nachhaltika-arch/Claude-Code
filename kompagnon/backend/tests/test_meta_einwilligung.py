@@ -15,11 +15,19 @@ griff gar keine Bremse.
 **Die Regel jetzt: es braucht ein Ja, und es darf kein Nein geben.**
 Zustimmung ist nichts, was durch Schweigen entsteht.
 
-**Was diese Datei ausdruecklich nicht behauptet.** Das Haekchen lautet „…
-per E-Mail kontaktieren" und nennt Meta nicht. Es als Zustimmung zur
-Messung zu lesen ist die **vorsichtigere** Auslegung, nicht die saubere; die
-saubere waere ein eigener Satz im Formular. Das ist eine Textentscheidung
-und gehoert David, nicht diesem Code.
+**Was hier stand und nicht mehr gilt (09.09.2026).** „Das Haekchen lautet
+„… per E-Mail kontaktieren" und nennt Meta nicht" — das war bis zum 09.09.
+richtig und ist es nicht mehr. Der Satz nennt Meta jetzt beim Namen und sagt,
+dass die Adresse unkenntlich gemacht uebermittelt wird; damit deckt die
+Einwilligung den Zweck, an dem `darf_melden` haengt. Entscheidung David am
+09.09.2026.
+
+**Warum die alte Zeile nicht einfach geloescht wurde.** Eine Testdatei, deren
+Kopf beim Nachsehen widerlegt wird, verliert ihre Glaubwuerdigkeit auch dort,
+wo sie recht hat — dieselbe Lehre wie bei der Sprachregel in `CLAUDE.md`. Der
+Waechter ueber den Wortlaut steht im Frontend
+(`src/utils/widgetPixel.test.js`, „Was der Besucher zustimmt"), weil der Text
+dort liegt.
 """
 import pytest
 

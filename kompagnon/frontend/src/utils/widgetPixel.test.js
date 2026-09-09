@@ -208,3 +208,55 @@ describe('Was die Trägerseite abschalten kann', () => {
     expect(WIDGET).toMatch(/EINWILLIGUNG_NEIN = \(einwilligungRoh === '0'/);
   });
 });
+
+/**
+ * Der Einwilligungstext nennt Meta beim Namen (09.09.2026).
+ *
+ * **Der Anlass.** Seit dem 08.09. entscheidet das Häkchen im Formular
+ * darüber, ob der Lead an Meta gemeldet wird — `meta_conversions.darf_melden`
+ * verlangt ein Ja. Der Satz daneben sagte aber nur, KOMPAGNON dürfe „per
+ * E-Mail kontaktieren". Eine Einwilligung, die einen Zweck nicht nennt, deckt
+ * ihn nicht; die Auslegung war die vorsichtigere, nicht die saubere. Genau so
+ * stand es im Kopf von `test_meta_einwilligung.py`, mit dem Zusatz, das sei
+ * eine Textentscheidung und gehöre David. Er hat sie am 09.09. getroffen.
+ *
+ * **Geprüft werden Eigenschaften, nicht der Wortlaut** — wie im Rest dieser
+ * Datei. Der Satz darf umformuliert werden; er darf nur nicht aufhören, die
+ * drei Dinge zu sagen, an denen die Einwilligung hängt: **wer** meldet,
+ * **wohin**, und dass sie **widerruflich** ist.
+ */
+describe('Was der Besucher zustimmt', () => {
+  /** Der Text im Häkchen — unabhängig von Auszeichnung und Umbrüchen. */
+  const EINWILLIGUNG = (() => {
+    const m = WIDGET.match(/class="kpg-consent"[\s\S]*?<\/label>/);
+    return m ? m[0].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') : '';
+  })();
+
+  test('der Text ist überhaupt auffindbar', () => {
+    // Die positive Probe zuerst: Ohne sie wären alle folgenden Prüfungen
+    // auch dann grün, wenn das Häkchen aus dem Formular verschwindet.
+    expect(EINWILLIGUNG.length).toBeGreaterThan(80);
+    expect(EINWILLIGUNG).toMatch(/type="checkbox"|kpg-consent/);
+  });
+
+  test('Meta wird beim Namen genannt', () => {
+    // Der eigentliche Fund. Vorher stand hier nur „per E-Mail kontaktiert".
+    expect(EINWILLIGUNG).toMatch(/Meta/);
+  });
+
+  test('der Kontaktzweck steht weiterhin da', () => {
+    // Die Gegenprobe: Der neue Zweck darf den alten nicht verdrängen — die
+    // Bestätigungsmail und der Bericht hängen an ihm.
+    expect(EINWILLIGUNG).toMatch(/E-Mail/);
+  });
+
+  test('es steht dabei, dass die Adresse nicht im Klartext geht', () => {
+    // Sonst liest der Satz sich schlimmer, als der Vorgang ist: Übermittelt
+    // wird ein SHA-256-Hash, nicht die Adresse.
+    expect(EINWILLIGUNG).toMatch(/unkenntlich|verschlüsselt|pseudonym/i);
+  });
+
+  test('der Widerruf bleibt genannt', () => {
+    expect(EINWILLIGUNG).toMatch(/widerruf/i);
+  });
+});

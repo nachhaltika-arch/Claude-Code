@@ -89,6 +89,56 @@ def _pixel_id(db=None) -> str:
         return ""
 
 
+def zustand(db=None) -> dict:
+    """Kann der Serverweg ueberhaupt melden? — die Auskunft fuer `/health`.
+
+    **Warum das hier steht und nicht nur `verfuegbar()`.** Die Funktion gab es
+    seit dem 08.09., aber kein Endpunkt rief sie auf. Am 09.09. war die Frage
+    „ist der Token gesetzt?" damit von aussen unbeantwortbar — waehrend fuer
+    Stripe, die Uploads, den Browserlauf und die Dateiablage genau diese
+    Auskunft seit Wochen offensteht. Dieselbe Lehre wie dort: **Ein Dashboard
+    zeigt die Einstellung, nicht den Zustand des Prozesses.**
+
+    **Zwei Werte, und beide muessen da sein.** Ohne Token schweigt der Weg;
+    ohne Datensatznummer gibt es kein Ziel, und Meta lehnt die Meldung ab.
+    `bereit` sagt deshalb nicht „Token da", sondern „es kann etwas ankommen".
+
+    **Gemeldet wird nie ein Wert.** `/health` ist offen. Ja/Nein und Laenge
+    genuegen: Ein CAPI-Token ist gut 200 Zeichen lang; steht dort 30, hat
+    jemand beim Einfuegen etwas verloren. Die Pixelnummer ist zwar nicht
+    geheim — sie steht ohnehin in `/api/widget/config` —, aber die Regel
+    dieser Route bleibt einheitlich: Sie nennt Zustaende, keine Werte.
+    """
+    token = zugangstoken()
+    pixel = _pixel_id(db)
+
+    if os.getenv("META_PIXEL_ID", "").strip():
+        quelle = "umgebung"
+    elif pixel:
+        quelle = "einstellung"
+    else:
+        quelle = ""
+
+    return {
+        "token_gesetzt": bool(token),
+        "token_laenge": len(token),
+        "pixel_gesetzt": bool(pixel),
+        # Woher die Nummer kommt — sonst sucht jemand in der Datenbank, was
+        # in Render steht, oder umgekehrt.
+        "pixel_quelle": quelle,
+        # Laeuft die Kampagne noch im Probebetrieb? Meldungen mit diesem Code
+        # landen in „Events testen" und **nicht** in der Auswertung.
+        "testereignis": bool(testereignis_code()),
+        "bereit": bool(token and pixel),
+        "variablen": ["META_CAPI_ACCESS_TOKEN", "META_PIXEL_ID"],
+        "wofuer": (
+            "Lead-Meldung an die Meta Conversions API. Ohne sie misst nur der "
+            "Browser — und der faellt bei Adblockern, iOS und blockierten "
+            "Drittskripten aus."
+        ),
+    }
+
+
 def klick_kennung(fbclid: str, fbc: str = "") -> Optional[str]:
     """Die `_fbc`-Kennung, wie der Browser sie selbst gesetzt hätte.
 

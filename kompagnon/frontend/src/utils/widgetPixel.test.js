@@ -260,7 +260,12 @@ describe('Was der Besucher zustimmt', () => {
   });
 
   test('der Widerruf bleibt genannt', () => {
-    expect(EINWILLIGUNG).toMatch(/widerruf/i);
+    // **Eigenschaft, nicht Wortlaut** (10.09.2026). Hier stand nur
+    // `/widerruf/i`. Als der Text auf „Abmeldung jederzeit" wechselte, wurde
+    // die Prüfung rot, obwohl die Zusicherung unverändert galt — das Recht,
+    // jederzeit auszusteigen, steht weiter da, nur mit dem Wort, das
+    // Empfänger tatsächlich benutzen. Beide Formulierungen zählen.
+    expect(EINWILLIGUNG).toMatch(/widerruf|abmeld/i);
   });
 
   test('der Satz verspricht keine Meta-Übermittlung mehr', () => {
@@ -278,7 +283,10 @@ describe('Was der Besucher zustimmt', () => {
     const m = WIDGET.match(/class="kpg-consent-mehr"[\s\S]*?<\/details>/);
     const DETAILS = m ? m[0].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') : '';
     expect(DETAILS.length).toBeGreaterThan(80);
-    expect(DETAILS).toMatch(/Ohne Häkchen/);
+    // Ebenfalls die Eigenschaft: Der Bericht kommt auch ohne Haken. Ob das
+    // als „Ohne Häkchen erhalten Sie …" oder „Ihren Bericht bekommen Sie in
+    // jedem Fall" dasteht, ist Gestaltung — dass es dasteht, ist die Zusage.
+    expect(DETAILS).toMatch(/ohne Häkchen|in jedem Fall|kein Häkchen nötig/i);
   });
 
   test('der Aufklapper steht außerhalb des Labels', () => {

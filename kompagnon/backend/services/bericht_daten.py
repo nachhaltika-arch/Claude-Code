@@ -96,7 +96,42 @@ def _kategorien(audit, items, sources, belege) -> list:
     return ergebnis
 
 
-def _massnahmen(audit, items, sources) -> list:
+def _rabattpreis(netto, satz: str) -> str:
+    """Der Preis nach Nachlass — oder leer, wenn es keinen gibt.
+
+    Der Satz kommt als Text aus einer Einstellung („25 % Rabatt fuer die
+    ersten 25 Kunden"). Gerechnet wird mit der ersten Prozentzahl darin;
+    steht keine drin, gibt es keinen Rabattpreis. **Leer ist die sichere
+    Antwort:** Ein falsch gelesener Satz darf keinen erfundenen Preis
+    erzeugen.
+    """
+    import re
+
+    if not netto or not satz:
+        return ""
+    treffer = re.search(r"(\d{1,2})\s*%", str(satz))
+    if not treffer:
+        return ""
+    prozent = int(treffer.group(1))
+    if not 0 < prozent < 100:
+        return ""
+    return _geld(float(netto) * (100 - prozent) / 100) + " netto"
+
+
+def _groesste_luecken(roh, anzahl: int = 4) -> list:
+    """Die groessten Luecken — als **Fehlbetrag**, nicht als Gewinn.
+
+    Sortiert nach dem Abstand zum Maximum. Ein Kriterium mit 0 von 4 steht
+    vor einem mit 1 von 2, obwohl der naechste Schritt dort vielleicht mehr
+    braechte: Gefragt ist, wo am meisten fehlt.
+    """
+    mit_luecke = [m for m in roh if (m.maximum - m.erreicht) > 0]
+    mit_luecke.sort(key=lambda m: m.maximum - m.erreicht, reverse=True)
+    return [{"name": m.label, "punkte": f"−{m.maximum - m.erreicht}"}
+            for m in mit_luecke[:anzahl]]
+
+
+def _massnahmen_roh(audit, items, sources) -> list:
     """Was der Relaunch am Ergebnis aendert — gelesen, nicht formuliert.
 
     `audit_massnahmen` leitet die Saetze aus den Abstufungen am Kriterium ab
@@ -110,12 +145,15 @@ def _massnahmen(audit, items, sources) -> list:
         return []
 
     try:
-        roh = audit_massnahmen.massnahmen(items, sources)
+        return list(audit_massnahmen.massnahmen(items, sources))
     except Exception as fehler:  # noqa: BLE001
         logger.warning("Massnahmen nicht berechenbar: %s: %s",
                        type(fehler).__name__, fehler)
         return []
 
+
+def _massnahmen(roh) -> list:
+    """Die Rohliste in die Form der Vorlage."""
     ergebnis = []
     for m in roh:
         ergebnis.append({
@@ -223,7 +261,8 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
 
     punkte = int(getattr(audit, "total_score", 0) or 0)
     kategorien = _kategorien(audit, items, sources, belege)
-    massnahmen = _massnahmen(audit, items, sources)
+    massnahmen_roh = _massnahmen_roh(audit, items, sources)
+    massnahmen = _massnahmen(massnahmen_roh)
     relaunch = _produkt(db, "websprint_relaunch")
     check = _produkt(db, "check_plus")
 
@@ -269,10 +308,13 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
 
         "kategorien": kategorien,
         "massnahmen": massnahmen,
-        # Die groessten Luecken sind die Massnahmen mit dem groessten Gewinn
-        # — dieselbe Rechnung, nicht eine zweite.
-        "luecken": [{"name": m["titel"], "punkte": m["punkte"]}
-                    for m in massnahmen[:4]],
+        # **Was fehlt, nicht was es bringt** (Entwurf v2, 10.09.2026). Die
+        # erste Fassung zeigte hier den Punktgewinn des naechsten Schritts
+        # („+3"). Der Entwurf zeigt die **fehlenden** Punkte („−4") — und
+        # beantwortet damit die Frage, die der Betrieb stellt: „Was fehlt
+        # mir?" statt „Was bekomme ich?". Dieselbe Rechnung, andere
+        # Blickrichtung; erfunden wird nichts.
+        "luecken": _groesste_luecken(massnahmen_roh),
         "leistungen": leistungen,
         "eckdaten": eckdaten,
 
@@ -295,6 +337,13 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # Rabattfeld im Bestellformular. Ein Preisversprechen, das die Kasse
         # nicht kennt, ist ein Anruf, kein Verkauf.
         "rabattsatz": einstellungen.get("bericht_rabattsatz", ""),
+        # **Der Rabattpreis wird gerechnet, nicht eingetragen** (Entwurf v2
+        # fuehrt ihn als eigenes Feld mit 2.625 € netto). Zwei Zahlen von
+        # Hand zu pflegen ist die Bauart, aus der L-29 entstand: Wer den
+        # Festpreis aendert und den Rabattpreis vergisst, hat einen Nachlass
+        # von 25 % auf einen Preis, den es nicht mehr gibt.
+        "preisRabatt": _rabattpreis(relaunch.get("price_netto"),
+                                    einstellungen.get("bericht_rabattsatz", "")),
         # **Abnahmezusage.** Der Entwurf sagt 96 Punkte, der
         # Angebotsbaukasten sagt unter G1 mindestens 85. Zwei Zahlen fuer
         # dieselbe Garantie — welche gilt, ist eine Entscheidung.

@@ -281,7 +281,7 @@
   <section style="margin:44px 0 0">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 6px">
       <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0">Der Befund im Detail</h2>
-      <a href="#befund" style="display:inline-flex;align-items:center;justify-content:center;padding:11px 20px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:13.5px;font-weight:900;text-decoration:none;border:1px solid #004F59;white-space:nowrap" style-hover="background:#F0F4F5">Bericht als PDF</a>
+      <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:11px 20px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:13.5px;font-weight:900;text-decoration:none;border:1px solid #004F59;white-space:nowrap" style-hover="background:#F0F4F5">Bericht als PDF</a></sc-if>
     </div>
     <sc-if value="{{ befundText }}"><p style="margin:0 0 8px;font-size:14.5px;line-height:1.7;color:#000;max-width:70ch">Ihre Website macht auf den ersten Blick einen zeitgemäßen und aufgeräumten Eindruck – große Überschrift, ruhiges Farbschema, klare Aussage, worum es geht. Besonders stark ist die Angebotsdarstellung: Leistungen, Preise, Laufzeiten und Antworten auf die typischen Bedenken stehen offen da, das ist in Ihrer Branche selten und schafft Vertrauen. Verbesserungspotenzial gibt es vor allem oben im Hero: Dort erfährt ein Besucher noch nicht, für welche Unternehmensgröße oder Branche Sie arbeiten. Ein Blogbeitrag trägt das Datum 12. August 2026 – das wirkt für Besucher wie ein Fehler und sollte geprüft werden.</p></sc-if>
 

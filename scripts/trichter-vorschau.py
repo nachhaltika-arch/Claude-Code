@@ -42,6 +42,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 PORT = 8973
 
+HTML = "text/html; charset=utf-8"
+
 # Die Landingpage liegt als fertiger Export vor und hat keine versionierte
 # Quelle (L-20) — sie wird gezeigt, wie sie ist. Sie kommt nicht aus dem
 # Frontend-Verzeichnis: Sie wird nicht von Render ausgeliefert, sondern von
@@ -80,9 +82,18 @@ class Audit:
         # sich selbst, und niemand weiss, welche Zahl gilt.
         self.total_score = erreicht
         self.coverage = abdeckung
-        self.item_scores = werte
-        self.item_sources = quellen
-        self.item_belege = {}
+        # **JSON-Zeichenketten, keine Wörterbücher.** Die Spalten sind
+        # `Text` (siehe `modelle_audit.py`), aus der Datenbank kommen also
+        # Zeichenketten. Die erste Fassung legte hier Wörterbücher hin —
+        # die Berichtsseite verkraftet beides (`_feld` parst notfalls
+        # nicht), der PDF-Erzeuger nicht: `_parse_json_field` gibt für ein
+        # Wörterbuch `[]` zurück, und das PDF verweigerte mit „stammt aus
+        # dem früheren Katalog". Eine Vorschau mit der falschen Datenform
+        # meldet einen Fehler, den es nicht gibt.
+        self.item_scores = json.dumps(werte)
+        self.item_sources = json.dumps(quellen)
+        self.item_belege = json.dumps({})
+        self.category_scores = json.dumps([])
         self.top_issues = json.dumps(MAENGEL)
         self.blockers = json.dumps(BLOCKER)
         self.erkannte_branche = "Heizung, Sanitär, Klima"
@@ -278,14 +289,43 @@ def einstellungen_aus(regler: dict) -> dict:
 # Die Ansichten
 # ══════════════════════════════════════════════════════════════════════
 
+def _adressen_auf_die_vorschau() -> None:
+    """Beide Basisadressen zeigen auf diesen Server.
+
+    **Ohne das prüft die Vorschau das falsche System.** `PUBLIC_BASE_URL`
+    steht vor dem Portrait — sonst zeigte die Seite das Bild, das gerade
+    produktiv liegt, und eine Änderung an der Datei wäre unsichtbar
+    geblieben. `API_BASE_URL` steht vor dem PDF-Knopf und dem Terminlink —
+    sonst zeigten sie auf `api.kompagnon.group` mit einem erfundenen Token,
+    den es dort nicht gibt: ein Knopf, der im Nichts endet, an einer Stelle,
+    an der produktiv alles stimmt.
+
+    Am 10.09.2026 aus einem Auftrag gelernt: „hier soll der prüfbericht als
+    pdf runtergeladen werden können". Er **konnte** — nur nicht hier.
+    """
+    os.environ["PUBLIC_BASE_URL"] = f"http://127.0.0.1:{PORT}"
+    os.environ["API_BASE_URL"] = f"http://127.0.0.1:{PORT}"
+
+
+def ansicht_pdf(regler: dict) -> bytes:
+    """Der Bericht als PDF — dieselbe Funktion, die ihn auch ausliefert.
+
+    Das PDF hängt seit jeher am Trichter und hat bis heute **niemand
+    angesehen**: Es entsteht erst hinter einem bestätigten Token auf dem
+    Produktivserver. Hier ist es eine Ansicht wie jede andere.
+    """
+    from services.pdf_generator import generate_audit_report
+
+    befund = Audit(int(regler.get("punkte") or 61))
+    daten = {k: getattr(befund, k) for k in dir(befund)
+             if not k.startswith("_") and not callable(getattr(befund, k))}
+    return generate_audit_report(daten)
+
+
 def ansicht_bericht(regler: dict) -> bytes:
     from services import bericht_seite
 
-    # **Die Bilder kommen aus dieser Vorschau, nicht aus dem Netz.** Ohne
-    # das zeigte die Seite das Portrait, das gerade produktiv liegt — und
-    # eine Änderung an der Datei wäre hier unsichtbar geblieben. Genau der
-    # Fall, für den es die Vorschau gibt.
-    os.environ["PUBLIC_BASE_URL"] = f"http://127.0.0.1:{PORT}"
+    _adressen_auf_die_vorschau()
 
     punkte = int(regler.get("punkte") or 61)
     seite = bericht_seite.rendern(
@@ -424,7 +464,13 @@ ANSICHTEN = [
     {"schluessel": "bericht", "titel": "6 · Berichtsseite",
      "unter": "die Verkaufsseite", "bauer": ansicht_bericht,
      "hinweis": "Die Regler oben wirken auf diese Ansicht."},
-    {"schluessel": "mail-erinnerung", "titel": "7 · E-Mail 3",
+    {"schluessel": "pdf", "titel": "7 · Bericht als PDF",
+     "unter": "der Anhang zum Mitnehmen", "bauer": ansicht_pdf,
+     "art": "application/pdf",
+     "hinweis": "Dieselbe Funktion, die ihn produktiv ausliefert. Bis zum "
+                "10.09.2026 hatte ihn niemand angesehen — er entsteht sonst "
+                "nur hinter einem bestätigten Token."},
+    {"schluessel": "mail-erinnerung", "titel": "8 · E-Mail 3",
      "unter": "Erinnerung nach 3 Tagen", "bauer": ansicht_mail_erinnerung,
      "hinweis": "Nur an bestätigte Adressen, die den Bericht nicht geöffnet haben."},
 ]
@@ -615,7 +661,7 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     # ── Antworten ────────────────────────────────────────────────────
-    def _senden(self, koerper: bytes, typ="text/html; charset=utf-8", code=200):
+    def _senden(self, koerper: bytes, typ=HTML, code=200):
         self.send_response(code)
         self.send_header("Content-Type", typ)
         self.send_header("Content-Length", str(len(koerper)))
@@ -678,6 +724,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_config(regler or LETZTE_REGLER))
         if pfad.startswith("/api/widget/teaser/"):
             return self._json(api_teaser(regler or LETZTE_REGLER))
+        # Der PDF-Knopf auf der Berichtsseite zeigt hierher, seit die
+        # Adressen auf die Vorschau gerichtet sind.
+        if pfad.startswith("/api/widget/report/") and pfad.endswith("/pdf"):
+            try:
+                return self._senden(ansicht_pdf(regler or LETZTE_REGLER),
+                                    "application/pdf")
+            except Exception as fehler:  # noqa: BLE001
+                import traceback
+                return self._senden(
+                    _fehlerseite("Das PDF", fehler, traceback.format_exc()),
+                    code=500)
         if pfad == "/api/auftraege":
             try:
                 return self._json(auftraege_lesen())
@@ -704,7 +761,12 @@ class Handler(BaseHTTPRequestHandler):
             for a in ANSICHTEN:
                 if a["schluessel"] == schluessel:
                     try:
-                        return self._senden(a["bauer"](regler))
+                        # **Der Typ gehört zur Ansicht.** Ohne ihn ging das
+                        # PDF als `text/html` heraus, und der Browser zeigte
+                        # Zeichensalat — eine Ansicht, die aussieht wie ein
+                        # Fehler, obwohl das Erzeugnis in Ordnung ist.
+                        return self._senden(a["bauer"](regler),
+                                            a.get("art", HTML))
                     except Exception as fehler:  # noqa: BLE001
                         import traceback
                         return self._senden(_fehlerseite(a["titel"], fehler,
@@ -867,6 +929,7 @@ VORLAGE = """<!doctype html>
     <span class="titel" id="titel"></span>
     <span class="hinweis" id="hinweis"></span>
     <span class="geraete" id="geraete"></span>
+    <button id="eigenes" class="werkzeug" title="Diese Ansicht in einem eigenen Fenster">Öffnen ↗</button>
     <button id="zielen" class="werkzeug">Beanstanden</button>
     <button id="spalte" class="werkzeug">Aufträge <span id="zahl">0</span></button>
   </div>
@@ -1152,6 +1215,17 @@ function zielenSetzen(an) {
   document.getElementById("zielen").classList.toggle("an", an);
   document.getElementById("rahmen").classList.toggle("zielt", an);
 }
+
+/* Die Ansicht in einem eigenen Fenster.
+
+   Ein Rahmen ist nicht dasselbe wie ein Fenster: Er ist schmaler als der
+   Bildschirm, `position:fixed` misst sich an ihm, und ein Link mit
+   `target="_blank"` verhält sich anders als einer ohne. Wer prüfen will,
+   was der Kunde sieht, braucht das echte Fenster. */
+document.getElementById("eigenes").onclick = function () {
+  var q = frage();
+  window.open("/ansicht/" + aktuell + (q ? "?" + q : ""), "_blank", "noopener");
+};
 
 document.getElementById("zielen").onclick = function () {
   zielenSetzen(!zielt);

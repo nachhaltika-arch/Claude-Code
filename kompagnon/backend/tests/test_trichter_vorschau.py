@@ -52,10 +52,21 @@ INNEREIEN = re.compile(
     r"""\{['"]|\{&\#x27;|\[\{['"]|\[\{&\#x27;|<sqlalchemy|object at 0x""")
 
 
+#: Ansichten, die kein HTML sind. Sie werden trotzdem gebaut (das prüft,
+#: dass sie nicht abstürzen), aber nicht auf durchgereichte Python-
+#: Darstellungen abgesucht — in einem PDF-Binärstrom stünde jedes Muster
+#: irgendwann zufällig.
+OHNE_HTML = {"landingpage", "pdf"}
+
+
 def _alle_ansichten(vorschau):
     # Die Landingpage ist ein fertiger Export ohne Vorlagensprache — sie
     # wird ausgeliefert, nicht gebaut, und hat deshalb hier nichts zu prüfen.
     return [a for a in vorschau.ANSICHTEN if a["schluessel"] != "landingpage"]
+
+
+def _html_ansichten(vorschau):
+    return [a for a in vorschau.ANSICHTEN if a["schluessel"] not in OHNE_HTML]
 
 
 def test_es_gibt_jede_stufe_des_trichters(vorschau):
@@ -63,7 +74,7 @@ def test_es_gibt_jede_stufe_des_trichters(vorschau):
     schluessel = {a["schluessel"] for a in vorschau.ANSICHTEN}
     assert schluessel == {
         "landingpage", "widget", "teaser", "mail-bestaetigung",
-        "mail-bericht", "bericht", "mail-erinnerung",
+        "mail-bericht", "bericht", "pdf", "mail-erinnerung",
     }
 
 
@@ -92,7 +103,7 @@ def test_keine_ansicht_zeigt_innereien(vorschau, regler):
     hatte kurz zuvor der Leistungsumfang (Python-Wörterbücher statt Text)
     und der Deckungsgrad (`true` statt eines Satzes).
     """
-    for ansicht in _alle_ansichten(vorschau):
+    for ansicht in _html_ansichten(vorschau):
         text = ansicht["bauer"](regler).decode("utf-8", "replace")
         treffer = INNEREIEN.search(text)
         assert not treffer, (
@@ -109,7 +120,8 @@ def test_die_kopfzahl_ist_die_summe_der_einzelwertungen(vorschau):
     """
     for ziel in (34, 61, 80, 88):
         befund = vorschau.Audit(ziel)
-        assert sum(befund.item_scores.values()) == befund.total_score
+        werte = json.loads(befund.item_scores)
+        assert sum(werte.values()) == befund.total_score
 
 
 def test_eine_hohe_punktzahl_bringt_ihre_abdeckung_mit(vorschau):
@@ -127,6 +139,22 @@ def test_eine_hohe_punktzahl_bringt_ihre_abdeckung_mit(vorschau):
     assert hoch.total_score == 88
 
 
+def test_die_befunddaten_haben_die_form_der_datenbank(vorschau):
+    """`item_scores` und die anderen sind `Text`-Spalten (modelle_audit.py).
+
+    Als die Vorschau dort Wörterbücher hinlegte, verweigerte der
+    PDF-Erzeuger mit „stammt aus dem früheren Katalog" — ein Fehler, den es
+    produktiv nicht gibt. Die Berichtsseite verkraftet beide Formen und
+    verdeckte den Unterschied.
+    """
+    befund = vorschau.Audit(61)
+    for feld in ("item_scores", "item_sources", "item_belege",
+                 "blockers", "top_issues", "category_scores"):
+        wert = getattr(befund, feld)
+        assert isinstance(wert, str), f"{feld} ist {type(wert).__name__}"
+        json.loads(wert)
+
+
 def test_die_wertungen_benutzen_die_schluessel_des_katalogs(vorschau):
     """Die erste Fassung erfand `impressum_vorhanden`; der Katalog führt
     `rc_impressum`. Damit fand die Berichtsseite zu keinem Kriterium etwas,
@@ -134,9 +162,9 @@ def test_die_wertungen_benutzen_die_schluessel_des_katalogs(vorschau):
     from services.audit_criteria import all_criteria
 
     echte = {k.key for k in all_criteria()}
-    befund = vorschau.Audit(61)
-    assert befund.item_scores
-    assert set(befund.item_scores) <= echte
+    werte = json.loads(vorschau.Audit(61).item_scores)
+    assert werte
+    assert set(werte) <= echte
 
 
 def test_die_blocker_sind_kennungen_und_keine_saetze(vorschau):
@@ -381,3 +409,51 @@ def test_ohne_den_regler_bleibt_der_knopf_weg(vorschau):
     angebot = vorschau.api_config({})["check_plus"]
     werte = " ".join(str(w) for w in (angebot or {}).values())
     assert vorschau.KAUF_CHECK not in werte
+
+
+def test_das_pdf_ist_ein_pdf_und_nicht_leer(vorschau):
+    """Es hängt seit jeher am Trichter und hatte bis zum 10.09.2026 niemand
+    angesehen — es entsteht sonst nur hinter einem bestätigten Token."""
+    daten = vorschau.ansicht_pdf({"punkte": "61"})
+    assert daten.startswith(b"%PDF-"), "kein PDF"
+    assert len(daten) > 5000, f"nur {len(daten)} Byte — verdächtig leer"
+
+
+def test_die_kaufknoepfe_oeffnen_ein_neues_fenster(vorschau):
+    """Wunsch David, 10.09.2026 — mit `noopener`, und das ist keine Kosmetik.
+
+    Ohne `rel="noopener"` kann die geöffnete Seite über `window.opener` die
+    Berichtsseite umlenken: auf eine, die aussieht wie unsere und nach
+    Zahlungsdaten fragt. Der Bericht liegt hinter einem Link aus einer
+    E-Mail; genau dort rechnet niemand damit.
+    """
+    seite = vorschau.ansicht_bericht({"kaufwege": "an"}).decode("utf-8")
+    knoepfe = re.findall(r'<a[^>]*buy\.stripe\.com[^>]*>', seite)
+    assert len(knoepfe) == 2, f"{len(knoepfe)} Kaufknöpfe gefunden"
+    for knopf in knoepfe:
+        assert 'target="_blank"' in knopf, knopf[:120]
+        assert "noopener" in knopf, knopf[:120]
+
+
+def test_der_pdf_knopf_zeigt_nicht_ins_produktivsystem(vorschau):
+    """Er zeigte auf api.kompagnon.group mit einem erfundenen Token — ein
+    Knopf, der im Nichts endet, an einer Stelle, an der produktiv alles
+    stimmt. Aus einem Auftrag gelernt, nicht aus einem Test."""
+    seite = vorschau.ansicht_bericht({}).decode("utf-8")
+    # Nur der PDF-Knopf, nicht die ganze Seite: Die Fusszeile verlinkt
+    # bewusst auf kas.kompagnon.group, und das ist richtig so.
+    pdf_knoepfe = re.findall(r'<a[^>]*href="([^"]*/pdf)"', seite)
+    assert pdf_knoepfe, "kein PDF-Knopf auf der Seite"
+    for adresse in pdf_knoepfe:
+        assert adresse.startswith(f"http://127.0.0.1:{vorschau.PORT}"), adresse
+
+
+def test_auch_der_pdf_knopf_oeffnet_ein_neues_fenster(vorschau):
+    """Wunsch David, 10.09.2026 — dieselbe Begründung wie beim Kaufknopf:
+    Der Bericht soll offen bleiben, wenn man das PDF holt."""
+    seite = vorschau.ansicht_bericht({}).decode("utf-8")
+    knoepfe = re.findall(r'<a[^>]*href="[^"]*/pdf"[^>]*>', seite)
+    assert knoepfe, "kein PDF-Knopf"
+    for knopf in knoepfe:
+        assert 'target="_blank"' in knopf, knopf[:120]
+        assert "noopener" in knopf, knopf[:120]

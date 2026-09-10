@@ -754,6 +754,22 @@ class Handler(BaseHTTPRequestHandler):
                     return self._senden(f.read(), art)
             return self._senden(_hinweisseite("Datei fehlt", pfad), code=404)
 
+        # Das Lagebild — dieselbe Datei, die `scripts/lagebild-bauen.py`
+        # erzeugt. Es liegt hier, damit es aus der Vorschau heraus **ein
+        # Klick** ist: Wer beim Ansehen etwas findet, soll nicht erst einen
+        # Dateipfad suchen müssen.
+        if pfad == "/lagebild":
+            datei = os.path.join(WURZEL, "docs", "lagebild",
+                                 "kompagnon-lagebild.html")
+            if os.path.isfile(datei):
+                with open(datei, "rb") as f:
+                    return self._senden(f.read())
+            return self._senden(_hinweisseite(
+                "Lagebild noch nicht gebaut",
+                "Einmal <code>python3 scripts/lagebild-bauen.py</code> laufen "
+                "lassen — es wird aus <code>docs/soll-ist-analyse.md</code> "
+                "und <code>docs/lagebild/plan.json</code> erzeugt."), code=404)
+
         if pfad.startswith("/ansicht/"):
             LETZTE_REGLER.clear()
             LETZTE_REGLER.update(regler)
@@ -910,6 +926,12 @@ VORLAGE = """<!doctype html>
                       font-weight:700; cursor:pointer }
   .neu button.neben { background:none; border:0; color:var(--grau); font:inherit;
                       font-size:12px; cursor:pointer; text-decoration:underline }
+  .fuss { border-top:1px solid var(--linie); padding:12px 18px 14px }
+  .fuss a { display:block; font-weight:700; color:var(--dunkel); font-size:13px;
+            text-decoration:none }
+  .fuss a:hover { text-decoration:underline }
+  .fuss span { display:block; color:var(--grau); font-size:11px; margin-top:3px;
+               line-height:1.4 }
   .leer { color:var(--grau); font-size:12.5px; padding:14px 4px; line-height:1.55 }
   .fehler { background:#FDECEA; color:#B3261E; border-radius:5px; padding:7px 9px;
             font-size:12px; margin-top:7px }
@@ -922,6 +944,10 @@ VORLAGE = """<!doctype html>
   <div class="regler">
     <h2>Regler</h2>
     <form id="regler"></form>
+  </div>
+  <div class="fuss">
+    <a href="/lagebild" target="_blank" rel="noopener">Lagebild öffnen ↗</a>
+    <span>Lücken, Module, Produkte, Trichter, Messtiefe</span>
   </div>
 </aside>
 <main>

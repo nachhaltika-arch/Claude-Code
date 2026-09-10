@@ -12,6 +12,10 @@
 <style>
 :root{
   --kc-dark:#004F59; --kc-mid:#008EAA; --kc-yellow:#FAE600;
+  /* Am 10.09.2026 nachgetragen: `var(--mono)` stand seit dem Trichter-Reiter
+     im Blatt und war nirgends definiert. Eine `font`-Kurzform mit unbekanntem
+     Token ist ungültig — die Regel fiel weg, ohne dass etwas kaputt aussah. */
+  --mono:"Noto Sans Mono",ui-monospace,monospace;
   --ground:#F2F6F7; --karte:#FFFFFF; --senke:#E7EFF1;
   --ink:#0E2A30; --ink-2:#3D5A61; --ink-3:#6B858B;
   --linie:#D2E0E3; --linie-stark:#B4C9CE;
@@ -118,6 +122,33 @@ main{padding:30px 0 72px}
 
    Farben kommen aus den Token, nicht als feste Werte — sonst bricht
    der Dunkelmodus, den diese Seite seit dem 08.09. beherrscht. */
+/* ── Messtiefe ─────────────────────────────────────────────────── */
+.mt-zahlen{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px; margin:0 0 22px}
+.mt-z{background:var(--karte); border:1px solid var(--linie); border-radius:8px;
+  padding:13px 15px}
+.mt-z b{display:block; font:700 24px/1.1 var(--mono); color:var(--ink)}
+.mt-z span{display:block; font-size:11.5px; color:var(--ink-2); margin-top:5px;
+  line-height:1.4}
+.mt-z.warn b{color:var(--krit)}
+.mt-g{background:var(--karte); border:1px solid var(--linie); border-radius:8px;
+  padding:15px 17px; margin-bottom:12px; border-left:4px solid var(--krit)}
+.mt-g.los{border-left-color:var(--gut)}
+.mt-g h4{margin:0 0 4px; font-size:14.5px; color:var(--ink)}
+.mt-g .pkt{float:right; font:700 15px/1.2 var(--mono); color:var(--krit)}
+.mt-g.los .pkt{color:var(--gut)}
+.mt-g p{margin:6px 0 0; font-size:12.5px; line-height:1.6; color:var(--ink-2)}
+.mt-g ul{margin:8px 0 0 17px; padding:0; font-size:12px; color:var(--ink-2);
+  line-height:1.7}
+.mt-g code{font:400 11.5px var(--mono); background:var(--senke);
+  padding:1px 5px; border-radius:3px}
+.mt-weg{background:var(--kc-dark); color:#fff; border-radius:8px;
+  padding:17px 20px; margin-top:20px}
+.mt-weg h4{margin:0 0 10px; font-size:14.5px; color:#fff}
+.mt-weg ol{margin:0 0 0 18px; padding:0; font-size:12.5px; line-height:1.75;
+  opacity:.92}
+.mt-weg b{color:var(--kc-yellow)}
+
 .tri{display:flex; flex-direction:column; gap:8px}
 .tri-s{display:grid; grid-template-columns:44px 1fr 320px; gap:16px;
        padding:14px 16px; border-left:3px solid var(--kc-mid);
@@ -193,11 +224,11 @@ main{padding:30px 0 72px}
    Deshalb Umrandung statt Fläche: Sie ordnet ein, ohne zu alarmieren. */
 .zust{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;
   white-space:nowrap;letter-spacing:.02em}
-.z-system{box-shadow:inset 0 0 0 1px var(--linie-2);color:var(--ink-2)}
-.z-extern{box-shadow:inset 0 0 0 1px var(--haengt);color:var(--haengt)}
-.z-beides{box-shadow:inset 0 0 0 1px var(--mid);color:var(--mid)}
+.z-system{box-shadow:inset 0 0 0 1px var(--linie-stark);color:var(--ink-2)}
+.z-extern{box-shadow:inset 0 0 0 1px var(--krit);color:var(--krit)}
+.z-beides{box-shadow:inset 0 0 0 1px var(--kc-mid);color:var(--kc-mid)}
 .zust-grund{font-size:13px;line-height:1.6;color:var(--ink-2);margin:10px 0 0;
-  padding:10px 14px;background:var(--flaeche);border-radius:8px;max-width:70ch}
+  padding:10px 14px;background:var(--senke);border-radius:8px;max-width:70ch}
 
 .aufwand{
   font-family:"Noto Sans Mono",monospace; font-size:11px; font-weight:600;
@@ -244,10 +275,10 @@ main{padding:30px 0 72px}
 
 /* ── Produkte ──────────────────────────────────────────── */
 .produkte{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));margin:20px 0 28px}
-.produkt{background:var(--flaeche);border:1px solid var(--linie);border-radius:12px;
-  padding:18px 20px;border-top:3px solid var(--linie-2)}
-.produkt.p-live{border-top-color:var(--traegt)}
-.produkt.p-draft{border-top-color:var(--haengt)}
+.produkt{background:var(--senke);border:1px solid var(--linie);border-radius:12px;
+  padding:18px 20px;border-top:3px solid var(--linie-stark)}
+.produkt.p-live{border-top-color:var(--gut)}
+.produkt.p-draft{border-top-color:var(--krit)}
 .p-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
 .p-name{font-size:16px;font-weight:900;letter-spacing:-.015em}
 .p-status{font-size:11.5px;font-weight:700;color:var(--ink-3);white-space:nowrap}
@@ -400,7 +431,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   <div class="huelle">
     <div class="marke">
       <h1>KOMPAGNON Lagebild</h1>
-      <span class="stand">STAND 10.09.2026 · staging @ fa94080</span>
+      <span class="stand">STAND 10.09.2026 · staging @ 7e324f2</span>
     </div>
     <p class="unterzeile">Offene Punkte, Modulstand und Produktkatalog — aus <code>soll-ist-analyse.md</code>, <code>module-karte.md</code> und dem Code selbst zusammengetragen.</p>
 
@@ -420,6 +451,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
       <button role="tab" aria-selected="false" aria-controls="b-produkte" id="t-produkte">Produkte &amp; Zahlung</button>
       <button role="tab" aria-selected="false" aria-controls="b-plan" id="t-plan">Abarbeitungsplan</button>
       <button role="tab" aria-selected="false" aria-controls="b-trichter" id="t-trichter">Trichter</button>
+      <button role="tab" aria-selected="false" aria-controls="b-messtiefe" id="t-messtiefe">Messtiefe</button>
     </nav>
   </div>
 </header>
@@ -528,6 +560,27 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
     ihnen beantwortet er die Frage, die bei bezahltem Verkehr zählt: an
     welcher Stelle die Leute verlorengehen und was das kostet.</p>
     <div class="tri" id="trichter"></div>
+  </section>
+
+  <section class="blatt" id="b-messtiefe" role="tabpanel" aria-labelledby="t-messtiefe" hidden>
+    <p class="vorwort">Der Homepage-Standard führt <b>39 Kriterien mit
+    zusammen 103 Punkten</b>. Erhoben wird davon nicht alles — und die
+    Punktzahl im Bericht verschweigt das. <b>Sie ist ein Prozentsatz dessen,
+    was gemessen wurde,</b> nicht der 103: Nicht erhobene Kriterien kürzen
+    den Nenner, statt als Null durchzuschlagen. Ein Betrieb kann damit
+    <b>100 Punkte erreichen, ohne dass seine Ladezeit je gemessen wurde</b> —
+    und zwei Berichte mit derselben Zahl sind nicht vergleichbar.</p>
+
+    <p class="vorwort"><b>Am 10.09.2026 richtiggestellt.</b> Hier stand in
+    einer Sitzungsnotiz, bei 78 % Abdeckung seien höchstens 80 Punkte
+    erreichbar und die Abnahmezusage über 85 damit unerreichbar. Das ist
+    falsch — die Zahl stammte aus einer Nachbildung, nicht aus dem System.
+    Der wirkliche Befund ist unbequemer: Die Zusage ist erreichbar,
+    <b>nur eben auf schmalerer Grundlage</b>.</p>
+
+    <div class="mt-zahlen" id="mt-zahlen"></div>
+    <div id="mt-gruppen"></div>
+    <div class="mt-weg" id="mt-weg"></div>
   </section>
 
   <section class="blatt" id="b-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
@@ -749,6 +802,97 @@ zeichnen();
    Mängel sieht immer gesund aus. Erst die dritte Spalte beantwortet die
    Frage, die bei bezahltem Verkehr zählt: an welcher Stelle die Leute
    verlorengehen. Sechs von zehn Schritten tragen heute eine Lücke. */
+/* ═══════════════════════════════════════════════════════════════════
+   Messtiefe — was der Standard verspricht und was erhoben wird
+   ═══════════════════════════════════════════════════════════════════
+
+   Die Zahlen sind am 10.09.2026 aus `services/audit_criteria.py`
+   nachgerechnet, nicht geschätzt: 39 Kriterien, 103 Punkte, davon
+   81 gemessen, 15 aus KI-Einschätzung, 7 abgeleitet.                     */
+
+const MT_ZAHLEN = [
+  { wert: "103", text: "Punkte führt der Katalog in 39 Kriterien" },
+  { wert: "100", text: "Punkte zeigt der Bericht als Höchstwert" },
+  { wert: "41", text: "Punkte hängen an einer Quelle, die ausfallen kann", warn: true },
+  { wert: "40 %", text: "der Punkte sind damit nicht garantiert erhoben", warn: true },
+];
+
+const MT_GRUPPEN = [
+  {
+    titel: "Performance — PageSpeed-Schlüssel",
+    punkte: "12 Punkte",
+    text: "Vier Kriterien kommen ausschließlich aus der PageSpeed-API von " +
+          "Google. Fehlt der Schlüssel oder antwortet der Dienst nicht, " +
+          "werden alle vier übersprungen — der Produktivbericht vom 04.09. " +
+          "zeigte genau das.",
+    liste: ["<code>tp_lcp</code> Ladezeit Hauptinhalt · 4",
+            "<code>tp_cls</code> Layout-Stabilität · 3",
+            "<code>tp_mobile</code> Mobile-Performance · 3",
+            "<code>tp_inp</code> Interaktionszeit · 2 — <b>kommt aus CrUX-Felddaten " +
+            "und fehlt bei kleinen Betriebsseiten strukturell</b>, auch mit Schlüssel"],
+  },
+  {
+    titel: "Design, Conversion, Text — KI-Einschätzung",
+    punkte: "15 Punkte",
+    text: "Sechs Kriterien werden von einem Modell beurteilt. Antwortet es " +
+          "nicht oder meldet „nicht beurteilbar“, fallen sie weg. Sie sind " +
+          "im Katalog als <code>einschaetzung</code> geführt — also " +
+          "ausdrücklich keine Messung.",
+    liste: ["<code>dg_aktualitaet</code> Visuelle Aktualität · 3",
+            "<code>cv_klarheit</code> Klarheit above the fold · 3",
+            "<code>cv_angebot</code> Angebots-Klarheit · 3",
+            "<code>dg_farbsystem</code> · 2, <code>dg_bildqualitaet</code> · 2, " +
+            "<code>ih_textqualitaet</code> · 2"],
+  },
+  {
+    titel: "SEO — Seiten, die erst im Browser entstehen",
+    punkte: "14 Punkte",
+    text: "Fünf Kriterien hängen am ausgelieferten Quelltext. Bei einer " +
+          "Seite, die ihre Inhalte erst per JavaScript aufbaut, sieht die " +
+          "Erhebung ein leeres Gerüst. Sie mit 0 zu bewerten wäre falsch — " +
+          "also werden sie übersprungen.",
+    liste: ["<code>se_meta</code> · 3, <code>se_index</code> · 3, " +
+            "<code>se_schema</code> · 3, <code>se_lokal</code> · 3, " +
+            "<code>se_struktur</code> · 2"],
+  },
+];
+
+const MT_WEG = [
+  "<b>Den PageSpeed-Schlüssel arbeiten lassen.</b> Er ist gesetzt, liefert " +
+  "aber nicht — erst messen, woran es scheitert (Kontingent, Referrer-Sperre, " +
+  "Zeitüberschreitung), dann beheben. Bringt 10 der 12 Performance-Punkte " +
+  "zurück; INP bleibt aus Feldddaten-Gründen offen.",
+  "<b>Die Abdeckung in die Zusage schreiben.</b> „85 Punkte“ ohne Angabe, " +
+  "worauf sie sich beziehen, ist keine prüfbare Zusage. Vorschlag: " +
+  "„85 Punkte bei mindestens 90 % Abdeckung“ — dann ist die Zahl vergleichbar.",
+  "<b>Eine Untergrenze für die Auslieferung.</b> Ein Bericht unter einer " +
+  "festzulegenden Abdeckung sollte die Punktzahl gar nicht zeigen, sondern " +
+  "sagen, was fehlt. Heute steht die Abdeckung klein daneben — das liest " +
+  "niemand.",
+  "<b>Seiten mit Browser-Aufbau nachrendern.</b> 14 SEO-Punkte hängen daran. " +
+  "Ohne das ist der Bericht für jede moderne Seite unvollständig.",
+  "<b>Die KI-Kriterien getrennt ausweisen.</b> 15 Punkte aus einer " +
+  "Einschätzung neben 81 gemessenen in einer Zahl zu verrechnen, macht " +
+  "beide ununterscheidbar.",
+];
+
+document.getElementById("mt-zahlen").innerHTML = MT_ZAHLEN.map(z => `
+  <div class="mt-z${z.warn ? " warn" : ""}"><b>${z.wert}</b><span>${z.text}</span></div>
+`).join("");
+
+document.getElementById("mt-gruppen").innerHTML = MT_GRUPPEN.map(g => `
+  <div class="mt-g">
+    <span class="pkt">${g.punkte}</span>
+    <h4>${g.titel}</h4>
+    <p>${g.text}</p>
+    <ul>${g.liste.map(l => `<li>${l}</li>`).join("")}</ul>
+  </div>
+`).join("");
+
+document.getElementById("mt-weg").innerHTML =
+  "<h4>Was zu tun ist, damit die Zahl hält</h4><ol>" +
+  MT_WEG.map(w => `<li>${w}</li>`).join("") + "</ol>";
+
 const TRICHTER = [
   {nr:"1", titel:"Anzeige führt auf die Landingpage", wo:"websprint.kompagnon.eu",
    luecken:["L-188","L-189"],

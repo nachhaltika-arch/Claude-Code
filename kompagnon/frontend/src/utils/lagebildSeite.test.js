@@ -70,3 +70,72 @@ describe('Das erzeugte Lagebild', () => {
     expect(meta.getAttribute('charset').toLowerCase()).toBe('utf-8');
   });
 });
+
+/**
+ * **Kein `var(--…)` ohne Definition** (10.09.2026).
+ *
+ * Beim Einbau des Reiters „Messtiefe" habe ich drei Token benutzt, die es
+ * nicht gibt: `--kc-gelb` (heisst `--kc-yellow`), `--flaeche` (heisst
+ * `--senke`) und `--mono` (war nirgends definiert). Beim Nachzählen kamen
+ * vier weitere aus früheren Ergänzungen dazu — `--haengt`, `--traegt`,
+ * `--mid`, `--linie-2`.
+ *
+ * **Warum das niemandem auffiel:** Ein unbekanntes Token macht die
+ * Eigenschaft ungültig, nicht die Seite. Bei `color` erbt sie einfach; bei
+ * einer `font`-Kurzform fällt die ganze Regel weg. Nichts bricht, nichts
+ * meldet sich — es sieht nur anders aus, als es soll. Zwei Kennzahlen
+ * standen dunkelblau auf dunklem Grund und waren im Dunkelschema unlesbar.
+ *
+ * Geprüft wird die **erzeugte Datei**, nicht die Vorlage: ausgeliefert wird
+ * sie.
+ */
+/**
+ * **Nur die Stilblöcke.** Der erste Anlauf durchsuchte die ganze Datei und
+ * schlug bei `var(--text)` an — das stand in der **Beschreibung** einer
+ * Lücke, die Quelltext zitiert. Ein Wächter, der Fliesstext für CSS hält,
+ * meldet Fehler, die keine sind, und wird nach dem zweiten Mal abgeschaltet.
+ */
+function stilbloecke(html) {
+  return [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
+    .map((m) => m[1])
+    .join('\n');
+}
+
+describe('Farbtoken', () => {
+  test('jedes benutzte Token ist auch definiert', () => {
+    const css = stilbloecke(fs.readFileSync(DATEI, 'utf8'));
+    const definiert = new Set(
+      [...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]),
+    );
+    const benutzt = new Set(
+      [...css.matchAll(/var\((--[a-z0-9-]+)\)/g)].map((m) => m[1]),
+    );
+    const fehlend = [...benutzt].filter((t) => !definiert.has(t));
+    expect(fehlend).toEqual([]);
+    // Positiv daneben: Der Test darf nicht deshalb grün sein, weil er
+    // nichts gefunden hat.
+    expect(benutzt.size).toBeGreaterThan(15);
+  });
+
+  test('keine Textfarbe hängt an einem Token ohne Dunkelfassung', () => {
+    /* `--kc-dark` ist die Markenfarbe und bleibt im Dunkelschema dunkel —
+       richtig so. Genau deshalb darf sie dort nicht als **Textfarbe**
+       stehen: dunkles Blau auf dunklem Grund ist unlesbar. Zwei Kennzahlen
+       im Reiter „Messtiefe" waren es. */
+    const css = stilbloecke(fs.readFileSync(DATEI, 'utf8'));
+    // Die Schreibweise wechselt (mit und ohne Leerzeichen) — deshalb ein
+    // Muster und keine feste Zeichenkette. Beim ersten Anlauf suchte der
+    // Test nach der Fassung mit Leerzeichen und fand die ohne nicht.
+    const schnitt = css.search(/prefers-color-scheme\s*:\s*dark/);
+    expect(schnitt).toBeGreaterThan(0);
+    const hell = css.slice(0, schnitt);
+    const dunkel = css.slice(schnitt);
+    const nurHell = [...hell.matchAll(/(--[a-z0-9-]+)\s*:/g)]
+      .map((m) => m[1])
+      .filter((t) => !dunkel.includes(`${t}:`));
+    const suender = nurHell.filter((t) =>
+      new RegExp(`color:\\s*var\\(${t}\\)`).test(hell),
+    );
+    expect(suender).toEqual([]);
+  });
+});

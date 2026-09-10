@@ -1,3 +1,9 @@
+<meta charset="utf-8">
+<!-- **Ohne diese Zeile las die Seite als Latin-1** (10.09.2026): Die Datei
+     ist UTF-8, ein <meta charset> fehlte, und wer sie von einem Server
+     ausliefert, der den Zeichensatz nicht im Kopf mitschickt, sieht
+     „PrioritÃ¤t" statt „Priorität". Das Artifact-Hosting schickte ihn
+     zufaellig mit — jede andere Auslieferung nicht. -->
 <title>KOMPAGNON Lagebild</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -593,7 +599,20 @@ const BEREICHE = {P0:"Sofort — produktiv defekt oder Sicherheitsrisiko", P1:"B
                   P2:"Produktentwicklung", P3:"Schulden und Konsistenz"};
 const ZUST_TEXT = {system: "im System", extern: "extern", beides: "beides"};
 const zustand = {prio:new Set(), status:new Set(["offen","teilweise"]), zustaendig:new Set(), suche:""};
-const schutz = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* **Funktionsdeklaration, nicht `const`** — am 10.09.2026 berichtigt.
+   Der Produktblock weiter oben ruft `schutz` auf, deklariert war es hier
+   unten als `const`. Beim Laden warf die Seite deshalb „Cannot access
+   'schutz' before initialization", und zwar an der **ersten** Verwendung:
+   Alles danach — Modulkarte, Lueckenliste, Abarbeitungsplan, Meilensteine —
+   lief nie. Sichtbar blieben nur die Kennzahlen im Kopf, die im HTML
+   stehen. Der Fehler kam mit dem Produktblock am 07.09. und fiel drei Tage
+   nicht auf, weil die Zahlen auf der Standleiste weiter stimmten: Sie
+   entstehen im Erzeuger, nicht auf der Seite.
+   Eine Funktionsdeklaration wird hochgezogen und ist damit unabhaengig
+   davon, wo jemand sie das naechste Mal benutzt. */
+function schutz(s) {
+  return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
 
 function zeichnen(){
   const treffer = LUECKEN.filter(e => {

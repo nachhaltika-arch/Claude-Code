@@ -62,14 +62,17 @@ nichts aus.
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
 (function () {
-  var KEY      = 'kpg-consent-v1';
+  /* Name des Speichereintrags eurer Einwilligung — **kein**
+     Schlüssel. Die Variable hieß zuerst `KEY`; Gitleaks las das
+     als `generic-api-key` und färbte die CI rot (Lauf 34481321705). */
+  var SPEICHER = 'kpg-consent-v1';
   var RAHMEN   = 'kompagnon-audit';
   var URSPRUNG = 'https://kas.kompagnon.group';
   var PIXEL    = '1363198722345965';   /* aus den Widget-Einstellungen */
 
   function einwilligung() {
     try {
-      var v = JSON.parse(localStorage.getItem(KEY));
+      var v = JSON.parse(localStorage.getItem(SPEICHER));
       return (v && typeof v === 'object') ? v : null;
     } catch (e) { return null; }
   }

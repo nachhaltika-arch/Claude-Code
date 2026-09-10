@@ -75,8 +75,14 @@ commits = [
   #
   # **Im Arbeitsstand ist die Ursache beseitigt** — die Variable heisst
   # jetzt `SPEICHER`, was ohnehin trifft, was sie enthaelt. Der Fund steckt
-  # nur noch in Commit 366ad88, und die Historie wird bei jedem Lauf
-  # mitgelesen. Woertlich wie die drei darueber: Diese eine Zeichenkette
-  # verstummt, jede kuenftige schlaegt weiter an.
-  '''kpg-consent-v1''',
+  # nur noch in **einem** Commit, und die Historie liest jeder Lauf mit.
+  #
+  # Deshalb hier ueber die Commit-Kennung und nicht als Zeichenkette:
+  # Der erste Anlauf trug `kpg-consent-v1` woertlich ein — und zwar
+  # versehentlich in **dieses** Array statt zu den `regexes`, wo es als
+  # Commit-Kennung gelesen wurde und nie traf (Lauf 34481940951, zweites
+  # Mal rot). Ueber die Kennung ist es ohnehin genauer: Ein einzelner
+  # Commit verstummt, dieselbe Zeichenkette an jeder anderen Stelle
+  # schlaegt weiter an.
+  "366ad880b73a2e756f09b9f2498aedc74060edfd",
 ]

@@ -503,7 +503,7 @@ export default function AkquiseWidget() {
                 value={widget.kauf_relaunch_url || ''}
                 onChange={(e) => setWidget({ ...widget, kauf_relaunch_url: e.target.value })}
                 placeholder="https://buy.stripe.com/…"
-                hinweis="Ziel des Knopfs „Relaunch beauftragen" auf der Berichtsseite.
+                hinweis="Ziel des Knopfs „Relaunch beauftragen“ auf der Berichtsseite.
                          Leer lassen führt in den Terminkalender statt ins Leere."
               />
               {/* Vier Aussagen auf der Berichtsseite. Alle vier waren bis
@@ -572,7 +572,7 @@ export default function AkquiseWidget() {
                 value={widget.bericht_portrait_url || ''}
                 onChange={(e) => setWidget({ ...widget, bericht_portrait_url: e.target.value })}
                 placeholder="https://…/portrait.jpg"
-                hinweis="Steht im Block „Ihr Ansprechpartner". Leer lassen zeigt nur
+                hinweis="Steht im Block „Ihr Ansprechpartner“. Leer lassen zeigt nur
                          Name und Text — ein Platzhaltergesicht wäre schlechter als
                          keines."
               />

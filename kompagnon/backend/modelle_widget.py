@@ -78,6 +78,12 @@ class WidgetRequest(Base):
     # Eintragenden nicht gehören.
     report_confirmed_at = Column(DateTime, nullable=True)
 
+    # Wann an den bereitliegenden Bericht erinnert wurde (L-185, 10.09.2026).
+    # **Der Zeitpunkt ist die Sperre, nicht ein Merker:** Ohne ihn schickt
+    # jeder Scheduler-Lauf dieselbe Mail erneut — viermal am Tag an jemanden,
+    # der ohnehin nicht reagiert hat.
+    erinnerung_bericht_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 

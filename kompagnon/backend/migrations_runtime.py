@@ -2049,6 +2049,9 @@ def run_migrations():
            END $$""",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
+        # ── 10.09.2026: Nachfassen am bereitliegenden Bericht (L-185) ──
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_bericht_at TIMESTAMP",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
         # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
         # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich

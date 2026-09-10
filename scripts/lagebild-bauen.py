@@ -72,6 +72,10 @@ ZUSTAENDIGKEIT = {
     "L-183": ("extern", "Der Hoster von kompagnon.eu sperrt das Render-"
                         "Rechenzentrum. Kein Code ändert daran etwas — die "
                         "Sperre muss dort gelöst werden."),
+    "L-185": ("extern", "Die Erinnerung an den Bericht laeuft. Offen ist nur "
+                        "die Entscheidung, ob die Zusage in der "
+                        "Bestaetigungsmail geaendert wird — ohne sie darf an "
+                        "unbestaetigte Adressen nichts gehen."),
     "L-186": ("extern", "Ein Wert in den Widget-Einstellungen: die Adresse "
                         "der Datenschutzerklärung. Kein Code."),
     "L-187": ("beides", "Verdrahtet ist alles. Draußen warten drei "
@@ -159,6 +163,13 @@ HANDGESETZT = {
     # (b) ist gebaut, aber nie gegen einen echten Dienst gelaufen. Weder
     # „offen" noch „geschlossen" trifft das.
     "L-58": "teilweise",
+
+    # Die Erinnerung an den bereitliegenden Bericht laeuft (10.09.2026).
+    # Die Erinnerung an die **Bestaetigung** — dort faellt der groesste Teil
+    # weg — ist bewusst nicht gebaut: Die vorausgegangene Mail sagt zu, sich
+    # ohne Bestaetigung nicht von selbst zu melden. Das zu aendern ist eine
+    # Entscheidung ueber das eigene Wort, keine Programmierarbeit.
+    "L-185": "teilweise",
 
     # ── terminiert: entschieden, datiert, von einem Test gehalten ──────
     #

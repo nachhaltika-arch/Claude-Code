@@ -62,6 +62,13 @@ class WidgetSettings(BaseModel):
     bericht_abnahmepunkte: str = ""
     bericht_knappheit: str = ""
     bericht_angebotsbegruendung: str = ""
+    #: Logo und Portrait der Berichtsseite. Beide wurden gelesen, seit es
+    #: die Seite gibt, und waren nirgends einzutragen — deshalb stand im
+    #: Block „Ihr Ansprechpartner" ein Name ohne Gesicht. Gemeldet von David
+    #: am 10.09.2026 aus der Vorschau heraus, dieselbe Klasse wie die vier
+    #: Zeilen darüber.
+    bericht_logo_url: str = ""
+    bericht_portrait_url: str = ""
 
 
 class TestEmailRequest(BaseModel):
@@ -133,6 +140,8 @@ def read_widget_settings(_: User = Depends(require_admin), db: Session = Depends
         "bericht_abnahmepunkte": app_settings.get(db, "bericht_abnahmepunkte"),
         "bericht_knappheit": app_settings.get(db, "bericht_knappheit"),
         "bericht_angebotsbegruendung": app_settings.get(db, "bericht_angebotsbegruendung"),
+        "bericht_logo_url": app_settings.get(db, "bericht_logo_url"),
+        "bericht_portrait_url": app_settings.get(db, "bericht_portrait_url"),
         "embed_url": widget_embed_url(),
         "requests_total": db.query(WidgetRequest).count(),
         "requests_confirmed": db.query(WidgetRequest).filter(
@@ -151,7 +160,10 @@ def write_widget_settings(
                          # Der Wert landet in einem href auf **fremden**
                          # Seiten — `javascript:` gehoert dort nicht hin.
                          ("widget_check_plus_url", payload.check_plus_url),
-                         ("bericht_kauf_relaunch_url", payload.kauf_relaunch_url)):
+                         ("bericht_kauf_relaunch_url", payload.kauf_relaunch_url),
+                         # Beide landen in einem `src` auf der Berichtsseite.
+                         ("bericht_logo_url", payload.bericht_logo_url),
+                         ("bericht_portrait_url", payload.bericht_portrait_url)):
         if value and not value.startswith(("http://", "https://", "/")):
             raise HTTPException(400, f"'{value}' ist keine gültige Adresse.")
 
@@ -187,6 +199,8 @@ def write_widget_settings(
         "bericht_abnahmepunkte": payload.bericht_abnahmepunkte,
         "bericht_knappheit": payload.bericht_knappheit,
         "bericht_angebotsbegruendung": payload.bericht_angebotsbegruendung,
+        "bericht_logo_url": payload.bericht_logo_url,
+        "bericht_portrait_url": payload.bericht_portrait_url,
     }, admin.id)
     return {"message": "Widget-Einstellungen gespeichert"}
 

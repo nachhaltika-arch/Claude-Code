@@ -250,3 +250,35 @@ def test_ohne_angabe_wird_nichts_behauptet(client, auth_headers):
                  "bericht_abnahmepunkte", "bericht_knappheit",
                  "bericht_angebotsbegruendung"):
         assert gelesen[feld] == "", feld
+
+
+# Logo und Portrait — gemeldet von David am 10.09.2026 aus der Vorschau:
+# „hier fehlt mir das bild von max". Es fehlte, weil es keine Stelle gab,
+# an der man es einträgt.
+
+def test_logo_und_portrait_lassen_sich_speichern(client, auth_headers):
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(bericht_logo_url="https://bilder.example/logo.svg",
+                                   bericht_portrait_url="https://bilder.example/max.jpg"),
+                   headers=auth_headers)
+    assert r.status_code == 200, r.text
+
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    assert gelesen["bericht_logo_url"] == "https://bilder.example/logo.svg"
+    assert gelesen["bericht_portrait_url"] == "https://bilder.example/max.jpg"
+
+
+@pytest.mark.parametrize("feld", ["bericht_logo_url", "bericht_portrait_url"])
+def test_eine_unsichere_bildadresse_wird_abgewiesen(client, auth_headers, feld):
+    """Beide landen in einem `src` auf einer Seite, die ein Kunde öffnet."""
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(**{feld: "javascript:alert(1)"}),
+                   headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_ohne_portrait_bleibt_der_block_ohne_gesicht(client, auth_headers):
+    """Kein Platzhaltergesicht — ein fremdes Gesicht wäre schlechter als keines."""
+    client.put("/api/acquisition/widget", json=_grundlast(), headers=auth_headers)
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    assert gelesen["bericht_portrait_url"] == ""

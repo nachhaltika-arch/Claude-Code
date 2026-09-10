@@ -350,6 +350,8 @@ export default function AkquiseWidget() {
           bericht_abnahmepunkte: widget.bericht_abnahmepunkte || '',
           bericht_knappheit: widget.bericht_knappheit || '',
           bericht_angebotsbegruendung: widget.bericht_angebotsbegruendung || '',
+          bericht_logo_url: widget.bericht_logo_url || '',
+          bericht_portrait_url: widget.bericht_portrait_url || '',
         }),
       });
       toast.success('Widget-Einstellungen gespeichert');
@@ -549,6 +551,30 @@ export default function AkquiseWidget() {
                 placeholder="Leer lassen: Der Satz wird aus der Punktzahl gebildet"
                 hinweis="Leer bildet die Seite den Satz aus dem gemessenen Ergebnis. Was hier
                          steht, ersetzt ihn — und gilt dann für jeden Empfänger gleich."
+              />
+              {/* Die beiden Bilder der Berichtsseite. Sie wurden gelesen,
+                  seit es die Seite gibt, und waren nirgends einzutragen —
+                  deshalb stand unter „Ihr Ansprechpartner" ein Name ohne
+                  Gesicht. */}
+              <Feld
+                label="Logo auf der Berichtsseite"
+                type="url"
+                value={widget.bericht_logo_url || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_logo_url: e.target.value })}
+                placeholder="https://…/logo.svg"
+                hinweis="Leer lassen zeigt die Wortmarke als Text. Die Adresse muss
+                         öffentlich erreichbar sein — der Bericht wird außerhalb
+                         geöffnet, oft im E-Mail-Programm."
+              />
+              <Feld
+                label="Portrait des Ansprechpartners"
+                type="url"
+                value={widget.bericht_portrait_url || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_portrait_url: e.target.value })}
+                placeholder="https://…/portrait.jpg"
+                hinweis="Steht im Block „Ihr Ansprechpartner". Leer lassen zeigt nur
+                         Name und Text — ein Platzhaltergesicht wäre schlechter als
+                         keines."
               />
               <button className="kc-btn" type="submit" disabled={speichert === 'widget'}>
                 {speichert === 'widget' ? 'Speichert…' : 'Speichern'}

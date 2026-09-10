@@ -1563,14 +1563,25 @@ def run_migrations():
         # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —
         # produktiv und auf Staging steht die alte Liste schon drin.
         #
-        # Eng gehalten: nur solange die alte Liste unveraendert ist. Wer sie
-        # von Hand gepflegt hat, bekommt seine Zeile nicht ueberschrieben.
+        # Eng gehalten, aber **an der richtigen Stelle** (berichtigt am
+        # 10.09.2026). Der erste Anlauf verlangte bei Check PLUS eine Zeile,
+        # die diese Katalogzeile **nie hatte** — ich hatte die Bedingung
+        # gegen den Seed **im Code** formuliert statt gegen das, was in der
+        # Datenbank steht. Produktiv und auf Staging stand dort noch die
+        # urspruengliche Liste von vier Zeilen, die Bedingung traf nicht,
+        # und der Trichterlauf zeigte im Teaser weiter die alten Leistungen.
+        # Beim Relaunch traf sie zufaellig, weil „Eine Korrekturschleife"
+        # wirklich drinstand — deshalb fiel es dort nicht auf.
+        #
+        # Jetzt greift die Bedingung ueber die **Abwesenheit der neuen
+        # Zeile**: Das ist unabhaengig davon, welche alte Fassung eine
+        # Umgebung traegt, und laeuft genau einmal — steht die neue Liste
+        # drin, trifft `NOT` nicht mehr.
         """UPDATE products SET features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb
             WHERE slug = 'websprint_relaunch'
-              AND features @> '["Eine Korrekturschleife"]'::jsonb""",
+              AND NOT features @> '["Einbindung Ihrer Rechtstexte"]'::jsonb""",
         """UPDATE products SET features = '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
             WHERE slug = 'check_plus'
-              AND features @> '["Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
               AND NOT features @> '["Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl"]'::jsonb""",
 
         # ── 10.09.2026: Check PLUS trug den Nettopreis als Brutto ──

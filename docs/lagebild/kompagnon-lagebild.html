@@ -109,6 +109,38 @@ main{padding:30px 0 72px}
 .suche:focus{outline:2px solid var(--kc-mid); outline-offset:-1px; border-color:transparent}
 .trenner{width:1px; height:22px; background:var(--linie-stark); margin:0 3px}
 
+/* ── Trichter (Wunsch David, 10.09.2026) ─────────────────
+   Zehn Schritte vom Anzeigenklick bis zum Verkauf. **Der Wert liegt
+   nicht im Bild, sondern in der dritten Spalte:** Neben jedem Schritt
+   steht, was dort heute klemmt und unter welcher Nummer es in der
+   Lückenliste geführt wird. Ein Ablaufdiagramm ohne die Mängel wäre
+   Dekoration; mit ihnen ist es die Antwort auf „wo verliere ich sie?".
+
+   Farben kommen aus den Token, nicht als feste Werte — sonst bricht
+   der Dunkelmodus, den diese Seite seit dem 08.09. beherrscht. */
+.tri{display:flex; flex-direction:column; gap:8px}
+.tri-s{display:grid; grid-template-columns:44px 1fr 320px; gap:16px;
+       padding:14px 16px; border-left:3px solid var(--kc-mid);
+       background:var(--karte); border-radius:0 var(--r) var(--r) 0;
+       box-shadow:var(--schatten)}
+.tri-s.hat-luecke{border-left-color:var(--krit); background:var(--krit-bg)}
+.tri-nr{font:700 15px/1.2 var(--mono);
+        color:var(--kc-mid); padding-top:2px}
+.tri-s.hat-luecke .tri-nr{color:var(--krit)}
+.tri-t{font-weight:700; font-size:14.5px; color:var(--ink)}
+.tri-w{font:400 12px/1.5 var(--mono);
+       color:var(--ink-3); margin-top:3px}
+.tri-m{font-size:12.5px; line-height:1.55; color:var(--ink-2)}
+.tri-m .gut{color:var(--gut); font-weight:600}
+.tri-k{display:inline-block; font:600 11px/1 var(--mono);
+       background:var(--kc-dark); color:var(--kopf-ink); border-radius:4px;
+       padding:4px 7px; margin:0 4px 4px 0; text-decoration:none}
+.tri-k:hover{background:var(--kc-mid)}
+@media(max-width:900px){
+  .tri-s{grid-template-columns:36px 1fr}
+  .tri-m{grid-column:2}
+}
+
 /* ── Lückenliste ───────────────────────────────────────── */
 .liste{display:flex; flex-direction:column; gap:8px}
 .gruppe-kopf{
@@ -368,7 +400,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   <div class="huelle">
     <div class="marke">
       <h1>KOMPAGNON Lagebild</h1>
-      <span class="stand">STAND 10.09.2026 · staging @ 0105e7f</span>
+      <span class="stand">STAND 10.09.2026 · staging @ fa94080</span>
     </div>
     <p class="unterzeile">Offene Punkte, Modulstand und Produktkatalog — aus <code>soll-ist-analyse.md</code>, <code>module-karte.md</code> und dem Code selbst zusammengetragen.</p>
 
@@ -387,6 +419,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
       <button role="tab" aria-selected="false" aria-controls="b-module" id="t-module">Module &amp; Features</button>
       <button role="tab" aria-selected="false" aria-controls="b-produkte" id="t-produkte">Produkte &amp; Zahlung</button>
       <button role="tab" aria-selected="false" aria-controls="b-plan" id="t-plan">Abarbeitungsplan</button>
+      <button role="tab" aria-selected="false" aria-controls="b-trichter" id="t-trichter">Trichter</button>
     </nav>
   </div>
 </header>
@@ -487,6 +520,16 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   </section>
 
   <!-- ══ Plan ══════════════════════════════════════════ -->
+  <section class="blatt" id="b-trichter" role="tabpanel" aria-labelledby="t-trichter" hidden>
+    <p class="vorwort">Der Weg vom Anzeigenklick bis zum Verkauf, wie er
+    <b>heute gebaut ist</b> — nicht wie er gedacht war. Neben jedem Schritt
+    steht, was dort klemmt und unter welcher Nummer es in der Lückenliste
+    geführt wird. <b>Ein Ablauf ohne die Mängel wäre Dekoration;</b> mit
+    ihnen beantwortet er die Frage, die bei bezahltem Verkehr zählt: an
+    welcher Stelle die Leute verlorengehen und was das kostet.</p>
+    <div class="tri" id="trichter"></div>
+  </section>
+
   <section class="blatt" id="b-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
     <p class="vorwort">Die Reihenfolge folgt vier Fragen, in dieser Rangfolge: <b>Was blockiert anderes?</b> · <b>Was ist heute ein Produktivrisiko?</b> · <b>Was bringt den nächsten Kunden durch die Kette M1→M2→M4→M5→M6→M7?</b> · <b>Was ist so billig, dass es alles Folgende überprüfbar macht?</b> Nicht nach Priorität allein — P3 kann vor P1 stehen, wenn es etwas trägt. Nach jeder Phase steht ein auslieferbarer Zustand; der Takt folgt Ihrer Kadenz: Mo–Do auf <code>staging</code>, freitags der Sammel-PR.</p>
 
@@ -695,6 +738,76 @@ reiter.forEach(r => r.addEventListener("click", () => {
 }));
 
 zeichnen();
+
+/* ── Trichter ─────────────────────────────────────────── */
+/* Zehn Schritte, wie sie **heute gebaut sind** — abgelesen am Code, nicht
+   am Konzept. Jeder Schritt nennt seine Stelle im System und, wo es eine
+   gibt, die Lücke mit ihrer Nummer. Die Nummern sind Links in die
+   Lückenliste: Wer wissen will, was hinter „L-183" steckt, klickt.
+
+   **Warum das hierher gehört und nicht in ein Diagramm.** Ein Ablauf ohne
+   Mängel sieht immer gesund aus. Erst die dritte Spalte beantwortet die
+   Frage, die bei bezahltem Verkehr zählt: an welcher Stelle die Leute
+   verlorengehen. Sechs von zehn Schritten tragen heute eine Lücke. */
+const TRICHTER = [
+  {nr:"1", titel:"Anzeige führt auf die Landingpage", wo:"websprint.kompagnon.eu",
+   luecken:["L-188","L-189"],
+   text:"Kein Meta-Pixel auf der Seite, <code>fbclid</code> wird nicht ans Widget durchgereicht, GA4 sendet kein Ereignis. Der Anzeigenklick selbst wird nirgends gemessen."},
+  {nr:"2", titel:"Besucher trägt Domain und E-Mail ein", wo:"Widget im iframe",
+   luecken:["L-186"],
+   text:"Das Formular erhebt eine E-Mail-Adresse und zeigt <b>keinen Datenschutzlink</b> — <code>privacy_url</code> ist produktiv leer."},
+  {nr:"3", titel:"Analyse startet, läuft asynchron", wo:"POST /api/widget/audit",
+   luecken:["L-183","L-184"],
+   text:"Scheitert die Erhebung, ist der Lead lautlos verloren: keine Mail, kein Nachfassen. Seit dem 10.09. wenigstens <span class='gut'>sichtbar in der Anfrageliste</span>."},
+  {nr:"4", titel:"Teaser im Widget: Punktzahl, Stufe, Angebot", wo:"/api/widget/teaser",
+   luecken:["L-187"],
+   text:"Seit dem 10.09. nach dem neuen Entwurf, mit Check PLUS als Angebot. <b>Der Kaufknopf fehlt</b>, solange das Produkt <code>draft</code> ist und keine Kaufadresse hinterlegt wurde."},
+  {nr:"5", titel:"Meta-Meldung: Pixel und Serverweg", wo:"meta_conversions",
+   luecken:[],
+   text:"<span class='gut'>Gebaut und einwilligungsgesteuert.</span> Zwei Einschränkungen: Ohne <code>META_CAPI_ACCESS_TOKEN</code> schweigt der Serverweg, und gezählt wird <b>beim Absenden</b> — nicht erst bei bestätigter Adresse."},
+  {nr:"6", titel:"Mail 1 — nur die Frage nach der Adresse", wo:"verify_email",
+   luecken:[],
+   text:"<span class='gut'>Trägt keine Punktzahl, keinen Link, kein PDF.</span> Sie geht an eine Adresse, die niemand geprüft hat."},
+  {nr:"7", titel:"Klick, Knopf, Bedienbeleg — Adresse bestätigt", wo:"/verify/{token}",
+   luecken:["L-185"],
+   text:"<b>Hier fällt der größte Teil weg</b>, und hier wird bewusst nicht nachgefasst: Mail 1 sagt zu, sich ohne Bestätigung nicht von selbst zu melden."},
+  {nr:"8", titel:"Mail 2 — Link zum Bericht", wo:"report_ready_email",
+   luecken:[],
+   text:"<span class='gut'>Seit dem 10.09. mit genau einer Erinnerung</span>, wenn der Link nach drei Tagen nicht geöffnet wurde."},
+  {nr:"9", titel:"Berichtsseite ohne Login", wo:"/report/{token}",
+   luecken:["L-191","L-190"],
+   text:"Seit dem 10.09. die Verkaufsseite nach dem Entwurf. Es fehlen die Vorher-nachher-Bilder, der Branchenschnitt und zwei redaktionelle Blöcke."},
+  {nr:"10", titel:"Termin im Kalender, Verkauf im Gespräch", wo:"— von Hand",
+   luecken:["L-192"],
+   text:"Vom Bericht führt kein Weg zur Kasse. Und <b>keine Auswertung sagt, welche Stufe leckt</b> — die Zeitstempel liegen je Anfrage vor, zusammengezählt werden sie nirgends."},
+];
+
+document.getElementById("trichter").innerHTML = TRICHTER.map(s => `
+  <div class="tri-s${s.luecken.length ? " hat-luecke" : ""}">
+    <div class="tri-nr">${schutz(s.nr)}</div>
+    <div>
+      <div class="tri-t">${schutz(s.titel)}</div>
+      <div class="tri-w">${schutz(s.wo)}</div>
+    </div>
+    <div class="tri-m">
+      ${s.text}
+      ${s.luecken.length ? "<div style='margin-top:8px'>" + s.luecken.map(k =>
+        `<a class="tri-k" href="#${k}" data-luecke="${k}">${k}</a>`).join("") + "</div>" : ""}
+    </div>
+  </div>`).join("");
+
+/* Ein Klick auf eine Nummer führt in die Lückenliste und sucht sie dort —
+   sonst wäre die Marke nur Farbe. */
+document.getElementById("trichter").addEventListener("click", ev => {
+  const marke = ev.target.closest("[data-luecke]");
+  if (!marke) return;
+  ev.preventDefault();
+  document.getElementById("t-luecken").click();
+  const suche = document.querySelector(".suche");
+  suche.value = marke.dataset.luecke;
+  suche.dispatchEvent(new Event("input"));
+  suche.scrollIntoView({behavior:"smooth", block:"center"});
+});
 
 /* ── Abarbeitungsplan ─────────────────────────────────── */
 const PLAN = {"phasen": [{"id": "L-105", "basis": "L-105", "phase": "A", "prio": "P3", "aufwand": "L", "titel": "136 Endpunkte ruft im Frontend niemand auf.", "warum": "Die 136 Endpunkte ohne Aufrufer durchgehen. Jede endet in einer von zwei Antworten: Knopf fehlt oder Route ueberfluessig. Sichtung, keine Reparatur — und sie deckt L-95 und L-101 mit ab."}, {"id": "L-25", "basis": "L-25", "phase": "A", "prio": "P3", "aufwand": "L", "titel": "Dateien über der 800-Zeilen-Grenze — am 2026-08-24 gemessen: 3 im Backend, 14 im Frontend", "warum": "Vor dem Zerlegen von generate_audit_report (576 Zeilen) die Gegenprobe bauen, die den Textinhalt des PDF vorher und nachher vergleicht. Ohne sie waere jeder Schnitt ein Blindflug."}, {"id": "L-95", "basis": "L-95", "phase": "A", "prio": "P3", "aufwand": "M", "titel": "3.424 Zeilen im Frontend, die kein Nutzerweg erreicht.", "warum": "19 Frontend-Dateien, 3.424 Zeilen, je Datei eine kurze Entscheidung. Dazu zwei im Backend: config.py und services/auftrag_pdf.py."}, {"id": "L-17", "basis": "L-17", "phase": "A", "prio": "P2", "aufwand": "L", "titel": "Barrierefreiheit im Werkzeug — zwei Klassen geschlossen, das Thema bleibt offen.", "warum": "Barrierefreiheit: Schaltflaechen und Formularfelder sind zu, die naechste Klasse waehlen. Zwei Waechter halten das Erreichte."}, {"id": "L-58", "basis": "L-58", "phase": "B", "prio": "P2", "aufwand": "M", "titel": "KI-Sichtbarkeit im Audit — (a) geschlossen 2026-08-21, (b) offen.", "warum": "OPENAI_API_KEY und PERPLEXITY_API_KEY fehlen — kein Lauf gegen einen echten Dienst. Dazu die Frage, ob es Zusatzprodukt wird oder ins Audit wandert."}, {"id": "L-60", "basis": "L-60", "phase": "B", "prio": "P2", "aufwand": "M", "titel": "Die Akademie kann mehr als sie zeigt — und die Technik ist seit dem 21.08. vollstaendig; es fehlt der Lehrplan…", "warum": "Die Technik ist vollstaendig, seed_academy_courses legt fuenf Kurse und null Module an. Was fehlt, ist der Lehrplan."}, {"id": "L-14", "basis": "L-14", "phase": "B", "prio": "P2", "aufwand": "M", "titel": "Projekt-Assistent — Ausbau 1 gebaut (routers/assistant.py). Offen: fachliche Beurteilung durch David oder eine…", "warum": "Fachliche Beurteilung durch dich oder einen Handwerksbetrieb, dazu Ausgangswerte der Abschlussquote."}, {"id": "L-103", "basis": "L-103", "phase": "B", "prio": "P3", "aufwand": "S", "titel": "Der Places-Schluessel muss in der URL bleiben — die alte Schnittstelle nimmt keine Kopfzeile.", "warum": "Places API (New) kennt X-Goog-Api-Key, muss aber im Google-Projekt freigeschaltet sein. Ohne Zugang nicht pruefbar; die Schwaerzung deckt den Schaden ab."}, {"id": "L-100", "basis": "L-100", "phase": "C", "prio": "P2", "aufwand": "L", "titel": "Fuer die digitalen Produkte gibt es keinen Bestellweg.", "warum": "Bauanleitung liegt (acht Prompts, ~17 Tage). Vorher zu klaeren: Preise aus L-97 und der Steuersatz des Workbooks — beides entscheidet die Datenstruktur."}, {"id": "L-85", "basis": "L-85", "phase": "C", "prio": "P2", "aufwand": "M", "titel": "Die KI-Sichtbarkeit misst einen Zeitpunkt, kein Produkt.", "warum": "Der Wettbewerbsvergleich — wer stattdessen genannt wird. Haengt an denselben Schluesseln wie L-58."}, {"id": "L-115", "basis": "L-115", "phase": "C", "prio": "P2", "aufwand": "L", "titel": "Fuer das Buch gibt es keine Baustrecke.", "warum": "BUCH-03 bis BUCH-11 beschreiben PDF-Erzeugung, Bestelldatenmodell, Kasse, Auslieferung und Landingpage — im Repo existiert davon nichts. Das Manuskript ist weiter als der Weg, auf dem es zum Kunden kommt. Solange kein PDF entsteht, sind auch die Formularfelder fuer Anhang C nicht baubar (S8.6)."}], "blockiert": [{"id": "L-81", "grund": "Termin 27.09.2026; ein Waechter meldet sich selbst", "titel": "Perplexitys alte Schnittstelle wird am 27.09.2026 abgeschaltet."}, {"id": "L-20", "grund": "Die Seite liegt auf fremdem Apache, 1,72 MB, nichts davon aus diesem Repo", "titel": "WebSprint-Landingpage außerhalb des Systems, ohne Quellversionierung."}, {"id": "L-16", "grund": "Wartet auf Pattern-Notes", "titel": "Envato-Wireframe-Pipeline steckt in Phase 1 (2 von 8–15), wartet auf Pattern-Notes"}], "spaeter": [{"id": "L-21", "aufwand": "XL", "warum": "Google/Meta Ads — null Code. Stufe 3 der Vision, nicht vor den fuenf Kunden.", "titel": "Google Ads / Meta Ads: null Code — Stage 3 der Vision blockiert"}, {"id": "L-23", "aufwand": "M", "warum": "Component-Manager Phase 2 (React-Eingabe), bewusst zurueckgestellt.", "titel": "Component-Manager Phase 2 (React-Eingabe) zurückgestellt"}, {"id": "L-114", "aufwand": "M", "warum": "Elf Befunde am Massstab, alle gemessen. Sie verschieben die Katalogsumme und gehoeren deshalb in die Fassung 2027.1 — eine Produktentscheidung, kein Aufraeumen.", "titel": "Elf Befunde am Massstab warten auf eine Produktentscheidung (S7)"}], "meilensteine": [{"id": "M1", "titel": "Websprint angebotsfähig", "datum": "11.09.2026", "erkennbar": "Erstes Angebot mit belastbarer Garantiezahl ist versendbar", "luecken": [], "extern": ["B05 — fünf Referenzmessungen, dann Garantieschwelle festlegen"], "offen": [], "frei": true}, {"id": "M2", "titel": "Audit-Widget rechtssicher", "datum": "25.09.2026", "erkennbar": "Widget darf an Innungen und Kammern ausgeliefert werden", "luecken": [], "extern": ["B02 — anwaltliche Prüfung, 5 Wochen Wartezeit"], "offen": [], "frei": true}, {"id": "M3", "titel": "Pflege-Abo aktiv", "datum": "09.10.2026", "erkennbar": "Erste wiederkehrende Zahlung eingegangen", "luecken": ["L-101"], "extern": [], "offen": [], "frei": true}, {"id": "M4", "titel": "Shop live", "datum": "06.11.2026", "erkennbar": "Check PLUS ist online kaufbar", "luecken": ["L-100"], "extern": ["B02 — Widerrufsbelehrung", "B03 — Steuersatz und Rechnungsnummernkreis"], "offen": ["L-100"], "frei": false}, {"id": "M5", "titel": "Buch veröffentlicht", "datum": "20.11.2026", "erkennbar": "ISBN gelistet, im Buchhandel bestellbar", "luecken": [], "extern": ["B11 — ISBN und BoD-Konto", "fünf Publikationsblocker"], "offen": [], "frei": true}, {"id": "M6", "titel": "SYSTEM verkaufsfähig", "datum": "27.11.2026", "erkennbar": "GEO-Artefakte an echter Kundendomain verifiziert", "luecken": ["L-99"], "extern": ["B10 — AV-Vertragsmuster"], "offen": [], "frei": true}, {"id": "M7", "titel": "Drei Produktvarianten im System", "datum": "18.12.2026", "erkennbar": "Relaunch, Neubau und System im Deal auswählbar", "luecken": ["L-97"], "extern": [], "offen": [], "frei": true}]};

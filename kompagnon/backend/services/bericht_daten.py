@@ -321,9 +321,14 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # Check PLUS steht nur da, wenn es das Produkt gibt.
         # Ebenfalls schlichte Zeichenketten: die Vorlage schreibt `{{ c }}`.
         "checkPlus": list(check.get("features") or []),
-        "zusatz": ([{"name": check.get("name") or "Check PLUS",
-                     "preis": _geld(check.get("price_netto")) + " netto"}]
-                   if check else []),
+        # **Leer, und das ist der Befund.** „Wenn Sie mehr brauchen" ist im
+        # Entwurf die Liste der zubuchbaren Leistungen — GEO, Pflege,
+        # Texterstellung. Hier stand zuerst Check PLUS, also dasselbe
+        # Angebot ein zweites Mal, zwei Kaesten untereinander. Verkäuflich
+        # (`status = live`) ist im Katalog ausser den beiden Websprints
+        # nichts; solange das so ist, faellt der Abschnitt weg statt sich
+        # selbst zu wiederholen.
+        "zusatz": [],
 
         # Redaktionelle Bloecke — leer heisst: Abschnitt aus.
         "faq": [],

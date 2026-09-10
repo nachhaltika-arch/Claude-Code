@@ -65,6 +65,63 @@
   }
   /* Fussbereich: Datenschutz und Absender gehoeren sichtbar unter das
      Formular, nicht als loser Satz ans Ende der Karte. */
+  /* ── Bezahltes Angebot im Ergebnis (10.09.2026) ─────────────────
+     Dunkle Fläche, gelber Akzent — die CI erlaubt genau einen gelben
+     Knopf je Ansicht, und das ist ab hier dieser. Der Terminknopf ist
+     dafür aus dem Ergebnis gewichen. */
+  .kpg-cp {
+    background: var(--kpg-dark); border-radius: 10px;
+    padding: 26px 26px 28px; color: #fff; margin: 24px 0 0;
+  }
+  .kpg-cp-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--kpg-yellow); margin-bottom: 12px;
+  }
+  .kpg-cp-kopf {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .kpg-cp-name, .kpg-cp-preis {
+    font-size: 30px; font-weight: 900; letter-spacing: -.025em;
+    text-transform: uppercase;
+  }
+  .kpg-cp-name { color: #fff; }
+  .kpg-cp-preis { color: var(--kpg-yellow); }
+  .kpg-cp-einheit {
+    font-size: 14px; font-weight: 700; letter-spacing: .04em;
+    color: #fff; margin-left: 6px; text-transform: none;
+  }
+  .kpg-cp-lead { margin: 0 0 22px; font-size: 15px; line-height: 1.6; }
+  .kpg-cp ul {
+    list-style: none; margin: 0 0 22px; padding: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .kpg-cp li {
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; line-height: 1.55;
+  }
+  .kpg-cp li svg { flex-shrink: 0; margin-top: 3px; }
+  .kpg-cp-anrechnung {
+    margin: 0 0 22px; padding: 14px 16px; background: rgba(255,255,255,.10);
+    border-left: 3px solid var(--kpg-yellow); border-radius: 0 6px 6px 0;
+    font-size: 14px; line-height: 1.55; font-weight: 700;
+  }
+  .kpg-cp-btn {
+    width: 100%; padding: 18px 20px; border-radius: 4px;
+    background: var(--kpg-yellow); color: var(--kpg-dark);
+    font-size: 16px; font-weight: 900; letter-spacing: .12em;
+    text-transform: uppercase; display: flex; align-items: center;
+    justify-content: center; gap: 12px; text-decoration: none;
+  }
+  .kpg-cp-btn:hover { filter: brightness(.95); }
+  /* Kein Knopf ohne Ziel: Solange das Produkt Entwurf ist oder keine
+     Kaufadresse hinterlegt wurde, steht hier ein Satz statt einer 404. */
+  .kpg-cp-bald {
+    margin: 0; padding: 14px 16px; border: 1px dashed rgba(255,255,255,.35);
+    border-radius: 6px; font-size: 14px; line-height: 1.55;
+  }
+  .kpg-cp-fuss { margin: 16px 0 0; font-size: 12px; line-height: 1.6; color: #C6DADC; }
+
   .kpg-fuss {
     border-top: 1px solid var(--kpg-border);
     padding: 12px clamp(20px, 4vw, 40px);
@@ -378,6 +435,14 @@
   var CHECKOUT_URL =
     safeHref(document.body.getAttribute('data-checkout')) || CHECKOUT_STANDARD;
 
+  /* Das bezahlte Angebot im Ergebnis (Entwurf David, 10.09.2026).
+     Kommt vollständig aus `/api/widget/config`: Preis, Leistungen,
+     Lieferzeit, Anrechnung und Kaufadresse. Hier steht bewusst **keine**
+     Zahl — ein Preis im Widget wäre eine zweite Quelle neben `products`,
+     und zwar auf fremden Seiten, wo sie niemandem auffällt (L-29).
+     `null` heißt: kein Block. Kein Rückfall auf erfundene Werte. */
+  var CHECK_PLUS = null;
+
   /* Zahl der Prüfkriterien. Kommt aus dem Katalog im Backend — hier stand
      früher eine fest eingetippte 42, die nicht mehr stimmte. Bis die
      Konfiguration geladen ist, wird die Zahl gar nicht erst genannt. */
@@ -546,6 +611,13 @@
         if (!cfg) return;
         if (safeHref(cfg.checkout_url)) CHECKOUT_URL = safeHref(cfg.checkout_url);
         if (cfg.criteria_count > 0) CRITERIA_COUNT = cfg.criteria_count;
+        /* Das Backend prüft die Kaufadresse schon; hier die zweite
+           Schranke, weil der Wert in ein href auf fremder Seite geht. */
+        if (cfg.check_plus) {
+          CHECK_PLUS = cfg.check_plus;
+          CHECK_PLUS.url = safeHref(CHECK_PLUS.url) || '';
+          if (!CHECK_PLUS.url) CHECK_PLUS.verfuegbar = false;
+        }
         /* Nur Ziffern durchlassen: Die Prüfung steht im Backend, aber
            was hier ankommt, geht in ein fremdes Skript — eine zweite
            Schranke am Rand kostet nichts. */
@@ -885,20 +957,90 @@
   /* ── Render: Teaser ──
      Bewusst nur Score, Level und die drei größten Punkte. Der vollständige
      Bericht kommt per E-Mail — das ist der Anlass, ins Postfach zu schauen. */
+  /* Betrag in deutscher Schreibweise. Die Zahl selbst kommt aus dem
+     Katalog — hier wird nur gesetzt, nicht gerechnet. */
+  function betrag(wert) {
+    var zahl = Number(wert);
+    if (!isFinite(zahl)) return '';
+    return zahl.toFixed(2).replace('.', ',') + ' \u20AC';
+  }
+
+  function haken() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+      'aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" stroke="#FAE600" ' +
+      'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  /* Das bezahlte Angebot unter dem Ergebnis (Entwurf David, 10.09.2026).
+     Alles darin stammt aus `/api/widget/config`; fehlt das Produkt, fehlt
+     der Block. */
+  function checkPlusHtml() {
+    if (!CHECK_PLUS) return '';
+    var a = CHECK_PLUS;
+
+    var punkte = (a.leistungen || []).map(function (t) {
+      return '<li>' + haken() + '<span>' + esc(t) + '</span></li>';
+    }).join('');
+
+    var anrechnung = a.anrechnung_monate
+      ? '<p class="kpg-cp-anrechnung">Entscheiden Sie sich innerhalb von ' +
+        esc(a.anrechnung_monate) + ' Monaten für einen Websprint, wird der ' +
+        'Betrag vollständig angerechnet.</p>'
+      : '';
+
+    /* Kein Knopf ohne Ziel. Ein Kaufknopf, der eine 404 öffnet, wird von
+       niemandem gemeldet — der Satz daneben schon. */
+    var abschluss = a.verfuegbar
+      ? '<a class="kpg-cp-btn" href="' + esc(a.url) + '" target="_blank" ' +
+        'rel="noopener">' + esc(a.name) + ' beauftragen →</a>'
+      : '<p class="kpg-cp-bald">' + esc(a.name) + ' können Sie in Kürze ' +
+        'direkt hier beauftragen. Ihren Bericht bekommen Sie unabhängig ' +
+        'davon per E-Mail.</p>';
+
+    /* Netto steht groß, der Zahlbetrag darunter. Der Entwurf zeigt netto;
+       die Kasse bucht brutto ab, und genau diese Lücke war L-61 — die
+       Seite schrieb „netto, zzgl. MwSt.", belastet wurde der andere
+       Betrag. */
+    var fuss = [];
+    if (a.preis_brutto) fuss.push('Zahlbetrag ' + betrag(a.preis_brutto) + ' brutto.');
+    if (a.lieferzeit_tage) {
+      fuss.push('Lieferzeit ' + esc(a.lieferzeit_tage) + ' Werktage nach ' +
+                'Zahlungseingang und Terminvereinbarung. Vorkasse.');
+    }
+    fuss.push('Nicht enthalten: Umsetzung jeglicher Maßnahmen, ' +
+              'Rechtsprüfung, Texterstellung.');
+
+    return '<div class="kpg-cp">' +
+        '<div class="kpg-cp-eyebrow">Bericht ausführlich erläutert' +
+          (a.kennung ? ' · ' + esc(a.kennung) : '') + '</div>' +
+        '<div class="kpg-cp-kopf">' +
+          '<span class="kpg-cp-name">' + esc(a.name) + '</span>' +
+          '<span class="kpg-cp-preis">' + betrag(a.preis_netto) +
+            '<span class="kpg-cp-einheit">netto</span></span>' +
+        '</div>' +
+        '<p class="kpg-cp-lead">Der kostenlose Check zeigt Ihnen die ' +
+          'Punktzahl. ' + esc(a.name) + ' zeigt Ihnen, was zu tun ist — ' +
+          'und in welcher Reihenfolge.</p>' +
+        (punkte ? '<ul>' + punkte + '</ul>' : '') +
+        anrechnung +
+        abschluss +
+        '<p class="kpg-cp-fuss">' + fuss.join(' ') + '</p>' +
+      '</div>';
+  }
+
   function renderResult(data, cleanUrl, email, pollToken) {
     var score = data.total_score || 0;
     var col = scoreColor(score);
     var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
 
-    var issues = (data.top_issues || []).slice(0, 3);
-    var issueHtml = '';
-    if (issues.length) {
-      issueHtml =
-        '<div class="kpg-issues">' +
-          '<div class="kpg-issues-title">Die größten Punkte</div>' +
-          '<ul>' + issues.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>' +
-        '</div>';
-    }
+    /* **Die Mängelliste ist fort** (Entwurf David, 10.09.2026). Der Teaser
+       liefert die größten Mängel weiterhin mit — gezeigt werden sie nicht
+       mehr. Sie
+       verschenkten genau den Befund, den Check PLUS verkauft, und der
+       vollständige Bericht kommt ohnehin per E-Mail. Die Ausschlussgründe
+       bleiben: Sie sind kein Befund, sondern eine Einschränkung der
+       Bewertung, und wer sie nicht liest, hält die Punktzahl für das
+       ganze Bild. */
 
     var blockerHtml = '';
     if (data.blocker_count) {
@@ -929,7 +1071,6 @@
           '<div class="kpg-punkte-fuss">Gesamtpunkte von 100</div>' +
         '</div>' +
         blockerHtml +
-        issueHtml +
         /* Zwei Mails: erst die Bestätigung der Adresse, danach der Bericht.
            Ohne diesen Hinweis wartet der Besucher auf einen Bericht, der ohne
            seinen Klick nie kommt — und der Klick ist genau der Punkt: eine
@@ -938,10 +1079,16 @@
         '<div class="kpg-mailnote" id="kpg-mailnote">' +
           mailnoteHtml(data.bestaetigung_versandt ? 'gesendet' : 'laeuft', email) +
         '</div>' +
-        /* Führt in den Terminkalender, nicht auf die Startseite. Wer gerade
-           seine Punktzahl gesehen hat, soll ein Gespräch buchen können —
-           auf der Startseite müsste er sich erst wieder orientieren. */
-        '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Termin vereinbaren →</a>' +
+        /* **An die Stelle des Terminknopfs tritt das bezahlte Angebot**
+           (Entwurf David, 10.09.2026). Vorher stand hier „Jetzt Termin
+           vereinbaren" — der kürzeste Weg vom Anzeigenklick zum Gespräch.
+           Der Entwurf setzt stattdessen auf Check PLUS: Ein Betrieb, der
+           für eine Analyse zahlt, hat Problembewusstsein und Budget, und
+           der Betrag wird auf den Websprint angerechnet. Welcher Betrag
+           das ist, steht im Katalog und nicht hier.
+           `CHECKOUT_URL` bleibt in Gebrauch — der Terminkalender steht
+           weiterhin im Bericht, den die zweite Mail verlinkt. */
+        checkPlusHtml() +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';
     document.getElementById('kpg-restart').addEventListener('click', resetWidget);

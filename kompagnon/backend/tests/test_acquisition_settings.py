@@ -92,8 +92,16 @@ def test_gespeicherter_wert_sticht_die_umgebungsvariable(monkeypatch, db):
 #: dazukommt, ist damit oeffentlich. `facebook_pixel_id` kam am 08.09.2026
 #: dazu und ist unbedenklich: Eine Pixel-Nummer steht in jeder Seite, die
 #: den Pixel laedt, und ist ohne das Werbekonto wertlos.
+#: Genau die Schluessel, die das Widget ohne Login bekommt. Die Menge ist
+#: **abschliessend**: Wer einen Wert ergaenzt, traegt ihn hier ein und
+#: begruendet ihn — sonst waechst eine oeffentliche Route stillschweigend.
+#:
+#: `check_plus` kam am 10.09.2026 dazu (Entwurf „Teaser Audit + Check PLUS").
+#: Es enthaelt Katalogdaten und eine Kaufadresse — Preis, Leistungen,
+#: Lieferzeit, Anrechnungsdauer, alles ohnehin oeffentlich. Kein Geheimnis,
+#: und der Preis steht damit an **einer** Stelle statt zusaetzlich im Widget.
 WIDGET_KONFIGURATION = {"privacy_url", "checkout_url", "headline",
-                        "criteria_count", "facebook_pixel_id"}
+                        "criteria_count", "facebook_pixel_id", "check_plus"}
 
 
 def test_widget_konfiguration_hat_sinnvolle_vorgaben(db):
@@ -102,6 +110,13 @@ def test_widget_konfiguration_hat_sinnvolle_vorgaben(db):
     assert config["headline"]
     # Ohne hinterlegte Nummer laedt das Widget kein fremdes Skript.
     assert config["facebook_pixel_id"] == ""
+    # **Kein Knopf ohne Ziel.** Frisch aufgesetzt steht Check PLUS auf
+    # `draft` und es gibt keine Kaufadresse — dann darf der Block zwar
+    # erscheinen, aber nie kaufbar sein.
+    angebot = config["check_plus"]
+    if angebot is not None:
+        assert angebot["verfuegbar"] is False
+        assert angebot["url"] == ""
 
 
 def test_kriterienzahl_stammt_aus_dem_katalog(db):
@@ -138,3 +153,48 @@ def test_widget_konfiguration_ist_oeffentlich_aber_ohne_geheimnisse(client):
     r = client.get("/api/widget/config")
     assert r.status_code == 200
     assert set(r.json()) == WIDGET_KONFIGURATION
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Die Kaufadresse fuer Check PLUS (10.09.2026)
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Warum das hier steht.** Der Teaser-Entwurf bringt einen Kaufknopf ins
+# Widget, und `check_plus_angebot` schaltet ihn nur frei, wenn eine Adresse
+# hinterlegt ist. Die Einstellung selbst war zunaechst **nirgends setzbar** —
+# nicht im Formular, nicht in der Schnittstelle. Damit haette es den Knopf
+# nie gegeben, und niemand haette gesehen warum: dieselbe Klasse wie
+# `RolePermission` vor L-05 und `webhook_actions` vor der Kaufabwicklung —
+# ein Bauteil, das sich einstellen laesst und nichts tut, nur andersherum.
+
+
+def test_die_kaufadresse_laesst_sich_speichern(client, auth_headers):
+    r = client.put("/api/acquisition/widget",
+                   json={"privacy_url": "", "checkout_url": "", "headline": "H",
+                         "facebook_pixel_id": "",
+                         "check_plus_url": "https://buy.stripe.com/test123"},
+                   headers=auth_headers)
+    assert r.status_code == 200, r.text
+
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers)
+    assert gelesen.json()["check_plus_url"] == "https://buy.stripe.com/test123"
+
+
+def test_eine_unsinnige_adresse_wird_abgewiesen(client, auth_headers):
+    # Der Wert landet in einem href auf **fremden** Seiten.
+    r = client.put("/api/acquisition/widget",
+                   json={"privacy_url": "", "checkout_url": "", "headline": "H",
+                         "facebook_pixel_id": "",
+                         "check_plus_url": "javascript:alert(1)"},
+                   headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_ohne_angabe_bleibt_es_leer(client, auth_headers):
+    r = client.put("/api/acquisition/widget",
+                   json={"privacy_url": "", "checkout_url": "", "headline": "H",
+                         "facebook_pixel_id": ""},
+                   headers=auth_headers)
+    assert r.status_code == 200
+    assert client.get("/api/acquisition/widget",
+                      headers=auth_headers).json()["check_plus_url"] == ""

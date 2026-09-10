@@ -320,6 +320,7 @@ export default function AkquiseWidget() {
           checkout_url: widget.checkout_url || '',
           headline: widget.headline || '',
           facebook_pixel_id: widget.facebook_pixel_id || '',
+          check_plus_url: widget.check_plus_url || '',
         }),
       });
       toast.success('Widget-Einstellungen gespeichert');
@@ -448,6 +449,20 @@ export default function AkquiseWidget() {
                 hinweis="Nur die Nummer aus dem Meta Events Manager, nicht der Skript-Code.
                          Der Pixel lädt erst, wenn jemand das Formular abschickt, und meldet
                          genau ein Ereignis (Lead) — leer lassen schaltet ihn ab."
+              />
+              {/* Ohne diese Adresse zeigt der Teaser das Angebot ohne
+                  Kaufknopf. Das ist Absicht: Ein Knopf, der eine 404
+                  öffnet, wird von niemandem gemeldet — ein fehlender
+                  Knopf fällt auf. */}
+              <Feld
+                label="Kaufadresse für Check PLUS"
+                type="url"
+                value={widget.check_plus_url || ''}
+                onChange={(e) => setWidget({ ...widget, check_plus_url: e.target.value })}
+                placeholder="https://buy.stripe.com/…"
+                hinweis="Ziel des Kaufknopfs im Analyse-Ergebnis. Leer lassen zeigt das
+                         Angebot ohne Knopf — den Bericht bekommt der Interessent trotzdem.
+                         Preis und Leistungen kommen aus dem Produktkatalog, nicht von hier."
               />
               <button className="kc-btn" type="submit" disabled={speichert === 'widget'}>
                 {speichert === 'widget' ? 'Speichert…' : 'Speichern'}

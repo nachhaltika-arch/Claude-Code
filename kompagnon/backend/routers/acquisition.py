@@ -48,6 +48,20 @@ class WidgetSettings(BaseModel):
     #: fuehrt. Leer heisst: Der Knopf fuehrt in den Terminkalender — nicht
     #: ins Leere.
     kauf_relaunch_url: str = ""
+    #: Die vier Angebotsschalter der Berichtsseite (10.09.2026). Sie wurden
+    #: seit dem 10.09. **gelesen, aber nirgends geschrieben** — es gab keine
+    #: Stelle, an der man sie setzen konnte, also blieben sie auf Dauer leer
+    #: und die Kaesten unsichtbar. Genau das Muster, das im Lagebild unter
+    #: „gebaut, nicht angeschlossen" gefuehrt wird.
+    #:
+    #: Alle vier sind **Aussagen**, keine Einstellungen im ueblichen Sinn:
+    #: Was hier steht, liest ein Kunde als Zusage. Leer heisst deshalb
+    #: nicht „Standardwert", sondern „wird nicht behauptet".
+    bericht_rabattsatz: str = ""
+    bericht_rabattcode: str = ""
+    bericht_abnahmepunkte: str = ""
+    bericht_knappheit: str = ""
+    bericht_angebotsbegruendung: str = ""
 
 
 class TestEmailRequest(BaseModel):
@@ -114,6 +128,11 @@ def read_widget_settings(_: User = Depends(require_admin), db: Session = Depends
         # Das Formular bearbeitet die Einstellung, nicht das Ergebnis.
         "check_plus_url": app_settings.get(db, "widget_check_plus_url"),
         "kauf_relaunch_url": app_settings.get(db, "bericht_kauf_relaunch_url"),
+        "bericht_rabattsatz": app_settings.get(db, "bericht_rabattsatz"),
+        "bericht_rabattcode": app_settings.get(db, "bericht_rabattcode"),
+        "bericht_abnahmepunkte": app_settings.get(db, "bericht_abnahmepunkte"),
+        "bericht_knappheit": app_settings.get(db, "bericht_knappheit"),
+        "bericht_angebotsbegruendung": app_settings.get(db, "bericht_angebotsbegruendung"),
         "embed_url": widget_embed_url(),
         "requests_total": db.query(WidgetRequest).count(),
         "requests_confirmed": db.query(WidgetRequest).filter(
@@ -136,6 +155,17 @@ def write_widget_settings(
         if value and not value.startswith(("http://", "https://", "/")):
             raise HTTPException(400, f"'{value}' ist keine gültige Adresse.")
 
+    # Die Abnahmezusage landet als Zahl in einem Satz: „Erreicht das
+    # Abnahmeaudit nicht mindestens X Punkte, arbeiten wir ohne Aufpreis
+    # nach." Steht dort etwas anderes als eine Punktzahl, liest der Kunde
+    # eine Garantie ueber „mindestens abc Punkte" — und die Zusage gilt
+    # trotzdem, weil sie auf seiner Seite steht.
+    if payload.bericht_abnahmepunkte:
+        wert = payload.bericht_abnahmepunkte.strip()
+        if not wert.isdigit() or not 1 <= int(wert) <= 100:
+            raise HTTPException(
+                400, "Die Abnahmezusage braucht eine Punktzahl zwischen 1 und 100.")
+
     # Die Pixel-ID wird geprueft und nicht bloss durchgereicht: Wer den
     # Skript-Schnipsel aus dem Events Manager einfuegt, bekaeme sonst ein
     # Widget, das nichts meldet — und ein Pixel, der nicht feuert, meldet
@@ -152,6 +182,11 @@ def write_widget_settings(
         "widget_facebook_pixel_id": pixel_id,
         "widget_check_plus_url": payload.check_plus_url,
         "bericht_kauf_relaunch_url": payload.kauf_relaunch_url,
+        "bericht_rabattsatz": payload.bericht_rabattsatz,
+        "bericht_rabattcode": payload.bericht_rabattcode,
+        "bericht_abnahmepunkte": payload.bericht_abnahmepunkte,
+        "bericht_knappheit": payload.bericht_knappheit,
+        "bericht_angebotsbegruendung": payload.bericht_angebotsbegruendung,
     }, admin.id)
     return {"message": "Widget-Einstellungen gespeichert"}
 

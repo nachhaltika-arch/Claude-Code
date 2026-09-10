@@ -36,6 +36,19 @@ SCHWELLE_MITTEL = 50
 #: Wie lange ein Angebot gilt — aus dem Angebotsbaukasten.
 ANGEBOT_GUELTIG_TAGE = 30
 
+#: Die beiden Leistungsgrenzen des Relaunch, wörtlich aus dem
+#: Leistungsverzeichnis `docs/produkte/ws-rel-01.md`. Sie stehen hier und
+#: nicht im Datensatz, weil es dafür keine Spalte gibt und zwei Spalten für
+#: zwei Beschriftungen mehr kosten als sie tragen. Damit sie nicht vom Blatt
+#: abdriften, prüft `test_relaunch_eckdaten` beide gegen das Blatt.
+SEITENUMFANG = "bis 6 Seiten"
+KORREKTURSCHLEIFEN = "1 enthalten"
+
+#: Ab dieser Punktzahl braucht eine Seite keinen Relaunch mehr — die
+#: Abnahmezusage des Standards (G1) nennt sie als Untergrenze. Oberhalb
+#: davon bleibt die Angebotsbegründung leer.
+GARANTIEPUNKTE = 85
+
 
 def _farbe(anteil: int) -> str:
     from services import brand
@@ -257,15 +270,68 @@ def _rechtsbefund(audit) -> str:
     **Leer heisst: kein roter Kasten.** Der Entwurf behauptete dort konkrete
     Maengel; ein Bericht, der einem Betrieb ohne Befund einen vorhaelt, ist
     schlimmer als einer ohne Kasten.
+    **Am 10.09.2026 korrigiert.** Hier stand der rohe Wert aus dem Befund,
+    und der ist eine Kennung: `detect_blockers` legt `"kein_impressum"` ab,
+    nicht den Satz dazu. Auf der Berichtsseite las ein Kunde damit
+    „kein_impressum. keine_datenschutzerklaerung." — Datenbankinhalt in
+    einem roten Kasten auf einer Verkaufsseite.
+
+    Die Übersetzung gab es die ganze Zeit: `BLOCKER_LABELS` im Katalog, seit
+    es die K.-o.-Kriterien gibt. Die alte Berichtsmail benutzt sie
+    (`widget_report._blocker_block`), die neue Seite hatte sie schlicht nicht
+    mitbekommen. Gefunden in der Trichter-Vorschau, nicht produktiv.
+
+    Eine unbekannte Kennung wird **weggelassen**, nicht durchgereicht: Ein
+    neuer Blocker ohne Text ist ein Fehler im Katalog, und ein Kunde soll ihn
+    nicht buchstabieren müssen.
     """
+    from services.audit_criteria import BLOCKER_LABELS
     from services.widget_report import _json_field
 
     gruende = _json_field(getattr(audit, "blockers", None), [])
     if not gruende:
         return ""
-    texte = [str(g.get("text") or g.get("label") or g) if isinstance(g, dict) else str(g)
-             for g in gruende]
-    return " ".join(t.rstrip(".") + "." for t in texte if t)
+
+    texte = []
+    for grund in gruende:
+        if isinstance(grund, dict):
+            text = grund.get("text") or grund.get("label") or grund.get("titel") or ""
+        else:
+            text = BLOCKER_LABELS.get(str(grund), "")
+        if text:
+            texte.append(str(text).rstrip(".") + ".")
+    return " ".join(texte)
+
+
+def _angebotsbegruendung(punkte: int, vorgabe: str) -> str:
+    """Warum ausgerechnet dieses Paket — abgeleitet, nicht behauptet.
+
+    Der Entwurf schlug hier vor: „Ihre Seite ist älter als vier Jahre und in
+    Teilen rechtlich offen, die Inhalte tragen aber noch." Der Satz liest
+    sich wie ein Befund und ist keiner: Das Alter der Seite wird nirgends
+    erhoben, und für einen Betrieb, dessen Seite drei Monate alt ist, steht
+    dort schlicht etwas Falsches. Ein falscher Satz über die eigene Seite
+    kostet mehr Vertrauen, als ein Verkaufssatz einbringt.
+
+    Dieselbe Bewegung — „genau dafür ist das gebaut" — lässt sich aus der
+    Messung machen, die direkt darüber steht. Die Punktzahl **wurde**
+    erhoben, sie ist im Bericht aufgeschlüsselt, und der Kunde kann sie
+    nachrechnen.
+
+    Oberhalb der Zusage aus dem Standard (``GARANTIEPUNKTE``) bleibt der
+    Satz weg: Wer 88 Punkte hat, braucht keinen Relaunch, und ihm einen zu
+    begründen wäre der zweite falsche Satz.
+
+    ``vorgabe`` schlägt beides — wer einen eigenen Satz einträgt, bekommt ihn.
+    """
+    if vorgabe:
+        return vorgabe
+    if not punkte or punkte >= GARANTIEPUNKTE:
+        return ""
+    return (f"Ihre Seite erreicht heute {punkte} von 100 Punkten; die "
+            f"fehlenden {100 - punkte} stehen oben einzeln im Bericht. "
+            f"Genau dafür ist dieses Paket gebaut — nicht für einen Neubau, "
+            f"den Sie nicht brauchen.")
 
 
 def aufbauen(db, audit, einstellungen: dict = None) -> dict:
@@ -292,14 +358,38 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
     # eine der beiden ansieht, baut die andere falsch.
     leistungen = list(relaunch.get("features") or [])
 
+    # ── Die drei Eckdaten des Angebots ────────────────────────────────
+    # **Am 10.09.2026 ausgetauscht** (Entwurf „Bericht Conversion v2",
+    # Vorgabe David). Hier standen Bauzeit, Festpreis, Zahlbetrag und
+    # Zahlungsweise — vier Felder, von denen **zwei Preise waren**. Direkt
+    # darunter steht der Festpreis noch einmal, gross und einzeln. Wer die
+    # Spalte von links nach rechts liest, sieht „3.500 netto · 4.165 brutto"
+    # und danach noch einmal „3.500 netto" und muss selbst herausfinden,
+    # dass das ein Preis ist und nicht drei.
+    #
+    # Die Zahlungsweise ist damit nicht verschwunden: Sie steht jetzt im
+    # Kleingedruckten unter dem Knopf, zusammen mit dem Zahlbetrag brutto —
+    # dort, wo man sie liest, bevor man kauft, und nicht als Kopfzahl.
+    #
+    # Bauzeit kommt aus dem Datensatz. Die beiden Grenzen stehen im
+    # Leistungsverzeichnis `docs/produkte/ws-rel-01.md`: „bis 6 Seiten"
+    # (Zeile 2.1/2.2) und „Enthalten ist eine Korrekturschleife. Jede
+    # weitere Schleife: 290 € netto." Beide sind **keine Preise**, deshalb
+    # faellt L-29 hier nicht — aber sie koennen vom Blatt abdriften,
+    # deshalb prueft `test_relaunch_eckdaten` sie gegen das Blatt selbst.
+    # Satz und Code gehoeren zusammen: Ein Nachlass ohne Code, den man
+    # eintippen kann, ist eine Ankuendigung ohne Weg. Fehlt einer von
+    # beiden, bleibt der Kasten weg — statt halb dazustehen.
+    rabattsatz = (einstellungen.get("bericht_rabattsatz") or "").strip()
+    rabattcode = (einstellungen.get("bericht_rabattcode") or "").strip()
+    if not (rabattsatz and rabattcode):
+        rabattsatz = rabattcode = ""
+
     eckdaten = []
     if relaunch.get("delivery_days"):
         eckdaten.append({"label": "Bauzeit", "wert": f"{relaunch['delivery_days']} Werktage"})
-    if relaunch.get("price_netto"):
-        eckdaten.append({"label": "Festpreis", "wert": _geld(relaunch["price_netto"]) + " netto"})
-    if relaunch.get("price_brutto"):
-        eckdaten.append({"label": "Zahlbetrag", "wert": _geld(relaunch["price_brutto"]) + " brutto"})
-    eckdaten.append({"label": "Zahlung", "wert": "vollständig bei Auftragserteilung"})
+    eckdaten.append({"label": "Seitenumfang", "wert": SEITENUMFANG})
+    eckdaten.append({"label": "Korrekturschleife", "wert": KORREKTURSCHLEIFEN})
 
     return {
         "firma": getattr(audit, "company_name", "") or getattr(audit, "website_url", ""),
@@ -336,6 +426,11 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         "luecken": _groesste_luecken(massnahmen_roh),
         "leistungen": leistungen,
         "eckdaten": eckdaten,
+        # Der Bruttobetrag stand bis zum 10.09.2026 als vierte Kopfzahl
+        # neben dem Nettopreis. Er gehoert dorthin, wo er gebraucht wird:
+        # ins Kleingedruckte unter dem Kaufknopf, direkt vor der Kasse.
+        "zahlbetrag": (_geld(relaunch["price_brutto"]) + " brutto"
+                       if relaunch.get("price_brutto") else ""),
 
         # Check PLUS steht nur da, wenn es das Produkt gibt.
         # Ebenfalls schlichte Zeichenketten: die Vorlage schreibt `{{ c }}`.
@@ -360,14 +455,19 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # im Entwurf; im Katalog gibt es weder den Nachlass noch ein
         # Rabattfeld im Bestellformular. Ein Preisversprechen, das die Kasse
         # nicht kennt, ist ein Anruf, kein Verkauf.
-        "rabattsatz": einstellungen.get("bericht_rabattsatz", ""),
+        "rabattsatz": rabattsatz,
+        # **Der Code steht nicht mehr fest in der Vorlage.** Bis heute war
+        # „WS25" an zwei Stellen der Vorlage einbetoniert. Wer in Stripe
+        # einen anderen Promo-Code anlegt, haette auf der Seite weiter den
+        # alten gelesen — und der Kunde einen Code eingegeben, den die Kasse
+        # nicht kennt. Jetzt kommt er aus derselben Einstellung wie der Satz.
+        "rabattcode": rabattcode,
         # **Der Rabattpreis wird gerechnet, nicht eingetragen** (Entwurf v2
         # fuehrt ihn als eigenes Feld mit 2.625 € netto). Zwei Zahlen von
         # Hand zu pflegen ist die Bauart, aus der L-29 entstand: Wer den
         # Festpreis aendert und den Rabattpreis vergisst, hat einen Nachlass
         # von 25 % auf einen Preis, den es nicht mehr gibt.
-        "preisRabatt": _rabattpreis(relaunch.get("price_netto"),
-                                    einstellungen.get("bericht_rabattsatz", "")),
+        "preisRabatt": _rabattpreis(relaunch.get("price_netto"), rabattsatz),
         # **Abnahmezusage.** Der Entwurf sagt 96 Punkte, der
         # Angebotsbaukasten sagt unter G1 mindestens 85. Zwei Zahlen fuer
         # dieselbe Garantie — welche gilt, ist eine Entscheidung.
@@ -391,7 +491,8 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # liest sich wie ein Befund und ist keiner — fuer einen Betrieb mit
         # 20 Punkten waere der erste Satz schlicht falsch. Sie bleiben leer,
         # bis jemand sie **aus der Analyse** ableitet.
-        "angebotsbegruendung": "",
+        "angebotsbegruendung": _angebotsbegruendung(
+            punkte, einstellungen.get("bericht_angebotsbegruendung", "")),
         "befundText": "",
         # **Knappheit.** „Zwei Sprint-Plaetze im Oktober frei" ist eine
         # Aussage ueber die eigene Auslastung. Sie muss stimmen, wenn sie

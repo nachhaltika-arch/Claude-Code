@@ -180,7 +180,7 @@
         </div>
         <sc-if value="{{ rabattsatz }}"><div style="margin-top:16px;border:1px dashed #008EAA;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
           <div style="font-size:12.5px;color:#4A5A5C;line-height:1.5"><strong style="color:#004F59">{{ rabattsatz }}</strong> — Code im Rabattfeld des Bestellformulars eingeben</div>
-          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:18px;font-weight:500;color:#004F59;background:#F0F4F5;border-radius:5px;padding:8px 14px;letter-spacing:.06em">WS25</div>
+          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:18px;font-weight:500;color:#004F59;background:#F0F4F5;border-radius:5px;padding:8px 14px;letter-spacing:.06em">{{ rabattcode }}</div>
         </div></sc-if>
         <sc-if value="{{ abnahmepunkte }}"><div style="margin-top:24px;background:#FAE600;border-radius:8px;padding:16px 18px">
           <div style="font-size:14.5px;font-weight:900;color:#004F59;line-height:1.45">Abnahmezusage: Erreicht das Abnahmeaudit nicht mindestens {{ abnahmepunkte }} Punkte, arbeiten wir ohne Aufpreis nach, bis es erreicht ist.</div>
@@ -189,7 +189,7 @@
           <a href="{{ kaufUrlRelaunch }}" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:320px;background:#004F59;color:#FFFFFF;text-decoration:none;font-weight:900;padding:16px 28px;border-radius:6px;font-size:15.5px" style-hover="background:#008EAA">Relaunch beauftragen →</a>
           <span style="font-size:13.5px;color:#4A5A5C;line-height:1.5">Angebot gültig bis {{ gueltigBis }}<sc-if value="{{ knappheit }}"><br>{{ knappheit }}</sc-if></span>
         </div>
-        <sc-if value="{{ rabattsatz }}"><div style="margin-top:14px;font-size:13px;color:#4A5A5C;line-height:1.55">Der Rabatt wird beim Code <strong style="color:#004F59">WS25</strong> im Rabattfeld des Bestellformulars abgezogen und ist auf die ersten 25 Kunden beschränkt; ohne Code gilt der Festpreis. Zahlbar sofort bei Auftragserteilung, keine Ratenzahlung. Eine Korrekturschleife enthalten. Fristbeginn erst, wenn Ihre Unterlagen vorliegen. Lieber vorher sprechen? <a href="{{ terminUrl }}">20 Minuten am Telefon</a>.</div></sc-if>
+        <div style="margin-top:14px;font-size:13px;color:#4A5A5C;line-height:1.55"><sc-if value="{{ rabattsatz }}">Der Rabatt wird beim Code <strong style="color:#004F59">{{ rabattcode }}</strong> im Rabattfeld des Bestellformulars abgezogen; ohne Code gilt der Festpreis. </sc-if>Zahlbar vollständig bei Auftragserteilung, keine Ratenzahlung<sc-if value="{{ zahlbetrag }}">; der Zahlbetrag beträgt {{ zahlbetrag }}</sc-if>. Eine Korrekturschleife ist enthalten, jede weitere kostet 290 € netto. Fristbeginn erst, wenn Ihre Unterlagen vorliegen. Lieber vorher sprechen? <a href="{{ terminUrl }}">20 Minuten am Telefon</a>.</div>
       </div>
 
       <div style="background:#F0F4F5;border-radius:10px;padding:clamp(20px,4.5vw,26px) clamp(18px,4.5vw,24px)">

@@ -117,10 +117,19 @@
   .kpg-consent {
     display: flex; gap: 9px; align-items: flex-start;
     font-size: 12px; line-height: 1.45; color: var(--kpg-text-60);
-    margin: 14px 0 16px; cursor: pointer;
+    margin: 14px 0 6px; cursor: pointer;
   }
   .kpg-consent input { accent-color: var(--kpg-dark); }
   .kpg-consent input { margin-top: 2px; flex-shrink: 0; width: 15px; height: 15px; }
+  /* Der Aufklapper steht AUSSERHALB des Labels. Ein <summary> darin wuerde
+     beim Klick die Checkbox umschalten — der Besucher liest nach und hat
+     ungewollt zugestimmt. */
+  .kpg-consent-mehr {
+    font-size: 12px; line-height: 1.5; color: var(--kpg-text-60);
+    margin: 0 0 16px 24px;
+  }
+  .kpg-consent-mehr summary { cursor: pointer; text-decoration: underline; }
+  .kpg-consent-mehr p { margin: 7px 0 0; }
   .kpg-issues { margin: 18px 0 4px; }
   .kpg-issues-title {
     font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
@@ -294,13 +303,24 @@
         <p class="kpg-hint">Dorthin schicken wir Ihren Bericht</p>
       </div>
 
+      <!-- Kurz gehalten (Entscheidung David, 10.09.2026): Der lange Satz kostete
+           Abschluesse, und er nannte einen Zweck, den es nicht mehr gibt — die
+           Adresse geht nicht an Meta. Was bleibt, ist genau das, was das
+           Haekchen steuert: die Auswertungsmails. Der Bericht selbst haengt
+           nicht daran (siehe `verify_token` im Backend), deshalb steht er hier
+           auch nicht als Gegenleistung fuer eine Einwilligung. -->
       <label class="kpg-consent" for="kpg-consent">
         <input type="checkbox" id="kpg-consent" />
-        <span>Ich bin einverstanden, dass KOMPAGNON mich zu meiner Webseiten-Analyse
-        per E-Mail kontaktiert. Zur Erfolgsmessung von Anzeigen wird meine
-        E-Mail-Adresse dabei in unkenntlich gemachter Form an Meta (Facebook,
-        Instagram) übermittelt. Die Einwilligung kann ich jederzeit widerrufen.</span>
+        <span>Auswertung des Ergebnisses per E-Mail erhalten. Widerruf jederzeit.</span>
       </label>
+      <details class="kpg-consent-mehr">
+        <summary>Details</summary>
+        <p>Ohne Häkchen erhalten Sie nur den Analysebericht. Mit Häkchen
+        zusätzlich bis zu fünf E-Mails, die das Ergebnis einordnen — Abmeldung
+        über den Link in jeder E-Mail. Ihre E-Mail-Adresse wird nicht an Meta
+        oder andere Werbenetzwerke übermittelt. Verantwortlich: Kompagnon
+        Communications BP GmbH, Marienfelder Straße 52, 56070 Koblenz.</p>
+      </details>
 
       <button class="kpg-btn" id="kpg-submit" type="submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -436,6 +456,28 @@
     return EINWILLIGUNG_NEIN;
   }
 
+  /* ── Umkehrung der Regel (10.09.2026) ──
+
+     Bis zum 09.09. galt: Haekchen gesetzt und kein Nein von oben. Das trug,
+     solange das Haekchen Meta ausdruecklich nannte. Seit dem 10.09. spricht
+     es nur noch von den Auswertungsmails — damit kann es eine Meldung an
+     Meta nicht mehr begruenden. Die Rechtsgrundlage liegt jetzt allein beim
+     Consent-Banner der Traegerseite, und das ist der Ort, an den sie gehoert.
+
+     **Schweigen ist keine Zustimmung** (§ 25 TDDDG). Eine Einbettung, die
+     nichts mitgibt, bekommt deshalb keine Meldung mehr. Das ist eine
+     bewusste Abschaltung, kein Versehen: Auf einer Kundenseite ohne Banner
+     gab es nie eine Grundlage, und vorher feuerte dort jedes Haekchen.
+
+     **Folge fuer die eigene Landingpage:** Sie muss `consent=1` im
+     iframe-Aufruf mitgeben oder `{type:'kpg-consent', marketing:true}` nach
+     unten senden. Tut sie es nicht, wird nichts gemessen. */
+  function einwilligungErteilt() {
+    if (traegerMarketing === true) return true;
+    if (traegerMarketing === false) return false;
+    return (einwilligungRoh === '1' || einwilligungRoh === 'true');
+  }
+
   try {
     window.addEventListener('message', function (e) {
       if (e.source !== parent) return;
@@ -454,7 +496,7 @@
      Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
      halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
      weil die Zahl gut aussieht. */
-  function meldeLead(eventId, email, haekchenGesetzt) {
+  function meldeLead(eventId) {
     /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
        hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
        Klick-ID, die nur sie kennt. Dann ist die Zuordnung endlich vollständig. */
@@ -462,11 +504,12 @@
       parent.postMessage({ type: 'kpg-audit-lead', eventId: eventId || '' }, '*');
     } catch (e) { /* no-op */ }
 
-    /* **Es braucht ein Ja, und es darf kein Nein geben** (08.09.2026).
-       Bis dahin hing der Pixel allein am Parameter der Trägerseite — das
-       Häkchen im Formular wurde nicht gelesen. Wer es wegließ, weil er
-       keine Werbepost will, wurde trotzdem gemeldet. */
-    if (!haekchenGesetzt || einwilligungVerweigert()) return;
+    /* **Es braucht ein Ja der Trägerseite, und es darf kein Nein geben**
+       (10.09.2026). Das Häkchen im Formular wird hier nicht mehr gelesen: Es
+       spricht von E-Mail, nicht von Meta, und kann diesen Zweck nicht decken.
+       Die zweite Prüfung ist redundant und bleibt trotzdem stehen — ein Nein
+       soll an jeder Stelle ein Nein sein, auch wenn jemand die erste ändert. */
+    if (!einwilligungErteilt() || einwilligungVerweigert()) return;
     if (!FB_PIXEL_ID || leadGemeldet) return;
     leadGemeldet = true;   /* Doppelklick, zweiter Versuch: ein Lead bleibt einer. */
     try {
@@ -479,14 +522,14 @@
         n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
         s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
       }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-      /* Erweiterter Abgleich: Die Adresse wird von Metas Skript im Browser
-         gehasht, bevor sie das Gerät verlässt. Ohne sie lag die gemessene
-         Abgleichqualität bei 6,1 von 10 — „keine Event-Parameter erkannt". */
-      if (email) {
-        window.fbq('init', FB_PIXEL_ID, { em: String(email).trim().toLowerCase() });
-      } else {
-        window.fbq('init', FB_PIXEL_ID);
-      }
+      /* **Kein erweiterter Abgleich** (Entscheidung David, 10.09.2026). Die
+         Adresse wurde hier an Metas Skript übergeben, das sie im Browser
+         hasht. Das hob die gemessene Abgleichqualität von 6,1 an — kostete
+         aber den langen Einwilligungssatz, und bei 20 bis 40 Leads im Monat
+         liegt der Gewinn im Rauschen. Die Zuordnung zur Anzeige trägt die
+         Klick-ID (`fbc`), nicht die Adresse.
+         Wer ihn zurückholt, braucht den Meta-Satz im Häkchen zurück. */
+      window.fbq('init', FB_PIXEL_ID);
       window.fbq('track', 'Lead', {}, eventId ? { eventID: eventId } : undefined);
     } catch (e) {
       /* Ein blockiertes Skript (Adblocker, kein Netz) darf die Analyse nicht
@@ -665,9 +708,11 @@
         fbc: FBC,
         fbp: FBP,
         page_url: document.referrer || '',
-        /* Damit der Serverweg dieselbe Grenze zieht wie der Browser: Ein
-           ausdrueckliches Nein der Traegerseite gilt fuer beide Wege. */
-        consent_tracking: einwilligungVerweigert() ? '0' : (einwilligungRoh || '')
+        /* Damit der Serverweg dieselbe Grenze zieht wie der Browser. Gesendet
+           wird der **ausgewertete** Zustand, nicht der Rohwert: Der Browser
+           kennt die nachträgliche Banner-Nachricht, die Adresszeile kennt sie
+           nicht. Ein '0' heißt hier „kein Ja" — und das genügt dem Server. */
+        consent_tracking: einwilligungErteilt() ? '1' : '0'
       })
     })
     .then(function (r) {
@@ -680,7 +725,7 @@
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
       /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
          Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
-      meldeLead('kpg-widget-' + start.request_id, email, consentMarketing);
+      meldeLead('kpg-widget-' + start.request_id);
       pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {

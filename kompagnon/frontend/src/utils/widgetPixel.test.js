@@ -23,7 +23,8 @@
  *      Cookie-Banner mit.
  *   2. Gemeldet wird **ein** Ereignis, `Lead`, und erst, wenn das Backend
  *      die Anfrage angenommen hat.
- *   3. Ein ausdrückliches Nein der Trägerseite schaltet ihn ab.
+ *   3. Er feuert nur bei einem ausdrücklichen Ja der Trägerseite
+ *      (10.09.2026 — vorher genügte das Häkchen im Formular).
  *   4. Die Adressfelder stehen in der Reihenfolge Domain → E-Mail.
  *
  * **Jede Abwesenheits-Prüfung hat eine positive daneben.** „Kein PageView"
@@ -147,22 +148,36 @@ describe('Was gemeldet wird', () => {
 });
 
 describe('Wer zugestimmt haben muss', () => {
-  test('ohne Häkchen im Formular feuert der Pixel nicht', () => {
-    // Der Fund vom 08.09.2026: Der Pixel hing allein am Parameter der
-    // Trägerseite. Wer das Häkchen wegließ, weil er keine Werbepost will,
-    // wurde trotzdem an Meta gemeldet.
-    expect(rumpfVonMeldeLead()).toMatch(/!haekchenGesetzt/);
+  test('ohne Ja der Trägerseite feuert der Pixel nicht', () => {
+    // Die Umkehrung vom 10.09.2026. Vorher hing der Pixel am Häkchen im
+    // Formular — das nennt Meta nicht mehr und kann die Meldung nicht
+    // begründen. Grundlage ist jetzt allein das Consent-Banner der Seite.
+    expect(rumpfVonMeldeLead()).toMatch(/!einwilligungErteilt\(\)/);
   });
 
-  test('das Häkchen wird von der Absendestelle durchgereicht', () => {
-    // Die Gegenprobe: Ein Riegel, dem niemand den Wert gibt, wäre entweder
-    // immer zu oder immer offen — beides unbemerkt.
-    expect(WIDGET).toMatch(/meldeLead\([^)]*consentMarketing\)/);
+  test('nur ein echtes Ja zählt, nicht die bloße Abwesenheit eines Nein', () => {
+    // Die Gegenprobe zur Umkehrung: Ein Riegel, der bei Schweigen öffnet,
+    // wäre auf jeder Einbettung ohne Banner offen — und niemand fände es.
+    expect(WIDGET).toMatch(/traegerMarketing === true/);
+    expect(WIDGET).toMatch(/einwilligungRoh === '1'/);
   });
 
-  test('das Nein der Trägerseite geht auch an den Server', () => {
+  test('das Häkchen steuert den Pixel nicht mehr', () => {
+    // Der Sinn der Änderung: Der Haken gehört zu den Auswertungsmails. Wer
+    // ihn wieder an den Pixel hängt, braucht den Meta-Satz im Text zurück.
+    expect(rumpfVonMeldeLead()).not.toMatch(/haekchenGesetzt/);
+  });
+
+  test('derselbe Zustand geht an den Server', () => {
     // Sonst hielte der Browserweg an und der Serverweg meldete weiter.
-    expect(WIDGET).toMatch(/consent_tracking: einwilligungVerweigert\(\)/);
+    expect(WIDGET).toMatch(/consent_tracking: einwilligungErteilt\(\)/);
+  });
+
+  test('die Adresse geht nicht mehr an Metas Skript', () => {
+    // Der erweiterte Abgleich ist entfallen. Positive Hälfte daneben: der
+    // Pixel wird weiterhin mit seiner ID initialisiert.
+    expect(WIDGET).toMatch(/fbq\('init', FB_PIXEL_ID\)/);
+    expect(WIDGET).not.toMatch(/\bem:/);
   });
 });
 
@@ -200,30 +215,30 @@ describe('Was die Trägerseite abschalten kann', () => {
     expect(WIDGET).toMatch(/einwilligungRoh === '0'/);
   });
 
-  test('ein fehlender Parameter schaltet nicht still ab', () => {
-    // Die Gegenprobe: „sagt nichts" darf nicht als Nein gelten — sonst wäre
-    // der Pixel überall dort tot, wo die Einbettung nichts mitgibt, und
-    // niemand fände den Grund.
-    expect(WIDGET).not.toMatch(/EINWILLIGUNG_NEIN\s*=\s*!/);
+  test('ein fehlender Parameter gilt als Nein — und das steht dabei', () => {
+    // Umgekehrt als bis zum 09.09. Damals galt „sagt nichts" als vielleicht
+    // und damit als Ja; das war auf Einbettungen ohne Banner eine Messung
+    // ohne Grundlage. Jetzt ist Schweigen ein Nein (§ 25 TDDDG), und weil
+    // das eine stille Abschaltung ist, muss der Grund im Code stehen.
     expect(WIDGET).toMatch(/EINWILLIGUNG_NEIN = \(einwilligungRoh === '0'/);
+    expect(WIDGET).toMatch(/Schweigen ist keine Zustimmung/);
   });
 });
 
 /**
- * Der Einwilligungstext nennt Meta beim Namen (09.09.2026).
+ * Der Einwilligungstext deckt genau das, was das Häkchen steuert (10.09.2026).
  *
- * **Der Anlass.** Seit dem 08.09. entscheidet das Häkchen im Formular
- * darüber, ob der Lead an Meta gemeldet wird — `meta_conversions.darf_melden`
- * verlangt ein Ja. Der Satz daneben sagte aber nur, KOMPAGNON dürfe „per
- * E-Mail kontaktieren". Eine Einwilligung, die einen Zweck nicht nennt, deckt
- * ihn nicht; die Auslegung war die vorsichtigere, nicht die saubere. Genau so
- * stand es im Kopf von `test_meta_einwilligung.py`, mit dem Zusatz, das sei
- * eine Textentscheidung und gehöre David. Er hat sie am 09.09. getroffen.
+ * **Die Geschichte in zwei Sätzen.** Am 09.09. wurde der Satz erweitert, damit
+ * er Meta beim Namen nennt — das Häkchen entschied damals über die Meldung.
+ * Am 10.09. ist es umgekehrt gelöst: Der lange Satz kostete Abschlüsse, also
+ * ist der erweiterte Abgleich entfallen und die Meta-Einwilligung in das
+ * Consent-Banner der Trägerseite gewandert. Das Häkchen steuert jetzt nur noch
+ * die Auswertungsmails, und der Text sagt genau das.
  *
- * **Geprüft werden Eigenschaften, nicht der Wortlaut** — wie im Rest dieser
- * Datei. Der Satz darf umformuliert werden; er darf nur nicht aufhören, die
- * drei Dinge zu sagen, an denen die Einwilligung hängt: **wer** meldet,
- * **wohin**, und dass sie **widerruflich** ist.
+ * **Was hier zugesichert wird, ist die Deckungsgleichheit** — nicht Kürze.
+ * Der Satz darf umformuliert werden. Er darf nur nicht mehr versprechen, als
+ * das Häkchen tut, und nicht weniger, als der Code macht. Deshalb prüft die
+ * zweite Hälfte dieses Blocks am Code mit, nicht nur am Text.
  */
 describe('Was der Besucher zustimmt', () => {
   /** Der Text im Häkchen — unabhängig von Auszeichnung und Umbrüchen. */
@@ -239,24 +254,38 @@ describe('Was der Besucher zustimmt', () => {
     expect(EINWILLIGUNG).toMatch(/type="checkbox"|kpg-consent/);
   });
 
-  test('Meta wird beim Namen genannt', () => {
-    // Der eigentliche Fund. Vorher stand hier nur „per E-Mail kontaktiert".
-    expect(EINWILLIGUNG).toMatch(/Meta/);
-  });
-
-  test('der Kontaktzweck steht weiterhin da', () => {
-    // Die Gegenprobe: Der neue Zweck darf den alten nicht verdrängen — die
-    // Bestätigungsmail und der Bericht hängen an ihm.
+  test('der E-Mail-Zweck steht da', () => {
+    // Das ist, was der Haken tatsächlich steuert.
     expect(EINWILLIGUNG).toMatch(/E-Mail/);
-  });
-
-  test('es steht dabei, dass die Adresse nicht im Klartext geht', () => {
-    // Sonst liest der Satz sich schlimmer, als der Vorgang ist: Übermittelt
-    // wird ein SHA-256-Hash, nicht die Adresse.
-    expect(EINWILLIGUNG).toMatch(/unkenntlich|verschlüsselt|pseudonym/i);
   });
 
   test('der Widerruf bleibt genannt', () => {
     expect(EINWILLIGUNG).toMatch(/widerruf/i);
+  });
+
+  test('der Satz verspricht keine Meta-Übermittlung mehr', () => {
+    // Die Klammer zum Code: Solange `sende_lead` keine Adresse annimmt und
+    // `fbq('init')` keine mitgibt, wäre ein Meta-Satz hier eine Einwilligung
+    // in etwas, das nicht passiert — und die nächste Lesung hielte ihn für
+    // den Beleg, dass es passiert.
+    expect(EINWILLIGUNG).not.toMatch(/Meta|Facebook|Instagram/);
+  });
+
+  test('die Freiwilligkeit steht im Aufklapper, nicht im Kleingedruckten', () => {
+    // Ohne Häkchen kommt der Bericht trotzdem (`verify_token` im Backend
+    // hängt nicht am Haken). Stünde das nirgends, wäre der Haken faktisch
+    // Pflicht — und eine Pflicht-Einwilligung ist keine.
+    const m = WIDGET.match(/class="kpg-consent-mehr"[\s\S]*?<\/details>/);
+    const DETAILS = m ? m[0].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') : '';
+    expect(DETAILS.length).toBeGreaterThan(80);
+    expect(DETAILS).toMatch(/Ohne Häkchen/);
+  });
+
+  test('der Aufklapper steht außerhalb des Labels', () => {
+    // Ein <summary> im <label> schaltet beim Klick die Checkbox um: Der
+    // Besucher liest nach und hat ungewollt zugestimmt.
+    const label = WIDGET.match(/<label class="kpg-consent"[\s\S]*?<\/label>/);
+    expect(label).not.toBeNull();
+    expect(label[0]).not.toMatch(/<details/);
   });
 });

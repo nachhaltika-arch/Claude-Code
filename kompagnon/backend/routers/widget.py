@@ -422,6 +422,10 @@ def public_report(token: str, db: Session = Depends(get_db)):
         "bericht_rabattsatz": app_settings.get(db, "bericht_rabattsatz"),
         "bericht_abnahmepunkte": app_settings.get(db, "bericht_abnahmepunkte"),
         "bericht_knappheit": app_settings.get(db, "bericht_knappheit"),
+        # Die Kaufwege. Check PLUS liest **dieselbe** Einstellung wie der
+        # Teaser — eine Adresse je Produkt, nicht je Ort.
+        "bericht_kauf_relaunch_url": app_settings.get(db, "bericht_kauf_relaunch_url"),
+        "widget_check_plus_url": app_settings.get(db, "widget_check_plus_url"),
     }
     return HTMLResponse(
         bericht_seite.rendern(db, audit, token=token, einstellungen=einstellungen),

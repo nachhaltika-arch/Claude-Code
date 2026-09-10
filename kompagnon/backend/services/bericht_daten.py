@@ -96,6 +96,22 @@ def _kategorien(audit, items, sources, belege) -> list:
     return ergebnis
 
 
+def _kaufweg(roh, rueckfall: str) -> str:
+    """Eine Kaufadresse — oder der Kalender.
+
+    Der Wert kommt aus einer Einstellung im Werkzeug und landet in einem
+    `href` auf einer Seite, die ein Kunde oeffnet. `javascript:` und `data:`
+    gehoeren dort nicht hin; dieselbe Schranke wie in
+    `check_plus_angebot._sichere_adresse`.
+    """
+    wert = (roh or "").strip()
+    if wert.startswith(("https://", "http://", "/")):
+        return wert
+    if wert:
+        logger.warning("Kaufadresse verworfen (Schema): %r", wert[:40])
+    return rueckfall
+
+
 def _rabattpreis(netto, satz: str) -> str:
     """Der Preis nach Nachlass — oder leer, wenn es keinen gibt.
 
@@ -259,6 +275,9 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
     sources = _feld(audit, "item_sources")
     belege = _feld(audit, "item_belege")
 
+    from services.widget_report import termin_url
+
+    termin = termin_url(einstellungen.get("widget_booking_url", ""))
     punkte = int(getattr(audit, "total_score", 0) or 0)
     kategorien = _kategorien(audit, items, sources, belege)
     massnahmen_roh = _massnahmen_roh(audit, items, sources)
@@ -382,6 +401,27 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         "zeigeVergleich": False,
         "zeigeVergleichsbilder": False,
         "zeigeSticky": True,
+
+        # ── Die Kaufwege (Wunsch David, 10.09.2026) ───────────────────
+        # Der Entwurf trug zwei feste Stripe-Zahllinks im `href`. Ein
+        # Kaufweg im Quelltext ist dieselbe Falle wie ein Preis im
+        # Quelltext (L-29): Er wandert nicht mit, wenn das Konto wechselt.
+        #
+        # **Eine Adresse je Produkt, nicht je Ort.** Check PLUS wird im
+        # Teaser und im Bericht angeboten; beide lesen dieselbe Einstellung.
+        # Zwei waeren zwei Wahrheiten, und die zweite waere irgendwann alt.
+        #
+        # **Ohne Adresse fuehrt der Knopf in den Kalender** — nicht ins
+        # Leere. Wer kaufen will und keinen Kaufweg findet, soll wenigstens
+        # einen Termin bekommen.
+        # Der Terminkalender. **Hier und nicht in `bericht_seite`**: Die
+        # Kaufwege fallen darauf zurueck, also muss er gebildet sein, bevor
+        # sie entstehen — an zwei Stellen berechnet waere er zwei Werte.
+        "terminUrl": termin,
+        "kaufUrlRelaunch": _kaufweg(einstellungen.get("bericht_kauf_relaunch_url"),
+                                    termin),
+        "kaufUrlCheckPlus": _kaufweg(einstellungen.get("widget_check_plus_url"),
+                                     termin),
 
         "logoUrl": einstellungen.get("bericht_logo_url", ""),
         "ohneLogo": not einstellungen.get("bericht_logo_url", ""),

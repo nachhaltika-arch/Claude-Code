@@ -44,6 +44,10 @@ class WidgetSettings(BaseModel):
     #: Stripe-Zahllink, spaeter die eigene Kasse — und das keinen Deploy
     #: kosten soll.
     check_plus_url: str = ""
+    #: Wohin der Kaufknopf fuer den Websprint Relaunch auf der Berichtsseite
+    #: fuehrt. Leer heisst: Der Knopf fuehrt in den Terminkalender — nicht
+    #: ins Leere.
+    kauf_relaunch_url: str = ""
 
 
 class TestEmailRequest(BaseModel):
@@ -109,6 +113,7 @@ def read_widget_settings(_: User = Depends(require_admin), db: Session = Depends
         # Der **gespeicherte** Wert, nicht der abgeleitete aus `check_plus`:
         # Das Formular bearbeitet die Einstellung, nicht das Ergebnis.
         "check_plus_url": app_settings.get(db, "widget_check_plus_url"),
+        "kauf_relaunch_url": app_settings.get(db, "bericht_kauf_relaunch_url"),
         "embed_url": widget_embed_url(),
         "requests_total": db.query(WidgetRequest).count(),
         "requests_confirmed": db.query(WidgetRequest).filter(
@@ -126,7 +131,8 @@ def write_widget_settings(
                          ("widget_checkout_url", payload.checkout_url),
                          # Der Wert landet in einem href auf **fremden**
                          # Seiten — `javascript:` gehoert dort nicht hin.
-                         ("widget_check_plus_url", payload.check_plus_url)):
+                         ("widget_check_plus_url", payload.check_plus_url),
+                         ("bericht_kauf_relaunch_url", payload.kauf_relaunch_url)):
         if value and not value.startswith(("http://", "https://", "/")):
             raise HTTPException(400, f"'{value}' ist keine gültige Adresse.")
 
@@ -145,6 +151,7 @@ def write_widget_settings(
         "widget_headline": payload.headline,
         "widget_facebook_pixel_id": pixel_id,
         "widget_check_plus_url": payload.check_plus_url,
+        "bericht_kauf_relaunch_url": payload.kauf_relaunch_url,
     }, admin.id)
     return {"message": "Widget-Einstellungen gespeichert"}
 

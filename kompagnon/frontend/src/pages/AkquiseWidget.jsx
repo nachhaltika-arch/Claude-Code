@@ -344,6 +344,7 @@ export default function AkquiseWidget() {
           headline: widget.headline || '',
           facebook_pixel_id: widget.facebook_pixel_id || '',
           check_plus_url: widget.check_plus_url || '',
+          kauf_relaunch_url: widget.kauf_relaunch_url || '',
         }),
       });
       toast.success('Widget-Einstellungen gespeichert');
@@ -486,6 +487,17 @@ export default function AkquiseWidget() {
                 hinweis="Ziel des Kaufknopfs im Analyse-Ergebnis. Leer lassen zeigt das
                          Angebot ohne Knopf — den Bericht bekommt der Interessent trotzdem.
                          Preis und Leistungen kommen aus dem Produktkatalog, nicht von hier."
+              />
+              {/* Der Kaufknopf auf der Berichtsseite. Check PLUS nutzt die
+                  Adresse darüber — eine je Produkt, nicht eine je Ort. */}
+              <Feld
+                label="Kaufadresse für Websprint Relaunch"
+                type="url"
+                value={widget.kauf_relaunch_url || ''}
+                onChange={(e) => setWidget({ ...widget, kauf_relaunch_url: e.target.value })}
+                placeholder="https://buy.stripe.com/…"
+                hinweis="Ziel des Knopfs „Relaunch beauftragen" auf der Berichtsseite.
+                         Leer lassen führt in den Terminkalender statt ins Leere."
               />
               <button className="kc-btn" type="submit" disabled={speichert === 'widget'}>
                 {speichert === 'widget' ? 'Speichert…' : 'Speichern'}

@@ -411,3 +411,99 @@ class TestPortrait:
         adresse = _daten(bericht_portrait_url=boese)["portraitUrl"]
         assert not adresse.startswith(("javascript:", "data:"))
         assert adresse.endswith(bericht_daten.PORTRAIT_DATEI)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Die drei redaktionellen Blöcke über dem Ansprechpartner
+# ══════════════════════════════════════════════════════════════════════
+
+class TestZusatzleistungen:
+    """Sieben Preise auf einer Kundenseite. Sie stehen als Konstante im
+    Code, weil es sie im Katalog nicht gibt — nicht kaufbar, keine Kasse,
+    keine Auftragsbestätigung. Abdriften vom Blatt ist trotzdem möglich."""
+
+    def test_jede_zeile_steht_so_im_leistungsverzeichnis(self):
+        blatt = io.open(BLATT, encoding="utf-8").read()
+        for name, preis in bericht_daten.ZUSATZLEISTUNGEN:
+            # Das Blatt schreibt die Preise in einer Tabelle; geprüft wird
+            # das Paar aus Bezeichnung und Zahl, nicht die Zeilenform.
+            zahl = preis.replace("ab ", "").split(" ")[0]
+            assert zahl in blatt, f"{name}: {zahl} steht nicht im Blatt"
+
+    def test_die_liste_steht_auf_der_seite(self):
+        namen = [z["name"] for z in _daten()["zusatz"]]
+        assert len(namen) == 7
+        assert "GEO/GAIO Add-on" in namen
+
+    def test_kein_preis_ist_leer(self):
+        """Eine Zeile ohne Zahl liest sich wie „kostenlos"."""
+        for eintrag in _daten()["zusatz"]:
+            assert eintrag["preis"].strip(), eintrag["name"]
+
+
+class TestAblauf:
+    def test_sechs_phasen_wie_die_ueberschrift_sagt(self):
+        """Die Überschrift lautet „… Werktage, sechs Phasen". Stünden dort
+        fünf oder sieben, widerspräche die Seite sich selbst."""
+        assert len(_daten()["ablauf"]) == 6
+
+    def test_die_tage_stehen_so_im_blatt(self):
+        blatt = io.open(BLATT, encoding="utf-8").read()
+        for phase in _daten()["ablauf"]:
+            spanne = phase["tage"].replace("Tag ", "").replace("Phase ", "")
+            if spanne == "13–14":
+                # Das Blatt führt Abnahme (Tag 13) und Go-Live (Tag 14)
+                # getrennt; für den Kunden ist es ein Schritt.
+                assert "Tag 13" in blatt and "Tag 14" in blatt
+                continue
+            if spanne == "0" and phase["titel"] == "Auftrag":
+                continue
+            assert f"Tag {spanne}" in blatt, phase["tage"]
+
+    def test_der_fristbeginn_haengt_an_den_unterlagen(self):
+        """Der teuerste Satz des Ablaufs: Ohne ihn zählt der Kunde ab
+        Auftragserteilung und wir ab Vollständigkeit."""
+        text = " ".join(p["text"] for p in _daten()["ablauf"])
+        assert "vollständig vor" in text
+
+
+class TestFAQ:
+    def test_sechs_fragen(self):
+        assert len(_daten()["faq"]) == 6
+
+    def test_ohne_abnahmezusage_wird_keine_punktzahl_versprochen(self):
+        letzte = _daten()["faq"][-1]["antwort"]
+        assert "Punkte" not in letzte
+        assert "96" not in letzte
+
+    def test_mit_abnahmezusage_steht_die_eingetragene_zahl_da(self):
+        """Nicht die 96 aus dem Entwurf — was eingetragen ist."""
+        letzte = _daten(bericht_abnahmepunkte="85")["faq"][-1]["antwort"]
+        assert "85 Punkte" in letzte
+        assert "96" not in letzte
+
+    def test_keine_antwort_verspricht_eine_barrierefreiheitserklaerung(self):
+        """Der Entwurf tat es. Sie steht **nicht** im Leistungsumfang —
+        dort stehen „Grundlagen der Barrierefreiheit: Kontraste, Tastatur,
+        Semantik". Der Audit-Katalog führt sie als eigenes Kriterium
+        (`rc_bfsg`). Entweder gehört sie in die Merkmalsliste, oder sie darf
+        hier nicht zugesagt werden. Gemeldet an David am 10.09.2026.
+        """
+        text = " ".join(f["antwort"] for f in _daten()["faq"])
+        assert "Barrierefreiheitserkl" not in text
+
+    def test_die_hosting_antwort_widerspricht_dem_leistungsumfang_nicht(self):
+        """Der Entwurf sagte „Sie können Ihr bestehendes Hosting behalten",
+        während die Merkmalsliste die Einrichtung des Hostings als enthalten
+        führt. Zwei Aussagen über dieselbe Leistung, nebeneinander auf einer
+        Seite."""
+        antwort = [f["antwort"] for f in _daten()["faq"]
+                   if "hostet" in f["frage"]][0]
+        assert "behalten" not in antwort
+        assert "enthalten" in antwort
+
+    def test_die_korrekturschleife_nennt_den_preis_der_naechsten(self):
+        blatt = io.open(BLATT, encoding="utf-8").read()
+        letzte = _daten()["faq"][-1]["antwort"]
+        assert "290 € netto" in letzte
+        assert "290 € netto" in blatt

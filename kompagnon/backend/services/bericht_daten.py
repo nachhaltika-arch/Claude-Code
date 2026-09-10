@@ -56,6 +56,47 @@ GARANTIEPUNKTE = 85
 #: Die Seite wird oft am Handy aus einer E-Mail geöffnet.
 PORTRAIT_DATEI = "/team/m_vonschaumburg-lippe.jpg"
 
+#: Die zubuchbaren Leistungen, wörtlich aus dem Leistungsverzeichnis
+#: `docs/produkte/ws-rel-01.md`, Abschnitt 3 („Zusatzleistungen").
+#:
+#: **Warum hier und nicht im Katalog** — L-29 sagt: Preise kommen aus
+#: `products`. Diese sieben sind dort nicht, weil sie keine kaufbaren
+#: Produkte sind: Es gibt keine Kasse, keinen Auftragsweg und keine
+#: Auftragsbestätigung dafür. Sie in den Katalog zu legen, hiesse sieben
+#: Zeilen anzulegen, die nichts auslösen — und L-29 schützt vor einer
+#: zweiten Preisquelle, nicht vor einer Preisliste.
+#:
+#: Abdriften ist trotzdem möglich, deshalb prüft
+#: `test_zusatzleistungen_stehen_so_im_blatt` jede Zeile gegen das Blatt.
+ZUSATZLEISTUNGEN = (
+    ("Jede weitere Seite über 6 hinaus", "290 €"),
+    ("Texterstellung statt Übernahme, je Seite", "350 €"),
+    ("Fotoproduktion vor Ort, halber Tag", "890 €"),
+    ("Rechtstexte über Partnerkanzlei", "ab 250 €"),
+    ("GEO/GAIO Add-on", "1.200 €"),
+    ("Pflege Basic ab Abnahme", "79 €/Mon."),
+    ("Pflege Pro ab Abnahme", "149 €/Mon."),
+)
+
+#: Der Ablauf, aus derselben Quelle (Abschnitt 4, „Ablauf und Termine").
+#: Das Blatt führt sieben Zeilen (Phase 0 bis 6); Abnahmeaudit und Go-Live
+#: stehen hier zusammen, weil sie für den Kunden ein Schritt sind — sechs
+#: Spalten, wie die Überschrift sagt.
+ABLAUF = (
+    {"tage": "Phase 0", "titel": "Auftrag",
+     "text": "Auftragserteilung und Anforderung Ihrer Unterlagen."},
+    {"tage": "Tag 0", "titel": "Fristbeginn",
+     "text": "Ihre Mitwirkungsleistungen liegen vollständig vor."},
+    {"tage": "Tag 1–6", "titel": "Struktur und Rohaufbau",
+     "text": "Seitenplan umgesetzt, Komponenten stehen."},
+    {"tage": "Tag 7–10", "titel": "Inhalte und Bilder",
+     "text": "Texte überarbeitet, Bildmaterial aufbereitet, Feinaufbau."},
+    {"tage": "Tag 11–12", "titel": "Ihre Korrekturschleife",
+     "text": "Kundenvorschau, eine Schleife ist enthalten."},
+    {"tage": "Tag 13–14", "titel": "Abnahme und Go-Live",
+     "text": "Abnahmeaudit, DNS-Umstellung, Protokoll, Einweisung."},
+)
+
 
 def _farbe(anteil: int) -> str:
     from services import brand
@@ -310,6 +351,65 @@ def _rechtsbefund(audit) -> str:
     return " ".join(texte)
 
 
+def _faq(abnahmepunkte: str) -> list:
+    """Die sechs Fragen über dem Ansprechpartner (Vorgabe David, 10.09.2026).
+
+    Jede Antwort ist gegen `docs/produkte/ws-rel-01.md` geprüft. **Drei
+    davon standen im Entwurf anders**, und zwar so, dass sie mehr versprachen
+    als der Vertrag hergibt:
+
+    1. **Hosting.** Der Entwurf sagte „Sie können Ihr bestehendes Hosting
+       behalten." Im Leistungsverzeichnis steht unter 3.2 die *Einrichtung*
+       des Hostings samt SSL und Weiterleitungen als enthaltene Leistung —
+       und in der Merkmalsliste „Hosting, SSL, Weiterleitungen, Umstellung
+       der Domain". Beides nebeneinander liest sich widersprüchlich. Die
+       Antwort sagt jetzt, was im Vertrag steht.
+
+    2. **Barrierefreiheitserklärung.** Der Entwurf versprach, sie technisch
+       korrekt einzubauen. Sie steht **nicht** im Leistungsumfang — dort
+       stehen „Grundlagen der Barrierefreiheit: Kontraste, Tastatur,
+       Semantik". Der Audit-Katalog führt sie als eigenes Kriterium
+       (`rc_bfsg`). Entweder gehört sie in die Merkmalsliste, oder sie darf
+       hier nicht zugesagt werden; bis das entschieden ist, steht sie nicht
+       da. **Gemeldet an David am 10.09.2026.**
+
+    3. **„mindestens 96 Punkte".** Dieselbe Zahl wie im Angebotskasten und
+       dasselbe Problem: Der Standard nennt 85. Der Satz erscheint nur,
+       wenn eine Abnahmezusage eingetragen ist, und nennt dann deren Zahl.
+    """
+    nicht_gefaellt = "Eine Korrekturschleife ist enthalten, jede weitere kostet 290 € netto."
+    if abnahmepunkte:
+        nicht_gefaellt += (f" Erreicht das Abnahmeaudit nicht mindestens "
+                           f"{abnahmepunkte} Punkte, wird ohne Aufpreis nachgearbeitet.")
+
+    return [
+        {"frage": "Wer schreibt die Texte?",
+         "antwort": "Ihre bestehenden Texte werden übernommen, gekürzt und für "
+                    "Suche und Lesbarkeit strukturiert. Texterstellung von Grund "
+                    "auf ist zubuchbar."},
+        {"frage": "Was, wenn ich Inhalte spät liefere?",
+         "antwort": "Die 14 Werktage beginnen erst, wenn Ihre Unterlagen "
+                    "vollständig vorliegen. Ein späterer Start kostet keinen "
+                    "Aufpreis, verschiebt aber den Abnahmetermin."},
+        {"frage": "Wer hostet, was kostet der Betrieb danach?",
+         "antwort": "Einrichtung des Hostings, SSL und die Weiterleitungen Ihrer "
+                    "bisherigen Adressen sind enthalten. Wartung, Updates und "
+                    "Überwachung danach sind als monatliche Position zubuchbar, "
+                    "nicht Pflicht."},
+        {"frage": "Was passiert mit meinen Google-Rankings?",
+         "antwort": "Alle bestehenden Adressen werden erfasst und, wo nötig, per "
+                    "301 weitergeleitet. Titel und Beschreibungen werden ergänzt, "
+                    "nicht ausgetauscht."},
+        {"frage": "Wer haftet für die Rechtstexte?",
+         "antwort": "Einwilligungswerkzeug und Formulareinwilligung bauen wir "
+                    "technisch korrekt ein. Die inhaltliche Prüfung von Impressum "
+                    "und Datenschutzerklärung gehört in eine Kanzlei und ist nicht "
+                    "enthalten — die Vermittlung über unsere Partnerkanzlei schon."},
+        {"frage": "Was, wenn mir das Ergebnis nicht gefällt?",
+         "antwort": nicht_gefaellt},
+    ]
+
+
 def _portrait(eingestellt: str) -> str:
     """Die Bildadresse des Ansprechpartners — mit Datei als Rückfall.
 
@@ -478,11 +578,15 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # (`status = live`) ist im Katalog ausser den beiden Websprints
         # nichts; solange das so ist, faellt der Abschnitt weg statt sich
         # selbst zu wiederholen.
-        "zusatz": [],
+        "zusatz": [{"name": name, "preis": preis}
+                   for name, preis in ZUSATZLEISTUNGEN],
 
-        # Redaktionelle Bloecke — leer heisst: Abschnitt aus.
-        "faq": [],
-        "ablauf": [],
+        # Redaktionelle Bloecke (Vorgabe David, 10.09.2026). Sie standen
+        # seit dem Umbau der Seite in der Vorlage und waren leer — der
+        # Abschnitt fiel damit weg. Dritter Fall desselben Musters an einem
+        # Tag: gebaut, nicht angeschlossen.
+        "faq": _faq(einstellungen.get("bericht_abnahmepunkte", "")),
+        "ablauf": list(ABLAUF),
 
         # Schalter. Alle drei aus, und jeder aus einem eigenen Grund —
         # siehe Kopftext.

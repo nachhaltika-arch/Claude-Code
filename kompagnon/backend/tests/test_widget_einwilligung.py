@@ -94,7 +94,15 @@ def test_berichtsseite_traegt_pdf_und_angebot(client, fremde_analyse, aufraeumen
     finally:
         db.close()
     assert widget_report.termin_url(eingestellt) in r.text
-    assert "Jetzt Termin vereinbaren" in r.text
+    # **Die Eigenschaft, nicht die Beschriftung** (10.09.2026). Hier stand
+    # „Jetzt Termin vereinbaren" — der Wortlaut der alten Seite. Mit der
+    # neuen Gestaltung (L-191) heisst der Knopf „Termin im Kalender", und
+    # der Test wurde rot, ohne dass sich eine zugesicherte Eigenschaft
+    # geaendert haette: Der Weg in den Kalender steht unveraendert da, eine
+    # Zeile darueber wird er geprueft. Dieselbe Lehre wie bei den
+    # Pixel-Waechtern — wer den Wortlaut prueft, schlaegt bei jeder
+    # Umbenennung an und wird beim dritten Fehlalarm abgeschaltet.
+    assert "Termin" in r.text
 
 
 def test_pdf_haengt_am_selben_token_wie_der_bericht(client):

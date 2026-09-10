@@ -402,17 +402,29 @@ def public_report(token: str, db: Session = Depends(get_db)):
         row.report_confirmed_at = datetime.utcnow()
         db.commit()
 
-    # Der Knopf im Bericht führt in den Terminkalender — eine eigene
-    # Einstellung, nicht die des Widget-CTA. Als beide an
-    # `widget_checkout_url` hingen, überschrieb der dort eingetragene Wert
-    # (die Startseite) den Kalender, und der Bericht zeigte wieder aufs
-    # Formular. Ohne Eintrag greift der Standard aus widget_report.
-    from services import app_settings
+    # **Seit 10.09.2026 die neue Berichtsseite** (L-191, Entwurf David).
+    # Aus dem Befund mit einem Angebotskasten darunter wird eine
+    # Verkaufsseite mit dem Befund darin. Die Gestaltung liegt als Vorlage
+    # in `vorlagen/bericht.html` und ist austauschbar, ohne dass jemand
+    # Python anfassen muss — das war der Grund, die Vorlagensprache des
+    # Entwurfs nachzubauen statt sie aufzuloesen.
+    #
+    # Der Knopf führt weiterhin in den Terminkalender aus
+    # `widget_booking_url` — eine eigene Einstellung, nicht die des
+    # Widget-CTA. Als beide an `widget_checkout_url` hingen, überschrieb
+    # der dort eingetragene Wert (die Startseite) den Kalender.
+    from services import app_settings, bericht_seite
 
+    einstellungen = {
+        "widget_booking_url": app_settings.get(db, "widget_booking_url"),
+        "bericht_logo_url": app_settings.get(db, "bericht_logo_url"),
+        "bericht_portrait_url": app_settings.get(db, "bericht_portrait_url"),
+        "bericht_rabattsatz": app_settings.get(db, "bericht_rabattsatz"),
+        "bericht_abnahmepunkte": app_settings.get(db, "bericht_abnahmepunkte"),
+        "bericht_knappheit": app_settings.get(db, "bericht_knappheit"),
+    }
     return HTMLResponse(
-        widget_report.render_report_page(
-            audit, audit.company_name, token=token,
-            cta_url=app_settings.get(db, "widget_booking_url")),
+        bericht_seite.rendern(db, audit, token=token, einstellungen=einstellungen),
         headers=SEITEN_KOPFZEILEN)
 
 

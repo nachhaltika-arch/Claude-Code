@@ -1,0 +1,364 @@
+
+
+<div style="background:#004F59;color:#FFFFFF">
+  <div style="max-width:1080px;margin:0 auto;padding:clamp(16px,4vw,22px) clamp(14px,4vw,24px);display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <span style="display:inline-flex;background:#FFFFFF;border-radius:6px;padding:8px 12px">
+      <sc-if value="{{ logoUrl }}"><img src="{{ logoUrl }}" alt="WEBSPRINT" style="display:block;height:30px;width:auto"></sc-if><sc-if value="{{ ohneLogo }}"><span style="font-size:15px;font-weight:900;letter-spacing:.14em;color:#004F59">KOMPAGNON<span style="color:#FAE600">.</span></span></sc-if>
+    </span>
+    <span style="font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75">Auswertung für {{ firma }} · {{ datum }}</span>
+  </div>
+
+  <div style="max-width:1080px;margin:0 auto;padding:8px clamp(14px,4vw,24px) clamp(40px,8vw,64px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:clamp(28px,5vw,48px);align-items:center">
+    <div>
+      <div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#FAE600;font-weight:700">Ihr Ergebnis im Homepage-Standard</div>
+      <h1 style="margin:14px 0 16px;font-size:clamp(27px,7.2vw,40px);line-height:1.12;font-weight:900;max-width:16ch;text-wrap:pretty">Ihre Website steht bei {{ punkte }}. Die {{ luecke }} fehlenden Punkte kosten Sie Anfragen.</h1>
+      <p style="margin:0 0 28px;font-size:clamp(15px,3.9vw,16.5px);line-height:1.65;opacity:.88;max-width:48ch">{{ einordnung }} Der <strong style="color:#FAE600">Websprint Relaunch</strong> baut sie in {{ bauzeit }} Werktagen auf Abnahmeniveau neu auf: gleiche Substanz, technisch und rechtlich auf Stand, mit dokumentierter Abnahme.</p>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <a href="#angebot" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:300px;background:#FAE600;color:#004F59;text-decoration:none;font-weight:900;padding:17px 28px;border-radius:6px;font-size:16px" style-hover="background:#FFFFFF">{{ ctaLabel }}</a>
+        <span style="font-size:14px;line-height:1.5;opacity:.8">Festpreis {{ preis }}<br>{{ bauzeit }} Werktage<sc-if value="{{ rabattsatz }}"> · {{ rabattsatz }}</sc-if></span>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:clamp(20px,5vw,28px)">
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+        <span style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:clamp(46px,12vw,60px);font-weight:500;line-height:1;color:#FAE600">{{ punkte }}<span style="font-size:20px;opacity:.7">/100</span></span>
+        <span style="display:inline-block;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:5px 14px;font-size:13.5px;font-weight:700">{{ stufe }}</span>
+      </div>
+      <div style="margin-top:20px;position:relative">
+        <div style="background:rgba(255,255,255,.18);border-radius:10px;height:10px;overflow:hidden">
+          <div style="background:#FAE600;width:82%;height:10px;border-radius:10px"></div>
+        </div>
+        <sc-if value="{{ zeigeVergleich }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;top:-5px;left:64%;width:2px;height:20px;background:#FFFFFF"></div>
+          <sc-if value="{{ zeigeVergleich }}"><div style="position:absolute;top:20px;left:64%;transform:translateX(-50%);font-size:11px;white-space:nowrap;opacity:.8">Branchenschnitt 64</div></sc-if>
+        </sc-if>
+      </div>
+      <div style="margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.22)">
+        <sc-if value="{{ luecken }}"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;font-weight:700;margin-bottom:12px">Die vier größten Lücken</div>
+        <sc-for list="{{ luecken }}" as="l" hint-placeholder-count="4">
+          <div style="display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.14)">
+            <span style="font-size:14px;line-height:1.35">{{ l.name }}</span>
+            <span style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:#FAE600;white-space:nowrap">{{ l.punkte }}</span>
+          </div>
+        </sc-for></sc-if>
+        <div style="margin-top:14px;font-size:12.5px;opacity:.7">{{ erhebungssatz }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1080px;margin:0 auto;padding:0 clamp(14px,4vw,24px) 160px">
+
+  <sc-if value="{{ rechtsbefund }}"><section style="background:#FDECEA;border-left:4px solid #C0392B;padding:clamp(18px,4.5vw,22px) clamp(16px,4.5vw,26px);margin:28px 0 0;border-radius:0 8px 8px 0">
+    <strong style="color:#C0392B;font-size:15.5px">Rechtlich offen — das ist der teuerste Teil des Ergebnisses</strong>
+    <p style="margin:8px 0 0;font-size:14.5px;line-height:1.65;color:#000;max-width:74ch">{{ rechtsbefund }}</p>
+    <sc-if value="{{ zeigeAbmahnhinweis }}"><p style="margin:10px 0 0;font-size:13.5px;line-height:1.6;color:#4A5A5C;max-width:74ch">Zur Größenordnung: Abmahnungen wegen fehlender Cookie-Einwilligung bewegen sich typischerweise im vierstelligen Bereich je Fall, zuzüglich Anwaltskosten und Unterlassungserklärung. <em>Quelle bitte ergänzen — Zahl erst veröffentlichen, wenn belegt.</em></p></sc-if>
+  </section></sc-if>
+
+  <section style="margin:44px 0 0">
+    <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0 0 6px">Was der Relaunch an Ihrem Ergebnis ändert</h2>
+    <p style="margin:0 0 22px;font-size:14.5px;color:#4A5A5C;max-width:64ch">Jede Zeile ist eine Lücke aus genau diesem Bericht und eine Position im Leistungsverzeichnis.</p>
+    <div style="overflow-x:auto">
+      <sc-raw-table style="width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px;background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px">
+        <sc-raw-tr style="background:#004F59;color:#FFFFFF">
+          <sc-raw-th style="text-align:left;padding:13px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">Befund heute</sc-raw-th>
+          <sc-raw-th style="text-align:left;padding:13px 14px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">Im Relaunch</sc-raw-th>
+          <sc-raw-th style="text-align:right;padding:13px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;white-space:nowrap">Punkte</sc-raw-th>
+        </sc-raw-tr>
+        <sc-for list="{{ massnahmen }}" as="m" hint-placeholder-count="7">
+          <sc-raw-tr style="border-top:1px solid #D5E0E2">
+            <sc-raw-td style="padding:14px 18px;vertical-align:top">
+              <div style="font-weight:700;color:#000">{{ m.titel }}</div>
+              <div style="font-size:12.5px;color:#4A5A5C;margin-top:3px;line-height:1.5">{{ m.befund }}</div>
+            </sc-raw-td>
+            <sc-raw-td style="padding:14px 14px;vertical-align:top;font-size:13.5px;color:#000;line-height:1.55">{{ m.detail }}</sc-raw-td>
+            <sc-raw-td style="padding:14px 18px;text-align:right;font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:#00875A;white-space:nowrap;vertical-align:top">{{ m.punkte }}</sc-raw-td>
+          </sc-raw-tr>
+        </sc-for>
+        <sc-if value="{{ abnahmepunkte }}"><sc-raw-tr style="border-top:2px solid #004F59">
+          <sc-raw-td style="padding:15px 18px;font-weight:900;color:#004F59">Ergebnis nach Abnahmeaudit</sc-raw-td>
+          <sc-raw-td style="padding:15px 14px;font-size:13.5px;color:#4A5A5C">Erneute Messung nach demselben Katalog, schriftliches Protokoll je Kategorie.</sc-raw-td>
+          <sc-raw-td style="padding:15px 18px;text-align:right;font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:500;color:#00875A;white-space:nowrap">{{ abnahmepunkte }}+</sc-raw-td>
+        </sc-raw-tr></sc-if>
+      </sc-raw-table>
+    </div>
+  </section>
+
+  <sc-if value="{{ zeigeVergleichsbilder }}"><section style="margin:44px 0 0">
+    <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0 0 6px">Vorher und nachher</h2>
+    <p style="margin:0 0 20px;font-size:14.5px;line-height:1.7;color:#000;max-width:70ch">Drei Betriebe, die denselben Weg gegangen sind. Ziehen Sie den Regler, um den Stand vor und nach dem Relaunch zu vergleichen.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px">
+      <div style="background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;overflow:hidden">
+        <div style="position:relative;width:100%;aspect-ratio:16/10;background:#F0F4F5;user-select:none">
+          <div style="{{ nachStil0 }}">
+            <image-slot id="ba-1-nachher" shape="rect" placeholder="Nachher ablegen" src="f5a86b1d-80aa-47cc-8769-860d1a1118f3"></image-slot>
+          </div>
+          <div style="{{ vorStil0 }}">
+            <image-slot id="ba-1-vorher" shape="rect" placeholder="Vorher ablegen" src="bff50412-9322-43c2-b236-46ac08aec90a"></image-slot>
+          </div>
+          <div style="{{ linieStil0 }}"></div>
+          <div style="{{ griffStil0 }}" sc-camel-on-pointer-down="{{ onDown0 }}" sc-camel-on-pointer-move="{{ onMove0 }}" title="Zum Vergleichen ziehen">‹›</div>
+          <div style="position:absolute;top:10px;left:10px;padding:4px 9px;border-radius:4px;background:rgba(0,79,89,.9);color:#FFFFFF;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">VORHER</div>
+          <div style="position:absolute;top:10px;right:10px;padding:4px 9px;border-radius:4px;background:#FAE600;color:#004F59;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">NACHHER</div>
+        </div>
+        <div style="padding:16px 18px 18px">
+          <div style="font-size:15.5px;font-weight:900;color:#004F59">Betrieb 1 — Branche, Ort</div>
+          <div style="margin-top:4px;font-size:13px;color:#4A5A5C;line-height:1.55">Platzhalter — Branche und Ort eintragen.</div>
+          <div style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap">
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__ → __</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Punkte</div></div>
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Anfragen/Monat</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;overflow:hidden">
+        <div style="position:relative;width:100%;aspect-ratio:16/10;background:#F0F4F5;user-select:none">
+          <div style="{{ nachStil1 }}">
+            <image-slot id="ba-2-nachher" shape="rect" placeholder="Nachher ablegen"></image-slot>
+          </div>
+          <div style="{{ vorStil1 }}">
+            <image-slot id="ba-2-vorher" shape="rect" placeholder="Vorher ablegen"></image-slot>
+          </div>
+          <div style="{{ linieStil1 }}"></div>
+          <div style="{{ griffStil1 }}" sc-camel-on-pointer-down="{{ onDown1 }}" sc-camel-on-pointer-move="{{ onMove1 }}" title="Zum Vergleichen ziehen">‹›</div>
+          <div style="position:absolute;top:10px;left:10px;padding:4px 9px;border-radius:4px;background:rgba(0,79,89,.9);color:#FFFFFF;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">VORHER</div>
+          <div style="position:absolute;top:10px;right:10px;padding:4px 9px;border-radius:4px;background:#FAE600;color:#004F59;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">NACHHER</div>
+        </div>
+        <div style="padding:16px 18px 18px">
+          <div style="font-size:15.5px;font-weight:900;color:#004F59">Betrieb 2 — Branche, Ort</div>
+          <div style="margin-top:4px;font-size:13px;color:#4A5A5C;line-height:1.55">Platzhalter — Branche und Ort eintragen.</div>
+          <div style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap">
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__ → __</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Punkte</div></div>
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Anfragen/Monat</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;overflow:hidden">
+        <div style="position:relative;width:100%;aspect-ratio:16/10;background:#F0F4F5;user-select:none">
+          <div style="{{ nachStil2 }}">
+            <image-slot id="ba-3-nachher" shape="rect" placeholder="Nachher ablegen"></image-slot>
+          </div>
+          <div style="{{ vorStil2 }}">
+            <image-slot id="ba-3-vorher" shape="rect" placeholder="Vorher ablegen"></image-slot>
+          </div>
+          <div style="{{ linieStil2 }}"></div>
+          <div style="{{ griffStil2 }}" sc-camel-on-pointer-down="{{ onDown2 }}" sc-camel-on-pointer-move="{{ onMove2 }}" title="Zum Vergleichen ziehen">‹›</div>
+          <div style="position:absolute;top:10px;left:10px;padding:4px 9px;border-radius:4px;background:rgba(0,79,89,.9);color:#FFFFFF;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">VORHER</div>
+          <div style="position:absolute;top:10px;right:10px;padding:4px 9px;border-radius:4px;background:#FAE600;color:#004F59;font-size:11px;letter-spacing:.1em;font-weight:700;pointer-events:none">NACHHER</div>
+        </div>
+        <div style="padding:16px 18px 18px">
+          <div style="font-size:15.5px;font-weight:900;color:#004F59">Betrieb 3 — Branche, Ort</div>
+          <div style="margin-top:4px;font-size:13px;color:#4A5A5C;line-height:1.55">Platzhalter — Branche und Ort eintragen.</div>
+          <div style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap">
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__ → __</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Punkte</div></div>
+            <div><div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:17px;color:#004F59">__</div><div style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Anfragen/Monat</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section></sc-if>
+
+  <section id="angebot" style="background:#FFFFFF;border:1px solid #D5E0E2;border-top:5px solid #FAE600;border-radius:12px;padding:clamp(22px,5vw,38px) clamp(18px,4.5vw,34px);margin:28px 0 0">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:clamp(26px,4vw,36px);align-items:start">
+      <div>
+        <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Das passende Angebot · WS-REL-01</div>
+        <h2 style="margin:12px 0 14px;font-size:clamp(23px,6.2vw,30px);line-height:1.15;font-weight:900;color:#004F59">Websprint Relaunch</h2>
+        <p style="margin:0 0 24px;font-size:15.5px;line-height:1.7;color:#000;max-width:46ch">Fertigstellung nach Homepage-Standard.<sc-if value="{{ angebotsbegruendung }}"> {{ angebotsbegruendung }}</sc-if></p>
+        <div style="display:flex;gap:28px;flex-wrap:wrap;padding:20px 0;border-top:1px solid #D5E0E2;border-bottom:1px solid #D5E0E2">
+          <sc-for list="{{ eckdaten }}" as="e" hint-placeholder-count="4">
+            <div>
+              <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#4A5A5C;font-weight:700">{{ e.label }}</div>
+              <div style="margin-top:5px;font-size:17px;font-weight:900;color:#004F59">{{ e.wert }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:24px">
+          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Festpreis</div>
+          <div style="margin-top:6px;font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:clamp(27px,8vw,34px);font-weight:500;color:#004F59;line-height:1">{{ preis }}</div>
+        </div>
+        <sc-if value="{{ rabattsatz }}"><div style="margin-top:16px;border:1px dashed #008EAA;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+          <div style="font-size:12.5px;color:#4A5A5C;line-height:1.5"><strong style="color:#004F59">{{ rabattsatz }}</strong> — Code im Rabattfeld des Bestellformulars eingeben</div>
+          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:18px;font-weight:500;color:#004F59;background:#F0F4F5;border-radius:5px;padding:8px 14px;letter-spacing:.06em">WS25</div>
+        </div></sc-if>
+        <sc-if value="{{ abnahmepunkte }}"><div style="margin-top:24px;background:#FAE600;border-radius:8px;padding:16px 18px">
+          <div style="font-size:14.5px;font-weight:900;color:#004F59;line-height:1.45">Abnahmezusage: Erreicht das Abnahmeaudit nicht mindestens {{ abnahmepunkte }} Punkte, arbeiten wir ohne Aufpreis nach, bis es erreicht ist.</div>
+        </div></sc-if>
+        <div style="margin-top:22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:320px;background:#004F59;color:#FFFFFF;text-decoration:none;font-weight:900;padding:16px 28px;border-radius:6px;font-size:15.5px" style-hover="background:#008EAA">Relaunch beauftragen →</a>
+          <span style="font-size:13.5px;color:#4A5A5C;line-height:1.5">Angebot gültig bis {{ gueltigBis }}<sc-if value="{{ knappheit }}"><br>{{ knappheit }}</sc-if></span>
+        </div>
+        <sc-if value="{{ rabattsatz }}"><div style="margin-top:14px;font-size:13px;color:#4A5A5C;line-height:1.55">Der Rabatt wird beim Code <strong style="color:#004F59">WS25</strong> im Rabattfeld des Bestellformulars abgezogen und ist auf die ersten 25 Kunden beschränkt; ohne Code gilt der Festpreis. Zahlbar sofort bei Auftragserteilung, keine Ratenzahlung. Eine Korrekturschleife enthalten. Fristbeginn erst, wenn Ihre Unterlagen vorliegen. Lieber vorher sprechen? <a href="{{ terminUrl }}">20 Minuten am Telefon</a>.</div></sc-if>
+      </div>
+
+      <div style="background:#F0F4F5;border-radius:10px;padding:clamp(20px,4.5vw,26px) clamp(18px,4.5vw,24px)">
+        <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A5A5C;font-weight:700;margin-bottom:14px">Leistungsumfang</div>
+        <sc-for list="{{ leistungen }}" as="l" hint-placeholder-count="10">
+          <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0">
+            <span style="color:#00875A;font-size:14px;line-height:1.5;flex:none">✓</span>
+            <span style="font-size:14px;line-height:1.55;color:#000">{{ l }}</span>
+          </div>
+        </sc-for>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #D5E0E2;font-size:12.5px;color:#4A5A5C;line-height:1.6">Nicht enthalten: Texterstellung von Grund auf, Fotoproduktion, Rechtstexte durch Kanzlei, GEO/GAIO. Alles einzeln zubuchbar.</div>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ faq }}"><section style="margin:36px 0 0">
+    <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0 0 6px">Was Kunden an dieser Stelle fragen</h2>
+    <p style="margin:0 0 20px;font-size:14.5px;color:#4A5A5C;max-width:64ch">Wenn Ihre Frage hier nicht steht, rufen Sie an — die Antwort kostet nichts.</p></sc-if>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px">
+      <sc-for list="{{ faq }}" as="f" hint-placeholder-count="6">
+        <div style="background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;padding:clamp(17px,4vw,20px) clamp(17px,4vw,22px)">
+          <div style="font-size:14.5px;font-weight:900;color:#004F59;line-height:1.4">{{ f.frage }}</div>
+          <div style="margin-top:8px;font-size:14px;line-height:1.6;color:#000">{{ f.antwort }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <sc-if value="{{ ablauf }}"><section style="background:#004F59;color:#FFFFFF;border-radius:12px;padding:clamp(22px,5vw,34px);margin:36px 0 0">
+    <h2 style="margin:0 0 24px;font-size:clamp(19px,5vw,22px);font-weight:900">{{ bauzeit }} Werktage, sechs Phasen</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:20px">
+      <sc-for list="{{ ablauf }}" as="a" hint-placeholder-count="6">
+        <div style="border-top:2px solid #FAE600;padding-top:14px">
+          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#FAE600">{{ a.tage }}</div>
+          <div style="margin-top:8px;font-size:14.5px;font-weight:900;line-height:1.35">{{ a.titel }}</div>
+          <div style="margin-top:6px;font-size:13px;line-height:1.55;opacity:.82">{{ a.text }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:26px;padding-top:20px;border-top:1px solid rgba(255,255,255,.22);font-size:13.5px;opacity:.85;max-width:76ch">Die Frist beginnt, wenn Ihre Mitwirkungsleistungen vorliegen — Zugänge, Bildmaterial, Rechtstexte, Ansprechpartner. Was wir davon brauchen, steht in der Auftragsbestätigung.</div>
+  </section></sc-if>
+
+  <section style="margin:36px 0 0;background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;padding:clamp(20px,4.5vw,28px) clamp(18px,4.5vw,30px);display:flex;gap:clamp(16px,4vw,26px);align-items:flex-start;flex-wrap:wrap">
+    <sc-if value="{{ portraitUrl }}"><img src="{{ portraitUrl }}" alt="Porträt von Maximilian Alexander Prinz zu Schaumburg-Lippe" style="width:clamp(104px,26vw,168px);height:clamp(104px,26vw,168px);border-radius:50%;object-fit:cover;object-position:50% 10%;background:#F0F4F5;flex:none;display:block"></sc-if>
+    <div style="flex:1 1 280px;min-width:0">
+      <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Ihr Ansprechpartner</div>
+      <div style="margin-top:6px;font-size:19px;font-weight:900;color:#004F59;line-height:1.3">Maximilian Alexander Prinz zu Schaumburg-Lippe</div>
+      <div style="font-size:13.5px;color:#4A5A5C">KOMPAGNON communications BP GmbH</div>
+      <p style="margin:12px 0 0;font-size:14.5px;line-height:1.65;color:#000;max-width:64ch">Diese Analyse ist durch meine Hände gegangen. Wenn Sie eine Zeile davon nicht verstehen oder für falsch halten, schreiben Sie mir — das kostet nichts und ist keine Anfrage.</p>
+      <div style="margin-top:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:14px">
+        <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;border-radius:6px;background:#FAE600;color:#004F59;font-size:14.5px;font-weight:900;text-decoration:none;border:1px solid #FAE600" style-hover="background:#FFFFFF;border-color:#004F59">Termin im Kalender</a>
+        <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" style="font-size:14px;font-weight:700">Bericht als PDF</a></sc-if>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ checkPlus }}"><section style="margin:36px 0 0;background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;padding:clamp(20px,4.5vw,26px) clamp(18px,4.5vw,28px)">
+    <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A5A5C;font-weight:700">Wenn Sie noch nicht entscheiden wollen · CHK-PLU-01</div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;gap:20px;align-items:baseline;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:19px;font-weight:900;color:#004F59;line-height:1.25">Check PLUS</h2>
+      <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:19px;color:#004F59;white-space:nowrap">{{ checkPlusPreis }}</div>
+    </div>
+    <p style="margin:8px 0 0;font-size:14px;line-height:1.65;color:#000;max-width:70ch">Der kostenlose Check zeigt Ihnen die Punktzahl. Check PLUS zeigt Ihnen, was zu tun ist — und in welcher Reihenfolge.</p>
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px 24px">
+      <sc-for list="{{ checkPlus }}" as="c" hint-placeholder-count="6">
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="color:#4A5A5C;font-weight:900;flex:none">✓</span><span style="font-size:13.5px;line-height:1.55;color:#000">{{ c }}</span></div>
+      </sc-for>
+    </div>
+    <div style="margin-top:16px;padding:12px 16px;background:#F0F4F5;border-radius:8px;font-size:13.5px;font-weight:700;color:#004F59;line-height:1.5">Entscheiden Sie sich innerhalb von sechs Monaten für einen Websprint, wird der Betrag vollständig angerechnet.</div>
+    <div style="margin-top:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:14px;font-weight:900;text-decoration:none;border:1px solid #004F59" style-hover="background:#F0F4F5">Check PLUS beauftragen</a>
+      <span style="font-size:12.5px;color:#4A5A5C;line-height:1.5">Lieferzeit {{ checkPlusTage }} Werktage nach Zahlungseingang und Terminvereinbarung. Vorkasse. Nicht enthalten: Umsetzung jeglicher Maßnahmen, Rechtsprüfung, Texterstellung.</span>
+    </div>
+  </section></sc-if>
+
+  <section style="margin:36px 0 0;background:#FFFFFF;border:1px solid #D5E0E2;border-radius:10px;padding:clamp(20px,4.5vw,26px) clamp(18px,4.5vw,28px)">
+    <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A5A5C;font-weight:700;margin-bottom:14px">Wenn Sie mehr brauchen</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:0 32px">
+      <sc-for list="{{ zusatz }}" as="z" hint-placeholder-count="5">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:baseline;padding:9px 0;border-bottom:1px solid #D5E0E2">
+          <span style="font-size:14px;color:#000;line-height:1.4">{{ z.name }}</span>
+          <span style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#004F59;white-space:nowrap">{{ z.preis }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:14px;font-size:12.5px;color:#4A5A5C">Alle Preise netto. Zubuchbar auch nach Auftragserteilung.</div>
+  </section>
+
+  <section style="margin:44px 0 0">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 6px">
+      <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0">Der Befund im Detail</h2>
+      <a href="#befund" style="display:inline-flex;align-items:center;justify-content:center;padding:11px 20px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:13.5px;font-weight:900;text-decoration:none;border:1px solid #004F59;white-space:nowrap" style-hover="background:#F0F4F5">Bericht als PDF</a>
+    </div>
+    <sc-if value="{{ befundText }}"><p style="margin:0 0 8px;font-size:14.5px;line-height:1.7;color:#000;max-width:70ch">Ihre Website macht auf den ersten Blick einen zeitgemäßen und aufgeräumten Eindruck – große Überschrift, ruhiges Farbschema, klare Aussage, worum es geht. Besonders stark ist die Angebotsdarstellung: Leistungen, Preise, Laufzeiten und Antworten auf die typischen Bedenken stehen offen da, das ist in Ihrer Branche selten und schafft Vertrauen. Verbesserungspotenzial gibt es vor allem oben im Hero: Dort erfährt ein Besucher noch nicht, für welche Unternehmensgröße oder Branche Sie arbeiten. Ein Blogbeitrag trägt das Datum 12. August 2026 – das wirkt für Besucher wie ein Fehler und sollte geprüft werden.</p></sc-if>
+
+    <div style="margin:28px 0 0">
+      <sc-if value="{{ zeigeVergleich }}" hint-placeholder-val="{{ true }}">
+        <p style="margin:0 0 16px;font-size:12.5px;color:#4A5A5C">Der dunkle Strich markiert den Schnitt vergleichbarer Betriebe.</p>
+      </sc-if>
+      <sc-for list="{{ kategorien }}" as="kat" hint-placeholder-count="8">
+        <div style="margin:0 0 16px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 0 6px;gap:12px">
+            <span style="font-size:14px;font-weight:700;color:#000">{{ kat.label }}</span>
+            <span style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#4A5A5C;white-space:nowrap">{{ kat.wert }}</span>
+          </div>
+          <div style="position:relative">
+            <div style="background:#D5E0E2;border-radius:8px;height:8px;overflow:hidden">
+              <div style="height:8px;border-radius:8px;background:{{ kat.farbe }};width:{{ kat.breite }}"></div>
+            </div>
+            <sc-if value="{{ zeigeVergleich }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;top:-3px;height:14px;width:2px;background:#4A5A5C;opacity:.55;left:{{ kat.schnittPos }}"></div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <p style="font-size:12px;color:#4A5A5C;margin:28px 0 14px">
+      <span style="color:#00875A">●</span> gemessen &nbsp;
+      <span style="color:#008EAA">◐</span> abgeleitet &nbsp;
+      <span style="color:#004F59">◇</span> KI-Einschätzung &nbsp;
+      <span style="color:#9AACAE">○</span> nicht erhoben (zählt nicht in die Bewertung)</p>
+
+    <sc-for list="{{ kategorien }}" as="kat" hint-placeholder-count="8">
+      <details style="margin:0 0 10px;background:#FFFFFF;border:1px solid #D5E0E2;border-radius:8px;overflow:hidden">
+        <summary style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 16px;background:#004F59;color:#FFFFFF">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ kat.farbe }}"></span>
+            <span style="font-size:14px;font-weight:900;letter-spacing:.02em">{{ kat.label }}</span>
+          </span>
+          <span style="display:flex;align-items:center;gap:12px;white-space:nowrap">
+            <span style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#FAE600">{{ kat.wert }}<sc-if value="{{ kat.geprueft }}" hint-placeholder-val="{{ true }}"><span style="opacity:.75;font-size:11px"> · {{ kat.geprueft }}</span></sc-if></span>
+            <span class="chev" style="font-size:11px;transition:transform .18s ease;display:inline-block">▼</span>
+          </span>
+        </summary>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <sc-raw-table style="width:100%;min-width:460px;border-collapse:collapse;font-size:13px;background:#FFFFFF">
+            <sc-for list="{{ kat.kriterien }}" as="k" hint-placeholder-count="5">
+              <sc-raw-tr style="border-top:1px solid #D5E0E2;opacity:{{ k.opacity }}">
+                <sc-raw-td style="padding:11px 8px;font-size:15px;color:{{ k.markFarbe }}">{{ k.mark }}</sc-raw-td>
+                <sc-raw-td style="padding:11px 8px">
+                  <div style="font-weight:700;color:#000">{{ k.label }}</div>
+                  <div style="font-size:12px;color:#4A5A5C;margin-top:2px;line-height:1.5">{{ k.hint }}</div>
+                </sc-raw-td>
+                <sc-raw-td style="padding:11px 8px;text-align:right;white-space:nowrap;font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#000">{{ k.value }}</sc-raw-td>
+                <sc-raw-td style="padding:11px 8px;font-size:12px;color:#4A5A5C;white-space:nowrap">{{ k.quelle }}</sc-raw-td>
+              </sc-raw-tr>
+            </sc-for>
+          </sc-raw-table>
+        </div>
+      </details>
+    </sc-for>
+  </section>
+
+  <section style="background:#FFFFFF;border:1px solid #D5E0E2;border-radius:12px;padding:clamp(24px,5vw,34px);margin:40px 0 0;text-align:center">
+    <h2 style="margin:0 0 12px;font-size:clamp(20px,5.5vw,24px);font-weight:900;color:#004F59;line-height:1.25">{{ luecke }} Punkte, {{ bauzeit }} Werktage, ein Festpreis — und mehr Anfragen.</h2>
+    <p style="margin:0 auto 24px;font-size:15px;line-height:1.65;color:#4A5A5C;max-width:52ch">Der Relaunch schließt jede Lücke aus diesem Bericht und endet mit einem Abnahmeaudit nach demselben Katalog.</p>
+    <a href="#angebot" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:360px;background:#004F59;color:#FFFFFF;text-decoration:none;font-weight:900;padding:16px 28px;border-radius:6px;font-size:15.5px" style-hover="background:#008EAA">{{ ctaLabel }} — {{ preis }}</a>
+    <sc-if value="{{ abnahmepunkte }}"><div style="margin-top:12px;font-size:13px;color:#4A5A5C">Mit Abnahmezusage: {{ abnahmepunkte }} Punkte oder Nacharbeit ohne Aufpreis.</div></sc-if>
+  </section>
+
+  <footer style="margin-top:44px;padding-top:20px;border-top:1px solid #D5E0E2;font-size:12px;color:#4A5A5C">
+    Erstellt am {{ datum }} · WEBSPRINT Homepage Standard · Angebot WS-REL-01, gültig 30 Tage · <a href="https://kas.kompagnon.group">kompagnon.eu</a>
+  </footer>
+</div>
+
+<sc-if value="{{ zeigeSticky }}" hint-placeholder-val="{{ true }}">
+  <div style="position:fixed;left:0;right:0;bottom:0;background:#004F59;border-top:2px solid #FAE600;padding:clamp(10px,2.6vw,12px) clamp(14px,4vw,24px);display:flex;align-items:center;justify-content:center;gap:10px clamp(14px,3vw,22px);flex-wrap:wrap;text-align:center;z-index:50">
+    <div style="color:#FFFFFF;font-size:clamp(12.5px,3.4vw,14px);line-height:1.4">{{ produktName }} für {{ firma }} · <strong style="color:#FAE600">{{ preis }}</strong> · {{ bauzeit }} Werktage<sc-if value="{{ rabattsatz }}"> · {{ rabattsatz }}</sc-if></div>
+    <a href="#angebot" style="display:inline-block;background:#FAE600;color:#004F59;text-decoration:none;font-weight:900;padding:11px 24px;border-radius:6px;font-size:14px;white-space:nowrap" style-hover="background:#FFFFFF">{{ ctaLabel }}</a>
+  </div>
+</sc-if>

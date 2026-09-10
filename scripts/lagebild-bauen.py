@@ -175,6 +175,11 @@ HANDGESETZT = {
     # der Lead damit nicht: Der automatische zweite Versuch fehlt bewusst.
     "L-184": "teilweise",
 
+    # Schritt 1 steht und liefert (10.09.2026). Es fehlen Bilder, der
+    # Branchenschnitt und zwei redaktionelle Bloecke — kein Restaufwand am
+    # Code, sondern Zulieferung und Entscheidungen.
+    "L-191": "teilweise",
+
     # ── terminiert: entschieden, datiert, von einem Test gehalten ──────
     #
     # **Warum es diesen vierten Zustand gibt** (Entscheidung 01.09.2026).

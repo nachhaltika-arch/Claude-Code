@@ -353,3 +353,61 @@ def _alle_blocker():
     from services.audit_criteria import BLOCKING_CRITICAL, BLOCKING_MAJOR
 
     return sorted(BLOCKING_CRITICAL | BLOCKING_MAJOR)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Das Portrait des Ansprechpartners
+# ══════════════════════════════════════════════════════════════════════
+
+class TestPortrait:
+    """Gemeldet aus der Vorschau: „hier fehlt mir das bild von max".
+
+    Es fehlte doppelt: Das Feld war nirgends einzutragen (behoben in
+    4b238af), und selbst mit Feld hätte es in jeder Umgebung neu gesetzt
+    werden müssen. Jetzt liegt die Datei im Frontend und ist einfach da.
+    """
+
+    def test_ohne_einstellung_kommt_die_datei_aus_dem_frontend(self, monkeypatch):
+        monkeypatch.setenv("PUBLIC_BASE_URL", "https://kas.example")
+        assert _daten()["portraitUrl"] == (
+            "https://kas.example" + bericht_daten.PORTRAIT_DATEI)
+
+    def test_die_datei_liegt_wirklich_dort(self):
+        """Sonst zeigt die Seite ein kaputtes Bild — und niemand merkt es,
+        weil ein fehlendes Bild keinen Fehler auslöst."""
+        pfad = os.path.join(os.path.dirname(__file__), "..", "..",
+                            "frontend", "public",
+                            bericht_daten.PORTRAIT_DATEI.lstrip("/"))
+        assert os.path.isfile(pfad), pfad
+
+    def test_die_datei_ist_klein_genug_fuer_eine_mail_am_handy(self):
+        """Angezeigt wird sie mit höchstens 168 px. Das Original wog 2,5 MB;
+        die Berichtsseite wird oft mobil aus einer E-Mail geöffnet.
+        """
+        pfad = os.path.join(os.path.dirname(__file__), "..", "..",
+                            "frontend", "public",
+                            bericht_daten.PORTRAIT_DATEI.lstrip("/"))
+        kb = os.path.getsize(pfad) / 1024
+        assert kb < 150, f"{kb:.0f} kB — zu schwer für ein 168-px-Bild"
+
+    def test_die_adresse_zeigt_aufs_frontend_und_nicht_auf_dieses_system(
+            self, monkeypatch):
+        """Der Bericht kommt von api.…, das Bild von kas.… — ein relativer
+        Pfad ergäbe eine 404 vom Backend."""
+        monkeypatch.setenv("PUBLIC_BASE_URL", "https://kas.example")
+        monkeypatch.setenv("API_BASE_URL", "https://api.example")
+        adresse = _daten()["portraitUrl"]
+        assert adresse.startswith("https://kas.example")
+        assert "api.example" not in adresse
+
+    def test_eine_eigene_adresse_schlaegt_die_datei(self):
+        eigen = "https://bilder.example/andere-person.jpg"
+        assert _daten(bericht_portrait_url=eigen)["portraitUrl"] == eigen
+
+    @pytest.mark.parametrize("boese", ["javascript:alert(1)", "data:text/html,x"])
+    def test_eine_unsichere_adresse_faellt_auf_die_datei_zurueck(self, boese):
+        """Der Wert landet in einem `src` auf einer Seite, die ein Kunde
+        öffnet. Nicht durchreichen — und auch nicht leer lassen."""
+        adresse = _daten(bericht_portrait_url=boese)["portraitUrl"]
+        assert not adresse.startswith(("javascript:", "data:"))
+        assert adresse.endswith(bericht_daten.PORTRAIT_DATEI)

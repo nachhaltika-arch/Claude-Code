@@ -281,6 +281,12 @@ def einstellungen_aus(regler: dict) -> dict:
 def ansicht_bericht(regler: dict) -> bytes:
     from services import bericht_seite
 
+    # **Die Bilder kommen aus dieser Vorschau, nicht aus dem Netz.** Ohne
+    # das zeigte die Seite das Portrait, das gerade produktiv liegt — und
+    # eine Änderung an der Datei wäre hier unsichtbar geblieben. Genau der
+    # Fall, für den es die Vorschau gibt.
+    os.environ["PUBLIC_BASE_URL"] = f"http://127.0.0.1:{PORT}"
+
     punkte = int(regler.get("punkte") or 61)
     seite = bericht_seite.rendern(
         KatalogDb(), Audit(punkte), token="vorschau-token",
@@ -661,6 +667,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(auftraege_lesen())
             except RuntimeError as fehler:
                 return self._json({"detail": str(fehler)}, 500)
+        # Dateien aus `frontend/public` — heute das Portrait auf der
+        # Berichtsseite. Produktiv liefert die Static Site sie aus; ohne
+        # diesen Weg zeigte die Vorschau ein kaputtes Bild an einer Stelle,
+        # an der eines steht, und man reparierte etwas, das heil ist.
+        if pfad.startswith("/team/") or pfad in ("/icon.png", "/logo-group.png"):
+            datei = os.path.normpath(os.path.join(
+                WURZEL, "kompagnon", "frontend", "public", pfad.lstrip("/")))
+            erlaubt = os.path.join(WURZEL, "kompagnon", "frontend", "public")
+            if datei.startswith(erlaubt) and os.path.isfile(datei):
+                with open(datei, "rb") as f:
+                    art = "image/png" if datei.endswith(".png") else "image/jpeg"
+                    return self._senden(f.read(), art)
+            return self._senden(_hinweisseite("Datei fehlt", pfad), code=404)
+
         if pfad.startswith("/ansicht/"):
             schluessel = pfad[len("/ansicht/"):].strip("/")
             for a in ANSICHTEN:

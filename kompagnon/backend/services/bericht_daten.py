@@ -49,6 +49,13 @@ KORREKTURSCHLEIFEN = "1 enthalten"
 #: davon bleibt die Angebotsbegründung leer.
 GARANTIEPUNKTE = 85
 
+#: Wo das Portrait des Ansprechpartners im Frontend liegt. Es wird auf der
+#: Berichtsseite höchstens 168 px breit und rund beschnitten dargestellt —
+#: die Datei ist deshalb 500 px breit (trägt auch Retina) und wiegt 58 kB
+#: statt der 2,5 MB des Originals. Wer sie austauscht, achte auf beides:
+#: Die Seite wird oft am Handy aus einer E-Mail geöffnet.
+PORTRAIT_DATEI = "/team/m_vonschaumburg-lippe.jpg"
+
 
 def _farbe(anteil: int) -> str:
     from services import brand
@@ -303,6 +310,35 @@ def _rechtsbefund(audit) -> str:
     return " ".join(texte)
 
 
+def _portrait(eingestellt: str) -> str:
+    """Die Bildadresse des Ansprechpartners — mit Datei als Rückfall.
+
+    **Warum eine Datei und nicht nur eine Einstellung.** Das Feld gibt es
+    seit dem 10.09.2026; bis dahin war es nirgends einzutragen, und unter
+    „Ihr Ansprechpartner" stand ein Name ohne Gesicht. Eine Einstellung
+    allein hätte das nur halb gelöst: Sie lebt in der Datenbank, muss in
+    jeder Umgebung noch einmal gesetzt werden und ist nach einem Umzug
+    wieder leer. Das Bild liegt deshalb im Frontend und wird von dort
+    ausgeliefert — es ist einfach da.
+
+    **Die Adresse zeigt aufs Frontend, nicht auf diesen Server.** Der
+    Bericht kommt von `api.…`, das Bild von `kas.…`; wer hier einen
+    relativen Pfad einsetzt, bekommt eine 404 vom Backend. `public_base_url`
+    liefert in jeder Umgebung die richtige — auf Staging die von Staging.
+
+    Eine Einstellung schlägt die Datei: Wer einen anderen Ansprechpartner
+    einträgt, bekommt ihn.
+    """
+    from services.base_urls import public_base_url
+    from services.check_plus_angebot import _sichere_adresse
+
+    if eingestellt:
+        sicher = _sichere_adresse(eingestellt)
+        if sicher:
+            return sicher
+    return f"{public_base_url()}{PORTRAIT_DATEI}"
+
+
 def _angebotsbegruendung(punkte: int, vorgabe: str) -> str:
     """Warum ausgerechnet dieses Paket — abgeleitet, nicht behauptet.
 
@@ -526,5 +562,5 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
 
         "logoUrl": einstellungen.get("bericht_logo_url", ""),
         "ohneLogo": not einstellungen.get("bericht_logo_url", ""),
-        "portraitUrl": einstellungen.get("bericht_portrait_url", ""),
+        "portraitUrl": _portrait(einstellungen.get("bericht_portrait_url", "")),
     }

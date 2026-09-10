@@ -434,6 +434,20 @@ ANSICHTEN = [
 # Der Server
 # ══════════════════════════════════════════════════════════════════════
 
+#: Die zuletzt in einer Ansicht eingestellten Regler.
+#:
+#: **Warum das nötig ist.** Das Widget ruft `/api/widget/config` und
+#: `/api/widget/teaser/…` selbst auf — mit seiner eigenen Adresse, ohne die
+#: Regler der Vorschau. Ohne diesen Merker sah die Schnittstelle deshalb
+#: immer leere Regler, und der Teaser zeigte „Check PLUS können Sie in Kürze
+#: direkt hier beauftragen" statt des Kaufknopfs, obwohl der Regler an war.
+#:
+#: Das ist genau der Fehler, gegen den die Vorschau gebaut ist: eine
+#: Oberfläche, die einen Zustand zeigt, den die Einstellungen nicht sagen.
+#: Gefunden am 10.09.2026 beim Hinsehen, nicht durch einen Test.
+LETZTE_REGLER: dict = {}
+
+
 def api_config(regler: dict) -> dict:
     from services import check_plus_angebot
 
@@ -658,10 +672,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if pfad == "/":
             return self._senden(index_seite(regler))
+        # Die Aufrufe des Widgets tragen die Regler nicht mit — sie kommen
+        # aus dem Rahmen und kennen nur die Serveradresse.
         if pfad == "/api/widget/config":
-            return self._json(api_config(regler))
+            return self._json(api_config(regler or LETZTE_REGLER))
         if pfad.startswith("/api/widget/teaser/"):
-            return self._json(api_teaser(regler))
+            return self._json(api_teaser(regler or LETZTE_REGLER))
         if pfad == "/api/auftraege":
             try:
                 return self._json(auftraege_lesen())
@@ -682,6 +698,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._senden(_hinweisseite("Datei fehlt", pfad), code=404)
 
         if pfad.startswith("/ansicht/"):
+            LETZTE_REGLER.clear()
+            LETZTE_REGLER.update(regler)
             schluessel = pfad[len("/ansicht/"):].strip("/")
             for a in ANSICHTEN:
                 if a["schluessel"] == schluessel:

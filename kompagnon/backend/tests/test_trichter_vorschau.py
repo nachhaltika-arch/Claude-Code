@@ -347,3 +347,37 @@ def test_die_vorschau_und_der_melder_lesen_dieselbe_datei(melder, vorschau):
     einen Datei und der Melder sähe in die andere."""
     assert os.path.basename(melder.ABLAGE) == os.path.basename(vorschau.AUFTRAGSDATEI)
     assert melder.ABLAGE == vorschau.AUFTRAGSDATEI
+
+
+def test_die_widget_aufrufe_sehen_die_eingestellten_regler(vorschau):
+    """Gemeldet von David am 10.09.2026 — und es war die Vorschau, nicht das Widget.
+
+    Der Teaser zeigte „Check PLUS können Sie in Kürze direkt hier
+    beauftragen" statt des Kaufknopfs, obwohl der Regler „Kaufknöpfe" an
+    war. Grund: Das Widget ruft `/api/widget/config` mit **seiner** Adresse
+    auf und trägt die Regler der Vorschau nicht mit; die Schnittstelle sah
+    deshalb immer leere Einstellungen.
+
+    Eine Vorschau, die einen Zustand zeigt, den die Einstellungen nicht
+    sagen, ist schlimmer als keine: Man repariert etwas, das heil ist.
+    """
+    vorschau.LETZTE_REGLER.clear()
+    vorschau.LETZTE_REGLER.update({"kaufwege": "an", "punkte": "61"})
+
+    angebot = vorschau.api_config(vorschau.LETZTE_REGLER)["check_plus"]
+    assert angebot, "ohne Angebot kein Knopf"
+    werte = " ".join(str(w) for w in angebot.values())
+    assert vorschau.KAUF_CHECK in werte
+
+
+def test_ohne_den_regler_bleibt_der_knopf_weg(vorschau):
+    """Das Gegenstück — sonst prüft der Test nur, dass irgendetwas da ist.
+
+    Ohne Kaufadresse zeigt das Widget den Angebotsblock **ohne** Abschluss.
+    Das ist Absicht: Ein Knopf, der eine 404 öffnet, wird von niemandem
+    gemeldet; ein fehlender Knopf fällt auf.
+    """
+    vorschau.LETZTE_REGLER.clear()
+    angebot = vorschau.api_config({})["check_plus"]
+    werte = " ".join(str(w) for w in (angebot or {}).values())
+    assert vorschau.KAUF_CHECK not in werte

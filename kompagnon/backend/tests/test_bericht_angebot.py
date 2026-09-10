@@ -305,6 +305,35 @@ class TestRechtsbefund:
     def test_ohne_blocker_bleibt_der_kasten_weg(self):
         assert self._mit([]) == ""
 
+    def test_die_einwilligungsfaelle_nennen_ihre_fundstelle(self):
+        """Ergänzt am 10.09.2026 auf Wunsch David.
+
+        Auf einer Seite, die einem Betrieb sagt, was rechtlich offen ist,
+        ist die Fundstelle die Hälfte der Aussage. „Cookies werden vor der
+        Einwilligung gesetzt" ist ein Vorwurf; mit § 25 TDDDG dahinter ist
+        es einer, den er nachlesen kann.
+        """
+        from services.audit_criteria import BLOCKER_LABELS
+
+        for kennung in ("tracking_ohne_consent", "cookies_ohne_consent"):
+            assert "§ 25 TDDDG" in BLOCKER_LABELS[kennung], kennung
+
+        # Und im Erzeugnis, nicht nur in der Tabelle.
+        text = self._mit(["cookies_ohne_consent"])
+        assert "§ 25 TDDDG" in text
+
+    def test_tls_bekommt_keinen_paragrafen_untergeschoben(self):
+        """Art. 32 DSGVO gilt nur, wenn die Seite personenbezogene Daten
+        überträgt. Ein Betrieb mit reiner Visitenkarte ohne Formular
+        verstößt gegen nichts — ihm eine Norm vorzuhalten, die auf ihn
+        nicht anwendbar ist, wäre dieselbe unbelegte Zusatzbehauptung, die
+        aus dem Angebotskasten geflogen ist.
+        """
+        from services.audit_criteria import BLOCKER_LABELS
+
+        assert "DSGVO" not in BLOCKER_LABELS["kein_gueltiges_tls"]
+        assert "§" not in BLOCKER_LABELS["kein_gueltiges_tls"]
+
     def test_jede_kennung_des_katalogs_hat_einen_text(self):
         """Drift-Waechter: Wer einen Blocker einfuehrt und den Text vergisst,
         laesst ihn auf der Berichtsseite verschwinden — still."""

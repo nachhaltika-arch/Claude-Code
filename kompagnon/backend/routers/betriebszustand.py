@@ -222,6 +222,36 @@ def _agb_zustand() -> dict:
     }
 
 
+def _meta_zustand() -> dict:
+    """Ob die Lead-Meldung an Meta abgehen kann (09.09.2026).
+
+    **Der Anlass.** Eine bezahlte Kampagne haengt an diesem Weg, und ob er
+    ueberhaupt eingerichtet ist, liess sich von aussen nicht feststellen —
+    `meta_conversions.verfuegbar()` gab es, aber niemand rief es auf. Genau
+    die Luecke, die `_zahlungszustand` fuer Stripe und `_produktablage_zustand`
+    fuer die Dateien laengst geschlossen haben.
+
+    **Die Datenbank darf dabei nicht im Weg stehen.** Die Pixelnummer steht im
+    Regelfall in den Widget-Einstellungen. Ist die Datenbank nicht erreichbar,
+    faellt die Auskunft auf das zurueck, was die Umgebung hergibt — eine
+    unvollstaendige Antwort ist besser als ein `/health`, das deswegen kippt.
+    """
+    from services import meta_conversions
+
+    try:
+        from database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            return meta_conversions.zustand(db)
+        finally:
+            db.close()
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Meta-Zustand ohne Datenbank ermittelt: %s: %s",
+                       type(fehler).__name__, fehler)
+        return meta_conversions.zustand()
+
+
 def _erhebungszustand() -> dict:
     """Kann das Audit ueberhaupt vollstaendig messen? (K1 / L-165, 05.09.2026)
 
@@ -392,6 +422,10 @@ def health_check():
             # bis heute nicht. Also steht der Zustand hier, neben den
             # Stripe-Schluesseln, statt beim ersten Streit aufzufallen.
             "agb": _agb_zustand(),
+            # Ob die Lead-Meldung an Meta abgehen kann. Ohne Zugangstoken
+            # schweigt der Serverweg vollstaendig — und dann misst nur der
+            # Browser, also genau der Weg, der bei Adblockern wegbricht.
+            "meta": _meta_zustand(),
             # Ob eingehende Kundenmails ankommen — und ob gerade ein
             # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
             "posteingang": _posteingang_zustand(),

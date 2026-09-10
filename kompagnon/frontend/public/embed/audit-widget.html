@@ -65,6 +65,63 @@
   }
   /* Fussbereich: Datenschutz und Absender gehoeren sichtbar unter das
      Formular, nicht als loser Satz ans Ende der Karte. */
+  /* ── Bezahltes Angebot im Ergebnis (10.09.2026) ─────────────────
+     Dunkle Fläche, gelber Akzent — die CI erlaubt genau einen gelben
+     Knopf je Ansicht, und das ist ab hier dieser. Der Terminknopf ist
+     dafür aus dem Ergebnis gewichen. */
+  .kpg-cp {
+    background: var(--kpg-dark); border-radius: 10px;
+    padding: 26px 26px 28px; color: #fff; margin: 24px 0 0;
+  }
+  .kpg-cp-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--kpg-yellow); margin-bottom: 12px;
+  }
+  .kpg-cp-kopf {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .kpg-cp-name, .kpg-cp-preis {
+    font-size: 30px; font-weight: 900; letter-spacing: -.025em;
+    text-transform: uppercase;
+  }
+  .kpg-cp-name { color: #fff; }
+  .kpg-cp-preis { color: var(--kpg-yellow); }
+  .kpg-cp-einheit {
+    font-size: 14px; font-weight: 700; letter-spacing: .04em;
+    color: #fff; margin-left: 6px; text-transform: none;
+  }
+  .kpg-cp-lead { margin: 0 0 22px; font-size: 15px; line-height: 1.6; }
+  .kpg-cp ul {
+    list-style: none; margin: 0 0 22px; padding: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .kpg-cp li {
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; line-height: 1.55;
+  }
+  .kpg-cp li svg { flex-shrink: 0; margin-top: 3px; }
+  .kpg-cp-anrechnung {
+    margin: 0 0 22px; padding: 14px 16px; background: rgba(255,255,255,.10);
+    border-left: 3px solid var(--kpg-yellow); border-radius: 0 6px 6px 0;
+    font-size: 14px; line-height: 1.55; font-weight: 700;
+  }
+  .kpg-cp-btn {
+    width: 100%; padding: 18px 20px; border-radius: 4px;
+    background: var(--kpg-yellow); color: var(--kpg-dark);
+    font-size: 16px; font-weight: 900; letter-spacing: .12em;
+    text-transform: uppercase; display: flex; align-items: center;
+    justify-content: center; gap: 12px; text-decoration: none;
+  }
+  .kpg-cp-btn:hover { filter: brightness(.95); }
+  /* Kein Knopf ohne Ziel: Solange das Produkt Entwurf ist oder keine
+     Kaufadresse hinterlegt wurde, steht hier ein Satz statt einer 404. */
+  .kpg-cp-bald {
+    margin: 0; padding: 14px 16px; border: 1px dashed rgba(255,255,255,.35);
+    border-radius: 6px; font-size: 14px; line-height: 1.55;
+  }
+  .kpg-cp-fuss { margin: 16px 0 0; font-size: 12px; line-height: 1.6; color: #C6DADC; }
+
   .kpg-fuss {
     border-top: 1px solid var(--kpg-border);
     padding: 12px clamp(20px, 4vw, 40px);
@@ -117,10 +174,19 @@
   .kpg-consent {
     display: flex; gap: 9px; align-items: flex-start;
     font-size: 12px; line-height: 1.45; color: var(--kpg-text-60);
-    margin: 14px 0 16px; cursor: pointer;
+    margin: 14px 0 6px; cursor: pointer;
   }
   .kpg-consent input { accent-color: var(--kpg-dark); }
   .kpg-consent input { margin-top: 2px; flex-shrink: 0; width: 15px; height: 15px; }
+  /* Der Aufklapper steht AUSSERHALB des Labels. Ein <summary> darin wuerde
+     beim Klick die Checkbox umschalten — der Besucher liest nach und hat
+     ungewollt zugestimmt. */
+  .kpg-consent-mehr {
+    font-size: 12px; line-height: 1.5; color: var(--kpg-text-60);
+    margin: 0 0 16px 24px;
+  }
+  .kpg-consent-mehr summary { cursor: pointer; text-decoration: underline; }
+  .kpg-consent-mehr p { margin: 7px 0 0; }
   .kpg-issues { margin: 18px 0 4px; }
   .kpg-issues-title {
     font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
@@ -294,11 +360,24 @@
         <p class="kpg-hint">Dorthin schicken wir Ihren Bericht</p>
       </div>
 
+      <!-- Kurz gehalten (Entscheidung David, 10.09.2026): Der lange Satz kostete
+           Abschluesse, und er nannte einen Zweck, den es nicht mehr gibt — die
+           Adresse geht nicht an Meta. Was bleibt, ist genau das, was das
+           Haekchen steuert: die Auswertungsmails. Der Bericht selbst haengt
+           nicht daran (siehe `verify_token` im Backend), deshalb steht er hier
+           auch nicht als Gegenleistung fuer eine Einwilligung. -->
       <label class="kpg-consent" for="kpg-consent">
         <input type="checkbox" id="kpg-consent" />
-        <span>Ich bin einverstanden, dass KOMPAGNON mich zu meiner Webseiten-Analyse
-        per E-Mail kontaktiert. Die Einwilligung kann ich jederzeit widerrufen.</span>
+        <span>Auswertung des Ergebnisses per E-Mail erhalten. Widerruf jederzeit.</span>
       </label>
+      <details class="kpg-consent-mehr">
+        <summary>Details</summary>
+        <p>Ohne Häkchen erhalten Sie nur den Analysebericht. Mit Häkchen
+        zusätzlich bis zu fünf E-Mails, die das Ergebnis einordnen — Abmeldung
+        über den Link in jeder E-Mail. Ihre E-Mail-Adresse wird nicht an Meta
+        oder andere Werbenetzwerke übermittelt. Verantwortlich: Kompagnon
+        Communications BP GmbH, Marienfelder Straße 52, 56070 Koblenz.</p>
+      </details>
 
       <button class="kpg-btn" id="kpg-submit" type="submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -355,6 +434,14 @@
   var CHECKOUT_STANDARD = 'https://kas.kompagnon.group/checkout/kompagnon';
   var CHECKOUT_URL =
     safeHref(document.body.getAttribute('data-checkout')) || CHECKOUT_STANDARD;
+
+  /* Das bezahlte Angebot im Ergebnis (Entwurf David, 10.09.2026).
+     Kommt vollständig aus `/api/widget/config`: Preis, Leistungen,
+     Lieferzeit, Anrechnung und Kaufadresse. Hier steht bewusst **keine**
+     Zahl — ein Preis im Widget wäre eine zweite Quelle neben `products`,
+     und zwar auf fremden Seiten, wo sie niemandem auffällt (L-29).
+     `null` heißt: kein Block. Kein Rückfall auf erfundene Werte. */
+  var CHECK_PLUS = null;
 
   /* Zahl der Prüfkriterien. Kommt aus dem Katalog im Backend — hier stand
      früher eine fest eingetippte 42, die nicht mehr stimmte. Bis die
@@ -434,6 +521,28 @@
     return EINWILLIGUNG_NEIN;
   }
 
+  /* ── Umkehrung der Regel (10.09.2026) ──
+
+     Bis zum 09.09. galt: Haekchen gesetzt und kein Nein von oben. Das trug,
+     solange das Haekchen Meta ausdruecklich nannte. Seit dem 10.09. spricht
+     es nur noch von den Auswertungsmails — damit kann es eine Meldung an
+     Meta nicht mehr begruenden. Die Rechtsgrundlage liegt jetzt allein beim
+     Consent-Banner der Traegerseite, und das ist der Ort, an den sie gehoert.
+
+     **Schweigen ist keine Zustimmung** (§ 25 TDDDG). Eine Einbettung, die
+     nichts mitgibt, bekommt deshalb keine Meldung mehr. Das ist eine
+     bewusste Abschaltung, kein Versehen: Auf einer Kundenseite ohne Banner
+     gab es nie eine Grundlage, und vorher feuerte dort jedes Haekchen.
+
+     **Folge fuer die eigene Landingpage:** Sie muss `consent=1` im
+     iframe-Aufruf mitgeben oder `{type:'kpg-consent', marketing:true}` nach
+     unten senden. Tut sie es nicht, wird nichts gemessen. */
+  function einwilligungErteilt() {
+    if (traegerMarketing === true) return true;
+    if (traegerMarketing === false) return false;
+    return (einwilligungRoh === '1' || einwilligungRoh === 'true');
+  }
+
   try {
     window.addEventListener('message', function (e) {
       if (e.source !== parent) return;
@@ -452,7 +561,7 @@
      Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
      halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
      weil die Zahl gut aussieht. */
-  function meldeLead(eventId, email, haekchenGesetzt) {
+  function meldeLead(eventId) {
     /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
        hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
        Klick-ID, die nur sie kennt. Dann ist die Zuordnung endlich vollständig. */
@@ -460,11 +569,12 @@
       parent.postMessage({ type: 'kpg-audit-lead', eventId: eventId || '' }, '*');
     } catch (e) { /* no-op */ }
 
-    /* **Es braucht ein Ja, und es darf kein Nein geben** (08.09.2026).
-       Bis dahin hing der Pixel allein am Parameter der Trägerseite — das
-       Häkchen im Formular wurde nicht gelesen. Wer es wegließ, weil er
-       keine Werbepost will, wurde trotzdem gemeldet. */
-    if (!haekchenGesetzt || einwilligungVerweigert()) return;
+    /* **Es braucht ein Ja der Trägerseite, und es darf kein Nein geben**
+       (10.09.2026). Das Häkchen im Formular wird hier nicht mehr gelesen: Es
+       spricht von E-Mail, nicht von Meta, und kann diesen Zweck nicht decken.
+       Die zweite Prüfung ist redundant und bleibt trotzdem stehen — ein Nein
+       soll an jeder Stelle ein Nein sein, auch wenn jemand die erste ändert. */
+    if (!einwilligungErteilt() || einwilligungVerweigert()) return;
     if (!FB_PIXEL_ID || leadGemeldet) return;
     leadGemeldet = true;   /* Doppelklick, zweiter Versuch: ein Lead bleibt einer. */
     try {
@@ -477,14 +587,14 @@
         n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
         s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
       }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-      /* Erweiterter Abgleich: Die Adresse wird von Metas Skript im Browser
-         gehasht, bevor sie das Gerät verlässt. Ohne sie lag die gemessene
-         Abgleichqualität bei 6,1 von 10 — „keine Event-Parameter erkannt". */
-      if (email) {
-        window.fbq('init', FB_PIXEL_ID, { em: String(email).trim().toLowerCase() });
-      } else {
-        window.fbq('init', FB_PIXEL_ID);
-      }
+      /* **Kein erweiterter Abgleich** (Entscheidung David, 10.09.2026). Die
+         Adresse wurde hier an Metas Skript übergeben, das sie im Browser
+         hasht. Das hob die gemessene Abgleichqualität von 6,1 an — kostete
+         aber den langen Einwilligungssatz, und bei 20 bis 40 Leads im Monat
+         liegt der Gewinn im Rauschen. Die Zuordnung zur Anzeige trägt die
+         Klick-ID (`fbc`), nicht die Adresse.
+         Wer ihn zurückholt, braucht den Meta-Satz im Häkchen zurück. */
+      window.fbq('init', FB_PIXEL_ID);
       window.fbq('track', 'Lead', {}, eventId ? { eventID: eventId } : undefined);
     } catch (e) {
       /* Ein blockiertes Skript (Adblocker, kein Netz) darf die Analyse nicht
@@ -501,6 +611,13 @@
         if (!cfg) return;
         if (safeHref(cfg.checkout_url)) CHECKOUT_URL = safeHref(cfg.checkout_url);
         if (cfg.criteria_count > 0) CRITERIA_COUNT = cfg.criteria_count;
+        /* Das Backend prüft die Kaufadresse schon; hier die zweite
+           Schranke, weil der Wert in ein href auf fremder Seite geht. */
+        if (cfg.check_plus) {
+          CHECK_PLUS = cfg.check_plus;
+          CHECK_PLUS.url = safeHref(CHECK_PLUS.url) || '';
+          if (!CHECK_PLUS.url) CHECK_PLUS.verfuegbar = false;
+        }
         /* Nur Ziffern durchlassen: Die Prüfung steht im Backend, aber
            was hier ankommt, geht in ein fremdes Skript — eine zweite
            Schranke am Rand kostet nichts. */
@@ -663,9 +780,11 @@
         fbc: FBC,
         fbp: FBP,
         page_url: document.referrer || '',
-        /* Damit der Serverweg dieselbe Grenze zieht wie der Browser: Ein
-           ausdrueckliches Nein der Traegerseite gilt fuer beide Wege. */
-        consent_tracking: einwilligungVerweigert() ? '0' : (einwilligungRoh || '')
+        /* Damit der Serverweg dieselbe Grenze zieht wie der Browser. Gesendet
+           wird der **ausgewertete** Zustand, nicht der Rohwert: Der Browser
+           kennt die nachträgliche Banner-Nachricht, die Adresszeile kennt sie
+           nicht. Ein '0' heißt hier „kein Ja" — und das genügt dem Server. */
+        consent_tracking: einwilligungErteilt() ? '1' : '0'
       })
     })
     .then(function (r) {
@@ -678,7 +797,7 @@
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
       /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
          Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
-      meldeLead('kpg-widget-' + start.request_id, email, consentMarketing);
+      meldeLead('kpg-widget-' + start.request_id);
       pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {
@@ -838,20 +957,90 @@
   /* ── Render: Teaser ──
      Bewusst nur Score, Level und die drei größten Punkte. Der vollständige
      Bericht kommt per E-Mail — das ist der Anlass, ins Postfach zu schauen. */
+  /* Betrag in deutscher Schreibweise. Die Zahl selbst kommt aus dem
+     Katalog — hier wird nur gesetzt, nicht gerechnet. */
+  function betrag(wert) {
+    var zahl = Number(wert);
+    if (!isFinite(zahl)) return '';
+    return zahl.toFixed(2).replace('.', ',') + ' \u20AC';
+  }
+
+  function haken() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+      'aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" stroke="#FAE600" ' +
+      'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  /* Das bezahlte Angebot unter dem Ergebnis (Entwurf David, 10.09.2026).
+     Alles darin stammt aus `/api/widget/config`; fehlt das Produkt, fehlt
+     der Block. */
+  function checkPlusHtml() {
+    if (!CHECK_PLUS) return '';
+    var a = CHECK_PLUS;
+
+    var punkte = (a.leistungen || []).map(function (t) {
+      return '<li>' + haken() + '<span>' + esc(t) + '</span></li>';
+    }).join('');
+
+    var anrechnung = a.anrechnung_monate
+      ? '<p class="kpg-cp-anrechnung">Entscheiden Sie sich innerhalb von ' +
+        esc(a.anrechnung_monate) + ' Monaten für einen Websprint, wird der ' +
+        'Betrag vollständig angerechnet.</p>'
+      : '';
+
+    /* Kein Knopf ohne Ziel. Ein Kaufknopf, der eine 404 öffnet, wird von
+       niemandem gemeldet — der Satz daneben schon. */
+    var abschluss = a.verfuegbar
+      ? '<a class="kpg-cp-btn" href="' + esc(a.url) + '" target="_blank" ' +
+        'rel="noopener">' + esc(a.name) + ' beauftragen →</a>'
+      : '<p class="kpg-cp-bald">' + esc(a.name) + ' können Sie in Kürze ' +
+        'direkt hier beauftragen. Ihren Bericht bekommen Sie unabhängig ' +
+        'davon per E-Mail.</p>';
+
+    /* Netto steht groß, der Zahlbetrag darunter. Der Entwurf zeigt netto;
+       die Kasse bucht brutto ab, und genau diese Lücke war L-61 — die
+       Seite schrieb „netto, zzgl. MwSt.", belastet wurde der andere
+       Betrag. */
+    var fuss = [];
+    if (a.preis_brutto) fuss.push('Zahlbetrag ' + betrag(a.preis_brutto) + ' brutto.');
+    if (a.lieferzeit_tage) {
+      fuss.push('Lieferzeit ' + esc(a.lieferzeit_tage) + ' Werktage nach ' +
+                'Zahlungseingang und Terminvereinbarung. Vorkasse.');
+    }
+    fuss.push('Nicht enthalten: Umsetzung jeglicher Maßnahmen, ' +
+              'Rechtsprüfung, Texterstellung.');
+
+    return '<div class="kpg-cp">' +
+        '<div class="kpg-cp-eyebrow">Bericht ausführlich erläutert' +
+          (a.kennung ? ' · ' + esc(a.kennung) : '') + '</div>' +
+        '<div class="kpg-cp-kopf">' +
+          '<span class="kpg-cp-name">' + esc(a.name) + '</span>' +
+          '<span class="kpg-cp-preis">' + betrag(a.preis_netto) +
+            '<span class="kpg-cp-einheit">netto</span></span>' +
+        '</div>' +
+        '<p class="kpg-cp-lead">Der kostenlose Check zeigt Ihnen die ' +
+          'Punktzahl. ' + esc(a.name) + ' zeigt Ihnen, was zu tun ist — ' +
+          'und in welcher Reihenfolge.</p>' +
+        (punkte ? '<ul>' + punkte + '</ul>' : '') +
+        anrechnung +
+        abschluss +
+        '<p class="kpg-cp-fuss">' + fuss.join(' ') + '</p>' +
+      '</div>';
+  }
+
   function renderResult(data, cleanUrl, email, pollToken) {
     var score = data.total_score || 0;
     var col = scoreColor(score);
     var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
 
-    var issues = (data.top_issues || []).slice(0, 3);
-    var issueHtml = '';
-    if (issues.length) {
-      issueHtml =
-        '<div class="kpg-issues">' +
-          '<div class="kpg-issues-title">Die größten Punkte</div>' +
-          '<ul>' + issues.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>' +
-        '</div>';
-    }
+    /* **Die Mängelliste ist fort** (Entwurf David, 10.09.2026). Der Teaser
+       liefert die größten Mängel weiterhin mit — gezeigt werden sie nicht
+       mehr. Sie
+       verschenkten genau den Befund, den Check PLUS verkauft, und der
+       vollständige Bericht kommt ohnehin per E-Mail. Die Ausschlussgründe
+       bleiben: Sie sind kein Befund, sondern eine Einschränkung der
+       Bewertung, und wer sie nicht liest, hält die Punktzahl für das
+       ganze Bild. */
 
     var blockerHtml = '';
     if (data.blocker_count) {
@@ -882,7 +1071,6 @@
           '<div class="kpg-punkte-fuss">Gesamtpunkte von 100</div>' +
         '</div>' +
         blockerHtml +
-        issueHtml +
         /* Zwei Mails: erst die Bestätigung der Adresse, danach der Bericht.
            Ohne diesen Hinweis wartet der Besucher auf einen Bericht, der ohne
            seinen Klick nie kommt — und der Klick ist genau der Punkt: eine
@@ -891,10 +1079,16 @@
         '<div class="kpg-mailnote" id="kpg-mailnote">' +
           mailnoteHtml(data.bestaetigung_versandt ? 'gesendet' : 'laeuft', email) +
         '</div>' +
-        /* Führt in den Terminkalender, nicht auf die Startseite. Wer gerade
-           seine Punktzahl gesehen hat, soll ein Gespräch buchen können —
-           auf der Startseite müsste er sich erst wieder orientieren. */
-        '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Termin vereinbaren →</a>' +
+        /* **An die Stelle des Terminknopfs tritt das bezahlte Angebot**
+           (Entwurf David, 10.09.2026). Vorher stand hier „Jetzt Termin
+           vereinbaren" — der kürzeste Weg vom Anzeigenklick zum Gespräch.
+           Der Entwurf setzt stattdessen auf Check PLUS: Ein Betrieb, der
+           für eine Analyse zahlt, hat Problembewusstsein und Budget, und
+           der Betrag wird auf den Websprint angerechnet. Welcher Betrag
+           das ist, steht im Katalog und nicht hier.
+           `CHECKOUT_URL` bleibt in Gebrauch — der Terminkalender steht
+           weiterhin im Bericht, den die zweite Mail verlinkt. */
+        checkPlusHtml() +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';
     document.getElementById('kpg-restart').addEventListener('click', resetWidget);

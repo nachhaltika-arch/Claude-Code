@@ -1362,7 +1362,7 @@ def run_migrations():
              ('websprint_relaunch', 'Websprint Relaunch',
               'Bestehende Website auf den Homepage-Standard heben',
               4165.00, 3500.00, 19, 'once', 14, 'live', false, 'Empfehlung',
-              '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb,
+              '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
               1)
@@ -1539,8 +1539,8 @@ def run_migrations():
              ('check_plus',
               'Check PLUS',
               'Der Homepage-Standard-Check mit persoenlicher Auswertung',
-              249.00, 209.24, 19, 'once', 7, 'draft', false, 'Empfehlung',
-              '["Vollpruefung nach dem Homepage-Standard, 100 Punkte","Schriftlicher Befundbericht","Persoenliche Auswertung, 45 Minuten","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              296.31, 249.00, 19, 'once', 5, 'draft', false, 'Empfehlung',
+              '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '[]'::jsonb,
               11)
@@ -1557,6 +1557,55 @@ def run_migrations():
             WHERE slug = 'workbook_homepage_standard'
               AND tax_rate = 19
               AND price_brutto = 149.00""",
+        # ── 10.09.2026: Leistungsumfang nach Vorgabe David ────────────
+        #
+        # Beide Listen sind der **Vertragsgegenstand**, nicht Anzeigetext.
+        # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —
+        # produktiv und auf Staging steht die alte Liste schon drin.
+        #
+        # Eng gehalten, aber **an der richtigen Stelle** (berichtigt am
+        # 10.09.2026). Der erste Anlauf verlangte bei Check PLUS eine Zeile,
+        # die diese Katalogzeile **nie hatte** — ich hatte die Bedingung
+        # gegen den Seed **im Code** formuliert statt gegen das, was in der
+        # Datenbank steht. Produktiv und auf Staging stand dort noch die
+        # urspruengliche Liste von vier Zeilen, die Bedingung traf nicht,
+        # und der Trichterlauf zeigte im Teaser weiter die alten Leistungen.
+        # Beim Relaunch traf sie zufaellig, weil „Eine Korrekturschleife"
+        # wirklich drinstand — deshalb fiel es dort nicht auf.
+        #
+        # Jetzt greift die Bedingung ueber die **Abwesenheit der neuen
+        # Zeile**: Das ist unabhaengig davon, welche alte Fassung eine
+        # Umgebung traegt, und laeuft genau einmal — steht die neue Liste
+        # drin, trifft `NOT` nicht mehr.
+        """UPDATE products SET features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb
+            WHERE slug = 'websprint_relaunch'
+              AND NOT features @> '["Einbindung Ihrer Rechtstexte"]'::jsonb""",
+        """UPDATE products SET features = '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
+            WHERE slug = 'check_plus'
+              AND NOT features @> '["Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl"]'::jsonb""",
+
+        # ── 10.09.2026: Check PLUS trug den Nettopreis als Brutto ──
+        #
+        # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —
+        # produktiv und auf Staging steht die falsche Zahl aber schon drin.
+        # Das Datenblatt CHK-PLU-01 sagt **249 netto**, die Zeile fuehrte
+        # 249,00 als Brutto (209,24 netto). Der Shop baut die Kassensitzung
+        # aus `price_brutto`; es fehlten also 39,76 EUR bei jedem Verkauf.
+        # Entscheidung David, 10.09.2026.
+        #
+        # **Warum kein Waechter das gefunden hat:** `test_produktkatalog`
+        # prueft die Beziehung brutto = netto x Satz, und 209,24 x 1,19 =
+        # 249,00 ist tadellos. Falsch war nicht die Rechnung, sondern die
+        # Ausgangszahl — dagegen hilft nur eine Pruefung gegen die Quelle.
+        #
+        # Eng gehalten: nur solange die alten Werte unveraendert sind. Wer
+        # den Preis von Hand gepflegt hat, bekommt seine Zeile nicht
+        # ueberschrieben.
+        """UPDATE products
+              SET price_brutto = 296.31, price_netto = 249.00, delivery_days = 5
+            WHERE slug = 'check_plus'
+              AND price_brutto = 249.00
+              AND price_netto = 209.24""",
         # ── 27.08.2026: das Buch im Katalog (Bitte David) ──
         # **Damit es im Produkt-Editor bearbeitbar ist** — verkauft wird es
         # weiterhin ueber `POST /api/book/checkout`, das drei Varianten und
@@ -2027,6 +2076,9 @@ def run_migrations():
            END $$""",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_am TIMESTAMP",
         "ALTER TABLE mitwirkung_stand ADD COLUMN IF NOT EXISTS vorgelegt_von VARCHAR(120) DEFAULT ''",
+        # ── 10.09.2026: Nachfassen am bereitliegenden Bericht (L-185) ──
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_bericht_at TIMESTAMP",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
         # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
         # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich

@@ -425,3 +425,65 @@ def job_tag_30_upsell(project_id: int):
             _send_phase_email(project_id, "day_30_upsell")
     finally:
         db.close()
+
+
+def job_bericht_erinnerung():
+    """Eine Erinnerung an den bereitliegenden Bericht (L-185, 10.09.2026).
+
+    **Der erste Auftrag dieser Datei, der nicht an einem Projekt haengt.**
+    Alle uebrigen erinnern Kunden **nach dem Kauf**; dieser fasst im Trichter
+    davor nach. Genau deshalb fehlte er: Der Widget-Weg lag ausserhalb jeder
+    Automatik.
+
+    **Der Versand laeuft ueber `_do_send_email`, und das ist Absicht.** Es
+    ist die eine Stelle, durch die jede Mail geht, die ohne menschlichen
+    Anlass entsteht — und damit die Stelle, an der die Versandsperre greift.
+    Eine Erinnerung, die an ihr vorbeiginge, waere im Probebetrieb echter
+    Verkehr.
+
+    **Markiert wird erst nach erfolgreichem Versand**, und je Zeile einzeln
+    festgeschrieben: Faellt der Versand in der Mitte aus, bleiben die bereits
+    verschickten markiert. Andersherum bekaeme derselbe Empfaenger beim
+    naechsten Lauf eine zweite Mail.
+    """
+    from services import lead_nachfassen
+
+    db = SessionLocal()
+    try:
+        faellige = lead_nachfassen.faelliger_bericht(db)
+        if not faellige:
+            return
+
+        logger.info("📧 Bericht-Erinnerung: %d faellige Anfrage(n)", len(faellige))
+        for zeile in faellige:
+            firma = _firma_der_anfrage(db, zeile)
+            betreff, rumpf = lead_nachfassen.erinnerung_bericht_mail(
+                firma, zeile.report_token)
+            if _do_send_email(zeile.email, betreff, rumpf):
+                zeile.erinnerung_bericht_at = datetime.utcnow()
+                db.commit()
+            else:
+                # Nicht markieren: Der naechste Lauf soll es erneut versuchen.
+                db.rollback()
+                logger.warning("Bericht-Erinnerung nicht versendet an %s", zeile.email)
+    finally:
+        db.close()
+
+
+def _firma_der_anfrage(db, zeile) -> str:
+    """Der Firmenname aus der Analyse, sonst die Adresse der Website.
+
+    Dieselbe Reihenfolge wie in `send_widget_report`: Der Scraper liest den
+    Namen von der Seite, und ohne ihn ist die Domain die ehrlichere Anrede
+    als ein erfundener Name.
+    """
+    try:
+        from modelle_audit import AuditResult
+
+        audit = db.query(AuditResult).filter(AuditResult.id == zeile.audit_id).first()
+        if audit and audit.company_name:
+            return audit.company_name
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Firmenname nicht lesbar: %s: %s",
+                       type(fehler).__name__, fehler)
+    return zeile.website_url

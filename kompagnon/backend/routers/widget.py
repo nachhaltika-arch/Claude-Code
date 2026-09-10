@@ -78,16 +78,20 @@ class WidgetAuditRequest(BaseModel):
     referrer: str = ""
     # Die Klick-Kennungen der Traegerseite. Das Widget selbst kann sie nicht
     # lesen — es steht in einem iframe auf fremder Domain und sieht deren
-    # Adresszeile nicht. Die Einbettung reicht sie im iframe-Aufruf durch;
-    # fehlen sie, bleibt die gehashte E-Mail der einzige Abgleichschluessel.
+    # Adresszeile nicht. Die Einbettung reicht sie im iframe-Aufruf durch.
+    # **Fehlen sie, wird nicht gemeldet** (10.09.2026): Seit der erweiterte
+    # Abgleich entfallen ist, sind `fbc` und `fbp` die einzigen
+    # Abgleichschluessel — ohne einen davon nimmt Meta die Meldung an und
+    # ordnet sie niemandem zu. Siehe `meta_conversions.sende_lead`.
     fbclid: str = ""
     fbc: str = ""
     fbp: str = ""
     page_url: str = ""
-    # Das Einwilligungssignal des Consent-Banners der Traegerseite:
-    # "0"/"false" heisst ausdrueckliches Nein, alles andere heisst, die Seite
-    # hat nichts gesagt. Ein Nein gilt fuer den Serverweg genauso wie fuer den
-    # Browser — sonst haette das Abschalten im Banner keine Wirkung.
+    # Das Einwilligungssignal des Consent-Banners der Traegerseite, vom
+    # Widget **ausgewertet** gesendet: "1"/"true" heisst ausdrueckliches Ja,
+    # alles andere — auch ein leerer Wert — heisst kein Ja und meldet nicht
+    # (10.09.2026, § 25 TDDDG: Schweigen ist keine Zustimmung). Die Regel
+    # steht in `meta_conversions.darf_melden`.
     consent_tracking: str = ""
 
 
@@ -232,15 +236,19 @@ async def start_widget_audit(
     # anhalten soll.
     from services import meta_conversions
 
-    # **Zwei Quellen, zwei Rollen** (08.09.2026): das Haekchen im Formular
-    # als Zustimmung der Person, der Parameter als Votum des Cookie-Banners
-    # der Traegerseite. Die Regel steht in `meta_conversions.darf_melden`,
-    # damit sie pruefbar ist und nicht an zwei Stellen auseinanderlaeuft.
-    if meta_conversions.darf_melden(payload.consent_tracking,
-                                    payload.consent_marketing):
+    # **Eine Quelle** (10.09.2026): das Votum des Consent-Banners der
+    # Traegerseite. Das Haekchen im Formular steuert die Auswertungsmails und
+    # nennt Meta nicht mehr — es kann die Uebermittlung nicht begruenden und
+    # wird hier nicht mehr gefragt. Die Regel steht in
+    # `meta_conversions.darf_melden`, damit sie pruefbar ist und nicht an
+    # zwei Stellen auseinanderlaeuft.
+    #
+    # `email` wird bewusst NICHT mehr uebergeben: Der erweiterte Abgleich ist
+    # entfallen, und eine Adresse, die nicht gebraucht wird, hat in einer
+    # Funktion, die an Meta sendet, nichts zu suchen.
+    if meta_conversions.darf_melden(payload.consent_tracking):
         background_tasks.add_task(
             meta_conversions.sende_lead,
-            email=email,
             event_id=f"kpg-widget-{widget_request.id}",
             quell_url=(payload.page_url or payload.referrer or ""),
             ip=ip,
@@ -394,17 +402,29 @@ def public_report(token: str, db: Session = Depends(get_db)):
         row.report_confirmed_at = datetime.utcnow()
         db.commit()
 
-    # Der Knopf im Bericht führt in den Terminkalender — eine eigene
-    # Einstellung, nicht die des Widget-CTA. Als beide an
-    # `widget_checkout_url` hingen, überschrieb der dort eingetragene Wert
-    # (die Startseite) den Kalender, und der Bericht zeigte wieder aufs
-    # Formular. Ohne Eintrag greift der Standard aus widget_report.
-    from services import app_settings
+    # **Seit 10.09.2026 die neue Berichtsseite** (L-191, Entwurf David).
+    # Aus dem Befund mit einem Angebotskasten darunter wird eine
+    # Verkaufsseite mit dem Befund darin. Die Gestaltung liegt als Vorlage
+    # in `vorlagen/bericht.html` und ist austauschbar, ohne dass jemand
+    # Python anfassen muss — das war der Grund, die Vorlagensprache des
+    # Entwurfs nachzubauen statt sie aufzuloesen.
+    #
+    # Der Knopf führt weiterhin in den Terminkalender aus
+    # `widget_booking_url` — eine eigene Einstellung, nicht die des
+    # Widget-CTA. Als beide an `widget_checkout_url` hingen, überschrieb
+    # der dort eingetragene Wert (die Startseite) den Kalender.
+    from services import app_settings, bericht_seite
 
+    einstellungen = {
+        "widget_booking_url": app_settings.get(db, "widget_booking_url"),
+        "bericht_logo_url": app_settings.get(db, "bericht_logo_url"),
+        "bericht_portrait_url": app_settings.get(db, "bericht_portrait_url"),
+        "bericht_rabattsatz": app_settings.get(db, "bericht_rabattsatz"),
+        "bericht_abnahmepunkte": app_settings.get(db, "bericht_abnahmepunkte"),
+        "bericht_knappheit": app_settings.get(db, "bericht_knappheit"),
+    }
     return HTMLResponse(
-        widget_report.render_report_page(
-            audit, audit.company_name, token=token,
-            cta_url=app_settings.get(db, "widget_booking_url")),
+        bericht_seite.rendern(db, audit, token=token, einstellungen=einstellungen),
         headers=SEITEN_KOPFZEILEN)
 
 

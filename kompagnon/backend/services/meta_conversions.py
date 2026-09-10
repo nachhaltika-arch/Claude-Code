@@ -14,21 +14,24 @@ iframe auf einer fremden Domain. Es sieht die Klick-ID (`fbclid`) der
 Trägerseite nicht, und ohne sie ist eine Meldung eine Meldung ohne Herkunft:
 Meta weiß, dass jemand ein Formular abgeschickt hat, aber nicht, welche Anzeige
 ihn gebracht hat. Hier wird beides zusammengeführt — die Klick-ID, sofern die
-Trägerseite sie durchreicht, und die gehashte E-Mail-Adresse als zweiter,
-unabhängiger Abgleichschlüssel.
+Trägerseite sie durchreicht, und der `fbp`-Wert, sofern der Pixel auf ihr
+läuft. **Die E-Mail-Adresse wird nicht mehr mitgesendet** (10.09.2026) — siehe
+unten.
 
 **Doppelzählung ist ausgeschlossen, nicht nur unwahrscheinlich.** Browser- und
 Servermeldung tragen dieselbe `event_id`. Meta verwirft die zweite. Deshalb
 darf beides gleichzeitig laufen, auch während der Umstellung.
 
-**Was hier nicht passiert.** Es wird nichts im Klartext übertragen, was Meta
-nicht ohnehin bekäme: Die E-Mail-Adresse wird vor dem Versand mit SHA-256
-gehasht, so wie Meta es für den erweiterten Abgleich vorschreibt. Ohne
-Zugangstoken in der Umgebung passiert gar nichts — kein Fehler, kein Abbruch,
+**Was hier nicht passiert.** Die E-Mail-Adresse verlässt das System auf
+diesem Weg überhaupt nicht — auch nicht gehasht (Entscheidung David,
+10.09.2026). Sie ging bis dahin als SHA-256-Wert mit, was Metas erweiterter
+Abgleich vorsieht; der Einwilligungstext im Widget nennt diesen Zweck nicht
+mehr, und was keine Einwilligung deckt, wird nicht übertragen. Übrig bleiben
+Klick-ID, IP und User-Agent. Ohne Zugangstoken in der Umgebung passiert gar
+nichts — kein Fehler, kein Abbruch,
 nur eine Zeile im Protokoll. Ein fehlender Token darf niemals eine Analyse
 verhindern; der Besucher hat mit unserer Messung nichts zu schaffen.
 """
-import hashlib
 import logging
 import os
 import time
@@ -58,17 +61,10 @@ def verfuegbar() -> bool:
     return bool(zugangstoken())
 
 
-def _hash(wert: str) -> Optional[str]:
-    """SHA-256 über den normalisierten Wert — so verlangt es Meta.
-
-    Kleinschreibung und getrimmt, sonst trifft der Abgleich nicht. Leere Werte
-    ergeben nichts: Ein Hash über den leeren String wäre für jeden Datensatz
-    derselbe und würde wildfremde Menschen miteinander verknüpfen.
-    """
-    sauber = (wert or "").strip().lower()
-    if not sauber:
-        return None
-    return hashlib.sha256(sauber.encode("utf-8")).hexdigest()
+# `_hash` stand hier: SHA-256 über die normalisierte E-Mail-Adresse für Metas
+# erweiterten Abgleich. Entfernt am 10.09.2026 mit dem Abgleich selbst — eine
+# Hashfunktion, die niemand aufruft, liest sich beim naechsten Mal wie eine
+# Zusicherung, dass hier noch gehasht wird.
 
 
 def _pixel_id(db=None) -> str:
@@ -89,6 +85,56 @@ def _pixel_id(db=None) -> str:
         return ""
 
 
+def zustand(db=None) -> dict:
+    """Kann der Serverweg ueberhaupt melden? — die Auskunft fuer `/health`.
+
+    **Warum das hier steht und nicht nur `verfuegbar()`.** Die Funktion gab es
+    seit dem 08.09., aber kein Endpunkt rief sie auf. Am 09.09. war die Frage
+    „ist der Token gesetzt?" damit von aussen unbeantwortbar — waehrend fuer
+    Stripe, die Uploads, den Browserlauf und die Dateiablage genau diese
+    Auskunft seit Wochen offensteht. Dieselbe Lehre wie dort: **Ein Dashboard
+    zeigt die Einstellung, nicht den Zustand des Prozesses.**
+
+    **Zwei Werte, und beide muessen da sein.** Ohne Token schweigt der Weg;
+    ohne Datensatznummer gibt es kein Ziel, und Meta lehnt die Meldung ab.
+    `bereit` sagt deshalb nicht „Token da", sondern „es kann etwas ankommen".
+
+    **Gemeldet wird nie ein Wert.** `/health` ist offen. Ja/Nein und Laenge
+    genuegen: Ein CAPI-Token ist gut 200 Zeichen lang; steht dort 30, hat
+    jemand beim Einfuegen etwas verloren. Die Pixelnummer ist zwar nicht
+    geheim — sie steht ohnehin in `/api/widget/config` —, aber die Regel
+    dieser Route bleibt einheitlich: Sie nennt Zustaende, keine Werte.
+    """
+    token = zugangstoken()
+    pixel = _pixel_id(db)
+
+    if os.getenv("META_PIXEL_ID", "").strip():
+        quelle = "umgebung"
+    elif pixel:
+        quelle = "einstellung"
+    else:
+        quelle = ""
+
+    return {
+        "token_gesetzt": bool(token),
+        "token_laenge": len(token),
+        "pixel_gesetzt": bool(pixel),
+        # Woher die Nummer kommt — sonst sucht jemand in der Datenbank, was
+        # in Render steht, oder umgekehrt.
+        "pixel_quelle": quelle,
+        # Laeuft die Kampagne noch im Probebetrieb? Meldungen mit diesem Code
+        # landen in „Events testen" und **nicht** in der Auswertung.
+        "testereignis": bool(testereignis_code()),
+        "bereit": bool(token and pixel),
+        "variablen": ["META_CAPI_ACCESS_TOKEN", "META_PIXEL_ID"],
+        "wofuer": (
+            "Lead-Meldung an die Meta Conversions API. Ohne sie misst nur der "
+            "Browser — und der faellt bei Adblockern, iOS und blockierten "
+            "Drittskripten aus."
+        ),
+    }
+
+
 def klick_kennung(fbclid: str, fbc: str = "") -> Optional[str]:
     """Die `_fbc`-Kennung, wie der Browser sie selbst gesetzt hätte.
 
@@ -106,37 +152,47 @@ def klick_kennung(fbclid: str, fbc: str = "") -> Optional[str]:
 
 
 #: Werte, die als ausdrueckliches Nein der Traegerseite gelten.
+#: Bleibt als Begriff erhalten — das Widget wertet ihn aus, bevor es sendet.
 NEIN = ("0", "false")
 
+#: Werte, die als ausdrueckliches Ja der Traegerseite gelten. Alles andere,
+#: auch ein leerer oder unbekannter Wert, ist kein Ja.
+JA = ("1", "true")
 
-def darf_melden(consent_tracking, consent_marketing) -> bool:
+
+def darf_melden(consent_tracking) -> bool:
     """Darf dieser Lead an Meta gemeldet werden?
 
-    **Es braucht ein Ja, und es darf kein Nein geben** (08.09.2026).
+    **Nur bei einem ausdruecklichen Ja der Traegerseite** (10.09.2026).
 
-    Bis dahin pruefte der Serverweg nur `consent_tracking` — den Parameter
-    der **Traegerseite**. Das Haekchen, das der Besucher im Formular selbst
-    setzt, wurde nicht gelesen. Wer es wegliess, weil er keine Werbepost
-    will, wurde trotzdem gemeldet; und auf jeder Einbettung ohne den
-    Parameter griff gar keine Bremse.
+    Die Regel hat sich zweimal gedreht, und beide Male aus demselben Grund:
+    Die Einwilligung muss den Zweck nennen, an dem sie haengt.
 
-    **Zwei Quellen, zwei Rollen.** Das Haekchen ist die Zustimmung der
-    Person, der Parameter das Votum des Cookie-Banners der Seite. Ein Nein
-    von oben sticht das Haekchen: Wer im Banner Marketing ablehnt, hat
-    abgelehnt.
+    - Bis 08.09.: nur `consent_tracking`, also der Parameter der Traegerseite.
+      Das Haekchen im Formular wurde gar nicht gelesen.
+    - 08.09. bis 09.09.: Haekchen **und** kein Nein von oben. Das trug, weil
+      der Haekchen-Text Meta ausdruecklich nannte.
+    - Seit 10.09.: Der Haekchen-Text nennt Meta nicht mehr (Entscheidung
+      David) und der erweiterte Abgleich ist entfallen. Ein Haekchen, das von
+      Auswertungsmails spricht, kann keine Uebermittlung an ein Werbenetzwerk
+      begruenden. Es wird deshalb hier nicht mehr gefragt.
 
-    **Ein unbekannter Wert ist kein Nein.** Sonst waere jeder Tippfehler in
-    der Einbettung eine stille Abschaltung, die niemand findet — dieselbe
-    Bauart wie ein Waechter, der immer gruen ist, nur andersherum.
+    **Schweigen ist keine Zustimmung.** § 25 TDDDG verlangt ein Ja, und das
+    Widget laeuft eingebettet auf fremden Seiten, die kein Banner mitbringen.
+    Ein fehlender Wert ist deshalb jetzt ein Nein — umgekehrt als vorher.
+
+    Das ist eine bewusste Abschaltung: Auf Einbettungen ohne Consent-Signal
+    gab es nie eine Rechtsgrundlage. Die eigene Landingpage muss `consent=1`
+    mitgeben oder `{type:'kpg-consent', marketing:true}` ins iframe senden,
+    sonst wird nichts gemeldet. Der Preis der Klarheit ist, dass eine
+    vergessene Einbettung still nicht mehr misst — dagegen steht der
+    Befund-Test unten und die Pruefliste im Projektdokument.
     """
-    if (str(consent_tracking or "").strip().lower()) in NEIN:
-        return False
-    return bool(consent_marketing)
+    return (str(consent_tracking or "").strip().lower()) in JA
 
 
 def sende_lead(
     *,
-    email: str,
     event_id: str,
     quell_url: str = "",
     ip: str = "",
@@ -158,10 +214,13 @@ def sende_lead(
         logger.info("Meta CAPI: kein Token oder keine Pixel-ID — nichts gesendet.")
         return False
 
+    # **Kein erweiterter Abgleich mehr** (Entscheidung David, 10.09.2026).
+    # Hier stand die mit SHA-256 gehashte E-Mail-Adresse als zweiter
+    # Abgleichschluessel. Sie ist entfallen, weil der Einwilligungstext im
+    # Widget sie nicht mehr nennt — und eine Uebermittlung, die keine
+    # Einwilligung deckt, darf nicht stattfinden, auch nicht gehasht.
+    # Die Zuordnung zur Anzeige traegt `fbc`; das war immer der tragende Teil.
     nutzerdaten = {}
-    gehashte_mail = _hash(email)
-    if gehashte_mail:
-        nutzerdaten["em"] = [gehashte_mail]
     if ip:
         nutzerdaten["client_ip_address"] = ip
     if user_agent:
@@ -175,7 +234,7 @@ def sende_lead(
     # Ohne mindestens einen Abgleichschlüssel ist die Meldung wertlos: Meta
     # nimmt sie an und ordnet sie niemandem zu. Dann lieber gar nicht senden,
     # sonst steht im Konto eine Zahl, die nichts bedeutet.
-    if not any(k in nutzerdaten for k in ("em", "fbc", "fbp")):
+    if not any(k in nutzerdaten for k in ("fbc", "fbp")):
         logger.info("Meta CAPI: kein Abgleichschlüssel vorhanden — nichts gesendet.")
         return False
 

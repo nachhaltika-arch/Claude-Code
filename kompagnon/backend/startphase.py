@@ -95,19 +95,29 @@ def produkt_vorlage() -> list:
             # erhoben", darunter alle vier Performance-Werte. Das
             # Paket bleibt verkaufbar — die zugesicherten 85 Punkte
             # der Standard-Garantie sind es nicht, siehe L-165.
+            # Wortlaut nach Vorgabe David, 10.09.2026. Diese Liste ist der
+            # Vertragsgegenstand: Kasse, Auftragsbestaetigung und der
+            # Leistungsumfang auf der Berichtsseite lesen sie.
+            # 
+            # **Die Korrekturschleife steht nicht mehr darin.** Sie stand bis
+            # heute in der Liste, und das Datenblatt sagt weiterhin: „Enthalten
+            # ist eine Korrekturschleife. Jede weitere Schleife: 290 EUR netto."
+            # Die Begrenzung schuetzt die Marge und stand deshalb im Angebot.
+            # Gemeldet an David am 10.09.2026.
             "features": [
-                "Eingangsaudit nach Homepage-Standard, 100 Punkte",
-                "Strukturabgleich und Seitenplan",
-                "Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten",
-                "Redaktionelle Ueberarbeitung der vorhandenen Texte",
-                "Bildaufbereitung, bis 30 Bilder",
-                "Kontaktformular mit Spam-Schutz",
-                "Grundlagen der Barrierefreiheit",
-                "Technische Grundoptimierung",
-                "Hosting, SSL, Weiterleitungen, Domainumstellung",
-                "Eine Korrekturschleife",
-                "Abnahmeaudit mit schriftlichem Protokoll",
-                "Einweisung, 30 Minuten"],
+                "Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien",
+                "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website",
+                "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten",
+                "Übernahme und redaktionelle Überarbeitung Ihrer Texte",
+                "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte",
+                "Kontaktformular mit Spam-Schutz und Empfangsbestätigung",
+                "Einbindung Ihrer Rechtstexte",
+                "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik",
+                "Technische Grundoptimierung und strukturierte Auszeichnung",
+                "Hosting, SSL, Weiterleitungen, Umstellung der Domain",
+                "Abnahmeaudit mit schriftlichem Protokoll je Kategorie",
+                "Einweisung, 30 Minuten, und Übergabe aller Zugänge",
+            ],
             "checkout_fields": ["name", "company", "email", "phone"],
             "webhook_actions": ["create_lead", "create_user",
                 "create_project", "send_welcome_email", "send_pdf"],
@@ -191,12 +201,31 @@ def produkt_vorlage() -> list:
             "name": "Check PLUS",
             "sort_order": 11,
             "short_desc": "Der Homepage-Standard-Check mit persoenlicher Auswertung",
-            "price_brutto": 249.00, "price_netto": 209.24, "tax_rate": 19,
-            "payment_type": "once", "delivery_days": 7, "status": "draft",
-            "features": ["Vollpruefung nach dem Homepage-Standard, 100 Punkte",
-                "Schriftlicher Befundbericht",
-                "Persoenliche Auswertung, 45 Minuten",
-                "Anrechenbar auf einen Websprint, 6 Monate"],
+            # Zahlen aus Datenblatt CHK-PLU-01, nicht geschaetzt (10.09.2026).
+            # Hier stand 249,00 als **Brutto**; das Datenblatt sagt 249 netto,
+            # und der Shop bucht `price_brutto` ab — es fehlten 39,76 EUR je
+            # Verkauf. Entscheidung David am 10.09.2026.
+            "price_brutto": 296.31, "price_netto": 249.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 5, "status": "draft",
+            # **G5, die Anrechnung** — bis zum 10.09.2026 setzte sie nur die
+            # Migration. Eine frisch aufgesetzte Datenbank kannte das
+            # Verkaufsargument des Produkts damit nicht, eine gewachsene
+            # schon: dieselbe Klasse wie L-167, nur eine Ebene tiefer — nicht
+            # das Paket fehlte, sondern seine Zusage.
+            "is_creditable": True, "credit_months": 6,
+            "delivery_type": "appointment",
+            # Wortlaut nach Vorgabe David, 10.09.2026 — einschliesslich des
+            # Wettbewerbsvergleichs (Position 3). Er verlangt drei weitere
+            # Analysen je Verkauf und ist Handarbeit im Auswertungsgespraech;
+            # einen Vergleichswert je Branche gibt es im System nicht (L-190).
+            "features": [
+                "Vollständiges Audit, manuell nachgeprüft",
+                "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe",
+                "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl",
+                "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand",
+                "Auswertungsgespräch, 60 Minuten, per Videokonferenz",
+                "Schriftliche Zusammenfassung mit Handlungsempfehlung",
+            ],
             "checkout_fields": ["name", "company", "email"],
             "webhook_actions": [],
         },
@@ -431,10 +460,11 @@ def _create_default_admin():
                      tax_rate, payment_type, delivery_days, status,
                      highlighted, highlight_label, features,
                      checkout_fields, webhook_actions, sort_order,
-                     gekoppeltes_abo, abo_mindestlaufzeit)
+                     gekoppeltes_abo, abo_mindestlaufzeit,
+                     is_creditable, credit_months, delivery_type)
                     VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
                      :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so,
-                     :abo, :abomon)
+                     :abo, :abomon, :anrechenbar, :anrechnung_monate, :lieferart)
                 """), {
                     "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
                     "pb": p["price_brutto"], "pn": p["price_netto"],
@@ -448,6 +478,16 @@ def _create_default_admin():
                     "so":   p["sort_order"],
                     "abo":    p.get("gekoppeltes_abo"),
                     "abomon": p.get("abo_mindestlaufzeit", 0),
+                    # **Bis zum 10.09.2026 fielen diese drei still weg.** Die
+                    # Vorlage konnte sie tragen, die Anweisung kannte die
+                    # Spalten nicht — eine frisch aufgesetzte Datenbank
+                    # verlor damit G5, das Verkaufsargument von Check PLUS,
+                    # waehrend eine gewachsene es ueber die Migration hatte.
+                    # Dieselbe Klasse wie L-167, nur eine Ebene tiefer: nicht
+                    # das Paket fehlte, sondern seine Zusage.
+                    "anrechenbar":       p.get("is_creditable", False),
+                    "anrechnung_monate": p.get("credit_months", 0),
+                    "lieferart":         p.get("delivery_type", "none"),
                 })
             _db3.commit()
             logger.info(f"✓ {len(SEED)} Produkte geseedet")

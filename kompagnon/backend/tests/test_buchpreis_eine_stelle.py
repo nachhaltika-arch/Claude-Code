@@ -67,8 +67,25 @@ def test_die_migration_leitet_ab_statt_abzuschreiben():
     # in der **Beschreibung** mit. Mit fest eingetragenen Preisen blieb der
     # Test gruen. Zweiter wirkungsloser Waechter an derselben Stelle, und
     # wieder von der Gegenprobe gefunden, nicht vom Lesen.
-    werte = [z for z in quelle.splitlines()
-             if "'once', 5, 'draft'" in z]
+    #
+    # **Dritte Fassung, 10.09.2026.** Die zweite suchte die Zeile am
+    # Fingerabdruck `'once', 5, 'draft'` — einer Eigenschaft, die dem Buch
+    # gar nicht gehoert. Als Check PLUS seine Lieferzeit von 7 auf 5 Tage
+    # bekam (Datenblatt CHK-PLU-01), trug es denselben Abdruck, und der
+    # Waechter meldete zwei Buch-Zeilen. Er war nicht falsch, er zeigte nur
+    # auf das falsche Merkmal: Ein Nachbar konnte ihn ausloesen, ohne dass
+    # sich am Buch etwas geaendert haette.
+    #
+    # Jetzt wird erst die **Anweisung des Buches** gesucht und dann darin
+    # die Werte-Zeile. Falsifizierbar bleibt es: Wer `_buch_brutto` durch
+    # `49.00` ersetzt, wird von den beiden Zusicherungen unten rot.
+    anweisungen = [a for a in quelle.split("INSERT INTO products")
+                   if "'buch_homepage_standard'" in a]
+    assert len(anweisungen) == 1, (
+        f"{len(anweisungen)} INSERT-Anweisungen fuer das Buch gefunden")
+
+    werte = [z for z in anweisungen[0].splitlines()
+             if "'once'" in z and "'draft'" in z]
     assert len(werte) == 1, f"{len(werte)} Werte-Zeilen fuer das Buch gefunden"
     assert "{_buch_brutto:.2f}" in werte[0], (
         f"Feste Zahl statt abgeleitetem Wert: {werte[0].strip()}")

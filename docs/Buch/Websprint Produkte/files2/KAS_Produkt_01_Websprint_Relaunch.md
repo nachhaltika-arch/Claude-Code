@@ -27,7 +27,7 @@ Handwerks- oder KMU-Betrieb mit **vorhandener Website**, die inhaltlich im Kern 
 **Ausdrücklich nicht enthalten:** Texterstellung, Fotografie, Logo/CI, Shop, Buchungssystem, mehrsprachige Ausführung, GEO/GAIO, laufende Pflege.
 
 ## 4. Preis
-**3.500 € netto**, Festpreis. Zahlung: 50 % bei Auftrag, 50 % bei Abnahme.
+**3.500 € netto**, Festpreis. Zahlung: vollständig bei Auftragserteilung.
 
 ## 5. Bauzeit und Fristbeginn ⚠️
 **14 Werktage** — Fristbeginn ist **nicht** der Auftragseingang, sondern der Tag, an dem **alle Mitwirkungsleistungen** des Kunden vollständig vorliegen:

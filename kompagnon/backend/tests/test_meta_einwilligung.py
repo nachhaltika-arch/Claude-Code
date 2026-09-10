@@ -1,25 +1,31 @@
 # -*- coding: utf-8 -*-
-"""Wer nicht zustimmt, wird nicht an Meta gemeldet (08.09.2026).
+"""Wer nicht zustimmt, wird nicht an Meta gemeldet.
 
-**Der blinde Fleck.** Der Serverweg zur Conversions API pruefte nur
-`consent_tracking` — den Aufrufparameter, den die **Traegerseite** mitgibt.
-Das Haekchen, das der Besucher **im Formular selbst** setzt oder eben nicht,
-wurde an drei Stellen ausgewertet (Double-Opt-in, Zeitpunkt, Speicherung)
-und beim Meta-Weg an keiner.
+**Die Regel hat sich zweimal gedreht, beide Male aus demselben Grund:** Eine
+Einwilligung deckt nur den Zweck, den sie nennt.
 
-Folge: Wer das Haekchen nicht setzte, weil er keine Werbepost will, bekam
-seine Adresse trotzdem gehasht an Meta gemeldet. Und auf jeder Einbettung
-ohne `consent`-Parameter — also ueberall ausser der neuen Landingpage —
-griff gar keine Bremse.
+- **Bis 08.09.2026** pruefte der Serverweg nur `consent_tracking` — den
+  Aufrufparameter der Traegerseite. Das Haekchen im Formular wurde nicht
+  gelesen.
+- **08.09. bis 09.09.** galt: Haekchen **und** kein Nein von oben. Das trug,
+  weil der Haekchen-Text Meta ausdruecklich nannte und sagte, die Adresse werde
+  unkenntlich gemacht uebermittelt.
+- **Seit 10.09.2026** nennt der Haekchen-Text Meta nicht mehr, und der
+  erweiterte Abgleich ist entfallen (Entscheidung David: der lange Satz kostete
+  Abschluesse, und der Nutzen des Abgleichs liegt bei 20 bis 40 Leads im Monat
+  im Rauschen). Ein Haekchen, das von Auswertungsmails spricht, kann keine
+  Uebermittlung an ein Werbenetzwerk begruenden — es wird deshalb nicht mehr
+  gefragt. Traegt allein das Consent-Banner der Traegerseite.
 
-**Die Regel jetzt: es braucht ein Ja, und es darf kein Nein geben.**
-Zustimmung ist nichts, was durch Schweigen entsteht.
+**Die Umkehrung, auf die es ankommt:** Ein fehlender Wert war vorher ein
+„vielleicht" und galt als Ja. Er ist jetzt ein Nein. § 25 TDDDG verlangt ein
+Ja, und das Widget laeuft eingebettet auf fremden Seiten, die kein Banner
+mitbringen — dort gab es nie eine Grundlage.
 
-**Was diese Datei ausdruecklich nicht behauptet.** Das Haekchen lautet „…
-per E-Mail kontaktieren" und nennt Meta nicht. Es als Zustimmung zur
-Messung zu lesen ist die **vorsichtigere** Auslegung, nicht die saubere; die
-saubere waere ein eigener Satz im Formular. Das ist eine Textentscheidung
-und gehoert David, nicht diesem Code.
+**Der Preis, den man kennen muss.** Eine Einbettung, die das Signal nicht
+mitgibt, misst still nicht mehr. Dagegen steht die Pruefliste im
+Projektdokument `claude/Consent-Text-Audit-Widget.md` und der Befund-Test am
+Ende dieser Datei.
 """
 import pytest
 
@@ -27,46 +33,74 @@ from services import meta_conversions as mc
 
 
 class TestDarfMelden:
-    """`darf_melden(consent_tracking, consent_marketing)`."""
+    """`darf_melden(consent_tracking)` — ein Ja der Traegerseite, sonst nichts."""
 
-    def test_haekchen_gesetzt_und_kein_nein_von_oben(self):
-        assert mc.darf_melden("", True) is True
-        assert mc.darf_melden("1", True) is True
-
-    def test_ohne_haekchen_wird_nicht_gemeldet(self):
-        # Der eigentliche Fund. Vorher war das ein Ja.
-        assert mc.darf_melden("", False) is False
-        assert mc.darf_melden("1", False) is False
+    @pytest.mark.parametrize("ja", ["1", "true", "TRUE", " 1 "])
+    def test_ein_ausdrueckliches_ja_genuegt(self, ja):
+        assert mc.darf_melden(ja) is True
 
     @pytest.mark.parametrize("nein", ["0", "false", "FALSE", " 0 "])
-    def test_ein_nein_der_traegerseite_sticht_das_haekchen(self, nein):
-        # Der Cookie-Banner der Seite hat Vorrang: Wer dort Marketing
-        # ablehnt, hat abgelehnt — auch wenn er im Formular ein Haekchen
-        # setzt, das von E-Mail spricht.
-        assert mc.darf_melden(nein, True) is False
+    def test_ein_ausdrueckliches_nein_meldet_nicht(self, nein):
+        assert mc.darf_melden(nein) is False
 
-    def test_ein_unbekannter_wert_gilt_nicht_als_nein(self):
-        # „vielleicht" ist kein Nein. Sonst waere jeder Tippfehler in der
-        # Einbettung eine stille Abschaltung, die niemand findet.
-        assert mc.darf_melden("ja", True) is True
-        assert mc.darf_melden("xyz", True) is True
+    def test_schweigen_ist_keine_zustimmung(self):
+        # Der eigentliche Fund vom 10.09. Vorher war das ein Ja — auf jeder
+        # Einbettung ohne Banner griff damit keine Bremse.
+        assert mc.darf_melden("") is False
+        assert mc.darf_melden(None) is False
 
-    def test_fehlende_angaben_werfen_nicht(self):
-        assert mc.darf_melden(None, None) is False
-        assert mc.darf_melden(None, True) is True
+    def test_ein_unbekannter_wert_ist_kein_ja(self):
+        # „vielleicht" traegt keine Einwilligung. Anders als vorher: Dort war
+        # alles ausser „0"/„false" gruen, ein Tippfehler in der Einbettung
+        # meldete also weiter.
+        assert mc.darf_melden("ja") is False
+        assert mc.darf_melden("xyz") is False
+
+
+class TestKeineAdresseAnMeta:
+    """Die Gegenprobe am Gegenstand: Der Serverweg kennt die Adresse nicht mehr.
+
+    Eine Regel im Text („wird nicht uebermittelt") ist keine Zusicherung,
+    solange die Adresse noch durch die Funktion laeuft, die an Meta sendet.
+    """
+
+    def test_sende_lead_nimmt_keine_email_an(self):
+        import inspect
+        parameter = inspect.signature(mc.sende_lead).parameters
+        assert "email" not in parameter, (
+            "sende_lead nimmt wieder eine E-Mail-Adresse an — dann muss der "
+            "Einwilligungstext im Widget Meta erneut beim Namen nennen")
+
+    def test_kein_hashen_mehr_im_modul(self):
+        import pathlib
+        quelle = pathlib.Path(mc.__file__).read_text(encoding="utf-8")
+        # Die positive Haelfte zuerst: Ohne sie waere der Test auch dann
+        # gruen, wenn das ganze Modul verschwunden ist.
+        assert "def sende_lead" in quelle
+        assert 'nutzerdaten["em"]' not in quelle, (
+            "der erweiterte Abgleich ist zurueck, ohne dass der "
+            "Einwilligungstext ihn nennt")
 
 
 def test_der_router_benutzt_diese_regel():
-    """Die Gegenprobe am Gegenstand.
+    """Eine Regel, die richtig rechnet und die niemand aufruft, ist keine.
 
-    Eine Regel, die richtig rechnet und die niemand aufruft, ist keine —
-    genau die Fehlerklasse, die dieses Projekt unter „gebaut, nicht
+    Genau die Fehlerklasse, die dieses Projekt unter „gebaut, nicht
     angeschlossen" fuehrt.
     """
     import pathlib
 
     quelle = (pathlib.Path(__file__).resolve().parent.parent
               / "routers" / "widget.py").read_text(encoding="utf-8")
-    assert "darf_melden" in quelle, (
-        "routers/widget.py entscheidet die Einwilligung selbst, statt "
-        "meta_conversions.darf_melden zu fragen")
+    assert "darf_melden(payload.consent_tracking)" in quelle, (
+        "routers/widget.py entscheidet die Einwilligung selbst oder ruft "
+        "darf_melden mit anderen Argumenten, statt das Banner-Votum zu fragen")
+    # Die Gegenprobe zur Umkehrung: Der Formular-Haken darf hier nicht wieder
+    # mitentscheiden, solange sein Text Meta nicht nennt.
+    assert "darf_melden(payload.consent_tracking," not in quelle, (
+        "darf_melden bekommt ein zweites Argument — wenn das der Formular-"
+        "Haken ist, begruendet ein E-Mail-Text eine Meta-Uebermittlung")
+    # Und die Adresse darf nicht wieder in die Funktion gehen, die sendet.
+    hintergrund = quelle.split("meta_conversions.sende_lead", 1)[1][:400]
+    assert "email=" not in hintergrund, (
+        "die E-Mail-Adresse geht wieder an sende_lead")

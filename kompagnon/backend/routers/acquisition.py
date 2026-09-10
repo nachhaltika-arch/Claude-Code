@@ -37,6 +37,13 @@ class WidgetSettings(BaseModel):
     #: Facebook-Pixel des Widgets. Leer heisst abgeschaltet — dann laedt das
     #: Widget kein fremdes Skript. Geprueft wird in `services/pixel.py`.
     facebook_pixel_id: str = ""
+    #: Wohin der Kaufknopf fuer Check PLUS im Teaser fuehrt (10.09.2026).
+    #: **Leer heisst kein Knopf**, nicht „Knopf ins Leere": Solange hier
+    #: nichts steht, zeigt das Widget den Angebotsblock ohne Abschluss.
+    #: Eine Einstellung, weil der Weg wechseln kann — heute ein
+    #: Stripe-Zahllink, spaeter die eigene Kasse — und das keinen Deploy
+    #: kosten soll.
+    check_plus_url: str = ""
 
 
 class TestEmailRequest(BaseModel):
@@ -45,6 +52,44 @@ class TestEmailRequest(BaseModel):
 
 # Wie viele der letzten Anfragen die Übersicht im Tool zeigt.
 REQUEST_HISTORY_LIMIT = 25
+
+
+#: Wie viel von der Fehlermeldung in die Liste kommt. Sie ist fuer den
+#: Innendienst, nicht fuer den Kunden — aber eine Seite voll Rueckverfolgung
+#: macht die Liste unlesbar.
+FEHLER_LAENGE = 200
+
+
+def _analysestaende(db, zeilen) -> dict:
+    """Status und Fehlergrund je Analyse — **eine** Abfrage fuer alle Zeilen.
+
+    Nicht je Zeile nachschlagen: Die Liste zeigt 25 Anfragen, das waeren 25
+    Abfragen fuer eine Ansicht, die der Innendienst mehrmals taeglich oeffnet.
+
+    **Ein Fehler hier darf die Liste nicht kippen.** Sie beantwortet vor
+    allem, ob Berichte rausgingen; der Analysestand ist ein Zusatz. Faellt er
+    aus, fehlt eine Spalte — nicht die Seite.
+    """
+    kennungen = {z.audit_id for z in zeilen if z.audit_id}
+    if not kennungen:
+        return {}
+    try:
+        from modelle_audit import AuditResult
+
+        gefunden = (db.query(AuditResult)
+                    .filter(AuditResult.id.in_(kennungen))
+                    .all())
+    except Exception as fehler:  # noqa: BLE001
+        db.rollback()
+        logger.warning("Analysestand nicht lesbar: %s: %s",
+                       type(fehler).__name__, fehler)
+        return {}
+
+    return {
+        a.id: (a.status,
+               (a.error_message or "")[:FEHLER_LAENGE] if a.status == "failed" else None)
+        for a in gefunden
+    }
 
 
 def widget_embed_url() -> str:
@@ -61,6 +106,9 @@ def read_widget_settings(_: User = Depends(require_admin), db: Session = Depends
     config = app_settings.widget_config(db)
     return {
         **config,
+        # Der **gespeicherte** Wert, nicht der abgeleitete aus `check_plus`:
+        # Das Formular bearbeitet die Einstellung, nicht das Ergebnis.
+        "check_plus_url": app_settings.get(db, "widget_check_plus_url"),
         "embed_url": widget_embed_url(),
         "requests_total": db.query(WidgetRequest).count(),
         "requests_confirmed": db.query(WidgetRequest).filter(
@@ -75,7 +123,10 @@ def write_widget_settings(
     db: Session = Depends(get_db),
 ):
     for field, value in (("widget_privacy_url", payload.privacy_url),
-                         ("widget_checkout_url", payload.checkout_url)):
+                         ("widget_checkout_url", payload.checkout_url),
+                         # Der Wert landet in einem href auf **fremden**
+                         # Seiten — `javascript:` gehoert dort nicht hin.
+                         ("widget_check_plus_url", payload.check_plus_url)):
         if value and not value.startswith(("http://", "https://", "/")):
             raise HTTPException(400, f"'{value}' ist keine gültige Adresse.")
 
@@ -93,6 +144,7 @@ def write_widget_settings(
         "widget_checkout_url": payload.checkout_url,
         "widget_headline": payload.headline,
         "widget_facebook_pixel_id": pixel_id,
+        "widget_check_plus_url": payload.check_plus_url,
     }, admin.id)
     return {"message": "Widget-Einstellungen gespeichert"}
 
@@ -150,6 +202,7 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
         .limit(REQUEST_HISTORY_LIMIT)
         .all()
     )
+    staende = _analysestaende(db, rows)
     return {
         "requests": [
             {
@@ -179,6 +232,14 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 "verified_ip": getattr(row, "verified_ip", None) or None,
                 "verify_dauer_s": _verify_dauer(row),
                 "bestaetigung_verdaechtig": _verdaechtig(row),
+                # ── Lief die Analyse ueberhaupt? (L-184, 10.09.2026) ─────
+                # Ohne diese zwei Felder sah eine **gescheiterte Erhebung**
+                # genauso aus wie eine im Spam gelandete Mail: „Bestaetigung
+                # angefragt: nein", sonst nichts. Zwei Ursachen, ein Bild —
+                # und keine Handlungsmoeglichkeit, weil der Grund fehlte.
+                # Er lag die ganze Zeit in `audit_results.error_message`.
+                "analyse_status": staende.get(row.audit_id, (None, None))[0],
+                "analyse_fehler": staende.get(row.audit_id, (None, None))[1],
             }
             for row in rows
         ],

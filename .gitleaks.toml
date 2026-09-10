@@ -65,4 +65,24 @@ commits = [
   "e7038a0381005a9f7cf826553d62dd768eca64d6",
   "14a722fa33c78c86f3524db9259a6ddbc233dbf9",
   "70f4c5b7a1ff0bc66d9bb4c763d786ed717dd69c",
+  # Vierter Fall derselben Art (10.09.2026, Lauf 34481321705) — und der
+  # erste, der gar kein Testwert war: `var KEY = 'kpg-consent-v1'` im
+  # Messblock der Landingpage (`embed/README.md`). Der Wert ist der **Name
+  # eines localStorage-Eintrags** und steht so auch offen auf
+  # websprint.kompagnon.eu; geheim ist daran nichts. Ausgeloest hat es die
+  # Variable: Sie hiess `KEY`, und die Regel `generic-api-key` sucht genau
+  # solche Namen neben einer Zeichenkette hoher Entropie (3.52).
+  #
+  # **Im Arbeitsstand ist die Ursache beseitigt** — die Variable heisst
+  # jetzt `SPEICHER`, was ohnehin trifft, was sie enthaelt. Der Fund steckt
+  # nur noch in **einem** Commit, und die Historie liest jeder Lauf mit.
+  #
+  # Deshalb hier ueber die Commit-Kennung und nicht als Zeichenkette:
+  # Der erste Anlauf trug `kpg-consent-v1` woertlich ein — und zwar
+  # versehentlich in **dieses** Array statt zu den `regexes`, wo es als
+  # Commit-Kennung gelesen wurde und nie traf (Lauf 34481940951, zweites
+  # Mal rot). Ueber die Kennung ist es ohnehin genauer: Ein einzelner
+  # Commit verstummt, dieselbe Zeichenkette an jeder anderen Stelle
+  # schlaegt weiter an.
+  "366ad880b73a2e756f09b9f2498aedc74060edfd",
 ]

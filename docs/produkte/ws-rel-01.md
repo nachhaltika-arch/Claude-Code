@@ -31,7 +31,7 @@
 | Angebotsbezeichnung | Websprint Relaunch — Fertigstellung nach Homepage-Standard |
 | Preis | **3.500 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
-| Zahlungsbedingung | **Z1** (50/50) |
+| Zahlungsbedingung | **Z1** (Vollzahlung bei Auftrag) |
 | Bauzeit | **14 Werktage** |
 | Mitwirkung | **M1, M2, M3, M4, M5**, bei Migration zusätzlich M9 |
 | Garantien | **G1, G2** (G2 gedeckelt auf 1.000 €) |

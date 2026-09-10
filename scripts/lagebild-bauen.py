@@ -68,6 +68,34 @@ ZUSTAENDIGKEIT = {
                         "R2-Werte, die Workbook-Datei im Bucket und AGB samt "
                         "Widerrufsbelehrung von der Kanzlei (ORDERS_05)."),
 
+    # ── Kampagne und Trichter (10.09.2026) ────────────────────────────
+    "L-183": ("extern", "Der Hoster von kompagnon.eu sperrt das Render-"
+                        "Rechenzentrum. Kein Code ändert daran etwas — die "
+                        "Sperre muss dort gelöst werden."),
+    "L-185": ("extern", "Die Erinnerung an den Bericht laeuft. Offen ist nur "
+                        "die Entscheidung, ob die Zusage in der "
+                        "Bestaetigungsmail geaendert wird — ohne sie darf an "
+                        "unbestaetigte Adressen nichts gehen."),
+    "L-186": ("extern", "Ein Wert in den Widget-Einstellungen: die Adresse "
+                        "der Datenschutzerklärung. Kein Code."),
+    "L-187": ("beides", "Verdrahtet ist alles. Draußen warten drei "
+                        "Entscheidungen: draft auf live, Kaufweg (Zahllink "
+                        "oder Shop) und die AGB-Fassung, ohne die der Shop "
+                        "jede Bestellung abweist."),
+    "L-188": ("extern", "Die Landingpage liegt nicht in diesem Repo. Der "
+                        "fertige Block ist geschrieben, einsetzen muss ihn, "
+                        "wer die Seite pflegt."),
+    "L-189": ("beides", "Senden kann erst die Landingpage (L-188); das "
+                        "Markieren als Schlüsselereignis geschieht in GA4."),
+    "L-190": ("beides", "Zu entscheiden ist, wer den Branchenvergleich "
+                        "erhebt — von Hand im Gespräch oder gerechnet. "
+                        "Danach ist es Arbeit am Code."),
+    "L-193": ("extern", "Zwei Stripe-Objekte im Dashboard: den doppelten "
+                        "Preis archivieren, die tote ID entfernen."),
+    "L-194": ("beides", "Drei Fundstellen im Code geben die Auswahl frei; "
+                        "welche Zahlarten dann gelten, steht im Stripe-"
+                        "Dashboard und ist eine Geschäftsentscheidung."),
+
     # ── Zugänge, Werte, Fremddienste ──────────────────────────────────
     "L-115": ("extern", "`CORS_ALLOWED_ORIGINS` an den Render-Diensten "
                         "ergänzen, sobald BUCH-08 eine Adresse hat."),
@@ -135,6 +163,22 @@ HANDGESETZT = {
     # (b) ist gebaut, aber nie gegen einen echten Dienst gelaufen. Weder
     # „offen" noch „geschlossen" trifft das.
     "L-58": "teilweise",
+
+    # Die Erinnerung an den bereitliegenden Bericht laeuft (10.09.2026).
+    # Die Erinnerung an die **Bestaetigung** — dort faellt der groesste Teil
+    # weg — ist bewusst nicht gebaut: Die vorausgegangene Mail sagt zu, sich
+    # ohne Bestaetigung nicht von selbst zu melden. Das zu aendern ist eine
+    # Entscheidung ueber das eigene Wort, keine Programmierarbeit.
+    "L-185": "teilweise",
+
+    # Sichtbar ist die gescheiterte Analyse jetzt (10.09.2026), gerettet ist
+    # der Lead damit nicht: Der automatische zweite Versuch fehlt bewusst.
+    "L-184": "teilweise",
+
+    # Schritt 1 steht und liefert (10.09.2026). Es fehlen Bilder, der
+    # Branchenschnitt und zwei redaktionelle Bloecke — kein Restaufwand am
+    # Code, sondern Zulieferung und Entscheidungen.
+    "L-191": "teilweise",
 
     # ── terminiert: entschieden, datiert, von einem Test gehalten ──────
     #

@@ -196,4 +196,36 @@ def widget_config(db) -> dict:
         # Absenden des Formulars und nur, wenn hier eine Nummer steht — ohne
         # sie geht kein fremdes Skript auf die Seite des Kunden.
         "facebook_pixel_id": get(db, "widget_facebook_pixel_id") or "",
+        # Das bezahlte Angebot im Teaser (10.09.2026). Preis und Leistungen
+        # kommen aus der Katalogzeile, nicht aus dem Widget — dort waeren sie
+        # eine zweite Preisquelle auf fremden Seiten (L-29). `None`, solange
+        # es das Produkt nicht gibt: kein Block ist besser als ein erfundener.
+        "check_plus": _check_plus_angebot(db),
     }
+
+
+def _check_plus_angebot(db):
+    """Die Katalogzeile von Check PLUS als Angebot fuers Widget.
+
+    **Ein Datenbankfehler darf die Konfiguration nicht kippen.** Ohne sie
+    laedt das Widget weder Datenschutzlink noch Pixelnummer noch Ueberschrift
+    — der Ausfall eines Zusatzblocks waere ein teurer Preis dafuer.
+    """
+    from sqlalchemy import text as _text
+
+    from services import check_plus_angebot
+
+    try:
+        zeile = db.execute(_text(
+            "SELECT slug, name, status, price_netto, price_brutto, "
+            "       delivery_days, credit_months, features "
+            "  FROM products WHERE slug = 'check_plus'"
+        )).mappings().first()
+    except Exception as fehler:  # noqa: BLE001
+        db.rollback()
+        logger.warning("Check-PLUS-Zeile nicht lesbar: %s: %s",
+                       type(fehler).__name__, fehler)
+        return None
+
+    return check_plus_angebot.aus_zeile(
+        zeile, kaufadresse=get(db, "widget_check_plus_url"))

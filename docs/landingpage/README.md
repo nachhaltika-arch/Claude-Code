@@ -73,3 +73,23 @@ Seite neu geladen werden muss.
 Jeder Auftrag merkt sich außerdem, **mit welchen Reglern** die Ansicht
 gerade eingestellt war. Ohne das ist „der Kasten sieht falsch aus" nicht
 nachstellbar: Mit Rabatt sieht dieselbe Stelle anders aus als ohne.
+
+## Der Melder
+
+`scripts/auftraege-melden.py` liest dieselbe Datei und gibt jeden neuen
+Auftrag als Zeile aus. In der Sitzung als Monitor gestartet, wird daraus
+sofort eine Meldung — ein Klick in der Vorschau weckt damit die Arbeit,
+ohne dass jemand „schau in die Aufträge" sagen muss.
+
+Die Trennung ist Absicht:
+
+- Der Melder **schreibt nicht**. Ein Wächter, der in die Datei fasst, die
+  er bewacht, kann sie beschädigen — und dann ist eine Woche
+  Beanstandungen weg. Den Zustand ändert, wer den Auftrag bearbeitet.
+- Ohne Melder funktioniert die Vorschau unverändert. Sie hängt nicht an
+  einer laufenden Sitzung.
+- Beim Start meldet er den Rückstand einmal, damit eine neue Sitzung
+  weiß, was offen ist.
+- Er meldet auch, wenn die Ablage unlesbar wird. Ein Melder, der nur bei
+  guten Nachrichten spricht, sieht im Fehlerfall aus wie einer, bei dem
+  nichts los ist.

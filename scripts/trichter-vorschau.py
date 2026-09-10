@@ -481,10 +481,15 @@ def api_teaser(regler: dict) -> dict:
 # verschlossenen Schublade. Als Datei im Projekt ist sie mit `cat` zu lesen,
 # und damit ist der Auftrag angekommen.
 #
-# **Was die Vorschau NICHT kann.** Sie beantwortet nichts von selbst. Hier
-# sitzt kein Modell, das mitliest — der Server ist knapp 300 Zeilen Python
-# ohne Verbindung nach draussen. Ein Auftrag wird bearbeitet, wenn in der
-# Sitzung jemand danach fragt. Die Seite sagt das auch so.
+# **Wie ein Auftrag ankommt.** Der Vorschau-Server selbst spricht mit
+# niemandem — er legt nur ab. Das Melden macht `scripts/auftraege-melden.py`:
+# Es liest dieselbe Datei und gibt jeden neuen Auftrag als Zeile aus. Als
+# Monitor gestartet, wird daraus eine Meldung in der laufenden Sitzung.
+#
+# Die Trennung ist Absicht. Der Melder **schreibt nicht** — ein Waechter, der
+# in die Datei fasst, die er bewacht, kann sie beschaedigen, und dann ist
+# eine Woche Beanstandungen weg. Und ohne Melder funktioniert die Vorschau
+# unveraendert weiter; sie haengt nicht an einer laufenden Sitzung.
 AUFTRAGSDATEI = os.environ.get("VORSCHAU_AUFTRAEGE") or os.path.join(
     WURZEL, ".vorschau-auftraege.json")
 
@@ -832,9 +837,10 @@ VORLAGE = """<!doctype html>
 <section class="auftraege" id="auftraege">
   <header>
     <b>Aufträge und Beanstandungen</b>
-    <p>Landen in <code>.vorschau-auftraege.json</code>. <strong>Hier liest kein
-    Modell mit</strong> — sag in der Sitzung „schau in die Aufträge", dann
-    werden sie bearbeitet und beantwortet.</p>
+    <p id="melderstand">Landen in <code>.vorschau-auftraege.json</code>. Läuft
+    der Melder (<code>scripts/auftraege-melden.py</code>), geht jeder neue
+    Auftrag <strong>sofort</strong> in die laufende Sitzung. Läuft er nicht,
+    liegt er hier, bis jemand „schau in die Aufträge" sagt.</p>
   </header>
   <div class="liste" id="liste"></div>
   <div class="neu">

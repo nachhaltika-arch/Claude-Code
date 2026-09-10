@@ -273,3 +273,77 @@ def test_der_status_kommt_aus_der_liste_und_nicht_vom_absender(ablage):
     eintrag = ablage.auftrag_anlegen({"text": "eins"})
     ablage.auftrag_aendern({"id": eintrag["id"], "status": "gelöscht-hihi"})
     assert ablage.auftraege_lesen()["eintraege"][0]["status"] == "offen"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Der Melder
+# ══════════════════════════════════════════════════════════════════════
+#
+# `scripts/auftraege-melden.py` liest die Ablage und gibt jeden neuen
+# Auftrag als Zeile aus. Als Monitor gestartet wird daraus eine Meldung in
+# der laufenden Sitzung — damit weckt ein Klick in der Vorschau die Arbeit.
+
+MELDER = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                      "scripts", "auftraege-melden.py")
+
+
+@pytest.fixture(scope="module")
+def melder():
+    spec = importlib.util.spec_from_file_location("auftraege_melden", MELDER)
+    modul = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modul)
+    return modul
+
+
+def test_ohne_ablage_meldet_er_nichts_und_faellt_nicht_um(melder, tmp_path,
+                                                          monkeypatch):
+    monkeypatch.setattr(melder, "ABLAGE", str(tmp_path / "gibtsnicht.json"))
+    eintraege, fehler = melder.lesen()
+    assert eintraege == [] and fehler is None
+
+
+def test_eine_kaputte_ablage_wird_gemeldet_statt_verschwiegen(melder, tmp_path,
+                                                             monkeypatch):
+    """Stille ist kein Erfolg. Ein Melder, der nur bei guten Nachrichten
+    spricht, sieht im Fehlerfall aus wie einer, bei dem nichts los ist."""
+    datei = tmp_path / "a.json"
+    datei.write_text("{ kaputt", encoding="utf-8")
+    monkeypatch.setattr(melder, "ABLAGE", str(datei))
+    eintraege, fehler = melder.lesen()
+    assert eintraege is None
+    assert fehler and "lesbar" in fehler
+
+
+def test_die_meldung_traegt_alles_zum_nachstellen(melder):
+    """Ohne Stelle und Reglerstand ist „der Kasten sieht falsch aus" nicht
+    nachstellbar: Mit Rabatt sieht dieselbe Stelle anders aus als ohne."""
+    text = melder.beschreiben({
+        "id": "a1", "ansicht": "bericht", "text": "Der Preis steht zweimal da",
+        "auszug": "FESTPREIS 3.500,00 € netto",
+        "regler": {"punkte": "61", "rabatt": "an"},
+    })
+    assert "a1" in text
+    assert "bericht" in text
+    assert "Der Preis steht zweimal da" in text
+    assert "FESTPREIS" in text
+    assert "rabatt=an" in text
+
+
+def test_der_melder_schreibt_nicht(melder):
+    """Ein Wächter, der in die Datei fasst, die er bewacht, kann sie
+    beschädigen — und dann ist eine Woche Beanstandungen weg."""
+    with open(MELDER, encoding="utf-8") as f:
+        quelle = f.read()
+    # Nur die Ausführungsteile ansehen, nicht die Erklärungen darüber.
+    ohne_text = re.sub(r'"""[\s\S]*?"""', "", quelle)
+    ohne_text = re.sub(r"^\s*#.*$", "", ohne_text, flags=re.MULTILINE)
+    for verboten in ('open(ABLAGE, "w"', "os.replace", "json.dump(",
+                     ".write(", "os.remove"):
+        assert verboten not in ohne_text, f"Der Melder schreibt: {verboten}"
+
+
+def test_die_vorschau_und_der_melder_lesen_dieselbe_datei(melder, vorschau):
+    """Zwei Wahrheiten wären der teuerste Fehler: Der Auftrag läge in der
+    einen Datei und der Melder sähe in die andere."""
+    assert os.path.basename(melder.ABLAGE) == os.path.basename(vorschau.AUFTRAGSDATEI)
+    assert melder.ABLAGE == vorschau.AUFTRAGSDATEI

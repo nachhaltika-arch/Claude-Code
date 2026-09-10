@@ -52,3 +52,24 @@ den drei Mails — ohne Deploy.
 Ob der Messblock draußen wirklich misst. Das steht erst fest, wenn die
 Datei hochgeladen ist und Meta einen Seitenaufruf sieht. Die Vorschau
 zeigt Oberflächen, keine Abläufe.
+
+---
+
+# Beanstanden in der Vorschau
+
+Die Vorschau hat einen Kommentarmodus. „Beanstanden" drücken, in die
+Ansicht klicken, Text tippen — der Auftrag bekommt eine Stecknadel an der
+angeklickten Stelle und eine Karte in der rechten Spalte.
+
+Alles landet in `.vorschau-auftraege.json` im Projektordner (nicht im
+Repo — das sind Arbeitsnotizen, kein Erzeugnis).
+
+**Hier liest kein Modell mit.** Der Vorschau-Server ist ein paar hundert
+Zeilen Python ohne Verbindung nach draußen. Ein Auftrag wird bearbeitet,
+wenn in der Sitzung jemand sagt: „schau in die Aufträge". Antworten werden
+in dieselbe Datei geschrieben und erscheinen in der Karte, ohne dass die
+Seite neu geladen werden muss.
+
+Jeder Auftrag merkt sich außerdem, **mit welchen Reglern** die Ansicht
+gerade eingestellt war. Ohne das ist „der Kasten sieht falsch aus" nicht
+nachstellbar: Mit Rabatt sieht dieselbe Stelle anders aus als ohne.

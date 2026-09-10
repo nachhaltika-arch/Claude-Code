@@ -471,6 +471,120 @@ def api_teaser(regler: dict) -> dict:
     }
 
 
+# ══════════════════════════════════════════════════════════════════════
+# Aufträge — was in der Vorschau beanstandet wird
+# ══════════════════════════════════════════════════════════════════════
+#
+# **Wozu eine Datei und keine Browser-Ablage.** Was hier notiert wird, sind
+# Aufträge an die nächste Sitzung. Eine Notiz im `localStorage` des Browsers
+# kann niemand lesen ausser dem Browser — sie waere ein Zettel in einer
+# verschlossenen Schublade. Als Datei im Projekt ist sie mit `cat` zu lesen,
+# und damit ist der Auftrag angekommen.
+#
+# **Was die Vorschau NICHT kann.** Sie beantwortet nichts von selbst. Hier
+# sitzt kein Modell, das mitliest — der Server ist knapp 300 Zeilen Python
+# ohne Verbindung nach draussen. Ein Auftrag wird bearbeitet, wenn in der
+# Sitzung jemand danach fragt. Die Seite sagt das auch so.
+AUFTRAGSDATEI = os.environ.get("VORSCHAU_AUFTRAEGE") or os.path.join(
+    WURZEL, ".vorschau-auftraege.json")
+
+STATUS = ("offen", "angenommen", "erledigt")
+
+
+def auftraege_lesen() -> dict:
+    """Die Ablage — oder eine leere, wenn es sie noch nicht gibt.
+
+    Ein kaputter Inhalt wird **nicht** stillschweigend ersetzt: Wer eine
+    Woche lang Beanstandungen gesammelt hat, soll sie nicht dadurch
+    verlieren, dass ein Schreibvorgang abgebrochen ist.
+    """
+    if not os.path.exists(AUFTRAGSDATEI):
+        return {"eintraege": []}
+    with open(AUFTRAGSDATEI, encoding="utf-8") as f:
+        inhalt = f.read()
+    if not inhalt.strip():
+        return {"eintraege": []}
+    try:
+        daten = json.loads(inhalt)
+    except json.JSONDecodeError as fehler:
+        raise RuntimeError(
+            f"{AUFTRAGSDATEI} ist nicht lesbar ({fehler}). Die Datei wird "
+            f"nicht überschrieben — bitte von Hand ansehen.") from fehler
+    daten.setdefault("eintraege", [])
+    return daten
+
+
+def auftraege_schreiben(daten: dict) -> None:
+    """Erst daneben schreiben, dann umbenennen.
+
+    Ein abgebrochenes Schreiben soll keine halbe Datei hinterlassen — sonst
+    ist beim nächsten Start alles weg, was notiert wurde.
+    """
+    vorlaeufig = AUFTRAGSDATEI + ".neu"
+    with open(vorlaeufig, "w", encoding="utf-8") as f:
+        json.dump(daten, f, ensure_ascii=False, indent=2)
+    os.replace(vorlaeufig, AUFTRAGSDATEI)
+
+
+def auftrag_anlegen(nutzlast: dict) -> dict:
+    daten = auftraege_lesen()
+    text = (nutzlast.get("text") or "").strip()
+    if not text:
+        raise ValueError("Ohne Text kein Auftrag.")
+
+    eintrag = {
+        "id": f"a{int(datetime.now().timestamp() * 1000)}",
+        "art": "pin" if nutzlast.get("art") == "pin" else "notiz",
+        "ansicht": nutzlast.get("ansicht") or "",
+        "regler": nutzlast.get("regler") or {},
+        "x": int(nutzlast.get("x") or 0),
+        "y": int(nutzlast.get("y") or 0),
+        # Ein Textausschnitt der angeklickten Stelle. Er ist der einzige
+        # Anker, der einen Umbau überlebt: Koordinaten verschieben sich,
+        # sobald sich das Layout ändert, ein Satz nicht.
+        "auszug": (nutzlast.get("auszug") or "")[:160],
+        "text": text[:4000],
+        "wer": "David",
+        "zeit": datetime.now().isoformat(timespec="seconds"),
+        "status": "offen",
+        "antworten": [],
+    }
+    daten["eintraege"].append(eintrag)
+    auftraege_schreiben(daten)
+    return eintrag
+
+
+def auftrag_aendern(nutzlast: dict) -> dict:
+    daten = auftraege_lesen()
+    kennung = nutzlast.get("id")
+    for eintrag in daten["eintraege"]:
+        if eintrag["id"] != kennung:
+            continue
+        if nutzlast.get("status") in STATUS:
+            eintrag["status"] = nutzlast["status"]
+        text = (nutzlast.get("antwort") or "").strip()
+        if text:
+            eintrag.setdefault("antworten", []).append({
+                "wer": nutzlast.get("wer") or "David",
+                "text": text[:4000],
+                "zeit": datetime.now().isoformat(timespec="seconds"),
+            })
+        auftraege_schreiben(daten)
+        return eintrag
+    raise ValueError(f"Kein Auftrag mit der Kennung {kennung!r}.")
+
+
+def auftrag_loeschen(nutzlast: dict) -> dict:
+    daten = auftraege_lesen()
+    vorher = len(daten["eintraege"])
+    daten["eintraege"] = [e for e in daten["eintraege"]
+                          if e["id"] != nutzlast.get("id")]
+    if len(daten["eintraege"]) == vorher:
+        raise ValueError(f"Kein Auftrag mit der Kennung {nutzlast.get('id')!r}.")
+    auftraege_schreiben(daten)
+    return {"geloescht": nutzlast.get("id")}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -501,14 +615,31 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         pfad = urllib.parse.urlparse(self.path).path
         laenge = int(self.headers.get("Content-Length") or 0)
-        if laenge:
-            self.rfile.read(laenge)
+        roh = self.rfile.read(laenge) if laenge else b""
+
         if pfad == "/api/widget/audit":
-            self._json({"poll_token": "vorschau-token", "status": "pending"})
-        elif pfad.startswith("/api/widget/bestaetigung/"):
-            self._json({"versandt": True})
-        else:
-            self._json({"detail": "In der Vorschau nicht vorgesehen."}, 404)
+            return self._json({"poll_token": "vorschau-token", "status": "pending"})
+        if pfad.startswith("/api/widget/bestaetigung/"):
+            return self._json({"versandt": True})
+
+        if pfad == "/api/auftraege":
+            try:
+                nutzlast = json.loads(roh or b"{}")
+                aktion = nutzlast.get("aktion")
+                if aktion == "neu":
+                    return self._json(auftrag_anlegen(nutzlast))
+                if aktion == "aendern":
+                    return self._json(auftrag_aendern(nutzlast))
+                if aktion == "loeschen":
+                    return self._json(auftrag_loeschen(nutzlast))
+                return self._json({"detail": f"Unbekannte Aktion {aktion!r}."}, 400)
+            except (ValueError, RuntimeError) as fehler:
+                # Der Fehler wird **gezeigt**. Ein stumm verworfener Auftrag
+                # ist schlimmer als gar keiner: Wer ihn getippt hat, glaubt,
+                # er sei angekommen.
+                return self._json({"detail": str(fehler)}, 400)
+
+        return self._json({"detail": "In der Vorschau nicht vorgesehen."}, 404)
 
     def do_GET(self):
         pfad = urllib.parse.urlparse(self.path).path
@@ -520,6 +651,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_config(regler))
         if pfad.startswith("/api/widget/teaser/"):
             return self._json(api_teaser(regler))
+        if pfad == "/api/auftraege":
+            try:
+                return self._json(auftraege_lesen())
+            except RuntimeError as fehler:
+                return self._json({"detail": str(fehler)}, 500)
         if pfad.startswith("/ansicht/"):
             schluessel = pfad[len("/ansicht/"):].strip("/")
             for a in ANSICHTEN:
@@ -582,6 +718,7 @@ VORLAGE = """<!doctype html>
   body { margin:0; font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
          color:var(--ink); background:var(--flaeche); height:100vh;
          display:grid; grid-template-columns:264px 1fr; }
+  body.mit-auftraegen { grid-template-columns:264px 1fr 340px }
   aside { background:#fff; border-right:1px solid var(--linie); overflow-y:auto;
           display:flex; flex-direction:column }
   aside h1 { margin:0; padding:18px 18px 6px; font-size:15px; font-weight:900;
@@ -612,12 +749,65 @@ VORLAGE = """<!doctype html>
   .geraete button { border:1px solid var(--linie); background:#fff; padding:5px 11px;
                     border-radius:5px; font:inherit; cursor:pointer }
   .geraete button.an { background:var(--dunkel); color:#fff; border-color:var(--dunkel) }
+  .werkzeug { border:1px solid var(--linie); background:#fff; padding:5px 11px;
+              border-radius:5px; font:inherit; cursor:pointer }
+  .werkzeug.an { background:var(--gelb); border-color:var(--gelb); font-weight:700 }
+  .werkzeug span { font-variant-numeric:tabular-nums }
   .buehne { flex:1; overflow:auto; display:flex; justify-content:center;
             padding:18px; background:var(--flaeche) }
   iframe { border:1px solid var(--linie); background:#fff; border-radius:8px;
            width:100%; height:100%; }
   .rahmen { background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.08);
             height:100%; transition:width .15s }
+  .rahmen.zielt iframe { cursor:crosshair }
+
+  /* ── Auftragsspalte ─────────────────────────────────────────────── */
+  .auftraege { background:#fff; border-left:1px solid var(--linie); display:none;
+               flex-direction:column; min-width:0 }
+  body.mit-auftraegen .auftraege { display:flex }
+  .auftraege > header { padding:12px 16px; border-bottom:1px solid var(--linie) }
+  .auftraege > header b { font-size:13px; color:var(--dunkel) }
+  .auftraege > header p { margin:5px 0 0; font-size:11.5px; color:var(--grau);
+                          line-height:1.45 }
+  .liste { flex:1; overflow-y:auto; padding:10px 12px }
+  .karte { border:1px solid var(--linie); border-radius:7px; padding:10px 12px;
+           margin-bottom:9px; font-size:12.5px }
+  .karte.hier { border-color:var(--mittel); box-shadow:0 0 0 2px rgba(0,142,170,.14) }
+  .karte .kopf { display:flex; gap:7px; align-items:center; margin-bottom:5px }
+  .karte .nr { background:var(--dunkel); color:#fff; font-size:11px; font-weight:700;
+               width:19px; height:19px; border-radius:50%; display:grid;
+               place-items:center; flex:none }
+  .karte.erledigt .nr { background:#00875A }
+  .karte.erledigt { opacity:.6 }
+  .karte.angenommen .nr { background:var(--mittel) }
+  .karte .wo { color:var(--grau); font-size:11px; flex:1; min-width:0;
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .karte .auszug { color:var(--grau); font-style:italic; font-size:11.5px;
+                   margin:0 0 5px; border-left:2px solid var(--linie);
+                   padding-left:7px }
+  .karte .text { white-space:pre-wrap; margin:0 0 6px }
+  .karte .antwort { background:var(--flaeche); border-radius:5px; padding:7px 9px;
+                    margin-top:6px; font-size:12px }
+  .karte .antwort b { color:var(--dunkel) }
+  .karte .fuss { display:flex; gap:6px; flex-wrap:wrap; margin-top:7px }
+  .karte .fuss button { border:1px solid var(--linie); background:#fff;
+                        border-radius:4px; padding:3px 8px; font:inherit;
+                        font-size:11px; cursor:pointer }
+  .karte .fuss button:hover { background:var(--flaeche) }
+  .neu { border-top:1px solid var(--linie); padding:11px 13px }
+  .neu textarea { width:100%; min-height:62px; padding:7px 9px; font:inherit;
+                  font-size:12.5px; border:1px solid var(--linie); border-radius:6px;
+                  resize:vertical }
+  .neu .ziel { font-size:11.5px; color:var(--grau); margin-bottom:5px }
+  .neu .knoepfe { display:flex; gap:7px; margin-top:7px; align-items:center }
+  .neu button.haupt { background:var(--dunkel); color:#fff; border:0;
+                      border-radius:5px; padding:7px 13px; font:inherit;
+                      font-weight:700; cursor:pointer }
+  .neu button.neben { background:none; border:0; color:var(--grau); font:inherit;
+                      font-size:12px; cursor:pointer; text-decoration:underline }
+  .leer { color:var(--grau); font-size:12.5px; padding:14px 4px; line-height:1.55 }
+  .fehler { background:#FDECEA; color:#B3261E; border-radius:5px; padding:7px 9px;
+            font-size:12px; margin-top:7px }
 </style></head>
 <body>
 <aside>
@@ -634,9 +824,29 @@ VORLAGE = """<!doctype html>
     <span class="titel" id="titel"></span>
     <span class="hinweis" id="hinweis"></span>
     <span class="geraete" id="geraete"></span>
+    <button id="zielen" class="werkzeug">Beanstanden</button>
+    <button id="spalte" class="werkzeug">Aufträge <span id="zahl">0</span></button>
   </div>
   <div class="buehne"><div class="rahmen" id="rahmen"><iframe id="rahmenInhalt"></iframe></div></div>
 </main>
+<section class="auftraege" id="auftraege">
+  <header>
+    <b>Aufträge und Beanstandungen</b>
+    <p>Landen in <code>.vorschau-auftraege.json</code>. <strong>Hier liest kein
+    Modell mit</strong> — sag in der Sitzung „schau in die Aufträge", dann
+    werden sie bearbeitet und beantwortet.</p>
+  </header>
+  <div class="liste" id="liste"></div>
+  <div class="neu">
+    <div class="ziel" id="ziel">Notiz ohne Stelle — für eine Stelle erst „Beanstanden" drücken.</div>
+    <textarea id="eingabe" placeholder="Was soll geändert werden?"></textarea>
+    <div class="knoepfe">
+      <button class="haupt" id="senden">Auftrag anlegen</button>
+      <button class="neben" id="verwerfen">Stelle verwerfen</button>
+    </div>
+    <div id="fehler"></div>
+  </div>
+</section>
 <script>
 var ANSICHTEN = __ANSICHTEN__;
 var REGLER = __REGLER__;
@@ -650,6 +860,17 @@ var GERAETE = [
 ];
 var geraet = 0;
 var aktuell = location.hash.slice(1) || ANSICHTEN[0].schluessel;
+
+function reglerWerte() {
+  var w = {};
+  REGLER.forEach(function (r) {
+    var el = document.querySelector('[name="' + r.name + '"]');
+    if (!el) return;
+    var wert = el.type === "checkbox" ? (el.checked ? "an" : "") : el.value.trim();
+    if (wert) w[r.name] = wert;
+  });
+  return w;
+}
 
 function frage() {
   var p = new URLSearchParams();
@@ -717,10 +938,243 @@ window.addEventListener("hashchange", function () {
   laden();
 });
 
+/* ═══════════════════════════════════════════════════════════════════
+   Aufträge — Stecknadeln in der Ansicht, Karten in der Spalte
+   ═══════════════════════════════════════════════════════════════════ */
+
+var AUFTRAEGE = [];
+var zielt = false;      /* Beanstandungsmodus */
+var offeneStelle = null; /* die angeklickte Stelle, bis der Text getippt ist */
+
+function rahmenDok() {
+  var f = document.getElementById("rahmenInhalt");
+  try { return f.contentDocument; } catch (e) { return null; }
+}
+
+function hierher() {
+  /* Nur die Aufträge zur gerade gezeigten Ansicht bekommen Nadeln. Ein
+     Auftrag zur Berichtsseite gehört nicht auf die Mail. */
+  return AUFTRAEGE.filter(function (a) {
+    return a.art === "pin" && a.ansicht === aktuell && a.status !== "erledigt";
+  });
+}
+
+function zeichnePins() {
+  var d = rahmenDok();
+  if (!d || !d.body) return;
+  Array.prototype.forEach.call(d.querySelectorAll(".kpg-nadel"), function (n) {
+    n.remove();
+  });
+  if (!d.getElementById("kpg-nadelstil")) {
+    var stil = d.createElement("style");
+    stil.id = "kpg-nadelstil";
+    stil.textContent =
+      ".kpg-nadel{position:absolute;width:24px;height:24px;border-radius:50% 50% 50% 2px;" +
+      "background:#FAE600;border:2px solid #004F59;color:#004F59;font:700 12px system-ui;" +
+      "display:grid;place-items:center;cursor:pointer;z-index:2147483646;" +
+      "transform:translate(-2px,-24px);box-shadow:0 1px 4px rgba(0,0,0,.3)}" +
+      ".kpg-nadel:hover{background:#fff}";
+    (d.head || d.body).appendChild(stil);
+  }
+  hierher().forEach(function (a) {
+    var nr = AUFTRAEGE.indexOf(a) + 1;
+    var n = d.createElement("div");
+    n.className = "kpg-nadel";
+    n.textContent = nr;
+    n.title = a.text;
+    n.style.left = a.x + "px";
+    n.style.top = a.y + "px";
+    n.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      spalteZeigen(true);
+      var karte = document.getElementById("karte-" + a.id);
+      if (karte) {
+        karte.scrollIntoView({ block: "center" });
+        karte.classList.add("hier");
+        setTimeout(function () { karte.classList.remove("hier"); }, 1600);
+      }
+    }, true);
+    d.body.appendChild(n);
+  });
+}
+
+function zielenAnbinden() {
+  var d = rahmenDok();
+  if (!d) return;
+  d.addEventListener("click", function (e) {
+    if (!zielt) return;
+    /* Im Beanstandungsmodus soll ein Klick nicht dem Link folgen —
+       sonst verlässt die Ansicht die Vorschau. */
+    e.preventDefault();
+    e.stopPropagation();
+    var text = (e.target.innerText || e.target.textContent || "").trim();
+    offeneStelle = {
+      x: Math.round(e.pageX), y: Math.round(e.pageY),
+      auszug: text.replace(/\\s+/g, " ").slice(0, 160),
+      ansicht: aktuell
+    };
+    zielenSetzen(false);
+    spalteZeigen(true);
+    zeichneZiel();
+    document.getElementById("eingabe").focus();
+  }, true);
+}
+
+function zeichneZiel() {
+  var z = document.getElementById("ziel");
+  if (offeneStelle) {
+    z.innerHTML = "Zu dieser Stelle in <b>" + titelVon(offeneStelle.ansicht) +
+      "</b>:<br><i>" + (escape2(offeneStelle.auszug) || "(ohne Text)") + "</i>";
+  } else {
+    z.textContent = "Notiz ohne Stelle — für eine Stelle erst „Beanstanden\u201c drücken.";
+  }
+}
+
+function titelVon(schluessel) {
+  var a = ANSICHTEN.filter(function (x) { return x.schluessel === schluessel; })[0];
+  return a ? a.titel : schluessel;
+}
+
+function escape2(t) {
+  return String(t == null ? "" : t)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function zeichneListe() {
+  var offen = AUFTRAEGE.filter(function (a) { return a.status !== "erledigt"; });
+  document.getElementById("zahl").textContent = offen.length;
+
+  var liste = document.getElementById("liste");
+  if (!AUFTRAEGE.length) {
+    liste.innerHTML = '<div class="leer">Noch nichts beanstandet.<br><br>' +
+      '„Beanstanden“ drücken und in die Ansicht klicken — oder hier unten ' +
+      'einfach einen Auftrag tippen.</div>';
+    return;
+  }
+  liste.innerHTML = AUFTRAEGE.map(function (a, i) {
+    var antworten = (a.antworten || []).map(function (r) {
+      return '<div class="antwort"><b>' + escape2(r.wer) + ':</b> ' +
+        escape2(r.text) + "</div>";
+    }).join("");
+    return '<div class="karte ' + a.status + '" id="karte-' + a.id + '">' +
+      '<div class="kopf"><span class="nr">' + (i + 1) + "</span>" +
+      '<span class="wo">' + escape2(titelVon(a.ansicht) || "ohne Ansicht") +
+      " · " + escape2((a.zeit || "").replace("T", " ").slice(5, 16)) + "</span></div>" +
+      (a.auszug ? '<p class="auszug">' + escape2(a.auszug) + "</p>" : "") +
+      '<p class="text">' + escape2(a.text) + "</p>" + antworten +
+      '<div class="fuss">' +
+      (a.art === "pin" ? '<button data-hin="' + a.id + '">Zur Stelle</button>' : "") +
+      '<button data-status="' + a.id + '">' +
+      (a.status === "erledigt" ? "Wieder öffnen" : "Erledigt") + "</button>" +
+      '<button data-weg="' + a.id + '">Löschen</button>' +
+      "</div></div>";
+  }).join("");
+}
+
+function melden(text) {
+  document.getElementById("fehler").innerHTML =
+    text ? '<div class="fehler">' + escape2(text) + "</div>" : "";
+}
+
+function holen() {
+  return fetch("/api/auftraege").then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.detail) return melden(d.detail);
+      AUFTRAEGE = d.eintraege || [];
+      zeichneListe();
+      zeichnePins();
+    }).catch(function (e) { melden("Ablage nicht erreichbar: " + e.message); });
+}
+
+function schicken(nutzlast) {
+  return fetch("/api/auftraege", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nutzlast)
+  }).then(function (r) { return r.json().then(function (d) {
+    if (!r.ok) throw new Error(d.detail || ("Fehler " + r.status));
+    return d;
+  }); });
+}
+
+function spalteZeigen(an) {
+  document.body.classList.toggle("mit-auftraegen", an);
+  document.getElementById("spalte").classList.toggle("an", an);
+}
+
+function zielenSetzen(an) {
+  zielt = an;
+  document.getElementById("zielen").classList.toggle("an", an);
+  document.getElementById("rahmen").classList.toggle("zielt", an);
+}
+
+document.getElementById("zielen").onclick = function () {
+  zielenSetzen(!zielt);
+  if (zielt) spalteZeigen(true);
+};
+document.getElementById("spalte").onclick = function () {
+  spalteZeigen(!document.body.classList.contains("mit-auftraegen"));
+};
+document.getElementById("verwerfen").onclick = function () {
+  offeneStelle = null;
+  zeichneZiel();
+};
+document.getElementById("senden").onclick = function () {
+  var feld = document.getElementById("eingabe");
+  var text = feld.value.trim();
+  if (!text) { melden("Ohne Text kein Auftrag."); return; }
+  melden("");
+  var nutzlast = {
+    aktion: "neu", text: text, regler: reglerWerte(),
+    ansicht: offeneStelle ? offeneStelle.ansicht : aktuell,
+    art: offeneStelle ? "pin" : "notiz",
+    x: offeneStelle ? offeneStelle.x : 0,
+    y: offeneStelle ? offeneStelle.y : 0,
+    auszug: offeneStelle ? offeneStelle.auszug : ""
+  };
+  schicken(nutzlast).then(function () {
+    feld.value = "";
+    offeneStelle = null;
+    zeichneZiel();
+    return holen();
+  }).catch(function (e) { melden(e.message); });
+};
+
+document.getElementById("liste").onclick = function (e) {
+  var b = e.target.closest ? e.target.closest("button") : null;
+  if (!b) return;
+  if (b.dataset.weg) {
+    schicken({ aktion: "loeschen", id: b.dataset.weg })
+      .then(holen).catch(function (x) { melden(x.message); });
+  } else if (b.dataset.status) {
+    var a = AUFTRAEGE.filter(function (x) { return x.id === b.dataset.status; })[0];
+    schicken({ aktion: "aendern", id: b.dataset.status,
+               status: a && a.status === "erledigt" ? "offen" : "erledigt" })
+      .then(holen).catch(function (x) { melden(x.message); });
+  } else if (b.dataset.hin) {
+    var z = AUFTRAEGE.filter(function (x) { return x.id === b.dataset.hin; })[0];
+    if (!z) return;
+    if (z.ansicht !== aktuell) { location.hash = "#" + z.ansicht; return; }
+    var d = rahmenDok();
+    if (d) d.defaultView.scrollTo({ top: Math.max(0, z.y - 160), behavior: "smooth" });
+  }
+};
+
+/* Die Ablage wird regelmässig neu gelesen. So erscheinen Antworten, die
+   in der Sitzung in die Datei geschrieben wurden, ohne Neuladen. */
+setInterval(holen, 4000);
+
 zeichneRegler();
 zeichneGeraete();
 document.getElementById("rahmen").style.width = GERAETE[geraet].breite;
+document.getElementById("rahmenInhalt").addEventListener("load", function () {
+  zielenAnbinden();
+  zeichnePins();
+});
 laden();
+zeichneZiel();
+holen();
 </script>
 </body></html>"""
 

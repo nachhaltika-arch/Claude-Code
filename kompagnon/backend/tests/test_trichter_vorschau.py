@@ -194,3 +194,82 @@ def test_der_waechter_haelt_echte_kriterienbezeichnungen_aus(vorschau):
     assert not INNEREIEN.search(
         "Lighthouse-Audit &#x27;font-size&#x27;: lesbare Schriftgröße")
     assert not INNEREIEN.search("Ein Satz mit { geschweifter Klammer }")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Die Auftragsablage
+# ══════════════════════════════════════════════════════════════════════
+#
+# Was in der Vorschau beanstandet wird, ist ein Auftrag an die nächste
+# Sitzung. Geht er verloren, merkt es niemand — der Absender glaubt, er sei
+# angekommen. Deshalb hat die Ablage Tests wie ein Erzeugnis.
+
+@pytest.fixture
+def ablage(vorschau, tmp_path, monkeypatch):
+    """Eine eigene Datei je Test — niemals die echte des Nutzers."""
+    monkeypatch.setattr(vorschau, "AUFTRAGSDATEI",
+                        str(tmp_path / "auftraege.json"))
+    return vorschau
+
+
+def test_ohne_datei_ist_die_ablage_leer_und_kein_fehler(ablage):
+    assert ablage.auftraege_lesen() == {"eintraege": []}
+
+
+def test_ein_auftrag_ueberlebt_das_schreiben(ablage):
+    ablage.auftrag_anlegen({"aktion": "neu", "text": "Der Kasten ist zu gelb",
+                            "ansicht": "bericht", "art": "pin",
+                            "x": 400, "y": 1200, "auszug": "Abnahmezusage"})
+    eintraege = ablage.auftraege_lesen()["eintraege"]
+    assert len(eintraege) == 1
+    assert eintraege[0]["text"] == "Der Kasten ist zu gelb"
+    assert eintraege[0]["status"] == "offen"
+    assert eintraege[0]["auszug"] == "Abnahmezusage"
+
+
+def test_ein_auftrag_ohne_text_wird_abgewiesen(ablage):
+    """Sonst steht in der Liste ein leerer Eintrag, den niemand deuten kann."""
+    with pytest.raises(ValueError):
+        ablage.auftrag_anlegen({"text": "   "})
+
+
+def test_eine_antwort_landet_am_auftrag(ablage):
+    eintrag = ablage.auftrag_anlegen({"text": "Frage", "ansicht": "bericht"})
+    ablage.auftrag_aendern({"id": eintrag["id"], "antwort": "Antwort",
+                            "wer": "Claude", "status": "angenommen"})
+    gelesen = ablage.auftraege_lesen()["eintraege"][0]
+    assert gelesen["status"] == "angenommen"
+    assert gelesen["antworten"][0]["wer"] == "Claude"
+
+
+def test_eine_unbekannte_kennung_wird_gemeldet_statt_verschluckt(ablage):
+    with pytest.raises(ValueError):
+        ablage.auftrag_aendern({"id": "gibtsnicht", "status": "erledigt"})
+    with pytest.raises(ValueError):
+        ablage.auftrag_loeschen({"id": "gibtsnicht"})
+
+
+def test_eine_kaputte_ablage_wird_nicht_ueberschrieben(ablage):
+    """Der teuerste Fall: Wer eine Woche lang gesammelt hat, soll das nicht
+    dadurch verlieren, dass ein Schreibvorgang abgebrochen ist."""
+    with open(ablage.AUFTRAGSDATEI, "w", encoding="utf-8") as f:
+        f.write('{"eintraege": [ kaputt')
+
+    with pytest.raises(RuntimeError):
+        ablage.auftraege_lesen()
+
+    with open(ablage.AUFTRAGSDATEI, encoding="utf-8") as f:
+        assert "kaputt" in f.read()
+
+
+def test_geschrieben_wird_erst_daneben_dann_umbenannt(ablage):
+    """Ein abgebrochenes Schreiben soll keine halbe Datei hinterlassen."""
+    ablage.auftrag_anlegen({"text": "eins"})
+    assert not os.path.exists(ablage.AUFTRAGSDATEI + ".neu")
+
+
+def test_der_status_kommt_aus_der_liste_und_nicht_vom_absender(ablage):
+    """Ein erfundener Status würde die Karte unsichtbar machen."""
+    eintrag = ablage.auftrag_anlegen({"text": "eins"})
+    ablage.auftrag_aendern({"id": eintrag["id"], "status": "gelöscht-hihi"})
+    assert ablage.auftraege_lesen()["eintraege"][0]["status"] == "offen"

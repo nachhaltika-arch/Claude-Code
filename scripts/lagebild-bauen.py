@@ -171,6 +171,10 @@ HANDGESETZT = {
     # Entscheidung ueber das eigene Wort, keine Programmierarbeit.
     "L-185": "teilweise",
 
+    # Sichtbar ist die gescheiterte Analyse jetzt (10.09.2026), gerettet ist
+    # der Lead damit nicht: Der automatische zweite Versuch fehlt bewusst.
+    "L-184": "teilweise",
+
     # ── terminiert: entschieden, datiert, von einem Test gehalten ──────
     #
     # **Warum es diesen vierten Zustand gibt** (Entscheidung 01.09.2026).

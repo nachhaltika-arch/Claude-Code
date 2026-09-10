@@ -54,6 +54,44 @@ class TestEmailRequest(BaseModel):
 REQUEST_HISTORY_LIMIT = 25
 
 
+#: Wie viel von der Fehlermeldung in die Liste kommt. Sie ist fuer den
+#: Innendienst, nicht fuer den Kunden — aber eine Seite voll Rueckverfolgung
+#: macht die Liste unlesbar.
+FEHLER_LAENGE = 200
+
+
+def _analysestaende(db, zeilen) -> dict:
+    """Status und Fehlergrund je Analyse — **eine** Abfrage fuer alle Zeilen.
+
+    Nicht je Zeile nachschlagen: Die Liste zeigt 25 Anfragen, das waeren 25
+    Abfragen fuer eine Ansicht, die der Innendienst mehrmals taeglich oeffnet.
+
+    **Ein Fehler hier darf die Liste nicht kippen.** Sie beantwortet vor
+    allem, ob Berichte rausgingen; der Analysestand ist ein Zusatz. Faellt er
+    aus, fehlt eine Spalte — nicht die Seite.
+    """
+    kennungen = {z.audit_id for z in zeilen if z.audit_id}
+    if not kennungen:
+        return {}
+    try:
+        from modelle_audit import AuditResult
+
+        gefunden = (db.query(AuditResult)
+                    .filter(AuditResult.id.in_(kennungen))
+                    .all())
+    except Exception as fehler:  # noqa: BLE001
+        db.rollback()
+        logger.warning("Analysestand nicht lesbar: %s: %s",
+                       type(fehler).__name__, fehler)
+        return {}
+
+    return {
+        a.id: (a.status,
+               (a.error_message or "")[:FEHLER_LAENGE] if a.status == "failed" else None)
+        for a in gefunden
+    }
+
+
 def widget_embed_url() -> str:
     base = public_base_url()
     return f"{base}/embed/audit-widget.html"
@@ -164,6 +202,7 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
         .limit(REQUEST_HISTORY_LIMIT)
         .all()
     )
+    staende = _analysestaende(db, rows)
     return {
         "requests": [
             {
@@ -193,6 +232,14 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 "verified_ip": getattr(row, "verified_ip", None) or None,
                 "verify_dauer_s": _verify_dauer(row),
                 "bestaetigung_verdaechtig": _verdaechtig(row),
+                # ── Lief die Analyse ueberhaupt? (L-184, 10.09.2026) ─────
+                # Ohne diese zwei Felder sah eine **gescheiterte Erhebung**
+                # genauso aus wie eine im Spam gelandete Mail: „Bestaetigung
+                # angefragt: nein", sonst nichts. Zwei Ursachen, ein Bild —
+                # und keine Handlungsmoeglichkeit, weil der Grund fehlte.
+                # Er lag die ganze Zeit in `audit_results.error_message`.
+                "analyse_status": staende.get(row.audit_id, (None, None))[0],
+                "analyse_fehler": staende.get(row.audit_id, (None, None))[1],
             }
             for row in rows
         ],

@@ -252,17 +252,40 @@ function Anfragen({ eintraege, limit }) {
                 <td style={{ ...zelle, maxWidth: 220, overflowWrap: 'anywhere' }}>
                   {eintrag.website_url}
                 </td>
-                {/* Vier Stufen, von hinten gelesen: abgerufen schlägt
+                {/* Fünf Stufen, von hinten gelesen: abgerufen schlägt
                     versendet, versendet setzt die bestätigte Adresse voraus.
-                    Ohne Bestätigung geht kein Berichtslink raus. */}
+                    Ohne Bestätigung geht kein Berichtslink raus.
+
+                    **Die gescheiterte Analyse steht vor allen anderen**
+                    (L-184, 10.09.2026). Sie sah vorher aus wie „offen" —
+                    genau wie eine Mail, die im Spam landete. Zwei ganz
+                    verschiedene Ursachen, ein Bild, und in beiden Fällen
+                    keine Handlungsmöglichkeit. Der Grund stand die ganze
+                    Zeit in der Analyse und war aus dem Werkzeug nicht zu
+                    erreichen. */}
                 <td style={zelle}>
-                  <Zustand ok={eintrag.report_opened || eintrag.report_sent}>
-                    {eintrag.report_opened ? 'abgerufen'
-                      : eintrag.report_sent ? 'versendet'
-                      : eintrag.verified ? 'bestätigt'
-                      : eintrag.verify_sent ? 'wartet auf Bestätigung'
-                      : 'offen'}
-                  </Zustand>
+                  {eintrag.analyse_status === 'failed' ? (
+                    <Zustand ok={false}>
+                      <span title={eintrag.analyse_fehler || ''}>
+                        Analyse fehlgeschlagen
+                      </span>
+                    </Zustand>
+                  ) : (
+                    <Zustand ok={eintrag.report_opened || eintrag.report_sent}>
+                      {eintrag.report_opened ? 'abgerufen'
+                        : eintrag.report_sent ? 'versendet'
+                        : eintrag.verified ? 'bestätigt'
+                        : eintrag.verify_sent ? 'wartet auf Bestätigung'
+                        : eintrag.analyse_status === 'running' ? 'Analyse läuft'
+                        : 'offen'}
+                    </Zustand>
+                  )}
+                  {eintrag.analyse_status === 'failed' && eintrag.analyse_fehler && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)',
+                                  marginTop: 2, overflowWrap: 'anywhere' }}>
+                      {eintrag.analyse_fehler}
+                    </div>
+                  )}
                 </td>
                 <td style={{ ...zelle, color: 'var(--text-secondary)' }}>
                   {!eintrag.consent_marketing && 'nicht erteilt'}

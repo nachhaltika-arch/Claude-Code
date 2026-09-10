@@ -77,9 +77,30 @@ class TestLieferungUndLeistung:
         assert "45 Minuten" not in texte
 
     def test_anrechnung_bleibt_zugesichert(self, eintrag):
-        # G5 ist das Verkaufsargument des Produkts — es darf beim Umbau der
-        # Leistungsliste nicht stillschweigend herausfallen.
-        assert any("Anrechenbar" in f for f in eintrag["features"])
+        """G5 ist das Verkaufsargument des Produkts.
+
+        **Dritte Fassung, 10.09.2026, und die ersten beiden waren falsch
+        gezielt.** Die erste prueft den Wortlaut einer Leistungszeile
+        („Anrechenbar auf einen Websprint, 6 Monate"); mit dem neuen
+        Leistungsumfang steht die Zusage nicht mehr in der Liste, sondern als
+        hervorgehobener Kasten aus `credit_months`. Die zweite fragte die
+        **Datenbank** — und traf eine Zeile aus einem frueheren Lauf, also
+        eine Altlast statt des Codes. Genau die Falle, die hier schon einmal
+        lokal gruen und in der CI rot war.
+
+        Geprueft wird jetzt die Quelle: die Vorlage fuer eine frische
+        Datenbank **und** die Migration fuer eine gewachsene. Beide oder
+        keine — sonst haengt das Verkaufsargument davon ab, wie die
+        Datenbank entstanden ist.
+        """
+        import pathlib
+
+        assert eintrag.get("is_creditable") is True
+        assert eintrag.get("credit_months") == 6
+
+        quelle = (pathlib.Path(__file__).resolve().parent.parent
+                  / "migrations_runtime.py").read_text(encoding="utf-8")
+        assert "credit_months = 6" in quelle and "'check_plus'" in quelle
 
     def test_status_bleibt_entwurf(self, eintrag):
         # Freischalten ist eine Entscheidung, kein Handgriff: Der Shop weist

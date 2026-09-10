@@ -1362,7 +1362,7 @@ def run_migrations():
              ('websprint_relaunch', 'Websprint Relaunch',
               'Bestehende Website auf den Homepage-Standard heben',
               4165.00, 3500.00, 19, 'once', 14, 'live', false, 'Empfehlung',
-              '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb,
+              '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
               1)
@@ -1540,7 +1540,7 @@ def run_migrations():
               'Check PLUS',
               'Der Homepage-Standard-Check mit persoenlicher Auswertung',
               296.31, 249.00, 19, 'once', 5, 'draft', false, 'Empfehlung',
-              '["Vollstaendiges Audit nach Homepage-Standard, manuell nachgeprueft","Manuelle Bewertung der maschinell nicht pruefbaren Punkte","Priorisierte Massnahmenliste: was zuerst, welcher Punktgewinn","Auswertungsgespraech, 60 Minuten, per Videokonferenz","Schriftliche Zusammenfassung mit Handlungsempfehlung","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '[]'::jsonb,
               11)
@@ -1557,6 +1557,22 @@ def run_migrations():
             WHERE slug = 'workbook_homepage_standard'
               AND tax_rate = 19
               AND price_brutto = 149.00""",
+        # ── 10.09.2026: Leistungsumfang nach Vorgabe David ────────────
+        #
+        # Beide Listen sind der **Vertragsgegenstand**, nicht Anzeigetext.
+        # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —
+        # produktiv und auf Staging steht die alte Liste schon drin.
+        #
+        # Eng gehalten: nur solange die alte Liste unveraendert ist. Wer sie
+        # von Hand gepflegt hat, bekommt seine Zeile nicht ueberschrieben.
+        """UPDATE products SET features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb
+            WHERE slug = 'websprint_relaunch'
+              AND features @> '["Eine Korrekturschleife"]'::jsonb""",
+        """UPDATE products SET features = '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
+            WHERE slug = 'check_plus'
+              AND features @> '["Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
+              AND NOT features @> '["Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl"]'::jsonb""",
+
         # ── 10.09.2026: Check PLUS trug den Nettopreis als Brutto ──
         #
         # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —

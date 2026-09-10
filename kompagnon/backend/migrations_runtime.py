@@ -1539,8 +1539,8 @@ def run_migrations():
              ('check_plus',
               'Check PLUS',
               'Der Homepage-Standard-Check mit persoenlicher Auswertung',
-              249.00, 209.24, 19, 'once', 7, 'draft', false, 'Empfehlung',
-              '["Vollpruefung nach dem Homepage-Standard, 100 Punkte","Schriftlicher Befundbericht","Persoenliche Auswertung, 45 Minuten","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              296.31, 249.00, 19, 'once', 5, 'draft', false, 'Empfehlung',
+              '["Vollstaendiges Audit nach Homepage-Standard, manuell nachgeprueft","Manuelle Bewertung der maschinell nicht pruefbaren Punkte","Priorisierte Massnahmenliste: was zuerst, welcher Punktgewinn","Auswertungsgespraech, 60 Minuten, per Videokonferenz","Schriftliche Zusammenfassung mit Handlungsempfehlung","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '[]'::jsonb,
               11)
@@ -1557,6 +1557,28 @@ def run_migrations():
             WHERE slug = 'workbook_homepage_standard'
               AND tax_rate = 19
               AND price_brutto = 149.00""",
+        # ── 10.09.2026: Check PLUS trug den Nettopreis als Brutto ──
+        #
+        # `ON CONFLICT DO NOTHING` oben fasst bestehende Zeilen nicht an —
+        # produktiv und auf Staging steht die falsche Zahl aber schon drin.
+        # Das Datenblatt CHK-PLU-01 sagt **249 netto**, die Zeile fuehrte
+        # 249,00 als Brutto (209,24 netto). Der Shop baut die Kassensitzung
+        # aus `price_brutto`; es fehlten also 39,76 EUR bei jedem Verkauf.
+        # Entscheidung David, 10.09.2026.
+        #
+        # **Warum kein Waechter das gefunden hat:** `test_produktkatalog`
+        # prueft die Beziehung brutto = netto x Satz, und 209,24 x 1,19 =
+        # 249,00 ist tadellos. Falsch war nicht die Rechnung, sondern die
+        # Ausgangszahl — dagegen hilft nur eine Pruefung gegen die Quelle.
+        #
+        # Eng gehalten: nur solange die alten Werte unveraendert sind. Wer
+        # den Preis von Hand gepflegt hat, bekommt seine Zeile nicht
+        # ueberschrieben.
+        """UPDATE products
+              SET price_brutto = 296.31, price_netto = 249.00, delivery_days = 5
+            WHERE slug = 'check_plus'
+              AND price_brutto = 249.00
+              AND price_netto = 209.24""",
         # ── 27.08.2026: das Buch im Katalog (Bitte David) ──
         # **Damit es im Produkt-Editor bearbeitbar ist** — verkauft wird es
         # weiterhin ueber `POST /api/book/checkout`, das drei Varianten und

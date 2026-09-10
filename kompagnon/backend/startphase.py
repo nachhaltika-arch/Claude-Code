@@ -191,11 +191,17 @@ def produkt_vorlage() -> list:
             "name": "Check PLUS",
             "sort_order": 11,
             "short_desc": "Der Homepage-Standard-Check mit persoenlicher Auswertung",
-            "price_brutto": 249.00, "price_netto": 209.24, "tax_rate": 19,
-            "payment_type": "once", "delivery_days": 7, "status": "draft",
-            "features": ["Vollpruefung nach dem Homepage-Standard, 100 Punkte",
-                "Schriftlicher Befundbericht",
-                "Persoenliche Auswertung, 45 Minuten",
+            # Zahlen aus Datenblatt CHK-PLU-01, nicht geschaetzt (10.09.2026).
+            # Hier stand 249,00 als **Brutto**; das Datenblatt sagt 249 netto,
+            # und der Shop bucht `price_brutto` ab — es fehlten 39,76 EUR je
+            # Verkauf. Entscheidung David am 10.09.2026.
+            "price_brutto": 296.31, "price_netto": 249.00, "tax_rate": 19,
+            "payment_type": "once", "delivery_days": 5, "status": "draft",
+            "features": ["Vollstaendiges Audit nach Homepage-Standard, manuell nachgeprueft",
+                "Manuelle Bewertung der maschinell nicht pruefbaren Punkte",
+                "Priorisierte Massnahmenliste: was zuerst, welcher Punktgewinn",
+                "Auswertungsgespraech, 60 Minuten, per Videokonferenz",
+                "Schriftliche Zusammenfassung mit Handlungsempfehlung",
                 "Anrechenbar auf einen Websprint, 6 Monate"],
             "checkout_fields": ["name", "company", "email"],
             "webhook_actions": [],

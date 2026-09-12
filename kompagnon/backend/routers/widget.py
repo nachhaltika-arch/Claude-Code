@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import AuditResult, Lead, WidgetRequest, get_db
-from services import widget_report
+from services import analyse_fehler, widget_report
 from services.dateinamen import anhang_kopfzeile
 from services.url_guard import check_url
 
@@ -321,8 +321,15 @@ def audit_teaser(token: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Analyse nicht gefunden")
 
     if audit.status != "completed":
+        # **Der Grund als Schlüssel, nicht als Meldung** (L-184). Hier stand
+        # `error` mit dem Wortlaut der Ausnahme — `ConnectTimeout: …` ging
+        # damit an jeden, der den Poll-Token hat, und half dort niemandem.
+        # Das Widget braucht nur zu wissen, *welcher* Fall vorliegt, um den
+        # richtigen Satz zu zeigen; die Meldung selbst bleibt in
+        # `error_message` und in der Anfrageliste.
         return {"status": audit.status,
-                "error": audit.error_message if audit.status == "failed" else None}
+                "grund": (analyse_fehler.kategorie(audit.error_message)
+                          if audit.status == "failed" else None)}
 
     issues = widget_report._json_field(audit.top_issues, [])
     blockers = widget_report._json_field(audit.blockers, [])

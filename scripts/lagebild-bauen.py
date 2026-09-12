@@ -171,9 +171,12 @@ HANDGESETZT = {
     # Entscheidung ueber das eigene Wort, keine Programmierarbeit.
     "L-185": "teilweise",
 
-    # Sichtbar ist die gescheiterte Analyse jetzt (10.09.2026), gerettet ist
-    # der Lead damit nicht: Der automatische zweite Versuch fehlt bewusst.
-    "L-184": "teilweise",
+    # L-184 stand hier bis zum 12.09.2026 auf „teilweise": sichtbar war die
+    # gescheiterte Analyse, gerettet der Lead nicht. Jetzt bekommt der
+    # Besucher einen Satz, der zur Ursache passt, **und** eine Mail — der
+    # Eintrag traegt seine Durchstreichung selbst, die Hand wird nicht mehr
+    # gebraucht. Der automatische zweite Versuch fehlt weiterhin bewusst;
+    # das ist eine eigene Entscheidung und keine Restarbeit.
 
     # Schritt 1 steht und liefert (10.09.2026). Es fehlen Bilder, der
     # Branchenschnitt und zwei redaktionelle Bloecke — kein Restaufwand am

@@ -807,6 +807,41 @@
     });
   }
 
+  /* Warum eine Analyse scheiterte — in der Sprache des Besuchers (L-184).
+
+     Hier stand bei JEDEM Fehlschlag derselbe Satz: „Die Seite war nicht
+     erreichbar. Bitte die Adresse prüfen …". Bei einer Zeitüberschreitung
+     unseres eigenen Laufs ist das falsch, und beim gemessenen Hauptfall aus
+     L-183 — der Hoster nimmt aus Frankfurt keine Verbindung an — ist es
+     doppelt falsch: Die Seite läuft, die Adresse stimmt, und der Besucher
+     wird losgeschickt, einen Fehler zu suchen, den es bei ihm nicht gibt.
+
+     Nur der erste Fall unten verlangt etwas von ihm. Er ist der einzige, in
+     dem er wirklich etwas tun kann. Der Server schickt dafür einen
+     Schlüssel, nie die Rohmeldung — `ConnectTimeout` hilft niemandem. */
+  var FEHLERTEXTE = {
+    adresse_unbekannt:
+      'Unter dieser Adresse haben wir keine Website gefunden. Bitte prüfen ' +
+      'Sie die Schreibweise und versuchen Sie es noch einmal.',
+    nicht_erreichbar:
+      'Wir sind von hier aus nicht zu Ihrer Seite durchgekommen — das liegt ' +
+      'meist an einer Schutzeinstellung des Hosters, nicht an Ihrer Seite. ' +
+      'Wir sehen es uns an und melden uns per E-Mail.',
+    zeitgrenze:
+      'Die Prüfung hat länger gedauert als vorgesehen. Das liegt an uns. ' +
+      'Wir sehen es uns an und melden uns per E-Mail.',
+    unbekannt:
+      'Die Analyse ist nicht durchgelaufen. Wir sehen es uns an und melden ' +
+      'uns per E-Mail.'
+  };
+
+  function fehlertext(grund) {
+    /* Ein Grund, den diese Fassung noch nicht kennt, darf keinen leeren
+       Kasten ergeben — das Widget wird seltener ausgeliefert als der
+       Server. */
+    return FEHLERTEXTE[grund] || FEHLERTEXTE.unbekannt;
+  }
+
   /* Abgefragt wird mit dem Token der eigenen Anfrage, nicht mit der Nummer
      der Analyse. Auf einer laufenden Nummer liess sich der Endpunkt von aussen
      durchzählen und gab fremde Analysen aus. */
@@ -827,10 +862,7 @@
             renderResult(d, cleanUrl, email, pollToken);
           } else if (d.status === 'failed') {
             clearInterval(poll); clearInterval(msgTimer);
-            /* Nicht der URL die Schuld geben: meistens war die Seite nur
-               kurz nicht erreichbar. */
-            renderError('Die Seite war nicht erreichbar. Bitte die Adresse prüfen ' +
-                        'oder in ein paar Minuten erneut versuchen.');
+            renderError(fehlertext(d.grund));
           }
         })
         .catch(function () { /* einzelnen Poll-Fehler ignorieren */ });

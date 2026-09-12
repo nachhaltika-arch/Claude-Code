@@ -18,6 +18,7 @@ from typing import Optional
 from database import get_db, Briefing, Lead, Project
 from routers.auth_router import (get_current_user, require_any_auth,
                                  require_innendienst)
+from services.dateinamen import anhang_kopfzeile
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +272,7 @@ def briefing_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": anhang_kopfzeile(filename)},
     )
 
 

@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from database import AuditResult, Lead, User, get_db, SessionLocal
 from routers.auth_router import optional_auth, require_innendienst
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.dateinamen import anhang_kopfzeile
 from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
 # Die Aufbereitung der Antwort steht seit dem 23.08.2026 fuer sich (L-25):
@@ -602,7 +603,8 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf"'
+                "Content-Disposition": anhang_kopfzeile(
+                    f"Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf")
             },
         )
     except HTTPException:
@@ -632,7 +634,8 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="Angebot-KOMPAGNON-{safe_name}.pdf"'
+                "Content-Disposition": anhang_kopfzeile(
+                    f"Angebot-KOMPAGNON-{safe_name}.pdf")
             },
         )
     except HTTPException:

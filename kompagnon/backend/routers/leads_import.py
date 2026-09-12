@@ -34,6 +34,7 @@ from routers.auth_router import require_innendienst
 
 # `LeadResponse` bleibt in `leads.py` — dort haengt der Kundenweg daran.
 from routers.leads import LeadResponse
+from services.dateinamen import anhang_kopfzeile
 
 import_jobs = {}
 
@@ -75,7 +76,7 @@ def export_leads_csv(db: Session = Depends(get_db)):
     return StreamingResponse(
         iter([output.getvalue().encode("utf-8-sig")]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=leads-export.csv"},
+        headers={"Content-Disposition": anhang_kopfzeile("leads-export.csv")},
     )
 
 

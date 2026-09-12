@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from routers.auth_router import require_innendienst
+from services.dateinamen import anhang_kopfzeile
 
 # Vorgabe am Router, nicht an der einzelnen Route. Bis zum 21.08.2026 trugen
 # diese Routen nur `require_any_auth` und **keine Zeilenpruefung**: Sie holen
@@ -151,5 +152,5 @@ def export_project_zip(
     return StreamingResponse(
         buf,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": anhang_kopfzeile(filename)},
     )

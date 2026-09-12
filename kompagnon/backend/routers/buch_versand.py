@@ -37,6 +37,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from modelle_buch import BookOrder
 from routers.auth_router import require_admin
+from services.dateinamen import anhang_kopfzeile
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +282,7 @@ def csv_export(
     return StreamingResponse(
         iter([puffer.getvalue().encode("utf-8-sig")]),
         media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        headers={"Content-Disposition": anhang_kopfzeile(name)},
     )
 
 

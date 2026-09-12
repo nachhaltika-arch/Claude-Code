@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from database import AuditResult, Lead, WidgetRequest, get_db
 from services import widget_report
+from services.dateinamen import anhang_kopfzeile
 from services.url_guard import check_url
 
 logger = logging.getLogger(__name__)
@@ -462,7 +463,7 @@ def public_report_pdf(token: str, db: Session = Depends(get_db)):
     return Response(
         pdf, media_type="application/pdf",
         headers={**SEITEN_KOPFZEILEN,
-                 "Content-Disposition": f'attachment; filename="Website-Analyse-{name}.pdf"'},
+                 "Content-Disposition": anhang_kopfzeile(f"Website-Analyse-{name}.pdf")},
     )
 
 

@@ -36,6 +36,67 @@ SCHWELLE_MITTEL = 50
 #: Wie lange ein Angebot gilt — aus dem Angebotsbaukasten.
 ANGEBOT_GUELTIG_TAGE = 30
 
+#: Die beiden Leistungsgrenzen des Relaunch, wörtlich aus dem
+#: Leistungsverzeichnis `docs/produkte/ws-rel-01.md`. Sie stehen hier und
+#: nicht im Datensatz, weil es dafür keine Spalte gibt und zwei Spalten für
+#: zwei Beschriftungen mehr kosten als sie tragen. Damit sie nicht vom Blatt
+#: abdriften, prüft `test_relaunch_eckdaten` beide gegen das Blatt.
+SEITENUMFANG = "bis 6 Seiten"
+KORREKTURSCHLEIFEN = "1 enthalten"
+
+#: Ab dieser Punktzahl braucht eine Seite keinen Relaunch mehr — die
+#: Abnahmezusage des Standards (G1) nennt sie als Untergrenze. Oberhalb
+#: davon bleibt die Angebotsbegründung leer.
+GARANTIEPUNKTE = 85
+
+#: Wo das Portrait des Ansprechpartners im Frontend liegt. Es wird auf der
+#: Berichtsseite höchstens 168 px breit und rund beschnitten dargestellt —
+#: die Datei ist deshalb 500 px breit (trägt auch Retina) und wiegt 58 kB
+#: statt der 2,5 MB des Originals. Wer sie austauscht, achte auf beides:
+#: Die Seite wird oft am Handy aus einer E-Mail geöffnet.
+PORTRAIT_DATEI = "/team/m_vonschaumburg-lippe.jpg"
+
+#: Die zubuchbaren Leistungen, wörtlich aus dem Leistungsverzeichnis
+#: `docs/produkte/ws-rel-01.md`, Abschnitt 3 („Zusatzleistungen").
+#:
+#: **Warum hier und nicht im Katalog** — L-29 sagt: Preise kommen aus
+#: `products`. Diese sieben sind dort nicht, weil sie keine kaufbaren
+#: Produkte sind: Es gibt keine Kasse, keinen Auftragsweg und keine
+#: Auftragsbestätigung dafür. Sie in den Katalog zu legen, hiesse sieben
+#: Zeilen anzulegen, die nichts auslösen — und L-29 schützt vor einer
+#: zweiten Preisquelle, nicht vor einer Preisliste.
+#:
+#: Abdriften ist trotzdem möglich, deshalb prüft
+#: `test_zusatzleistungen_stehen_so_im_blatt` jede Zeile gegen das Blatt.
+ZUSATZLEISTUNGEN = (
+    ("Jede weitere Seite über 6 hinaus", "290 €"),
+    ("Texterstellung statt Übernahme, je Seite", "350 €"),
+    ("Fotoproduktion vor Ort, halber Tag", "890 €"),
+    ("Rechtstexte über Partnerkanzlei", "ab 250 €"),
+    ("GEO/GAIO Add-on", "1.200 €"),
+    ("Pflege Basic ab Abnahme", "79 €/Mon."),
+    ("Pflege Pro ab Abnahme", "149 €/Mon."),
+)
+
+#: Der Ablauf, aus derselben Quelle (Abschnitt 4, „Ablauf und Termine").
+#: Das Blatt führt sieben Zeilen (Phase 0 bis 6); Abnahmeaudit und Go-Live
+#: stehen hier zusammen, weil sie für den Kunden ein Schritt sind — sechs
+#: Spalten, wie die Überschrift sagt.
+ABLAUF = (
+    {"tage": "Phase 0", "titel": "Auftrag",
+     "text": "Auftragserteilung und Anforderung Ihrer Unterlagen."},
+    {"tage": "Tag 0", "titel": "Fristbeginn",
+     "text": "Ihre Mitwirkungsleistungen liegen vollständig vor."},
+    {"tage": "Tag 1–6", "titel": "Struktur und Rohaufbau",
+     "text": "Seitenplan umgesetzt, Komponenten stehen."},
+    {"tage": "Tag 7–10", "titel": "Inhalte und Bilder",
+     "text": "Texte überarbeitet, Bildmaterial aufbereitet, Feinaufbau."},
+    {"tage": "Tag 11–12", "titel": "Ihre Korrekturschleife",
+     "text": "Kundenvorschau, eine Schleife ist enthalten."},
+    {"tage": "Tag 13–14", "titel": "Abnahme und Go-Live",
+     "text": "Abnahmeaudit, DNS-Umstellung, Protokoll, Einweisung."},
+)
+
 
 def _farbe(anteil: int) -> str:
     from services import brand
@@ -94,6 +155,22 @@ def _kategorien(audit, items, sources, belege) -> list:
             "kriterien": zeilen,
         })
     return ergebnis
+
+
+def _kaufweg(roh, rueckfall: str) -> str:
+    """Eine Kaufadresse — oder der Kalender.
+
+    Der Wert kommt aus einer Einstellung im Werkzeug und landet in einem
+    `href` auf einer Seite, die ein Kunde oeffnet. `javascript:` und `data:`
+    gehoeren dort nicht hin; dieselbe Schranke wie in
+    `check_plus_angebot._sichere_adresse`.
+    """
+    wert = (roh or "").strip()
+    if wert.startswith(("https://", "http://", "/")):
+        return wert
+    if wert:
+        logger.warning("Kaufadresse verworfen (Schema): %r", wert[:40])
+    return rueckfall
 
 
 def _rabattpreis(netto, satz: str) -> str:
@@ -241,15 +318,156 @@ def _rechtsbefund(audit) -> str:
     **Leer heisst: kein roter Kasten.** Der Entwurf behauptete dort konkrete
     Maengel; ein Bericht, der einem Betrieb ohne Befund einen vorhaelt, ist
     schlimmer als einer ohne Kasten.
+    **Am 10.09.2026 korrigiert.** Hier stand der rohe Wert aus dem Befund,
+    und der ist eine Kennung: `detect_blockers` legt `"kein_impressum"` ab,
+    nicht den Satz dazu. Auf der Berichtsseite las ein Kunde damit
+    „kein_impressum. keine_datenschutzerklaerung." — Datenbankinhalt in
+    einem roten Kasten auf einer Verkaufsseite.
+
+    Die Übersetzung gab es die ganze Zeit: `BLOCKER_LABELS` im Katalog, seit
+    es die K.-o.-Kriterien gibt. Die alte Berichtsmail benutzt sie
+    (`widget_report._blocker_block`), die neue Seite hatte sie schlicht nicht
+    mitbekommen. Gefunden in der Trichter-Vorschau, nicht produktiv.
+
+    Eine unbekannte Kennung wird **weggelassen**, nicht durchgereicht: Ein
+    neuer Blocker ohne Text ist ein Fehler im Katalog, und ein Kunde soll ihn
+    nicht buchstabieren müssen.
     """
+    from services.audit_criteria import BLOCKER_LABELS
     from services.widget_report import _json_field
 
     gruende = _json_field(getattr(audit, "blockers", None), [])
     if not gruende:
         return ""
-    texte = [str(g.get("text") or g.get("label") or g) if isinstance(g, dict) else str(g)
-             for g in gruende]
-    return " ".join(t.rstrip(".") + "." for t in texte if t)
+
+    texte = []
+    for grund in gruende:
+        if isinstance(grund, dict):
+            text = grund.get("text") or grund.get("label") or grund.get("titel") or ""
+        else:
+            text = BLOCKER_LABELS.get(str(grund), "")
+        if text:
+            texte.append(str(text).rstrip(".") + ".")
+    return " ".join(texte)
+
+
+def _faq(abnahmepunkte: str) -> list:
+    """Die sechs Fragen über dem Ansprechpartner (Vorgabe David, 10.09.2026).
+
+    Jede Antwort ist gegen `docs/produkte/ws-rel-01.md` geprüft. **Drei
+    davon standen im Entwurf anders**, und zwar so, dass sie mehr versprachen
+    als der Vertrag hergibt:
+
+    1. **Hosting.** Der Entwurf sagte „Sie können Ihr bestehendes Hosting
+       behalten." Im Leistungsverzeichnis steht unter 3.2 die *Einrichtung*
+       des Hostings samt SSL und Weiterleitungen als enthaltene Leistung —
+       und in der Merkmalsliste „Hosting, SSL, Weiterleitungen, Umstellung
+       der Domain". Beides nebeneinander liest sich widersprüchlich. Die
+       Antwort sagt jetzt, was im Vertrag steht.
+
+    2. **Barrierefreiheitserklärung.** Der Entwurf versprach, sie technisch
+       korrekt einzubauen. Sie steht **nicht** im Leistungsumfang — dort
+       stehen „Grundlagen der Barrierefreiheit: Kontraste, Tastatur,
+       Semantik". Der Audit-Katalog führt sie als eigenes Kriterium
+       (`rc_bfsg`). Entweder gehört sie in die Merkmalsliste, oder sie darf
+       hier nicht zugesagt werden; bis das entschieden ist, steht sie nicht
+       da. **Gemeldet an David am 10.09.2026.**
+
+    3. **„mindestens 96 Punkte".** Dieselbe Zahl wie im Angebotskasten und
+       dasselbe Problem: Der Standard nennt 85. Der Satz erscheint nur,
+       wenn eine Abnahmezusage eingetragen ist, und nennt dann deren Zahl.
+    """
+    nicht_gefaellt = "Eine Korrekturschleife ist enthalten, jede weitere kostet 290 € netto."
+    if abnahmepunkte:
+        nicht_gefaellt += (f" Erreicht das Abnahmeaudit nicht mindestens "
+                           f"{abnahmepunkte} Punkte, wird ohne Aufpreis nachgearbeitet.")
+
+    return [
+        {"frage": "Wer schreibt die Texte?",
+         "antwort": "Ihre bestehenden Texte werden übernommen, gekürzt und für "
+                    "Suche und Lesbarkeit strukturiert. Texterstellung von Grund "
+                    "auf ist zubuchbar."},
+        {"frage": "Was, wenn ich Inhalte spät liefere?",
+         "antwort": "Die 14 Werktage beginnen erst, wenn Ihre Unterlagen "
+                    "vollständig vorliegen. Ein späterer Start kostet keinen "
+                    "Aufpreis, verschiebt aber den Abnahmetermin."},
+        {"frage": "Wer hostet, was kostet der Betrieb danach?",
+         "antwort": "Einrichtung des Hostings, SSL und die Weiterleitungen Ihrer "
+                    "bisherigen Adressen sind enthalten. Wartung, Updates und "
+                    "Überwachung danach sind als monatliche Position zubuchbar, "
+                    "nicht Pflicht."},
+        {"frage": "Was passiert mit meinen Google-Rankings?",
+         "antwort": "Alle bestehenden Adressen werden erfasst und, wo nötig, per "
+                    "301 weitergeleitet. Titel und Beschreibungen werden ergänzt, "
+                    "nicht ausgetauscht."},
+        {"frage": "Wer haftet für die Rechtstexte?",
+         "antwort": "Einwilligungswerkzeug und Formulareinwilligung bauen wir "
+                    "technisch korrekt ein. Die inhaltliche Prüfung von Impressum "
+                    "und Datenschutzerklärung gehört in eine Kanzlei und ist nicht "
+                    "enthalten — die Vermittlung über unsere Partnerkanzlei schon."},
+        {"frage": "Was, wenn mir das Ergebnis nicht gefällt?",
+         "antwort": nicht_gefaellt},
+    ]
+
+
+def _portrait(eingestellt: str) -> str:
+    """Die Bildadresse des Ansprechpartners — mit Datei als Rückfall.
+
+    **Warum eine Datei und nicht nur eine Einstellung.** Das Feld gibt es
+    seit dem 10.09.2026; bis dahin war es nirgends einzutragen, und unter
+    „Ihr Ansprechpartner" stand ein Name ohne Gesicht. Eine Einstellung
+    allein hätte das nur halb gelöst: Sie lebt in der Datenbank, muss in
+    jeder Umgebung noch einmal gesetzt werden und ist nach einem Umzug
+    wieder leer. Das Bild liegt deshalb im Frontend und wird von dort
+    ausgeliefert — es ist einfach da.
+
+    **Die Adresse zeigt aufs Frontend, nicht auf diesen Server.** Der
+    Bericht kommt von `api.…`, das Bild von `kas.…`; wer hier einen
+    relativen Pfad einsetzt, bekommt eine 404 vom Backend. `public_base_url`
+    liefert in jeder Umgebung die richtige — auf Staging die von Staging.
+
+    Eine Einstellung schlägt die Datei: Wer einen anderen Ansprechpartner
+    einträgt, bekommt ihn.
+    """
+    from services.base_urls import public_base_url
+    from services.check_plus_angebot import _sichere_adresse
+
+    if eingestellt:
+        sicher = _sichere_adresse(eingestellt)
+        if sicher:
+            return sicher
+    return f"{public_base_url()}{PORTRAIT_DATEI}"
+
+
+def _angebotsbegruendung(punkte: int, vorgabe: str) -> str:
+    """Warum ausgerechnet dieses Paket — abgeleitet, nicht behauptet.
+
+    Der Entwurf schlug hier vor: „Ihre Seite ist älter als vier Jahre und in
+    Teilen rechtlich offen, die Inhalte tragen aber noch." Der Satz liest
+    sich wie ein Befund und ist keiner: Das Alter der Seite wird nirgends
+    erhoben, und für einen Betrieb, dessen Seite drei Monate alt ist, steht
+    dort schlicht etwas Falsches. Ein falscher Satz über die eigene Seite
+    kostet mehr Vertrauen, als ein Verkaufssatz einbringt.
+
+    Dieselbe Bewegung — „genau dafür ist das gebaut" — lässt sich aus der
+    Messung machen, die direkt darüber steht. Die Punktzahl **wurde**
+    erhoben, sie ist im Bericht aufgeschlüsselt, und der Kunde kann sie
+    nachrechnen.
+
+    Oberhalb der Zusage aus dem Standard (``GARANTIEPUNKTE``) bleibt der
+    Satz weg: Wer 88 Punkte hat, braucht keinen Relaunch, und ihm einen zu
+    begründen wäre der zweite falsche Satz.
+
+    ``vorgabe`` schlägt beides — wer einen eigenen Satz einträgt, bekommt ihn.
+    """
+    if vorgabe:
+        return vorgabe
+    if not punkte or punkte >= GARANTIEPUNKTE:
+        return ""
+    return (f"Ihre Seite erreicht heute {punkte} von 100 Punkten; die "
+            f"fehlenden {100 - punkte} stehen oben einzeln im Bericht. "
+            f"Genau dafür ist dieses Paket gebaut — nicht für einen Neubau, "
+            f"den Sie nicht brauchen.")
 
 
 def aufbauen(db, audit, einstellungen: dict = None) -> dict:
@@ -259,6 +477,9 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
     sources = _feld(audit, "item_sources")
     belege = _feld(audit, "item_belege")
 
+    from services.widget_report import termin_url
+
+    termin = termin_url(einstellungen.get("widget_booking_url", ""))
     punkte = int(getattr(audit, "total_score", 0) or 0)
     kategorien = _kategorien(audit, items, sources, belege)
     massnahmen_roh = _massnahmen_roh(audit, items, sources)
@@ -273,14 +494,38 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
     # eine der beiden ansieht, baut die andere falsch.
     leistungen = list(relaunch.get("features") or [])
 
+    # ── Die drei Eckdaten des Angebots ────────────────────────────────
+    # **Am 10.09.2026 ausgetauscht** (Entwurf „Bericht Conversion v2",
+    # Vorgabe David). Hier standen Bauzeit, Festpreis, Zahlbetrag und
+    # Zahlungsweise — vier Felder, von denen **zwei Preise waren**. Direkt
+    # darunter steht der Festpreis noch einmal, gross und einzeln. Wer die
+    # Spalte von links nach rechts liest, sieht „3.500 netto · 4.165 brutto"
+    # und danach noch einmal „3.500 netto" und muss selbst herausfinden,
+    # dass das ein Preis ist und nicht drei.
+    #
+    # Die Zahlungsweise ist damit nicht verschwunden: Sie steht jetzt im
+    # Kleingedruckten unter dem Knopf, zusammen mit dem Zahlbetrag brutto —
+    # dort, wo man sie liest, bevor man kauft, und nicht als Kopfzahl.
+    #
+    # Bauzeit kommt aus dem Datensatz. Die beiden Grenzen stehen im
+    # Leistungsverzeichnis `docs/produkte/ws-rel-01.md`: „bis 6 Seiten"
+    # (Zeile 2.1/2.2) und „Enthalten ist eine Korrekturschleife. Jede
+    # weitere Schleife: 290 € netto." Beide sind **keine Preise**, deshalb
+    # faellt L-29 hier nicht — aber sie koennen vom Blatt abdriften,
+    # deshalb prueft `test_relaunch_eckdaten` sie gegen das Blatt selbst.
+    # Satz und Code gehoeren zusammen: Ein Nachlass ohne Code, den man
+    # eintippen kann, ist eine Ankuendigung ohne Weg. Fehlt einer von
+    # beiden, bleibt der Kasten weg — statt halb dazustehen.
+    rabattsatz = (einstellungen.get("bericht_rabattsatz") or "").strip()
+    rabattcode = (einstellungen.get("bericht_rabattcode") or "").strip()
+    if not (rabattsatz and rabattcode):
+        rabattsatz = rabattcode = ""
+
     eckdaten = []
     if relaunch.get("delivery_days"):
         eckdaten.append({"label": "Bauzeit", "wert": f"{relaunch['delivery_days']} Werktage"})
-    if relaunch.get("price_netto"):
-        eckdaten.append({"label": "Festpreis", "wert": _geld(relaunch["price_netto"]) + " netto"})
-    if relaunch.get("price_brutto"):
-        eckdaten.append({"label": "Zahlbetrag", "wert": _geld(relaunch["price_brutto"]) + " brutto"})
-    eckdaten.append({"label": "Zahlung", "wert": "vollständig bei Auftragserteilung"})
+    eckdaten.append({"label": "Seitenumfang", "wert": SEITENUMFANG})
+    eckdaten.append({"label": "Korrekturschleife", "wert": KORREKTURSCHLEIFEN})
 
     return {
         "firma": getattr(audit, "company_name", "") or getattr(audit, "website_url", ""),
@@ -317,6 +562,11 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         "luecken": _groesste_luecken(massnahmen_roh),
         "leistungen": leistungen,
         "eckdaten": eckdaten,
+        # Der Bruttobetrag stand bis zum 10.09.2026 als vierte Kopfzahl
+        # neben dem Nettopreis. Er gehoert dorthin, wo er gebraucht wird:
+        # ins Kleingedruckte unter dem Kaufknopf, direkt vor der Kasse.
+        "zahlbetrag": (_geld(relaunch["price_brutto"]) + " brutto"
+                       if relaunch.get("price_brutto") else ""),
 
         # Check PLUS steht nur da, wenn es das Produkt gibt.
         # Ebenfalls schlichte Zeichenketten: die Vorlage schreibt `{{ c }}`.
@@ -328,11 +578,15 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # (`status = live`) ist im Katalog ausser den beiden Websprints
         # nichts; solange das so ist, faellt der Abschnitt weg statt sich
         # selbst zu wiederholen.
-        "zusatz": [],
+        "zusatz": [{"name": name, "preis": preis}
+                   for name, preis in ZUSATZLEISTUNGEN],
 
-        # Redaktionelle Bloecke — leer heisst: Abschnitt aus.
-        "faq": [],
-        "ablauf": [],
+        # Redaktionelle Bloecke (Vorgabe David, 10.09.2026). Sie standen
+        # seit dem Umbau der Seite in der Vorlage und waren leer — der
+        # Abschnitt fiel damit weg. Dritter Fall desselben Musters an einem
+        # Tag: gebaut, nicht angeschlossen.
+        "faq": _faq(einstellungen.get("bericht_abnahmepunkte", "")),
+        "ablauf": list(ABLAUF),
 
         # Schalter. Alle drei aus, und jeder aus einem eigenen Grund —
         # siehe Kopftext.
@@ -341,14 +595,19 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # im Entwurf; im Katalog gibt es weder den Nachlass noch ein
         # Rabattfeld im Bestellformular. Ein Preisversprechen, das die Kasse
         # nicht kennt, ist ein Anruf, kein Verkauf.
-        "rabattsatz": einstellungen.get("bericht_rabattsatz", ""),
+        "rabattsatz": rabattsatz,
+        # **Der Code steht nicht mehr fest in der Vorlage.** Bis heute war
+        # „WS25" an zwei Stellen der Vorlage einbetoniert. Wer in Stripe
+        # einen anderen Promo-Code anlegt, haette auf der Seite weiter den
+        # alten gelesen — und der Kunde einen Code eingegeben, den die Kasse
+        # nicht kennt. Jetzt kommt er aus derselben Einstellung wie der Satz.
+        "rabattcode": rabattcode,
         # **Der Rabattpreis wird gerechnet, nicht eingetragen** (Entwurf v2
         # fuehrt ihn als eigenes Feld mit 2.625 € netto). Zwei Zahlen von
         # Hand zu pflegen ist die Bauart, aus der L-29 entstand: Wer den
         # Festpreis aendert und den Rabattpreis vergisst, hat einen Nachlass
         # von 25 % auf einen Preis, den es nicht mehr gibt.
-        "preisRabatt": _rabattpreis(relaunch.get("price_netto"),
-                                    einstellungen.get("bericht_rabattsatz", "")),
+        "preisRabatt": _rabattpreis(relaunch.get("price_netto"), rabattsatz),
         # **Abnahmezusage.** Der Entwurf sagt 96 Punkte, der
         # Angebotsbaukasten sagt unter G1 mindestens 85. Zwei Zahlen fuer
         # dieselbe Garantie — welche gilt, ist eine Entscheidung.
@@ -372,7 +631,8 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         # liest sich wie ein Befund und ist keiner — fuer einen Betrieb mit
         # 20 Punkten waere der erste Satz schlicht falsch. Sie bleiben leer,
         # bis jemand sie **aus der Analyse** ableitet.
-        "angebotsbegruendung": "",
+        "angebotsbegruendung": _angebotsbegruendung(
+            punkte, einstellungen.get("bericht_angebotsbegruendung", "")),
         "befundText": "",
         # **Knappheit.** „Zwei Sprint-Plaetze im Oktober frei" ist eine
         # Aussage ueber die eigene Auslastung. Sie muss stimmen, wenn sie
@@ -383,7 +643,28 @@ def aufbauen(db, audit, einstellungen: dict = None) -> dict:
         "zeigeVergleichsbilder": False,
         "zeigeSticky": True,
 
+        # ── Die Kaufwege (Wunsch David, 10.09.2026) ───────────────────
+        # Der Entwurf trug zwei feste Stripe-Zahllinks im `href`. Ein
+        # Kaufweg im Quelltext ist dieselbe Falle wie ein Preis im
+        # Quelltext (L-29): Er wandert nicht mit, wenn das Konto wechselt.
+        #
+        # **Eine Adresse je Produkt, nicht je Ort.** Check PLUS wird im
+        # Teaser und im Bericht angeboten; beide lesen dieselbe Einstellung.
+        # Zwei waeren zwei Wahrheiten, und die zweite waere irgendwann alt.
+        #
+        # **Ohne Adresse fuehrt der Knopf in den Kalender** — nicht ins
+        # Leere. Wer kaufen will und keinen Kaufweg findet, soll wenigstens
+        # einen Termin bekommen.
+        # Der Terminkalender. **Hier und nicht in `bericht_seite`**: Die
+        # Kaufwege fallen darauf zurueck, also muss er gebildet sein, bevor
+        # sie entstehen — an zwei Stellen berechnet waere er zwei Werte.
+        "terminUrl": termin,
+        "kaufUrlRelaunch": _kaufweg(einstellungen.get("bericht_kauf_relaunch_url"),
+                                    termin),
+        "kaufUrlCheckPlus": _kaufweg(einstellungen.get("widget_check_plus_url"),
+                                     termin),
+
         "logoUrl": einstellungen.get("bericht_logo_url", ""),
         "ohneLogo": not einstellungen.get("bericht_logo_url", ""),
-        "portraitUrl": einstellungen.get("bericht_portrait_url", ""),
+        "portraitUrl": _portrait(einstellungen.get("bericht_portrait_url", "")),
     }

@@ -180,16 +180,16 @@
         </div>
         <sc-if value="{{ rabattsatz }}"><div style="margin-top:16px;border:1px dashed #008EAA;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
           <div style="font-size:12.5px;color:#4A5A5C;line-height:1.5"><strong style="color:#004F59">{{ rabattsatz }}</strong> — Code im Rabattfeld des Bestellformulars eingeben</div>
-          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:18px;font-weight:500;color:#004F59;background:#F0F4F5;border-radius:5px;padding:8px 14px;letter-spacing:.06em">WS25</div>
+          <div style="font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;font-size:18px;font-weight:500;color:#004F59;background:#F0F4F5;border-radius:5px;padding:8px 14px;letter-spacing:.06em">{{ rabattcode }}</div>
         </div></sc-if>
         <sc-if value="{{ abnahmepunkte }}"><div style="margin-top:24px;background:#FAE600;border-radius:8px;padding:16px 18px">
           <div style="font-size:14.5px;font-weight:900;color:#004F59;line-height:1.45">Abnahmezusage: Erreicht das Abnahmeaudit nicht mindestens {{ abnahmepunkte }} Punkte, arbeiten wir ohne Aufpreis nach, bis es erreicht ist.</div>
         </div></sc-if>
         <div style="margin-top:22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-          <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:320px;background:#004F59;color:#FFFFFF;text-decoration:none;font-weight:900;padding:16px 28px;border-radius:6px;font-size:15.5px" style-hover="background:#008EAA">Relaunch beauftragen →</a>
+          <a href="{{ kaufUrlRelaunch }}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:320px;background:#004F59;color:#FFFFFF;text-decoration:none;font-weight:900;padding:16px 28px;border-radius:6px;font-size:15.5px" style-hover="background:#008EAA">Relaunch beauftragen →</a>
           <span style="font-size:13.5px;color:#4A5A5C;line-height:1.5">Angebot gültig bis {{ gueltigBis }}<sc-if value="{{ knappheit }}"><br>{{ knappheit }}</sc-if></span>
         </div>
-        <sc-if value="{{ rabattsatz }}"><div style="margin-top:14px;font-size:13px;color:#4A5A5C;line-height:1.55">Der Rabatt wird beim Code <strong style="color:#004F59">WS25</strong> im Rabattfeld des Bestellformulars abgezogen und ist auf die ersten 25 Kunden beschränkt; ohne Code gilt der Festpreis. Zahlbar sofort bei Auftragserteilung, keine Ratenzahlung. Eine Korrekturschleife enthalten. Fristbeginn erst, wenn Ihre Unterlagen vorliegen. Lieber vorher sprechen? <a href="{{ terminUrl }}">20 Minuten am Telefon</a>.</div></sc-if>
+        <div style="margin-top:14px;font-size:13px;color:#4A5A5C;line-height:1.55"><sc-if value="{{ rabattsatz }}">Der Rabatt wird beim Code <strong style="color:#004F59">{{ rabattcode }}</strong> im Rabattfeld des Bestellformulars abgezogen; ohne Code gilt der Festpreis. </sc-if>Zahlbar vollständig bei Auftragserteilung, keine Ratenzahlung<sc-if value="{{ zahlbetrag }}">; der Zahlbetrag beträgt {{ zahlbetrag }}</sc-if>. Eine Korrekturschleife ist enthalten, jede weitere kostet 290 € netto. Fristbeginn erst, wenn Ihre Unterlagen vorliegen. Lieber vorher sprechen? <a href="{{ terminUrl }}">20 Minuten am Telefon</a>.</div>
       </div>
 
       <div style="background:#F0F4F5;border-radius:10px;padding:clamp(20px,4.5vw,26px) clamp(18px,4.5vw,24px)">
@@ -241,7 +241,7 @@
       <p style="margin:12px 0 0;font-size:14.5px;line-height:1.65;color:#000;max-width:64ch">Diese Analyse ist durch meine Hände gegangen. Wenn Sie eine Zeile davon nicht verstehen oder für falsch halten, schreiben Sie mir — das kostet nichts und ist keine Anfrage.</p>
       <div style="margin-top:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:14px">
         <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;border-radius:6px;background:#FAE600;color:#004F59;font-size:14.5px;font-weight:900;text-decoration:none;border:1px solid #FAE600" style-hover="background:#FFFFFF;border-color:#004F59">Termin im Kalender</a>
-        <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" style="font-size:14px;font-weight:700">Bericht als PDF</a></sc-if>
+        <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" target="_blank" rel="noopener" style="font-size:14px;font-weight:700">Bericht als PDF</a></sc-if>
       </div>
     </div>
   </section>
@@ -260,7 +260,7 @@
     </div>
     <div style="margin-top:16px;padding:12px 16px;background:#F0F4F5;border-radius:8px;font-size:13.5px;font-weight:700;color:#004F59;line-height:1.5">Entscheiden Sie sich innerhalb von sechs Monaten für einen Websprint, wird der Betrag vollständig angerechnet.</div>
     <div style="margin-top:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-      <a href="{{ terminUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:14px;font-weight:900;text-decoration:none;border:1px solid #004F59" style-hover="background:#F0F4F5">Check PLUS beauftragen</a>
+      <a href="{{ kaufUrlCheckPlus }}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:14px;font-weight:900;text-decoration:none;border:1px solid #004F59" style-hover="background:#F0F4F5">Check PLUS beauftragen</a>
       <span style="font-size:12.5px;color:#4A5A5C;line-height:1.5">Lieferzeit {{ checkPlusTage }} Werktage nach Zahlungseingang und Terminvereinbarung. Vorkasse. Nicht enthalten: Umsetzung jeglicher Maßnahmen, Rechtsprüfung, Texterstellung.</span>
     </div>
   </section></sc-if>
@@ -281,7 +281,7 @@
   <section style="margin:44px 0 0">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 6px">
       <h2 style="font-size:clamp(19px,5vw,22px);font-weight:900;color:#004F59;margin:0">Der Befund im Detail</h2>
-      <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" style="display:inline-flex;align-items:center;justify-content:center;padding:11px 20px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:13.5px;font-weight:900;text-decoration:none;border:1px solid #004F59;white-space:nowrap" style-hover="background:#F0F4F5">Bericht als PDF</a></sc-if>
+      <sc-if value="{{ pdfUrl }}"><a href="{{ pdfUrl }}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;padding:11px 20px;border-radius:6px;background:#FFFFFF;color:#004F59;font-size:13.5px;font-weight:900;text-decoration:none;border:1px solid #004F59;white-space:nowrap" style-hover="background:#F0F4F5">Bericht als PDF</a></sc-if>
     </div>
     <sc-if value="{{ befundText }}"><p style="margin:0 0 8px;font-size:14.5px;line-height:1.7;color:#000;max-width:70ch">Ihre Website macht auf den ersten Blick einen zeitgemäßen und aufgeräumten Eindruck – große Überschrift, ruhiges Farbschema, klare Aussage, worum es geht. Besonders stark ist die Angebotsdarstellung: Leistungen, Preise, Laufzeiten und Antworten auf die typischen Bedenken stehen offen da, das ist in Ihrer Branche selten und schafft Vertrauen. Verbesserungspotenzial gibt es vor allem oben im Hero: Dort erfährt ein Besucher noch nicht, für welche Unternehmensgröße oder Branche Sie arbeiten. Ein Blogbeitrag trägt das Datum 12. August 2026 – das wirkt für Besucher wie ein Fehler und sollte geprüft werden.</p></sc-if>
 

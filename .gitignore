@@ -55,3 +55,7 @@ buch/venv/
 # Probe-Auftragsbestaetigung ist, ist beim naechsten Mal die eines echten
 # Kunden. Gehalten von `tests/test_uploads_nicht_versioniert.py`.
 uploads/
+
+# Beanstandungen aus der Trichter-Vorschau — Arbeitsnotizen, kein Erzeugnis
+.vorschau-auftraege.json
+.vorschau-auftraege.json.neu

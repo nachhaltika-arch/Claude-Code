@@ -62,7 +62,7 @@ def _huelle(rumpf: str, titel: str) -> str:
 def rendern(db, audit, token: str = "", einstellungen: dict = None) -> str:
     """Die vollständige Seite für einen Befund."""
     from services import bericht_daten, bericht_vorlage
-    from services.widget_report import report_url, termin_url
+    from services.widget_report import report_url
 
     einstellungen = einstellungen or {}
     daten = bericht_daten.aufbauen(db, audit, einstellungen)
@@ -71,7 +71,8 @@ def rendern(db, audit, token: str = "", einstellungen: dict = None) -> str:
     # Stripe-Zahllinks und eine feste Terminadresse — dieselbe Falle wie im
     # Teaser: ein Kaufweg im Quelltext, der die Kasse umgeht, und eine
     # Adresse, die kein Mensch mehr findet, wenn sie sich ändert.
-    daten["terminUrl"] = termin_url(einstellungen.get("widget_booking_url", ""))
+    # `terminUrl` bildet `bericht_daten`, weil die Kaufwege darauf
+    # zurueckfallen und ihn deshalb schon brauchen.
     daten["pdfUrl"] = f"{report_url(token)}/pdf" if token else ""
 
     vorlage = VORLAGE.read_text(encoding="utf-8")

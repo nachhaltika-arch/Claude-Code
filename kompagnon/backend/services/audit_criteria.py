@@ -261,12 +261,29 @@ BLOCKING_MAJOR = frozenset({"tracking_ohne_consent", "cookies_ohne_consent"})
 #: `tests/test_deckelregeln_erhoben.py` meldet jede stille Erweiterung.
 NICHT_ERHOBENE_BLOCKER = frozenset()
 
+#: Die lesbaren Fassungen der K.-o.-Kriterien. **Eine Quelle, sechs Leser:**
+#: Berichtsseite, Berichtsmail, PDF, Auswertung im Werkzeug und die
+#: Maßnahmenliste holen den Text hier. Wer ihn ändert, ändert ihn überall.
+#:
+#: **Am 10.09.2026 um § 25 TDDDG ergänzt** (Wunsch David). Die beiden
+#: Einwilligungsfälle standen ohne Fundstelle da, während Impressum und
+#: Datenschutz ihre nannten — auf einer Seite, die dem Betrieb sagt, was
+#: rechtlich offen ist, ist die Fundstelle die Hälfte der Aussage.
+#:
+#: **TLS bleibt bewusst ohne Paragraf.** Die naheliegende Fundstelle wäre
+#: Art. 32 DSGVO, und sie gilt auch — aber nur, wenn die Seite überhaupt
+#: personenbezogene Daten überträgt. Ein Betrieb mit reiner Visitenkarte
+#: ohne Formular verstößt gegen nichts; ihm eine Norm vorzuhalten, die auf
+#: ihn nicht anwendbar ist, wäre genau die Sorte unbelegter Zusatz, die auf
+#: dieser Seite nichts zu suchen hat. Das fehlende Zertifikat bleibt ein
+#: Ausschlusskriterium — nur eben aus fachlichen Gründen, nicht aus einem
+#: Paragrafen, der von Umständen abhängt, die wir nicht messen.
 BLOCKER_LABELS = {
     "kein_impressum": "Kein erreichbares Impressum (§ 5 DDG)",
     "keine_datenschutzerklaerung": "Keine erreichbare Datenschutzerklärung (Art. 13 DSGVO)",
     "kein_gueltiges_tls": "Kein gültiges TLS-Zertifikat",
-    "tracking_ohne_consent": "Tracking oder externe Dienste ohne Einwilligung",
-    "cookies_ohne_consent": "Cookies werden vor der Einwilligung gesetzt",
+    "tracking_ohne_consent": "Tracking oder externe Dienste ohne Einwilligung (§ 25 TDDDG)",
+    "cookies_ohne_consent": "Cookies werden vor der Einwilligung gesetzt (§ 25 TDDDG)",
 }
 
 

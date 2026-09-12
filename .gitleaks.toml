@@ -59,6 +59,31 @@ regexes = [
   # Wer ihn hinschreibt, hinterlaesst ihn in der Historie — und die liest
   # jeder Lauf mit, auch wenn der Arbeitsstand laengst sauber ist.
   '''sk_live_51SehrGeheimAbcDef''',
+  # **Kein Testwert, sondern der Name eines Speichereintrags** (10.09.2026,
+  # Lauf 34505353833). `var KEY='kpg-consent-v1'` steht im
+  # Einwilligungs-Skript der Landingpage, die seit `a2f1877` unter
+  # `docs/landingpage/` liegt. Sie ist ein fertiger Export der Seite, die
+  # offen im Netz steht — der Wert ist dort fuer jeden im Quelltext zu
+  # lesen, geheim ist daran nichts. Angeschlagen hat die Regel
+  # `generic-api-key` wegen des Variablennamens neben einer Zeichenkette
+  # mit Entropie 3.52.
+  #
+  # **Diesmal ueber die Zeichenkette und nicht ueber die Commit-Kennung.**
+  # Beim ersten Mal (366ad88, siehe unten) stand der Fund nur in der
+  # Historie, der Arbeitsstand war sauber — da traf die Kennung. Hier steht
+  # er im Arbeitsstand und wird bei **jedem** kuenftigen Lauf gefunden;
+  # eine Kennung waere schon beim naechsten Commit wirkungslos.
+  #
+  # **Nicht ueber den Dateipfad**, obwohl das naheliegt: Eine ganze Datei
+  # von der Pruefung auszunehmen heisst, dass ein echter Schluessel darin
+  # nie auffiele. So verstummt genau dieser eine Name — jede andere
+  # hochentropische Zeichenkette in derselben Datei schlaegt weiter an.
+  #
+  # Der Variablenname bleibt, wie er ist: Die Datei wird von Hand zu
+  # Mittwald hochgeladen und muss dem entsprechen, was dort liegt. Fremden
+  # Seitenquelltext umzubenennen, damit der eigene Scanner schweigt, waere
+  # der falsche Weg herum.
+  '''kpg-consent-v1''',
 ]
 # Also allowlist by historical commit hash for belt-and-braces:
 commits = [

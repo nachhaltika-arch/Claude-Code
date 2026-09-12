@@ -344,6 +344,14 @@ export default function AkquiseWidget() {
           headline: widget.headline || '',
           facebook_pixel_id: widget.facebook_pixel_id || '',
           check_plus_url: widget.check_plus_url || '',
+          kauf_relaunch_url: widget.kauf_relaunch_url || '',
+          bericht_rabattsatz: widget.bericht_rabattsatz || '',
+          bericht_rabattcode: widget.bericht_rabattcode || '',
+          bericht_abnahmepunkte: widget.bericht_abnahmepunkte || '',
+          bericht_knappheit: widget.bericht_knappheit || '',
+          bericht_angebotsbegruendung: widget.bericht_angebotsbegruendung || '',
+          bericht_logo_url: widget.bericht_logo_url || '',
+          bericht_portrait_url: widget.bericht_portrait_url || '',
         }),
       });
       toast.success('Widget-Einstellungen gespeichert');
@@ -486,6 +494,87 @@ export default function AkquiseWidget() {
                 hinweis="Ziel des Kaufknopfs im Analyse-Ergebnis. Leer lassen zeigt das
                          Angebot ohne Knopf — den Bericht bekommt der Interessent trotzdem.
                          Preis und Leistungen kommen aus dem Produktkatalog, nicht von hier."
+              />
+              {/* Der Kaufknopf auf der Berichtsseite. Check PLUS nutzt die
+                  Adresse darüber — eine je Produkt, nicht eine je Ort. */}
+              <Feld
+                label="Kaufadresse für Websprint Relaunch"
+                type="url"
+                value={widget.kauf_relaunch_url || ''}
+                onChange={(e) => setWidget({ ...widget, kauf_relaunch_url: e.target.value })}
+                placeholder="https://buy.stripe.com/…"
+                hinweis="Ziel des Knopfs „Relaunch beauftragen“ auf der Berichtsseite.
+                         Leer lassen führt in den Terminkalender statt ins Leere."
+              />
+              {/* Vier Aussagen auf der Berichtsseite. Alle vier waren bis
+                  zum 10.09.2026 im Code vorgesehen, aber nirgends
+                  eintragbar — sie blieben deshalb leer, und die Kästen auf
+                  der Seite unsichtbar. Leer heißt hier nicht
+                  „Standardwert", sondern: wird nicht behauptet. */}
+              <Feld
+                label="Rabatt auf der Berichtsseite"
+                value={widget.bericht_rabattsatz || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_rabattsatz: e.target.value })}
+                placeholder="25 % Rabatt für die ersten 25 Kunden"
+                hinweis="Der Satz, wie er im Rabattkasten steht. Er erscheint nur zusammen
+                         mit einem Code — ein Nachlass ohne eintippbaren Code ist eine
+                         Ankündigung ohne Weg."
+              />
+              <Feld
+                label="Rabattcode"
+                value={widget.bericht_rabattcode || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_rabattcode: e.target.value })}
+                placeholder="WS25"
+                hinweis="Muss in Stripe als Promo-Code existieren und beim Zahlungslink
+                         erlaubt sein, sonst weist die Kasse ihn ab."
+              />
+              <Feld
+                label="Abnahmezusage in Punkten"
+                value={widget.bericht_abnahmepunkte || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_abnahmepunkte: e.target.value })}
+                placeholder="85"
+                hinweis="Wird zur Zusage: Erreicht das Abnahmeaudit diese Punktzahl nicht,
+                         wird ohne Aufpreis nachgearbeitet. Der Homepage-Standard nennt 85."
+              />
+              <Feld
+                label="Hinweis auf freie Plätze"
+                value={widget.bericht_knappheit || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_knappheit: e.target.value })}
+                placeholder="Zwei Sprint-Plätze im Oktober frei"
+                hinweis="Steht unter dem Kaufknopf. Eine Aussage über die eigene Auslastung —
+                         sie muss stimmen, solange sie dort steht."
+              />
+              <Feld
+                label="Eigene Angebotsbegründung"
+                value={widget.bericht_angebotsbegruendung || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_angebotsbegruendung: e.target.value })}
+                placeholder="Leer lassen: Der Satz wird aus der Punktzahl gebildet"
+                hinweis="Leer bildet die Seite den Satz aus dem gemessenen Ergebnis. Was hier
+                         steht, ersetzt ihn — und gilt dann für jeden Empfänger gleich."
+              />
+              {/* Die beiden Bilder der Berichtsseite. Sie wurden gelesen,
+                  seit es die Seite gibt, und waren nirgends einzutragen —
+                  deshalb stand unter „Ihr Ansprechpartner" ein Name ohne
+                  Gesicht. */}
+              <Feld
+                label="Logo auf der Berichtsseite"
+                type="url"
+                value={widget.bericht_logo_url || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_logo_url: e.target.value })}
+                placeholder="https://…/logo.svg"
+                hinweis="Leer lassen zeigt die Wortmarke als Text. Die Adresse muss
+                         öffentlich erreichbar sein — der Bericht wird außerhalb
+                         geöffnet, oft im E-Mail-Programm."
+              />
+              <Feld
+                label="Portrait des Ansprechpartners"
+                type="url"
+                value={widget.bericht_portrait_url || ''}
+                onChange={(e) => setWidget({ ...widget, bericht_portrait_url: e.target.value })}
+                placeholder="https://…/portrait.jpg"
+                hinweis="Steht im Block „Ihr Ansprechpartner“. Leer lassen zeigt nur
+                         Name und Text — ein Platzhaltergesicht wäre schlechter als
+                         keines."
               />
               <button className="kc-btn" type="submit" disabled={speichert === 'widget'}>
                 {speichert === 'widget' ? 'Speichert…' : 'Speichern'}

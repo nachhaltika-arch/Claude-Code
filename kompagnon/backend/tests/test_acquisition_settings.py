@@ -198,3 +198,87 @@ def test_ohne_angabe_bleibt_es_leer(client, auth_headers):
     assert r.status_code == 200
     assert client.get("/api/acquisition/widget",
                       headers=auth_headers).json()["check_plus_url"] == ""
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Die vier Angebotsaussagen der Berichtsseite (10.09.2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+# Sie wurden von der Berichtsseite gelesen, seit es die Seite gibt — aber
+# nirgends geschrieben. Ohne eine Stelle zum Eintragen blieben sie leer, und
+# die Kaesten auf der Seite unsichtbar. Das ist das Muster „gebaut, nicht
+# angeschlossen": Der Code stimmt, der Knopf fehlt.
+
+def _grundlast(**mehr):
+    return {"privacy_url": "", "checkout_url": "", "headline": "H",
+            "facebook_pixel_id": "", **mehr}
+
+
+def test_die_angebotsaussagen_lassen_sich_speichern(client, auth_headers):
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(bericht_rabattsatz="25 % für die ersten 25 Kunden",
+                                   bericht_rabattcode="WS25",
+                                   bericht_abnahmepunkte="85",
+                                   bericht_knappheit="Zwei Sprint-Plätze frei",
+                                   bericht_angebotsbegruendung="Eigener Satz."),
+                   headers=auth_headers)
+    assert r.status_code == 200, r.text
+
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    assert gelesen["bericht_rabattsatz"] == "25 % für die ersten 25 Kunden"
+    assert gelesen["bericht_rabattcode"] == "WS25"
+    assert gelesen["bericht_abnahmepunkte"] == "85"
+    assert gelesen["bericht_knappheit"] == "Zwei Sprint-Plätze frei"
+    assert gelesen["bericht_angebotsbegruendung"] == "Eigener Satz."
+
+
+@pytest.mark.parametrize("unsinn", ["viele", "0", "101", "85 Punkte", "-5"])
+def test_eine_abnahmezusage_ohne_punktzahl_wird_abgewiesen(client, auth_headers, unsinn):
+    """Sonst steht auf der Kundenseite „mindestens viele Punkte" — und die
+    Zusage gilt trotzdem, weil sie dort steht."""
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(bericht_abnahmepunkte=unsinn),
+                   headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_ohne_angabe_wird_nichts_behauptet(client, auth_headers):
+    r = client.put("/api/acquisition/widget", json=_grundlast(), headers=auth_headers)
+    assert r.status_code == 200
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    for feld in ("bericht_rabattsatz", "bericht_rabattcode",
+                 "bericht_abnahmepunkte", "bericht_knappheit",
+                 "bericht_angebotsbegruendung"):
+        assert gelesen[feld] == "", feld
+
+
+# Logo und Portrait — gemeldet von David am 10.09.2026 aus der Vorschau:
+# „hier fehlt mir das bild von max". Es fehlte, weil es keine Stelle gab,
+# an der man es einträgt.
+
+def test_logo_und_portrait_lassen_sich_speichern(client, auth_headers):
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(bericht_logo_url="https://bilder.example/logo.svg",
+                                   bericht_portrait_url="https://bilder.example/max.jpg"),
+                   headers=auth_headers)
+    assert r.status_code == 200, r.text
+
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    assert gelesen["bericht_logo_url"] == "https://bilder.example/logo.svg"
+    assert gelesen["bericht_portrait_url"] == "https://bilder.example/max.jpg"
+
+
+@pytest.mark.parametrize("feld", ["bericht_logo_url", "bericht_portrait_url"])
+def test_eine_unsichere_bildadresse_wird_abgewiesen(client, auth_headers, feld):
+    """Beide landen in einem `src` auf einer Seite, die ein Kunde öffnet."""
+    r = client.put("/api/acquisition/widget",
+                   json=_grundlast(**{feld: "javascript:alert(1)"}),
+                   headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_ohne_portrait_bleibt_der_block_ohne_gesicht(client, auth_headers):
+    """Kein Platzhaltergesicht — ein fremdes Gesicht wäre schlechter als keines."""
+    client.put("/api/acquisition/widget", json=_grundlast(), headers=auth_headers)
+    gelesen = client.get("/api/acquisition/widget", headers=auth_headers).json()
+    assert gelesen["bericht_portrait_url"] == ""

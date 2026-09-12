@@ -87,6 +87,36 @@ ERKLAERT = (
     # eigenen Router traegt. Jeder weist sich mit einer Signatur aus; das
     # Geheimnis gehoert der jeweils eingetragenen Adresse (siehe den Kopf von
     # `routers/buch.py`).
+    # ── Gesichtet am 12.09.2026 (L-105): fuenf, bei denen die Oberflaeche
+    #    nachweislich einen **anderen** Weg nimmt. Das ist kein fehlender
+    #    Knopf, sondern ein zweiter Weg zur selben Sache — und der zweite
+    #    Weg ist der, den niemand pflegt.
+    #
+    # Die Wurzel traegt den Link zur Doku. Dieselbe Familie wie `/health`,
+    # `/info` und `/api/ping`, die hier schon stehen.
+    ("/$", "Betriebspruefung — die API-Wurzel nennt die Doku"),
+
+    # `POST /{lead_id}/scrape` ruft `_detect_google_analytics` selbst und
+    # schreibt `ga_status`, `ga_type`, `ga_measurement_id`
+    # (`branddesign_erhebung.py:52`, in `scrape_brand`). `check-ga` ist
+    # dieselbe Erhebung ohne den Rest — schneller, aber nie gebraucht.
+    ("/api/branddesign/{lead_id}/check-ga$",
+     "Doppelung — /scrape erhebt Google Analytics bereits mit"),
+
+    # Die Oberflaeche holt eine Fassung ueber `/api/designs/version/{}`.
+    ("/api/designs/{lead_id}/{version_id}$",
+     "Doppelung — die Oberflaeche holt Fassungen ueber /api/designs/version/{}"),
+
+    # `AuditHistorySection.jsx:24` liest die Audits eines Betriebs ueber
+    # `GET /api/audit/lead/{id}` — dieselbe Frage, der andere Weg.
+    ("/api/leads/{lead_id}/audits$",
+     "Doppelung — die Betriebskarte liest Audits ueber /api/audit/lead/{}"),
+
+    # Projekte entstehen ueber `POST /api/projects/from-lead/{lead_id}`, und
+    # **die** ruft die Oberflaeche.
+    ("/api/leads/{lead_id}/convert$",
+     "Doppelung — Projekte entstehen ueber /api/projects/from-lead/{}"),
+
     ("/api/payments/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
     ("/api/shop/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
     ("/api/book/webhook", "Stripe meldet die Zahlung — Signatur im Kopf"),
@@ -360,6 +390,48 @@ ENTSCHEIDUNG = (
     ("/api/shop/credit-redeem$",
      "Ueberholter Direktweg der Anrechnung — loeschen oder als Handbuchung "
      "behalten? (gebucht wird bei Annahme des Deals)"),
+
+    # ── Gesichtet am 12.09.2026 (L-105): acht, bei denen die Antwort nicht
+    #    im Code steht. Jede einzelne ist gebaut und laeuft; ob sie gewollt
+    #    ist, entscheidet nicht der Quelltext.
+
+    # Die dritte Haelfte der Zusammenlegung. `usercards` und `customers`
+    # haengen schon an L-106; diese hier liegt in `leads.py` und stellt
+    # dieselbe Frage: Braucht es neben der Betriebsliste eine eigene
+    # Kundenliste? Das Kundenkonto liest heute aus `/api/portal/*`.
+    ("/api/leads/customers$",
+     "L-106 — Zusammenlegung leads/customers, nie zu Ende gefuehrt"),
+
+    # Der `LeadAnalystAgent` existiert noch (`agents/lead_analyst.py`), aber
+    # die Oberflaeche startet Analysen ueber `/api/audit/start`. Zwei
+    # Einschaetzungen desselben Betriebs nebeneinander — die Frage ist, ob
+    # die aeltere noch etwas beitraegt, das das Audit nicht hat.
+    ("/api/leads/{lead_id}/analyze$",
+     "Lead-Analyst neben dem Audit — traegt er noch etwas bei, das das Audit nicht hat?"),
+
+    # Ohne Kopfzeile, setzt `public_pages.product_id`. Eine oeffentliche
+    # Seite an ein Produkt zu haengen ist ein Gedanke, der sonst nirgends
+    # vorkommt — weder in der Oberflaeche noch in einer anderen Route.
+    ("/api/pages/{page_id}/link-product$",
+     "Oeffentliche Seite an ein Produkt haengen — ein Gedanke ohne zweite Spur im System"),
+
+    # Drei Routen der Projektarbeit, jede ohne Oberflaeche. Sie fallen nicht
+    # zusammen, stehen aber vor derselben Frage: Gehoert das in die
+    # Go-live-Kette, oder war es ein Anlauf, den die Kette ueberholt hat?
+    ("/api/projects/{project_id}/go-live-pagespeed$",
+     "Go-live-Kette — gehoert die Messung hinein, oder ist sie ueberholt?"),
+    ("/api/projects/{project_id}/netlify/add-subdomain$",
+     "Netlify-Subdomain samt DNS-Anleitung — gewollt, oder deckt set-domain den Fall?"),
+    ("/api/projects/{project_id}/trigger$",
+     "Automatisierung von Hand ausloesen — neben /api/automations/trigger, das es auch gibt"),
+
+    # Zwei Routen des Vorlagenbereichs, eine Frage: Soll er eine Oberflaeche
+    # bekommen? Die Oberflaeche zeigt heute Projektfassungen und Moodboards
+    # in der Vorschau, Vorlagen nicht.
+    ("/api/templates/suggestions$",
+     "Vorlagenbereich ohne Oberflaeche — Referenzseiten je Gewerk zeigt niemand"),
+    ("/api/templates/{template_id}/preview$",
+     "Vorlagenbereich ohne Oberflaeche — die Vorschau gibt es nur fuer Projektfassungen"),
 )
 
 
@@ -377,6 +449,45 @@ KNOPF_FEHLT = (
     # Admin-Uebersicht". Beides gibt es nicht.
     ("/api/affiliate-conversions$",
      "Knopf fehlt — laut eigener Kopfzeile fuer ein Dashboard, das es nicht gibt"),
+
+    # ── Gesichtet am 12.09.2026 (L-105): sechs, bei denen der Befund
+    #    feststeht. Bei jeder ist der **Beleg** eine Nachbarroute, die die
+    #    Oberflaeche sehr wohl ruft — die Leistung ist also erreichbar, nur
+    #    diese eine Stelle nicht.
+
+    # Drei Geschwister haben Knoepfe (`/content`, `/qa`, `/review`), dieser
+    # nicht. Die eigene Kopfzeile sagt es wortwoertlich: „genau daran ist
+    # dieser Endpunkt nie angeschlossen worden".
+    ("/api/agents/{project_id}/seo$",
+     "Knopf fehlt — drei Geschwister-Agenten haben einen, der SEO-Agent nicht"),
+
+    # Die Kopfzeile nennt den Zweck: „damit die Oberflaeche es anzeigen kann,
+    # statt zu raten". Sie zeigt es nicht. Im Frontend steht dafuer auch
+    # keine fest eingetippte Zahl — die Grenzen sind schlicht unsichtbar,
+    # und ein Nutzer laeuft ohne Vorwarnung hinein.
+    ("/api/assistant/limits$",
+     "Knopf fehlt — die Grenzen sollten angezeigt werden und werden es nicht"),
+
+    # `GET /api/campaigns/{id}` liefert nur `lead_count` (campaigns.py:199).
+    # Die Zahl steht da, die Aufschluesselung dahinter ist nicht erreichbar.
+    ("/api/campaigns/{campaign_id}/leads$",
+     "Knopf fehlt — die Kampagnenkarte zeigt die Anzahl, nicht die Betriebe"),
+
+    # L-19: Fuer Kundenprojekte gibt es `netlify/set-domain` **mit** Knopf,
+    # fuer die eigene Agenturseite fehlt er.
+    ("/api/kas/domain$",
+     "Knopf fehlt — Kundenprojekte koennen eine eigene Domain bekommen, die Agenturseite nicht"),
+
+    # Die Pruefung wird ausgeloest — `POST /{page_id}/qualitaetspruefung`
+    # ruft die Oberflaeche. Ihre Historie zeigt niemand: Man prueft und sieht
+    # nie, was beim letzten Mal herauskam.
+    ("/api/pages/{page_id}/qualitaetspruefungen$",
+     "Knopf fehlt — die Pruefung laeuft, ihre Vorgeschichte sieht niemand"),
+
+    # Die Oberflaeche ruft `/api/retainer` (anlegen und auflisten). Aendern
+    # geht nur ueber diese Route, und die hat keinen Knopf.
+    ("/api/retainer/{rid}$",
+     "Knopf fehlt — ein Wartungsvertrag laesst sich anlegen, aber nicht aendern"),
 )
 
 

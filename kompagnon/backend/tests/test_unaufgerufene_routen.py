@@ -72,29 +72,47 @@ class TestDerAbschnittsweiseVergleich:
 
 
 class TestDasWerkzeugMisstNochWas:
-    def test_es_meldet_weiterhin_offene_routen(self, ausgabe):
-        """Gegenprobe zur Lockerung: Wuerde `passt_auf` zu grosszuegig
-        greifen, faende das Werkzeug gar nichts mehr — und waere gruen,
-        ohne etwas zu pruefen."""
-        assert "Ruft niemand" in ausgabe
+    def test_es_misst_weiterhin_routen_ohne_aufrufer(self, ausgabe):
+        """Gegenprobe zur Lockerung: Griffe `passt_auf` zu grosszuegig, faende
+        das Werkzeug gar nichts mehr — und waere gruen, ohne etwas zu pruefen.
 
-        kopfzeile = [z for z in ausgabe.splitlines() if z.startswith("Ruft niemand")][0]
-        anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":"))
-        # **Untergrenze am 07.09.2026 von 30 auf 5 gesenkt** — und das ist
-        # kein Abschalten einer Ratsche, sondern eine Bandbreite, die ihren
-        # Anlass verloren hat. Sie stammt aus der Zeit, als 73 Routen offen
-        # standen, und sollte verhindern, dass ein zu grosszuegiger Abgleich
-        # alles wegerklaert. An einem Tag sind daraus 26 geworden, jede
-        # einzeln beurteilt und im Werkzeug begruendet.
-        #
-        # Der urspruengliche Zweck ist inzwischen besser abgedeckt, und zwar
-        # von zwei Tests weiter unten: `test_alle_drei_koerbe_sind_besetzt`
-        # faengt eine Einsortierung, die tot laeuft, und
-        # `test_eine_gerufene_route_steht_nicht_unter_den_offenen` faengt die
-        # Richtung, in der ein Fehler wehtut. Eine Zahlenschranke kann das
-        # nicht leisten — sie haette bei jeder ehrlichen Arbeit im Weg
-        # gestanden.
-        assert 5 < anzahl < 200, f"unglaubwuerdige Zahl: {anzahl}"
+        **Gezaehlt wird jetzt die Summe, nicht der Restkorb** (12.09.2026).
+        Hier stand `5 < anzahl < 200` auf dem Korb „ruft niemand", und am
+        12.09. ist der auf **null** gefallen: Die letzten 19 Routen sind
+        gesichtet, jede steht nun mit Begruendung unter „Knopf fehlt",
+        „wartet auf eine Entscheidung" oder „erklaert". Der Test wurde rot,
+        obwohl das Werkzeug richtig zaehlt.
+
+        **Und der Kommentar, der hier stand, hatte es vorhergesagt:** Eine
+        Zahlenschranke auf dem Restkorb messe den *Stand der Beurteilung* und
+        nicht das Werkzeug, sie haette „bei jeder ehrlichen Arbeit im Weg
+        gestanden". Genau das ist eingetreten. Die Antwort darauf ist nicht
+        eine kleinere Zahl — das waere die Schranke, die bei der naechsten
+        ehrlichen Arbeit wieder im Weg steht.
+
+        **Was der Test wirklich meinte:** Wuerde der Abgleich zu grosszuegig,
+        zaehlten Routen als *gerufen*, die niemand ruft — und dann faellt die
+        **Summe aller vier Koerbe**. Die ist unabhaengig davon, wie viel
+        gesichtet wurde, und trifft die Fehlerrichtung genau.
+
+        **Gegengeprueft, nicht angenommen (12.09.2026):** Mit einem
+        `trifft_ende`, das immer `True` liefert — dem Fehler, den dieser Test
+        fangen soll —, fallen alle vier Koerbe auf null und die Schranke
+        schlaegt an. Ein Waechter, der beim ersten Lauf gruen ist, beweist
+        sonst nichts.
+        """
+        koerbe = ("Der Knopf fehlt", "Wartet auf eine Entscheidung",
+                  "Ruft niemand", "Erklaert")
+        summe = 0
+        for korb in koerbe:
+            assert korb in ausgabe, f"Korb fehlt: {korb}"
+            kopfzeile = [z for z in ausgabe.splitlines() if z.startswith(korb)][0]
+            summe += int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":").split()[0])
+
+        # Am 12.09.2026 sind es 99 von 532 Endpunkten. Die Bandbreite haelt
+        # den Zerfall auf, ohne die Sichtung zu behindern: Wer erklaert,
+        # verschiebt zwischen den Koerben und aendert die Summe nicht.
+        assert 20 < summe < 300, f"unglaubwuerdige Summe: {summe}"
 
     def test_eine_gerufene_route_steht_nicht_unter_den_offenen(self, ausgabe):
         """Die Gegenrichtung — und sie rostet nicht.
@@ -122,15 +140,32 @@ class TestDasWerkzeugMisstNochWas:
                 f"eine Falschmeldung schickt jemanden auf die Suche nach einem "
                 f"Knopf, den es gibt.")
 
-    def test_alle_drei_koerbe_sind_besetzt(self, ausgabe):
-        """Jeder Korb muss etwas enthalten, sonst ist eine Einsortierung tot.
+    def test_die_urteilskoerbe_sind_besetzt(self, ausgabe):
+        """Ein Urteilskorb muss etwas enthalten, sonst ist eine Einsortierung tot.
 
-        Faellt „wartet auf eine Entscheidung" auf null, ist entweder alles
-        entschieden — dann gehoert die Kategorie weg — oder die Zuordnung
-        greift nicht mehr. Beides gehoert bemerkt.
+        Faellt „wartet auf eine Entscheidung" oder „erklaert" auf null, ist
+        entweder alles entschieden — dann gehoert die Kategorie weg — oder
+        die Zuordnung greift nicht mehr. Beides gehoert bemerkt.
+
+        **„Ruft niemand" steht seit dem 12.09.2026 nicht mehr in dieser
+        Liste, und das ist kein Nachlassen.** Er ist kein Urteilskorb,
+        sondern der **Rest**: alles, was noch keines hat. Leer heisst dort
+        „fertig gesichtet" und nicht „Zuordnung tot" — die Bedingung, unter
+        der die anderen drei alarmieren, gilt fuer ihn gerade umgekehrt. Dass
+        er ueberhaupt noch ausgewiesen wird, prueft der Test darueber; dass
+        er nicht heimlich alles verschluckt, die Summe ebendort.
         """
-        for korb in ("Ruft niemand", "Wartet auf eine Entscheidung", "Erklaert"):
+        for korb in ("Wartet auf eine Entscheidung", "Erklaert", "Der Knopf fehlt"):
             assert korb in ausgabe, f"Korb fehlt: {korb}"
             kopfzeile = [z for z in ausgabe.splitlines() if z.startswith(korb)][0]
             anzahl = int(kopfzeile.rsplit("—", 1)[-1].strip().rstrip(":").split()[0])
             assert anzahl > 0, f"{korb} ist leer"
+
+    def test_der_restkorb_wird_weiterhin_ausgewiesen(self, ausgabe):
+        """Leer ja, verschwunden nein.
+
+        Ein Korb, der bei null nicht mehr gedruckt wird, nimmt der naechsten
+        neuen Route ihren Platz: Sie taucht dann nirgends auf, und „nichts
+        gefunden" sieht aus wie „alles in Ordnung".
+        """
+        assert "Ruft niemand" in ausgabe

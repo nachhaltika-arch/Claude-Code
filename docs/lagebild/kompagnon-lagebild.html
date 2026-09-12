@@ -431,7 +431,7 @@ footer code{font-family:"Noto Sans Mono",monospace; font-size:11.5px}
   <div class="huelle">
     <div class="marke">
       <h1>KOMPAGNON Lagebild</h1>
-      <span class="stand">STAND 10.09.2026 · staging @ 7e324f2</span>
+      <span class="stand">STAND 12.09.2026 · staging @ 6c389a4</span>
     </div>
     <p class="unterzeile">Offene Punkte, Modulstand und Produktkatalog — aus <code>soll-ist-analyse.md</code>, <code>module-karte.md</code> und dem Code selbst zusammengetragen.</p>
 
@@ -808,7 +808,12 @@ zeichnen();
 
    Die Zahlen sind am 10.09.2026 aus `services/audit_criteria.py`
    nachgerechnet, nicht geschätzt: 39 Kriterien, 103 Punkte, davon
-   81 gemessen, 15 aus KI-Einschätzung, 7 abgeleitet.                     */
+   81 gemessen, 15 aus KI-Einschätzung, 7 abgeleitet.
+
+   Am 12.09.2026 am Gegenstand nachgemessen statt aus einem alten Ausfall
+   geschlossen: Audit 13 auf Staging gegen nachhaltika.de, 30 s, Abdeckung
+   96 %, `collection_notes` leer. Die PageSpeed-Gruppe ist danach
+   richtiggestellt — sie behauptete einen Ausfall, den es nicht mehr gab. */
 
 const MT_ZAHLEN = [
   { wert: "103", text: "Punkte führt der Katalog in 39 Kriterien" },
@@ -823,8 +828,16 @@ const MT_GRUPPEN = [
     punkte: "12 Punkte",
     text: "Vier Kriterien kommen ausschließlich aus der PageSpeed-API von " +
           "Google. Fehlt der Schlüssel oder antwortet der Dienst nicht, " +
-          "werden alle vier übersprungen — der Produktivbericht vom 04.09. " +
-          "zeigte genau das.",
+          "werden alle vier übersprungen. <b>Am 12.09.2026 gemessen: der " +
+          "Abruf funktioniert.</b> Ein echter Audit-Lauf auf Staging " +
+          "(Audit 13, nachhaltika.de, 30 s) führt <code>tp_lcp</code>, " +
+          "<code>tp_cls</code> und <code>tp_mobile</code> als " +
+          "<i>gemessen</i>, die Erhebungsnotizen sind leer, die Abdeckung " +
+          "liegt bei 96 %. Hier stand vorher, der Schlüssel liefere nicht — " +
+          "das war aus dem Ausfall vom 04.09. geschlossen und nie " +
+          "nachgemessen. Dessen Ursache war die Zeitgrenze von 60 s, " +
+          "behoben am 05.09. (<code>b469a24</code>) und produktiv seit " +
+          "dem 06.09.",
     liste: ["<code>tp_lcp</code> Ladezeit Hauptinhalt · 4",
             "<code>tp_cls</code> Layout-Stabilität · 3",
             "<code>tp_mobile</code> Mobile-Performance · 3",
@@ -858,10 +871,20 @@ const MT_GRUPPEN = [
 ];
 
 const MT_WEG = [
-  "<b>Den PageSpeed-Schlüssel arbeiten lassen.</b> Er ist gesetzt, liefert " +
-  "aber nicht — erst messen, woran es scheitert (Kontingent, Referrer-Sperre, " +
-  "Zeitüberschreitung), dann beheben. Bringt 10 der 12 Performance-Punkte " +
-  "zurück; INP bleibt aus Feldddaten-Gründen offen.",
+  "<b>Einen ausgefallenen Messwert sichtbar machen, ohne die Datenbank.</b> " +
+  "Das war der eigentliche Mangel hinter der Behauptung, der PageSpeed-" +
+  "Schlüssel liefere nicht: Der Ausfall vom 04.09. stand als Grund in " +
+  "<code>collection_notes</code> — lesbar nur, wer die Datenbank öffnet. Im " +
+  "Protokoll stand eine Warnung ohne Grund, weil <code>str()</code> einer " +
+  "<code>ReadTimeout</code> leer ist. Also wurde eine Woche lang der " +
+  "Schlüssel verdächtigt, der in Ordnung war, und ein Eintrag trug die " +
+  "falsche Ursache weiter. Solange ein Ausfall nur in der Datenbank steht, " +
+  "wird er geraten statt gelesen.",
+  "<b>Nach jedem Eingriff an einer Quelle einen echten Lauf.</b> Zwischen " +
+  "dem 05.09. und dem 12.09. lief weder produktiv noch auf Staging ein " +
+  "einziges Audit. Die Reparatur der Zeitgrenze war damit nie bestätigt, " +
+  "und der Mangel galt als offen, obwohl er geschlossen war. Ein Lauf " +
+  "kostet 30 Sekunden.",
   "<b>Die Abdeckung in die Zusage schreiben.</b> „85 Punkte“ ohne Angabe, " +
   "worauf sie sich beziehen, ist keine prüfbare Zusage. Vorschlag: " +
   "„85 Punkte bei mindestens 90 % Abdeckung“ — dann ist die Zahl vergleichbar.",

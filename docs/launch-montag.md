@@ -14,9 +14,9 @@ nächste Anlauf nicht bei null anfängt.
 
 | | |
 |---|---|
-| `staging` | **13 Commits vor `main`** — alle mit grünem CI-Lauf, auf dem Staging-Server ausgeliefert |
+| `staging` | **14 Commits vor `main`** — alle mit grünem CI-Lauf, auf dem Staging-Server ausgeliefert. Hier stand 13; der Übergabe-Commit selbst kam danach dazu |
 | `main` | unverändert — **nichts davon ist produktiv** |
-| offener PR | **keiner** — der PR `staging → main` muss noch geöffnet werden |
+| offener PR | **[#56](https://github.com/nachhaltika-arch/Claude-Code/pull/56)**, geöffnet am 12.09., alle sieben CI-Jobs grün — **wartet auf den Merge durch David** |
 
 Alles, was in dieser Sitzung entstanden ist, wirkt erst nach dem Merge.
 
@@ -87,11 +87,13 @@ Start mitläuft.
 
 ### 3.3 Bei Claude — auf Ansage
 
-- **PR `staging → main` öffnen.** 13 Commits, CI ist grün. *Der Merge bleibt
-  bei David — Claude merged nie selbst.*
+- ~~**PR `staging → main` öffnen.**~~ **Erledigt am 12.09.: PR #56**, 14
+  Commits (nicht 13 — der Übergabe-Commit kam nach dem Schreiben dieser Zeile
+  dazu), alle sieben CI-Jobs grün. *Der Merge bleibt bei David — Claude
+  merged nie selbst.*
 - **Trichterschritte 7–9 nachprüfen**, sobald ① und ② erledigt sind.
-- **PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert. Größter
-  einzelner Hebel — 10 von 12 Performance-Punkten. Siehe Abschnitt 5.
+- ~~**PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert.~~
+  **Erledigt am 12.09. — es war nichts zu reparieren.** Siehe Abschnitt 5.
 
 ---
 
@@ -143,13 +145,46 @@ Ladezeit je gemessen wurde.
 
 | Quelle | Punkte | wann sie ausfällt |
 |---|---|---|
-| PageSpeed-API | 12 | Schlüssel liefert nicht — produktiv seit dem 04.09. der Fall |
+| PageSpeed-API | 12 | Schlüssel fehlt, Kontingent erschöpft oder Google hängt |
 | KI-Einschätzung | 15 | Modell antwortet nicht oder meldet „nicht beurteilbar" |
 | ausgelieferter Quelltext | 14 | Seite baut ihre Inhalte erst im Browser auf |
 
 `tp_inp` (2 Punkte) fehlt bei kleinen Betriebsseiten **strukturell** — es
 kommt aus CrUX-Felddaten, die dort nicht existieren. Auch ein funktionierender
 Schlüssel bringt es nicht zurück.
+
+> **Richtiggestellt am 12.09.2026.** Hier stand „Schlüssel liefert nicht —
+> produktiv seit dem 04.09. der Fall", und in Abschnitt 3.3 stand das als
+> größter einzelner Hebel. **Beides war falsch.** Nachgemessen, nicht
+> geschlossen:
+>
+> - `/health` meldet den Schlüssel produktiv **und** auf Staging als gesetzt,
+>   39 Zeichen.
+> - Jeder PSI-Aufruf produktiv seit dem 05.09. antwortet **200 OK**, der
+>   letzte am 12.09. um 09:57. Keine einzige Fehlerzeile im Protokoll.
+> - Ein echter Lauf auf Staging am 12.09. (Audit 13, nachhaltika.de, 30 s)
+>   führt `tp_lcp`, `tp_cls` und `tp_mobile` als **gemessen**, die
+>   Erhebungsnotizen sind **leer**, Abdeckung **96 %**. Nur `tp_inp` fehlt —
+>   strukturell, wie oben beschrieben.
+>
+> **Die Ursache des Ausfalls vom 04.09. war die Zeitgrenze von 60 Sekunden,
+> nicht der Schlüssel.** Behoben am 05.09. in `b469a24` (120 s), produktiv
+> seit dem 06.09. Am 04.09. lief produktiv übrigens **kein einziges Audit** —
+> die Quelle für „der Produktivbericht vom 04.09. zeigte genau das" kann
+> kein Lauf dieses Tages gewesen sein.
+>
+> **Wie die falsche Zahl eine Woche überlebte.** Zwischen dem 05.09. und dem
+> 12.09. lief weder produktiv noch auf Staging ein Audit — die Reparatur war
+> nie bestätigt. Der Grund des Ausfalls stand in `collection_notes`, lesbar
+> nur aus der Datenbank; im Protokoll stand eine Warnung **ohne Grund**, weil
+> `str()` einer `ReadTimeout` leer ist. Und wer lokal nachmisst, bekommt
+> sofort 429: In `kompagnon/backend/.env` ist `GOOGLE_PAGESPEED_API_KEY`
+> **leer** (Zeile 48) — PageSpeed v5 antwortet dann anonym, und das anonyme
+> Tageskontingent ist erschöpft. Drei Wege, auf denen ein heiler Schlüssel
+> wie ein defekter aussieht.
+>
+> **Bei David, eine Minute:** den Schlüssel in die lokale `.env` eintragen,
+> damit eine Messung am eigenen Rechner nicht wieder das Gegenteil behauptet.
 
 ---
 

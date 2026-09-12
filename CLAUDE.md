@@ -65,6 +65,20 @@ Falls das Repo nicht stimmt:
 - Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
 - NIE in anderen Repos Änderungen machen
 
+## Tagesdokumentation (Entscheidung David, 2026-09-12)
+- **Jede Tagesdokumentation kommt nach `docs/tagesdokumentation/`**, benannt
+  `JJJJ-MM-TT.md`. Nicht mehr als `docs/stand-*.md` in die Wurzel von `docs/`.
+- Die fünfzehn älteren (`docs/stand-2026-08-08.md` … `stand-2026-09-08.md`)
+  bleiben liegen. Ein Umzug ist **keine** Dateiverschiebung: Die Spalte
+  „Beleg" im Lagebild verweist auf sie, und `scripts/lagebild-bauen.py`
+  erkennt einen Tagesbericht daran, dass `stand-` im Beleg steht
+  (`_herkunft`). Wer verschiebt, ohne die Herkunftserkennung mitzuziehen,
+  verwandelt fünfzehn Herkunftsangaben in „unbekannt".
+- Was hineingehört, steht in `docs/tagesdokumentation/README.md`: nicht die
+  Commit-Liste — die steht im Verlauf —, sondern das Muster des Tages, die
+  Funde samt Beleg, die **eigenen Fehler**, und was danach bei David liegt.
+  Zahlen werden gemessen, nicht geschätzt.
+
 ## Commit-Regel
 - Commit-Messages auf **Deutsch**
 - Conventional-Commit-Style: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `perf:`, `test:`

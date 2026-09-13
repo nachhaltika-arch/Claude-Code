@@ -271,7 +271,20 @@ def einstellungen_aus(regler: dict) -> dict:
     """Die Regler in genau die Einstellungen, die auch produktiv gelesen werden."""
     an = lambda name: bool(regler.get(name))  # noqa: E731
     werte = {
-        "widget_booking_url": "https://kalender.example/kompagnon/20-minuten",
+        # **Leer, und das ist der echte Zustand.** Hier stand
+        # `https://kalender.example/kompagnon/20-minuten` — eine erfundene
+        # Adresse. Weil sie mit `https://` beginnt, nimmt `termin_url()` sie
+        # an, und der Rückfall auf den **wirklichen** Kalender kam nie zum
+        # Zug: Der Knopf „Termin im Kalender" und der Link „20 Minuten am
+        # Telefon" zeigten in der Vorschau ins Leere, produktiv aber auf den
+        # richtigen Kalender. David hat beide Stellen am 13.09. beanstandet
+        # und um den echten Link gebeten, den sie längst tragen.
+        #
+        # Produktiv ist die Einstellung leer (`/api/widget/config` liefert
+        # genau `STANDARD_TERMIN_URL`). Leer ist deshalb nicht der
+        # Verzicht auf einen Wert, sondern die einzige Fassung, die dasselbe
+        # zeigt wie das System — und sie hat **eine** Quelle statt zwei.
+        "widget_booking_url": "",
         "bericht_abnahmepunkte": (regler.get("abnahme") or "").strip(),
         "bericht_knappheit": ("Zwei Sprint-Plätze im Oktober frei"
                               if an("knappheit") else ""),
@@ -495,7 +508,7 @@ LETZTE_REGLER: dict = {}
 
 
 def api_config(regler: dict) -> dict:
-    from services import check_plus_angebot
+    from services import check_plus_angebot, widget_report
 
     zeile = katalog().get("check_plus") or {}
     e = einstellungen_aus(regler)
@@ -505,7 +518,13 @@ def api_config(regler: dict) -> dict:
             {**zeile, "status": "live"}, e.get("widget_check_plus_url", ""))
     return {
         "privacy_url": "https://www.kompagnon.eu/datenschutz",
-        "checkout_url": e["widget_booking_url"],
+        # **Durch `termin_url`, wie produktiv auch** (13.09.2026). Hier stand
+        # die Einstellung roh. Solange sie eine erfundene Adresse trug, fiel
+        # das nicht auf; mit der leeren Einstellung hätte das Widget gar kein
+        # Ziel mehr bekommen. `app_settings.widget_config` ruft an derselben
+        # Stelle `termin_url(...)` — die Vorschau muss denselben Weg gehen,
+        # sonst zeigt sie wieder etwas anderes als das System.
+        "checkout_url": widget_report.termin_url(e["widget_booking_url"]),
         "headline": "",
         "criteria_count": len(katalog_kriterien()),
         "facebook_pixel_id": "",

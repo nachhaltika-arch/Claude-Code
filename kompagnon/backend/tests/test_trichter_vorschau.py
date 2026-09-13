@@ -411,6 +411,46 @@ def test_ohne_den_regler_bleibt_der_knopf_weg(vorschau):
     assert vorschau.KAUF_CHECK not in werte
 
 
+def test_der_terminknopf_zeigt_auf_den_echten_kalender(vorschau):
+    """Gemeldet von David am 13.09.2026 — und wieder war es die Vorschau.
+
+    Zwei Beanstandungen an einer Sache: der Knopf „Termin im Kalender" und
+    der Link „20 Minuten am Telefon", beide mit der Bitte, den Kalenderlink
+    „in den Button zu integrieren". Er war längst drin — **produktiv**.
+    Die Vorschau setzte `widget_booking_url` auf die erfundene Adresse
+    `https://kalender.example/kompagnon/20-minuten`; weil die mit `https://`
+    beginnt, nimmt `termin_url()` sie an, und der Rückfall auf den echten
+    Kalender kam nie zum Zug.
+
+    Das ist der **vierte** Fall dieser Familie an drei Tagen (erfundene
+    Kriterien-Kennungen, Wörterbücher statt JSON, Regler ohne Wirkung auf
+    die Widget-Aufrufe — und jetzt eine erfundene Adresse). Jedes Mal stand
+    eine Reparatur an etwas Heilem kurz bevor.
+
+    **Positiv geprüft, nicht als Abwesenheit.** „Kein `.example` in der
+    Seite" wäre wertlos: Die Vorschau darf erfundene Adressen haben — die
+    vermessene Seite selbst ist eine. Geprüft wird deshalb, dass an den
+    beiden Stellen, die der Kunde anklickt, **der Kalender steht, den das
+    System benutzt**.
+    """
+    from services import widget_report
+
+    seite = vorschau.ansicht_bericht(
+        {"punkte": "61", "kaufwege": "an"}).decode("utf-8")
+
+    assert widget_report.STANDARD_TERMIN_URL in seite, \
+        "der Terminknopf zeigt nicht auf den Kalender des Systems"
+    # Beide Stellen hängen an derselben `{{ terminUrl }}` — der Knopf und
+    # der Satz „Lieber vorher sprechen?". Wer eine davon findet, findet beide.
+    assert seite.count(widget_report.STANDARD_TERMIN_URL) >= 2, \
+        "eine der beiden Terminstellen fehlt"
+
+    # Und die Schnittstelle, die das Widget abruft, geht denselben Weg wie
+    # `app_settings.widget_config` — sonst zeigt der CTA wieder woanders hin.
+    assert vorschau.api_config({})["checkout_url"] == \
+        widget_report.STANDARD_TERMIN_URL
+
+
 def test_das_pdf_ist_ein_pdf_und_nicht_leer(vorschau):
     """Es hängt seit jeher am Trichter und hatte bis zum 10.09.2026 niemand
     angesehen — es entsteht sonst nur hinter einem bestätigten Token."""

@@ -23,28 +23,31 @@ fortgeschrieben am 12. und 13.09.
 
 | | |
 |---|---|
-| `main` | **PR #56 ist am 12.09. um 21:24 gemerged** (Merge-Commit `5524597`), ausgerollt 21:31. Die 15 Commits sind produktiv |
-| `staging` | **4 Commits vor `main`**, gepusht, CI grün — noch **nicht** produktiv |
+| `main` | **PR #57 ist am 13.09. um 11:16 gemerged** (Merge-Commit `49f31000`). Alles aus den Sitzungen vom 12. und 13.09. ist produktiv |
+| `staging` | **gleichauf mit `main`** — 0 Commits Abstand |
 | offener PR | keiner |
 
-Die vier wartenden Commits:
+Nicht am Status gemessen, sondern am Zustand:
 
-    4953a4a  docs: Tagesdokumentation bekommt einen eigenen Ordner
-    41587ba  fix(L-105): der Korb „ruft niemand" ist leer — 19 Routen gesichtet
-    1bcc900  fix(L-184): eine gescheiterte Analyse verliert den Lead nicht lautlos
-    f1a3ffb  fix(bericht): der Dateiname des PDFs überlebt jetzt einen Umlaut
+| | |
+|---|---|
+| Lauf #970 auf `main` | alle sieben Jobs `success`, **Deploy — Render: success** |
+| Backend produktiv | `49f31000` · **live** · fertig 11:22:55Z |
+| Frontend produktiv | `49f31000` · **live** · fertig 11:22:39Z |
+| `/health` | `ok`, `startup_complete`, `startup_missing: []`, DB verbunden |
 
-> **`f1a3ffb` ist der, auf den es zum Start ankommt.** Solange er auf
-> `staging` liegt, bekommt produktiv jeder Kunde mit einem Umlaut im
-> Firmennamen ein PDF mit beschädigtem Dateinamen — in der Startbranche
-> Heizung/Sanitär nicht der Sonderfall, sondern der Regelfall. Die
-> Entscheidung, ob dafür vor Montag ein PR aufgeht, steht in Abschnitt 4.4.
+> **`f1a3ffb` ist produktiv** — der PDF-Dateiname überlebt jetzt einen Umlaut.
+> **Bestätigt ist er damit noch nicht.** Belegt sind der ausgerollte Commit
+> und ein grüner Test; ein produktiver Abruf eines PDFs mit Umlaut im
+> Firmennamen hat noch nicht stattgefunden. Bis dahin gilt: plausibel, nicht
+> gemessen. Was dafür nötig ist, steht in Abschnitt 3.3.
 
-> **Richtiggestellt am 13.09.2026.** Hier stand „14 Commits vor `main`,
-> offener PR #56, wartet auf den Merge" — der Merge lief acht Stunden nach
-> dem Schreiben dieser Zeile. Ein Übergabestand, der seinen eigenen
-> Fortschritt nicht mitbekommt, schickt den nächsten Anlauf an eine Arbeit,
-> die schon getan ist: Genau das ist am 13.09. passiert, zweimal.
+> **Richtiggestellt am 13.09.2026, zweimal am selben Tag.** Erst stand hier
+> „14 Commits vor `main`, offener PR #56, wartet auf den Merge" — der Merge
+> lief acht Stunden nach dem Schreiben dieser Zeile. Dann stand hier „4
+> Commits, noch nicht produktiv" — auch das hielt nur Stunden. Ein
+> Übergabestand altert an genau den Zeilen, die Zahlen nennen; wer ihn liest,
+> prüft sie besser einmal nach.
 
 ---
 
@@ -124,8 +127,9 @@ und produktiv mit deinem eigenen Klick (Anfrage 20, Audit 204 — Mail 1
 21:19:58, Klick 21:20:18, Mail 2 sofort, PDF 12 Seiten). Belege in
 `docs/tagesdokumentation/2026-09-12.md`, Abschnitt 3.
 
-Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden — den, den
-`f1a3ffb` behebt und der noch nicht produktiv ist.
+Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden. `f1a3ffb`
+behebt ihn und ist seit dem 13.09., 11:23 Uhr produktiv — **bestätigt durch
+einen echten Abruf ist er noch nicht**, siehe Abschnitt 3.3.
 
 **② Meta-Konto einrichten.** Domain verifizieren und die
 Ereignis-Priorisierung (Aggregated Event Measurement) setzen. Ohne beides
@@ -167,6 +171,29 @@ Start mitläuft.
   (`test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus`).
 - ~~**PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert.~~
   **Erledigt am 12.09. — es war nichts zu reparieren.** Siehe Abschnitt 5.
+- **OFFEN: den PDF-Dateinamen produktiv nachmessen.** `f1a3ffb` ist seit dem
+  13.09., 11:23 Uhr ausgerollt, und 22 Tests halten ihn — aber **kein
+  produktiver Abruf** hat ihn bisher bestätigt. Eine Reparatur ohne
+  bestätigenden Lauf gilt hier als offen; genau diese Regel hat am 12.09.
+  eine falsche Diagnose eine Woche am Leben gehalten.
+
+  **Was es braucht, und warum es nicht allein geht.** Das PDF hängt am
+  `report_token`, und den gibt es erst nach dem Klick in der
+  Bestätigungsmail — also dieselben zwei Minuten wie am 12.09.:
+
+  1. Claude startet produktiv eine Analyse gegen eine Seite mit Umlaut im
+     Firmennamen. `nachhaltika.de` ist das richtige Prüfobjekt — daher kam
+     der Fehler („Das Ingenieurbüro für nachhaltige Wirtschaft"), und
+     `kas.kompagnon.group` taugt nicht, weil dort eine Anmeldewand vermessen
+     wird.
+  2. David klickt die Bestätigungsmail.
+  3. Claude holt das PDF und liest die `content-disposition`: kein Rohbyte
+     außerhalb von ASCII, `filename="…Ingenieurbuero…"` und
+     `filename*=UTF-8''…Ingenieurb%C3%BCro…` nebeneinander.
+
+  Schritt 1 legt einen **echten Lead in der Produktivdatenbank** an und
+  verschickt eine Mail. Kurz vor dem Kampagnenstart ist das kein Nebenbei —
+  deshalb erst auf Ansage.
 
 ---
 
@@ -204,32 +231,13 @@ anrechenbar auf einen Websprint innerhalb 6 Monaten), Zahlungslink existiert
 und trägt den richtigen Betrag. **Die Kaufadresse steht seit dem 13.09.
 produktiv im Werkzeug.** Offen ist nur noch der Katalogstatus: `draft` → `live`.
 
-### 4.4 Geht vor Montag ein PR auf? *(neu am 13.09.)*
+### 4.4 ~~Geht vor Montag ein PR auf?~~ **Entschieden am 13.09.**
 
-Die Regel im Haus lautet: PR `staging → main` **nur freitags**. Sie ist gut,
-und sie kollidiert diesmal mit dem Start.
-
-Auf `staging` liegt `f1a3ffb` — der Fix für den PDF-Dateinamen. Produktiv
-gilt heute noch der Stand, den der Durchlauf am 12.09. als kaputt gefunden
-hat: Ein Kunde namens *Sanitär Müller* bekommt sein PDF mit beschädigtem
-Dateinamen. In der Startbranche Heizung/Sanitär/Elektrik ist der Umlaut
-nicht die Ausnahme, sondern die Mehrheit der Firmennamen.
-
-**Was dagegen spricht**, ehrlich benannt: Der Merge kostet rund 40 Sekunden
-Produktion (L-94, Datenträger unter `/var/data`), und er nimmt drei weitere
-Commits mit, die keine Kampagne braucht — L-184 und L-105 sind gut, aber
-nicht dringend.
-
-> **Empfehlung: PR aufmachen, vor Montag mergen.** Die Freitagsregel
-> existiert, damit Veröffentlichungen in ruhigem Takt laufen und Staging
-> nicht dauernd in Bewegung ist. Ein Kampagnenstart ist genau der Fall, für
-> den sie nicht geschrieben wurde. 40 Sekunden bei sechs Anfragen pro
-> Stunde am Wochenende sind billiger als eine Woche Kampagne, in der jedes
-> ausgelieferte PDF beim Kunden mit deutschem Firmennamen falsch heißt —
-> und das ist der erste Eindruck, den die Kampagne erzeugt.
->
-> Wenn der PR **nicht** aufgeht, ist das eine tragbare Entscheidung — dann
-> aber bitte wissentlich: Der Fehler ist bekannt, nicht unbemerkt.
+Ja. PR #57 ist um 11:16 gemerged und um 11:23 ausgerollt — acht Commits,
+darunter `f1a3ffb`. Die Freitagsregel wurde für den Kampagnenstart einmal
+ausgesetzt; der Grund steht oben: 40 Sekunden Produktion gegen eine
+Kampagnenwoche, in der jedes PDF beim Kunden mit deutschem Firmennamen falsch
+heißt. Die Regel gilt danach unverändert weiter.
 
 ---
 

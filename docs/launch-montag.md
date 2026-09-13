@@ -3,19 +3,23 @@
 Stand: **13.09.2026**. Geschrieben am Ende der Sitzung vom 10.09.,
 fortgeschrieben am 12. und 13.09.
 
-> **Die eine Sache, die den Start verhindert:** Der Messblock ist nicht auf
-> der Landingpage. Ohne ihn sieht Meta keinen Seitenaufruf, jeder Lead kommt
-> ohne Herkunft an, und die Kampagne lässt sich nicht bewerten. Alles andere
-> unten ist wichtig, aber nicht blockierend.
+> **Der Start ist frei.** Am 13.09. gegen 21:30 Uhr hat David den Messblock
+> hochgeladen; die Seite ist byte-gleich mit der Datei (1.018.227 Bytes,
+> vorher 1.011.007). Alle neun Merkmale sind oben, und das Bestehende ist
+> unangetastet (ProvenExpert 9 zu 9, Leadinfo 4 zu 4, GA4 2 zu 2).
 >
-> Am 13.09. an der Seite nachgemessen, nicht angenommen:
-> `websprint.kompagnon.eu` antwortet mit 200 und 1.011.007 Bytes. Von neun
-> Merkmalen des Blocks finden sich **zwei** — `c.marketing` und `gtag(` —,
-> und die waren vorher schon da. Kein `fbq(`, kein
-> `connect.facebook.net`, keine Pixelnummer, kein `fbclid`, kein `_fbp`,
-> kein `generate_lead`, keine `eventID`. Gegengeprüft an der fertigen Datei
-> (1.018.227 Bytes): dort stehen **alle neun**. Die Suche taugt also, und
-> die Abwesenheit ist echt.
+> **Im Browser nachgefahren, nicht nur im Quelltext gezählt:** vor der
+> Einwilligung `fbq` undefined und null Facebook-Skripte; nach der
+> Einwilligung `PageView` an Pixel `1363198722345965` mit **HTTP 200**,
+> `fbc` und `fbp` in der Meldung; das Widget bekommt `fbclid` und `fbp`
+> durchgereicht; beim Absenden feuern
+> `fbq('track','Lead',...,{eventID:'kpg-widget-25'})` **und**
+> `gtag('event','generate_lead')` -- dieselbe Kennung, die
+> `routers/widget.py:253` dem Serverweg mitgibt, also keine Doppelzählung.
+>
+> Offen bleibt nur, was von außen niemand sehen kann: **ob Meta die
+> Ereignisse annimmt.** Das zeigt der Ereignis-Manager, und dazu gehört die
+> Domain-Verifizierung. Siehe 3.1.
 
 ---
 
@@ -36,11 +40,9 @@ Nicht am Status gemessen, sondern am Zustand:
 | Frontend produktiv | `49f31000` · **live** · fertig 11:22:39Z |
 | `/health` | `ok`, `startup_complete`, `startup_missing: []`, DB verbunden |
 
-> **`f1a3ffb` ist produktiv** — der PDF-Dateiname überlebt jetzt einen Umlaut.
-> **Bestätigt ist er damit noch nicht.** Belegt sind der ausgerollte Commit
-> und ein grüner Test; ein produktiver Abruf eines PDFs mit Umlaut im
-> Firmennamen hat noch nicht stattgefunden. Bis dahin gilt: plausibel, nicht
-> gemessen. Was dafür nötig ist, steht in Abschnitt 3.3.
+> **`f1a3ffb` ist produktiv und bestätigt.** Am 13.09. um 21:52 Uhr an einem
+> echten ausgelieferten PDF gemessen — Kopfzeile reines ASCII, kein rohes
+> `0xfc`, beide Namensformen nebeneinander. Beleg in Abschnitt 3.3.
 
 > **Richtiggestellt am 13.09.2026, zweimal am selben Tag.** Erst stand hier
 > „14 Commits vor `main`, offener PR #56, wartet auf den Merge" — der Merge
@@ -62,7 +64,7 @@ Geprüft an `api.kompagnon.group/api/widget/config`, nicht aus dem Gedächtnis:
 | Meta-Serverweg (CAPI) | ✅ `bereit: true`, Token und Pixel gesetzt |
 | Kriterienzahl | 39 |
 | Kaufadresse Check PLUS | ✅ **seit 13.09. eingetragen** — `…9Zm01` |
-| Check PLUS im Teaser | **noch ohne Kaufknopf** — `verfuegbar: false`, weil der Katalog auf `draft` steht |
+| Check PLUS im Teaser | OK **Kaufknopf da** — `verfuegbar: true`, im Browser gesehen samt Preis 249,00 netto / 296,31 brutto |
 | Terminkalender im Widget | ✅ zeigt auf den Kalender des Systems |
 | Kaufadresse Relaunch | **von außen nicht messbar** — siehe unten |
 | Häkchentext im Widget | ✅ neue Fassung live (PR #55) |
@@ -93,12 +95,15 @@ Dass die Adresse aus der Datenbank kommt und nicht geerbt ist, ist geprüft:
 > genau diesen Wert gesetzt sein. Für den Knopf ist beides gleichwertig; für
 > die Aussage ist es das nicht.
 
-**Der fehlende Kaufknopf ist kein Fehler.** Leer heißt bewusst „Angebot ohne
-Abschluss": Ein Knopf, der ins Leere führt, wird von niemandem gemeldet, ein
-fehlender fällt auf. Für Check PLUS fehlt jetzt nur noch **eines** — der
-Katalogstatus `live` (`verfuegbar = live UND Adresse`, siehe
-`services/check_plus_angebot.py`). Der Knopf erscheint in dem Moment von
-selbst; die Adresse liegt bereits.
+**Der fehlende Kaufknopf war kein Fehler**, und der Weg dahin ist lehrreich:
+David fiel auf, dass im Teaser kein Verkaufslink stand. Ursache war nicht die
+Adresse — die war eingetragen —, sondern der Katalogstatus `draft`
+(`verfuegbar = live UND Adresse`, siehe `services/check_plus_angebot.py`).
+Nach dem Umstellen auf `live` erschien der Knopf sofort, ohne Deploy.
+
+Dass der Block bis dahin **ohne** Knopf erschien statt gar nicht, ist der
+Grund, warum es überhaupt aufgefallen ist: Ein Knopf, der ins Leere führt,
+wird von niemandem gemeldet — ein fehlender fällt auf.
 
 ---
 
@@ -106,18 +111,10 @@ selbst; die Adresse liegt bereits.
 
 ### 3.1 Bei David — blockierend
 
-**① Messblock hochladen.** `docs/landingpage/websprint-landingpage.html` zu
-Mittwald, als Ersatz der bestehenden `index.html` von
-`websprint.kompagnon.eu`. Die Datei ist fertig und enthält den Block bereits.
-
-Was der Block tut: lädt das Meta-Pixel **nur** nach Zustimmung zu
-`c.marketing`, reicht `fbclid` und `_fbp` an das Widget durch und meldet den
-Abschluss doppelt-gezählt-sicher (`fbq('track','Lead')` mit `eventID` plus
-`gtag('event','generate_lead')`). Ausführlich in
-`kompagnon/frontend/public/embed/README.md`.
-
-> Prüfbar erst danach: ob Meta wirklich misst. Die Vorschau zeigt
-> Oberflächen, keine Abläufe.
+**~~① Messblock hochladen.~~ Erledigt am 13.09. gegen 21:30 Uhr.** Die Seite
+ist byte-gleich mit `docs/landingpage/websprint-landingpage.html`, alle neun
+Merkmale oben, das Verhalten im Browser nachgefahren — Belege im Kasten ganz
+oben.
 
 **~~② Bestätigungsmail klicken.~~ Erledigt am 12.09.** Die Trichterschritte
 **7 bis 9** (Klick → zweite Mail → Berichtsseite → PDF) sind zweimal ganz
@@ -128,8 +125,8 @@ und produktiv mit deinem eigenen Klick (Anfrage 20, Audit 204 — Mail 1
 `docs/tagesdokumentation/2026-09-12.md`, Abschnitt 3.
 
 Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden. `f1a3ffb`
-behebt ihn und ist seit dem 13.09., 11:23 Uhr produktiv — **bestätigt durch
-einen echten Abruf ist er noch nicht**, siehe Abschnitt 3.3.
+behebt ihn, ist seit dem 13.09., 11:23 Uhr produktiv und seit 21:52 Uhr an
+einem echten PDF **bestätigt** — siehe Abschnitt 3.3.
 
 **② Meta-Konto einrichten.** Domain verifizieren und die
 Ereignis-Priorisierung (Aggregated Event Measurement) setzen. Ohne beides
@@ -153,9 +150,9 @@ Abschnitt 2). Ein Blick ins Werkzeug klärt das in einer Minute.
 Logo und Portrait brauchen **keinen** Eintrag — das Portrait liegt als Datei
 im Frontend und ist Vorgabe.
 
-**Check PLUS steht im Katalog noch auf `draft`.** Solange es nicht `live`
-ist, erscheint der Angebotsblock im Teaser nicht. Entscheidung, ob es zum
-Start mitläuft.
+~~**Check PLUS steht im Katalog noch auf `draft`.**~~ **Am 13.09. auf `live`
+gestellt** — der Kaufknopf steht im Teaser. Entscheidung 4.3 ist damit
+getroffen: Check PLUS läuft zum Start mit.
 
 ### 3.3 Bei Claude — auf Ansage
 
@@ -171,29 +168,20 @@ Start mitläuft.
   (`test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus`).
 - ~~**PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert.~~
   **Erledigt am 12.09. — es war nichts zu reparieren.** Siehe Abschnitt 5.
-- **OFFEN: den PDF-Dateinamen produktiv nachmessen.** `f1a3ffb` ist seit dem
-  13.09., 11:23 Uhr ausgerollt, und 22 Tests halten ihn — aber **kein
-  produktiver Abruf** hat ihn bisher bestätigt. Eine Reparatur ohne
-  bestätigenden Lauf gilt hier als offen; genau diese Regel hat am 12.09.
-  eine falsche Diagnose eine Woche am Leben gehalten.
+- ~~**Den PDF-Dateinamen produktiv nachmessen.**~~ **Erledigt am 13.09.,
+  21:52 Uhr — am ausgelieferten PDF, nicht am Test.** Vollständiger Durchlauf
+  über die Landingpage (Anfrage 25, `nachhaltika.de`, Firma *Das
+  Ingenieurbüro für nachhaltige Wirtschaft*), Davids Klick, Mail 2,
+  Berichtsseite (101.370 Bytes), PDF (105.424 Bytes). Die Kopfzeile:
 
-  **Was es braucht, und warum es nicht allein geht.** Das PDF hängt am
-  `report_token`, und den gibt es erst nach dem Klick in der
-  Bestätigungsmail — also dieselben zwei Minuten wie am 12.09.:
+      content-disposition: attachment;
+        filename="Website-Analyse-Das-Ingenieurbuero-fuer-nachhaltige-Wirtschaft.pdf";
+        filename*=UTF-8''Website-Analyse-Das-Ingenieurb%C3%BCro-f%C3%BCr-nachhaltige-Wirtschaft.pdf
 
-  1. Claude startet produktiv eine Analyse gegen eine Seite mit Umlaut im
-     Firmennamen. `nachhaltika.de` ist das richtige Prüfobjekt — daher kam
-     der Fehler („Das Ingenieurbüro für nachhaltige Wirtschaft"), und
-     `kas.kompagnon.group` taugt nicht, weil dort eine Anmeldewand vermessen
-     wird.
-  2. David klickt die Bestätigungsmail.
-  3. Claude holt das PDF und liest die `content-disposition`: kein Rohbyte
-     außerhalb von ASCII, `filename="…Ingenieurbuero…"` und
-     `filename*=UTF-8''…Ingenieurb%C3%BCro…` nebeneinander.
-
-  Schritt 1 legt einen **echten Lead in der Produktivdatenbank** an und
-  verschickt eine Mail. Kurz vor dem Kampagnenstart ist das kein Nebenbei —
-  deshalb erst auf Ansage.
+  Reines ASCII (`encode("ascii")` wirft nicht), **kein rohes `0xfc`** in der
+  ganzen Antwort, der Rückfall lesbar umgeschrieben, der echte Name daneben.
+  Am 12.09. stand an derselben Stelle `Ingenieurb\xfcro`. Damit ist `f1a3ffb`
+  nicht mehr nur ausgerollt, sondern **bestätigt**.
 
 ---
 
@@ -224,7 +212,7 @@ Entweder sie gehört in die Merkmalsliste — dann gehört sie auch ins Angebot,
 in die Fragen und in die Auftragsbestätigung — oder sie darf nicht zugesagt
 werden. Zurzeit steht sie **nirgends**.
 
-### 4.3 Check PLUS zum Start?
+### 4.3 ~~Check PLUS zum Start?~~ **Entschieden am 13.09.: ja**
 
 Produkt ist angelegt (249 € netto / 296,31 € brutto, 5 Werktage,
 anrechenbar auf einen Websprint innerhalb 6 Monaten), Zahlungslink existiert

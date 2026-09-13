@@ -60,12 +60,35 @@ Geprüft an `api.kompagnon.group/api/widget/config`, nicht aus dem Gedächtnis:
 | Kriterienzahl | 39 |
 | Kaufadresse Check PLUS | ✅ **seit 13.09. eingetragen** — `…9Zm01` |
 | Check PLUS im Teaser | **noch ohne Kaufknopf** — `verfuegbar: false`, weil der Katalog auf `draft` steht |
-| Kaufadresse Relaunch | ❌ leer — `checkout_url` zeigt weiter in den Terminkalender |
+| Terminkalender im Widget | ✅ zeigt auf den Kalender des Systems |
+| Kaufadresse Relaunch | **von außen nicht messbar** — siehe unten |
 | Häkchentext im Widget | ✅ neue Fassung live (PR #55) |
 
 Dass die Adresse aus der Datenbank kommt und nicht geerbt ist, ist geprüft:
 `widget_check_plus_url` hat weder einen `ENV_FALLBACK` noch einen Eintrag in
 `DEFAULTS` (`services/app_settings.py`). Der Wert kann nur eingetragen sein.
+
+> **Richtiggestellt am 13.09.2026, wenige Stunden nach dem Eintrag.** Hier
+> stand „Kaufadresse Relaunch: ❌ leer — `checkout_url` zeigt weiter in den
+> Terminkalender". Das war eine Schlussfolgerung aus der falschen Zahl.
+> `checkout_url` in `/api/widget/config` ist `termin_url(widget_booking_url)`
+> — der **Terminkalender** des Widgets. Die Relaunch-Kaufadresse ist eine
+> andere Einstellung (`bericht_kauf_relaunch_url`) und steht dort überhaupt
+> nicht. Sie ist nur über `/api/acquisition/widget` lesbar, und die antwortet
+> ohne Anmeldung mit **401**. Ob sie gefüllt ist, weiß von außen niemand —
+> nachsehen kann das nur David im Werkzeug.
+>
+> Zwei Einstellungen, die beide „führt sonst in den Kalender" als Rückfall
+> haben, sind leicht zu verwechseln. Genau diese Verwechslung war schon
+> einmal ein Fehler im System: Als beide an `widget_checkout_url` hingen,
+> überschrieb der dort eingetragene Wert den Kalender (Kommentar in
+> `services/widget_report.py`). Jetzt habe ich sie im Bericht darüber
+> verwechselt.
+>
+> **Ebenfalls genauer gefasst:** Aus `checkout_url == STANDARD_TERMIN_URL`
+> folgt nicht, dass `widget_booking_url` *leer* ist — sie könnte auch auf
+> genau diesen Wert gesetzt sein. Für den Knopf ist beides gleichwertig; für
+> die Aussage ist es das nicht.
 
 **Der fehlende Kaufknopf ist kein Fehler.** Leer heißt bewusst „Angebot ohne
 Abschluss": Ein Knopf, der ins Leere führt, wird von niemandem gemeldet, ein
@@ -111,7 +134,9 @@ misst iOS-Verkehr unvollständig.
 ### 3.2 Bei David — im Werkzeug unter *Akquise → Widget*
 
 Die Felder sind seit dem Ausrollen am 12.09., 21:31 Uhr da. Eines ist
-gefüllt, vier sind offen:
+nachweislich gefüllt; bei den übrigen vier sagt die Liste nur, **was
+hineingehört** — ob sie leer sind, ist von außen nicht prüfbar (401, siehe
+Abschnitt 2). Ein Blick ins Werkzeug klärt das in einer Minute.
 
 | Feld | Wert | Wirkung, wenn leer |
 |---|---|---|

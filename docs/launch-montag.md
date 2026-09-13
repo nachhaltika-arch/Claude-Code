@@ -1,12 +1,21 @@
 # Kampagnenstart Montag, 14.09.2026 — Stand und offene Aufgaben
 
-Stand: 12.09.2026. Geschrieben am Ende der Sitzung vom 10.09., damit der
-nächste Anlauf nicht bei null anfängt.
+Stand: **13.09.2026**. Geschrieben am Ende der Sitzung vom 10.09.,
+fortgeschrieben am 12. und 13.09.
 
 > **Die eine Sache, die den Start verhindert:** Der Messblock ist nicht auf
 > der Landingpage. Ohne ihn sieht Meta keinen Seitenaufruf, jeder Lead kommt
 > ohne Herkunft an, und die Kampagne lässt sich nicht bewerten. Alles andere
 > unten ist wichtig, aber nicht blockierend.
+>
+> Am 13.09. an der Seite nachgemessen, nicht angenommen:
+> `websprint.kompagnon.eu` antwortet mit 200 und 1.011.007 Bytes. Von neun
+> Merkmalen des Blocks finden sich **zwei** — `c.marketing` und `gtag(` —,
+> und die waren vorher schon da. Kein `fbq(`, kein
+> `connect.facebook.net`, keine Pixelnummer, kein `fbclid`, kein `_fbp`,
+> kein `generate_lead`, keine `eventID`. Gegengeprüft an der fertigen Datei
+> (1.018.227 Bytes): dort stehen **alle neun**. Die Suche taugt also, und
+> die Abwesenheit ist echt.
 
 ---
 
@@ -14,17 +23,34 @@ nächste Anlauf nicht bei null anfängt.
 
 | | |
 |---|---|
-| `staging` | **14 Commits vor `main`** — alle mit grünem CI-Lauf, auf dem Staging-Server ausgeliefert. Hier stand 13; der Übergabe-Commit selbst kam danach dazu |
-| `main` | unverändert — **nichts davon ist produktiv** |
-| offener PR | **[#56](https://github.com/nachhaltika-arch/Claude-Code/pull/56)**, geöffnet am 12.09., alle sieben CI-Jobs grün — **wartet auf den Merge durch David** |
+| `main` | **PR #56 ist am 12.09. um 21:24 gemerged** (Merge-Commit `5524597`), ausgerollt 21:31. Die 15 Commits sind produktiv |
+| `staging` | **4 Commits vor `main`**, gepusht, CI grün — noch **nicht** produktiv |
+| offener PR | keiner |
 
-Alles, was in dieser Sitzung entstanden ist, wirkt erst nach dem Merge.
+Die vier wartenden Commits:
+
+    4953a4a  docs: Tagesdokumentation bekommt einen eigenen Ordner
+    41587ba  fix(L-105): der Korb „ruft niemand" ist leer — 19 Routen gesichtet
+    1bcc900  fix(L-184): eine gescheiterte Analyse verliert den Lead nicht lautlos
+    f1a3ffb  fix(bericht): der Dateiname des PDFs überlebt jetzt einen Umlaut
+
+> **`f1a3ffb` ist der, auf den es zum Start ankommt.** Solange er auf
+> `staging` liegt, bekommt produktiv jeder Kunde mit einem Umlaut im
+> Firmennamen ein PDF mit beschädigtem Dateinamen — in der Startbranche
+> Heizung/Sanitär nicht der Sonderfall, sondern der Regelfall. Die
+> Entscheidung, ob dafür vor Montag ein PR aufgeht, steht in Abschnitt 4.4.
+
+> **Richtiggestellt am 13.09.2026.** Hier stand „14 Commits vor `main`,
+> offener PR #56, wartet auf den Merge" — der Merge lief acht Stunden nach
+> dem Schreiben dieser Zeile. Ein Übergabestand, der seinen eigenen
+> Fortschritt nicht mitbekommt, schickt den nächsten Anlauf an eine Arbeit,
+> die schon getan ist: Genau das ist am 13.09. passiert, zweimal.
 
 ---
 
-## 2. Was produktiv nachgemessen ist (12.09.)
+## 2. Was produktiv nachgemessen ist (Stand 13.09.)
 
-Geprüft an `api.kompagnon.group`, nicht aus dem Gedächtnis:
+Geprüft an `api.kompagnon.group/api/widget/config`, nicht aus dem Gedächtnis:
 
 | | Stand |
 |---|---|
@@ -32,13 +58,21 @@ Geprüft an `api.kompagnon.group`, nicht aus dem Gedächtnis:
 | Meta-Pixel im Widget | ✅ `1363198722345965` |
 | Meta-Serverweg (CAPI) | ✅ `bereit: true`, Token und Pixel gesetzt |
 | Kriterienzahl | 39 |
-| Check PLUS im Teaser | angeboten, **aber ohne Kaufknopf** — die Adresse ist nicht eingetragen |
+| Kaufadresse Check PLUS | ✅ **seit 13.09. eingetragen** — `…9Zm01` |
+| Check PLUS im Teaser | **noch ohne Kaufknopf** — `verfuegbar: false`, weil der Katalog auf `draft` steht |
+| Kaufadresse Relaunch | ❌ leer — `checkout_url` zeigt weiter in den Terminkalender |
 | Häkchentext im Widget | ✅ neue Fassung live (PR #55) |
+
+Dass die Adresse aus der Datenbank kommt und nicht geerbt ist, ist geprüft:
+`widget_check_plus_url` hat weder einen `ENV_FALLBACK` noch einen Eintrag in
+`DEFAULTS` (`services/app_settings.py`). Der Wert kann nur eingetragen sein.
 
 **Der fehlende Kaufknopf ist kein Fehler.** Leer heißt bewusst „Angebot ohne
 Abschluss": Ein Knopf, der ins Leere führt, wird von niemandem gemeldet, ein
-fehlender fällt auf. Er erscheint, sobald die Adresse im Werkzeug steht — und
-das geht erst nach dem Merge.
+fehlender fällt auf. Für Check PLUS fehlt jetzt nur noch **eines** — der
+Katalogstatus `live` (`verfuegbar = live UND Adresse`, siehe
+`services/check_plus_angebot.py`). Der Knopf erscheint in dem Moment von
+selbst; die Adresse liegt bereits.
 
 ---
 
@@ -59,20 +93,29 @@ Abschluss doppelt-gezählt-sicher (`fbq('track','Lead')` mit `eventID` plus
 > Prüfbar erst danach: ob Meta wirklich misst. Die Vorschau zeigt
 > Oberflächen, keine Abläufe.
 
-**② Bestätigungsmail klicken.** Es liegt eine Analyse an
-`nachhaltika+lauf@gmail.com`. Die Trichterschritte **7 bis 9** (Klick →
-zweite Mail → Berichtsseite → PDF) sind bis heute **nie durchlaufen worden**.
-Ohne diesen Klick geht die Kampagne mit einem ungetesteten Abschnitt live.
+**~~② Bestätigungsmail klicken.~~ Erledigt am 12.09.** Die Trichterschritte
+**7 bis 9** (Klick → zweite Mail → Berichtsseite → PDF) sind zweimal ganz
+durchlaufen: auf Staging mit echtem Inhalt (Anfrage 10, `nachhaltika.de` —
+Mail 1 um 13:24, Mail 2 um 13:25:30, Berichtsseite 62/100, PDF 11 Seiten)
+und produktiv mit deinem eigenen Klick (Anfrage 20, Audit 204 — Mail 1
+21:19:58, Klick 21:20:18, Mail 2 sofort, PDF 12 Seiten). Belege in
+`docs/tagesdokumentation/2026-09-12.md`, Abschnitt 3.
 
-**③ Meta-Konto einrichten.** Domain verifizieren und die
+Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden — den, den
+`f1a3ffb` behebt und der noch nicht produktiv ist.
+
+**② Meta-Konto einrichten.** Domain verifizieren und die
 Ereignis-Priorisierung (Aggregated Event Measurement) setzen. Ohne beides
 misst iOS-Verkehr unvollständig.
 
-### 3.2 Bei David — nach dem Merge, im Werkzeug unter *Akquise → Widget*
+### 3.2 Bei David — im Werkzeug unter *Akquise → Widget*
+
+Die Felder sind seit dem Ausrollen am 12.09., 21:31 Uhr da. Eines ist
+gefüllt, vier sind offen:
 
 | Feld | Wert | Wirkung, wenn leer |
 |---|---|---|
-| Kaufadresse Check PLUS | `https://buy.stripe.com/eVq8wP9JV4ORdsGgmm9Zm01` | Angebot ohne Knopf |
+| ~~Kaufadresse Check PLUS~~ | ✅ **eingetragen** (13.09. produktiv gemessen) | — |
 | Kaufadresse Relaunch | `https://buy.stripe.com/aFa8wP8FR6WZdsG0no9Zm00` | Knopf führt in den Kalender |
 | Rabatt + Code | `25 % Rabatt für die ersten 25 Kunden` / `WS25` | kein Rabattkasten |
 | Abnahmezusage | siehe Entscheidung 4.1 | keine Zusage |
@@ -87,11 +130,16 @@ Start mitläuft.
 
 ### 3.3 Bei Claude — auf Ansage
 
-- ~~**PR `staging → main` öffnen.**~~ **Erledigt am 12.09.: PR #56**, 14
-  Commits (nicht 13 — der Übergabe-Commit kam nach dem Schreiben dieser Zeile
-  dazu), alle sieben CI-Jobs grün. *Der Merge bleibt bei David — Claude
-  merged nie selbst.*
-- **Trichterschritte 7–9 nachprüfen**, sobald ① und ② erledigt sind.
+- ~~**PR `staging → main` öffnen.**~~ **Erledigt am 12.09.: PR #56**, 15
+  Commits, alle sieben CI-Jobs grün, von David gemerged. *Der Merge bleibt
+  bei David — Claude merged nie selbst.*
+- ~~**Trichterschritte 7–9 nachprüfen.**~~ **Erledigt am 12.09.**
+  (Durchlauf, siehe 3.1) **und am 13.09.** (Absicherung): Schritt 9 hatte
+  keinen Test, der die Route je bis zu einem PDF fährt — der einzige, der
+  sie anfasste, prüfte ein 404. `tests/test_bericht_pdf_auslieferung.py`
+  holt jetzt das ausgelieferte PDF und misst die Kopfzeile, die über die
+  Leitung geht. Schritte 7 und 8 waren bereits am Gegenstand abgedeckt
+  (`test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus`).
 - ~~**PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert.~~
   **Erledigt am 12.09. — es war nichts zu reparieren.** Siehe Abschnitt 5.
 
@@ -128,7 +176,35 @@ werden. Zurzeit steht sie **nirgends**.
 
 Produkt ist angelegt (249 € netto / 296,31 € brutto, 5 Werktage,
 anrechenbar auf einen Websprint innerhalb 6 Monaten), Zahlungslink existiert
-und trägt den richtigen Betrag. Offen ist nur, ob es am Montag mitläuft.
+und trägt den richtigen Betrag. **Die Kaufadresse steht seit dem 13.09.
+produktiv im Werkzeug.** Offen ist nur noch der Katalogstatus: `draft` → `live`.
+
+### 4.4 Geht vor Montag ein PR auf? *(neu am 13.09.)*
+
+Die Regel im Haus lautet: PR `staging → main` **nur freitags**. Sie ist gut,
+und sie kollidiert diesmal mit dem Start.
+
+Auf `staging` liegt `f1a3ffb` — der Fix für den PDF-Dateinamen. Produktiv
+gilt heute noch der Stand, den der Durchlauf am 12.09. als kaputt gefunden
+hat: Ein Kunde namens *Sanitär Müller* bekommt sein PDF mit beschädigtem
+Dateinamen. In der Startbranche Heizung/Sanitär/Elektrik ist der Umlaut
+nicht die Ausnahme, sondern die Mehrheit der Firmennamen.
+
+**Was dagegen spricht**, ehrlich benannt: Der Merge kostet rund 40 Sekunden
+Produktion (L-94, Datenträger unter `/var/data`), und er nimmt drei weitere
+Commits mit, die keine Kampagne braucht — L-184 und L-105 sind gut, aber
+nicht dringend.
+
+> **Empfehlung: PR aufmachen, vor Montag mergen.** Die Freitagsregel
+> existiert, damit Veröffentlichungen in ruhigem Takt laufen und Staging
+> nicht dauernd in Bewegung ist. Ein Kampagnenstart ist genau der Fall, für
+> den sie nicht geschrieben wurde. 40 Sekunden bei sechs Anfragen pro
+> Stunde am Wochenende sind billiger als eine Woche Kampagne, in der jedes
+> ausgelieferte PDF beim Kunden mit deutschem Firmennamen falsch heißt —
+> und das ist der erste Eindruck, den die Kampagne erzeugt.
+>
+> Wenn der PR **nicht** aufgeht, ist das eine tragbare Entscheidung — dann
+> aber bitte wissentlich: Der Fehler ist bekannt, nicht unbemerkt.
 
 ---
 

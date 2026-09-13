@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from database import AuditResult, Lead, User, get_db, SessionLocal
 from routers.auth_router import optional_auth, require_innendienst
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.dateinamen import anhang_kopfzeile
 from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
 # Die Aufbereitung der Antwort steht seit dem 23.08.2026 fuer sich (L-25):
@@ -266,7 +267,13 @@ def _run_audit_background(audit_id: int):
 
 
 def _mark_failed(audit_id: int, message: str) -> None:
-    """Setzt ein Audit auf 'failed' — in eigener Session, damit es immer greift."""
+    """Setzt ein Audit auf 'failed' — in eigener Session, damit es immer greift.
+
+    **Der Zustandswechsel ist zugleich die Sperre gegen doppelten Versand**
+    (L-184). Die Benachrichtigung steht innerhalb der Bedingung: Nur der
+    Übergang von `pending`/`running` nach `failed` löst sie aus, und den gibt
+    es je Audit genau einmal. Dafür braucht es keine zusätzliche Spalte.
+    """
     db = SessionLocal()
     try:
         audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -275,10 +282,56 @@ def _mark_failed(audit_id: int, message: str) -> None:
             audit.error_message = message
             db.commit()
             logger.warning(f"Audit {audit_id} fehlgeschlagen: {message}")
+            _notify_widget_failure(db, audit_id, message)
     except Exception as e:  # noqa: BLE001
         logger.error(f"Audit {audit_id}: Fehlerstatus konnte nicht gesetzt werden: {e}")
     finally:
         db.close()
+
+
+def _notify_widget_failure(db, audit_id: int, message: str) -> None:
+    """Sagt dem Besucher, dass seine Analyse nicht durchlief (L-184).
+
+    **Vorher ging hier gar nichts raus.** Wer seine Adresse im Widget
+    hinterliess und dessen Erhebung scheiterte, wartete auf eine Mail, die
+    nie kam — `_notify_widget_requester` steigt aus, solange der Status nicht
+    `completed` ist. Bei bezahltem Verkehr ist das die Stelle, an der Geld
+    ohne Spur verschwindet.
+
+    **Nur für Anfragen aus dem Widget.** Ein im Werkzeug gestartetes Audit
+    hat keine `WidgetRequest` — dort wartet niemand auf eine Mail, und es
+    geht keine raus.
+
+    Ein Fehler beim Versand darf den Fehlerstatus nicht zurücknehmen: Er
+    wird protokolliert und sonst nichts. Der Fall bleibt in der Anfrageliste
+    sichtbar, auch wenn die Mail nicht ankam.
+    """
+    try:
+        from database import WidgetRequest
+        from services import analyse_fehler, widget_report
+        from services.email import send_email
+
+        row = (
+            db.query(WidgetRequest)
+            .filter(WidgetRequest.audit_id == audit_id)
+            .first()
+        )
+        if not row:
+            return
+
+        grund = analyse_fehler.kategorie(message)
+        subject, body = widget_report.fehlschlag_email(
+            company=row.website_url, grund=grund)
+
+        if send_email(to_email=row.email, subject=subject, html_body=body):
+            logger.info(f"Widget-Fehlschlag gemeldet an {row.email} "
+                        f"(Audit {audit_id}, Grund {grund})")
+        else:
+            logger.warning(f"Widget-Fehlschlag NICHT gemeldet an {row.email} "
+                           f"(Audit {audit_id}, Grund {grund})")
+    except Exception as e:  # noqa: BLE001 — der Fehlerstatus steht schon
+        logger.warning(f"Audit {audit_id}: Fehlschlagsmeldung fehlgeschlagen: "
+                       f"{type(e).__name__}: {e}")
 
 
 def _jetzt() -> datetime:
@@ -510,21 +563,21 @@ async def start_audit(
             logger.error(
                 f"Audit {aid}: Gesamt-Timeout ({AUDIT_TOTAL_TIMEOUT_SEC}s) erreicht"
             )
-            from database import SessionLocal as _SL
-            _db = _SL()
-            try:
-                a = _db.query(AuditResult).filter(AuditResult.id == aid).first()
-                if a and a.status == "running":
-                    a.status = "failed"
-                    a.error_message = (
-                        f"Timeout: Audit konnte nicht in "
-                        f"{AUDIT_TOTAL_TIMEOUT_SEC}s abgeschlossen werden."
-                    )
-                    _db.commit()
-            finally:
-                _db.close()
+            # Hier stand dieselbe Zustandsänderung noch einmal von Hand —
+            # und damit an der Benachrichtigung vorbei (L-184). Wer über die
+            # Gesamtgrenze lief, bekam nie eine Mail, wer anders scheiterte
+            # schon. Ein Weg, nicht zwei.
+            _mark_failed(aid, f"Timeout: Audit konnte nicht in "
+                              f"{AUDIT_TOTAL_TIMEOUT_SEC}s abgeschlossen werden.")
         except Exception as e:
-            logger.error(f"Audit {aid}: Background-Fehler: {e}")
+            # **Das war die stillste Stelle von allen:** Hier wurde nur
+            # protokolliert. Das Audit blieb auf `running` stehen — für
+            # immer, denn niemand räumt das nach. Der Besucher sah einen
+            # ewigen Ladebalken, und in der Anfrageliste stand kein Fehler,
+            # dem jemand hätte nachgehen können.
+            logger.error(f"Audit {aid}: Background-Fehler: "
+                         f"{type(e).__name__}: {e}")
+            _mark_failed(aid, f"{type(e).__name__}: {e}"[:200])
 
     background_tasks.add_task(_run_with_global_timeout, audit_id)
 
@@ -602,7 +655,8 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf"'
+                "Content-Disposition": anhang_kopfzeile(
+                    f"Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf")
             },
         )
     except HTTPException:
@@ -632,7 +686,8 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="Angebot-KOMPAGNON-{safe_name}.pdf"'
+                "Content-Disposition": anhang_kopfzeile(
+                    f"Angebot-KOMPAGNON-{safe_name}.pdf")
             },
         )
     except HTTPException:

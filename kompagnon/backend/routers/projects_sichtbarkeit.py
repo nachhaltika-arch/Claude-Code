@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from database import Project, SessionLocal, get_db
 from routers.auth_router import get_current_user, require_any_auth
 from routers.projects_router import router
+from services.dateinamen import anhang_kopfzeile
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def get_bewertungs_qrcode(
         content=buf.read(),
         media_type="image/png",
         headers={
-            "Content-Disposition": f'attachment; filename="bewertungs-qr-{project_id}.png"',
+            "Content-Disposition": anhang_kopfzeile(f"bewertungs-qr-{project_id}.png"),
             "X-Review-URL": review_url,
         },
     )

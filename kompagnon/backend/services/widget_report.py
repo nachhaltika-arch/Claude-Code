@@ -644,6 +644,87 @@ PDF herunterladen.</p>
     return f"Ihre Website-Analyse für {company} ist fertig", _shell(inner)
 
 
+#: Was in der Fehlschlagsmail steht — je Grund ein Satz und eine Zusage.
+#:
+#: **Nur der erste Fall verlangt etwas vom Besucher.** Löst sich der Name
+#: nicht auf, ist es wirklich ein Tippfehler, und der Hinweis hilft. In allen
+#: anderen Fällen läuft seine Seite, und wir kommen nur nicht hin (L-183) —
+#: dort etwas zu verlangen, hiesse ihm die Schuld zu geben.
+#:
+#: **„Wir melden uns" steht nur da, wo es jemand einlösen kann.** Der
+#: Analysestand samt Grund steht seit dem 10.09. in der Anfrageliste; der
+#: Fall ist also auffindbar. Beim Tippfehler gibt es nichts anzusehen, dort
+#: wird nichts zugesagt.
+FEHLSCHLAG_TEXTE = {
+    "adresse_unbekannt": (
+        "Diese Adresse liess sich nicht aufloesen",
+        "Wir konnten unter der angegebenen Adresse keine Website finden. "
+        "Vermutlich hat sich ein Tippfehler eingeschlichen.",
+        "Pruefen Sie die Schreibweise und fordern Sie die Analyse einfach "
+        "noch einmal an — es dauert keine zwei Minuten.",
+    ),
+    "nicht_erreichbar": (
+        "Wir haben Ihre Website nicht erreicht",
+        "Ihre Seite ist in Ordnung — wir sind von hier aus nicht zu ihr "
+        "durchgekommen. Das liegt meist an einer Schutzeinstellung des "
+        "Hosters, die unseren Pruefzugriff abweist.",
+        "Sie muessen nichts tun: Wir sehen uns das von Hand an und melden "
+        "uns bei Ihnen.",
+    ),
+    "zeitgrenze": (
+        "Die Pruefung ist nicht rechtzeitig fertig geworden",
+        "Unsere Erhebung hat die vorgesehene Zeit ueberschritten. Das liegt "
+        "an uns, nicht an Ihrer Seite.",
+        "Sie muessen nichts tun: Wir sehen uns das von Hand an und melden "
+        "uns bei Ihnen.",
+    ),
+    "unbekannt": (
+        "Die Analyse ist nicht durchgelaufen",
+        "Bei der Erhebung ist etwas schiefgegangen. Woran es lag, sehen wir "
+        "uns an — an Ihrer Seite liegt es nach allem, was wir sehen, nicht.",
+        "Sie muessen nichts tun: Wir sehen uns das von Hand an und melden "
+        "uns bei Ihnen.",
+    ),
+}
+
+
+def fehlschlag_email(company: str, grund: str) -> tuple:
+    """Betreff und HTML für den Fall, dass die Analyse nicht durchlief (L-184).
+
+    **Warum es diese Mail gibt.** Ohne sie hört der Besucher nach dem
+    Absenden nie wieder etwas: `_notify_widget_requester` steigt aus, solange
+    der Status nicht ``completed`` ist. Er hat seine Adresse hinterlassen und
+    wartet auf etwas, das nie kommt.
+
+    **Warum sie das Versprechen aus `verify_email` nicht bricht.** Dort steht
+    „Ohne Ihre Bestätigung schicken wir nichts weiter und melden uns nicht
+    von selbst" — ein Satz über *Nachfassen*. Diese Mail ist die Antwort auf
+    die Anfrage des Besuchers selbst, und sie ist die **erste**: Der Satz,
+    den sie brechen würde, ist ihm nie zugegangen.
+
+    Sie nennt deshalb auch nichts über die Website — es gibt nichts zu
+    nennen, und die Adresse ist ungeprüft.
+    """
+    titel, erklaerung, naechster_schritt = FEHLSCHLAG_TEXTE.get(
+        grund, FEHLSCHLAG_TEXTE["unbekannt"])
+
+    inner = f"""
+<h1 style="margin:0 0 12px;font-size:21px;font-weight:900;line-height:1.25;
+           color:{brand.DARK}">{titel}</h1>
+<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:{brand.TEXT}">
+Sie haben eine Website-Analyse fuer <strong>{_esc(company)}</strong>
+angefordert. {erklaerung}</p>
+<p style="margin:0;padding:14px 16px;background:{brand.SURFACE};
+          border-radius:8px;font-size:14px;line-height:1.7;
+          color:{brand.TEXT}">{naechster_schritt}</p>
+<p style="margin:18px 0 0;font-size:13px;line-height:1.6;
+          color:{brand.TEXT_60}">
+Haben Sie das nicht angefordert? Dann ignorieren Sie diese E-Mail einfach.
+Wir haben zu dieser Adresse nichts gespeichert, was ueber die Anfrage
+hinausgeht.</p>"""
+    return f"Ihre Website-Analyse fuer {company} ist nicht durchgelaufen", _shell(inner)
+
+
 def confirmation_page(confirmed: bool) -> str:
     """Bestätigungsseite nach Klick auf den Marketing-Double-Opt-in."""
     if confirmed:

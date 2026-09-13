@@ -31,6 +31,7 @@ from database import get_db
 from routers.auth_router import get_current_user, verlangt_recht
 from services.invoice_pdf import generate_invoice_pdf
 from datetime import date, timedelta
+from services.dateinamen import anhang_kopfzeile
 
 router = APIRouter(tags=["retainer"])
 
@@ -154,5 +155,5 @@ def download_invoice_pdf(inv_id: int, db: Session = Depends(get_db), _=Depends(g
         raise HTTPException(404)
     pdf_bytes = generate_invoice_pdf(dict(row._mapping))
     return Response(content=pdf_bytes, media_type="application/pdf",
-                    headers={"Content-Disposition":
-                             f"attachment; filename=Rechnung-{row.invoice_number}.pdf"})
+                    headers={"Content-Disposition": anhang_kopfzeile(
+                        f"Rechnung-{row.invoice_number}.pdf")})

@@ -14,6 +14,7 @@ from sqlalchemy import text
 from database import get_db, Lead, Briefing
 import httpx, re, os, json, anthropic, logging
 from datetime import datetime
+from services.dateinamen import anhang_kopfzeile
 from services.ki_aufruf import frag_modell
 
 from routers.branddesign import router, _set
@@ -346,5 +347,5 @@ def download_brand_pdf(lead_id: int, db: Session = Depends(get_db)):
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": anhang_kopfzeile(filename)},
     )

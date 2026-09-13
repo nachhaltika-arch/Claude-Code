@@ -28,6 +28,7 @@ from database import Base, Briefing, Lead, get_db
 from routers.auth_router import require_any_auth, optional_auth, require_innendienst
 
 from routers.sitemap import PageBreak, Paragraph, SimpleDocTemplate, SitemapPage, Spacer, Table, TableStyle, _ASSET_EXTENSIONS, _FONT, _FONT_B, _PAGE_W, _PFLICHT_KEYWORDS, _TYPE_HEURISTICS, logger, _serialize, _ensure_pflichtseiten
+from services.dateinamen import anhang_kopfzeile
 
 _DARK_TEAL  = colors.HexColor("#004F59")
 
@@ -240,7 +241,7 @@ def export_sitemap_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="sitemap-{lead_id}.pdf"'},
+        headers={"Content-Disposition": anhang_kopfzeile(f"sitemap-{lead_id}.pdf")},
     )
 
 

@@ -225,6 +225,11 @@ async def start_widget_audit(
         report_token=secrets.token_urlsafe(32),
         poll_token=secrets.token_urlsafe(32),
         lead_id=lead.id,
+        # Woher die Anfrage kam (L-192). Gespeichert wird **nur das Ob** —
+        # ohne diese Angabe mischt die Trichterauswertung bezahlten und
+        # organischen Verkehr, und „welche Stufe leckt" ist nicht zu
+        # beantworten. Die Kennung selbst wird nicht abgelegt.
+        aus_anzeige=bool((payload.fbclid or "").strip()),
     )
     db.add(widget_request)
     db.commit()

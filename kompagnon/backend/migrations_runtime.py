@@ -2090,6 +2090,9 @@ def run_migrations():
         "erinnerung_bestaetigung_at TIMESTAMP",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
         "erinnerung_angekuendigt BOOLEAN DEFAULT FALSE",
+        # ── 14.09.2026: Herkunft der Anfrage fuer die Trichterauswertung (L-192) ──
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "aus_anzeige BOOLEAN DEFAULT FALSE",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
         # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
         # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich

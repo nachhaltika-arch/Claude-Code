@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from database import User, WidgetRequest, get_db
 from routers.auth_router import require_admin
-from services import app_settings, pixel
+from services import app_settings, pixel, trichter
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +301,33 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
         ],
         "limit": REQUEST_HISTORY_LIMIT,
     }
+
+
+#: Grenzen fuer den abgefragten Zeitraum. Unten eine Woche, weil darunter
+#: jede Quote Rauschen ist; oben ein Jahr, damit niemand versehentlich den
+#: gesamten Bestand durchrechnet.
+TRICHTER_TAGE_MIN, TRICHTER_TAGE_MAX = 7, 365
+
+
+@router.get("/widget/trichter")
+def read_widget_trichter(
+    tage: int = trichter.STANDARD_TAGE,
+    nur_anzeige: bool = False,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Der Trichter als Zusammenfassung — welche Stufe leckt (L-192).
+
+    Die Liste daneben zeigt **Anfragen**, diese Auskunft zeigt **Stufen**.
+    Ohne sie steht nach zwei Wochen Budget nicht fest, wo der Verkehr
+    verlorengeht; die Entscheidung ueber die naechste Kampagne fiele auf
+    Gefuehl statt auf Zahlen.
+
+    `nur_anzeige=true` schraenkt auf Anfragen mit Klickkennung ein — die
+    einzige Herkunft, die sich von hier aus trennen laesst.
+    """
+    tage = max(TRICHTER_TAGE_MIN, min(int(tage), TRICHTER_TAGE_MAX))
+    return trichter.auswerten(db, tage=tage, nur_anzeige=bool(nur_anzeige))
 
 
 # ═══════════════════════════════════════════════════════════════════

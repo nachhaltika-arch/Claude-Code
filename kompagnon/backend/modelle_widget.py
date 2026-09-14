@@ -100,6 +100,15 @@ class WidgetRequest(Base):
     # ist.
     erinnerung_angekuendigt = Column(Boolean, default=False)
 
+    # Ob die Anfrage mit einer Klickkennung der Anzeige ankam (L-192).
+    #
+    # **Nur das Ob, nie die Kennung.** Fuer die Frage, welche Stufe bei der
+    # Kampagne leckt, genuegt, *dass* geklickt wurde. Die `fbclid` selbst ist
+    # eine Kennung; sie an eine Mailadresse zu heften waere mehr, als die
+    # Auswertung braucht — und Daten, die man nicht hat, koennen nicht
+    # abfliessen.
+    aus_anzeige = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 

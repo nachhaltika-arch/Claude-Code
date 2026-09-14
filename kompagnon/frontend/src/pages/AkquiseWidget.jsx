@@ -11,6 +11,7 @@
  * einzustellen wäre.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import TrichterAuswertung from '../components/akquise/TrichterAuswertung';
 import toast from 'react-hot-toast';
 
 import { apiCall } from '../context/AuthContext';
@@ -307,6 +308,11 @@ export default function AkquiseWidget() {
   const [widget, setWidget] = useState(null);
   const [kanal, setKanal] = useState(null);
   const [anfragen, setAnfragen] = useState({ requests: [], limit: 0 });
+  // Der Trichter (L-192). Zeitraum und Herkunft sind Abfrageparameter, also
+  // Zustand der Seite — ein Wechsel lädt nach, statt im Browser zu rechnen.
+  const [trichter, setTrichter] = useState(null);
+  const [trichterTage, setTrichterTage] = useState(30);
+  const [nurAnzeige, setNurAnzeige] = useState(false);
   const [testEmpfaenger, setTestEmpfaenger] = useState('');
   const [laedt, setLaedt] = useState(true);
   const [speichert, setSpeichert] = useState('');
@@ -315,20 +321,23 @@ export default function AkquiseWidget() {
   const laden = useCallback(async () => {
     setLaedt(true);
     try {
-      const [w, m, a] = await Promise.all([
+      const [w, m, a, tr] = await Promise.all([
         anfrage('/api/acquisition/widget'),
         anfrage('/api/acquisition/mail'),
         anfrage('/api/acquisition/widget/requests'),
+        anfrage(`/api/acquisition/widget/trichter?tage=${trichterTage}`
+                + `&nur_anzeige=${nurAnzeige}`),
       ]);
       setWidget(w);
       setKanal(m);
       setAnfragen(a);
+      setTrichter(tr);
     } catch (error) {
       toast.error(error.message || 'Einstellungen konnten nicht geladen werden.');
     } finally {
       setLaedt(false);
     }
-  }, []);
+  }, [trichterTage, nurAnzeige]);
 
   useEffect(() => { laden(); }, [laden]);
 
@@ -589,6 +598,21 @@ export default function AkquiseWidget() {
             empfaenger={testEmpfaenger}
             setEmpfaenger={setTestEmpfaenger}
           />
+
+          <Abschnitt
+            titel="Trichter"
+            hinweis="Wo der Verkehr verlorengeht. Die Liste darunter zeigt einzelne
+                     Anfragen, hier stehen die Stufen — ohne sie steht nach zwei
+                     Wochen Budget nicht fest, welche davon leckt."
+          >
+            <TrichterAuswertung
+              daten={trichter}
+              tage={trichterTage}
+              nurAnzeige={nurAnzeige}
+              onZeitraum={setTrichterTage}
+              onHerkunft={setNurAnzeige}
+            />
+          </Abschnitt>
 
           <Anfragen eintraege={anfragen.requests} limit={anfragen.limit} />
         </div>

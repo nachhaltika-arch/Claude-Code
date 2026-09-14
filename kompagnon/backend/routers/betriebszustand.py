@@ -336,6 +336,32 @@ def _produktablage_zustand() -> dict:
     return {"bereit": not fehlt, "fehlt": fehlt}
 
 
+def _versandzustand() -> dict:
+    """Ob die Automatik gerade ueberhaupt Post verschickt (L-185, 14.09.2026).
+
+    **Derselbe Grund wie bei Stripe und der Produktablage:** Ein Schalter,
+    dessen Zustand man nur nach Anmeldung sieht, beantwortet die Frage nicht,
+    die man von aussen hat. Die Versandsperre steht per Vorgabe auf **aus** —
+    richtig so, seit am 17.08.2026 ein Job vier Monate lang Erinnerungen an
+    Nicht-Kunden schickte. Aber solange ihr Zustand nirgends ablesbar war,
+    liess sich „faellt das Nachfassen im Trichter gerade lautlos aus?" nicht
+    beantworten, ohne sich anzumelden.
+
+    **Gelesen wird durch dieselbe Funktion, die auch der Versand fragt** —
+    nicht durch eine zweite, die dasselbe zu wissen glaubt. Und im Zweifel
+    meldet sie `False`: Eine Sperre, die bei einem Fehler offen aussieht,
+    ist keine.
+    """
+    from services import versandsperre
+
+    try:
+        return {"automatisch": versandsperre.in_eigener_sitzung_erlaubt()}
+    except Exception as fehler:                      # noqa: BLE001
+        # `/health` selbst darf daran nicht scheitern.
+        return {"automatisch": False,
+                "grund": f"{type(fehler).__name__}: {fehler}"}
+
+
 def _posteingang_zustand() -> dict:
     """Ob der Posteingang eingerichtet ist — und ob gerade gewechselt wird.
 
@@ -429,6 +455,10 @@ def health_check():
             # Ob eingehende Kundenmails ankommen — und ob gerade ein
             # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
             "posteingang": _posteingang_zustand(),
+            # Ob automatische Post ueberhaupt hinausgeht. Der Schalter steht
+            # per Vorgabe auf aus — und ein Aus-Zustand, den niemand bemerkt,
+            # ist derselbe Fehler wie der, gegen den er gebaut wurde.
+            "versand": _versandzustand(),
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

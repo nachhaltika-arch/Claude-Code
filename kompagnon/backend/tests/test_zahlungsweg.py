@@ -176,3 +176,73 @@ def test_der_buchpfad_hat_ein_eigenes_signaturgeheimnis():
               / "routers" / "buch.py").read_text(encoding="utf-8")
 
     assert "STRIPE_WEBHOOK_SECRET_BUCH" in quelle
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Eine Kasse, die nicht aus diesem System stammt (14.09.2026)
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Gefunden beim Nachmessen von L-100, nicht gesucht.** Der Rückfall oben
+# — „ohne Marker ist es ein Websprint" — war richtig, solange **jede**
+# Sitzung des Stripe-Kontos von uns angelegt wurde. Seit dem 13.09.2026
+# stimmt das nicht mehr: Check PLUS wird über einen festen Stripe-Zahllink
+# verkauft (L-187), und der legt eine Kasse an, die keine einzige unserer
+# Angaben trägt.
+#
+# **Was ohne diese Weiche geschähe.** `weg_der_sitzung` fällt auf
+# `WEBSPRINT` zurück, `_handle_successful_payment` läuft durch und legt
+# Lead, Benutzerkonto, Website-Projekt an und verschickt die
+# Willkommensmail — für einen Käufer, der einen Prüfbericht bestellt hat.
+# Das ist wörtlich der Schaden, den die Weiche am 27.08. verhindern sollte,
+# nur aus der anderen Richtung: damals ein fremder **Weg**, jetzt eine
+# fremde **Herkunft**.
+#
+# **Warum die Unterscheidung trägt.** Jede Kasse, die dieses System anlegt,
+# schreibt ihre eigenen Angaben hinein (`routers/payments.py`: `package`,
+# `company_name`, `customer_email`, …). Eine Kasse ohne jede davon kann
+# nicht von uns sein.
+
+
+def test_eine_kasse_ohne_jede_eigene_angabe_ist_nicht_unsere():
+    assert zw.von_uns({}) is False
+    assert zw.von_uns(None) is False
+    assert zw.von_uns({"package": "", "company_name": ""}) is False
+
+
+def test_eine_kasse_mit_unseren_angaben_ist_unsere():
+    """Die Gegenprobe. Eine Erkennung, die immer `False` sagt, wäre im Test
+    darüber grün und legte jeden echten Websprint-Kauf still."""
+    assert zw.von_uns({"package": "starter"}) is True
+    assert zw.von_uns({"customer_email": "kunde@example.de"}) is True
+    assert zw.von_uns({"order_number": "B-2026-0001"}) is True
+
+
+def test_der_zahllink_loest_kein_websprint_projekt_aus():
+    """**Der teuerste Fall dieser Datei.** Ein Zahllink-Kauf über 249 EUR
+    darf keinen Website-Auftrag erzeugen."""
+    from routers.payments import _handle_successful_payment
+
+    db = _Buchhalter()
+    sitzung = {"id": "cs_live_zahllink", "metadata": {},
+               "amount_total": 29631,
+               "customer_details": {"email": "kaeufer@example.org"}}
+
+    _handle_successful_payment(sitzung, db)
+
+    assert db.benutzt == [], f"angefasst: {db.benutzt}"
+
+
+def test_ein_bestandskauf_ohne_paket_laeuft_weiter_durch():
+    """**Die Gegenprobe zur Weiche.** Der Rückfall auf den Websprint ist
+    Absicht (L-97): Eine Sitzung ohne `package`, aber mit unseren übrigen
+    Angaben, ist ein Bestandsvorgang und muss durchlaufen."""
+    from routers.payments import _handle_successful_payment
+
+    db = _Buchhalter()
+    sitzung = _sitzung({"company_name": "Muster GmbH",
+                        "customer_email": "kunde@example.de"})
+
+    with pytest.raises(AssertionError, match="Die Datenbank wurde angefasst"):
+        _handle_successful_payment(sitzung, db)
+
+    assert db.benutzt == ["execute"]

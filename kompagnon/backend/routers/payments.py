@@ -459,13 +459,35 @@ def _handle_successful_payment(session: dict, db: Session):
     # bekaeme Zugangsdaten fuer ein Projekt, das er nie bestellt hat.
     #
     # Siehe `services/zahlungsweg.py` fuer die Marker.
-    from services.zahlungsweg import WEBSPRINT, weg_der_sitzung
+    from services.zahlungsweg import WEBSPRINT, von_uns, weg_der_sitzung
 
     weg = weg_der_sitzung(meta)
     if weg != WEBSPRINT:
         logger.info(
             "Stripe: Sitzung %s gehoert zum Weg %r — hier uebersprungen",
             session.get("id", "?"), weg)
+        return
+
+    # ── UND STAMMT SIE UEBERHAUPT AUS DIESEM SYSTEM? ─────────────────
+    #
+    # **Der Rueckfall auf den Websprint galt, solange jede Kasse des Kontos
+    # von uns angelegt wurde.** Seit dem 13.09.2026 gilt das nicht mehr:
+    # Check PLUS wird ueber einen festen Stripe-Zahllink verkauft (L-187),
+    # und der traegt keine einzige unserer Angaben. Ohne diese Zeilen
+    # bekaeme ein Kaeufer, der einen Pruefbericht fuer 249 EUR bestellt hat,
+    # Zugangsdaten und ein Website-Projekt.
+    #
+    # **Laut protokolliert und nicht verarbeitet.** Das Geld ist angekommen,
+    # zuordnen laesst es sich hier nicht — und eine falsche Zuordnung waere
+    # teurer als gar keine. Dieselbe Antwort wie im Shop-Webhook bei einer
+    # Meldung ohne Bestellung.
+    if not von_uns(meta):
+        logger.error(
+            "Stripe: Sitzung %s traegt keine unserer Angaben (%s Cent, %s) — "
+            "nicht verarbeitet. Vermutlich ein Zahllink ausserhalb des "
+            "Bestellwegs; siehe L-100/L-187.",
+            session.get("id", "?"), session.get("amount_total"),
+            (session.get("customer_details") or {}).get("email", "?"))
         return
 
     email       = meta.get("customer_email") or session.get("customer_email", "")

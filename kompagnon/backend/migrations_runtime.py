@@ -2079,6 +2079,17 @@ def run_migrations():
         # ── 10.09.2026: Nachfassen am bereitliegenden Bericht (L-185) ──
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
         "erinnerung_bericht_at TIMESTAMP",
+        # ── 14.09.2026: Nachfassen an der ausstehenden Bestaetigung (L-185) ──
+        # **`DEFAULT FALSE` ist hier die wichtigere Haelfte.** Der Bestand hat
+        # die alte Zusage bekommen („wir melden uns nicht von selbst"); jede
+        # bestehende Zeile muss deshalb als *nicht angekuendigt* herauskommen.
+        # Eine Spalte mit `DEFAULT TRUE` haette beim ersten Lauf nach dem
+        # Deploy genau die Mail verschickt, die wir diesen Empfaengern
+        # ausdruecklich nicht schicken wollten.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_bestaetigung_at TIMESTAMP",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_angekuendigt BOOLEAN DEFAULT FALSE",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
         # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
         # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich

@@ -22,7 +22,7 @@ from automations.erinnerungen import (
     MATERIAL_STUFEN,
     faellige_erinnerung,
 )
-from automations.scheduler_kontakt import _send_phase_email, job_bericht_erinnerung, job_check_missing_materials, job_check_overdue_phases, job_phase_postgolive_transitions, job_send_briefing_reminders, job_tag_14_funktionscheck, job_tag_21_bewertungsanfrage, job_tag_30_geo_check, job_tag_30_upsell, job_tag_5_followup
+from automations.scheduler_kontakt import _send_phase_email, job_bericht_erinnerung, job_bestaetigung_erinnerung, job_check_missing_materials, job_check_overdue_phases, job_phase_postgolive_transitions, job_send_briefing_reminders, job_tag_14_funktionscheck, job_tag_21_bewertungsanfrage, job_tag_30_geo_check, job_tag_30_upsell, job_tag_5_followup
 from automations.scheduler_ueberwachung import job_check_all_domains, job_check_netlify_dns, job_check_netlify_ssl
 from automations.job_eigene_zertifikate import job_eigene_zertifikate_pruefen
 from automations.job_ki_sichtbarkeit import job_ki_sichtbarkeit_woechentlich
@@ -393,6 +393,20 @@ class CompagnonScheduler:
             "cron",
             hour=9, minute=15,
             id="bericht_erinnerung",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # **Eine Viertelstunde spaeter, nicht gleichzeitig.** Beide Auftraege
+        # schreiben in dieselbe Tabelle; nacheinander laufen sie sich nicht
+        # in die Quere. Und ein Empfaenger, auf den beide Strecken zutraefen,
+        # bekaeme sonst zwei Mails in derselben Minute — moeglich ist das
+        # nicht (die eine verlangt eine Bestaetigung, die andere schliesst
+        # sie aus), aber der Abstand kostet nichts.
+        self.scheduler.add_job(
+            job_bestaetigung_erinnerung,
+            "cron",
+            hour=9, minute=30,
+            id="bestaetigung_erinnerung",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

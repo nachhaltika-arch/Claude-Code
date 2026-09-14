@@ -372,6 +372,12 @@ def _notify_widget_requester(db, audit_id: int) -> None:
 
         if send_email(to_email=row.email, subject=subject, html_body=body):
             row.verify_sent_at = _jetzt()
+            # Welche Zusage dieser Empfaenger bekommen hat (L-185). Der Text
+            # kuendigt seit dem 14.09.2026 **eine** Erinnerung an; erinnert
+            # wird spaeter nur, wer diese Markierung traegt. Sie steht hier
+            # und nicht als Vorgabe an der Spalte, weil sie eine Aussage
+            # ueber die **verschickte Mail** ist — nicht ueber die Zeile.
+            row.erinnerung_angekuendigt = widget_report.VERIFY_KUENDIGT_ERINNERUNG_AN
             db.commit()
             logger.info(f"Widget-Bestätigung angefragt bei {row.email} (Audit {audit_id})")
         else:

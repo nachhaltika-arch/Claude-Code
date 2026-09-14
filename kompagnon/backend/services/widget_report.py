@@ -570,6 +570,22 @@ def _katalog_umfang() -> str:
     return f"{kriterien} Kriterien aus {', '.join(kurz[:-1])} und {kurz[-1]}"
 
 
+#: Ob die erste Mail eine Erinnerung an die Bestaetigung **ankuendigt**.
+#:
+#: **Entscheidung David, 14.09.2026.** Bis dahin stand dort „Ohne Ihre
+#: Bestaetigung schicken wir nichts weiter und melden uns nicht von selbst" —
+#: ein Satz ueber Nachfassen, und solange er stand, wurde er gehalten
+#: (L-185). Der neue Text kuendigt genau eine Erinnerung an und sagt danach
+#: Ruhe zu.
+#:
+#: **Dieser Wert wird an jede Anfrage geschrieben, die diese Mail bekommt**
+#: (`erinnerung_angekuendigt`), und `lead_nachfassen.faellige_bestaetigung`
+#: erinnert nur Anfragen, die ihn tragen. Wer den Satz wieder herausnimmt,
+#: setzt ihn hier auf ``False`` — sonst zeigt die Markierung auf eine Zusage,
+#: die niemand mehr gegeben hat.
+VERIFY_KUENDIGT_ERINNERUNG_AN = True
+
+
 def verify_email(company: str, verify_token: str) -> tuple:
     """Die erste Mail: nur die Frage, ob die Adresse stimmt.
 
@@ -578,8 +594,11 @@ def verify_email(company: str, verify_token: str) -> tuple:
     Website drin: keine Punktzahl, keine Mängel, kein Link zum Bericht. Nur
     dass etwas angefordert wurde, und die Möglichkeit, das zu bestätigen.
 
-    Wer nicht klickt, bekommt nie einen Bericht und hat von uns genau diese
-    eine Nachricht gesehen.
+    Wer nicht klickt, bekommt nie einen Bericht und hat von uns genau zwei
+    Nachrichten gesehen: diese und **eine** Erinnerung daran, dass die
+    Bestaetigung aussteht (L-185, Entscheidung David am 14.09.2026). Der
+    letzte Absatz sagt beides zu — und `VERIFY_KUENDIGT_ERINNERUNG_AN`
+    daneben ist die Stelle, an der die Erinnerung haengt.
     """
     inner = f"""
 <h1 style="margin:0 0 12px;font-size:21px;font-weight:900;line-height:1.25;
@@ -596,8 +615,8 @@ Nach dem Klick schicken wir Ihnen den Link zum vollständigen Bericht — mit
 <p style="margin:0;padding:14px 16px;background:{brand.SURFACE};
           border-radius:8px;font-size:13px;line-height:1.6;color:{brand.TEXT_60}">
 Haben Sie das nicht angefordert? Dann ignorieren Sie diese E-Mail einfach.
-Ohne Ihre Bestätigung schicken wir nichts weiter und melden uns nicht von
-selbst.</p>"""
+Ohne Ihre Bestätigung schicken wir nichts weiter. Wir erinnern Sie einmal
+daran — danach hören Sie nichts mehr von uns.</p>"""
     return (f"Bitte bestätigen: Website-Analyse für {company}", _shell(inner))
 
 

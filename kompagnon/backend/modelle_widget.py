@@ -84,6 +84,22 @@ class WidgetRequest(Base):
     # der ohnehin nicht reagiert hat.
     erinnerung_bericht_at = Column(DateTime, nullable=True)
 
+    # Wann an die ausstehende Bestaetigung erinnert wurde (L-185, 14.09.2026).
+    erinnerung_bestaetigung_at = Column(DateTime, nullable=True)
+
+    # Ob die erste Mail dieser Anfrage eine Erinnerung **angekuendigt** hat.
+    #
+    # **Warum das an der Zeile steht und nicht als Datum im Code.** Bis zum
+    # 14.09.2026 sagte `verify_email` zu: „Ohne Ihre Bestaetigung schicken wir
+    # nichts weiter und melden uns nicht von selbst." Der Satz kuendigt jetzt
+    # genau eine Erinnerung an. Wer stattdessen ein Stichtagsdatum in den Code
+    # schriebe, muesste raten, wann der neue Text **produktiv** ankam — das
+    # haengt am Merge, nicht am Schreiben. Raet er zu frueh, geht eine Mail an
+    # Empfaenger, denen Ruhe zugesagt wurde; raet er zu spaet, fallen Leads
+    # weg. Die Zeile weiss es genau: Sie traegt, welche Zusage ihr zugegangen
+    # ist.
+    erinnerung_angekuendigt = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 

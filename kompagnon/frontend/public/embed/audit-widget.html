@@ -470,6 +470,12 @@
      den Pixel oben auf der Seite. */
   var FB_PIXEL_ID = '';
   var leadGemeldet = false;
+  /* Dieselbe Sperre eine Stufe frueher (15.09.2026): Wer zweimal
+     absendet — Doppelklick, zweiter Anlauf nach einem Fehlschlag —
+     hat trotzdem **eine** Analyse begonnen. Zwei Meldungen machten aus
+     der Quote „Start zu Lead" eine Zahl, die schlechter aussieht als
+     die Wirklichkeit. */
+  var analyseGemeldet = false;
 
   /* ── Was die Trägerseite durchreicht ──
      Das Widget steht in einem iframe auf fremder Domain und sieht die
@@ -562,6 +568,31 @@
      Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
      halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
      weil die Zahl gut aussieht. */
+  /* Die Trägerseite erfährt, dass ein Lauf begonnen hat (15.09.2026).
+     **Nur eine Meldung, kein Ereignis.** Das Widget misst hier nichts
+     selbst — dieselbe Arbeitsteilung wie beim Lead: Der Pixel der
+     Trägerseite kennt die Klick-ID, das iframe nicht. Wer hier ein eigenes
+     `fbq` feuerte, zählte dieselbe Handlung ein zweites Mal und ohne
+     Anzeigenbezug.
+
+     **Nichts über den Besucher in der Nachricht.** Kein E-Mail, keine
+     Adresse. Die Nachricht geht mit `'*'` an ein fremdes Fenster; alles
+     darin ist damit für jeden lesbar, der dort ein Skript hat. Was gebraucht
+     wird, ist die Tatsache — nicht wer es war.
+
+     **Warum an dieser Stelle und nicht früher.** Der Zeitpunkt ist das
+     Absenden, nicht der Tastendruck im Feld: Wer nur hinklickt, hat keine
+     Analyse begonnen. Und nicht später, denn nach der Serverantwort gibt es
+     bereits `kpg-audit-lead` — dazwischen liegt genau das, was diese Meldung
+     messbar macht: die Anläufe, die der Server abweist. */
+  function meldeAnalyseGestartet() {
+    if (analyseGemeldet) return;
+    analyseGemeldet = true;
+    try {
+      parent.postMessage({ type: 'kpg-analyse-gestartet' }, '*');
+    } catch (e) { /* ohne Elternfenster (direkter Aufruf) gibt es nichts zu tun */ }
+  }
+
   function meldeLead(eventId) {
     /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
        hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
@@ -756,6 +787,7 @@
   });
 
   function startAudit(email, cleanUrl, consentMarketing) {
+    meldeAnalyseGestartet();
     renderLoading(cleanUrl);
 
     var idx = 0;

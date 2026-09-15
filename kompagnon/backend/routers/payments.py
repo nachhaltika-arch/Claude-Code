@@ -436,6 +436,64 @@ class _UebersprungenerSchritt(Exception):
     """
 
 
+def _melde_unzuordenbare_zahlung(session: dict) -> None:
+    """Einen unzuordenbaren Geldeingang in die Glocke legen (15.09.2026).
+
+    **Warum das Protokoll nicht genuegt.** Die Weiche darueber verhindert den
+    Schaden — sie legt kein falsches Projekt an. Den Vorgang zu Ende bringen
+    kann sie nicht: Das Geld ist da, der Kaeufer wartet, und erfahren hat es
+    bisher nur `logger.error`. Ein Protokolleintrag liest, wer danach sucht;
+    niemand sucht nach etwas, von dem er nichts weiss. Genau diese Form hatte
+    der Vorfall vom 17.08.2026.
+
+    **Eine eigene Sitzung, nicht die des Vorgangs.** Der Aufrufer reicht die
+    Sitzung der Anfrage durch, und in genau diesem Zweig soll sie unberuehrt
+    bleiben — `test_der_zahllink_loest_kein_websprint_projekt_aus` misst das
+    am Zugriff, nicht an der Absicht.
+
+    **Kein `ziel`.** Im Werkzeug gibt es keine Seite fuer Stripe-Sitzungen;
+    ein Link auf eine Liste, in der dieser Vorgang nicht vorkommt, waere ein
+    Weg ins Leere. Wohin zu sehen ist, steht deshalb im Hinweis.
+    """
+    from database import SessionLocal
+    from modelle_meldungen import Benachrichtigung
+    from services import benachrichtigungen
+
+    kennung = str(session.get("id") or "")
+    cent = int(session.get("amount_total") or 0)
+    email = (session.get("customer_details") or {}).get("email", "")
+
+    db = SessionLocal()
+    try:
+        # Stripe stellt bei Zweifeln erneut zu. Zwei Glocken fuer eine Zahlung
+        # sind schlimmer als eine: Wer zweimal dasselbe liest, glaubt beim
+        # dritten Mal keiner Meldung mehr.
+        if kennung and db.query(Benachrichtigung).filter(
+                Benachrichtigung.art == "zahlung",
+                Benachrichtigung.hinweis.like(f"%{kennung}%")).first():
+            return
+
+        benachrichtigungen.melden_leise(
+            db,
+            art="zahlung",
+            titel=f"Zahlung ohne Zuordnung: {cent / 100:.2f} EUR",
+            hinweis=(
+                f"Eine Stripe-Kasse ist bezahlt worden, die keine Angaben "
+                f"dieses Systems traegt — vermutlich ein Zahllink ausserhalb "
+                f"des Bestellwegs (L-100/L-187). Es entsteht dadurch kein "
+                f"Auftrag, keine Rechnung und keine Anrechnung; der Kaeufer "
+                f"wartet. Nachzusehen im Stripe-Dashboard unter der Sitzung "
+                f"{kennung} ({cent} Cent"
+                + (f", {email}" if email else "") + ")."
+            ),
+        )
+    except Exception as fehler:      # noqa: BLE001 — die Zahlung wiegt mehr
+        logger.warning("Meldung zur unzuordenbaren Zahlung nicht abgelegt: %s",
+                       fehler)
+    finally:
+        db.close()
+
+
 def _handle_successful_payment(session: dict, db: Session):
     """
     Nach erfolgreicher Stripe-Zahlung:
@@ -488,6 +546,7 @@ def _handle_successful_payment(session: dict, db: Session):
             "Bestellwegs; siehe L-100/L-187.",
             session.get("id", "?"), session.get("amount_total"),
             (session.get("customer_details") or {}).get("email", "?"))
+        _melde_unzuordenbare_zahlung(session)
         return
 
     email       = meta.get("customer_email") or session.get("customer_email", "")

@@ -30,7 +30,11 @@ import { aufTaste } from '../../utils/tastaturBedienung';
 // sondern eine Aufgabe mit Termin — das Quartals-Re-Audit der Pflege-Abos.
 // Ohne eigenes Zeichen faellt sie auf den Punkt zurueck und sieht aus wie
 // etwas, das jemand vergessen hat einzutragen.
-const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️', faellig: '📅' };
+// `zahlung` kam am 15.09.2026 dazu: ein Geldeingang, den das System keinem
+// Vorgang zuordnen kann. Die teuerste Meldung der Liste — der Käufer hat
+// bezahlt und wartet.
+const SINNBILD = { ticket: '🎫', chat: '💬', mail: '✉️', faellig: '📅',
+                   zahlung: '💶' };
 
 function wieLange(roh) {
   if (!roh) return '';

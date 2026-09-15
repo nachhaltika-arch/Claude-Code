@@ -470,12 +470,12 @@
      den Pixel oben auf der Seite. */
   var FB_PIXEL_ID = '';
   var leadGemeldet = false;
-  /* Dieselbe Sperre eine Stufe frueher (15.09.2026): Wer zweimal
-     absendet — Doppelklick, zweiter Anlauf nach einem Fehlschlag —
-     hat trotzdem **eine** Analyse begonnen. Zwei Meldungen machten aus
-     der Quote „Start zu Lead" eine Zahl, die schlechter aussieht als
-     die Wirklichkeit. */
-  var analyseGemeldet = false;
+  /* Dieselbe Sperre eine Stufe frueher (15.09.2026): Wer die Adresse
+     korrigiert, das Feld zweimal verlaesst oder nach einem Fehlschlag
+     erneut absendet, hat trotzdem **eine** Analyse begonnen. Zwei
+     Meldungen machten aus der Quote „Beginn zu Lead" eine Zahl, die
+     schlechter aussieht als die Wirklichkeit. */
+  var analyseBegonnenGemeldet = false;
 
   /* ── Was die Trägerseite durchreicht ──
      Das Widget steht in einem iframe auf fremder Domain und sieht die
@@ -585,12 +585,29 @@
      Analyse begonnen. Und nicht später, denn nach der Serverantwort gibt es
      bereits `kpg-audit-lead` — dazwischen liegt genau das, was diese Meldung
      messbar macht: die Anläufe, die der Server abweist. */
-  function meldeAnalyseGestartet() {
-    if (analyseGemeldet) return;
-    analyseGemeldet = true;
+  function meldeAnalyseBegonnen() {
+    if (analyseBegonnenGemeldet) return;
+    analyseBegonnenGemeldet = true;
     try {
-      parent.postMessage({ type: 'kpg-analyse-gestartet' }, '*');
+      parent.postMessage({ type: 'kpg-analyse-begonnen' }, '*');
     } catch (e) { /* ohne Elternfenster (direkter Aufruf) gibt es nichts zu tun */ }
+  }
+
+  /* **Es gab keine Adressprüfung, die sich wiederverwenden liesse.**
+     `normalizeUrl` setzt nur `https://` davor, und das Absenden prüft
+     allein auf „nicht leer" — ein einzelner Buchstabe käme als
+     `https://a` durch. Für den Lead war das gleichgültig: Dahinter steht
+     der Server mit `check_url`. Für dieses Ereignis ist es das nicht,
+     denn es feuert **vor** dem Server.
+
+     Deshalb hier die schmalste Prüfung, die ihren Zweck erfüllt: etwas
+     vor dem Punkt, etwas dahinter, und die Endung mindestens zwei
+     Zeichen. Sie soll keine Adressen aussortieren, sondern nur
+     verhindern, dass Tippanfänge als begonnene Analyse zählen — sonst
+     steht am Ende der Woche eine Menge, die nichts mehr bedeutet. */
+  function adresseWirktVollstaendig(roh) {
+    var wert = normalizeUrl(roh).replace(/^https?:\/\//i, '');
+    return /^[^\s.\/]+(\.[^\s.\/]+)*\.[a-z]{2,}([\/?#].*)?$/i.test(wert);
   }
 
   function meldeLead(eventId) {
@@ -765,6 +782,22 @@
   var urlBearbeitet = false;
   urlEl.addEventListener('input', function () { urlBearbeitet = true; });
 
+  /* ── „Analyse begonnen" ── (Weg A, Entscheidung David am 15.09.2026)
+     Gemeldet wird, wenn die Adresse eingetippt **und das Feld verlassen**
+     ist — nicht beim Tippen (das feuerte bei jedem Zeichen) und nicht
+     erst beim Absenden (das wäre fast schon der Lead und bliebe unter
+     der Menge, die Meta für die Lernphase braucht).
+
+     Beide Ereignisse, weil keins allein reicht: `change` bleibt aus, wenn
+     der Wert unverändert bleibt; `blur` bleibt aus, wenn jemand mit der
+     Eingabetaste abschickt, ohne das Feld zu verlassen. Für diesen
+     letzten Fall meldet zusätzlich `startAudit`. */
+  ['blur', 'change'].forEach(function (ereignis) {
+    urlEl.addEventListener(ereignis, function () {
+      if (adresseWirktVollstaendig(urlEl.value)) meldeAnalyseBegonnen();
+    });
+  });
+
   emailEl.addEventListener('input', function () {
     if (urlBearbeitet) return;
     var val = emailEl.value;
@@ -787,7 +820,7 @@
   });
 
   function startAudit(email, cleanUrl, consentMarketing) {
-    meldeAnalyseGestartet();
+    meldeAnalyseBegonnen();   /* falls das Feld nie verlassen wurde */
     renderLoading(cleanUrl);
 
     var idx = 0;

@@ -45,7 +45,7 @@ nichts aus.
 ```html
 <!-- ═══════════════════════════════════════════════════════════════════
      KOMPAGNON — Messung der Websprint-Kampagne
-     Stand 15.09.2026 · gehört direkt UNTER das <iframe id="kompagnon-audit">
+     Stand 15.09.2026 (Fassung 2) · gehört direkt UNTER das <iframe id="kompagnon-audit">
 
      Der Block ist absichtlich eigenständig: Er ändert nichts an eurem
      vorhandenen Einwilligungs-Skript, sondern liest dessen Ergebnis aus
@@ -58,8 +58,9 @@ nichts aus.
           einem iframe auf fremder Domain läuft und eure Adresszeile nicht
           sieht. Ohne sie ist jede Lead-Meldung eine ohne Anzeige.
        2. Meta-Pixel laden — erst nach Marketing-Einwilligung, nie vorher.
-       3. Den Start melden — `InitiateCheckout` an Meta, sobald der Besucher
-          die Analyse abschickt. Nur nach Marketing-Einwilligung.
+       3. Den Beginn melden — `InitiateCheckout` an Meta und
+          `begin_checkout` an GA4, sobald die Adresse eingetippt ist.
+          Nur nach Einwilligung.
        4. Den Lead melden — an Meta UND an GA4, wenn das Widget ihn meldet.
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
@@ -148,8 +149,8 @@ nichts aus.
   /* ── 3. Was das Widget meldet ──────────────────────────────────────
      Zwei Nachrichten, zwei Stufen desselben Trichters:
 
-       kpg-analyse-gestartet   Der Besucher hat abgeschickt, der Lauf
-                               beginnt. Vor der Serverantwort.
+       kpg-analyse-begonnen    Die Adresse ist eingetippt und das Feld
+                               verlassen. Vor der E-Mail, vor dem Server.
        kpg-audit-lead          Der Server hat die Anfrage angenommen.
 
      Dazwischen liegen die Anläufe, die abgewiesen werden — genau die Zahl,
@@ -157,7 +158,7 @@ nichts aus.
 
      `eventID` ist dieselbe Kennung, die auch der Serverweg mitschickt —
      Meta verwirft die zweite Meldung, es wird also nicht doppelt gezählt. */
-  var startGemeldet = false;
+  var begonnenGemeldet = false;
   window.addEventListener('message', function (e) {
     if (e.origin !== URSPRUNG) return;
     var d = e.data;
@@ -166,7 +167,7 @@ nichts aus.
     var f = document.getElementById(RAHMEN);
     if (!f || f.contentWindow !== e.source) return;   /* nur das eigene iframe */
 
-    /* ── Analyse gestartet ──
+    /* ── Analyse begonnen ──
        **Dieselbe Einwilligungsprüfung wie oben vor dem Pixel**, nicht eine
        zweite eigene: `einwilligung()` liest denselben Speichereintrag, den
        euer Banner schreibt. Zwei Prüfungen, die dasselbe entscheiden sollen,
@@ -176,13 +177,20 @@ nichts aus.
        **Genau einmal je Seitenaufruf.** Das Widget sperrt schon auf seiner
        Seite; diese Sperre hier ist die zweite und deckt den Fall ab, dass
        das iframe neu geladen wird, ohne dass die Seite es wird. */
-    if (d.type === 'kpg-analyse-gestartet') {
-      if (startGemeldet) return;
-      var cStart = einwilligung();
-      if (!cStart || !cStart.marketing) return;   /* ohne Ja passiert nichts */
-      startGemeldet = true;
+    if (d.type === 'kpg-analyse-begonnen') {
+      if (begonnenGemeldet) return;
+      var cBegonnen = einwilligung();
+      if (!cBegonnen || !cBegonnen.marketing) return;   /* ohne Ja nichts */
+      begonnenGemeldet = true;
       if (typeof window.fbq === 'function') {
         fbq('track', 'InitiateCheckout');
+      }
+      /* `gtag` gibt es erst nach Statistik-Einwilligung — dieselbe
+         Prüfung wie beim Lead darunter. Der Name heisst bei Meta
+         `InitiateCheckout` und in GA4 `begin_checkout`: zwei Häuser,
+         zwei Vokabulare, ein Ereignis. */
+      if (typeof window.gtag === 'function') {
+        gtag('event', 'begin_checkout');
       }
       return;
     }

@@ -5,12 +5,21 @@
  * **Stufen**: Ohne sie steht nach zwei Wochen Budget nicht fest, wo der
  * Verkehr verlorengeht.
  *
- * **Was hier bewusst nicht als Balken erscheint.** Klicks auf die Anzeige und
- * gebuchte Termine misst dieses System nicht — sie stehen bei Meta und im
- * Google-Kalender. Ein Balken der Länge null hieße „niemand hat geklickt";
- * deshalb stehen sie als benannte Leerstellen darunter, mit Grund. Dieselbe
- * Regel wie im Audit: 0 heißt „geprüft und nicht erfüllt", fehlend heißt
- * „nicht erhoben".
+ * **Drei Klassen, und die Trennung ist der eigentliche Inhalt** (E17 des
+ * Vertriebsplans: Kennzeichnung GEMESSEN / ERFAHREN / ANGENOMMEN, überall):
+ *
+ *   gemessen       aus widget_requests, Zeitstempel je Zeile
+ *   angenommen     aus dem Vertriebsplan, auf die gemessene Basis gerechnet
+ *   nicht erhoben  Anzeigenklicks (Meta) und Termine (Google-Kalender)
+ *
+ * Neben sechs gemessenen Balken sieht eine angenommene Zahl aus wie eine
+ * gemessene. Deshalb tragen die Annahmen einen blassen Balken, das Wort
+ * „angenommen" und ihre Quelle — und die nicht erhobenen Stufen erscheinen
+ * gar nicht als Balken: Ein Balken der Länge null hieße „niemand hat
+ * gebucht", und das ist eine Aussage, die hier niemand treffen kann.
+ *
+ * Die Form — Beschriftung links, Balken rechts mit der Zahl darin — stammt
+ * aus dem Vertriebsplan-Artefakt vom 15.09.2026.
  */
 import React from 'react';
 
@@ -22,33 +31,92 @@ function Prozent({ wert }) {
   return <span>{wert.toLocaleString('de-DE')} %</span>;
 }
 
-function Stufe({ stufe, breiteBasis, erste }) {
-  const breite = breiteBasis ? Math.max(2, (stufe.anzahl / breiteBasis) * 100) : 2;
+const zeile = { display: 'grid', gridTemplateColumns: 'minmax(110px,170px) 1fr',
+                gap: 12, alignItems: 'center', marginBottom: 8 };
+const beschriftung = { fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' };
+const zusatz = { display: 'block', fontWeight: 400, fontSize: 11.5,
+                 color: 'var(--text-tertiary)', lineHeight: 1.4 };
+
+function Balken({ breite, blass, kinder }) {
+  return (
+    <div style={{ height: 26, borderRadius: 4, display: 'flex', alignItems: 'center',
+                  paddingInline: 9, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                  minWidth: 'fit-content', width: `${Math.max(breite, 3)}%`,
+                  background: blass ? 'var(--border-light)' : 'var(--brand-primary)',
+                  color: blass ? 'var(--text-secondary)' : '#fff' }}>
+      {kinder}
+    </div>
+  );
+}
+
+function GemesseneStufe({ stufe, basis, erste }) {
   // Der Abbruch gegenüber der Vorstufe ist die eigentliche Auskunft: Er sagt,
   // welcher Schritt kostet — nicht, wie weit der Trichter insgesamt trägt.
   const abbruch = erste || stufe.anteil_vorstufe === null
     ? null
     : Math.round((100 - stufe.anteil_vorstufe) * 10) / 10;
+  const spanne = stufe.erwartet_von !== null && stufe.erwartet_von !== undefined;
 
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between',
-                    fontSize: 12, marginBottom: 3 }}>
-        <span style={{ color: 'var(--text-secondary)' }}>{stufe.name}</span>
-        <span style={{ color: 'var(--text-tertiary)' }}>
-          <strong style={{ color: 'var(--text-primary)' }}>{stufe.anzahl}</strong>
-          {'  '}<Prozent wert={stufe.anteil_gesamt} />
+    <div style={zeile}>
+      <div style={beschriftung}>
+        {stufe.name}
+        {spanne && (
+          <span style={zusatz}>
+            Plan: {stufe.erwartet_von}–{stufe.erwartet_bis} % der Vorstufe
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Balken breite={basis ? (stufe.anzahl / basis) * 100 : 3}
+                kinder={stufe.anzahl} />
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+          <Prozent wert={stufe.anteil_gesamt} />
           {abbruch !== null && abbruch > 0 && (
             <span style={{ color: 'var(--error)', marginLeft: 8 }}>
               −{abbruch.toLocaleString('de-DE')} %
             </span>
           )}
+          {stufe.unter_erwartung && (
+            <strong style={{ color: 'var(--error)', marginLeft: 8 }}>
+              unter Plan
+            </strong>
+          )}
         </span>
       </div>
-      <div style={{ height: 8, borderRadius: 4, background: 'var(--border-light)' }}>
-        <div style={{ height: 8, borderRadius: 4, width: `${breite}%`,
-                      background: 'var(--brand-primary)' }} />
+    </div>
+  );
+}
+
+function AngenommeneStufe({ eintrag, basis }) {
+  return (
+    <div style={zeile}>
+      <div style={beschriftung}>
+        {eintrag.name}
+        <span style={zusatz}>{eintrag.hinweis}</span>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Balken blass breite={basis && eintrag.erwartet ? (eintrag.erwartet / basis) * 100 : 3}
+                kinder={eintrag.erwartet === null ? '–' : eintrag.erwartet.toLocaleString('de-DE')} />
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>angenommen</span>
+      </div>
+    </div>
+  );
+}
+
+function Gruppe({ titel, hinweis, children }) {
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
+                    textTransform: 'uppercase', color: 'var(--text-tertiary)',
+                    marginBottom: 8 }}>
+        {titel}
+      </div>
+      {hinweis && (
+        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 10px',
+                    lineHeight: 1.5 }}>{hinweis}</p>
+      )}
+      {children}
     </div>
   );
 }
@@ -57,6 +125,8 @@ export default function TrichterAuswertung({ daten, tage, nurAnzeige, onZeitraum
   if (!daten) return null;
 
   const basis = daten.stufen.length ? daten.stufen[0].anzahl : 0;
+  const quelle = daten.angenommen && daten.angenommen.length
+    ? daten.angenommen[0].herkunft : '';
 
   return (
     <div>
@@ -90,7 +160,7 @@ export default function TrichterAuswertung({ daten, tage, nurAnzeige, onZeitraum
           leer — nicht null: Es ist nichts gemessen worden.
         </p>
       ) : (
-        <>
+        <Gruppe titel="Gemessen">
           {daten.zu_wenig_daten && (
             <p style={{ fontSize: 12, color: 'var(--text-tertiary)',
                         margin: '0 0 10px', lineHeight: 1.5 }}>
@@ -100,18 +170,26 @@ export default function TrichterAuswertung({ daten, tage, nurAnzeige, onZeitraum
             </p>
           )}
           {daten.stufen.map((stufe, i) => (
-            <Stufe key={stufe.schluessel} stufe={stufe} breiteBasis={basis}
-                   erste={i === 0} />
+            <GemesseneStufe key={stufe.schluessel} stufe={stufe} basis={basis}
+                            erste={i === 0} />
           ))}
-        </>
+        </Gruppe>
       )}
 
-      <div style={{ marginTop: 14, paddingTop: 10,
-                    borderTop: '1px solid var(--border-light)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6,
-                      color: 'var(--text-secondary)' }}>
-          Nicht erhoben
-        </div>
+      {daten.angenommen && daten.angenommen.length > 0 && (
+        <Gruppe
+          titel="Angenommen"
+          hinweis={`Keine dieser Zahlen ist erhoben. Sie zeigen, was der ${quelle}
+                    bei den oben gemessenen Werten erwarten ließe — nicht, was
+                    geschehen ist.`}
+        >
+          {daten.angenommen.map((eintrag) => (
+            <AngenommeneStufe key={eintrag.schluessel} eintrag={eintrag} basis={basis} />
+          ))}
+        </Gruppe>
+      )}
+
+      <Gruppe titel="Nicht erhoben">
         {daten.nicht_erhoben.map((eintrag) => (
           <p key={eintrag.schluessel}
              style={{ fontSize: 12, color: 'var(--text-tertiary)',
@@ -119,7 +197,7 @@ export default function TrichterAuswertung({ daten, tage, nurAnzeige, onZeitraum
             <strong>{eintrag.name}:</strong> {eintrag.grund}
           </p>
         ))}
-      </div>
+      </Gruppe>
     </div>
   );
 }

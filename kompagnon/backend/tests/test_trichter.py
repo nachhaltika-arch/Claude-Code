@@ -305,3 +305,91 @@ def test_die_oberflaeche_ruft_die_auswertung_auf():
     assert seite.exists(), seite
     assert "/api/acquisition/widget/trichter" in seite.read_text(encoding="utf-8"), (
         "Die Auswertung ist gebaut, aber keine Seite ruft sie auf")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Der Vertriebsplan daneben — angenommen, nicht gemessen (15.09.2026)
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Woher die Zahlen stammen.** Der Vertriebsplan vom 15.09.2026 rechnet
+# einen Monat durch: rund 60 echte Leads, davon rund 42 zugestellte Scores
+# (20 bis 40 Prozent gehen im Double-Opt-in verloren), daraus rund 4
+# Gespraeche, daraus rund 2 Check PLUS und daraus 0 bis 1 Relaunch.
+#
+# **Keine dieser Zahlen ist gemessen.** Der Plan sagt das selbst und nennt
+# sie ANGENOMMEN. Die Entscheidung E17 desselben Plans verlangt, die
+# Herkunft ueberall auszuweisen — und genau hier wird es ernst: Neben
+# gemessenen Stufen sieht eine angenommene Zahl aus wie eine gemessene.
+#
+# **Drei Klassen, sauber getrennt:**
+#   gemessen       aus widget_requests, mit Zeitstempel je Zeile
+#   angenommen     aus dem Vertriebsplan, auf die gemessene Basis gerechnet
+#   nicht erhoben  Anzeigenklicks (Meta) und Termine (Google-Kalender)
+#
+# Die dritte Klasse ist die, die man am leichtesten zur Null macht.
+
+
+class TestErwartung:
+    def test_die_erwartung_nennt_ihre_herkunft(self, db):
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+
+        for eintrag in ergebnis["angenommen"]:
+            assert eintrag["herkunft"], "Eine Annahme ohne Quelle ist eine Behauptung"
+            assert eintrag["art"] == "angenommen"
+
+    def test_gemessene_stufen_sind_als_gemessen_ausgewiesen(self, db):
+        _anfrage(db)
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+
+        assert all(s["art"] == "gemessen" for s in ergebnis["stufen"])
+
+    def test_die_annahmen_rechnen_auf_der_gemessenen_basis(self, db):
+        """Nicht die Planzahl anzeigen, sondern was der Plan **bei diesen**
+        Zahlen erwarten liesse. Sonst steht neben 3 gemessenen Berichten eine
+        60 aus dem Plan, und niemand weiss, worauf sie sich bezieht."""
+        for _ in range(20):
+            _anfrage(db, bis="bericht_versendet")
+
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+        gespraech = next(e for e in ergebnis["angenommen"]
+                         if e["schluessel"] == "gespraech")
+
+        assert gespraech["erwartet"] == 2.0
+        assert gespraech["basis"] == "bericht_versendet"
+
+    def test_ohne_basis_bleibt_die_erwartung_leer(self, db):
+        """**Nicht 0.** Null hiesse „der Plan erwartet keinen Termin"; richtig
+        ist „es gibt nichts, worauf sich die Quote beziehen koennte"."""
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+
+        for eintrag in ergebnis["angenommen"]:
+            assert eintrag["erwartet"] is None
+
+    def test_der_doi_verlust_wird_gegen_die_messung_gehalten(self, db):
+        """Die **einzige** Planquote, die sich heute pruefen laesst: Der Plan
+        rechnet mit 20 bis 40 Prozent Verlust im Double-Opt-in."""
+        for _ in range(10):
+            _anfrage(db, bis="bestaetigung_angefragt")
+        for _ in range(10):
+            _anfrage(db, bis="bestaetigt")
+
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+        stufe = _stufe(ergebnis, "bestaetigt")
+
+        assert stufe["erwartet_von"] == 60.0
+        assert stufe["erwartet_bis"] == 80.0
+        assert stufe["anteil_vorstufe"] == 50.0
+        assert stufe["unter_erwartung"] is True
+
+    def test_im_erwarteten_bereich_wird_nicht_gewarnt(self, db):
+        for _ in range(10):
+            _anfrage(db, bis="bestaetigt")
+
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+        assert _stufe(ergebnis, "bestaetigt")["unter_erwartung"] is False
+
+    def test_ohne_vorstufe_wird_nicht_gewarnt(self, db):
+        """Sonst meldet eine leere Ansicht „unter Erwartung" — und die erste
+        Zahl, die jemand sieht, ist ein Alarm ueber nichts."""
+        ergebnis = trichter.auswerten(db, tage=30, jetzt=JETZT)
+        assert _stufe(ergebnis, "bestaetigt")["unter_erwartung"] is False

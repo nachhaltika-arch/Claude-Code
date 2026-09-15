@@ -56,6 +56,47 @@ STUFEN = (
     ("bericht_geoeffnet", "Bericht geöffnet", "report_confirmed_at"),
 )
 
+#: Woher eine Zahl in dieser Auswertung stammt — Entscheidung E17 des
+#: Vertriebsplans („Kennzeichnung GEMESSEN / ERFAHREN / ANGENOMMEN, ueberall").
+#:
+#: **Warum das hier keine Formsache ist.** Neben sechs gemessenen Stufen
+#: sieht eine angenommene Zahl aus wie eine gemessene. Der Vertriebsplan vom
+#: 15.09.2026 rechnet einen Monat durch — rund 60 Leads, 42 Scores, 4
+#: Gespraeche, 2 Check PLUS — und **keine** dieser Zahlen ist erhoben. Wer
+#: sie ohne Kennzeichen danebenstellt, hat aus einer Planung eine Messung
+#: gemacht, ohne dass es jemand beschlossen haette.
+GEMESSEN, ANGENOMMEN = "gemessen", "angenommen"
+
+#: Die Quelle aller Annahmen unten. Sie steht an jeder einzelnen, nicht nur
+#: hier: Eine Annahme, deren Herkunft man erst suchen muss, wird beim
+#: naechsten Lesen fuer eine Messung gehalten.
+PLANQUELLE = "Vertriebsplan 15.09.2026, Rechenbeispiel (angenommen)"
+
+#: Wo eine Planquote sich gegen eine **gemessene** Stufe halten laesst.
+#: Heute gibt es genau eine: Der Plan rechnet mit 20 bis 40 Prozent Verlust
+#: im Double-Opt-in, also bleiben 60 bis 80 Prozent uebrig.
+#:
+#: Die Spanne gehoert an die Stufe, nicht in den Kopf der Ansicht: „unter
+#: Erwartung" ist eine Aussage ueber **diesen** Schritt.
+ERWARTUNG_VORSTUFE = {
+    "bestaetigt": (60.0, 80.0),
+}
+
+#: Was der Plan **nach** der letzten gemessenen Stufe erwartet. Gerechnet
+#: wird auf der gemessenen Basis, nicht die Planzahl angezeigt: Neben drei
+#: zugestellten Berichten stuende sonst eine 60 aus dem Plan, und niemand
+#: wuesste, worauf sie sich bezieht.
+#:
+#: (Schluessel, Klartext, Basisstufe, Quote in Prozent, Hinweis)
+ANNAHMEN = (
+    ("gespraech", "15-Minuten-Gespräch", "bericht_versendet", 10.0,
+     "rund 10 % der zugestellten Berichte"),
+    ("check_plus", "Check PLUS", "gespraech", 50.0,
+     "rund die Hälfte der Gespräche"),
+    ("auftrag", "Relaunch oder Neubau", "check_plus", 50.0,
+     "0 bis 1 je Monat, innerhalb von 6 Monaten nach Check PLUS"),
+)
+
 #: Was zum Trichter gehoert und hier nicht gemessen werden **kann**.
 NICHT_ERHOBEN = (
     ("anzeigenklicks", "Klicks auf die Anzeige",
@@ -113,18 +154,54 @@ def auswerten(db, tage: int = STANDARD_TAGE, jetzt: datetime = None,
 
     gesamt = len(zeilen)
     stufen, vorherige = [], None
+    erreicht_je_stufe = {}
     for schluessel, name, feld in STUFEN:
         anzahl = sum(1 for zeile in zeilen if erreicht(zeile, feld))
+        anteil_vorstufe = (None if vorherige is None
+                           else _anteil(anzahl, vorherige))
+        von, bis = ERWARTUNG_VORSTUFE.get(schluessel, (None, None))
         stufen.append({
             "schluessel": schluessel,
             "name": name,
             "anzahl": anzahl,
+            "art": GEMESSEN,
             "anteil_gesamt": _anteil(anzahl, gesamt),
             # Die erste Stufe hat keine Vorstufe — nicht 100 %, sondern nichts.
-            "anteil_vorstufe": None if vorherige is None
-            else _anteil(anzahl, vorherige),
+            "anteil_vorstufe": anteil_vorstufe,
+            "erwartet_von": von,
+            "erwartet_bis": bis,
+            # **Ohne Vorstufe wird nicht gewarnt.** Sonst meldet eine leere
+            # Ansicht „unter Erwartung" — ein Alarm ueber nichts, und der
+            # naechste echte wird dann nicht mehr gelesen.
+            "unter_erwartung": bool(von is not None
+                                    and anteil_vorstufe is not None
+                                    and vorherige
+                                    and anteil_vorstufe < von),
         })
+        erreicht_je_stufe[schluessel] = anzahl
         vorherige = anzahl
+
+    # **Die Annahmen rechnen auf dem Gemessenen.** Jede Stufe nimmt die
+    # vorige als Basis — auch wenn die selbst schon eine Annahme ist. Dann
+    # steht das in `basis` und die Kennzeichnung traegt es weiter.
+    angenommen, werte = [], dict(erreicht_je_stufe)
+    for schluessel, name, basis, quote, hinweis in ANNAHMEN:
+        grundlage = werte.get(basis)
+        # **Ohne Basis bleibt es leer, nicht 0.** Null hiesse „der Plan
+        # erwartet keinen Termin"; richtig ist „es gibt nichts, worauf sich
+        # die Quote beziehen koennte".
+        erwartet = None if not grundlage else round(grundlage * quote / 100.0, 1)
+        werte[schluessel] = erwartet or 0
+        angenommen.append({
+            "schluessel": schluessel,
+            "name": name,
+            "art": ANGENOMMEN,
+            "erwartet": erwartet,
+            "basis": basis,
+            "quote": quote,
+            "hinweis": hinweis,
+            "herkunft": PLANQUELLE,
+        })
 
     return {
         "zeitraum_tage": int(tage),
@@ -136,6 +213,7 @@ def auswerten(db, tage: int = STANDARD_TAGE, jetzt: datetime = None,
         "zu_wenig_daten": gesamt < MINDESTZAHL,
         "mindestzahl": MINDESTZAHL,
         "stufen": stufen,
+        "angenommen": angenommen,
         "nicht_erhoben": [
             {"schluessel": s, "name": n, "grund": g} for s, n, g in NICHT_ERHOBEN
         ],

@@ -34,7 +34,10 @@ function Prozent({ wert }) {
 const zeile = { display: 'grid', gridTemplateColumns: 'minmax(110px,170px) 1fr',
                 gap: 12, alignItems: 'center', marginBottom: 8 };
 const beschriftung = { fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' };
-const zusatz = { display: 'block', fontWeight: 400, fontSize: 11.5,
+// Mindestens 12 px — L-17. Der Zusatz ist die Stelle, an der man aus
+// Platzgründen am ehesten darunter rutscht, und er trägt die Herkunft der
+// Zahl: gerade das muss lesbar sein.
+const zusatz = { display: 'block', fontWeight: 400, fontSize: 12,
                  color: 'var(--text-tertiary)', lineHeight: 1.4 };
 
 function Balken({ breite, blass, kinder }) {
@@ -107,7 +110,7 @@ function AngenommeneStufe({ eintrag, basis }) {
 function Gruppe({ titel, hinweis, children }) {
   return (
     <div style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em',
                     textTransform: 'uppercase', color: 'var(--text-tertiary)',
                     marginBottom: 8 }}>
         {titel}

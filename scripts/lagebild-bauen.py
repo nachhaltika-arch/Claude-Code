@@ -80,6 +80,10 @@ ZUSTAENDIGKEIT = {
                         "bestaetigende Lauf produktiv — und dafuer muss der "
                         "automatische Versand eingeschaltet sein "
                         "(/health → versand)."),
+    "L-195": ("beides", "Gemessen ist es. Der Ankersprung #analyse ist eine "
+                        "Einstellung in der Anzeige, die reduzierte Seite eine "
+                        "Entscheidung (E02) — messbar wird der Rest erst mit "
+                        "dem hochgeladenen Messblock."),
     "L-186": ("extern", "Ein Wert in den Widget-Einstellungen: die Adresse "
                         "der Datenschutzerklärung. Kein Code."),
     "L-187": ("beides", "Verdrahtet ist alles. Draußen warten drei "

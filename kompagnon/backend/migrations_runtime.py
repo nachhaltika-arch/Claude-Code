@@ -348,6 +348,9 @@ def run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(200)",
+        # ── 15.09.2026: die beiden fehlenden Kampagnenangaben ──
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_content VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_term VARCHAR(200)",
         # Trackdesk / Affiliate Partner Tracking
         """CREATE TABLE IF NOT EXISTS affiliate_conversions (
             id                SERIAL PRIMARY KEY,

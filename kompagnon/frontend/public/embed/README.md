@@ -54,9 +54,10 @@ nichts aus.
      anderes davon berührt wird.
 
      Er tut drei Dinge:
-       1. Herkunft durchreichen — `fbclid` und `_fbp` an das Widget, das in
-          einem iframe auf fremder Domain läuft und eure Adresszeile nicht
-          sieht. Ohne sie ist jede Lead-Meldung eine ohne Anzeige.
+       1. Herkunft durchreichen — `fbclid`, `_fbp` und die fünf
+          UTM-Parameter an das Widget, das in einem iframe auf fremder
+          Domain läuft und eure Adresszeile nicht sieht. Ohne sie ist jede
+          Lead-Meldung eine ohne Anzeige und ohne Kampagne.
        2. Meta-Pixel laden — erst nach Marketing-Einwilligung, nie vorher.
        3. Den Beginn melden — `InitiateCheckout` an Meta und
           `begin_checkout` an GA4, sobald die Adresse eingetippt ist.
@@ -98,6 +99,17 @@ nichts aus.
 
     var fbp = (document.cookie.match(/(?:^|;\s*)_fbp=([^;]+)/) || [])[1];
     if (fbp) p.set('fbp', decodeURIComponent(fbp));
+
+    /* **Genau diese fünf, keine beliebigen.** Was hier durchgereicht wird,
+       landet im Backend und in Brevo. Eine offene Liste hieße, dass jeder,
+       der einen Link auf diese Seite setzt, Werte in unsere Datenbank
+       schreiben kann. Die Prüfung ist bewusst weiter als die der Klick-ID
+       (Kampagnennamen tragen Leerzeichen und Umlaute), aber begrenzt. */
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
+      .forEach(function (name) {
+        var wert = (eigene.get(name) || '').trim();
+        if (wert && wert.length <= 200) p.set(name, wert);
+      });
 
     if (!p.toString()) return;
 

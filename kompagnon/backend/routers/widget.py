@@ -88,6 +88,19 @@ class WidgetAuditRequest(BaseModel):
     fbc: str = ""
     fbp: str = ""
     page_url: str = ""
+    # Woher der Besucher kommt (15.09.2026). Dieselbe Strecke wie die
+    # Klick-Kennungen: Das Widget sieht die Adresszeile der Traegerseite
+    # nicht, die Einbettung reicht sie im iframe-Aufruf durch.
+    #
+    # **Genau fuenf, und sie werden gekuerzt statt abgewiesen.** Ein zu
+    # langer Kampagnenname darf keine Analyse kosten — der Besucher kann
+    # nichts dafuer, und der Wert ist Beiwerk. Die Grenze von 200 Zeichen
+    # ist die der Spalte.
+    utm_source: str = ""
+    utm_medium: str = ""
+    utm_campaign: str = ""
+    utm_content: str = ""
+    utm_term: str = ""
     # Das Einwilligungssignal des Consent-Banners der Traegerseite, vom
     # Widget **ausgewertet** gesendet: "1"/"true" heisst ausdrueckliches Ja,
     # alles andere — auch ein leerer Wert — heisst kein Ja und meldet nicht
@@ -177,6 +190,24 @@ def _enforce_limits(db: Session, ip: str, email: str) -> None:
         raise HTTPException(429, ausgelastet)
 
 
+def _utm_felder(payload) -> dict:
+    """Die fuenf Kampagnenangaben, auf Spaltenlaenge gekuerzt.
+
+    **Gekuerzt und nicht abgewiesen.** Ein zu langer Kampagnenname ist ein
+    Fehler dessen, der den Link gebaut hat — er darf den Besucher nicht die
+    Analyse kosten. Leere Werte bleiben leer und werden nicht zu \"\":
+    Die Spalten sind `nullable`, und „nicht uebergeben" ist etwas anderes
+    als „leer uebergeben".
+    """
+    felder = {}
+    for name in ("utm_source", "utm_medium", "utm_campaign",
+                 "utm_content", "utm_term"):
+        wert = (getattr(payload, name, "") or "").strip()[:200]
+        if wert:
+            felder[name] = wert
+    return felder
+
+
 @router.post("/audit")
 async def start_widget_audit(
     payload: WidgetAuditRequest,
@@ -201,12 +232,24 @@ async def start_widget_audit(
     lead = db.query(Lead).filter(Lead.website_url.ilike(f"%{domain}%")).first()
     if lead is None:
         lead = Lead(website_url=url, email=email, company_name=domain,
-                    status="new", lead_source="embed_audit")
+                    status="new", lead_source="embed_audit",
+                    **_utm_felder(payload))
         db.add(lead)
         db.commit()
         db.refresh(lead)
-    elif not lead.email:
-        lead.email = email
+    else:
+        if not lead.email:
+            lead.email = email
+        # **Nur nachtragen, was fehlt** (15.09.2026). Der Lead wird ueber die
+        # Domain wiedergefunden; ohne diese Zeilen bliebe jeder Betrieb ohne
+        # Kampagnenzuordnung, der schon einmal hier war — und das sind die
+        # interessanten. Eine vorhandene Herkunft wird **nicht** ueberschrieben:
+        # Der Erstkontakt hat ihn gebracht, ein spaeterer Klick nur
+        # zurueckgeholt. Wer das anders attribuieren will, entscheidet das —
+        # es steht hier, damit die Regel sichtbar ist statt beilaeufig.
+        for name, wert in _utm_felder(payload).items():
+            if not getattr(lead, name, None):
+                setattr(lead, name, wert)
         db.commit()
 
     now = datetime.utcnow()

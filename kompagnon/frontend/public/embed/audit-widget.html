@@ -501,6 +501,27 @@
   var FBC    = traegerParam('fbc');
   var FBP    = traegerParam('fbp');
 
+  /* ── Die Kampagne, aus der der Besucher kommt (15.09.2026) ──
+     Dieselbe Strecke wie bei der Klick-ID: Das Widget steht im iframe auf
+     fremder Domain und sieht die Adresszeile der Trägerseite nicht — die
+     Einbettung reicht die Werte im Aufruf durch.
+
+     **Eigene Prüfung, weil `traegerParam` zu eng ist.** Sie lässt nur
+     `A-Za-z0-9._-` zu; das passt für eine Klick-ID, nicht für einen
+     Kampagnennamen mit Leerzeichen oder Umlaut. Begrenzt bleibt es
+     trotzdem: 200 Zeichen, keine Steuerzeichen, keine spitzen Klammern —
+     was von hier ins Backend und nach Brevo geht, wird am Rand geprüft. */
+  function utmParam(name) {
+    var wert = (TRAEGER.get(name) || '').trim().slice(0, 200);
+    return /[<>\r\n\t]/.test(wert) ? '' : wert;
+  }
+
+  var UTM_SOURCE   = utmParam('utm_source');
+  var UTM_MEDIUM   = utmParam('utm_medium');
+  var UTM_CAMPAIGN = utmParam('utm_campaign');
+  var UTM_CONTENT  = utmParam('utm_content');
+  var UTM_TERM     = utmParam('utm_term');
+
   var einwilligungRoh = (TRAEGER.get('consent') || '').trim().toLowerCase();
   var EINWILLIGUNG_NEIN = (einwilligungRoh === '0' || einwilligungRoh === 'false');
 
@@ -845,6 +866,14 @@
         fbclid: FBCLID,
         fbc: FBC,
         fbp: FBP,
+        /* Welche Anzeige und welche Karte den Besucher gebracht haben. Ohne
+           sie steht am Monatsende fest, wie viele Leads kamen — aber nicht,
+           welche Tonlage sie gebracht hat. */
+        utm_source: UTM_SOURCE,
+        utm_medium: UTM_MEDIUM,
+        utm_campaign: UTM_CAMPAIGN,
+        utm_content: UTM_CONTENT,
+        utm_term: UTM_TERM,
         page_url: document.referrer || '',
         /* Damit der Serverweg dieselbe Grenze zieht wie der Browser. Gesendet
            wird der **ausgewertete** Zustand, nicht der Rohwert: Der Browser

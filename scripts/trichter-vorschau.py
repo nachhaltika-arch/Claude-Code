@@ -52,6 +52,17 @@ HTML = "text/html; charset=utf-8"
 LANDINGPAGE = os.environ.get("LANDINGPAGE") or os.path.join(
     WURZEL, "docs", "landingpage", "websprint-landingpage.html")
 
+# Der Vertriebsplan (Stand 15.09.2026). Er steht **vor** den acht
+# Erzeugnissen, weil er ihnen vorausgeht: erst die Absicht, dann das, woran
+# sich zeigt, ob sie eingeloest ist.
+#
+# **Er liegt bewusst nicht im Repo.** Das Repo ist oeffentlich, und der Plan
+# nennt Budgets, Werbekonto- und Business-Manager-Kennungen. Fehlt die
+# Datei, zeigt die Ansicht einen Hinweis statt einer leeren Flaeche — sonst
+# raet der naechste, was er falsch gemacht hat.
+VERTRIEBSPLAN = os.environ.get("VERTRIEBSPLAN") or os.path.join(
+    WURZEL, "docs", "Websprint-Vertriebsplan.html")
+
 
 # ══════════════════════════════════════════════════════════════════════
 # Erfundene Daten — als solche erkennbar
@@ -449,6 +460,36 @@ def ansicht_landingpage(regler: dict) -> bytes:
         return f.read()
 
 
+def vertriebsplan_seite() -> bytes:
+    """Der Vertriebsplan, ausgeliefert wie er ist.
+
+    **Keine Ansicht, sondern ein Nachbardokument** — Entscheidung David am
+    15.09.2026. Die acht Ansichten sind Stufen des Trichters, also
+    Erzeugnisse, die ein Kunde zu sehen bekommt. Der Plan ist die Absicht
+    dahinter: intern, mit Budgets und Kontokennungen. Als neunte Stufe haette
+    er ausgesehen wie eine neunte Kundenansicht.
+
+    Er steht deshalb **neben dem Lagebild** im Fuss — dort, wo das andere
+    Dokument liegt, das man beim Ansehen daneben braucht und das ebenfalls
+    keine Stufe ist.
+
+    **Keine Regler.** Die Ansichten baut diese Vorschau aus erfundenen
+    Befunddaten; der Plan ist ein fertiges Dokument mit eigenem Stand. Ihn
+    durch die Vorlagensprache zu schicken hiesse, ein Dokument zu
+    veraendern, dessen Zahlen gerade **nicht** aus dem System stammen.
+    """
+    if not os.path.exists(VERTRIEBSPLAN):
+        return _hinweisseite(
+            "Vertriebsplan nicht gefunden",
+            f"Erwartet unter <code>{VERTRIEBSPLAN}</code>. Die Datei liegt "
+            "bewusst nicht im Repo — es ist oeffentlich, und der Plan nennt "
+            "Budgets und Kontokennungen. Eine andere Datei zeigen: "
+            "<code>VERTRIEBSPLAN=/pfad/zur/datei.html python3 "
+            "scripts/trichter-vorschau.py</code>")
+    with open(VERTRIEBSPLAN, "rb") as f:
+        return f.read()
+
+
 def _hinweisseite(titel: str, text: str) -> bytes:
     return (f'<div style="font:15px/1.7 system-ui;padding:40px;max-width:60ch">'
             f'<h1 style="font-size:20px">{titel}</h1><p>{text}</p></div>'
@@ -789,6 +830,12 @@ class Handler(BaseHTTPRequestHandler):
                 "lassen — es wird aus <code>docs/soll-ist-analyse.md</code> "
                 "und <code>docs/lagebild/plan.json</code> erzeugt."), code=404)
 
+        # Der Vertriebsplan — wie das Lagebild ein Nachbardokument, keine
+        # Stufe. Eine eigene Adresse, damit der Link im Fuss ihn in einem
+        # eigenen Fenster oeffnet statt in den Rahmen zu zwingen.
+        if pfad == "/vertriebsplan":
+            return self._senden(vertriebsplan_seite())
+
         if pfad.startswith("/ansicht/"):
             LETZTE_REGLER.clear()
             LETZTE_REGLER.update(regler)
@@ -967,6 +1014,9 @@ VORLAGE = """<!doctype html>
   <div class="fuss">
     <a href="/lagebild" target="_blank" rel="noopener">Lagebild öffnen ↗</a>
     <span>Lücken, Module, Produkte, Trichter, Messtiefe</span>
+    <a href="/vertriebsplan" target="_blank" rel="noopener">Vertriebsplan öffnen ↗</a>
+    <span>Intern. Strategie, Aktionsplan, offene Entscheidungen —
+          seine Trichterzahlen sind angenommen, nicht gemessen.</span>
   </div>
 </aside>
 <main>

@@ -58,10 +58,23 @@ Einwilligungsquote, und die ist eine eigene Kennzahl (siehe 3.).
 ### 2.1 Meta Ads Manager — Ausgabe und Vorderseite des Trichters
 `https://adsmanager.facebook.com/adsmanager/manage/adsets/insights?act=361140094818155&business_id=128351871884970` (Zeitraum auf den Berichtstag stellen)
 
+> **Falle, am 16.09. hineingetappt:** Der URL-Parameter `insights_date`
+> **greift nicht** — die Tabelle blieb auf „Letzte 30 Tage" stehen und zeigte
+> 23,74 € statt 11,65 €, also die Kampagnensumme statt des Tages. Der
+> Zeitraum ist **im Wähler oben rechts** zu setzen (für den Vortag genügt
+> „Gestern"), und danach ist die Beschriftung des Wählers zu **lesen**: Sie
+> muss den Berichtstag nennen. Meta rechnet in der Zeitzone Berlin.
+
 Zu holen: **Ausgabe (€)**, **Impressionen**, **Link-Klicks**, **CTR**, **CPC**,
 **Landingpage-Aufrufe** (als Einwilligungszahl, siehe oben), **Ergebnisse**.
 
-Zusätzlich, und das ist der teure Teil: **Aufschlüsselung → Platzierung**.
+Die rechten Spalten (ab „Impressionen") liegen außerhalb des Bildes: Die
+Tabelle waagerecht scrollen — das Mausrad bewegt sie kaum, die **Bildlaufleiste
+unter der Zeile ziehen** wirkt.
+
+Zusätzlich, und das ist der teure Teil: **Aufschlüsselung → Platzierung**
+(Knopf „Aufschlüsselung" → „Platzierung"; danach liefert der Seitentext alle
+Zeilen auf einmal).
 Die Kampagne läuft als Advantage+-Leads-Kampagne, das **Audience Network lässt
 sich nicht abwählen**. Am 14./15.09. kamen **40 von 68 Klicks** von dort,
 Rewarded Video mit 16,9 % CTR und **null** Landungen. Diese Klicks sind bezahlt
@@ -79,6 +92,15 @@ Zu holen: **Sitzungen je Kanal** (`Paid Social` ist die Kampagne, `Direct` und
 `Organic Search` sind es nicht), und aus dem Ereignisbericht **`begin_checkout`**
 und **`generate_lead`**.
 
+> **Diese Property hat keinen Ereignisbericht.** Die Sammlung „Leads
+> generieren" kennt nur Übersicht, Zielgruppen, Nutzergewinnung, Neu
+> generierter Traffic, Leadgewinnung, Landingpage, Kohorten. `begin_checkout`
+> einzeln ist dort **nicht** zu bekommen — nur die Ereignissumme. Bis eine
+> Datenanalyse „Ereignisanzahl nach Ereignisname" angelegt ist, bleibt
+> Stufe 4 *nicht erhoben*, und die Diagnose kann 3 → 4 nicht von 4 → 5 trennen.
+> Der Bericht heißt `r=lifecycle-engagement-events`; diese Property leitet
+> darauf zur Startseite um.
+
 Fällt `Paid Social` auf null, während Stufe 3 Aufrufe zeigt, ist das **kein**
 Verkehrsproblem, sondern ein Parameter- oder Einwilligungsproblem.
 
@@ -89,6 +111,13 @@ Zu holen: **Zahl erkannter Firmen** und die Namen der interessanten.
 Leadinfo erkennt Besucher, die das Formular **nicht** ausgefüllt haben — die
 Zahl gehört nicht in den Trichter (sonst wird doppelt gezählt), sondern
 beantwortet eine andere Frage: *Kommt die richtige Sorte Betrieb an?*
+
+**Bevor eine Leadinfo-Null etwas heißt, zwei Gegenproben:** steht der Zähler
+in der *ausgelieferten* Seite (`curl` auf die Live-Adresse, nicht die
+Repo-Datei), und kennt das Portal unter „Alle Zeiten" überhaupt Unternehmen?
+Am 15.09. war beides ja — vier Unternehmen, das jüngste vom 09.09. —, also ist
+die Null gemessen. Sie erklärt sich aus dem Verkehr: 95 von 117 Aufrufen mobil,
+und Mobilfunkadressen tragen keine Firmenkennung.
 
 Erkennt Leadinfo **Firmen**, während Stufe 5 null ist, liegt der Bruch am
 Formular und nicht am Publikum. Erkennt es **Agenturen und Zufall**, liegt er
@@ -145,10 +174,15 @@ nicht, ist der Filter kaputt, nicht der Trichter.
 **Eigene Test-IPs** (abzuziehen; beim ersten Lauf zu bestätigen und hier
 einzutragen — bis dahin gilt die bereinigte Zahl als *angenommen*):
 
-| IP | wem | seit |
-|---|---|---|
-| _offen_ | David, Büro | — |
-| _offen_ | David, mobil | — |
+| IP | wem | Beleg | Stand |
+|---|---|---|---|
+| `9.246.125.88` | vermutlich David | 17 Aufrufe am 15.09., Mac-Desktop, 07:31–18:00 UTC; dieselbe Adresse schickte am 12.09. die `curl`-Testläufe | **unbestätigt** — bis David es sagt, ist jede Bereinigung *angenommen* |
+| `91.41.13.88` | vermutlich David | Testläufe am 13.09. (Mac + `curl`) | unbestätigt, am 15.09. nicht aufgetreten |
+| `217.142.18.239` | vermutlich David | Testläufe am 13.09. abends | unbestätigt, am 15.09. nicht aufgetreten |
+
+Die Adressen wechseln (drei verschiedene an drei Tagen) — eine feste Liste
+reicht also nicht. Wer morgens bereinigt, prüft die **häufigste IP mit
+Desktop-Kennung** gegen diese Tabelle und fragt im Zweifel nach.
 
 ---
 
@@ -156,13 +190,19 @@ einzutragen — bis dahin gilt die bereinigte Zahl als *angenommen*):
 
 | Kennzahl | Formel | gut | Alarm |
 |---|---|---|---|
-| **Durchlaufquote Klick → Aufruf** | Stufe 3 bereinigt ÷ Link-Klicks | ≥ 0,6 | < 0,3 |
-| **Einwilligungsquote** | GA4-Sitzungen (Paid Social) ÷ Stufe 3 | ≥ 0,5 | < 0,2 |
+| **Durchlaufquote Klick → Besucher** | Besucher bereinigt ÷ Link-Klicks | ≥ 0,6 | < 0,3 |
+| **Einwilligungsquote** | GA4-Sitzungen (Paid Social) ÷ Besucher | ≥ 0,5 | < 0,2 |
 | **Formularquote** | Stufe 4 ÷ Stufe 3 | _noch nicht erhoben_ | 0 bei n ≥ 30 |
 | **Abschlussquote** | Stufe 5 ÷ Stufe 4 | ≥ 0,5 | < 0,25 |
-| **Kosten je echtem Besucher** | Ausgabe ÷ Stufe 3 bereinigt | — | — |
+| **Kosten je echtem Besucher** | Ausgabe ÷ Besucher bereinigt | — | — |
 | **Kosten je Lead** | Ausgabe ÷ Stufe 5 | — | — |
 | **Anteil Audience Network** | AN-Klicks ÷ Link-Klicks | < 0,3 | > 0,5 |
+
+> **Aufrufe sind keine Besucher.** Am 15.09. standen **117 Aufrufe** gegen
+> **94 Klicks** — eine Quote von 1,24, die nichts bedeutet, weil ein Besucher
+> das Widget mehrfach lädt. Gegen **69 bereinigte Besucher** ergibt sich 0,73,
+> und das ist die Zahl, die die Frage beantwortet. Deshalb rechnen alle
+> Quoten oben mit Besuchern; `aufrufe_*` bleibt als Lastmaß daneben stehen.
 
 **Die Formularquote hat bewusst keinen Sollwert.** Am 16.09. gibt es keine
 Messung, aus der einer abzuleiten wäre; die erste Woche mit n ≥ 30 setzt ihn.

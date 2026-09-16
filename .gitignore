@@ -9,6 +9,9 @@
 # nichts tat, ausser den naechsten Leser in die Irre zu fuehren (L-13).
 .claude/*
 !.claude/settings.json
+# `.claude/commands/` beschreibt Arbeitsablaeufe *dieses* Projekts
+# (`/kampagne`) und ist damit so wenig persoenlich wie `settings.json`.
+!.claude/commands/
 
 # OS
 .DS_Store

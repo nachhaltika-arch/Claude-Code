@@ -171,6 +171,16 @@ nichts aus.
      `eventID` ist dieselbe Kennung, die auch der Serverweg mitschickt —
      Meta verwirft die zweite Meldung, es wird also nicht doppelt gezählt. */
   var begonnenGemeldet = false;
+  /* **Eine Kennung je Seitenaufruf, nicht je Meldung.** Sie steht hier
+     aussen und nicht im Empfaenger, damit eine zweite Meldung dieselbe
+     traegt — dann verwirft Meta sie selbst. Das ist die zweite, von
+     unserem Code unabhaengige Absicherung neben `begonnenGemeldet`: Die
+     Sperre haelt, solange diese Seite laeuft; die Kennung haelt auch dann,
+     wenn zwei Tabs offen sind oder ein fremdes Skript die Nachricht
+     spiegelt. Beim Lead kommt sie vom Widget mit (`d.eventId`) — diese
+     Stufe hat keine, also wird sie hier gebildet. */
+  var begonnenKennung = 'kpg-analyse-' + Date.now().toString(36) + '-' +
+                        Math.random().toString(36).slice(2, 10);
   window.addEventListener('message', function (e) {
     if (e.origin !== URSPRUNG) return;
     var d = e.data;
@@ -195,7 +205,7 @@ nichts aus.
       if (!cBegonnen || !cBegonnen.marketing) return;   /* ohne Ja nichts */
       begonnenGemeldet = true;
       if (typeof window.fbq === 'function') {
-        fbq('track', 'InitiateCheckout');
+        fbq('track', 'InitiateCheckout', {}, { eventID: begonnenKennung });
       }
       /* `gtag` gibt es erst nach Statistik-Einwilligung — dieselbe
          Prüfung wie beim Lead darunter. Der Name heisst bei Meta

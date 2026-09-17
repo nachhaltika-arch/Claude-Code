@@ -35,9 +35,23 @@ from database import Lead, SessionLocal
 from services import abmeldung
 
 
+#: Eine Kennung fuer die Token-Rechnung. Sie muss **nicht** existieren: Der
+#: Token wird aus der Zahl und dem Schluessel gerechnet, ohne Datenbank.
+KENNUNG = 4711
+
+
 @pytest.fixture
-def lead():
-    """Ein Lead mit aktiver Sequenz, der nach dem Test wieder verschwindet."""
+def lead(app):
+    """Ein Lead mit aktiver Sequenz, der nach dem Test wieder verschwindet.
+
+    **Haengt an `app`, und das ist der Punkt.** Diese Fixture legt das Schema
+    an (`conftest.py`); ohne sie greift der erste Test auf `leads` zu, bevor
+    es die Tabelle gibt. Lokal faellt das nie auf — die Entwicklungsdatenbank
+    traegt die Tabellen aus einem frueheren Lauf. In der CI, die mit einer
+    leeren Postgres startet, bricht es sofort: `relation "leads" does not
+    exist`. Genau so ist diese Datei am 17.09.2026 in der CI umgefallen,
+    waehrend hier 4107 Tests gruen waren.
+    """
     db = SessionLocal()
     try:
         eintrag = Lead(company_name="Testbetrieb Abmeldung",
@@ -70,28 +84,28 @@ def _stand(lead_id: int):
 
 # --------------------------------------------------------------- der Token
 
-def test_der_token_traegt_eine_unterschrift_und_die_kennung(lead):
-    token = abmeldung.token(lead)
-    assert token.startswith(f"{lead}.")
-    assert abmeldung.lead_aus_token(token) == lead
+def test_der_token_traegt_eine_unterschrift_und_die_kennung():
+    token = abmeldung.token(KENNUNG)
+    assert token.startswith(f"{KENNUNG}.")
+    assert abmeldung.lead_aus_token(token) == KENNUNG
 
 
-def test_ein_gefaelschter_token_wird_abgewiesen(lead):
+def test_ein_gefaelschter_token_wird_abgewiesen():
     """Daneben steht oben, dass der echte durchkommt — sonst waere gruen blind."""
-    echt = abmeldung.token(lead)
-    gefaelscht = f"{lead}." + ("0" * (len(echt) - len(str(lead)) - 1))
+    echt = abmeldung.token(KENNUNG)
+    gefaelscht = f"{KENNUNG}." + ("0" * (len(echt) - len(str(KENNUNG)) - 1))
     assert gefaelscht != echt
     assert abmeldung.lead_aus_token(gefaelscht) is None
 
 
-def test_der_token_eines_leads_meldet_keinen_anderen_ab(lead):
+def test_der_token_eines_leads_meldet_keinen_anderen_ab():
     """Die Unterschrift geht ueber die Kennung — umschreiben macht sie ungueltig."""
-    fremd = abmeldung.token(lead)
+    fremd = abmeldung.token(KENNUNG)
     _, unterschrift = fremd.split(".", 1)
-    assert abmeldung.lead_aus_token(f"{lead + 1}.{unterschrift}") is None
+    assert abmeldung.lead_aus_token(f"{KENNUNG + 1}.{unterschrift}") is None
 
 
-def test_kaputte_eingaben_werfen_nicht(lead):
+def test_kaputte_eingaben_werfen_nicht():
     for murks in ("", ".", "abc", "1.", ".abc", "1.2.3", None):
         assert abmeldung.lead_aus_token(murks) is None
 

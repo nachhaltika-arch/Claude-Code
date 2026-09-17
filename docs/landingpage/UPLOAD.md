@@ -6,44 +6,45 @@ statt fortgeschrieben, und dann gibt es zwei, von denen eine falsch ist.
 
 ---
 
-## Stand 17.09.2026, 16:50 Uhr
+## Stand 17.09.2026, 21:15 Uhr
 
-Die ausgelieferte Seite ist **zwei Tage alt** und trägt **drei** Änderungen
-nicht. Gemessen, nicht vermutet:
+**Der Upload von 18:13 ist angekommen** — die drei Änderungen von damals
+(UTM-Felder, `fassung:KEY`, Canonical) stehen live. Seither ist **eine
+weitere** dazugekommen:
 
 | | |
 |---|---|
-| `last-modified` live | **Tue, 15 Sep 2026 17:03:17 GMT** |
-| `content-length` live | 1.020.062 Bytes |
-| Datei im Repo | **1.020.712 Bytes** |
-| SHA-256 | `2a42aaaaf6ab9c69279146981c8c0358385410a76538039a9d6e964fae906959` |
+| `last-modified` live | **Thu, 17 Sep 2026 16:13:19 GMT** (= 18:13 Ortszeit) |
+| `content-length` live | 1.020.712 Bytes |
+| Datei im Repo | **1.021.471 Bytes** |
+| SHA-256 | `45090cb680ba5b1510e548ce7b3d6d6cf5727f06ee419e920600ec48e722f314` |
 
 ## Was die Datei trägt und die Live-Seite nicht
 
-1. **Die fünf UTM-Felder** (15.09.) — ohne sie kommt keine Kampagnenherkunft
-   im Lead und in Brevo an.
-2. **`fassung:KEY`** (17.09.) — der Textbezug für den Einwilligungsnachweis.
-3. **Der Canonical zeigt auf die Seite selbst** (17.09., neu) — siehe unten.
+**Die `eventID` beim `InitiateCheckout`** (17.09., 21:10). Der Lead trägt seit
+jeher eine, dieses Ereignis nicht. Ohne sie hängt die Entdopplung an Metas
+eigenem Verhalten, das nicht zugesagt ist: Es greift bei zwei gleichen
+Meldungen kurz hintereinander aus demselben Browser, aber nicht verlässlich
+bei Abstand oder mehreren Tabs. Mit ihr verwirft Meta die zweite Meldung
+selbst.
 
-## Der Canonical war auf eine fremde Seite gerichtet
+Das zählt, weil die neue Anzeigengruppe auf genau dieses Ereignis optimieren
+soll: Eine doppelt gezählte „Analyse begonnen" lässt die Kosten je Abschluss
+halb so hoch aussehen und die Lernphasenschwelle früher erreicht scheinen,
+als sie ist.
 
-Bis zur vorigen Zeile stand im Kopf der Seite:
+**Erledigt und live seit 18:13** — hier nur noch der Vollständigkeit halber:
+die fünf UTM-Felder, `fassung:KEY`, und der Canonical, der vorher auf eine
+fremde Seite zeigte.
 
-    <link rel="canonical" href="https://www.kompagnon.eu/webentwicklung-shopsysteme">
+## Was am 17.09. um 18:13 hochgeladen wurde — zur Nachvollziehbarkeit
 
-Das ist kein fehlendes Merkmal, sondern ein **falsches**: Ein Canonical sagt
-der Suchmaschine „diese Seite ist eine Zweitfassung von jener, nimm jene".
-Die Landingpage hat sich damit selbst aus dem Index genommen und ihre
-Signale an die Agenturseite abgegeben — eine Seite, die mit dem Websprint
-nichts zu tun hat.
-
-Der Wert steht jetzt auf `https://websprint.kompagnon.eu/`. **Der Menülink
-„Webentwicklung" auf dieselbe Agenturseite ist unberührt geblieben** — er ist
-ein normaler Verweis und gehört dorthin; es gab zwei Fundstellen, und nur
-eine war falsch.
-
-Nebenbefund: `websprint.kompagnon.eu` kam in der ganzen Seite **kein
-einziges Mal** vor. Sie kannte ihre eigene Adresse nicht.
+Der Canonical stand bis dahin auf `www.kompagnon.eu/webentwicklung-shopsysteme`,
+also auf einer **anderen** Seite. Ein Canonical sagt der Suchmaschine „diese
+Seite ist eine Zweitfassung von jener, nimm jene" — die Landingpage hat sich
+damit selbst aus dem Index genommen. Er zeigt jetzt auf
+`https://websprint.kompagnon.eu/`; der Menülink „Webentwicklung" auf dieselbe
+Agenturseite blieb unberührt, denn er gehört dorthin.
 
 ## Beim Hochladen
 
@@ -51,22 +52,23 @@ einziges Mal** vor. Sie kannte ihre eigene Adresse nicht.
 `websprint.kompagnon.eu/` liefert das Standarddokument des Verzeichnisses
 aus — fast immer `index.html`. Wer `websprint-landingpage.html` hochlädt,
 legt eine **zweite** Datei daneben, ohne die ausgelieferte zu ersetzen.
-Genau daran ist der Upload am 15.09. gescheitert.
+Genau daran ist der Upload am 15.09. gescheitert; am 17.09. um 18:13 hat es
+geklappt.
 
 Also: hochladen und dabei so benennen, wie die vorhandene heißt. Im Zweifel
-im Dateimanager nachsehen, welche Datei den Zeitstempel **15.09., 19:03**
+im Dateimanager nachsehen, welche Datei den Zeitstempel **17.09., 18:13**
 (Ortszeit) trägt — die ist zu überschreiben.
 
 ## Prüfung danach, drei Zeilen
 
     curl -sI https://websprint.kompagnon.eu/ | grep -i last-modified
-    curl -s  https://websprint.kompagnon.eu/ | grep -c utm_content
-    curl -s  https://websprint.kompagnon.eu/ | grep -o 'canonical[^>]*'
+    curl -s  https://websprint.kompagnon.eu/ | grep -c begonnenKennung
+    curl -s  https://websprint.kompagnon.eu/ | grep -o "eventID: begonnenKennung"
 
-Erwartet: ein Zeitstempel von **heute**, eine **1**, und ein Canonical, der
-`websprint.kompagnon.eu` nennt — nicht `webentwicklung-shopsysteme`.
+Erwartet: ein Zeitstempel **nach 21:15**, eine **1**, und der Treffer
+`eventID: begonnenKennung`.
 
-Steht dort weiter `17:03:17 GMT`, ist die Datei nicht angekommen — unabhängig
+Steht dort weiter `16:13:19 GMT`, ist die Datei nicht angekommen — unabhängig
 davon, was das Upload-Fenster gemeldet hat.
 
 ## Warum das jedes Mal Handarbeit ist

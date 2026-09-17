@@ -660,6 +660,11 @@ app.include_router(assistant_router)
 from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
 
+# Der Abmeldelink der E-Mail-Strecke (P0-11). Oeffentlich und ohne
+# Anmeldung: Wer sich abmelden will, hat kein Konto und braucht keines.
+from routers.abmeldung import router as abmeldung_router
+app.include_router(abmeldung_router)
+
 # Eingehende Kundenmails (Brevo Inbound Parsing) — L-18.
 from routers.posteingang import router as posteingang_router
 app.include_router(posteingang_router)

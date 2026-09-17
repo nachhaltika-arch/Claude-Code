@@ -47,7 +47,7 @@ SEQUENZ_TEMPLATES = {
         <p style="font-size:11px;color:#94a3b8;margin:0">
           KOMPAGNON Communications BP GmbH · kompagnon.eu<br>
           <a href="mailto:info@kompagnon.eu"
-             style="color:#94a3b8">info@kompagnon.eu</a>
+             style="color:#94a3b8">info@kompagnon.eu</a><br><a href="{abmelde_url}" style="color:#94a3b8;text-decoration:underline">Keine weiteren E-Mails aus dieser Reihe erhalten</a>
         </p>
       </div>
     </div>""",
@@ -82,7 +82,7 @@ SEQUENZ_TEMPLATES = {
       <div style="padding:14px 28px;background:#f8f9fa;
                   border-radius:0 0 12px 12px;text-align:center">
         <p style="font-size:11px;color:#94a3b8;margin:0">
-          KOMPAGNON Communications BP GmbH · kompagnon.eu
+          KOMPAGNON Communications BP GmbH · kompagnon.eu<br><a href="{abmelde_url}" style="color:#94a3b8;text-decoration:underline">Keine weiteren E-Mails aus dieser Reihe erhalten</a>
         </p>
       </div>
     </div>""",
@@ -114,7 +114,7 @@ SEQUENZ_TEMPLATES = {
         <p style="color:#94a3b8;font-size:12px">
           Mit freundlichen Grüßen,<br>
           Ihr KOMPAGNON-Team<br>
-          info@kompagnon.eu
+          info@kompagnon.eu<br><a href="{abmelde_url}" style="color:#94a3b8;text-decoration:underline">Keine weiteren E-Mails aus dieser Reihe erhalten</a>
         </p>
       </div>
     </div>""",

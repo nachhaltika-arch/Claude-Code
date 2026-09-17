@@ -74,13 +74,13 @@ def run_email_sequences():
                         .split("/")[0]
                     )
 
-                tipps = _build_tipps(lead)
-                data = {
-                    "firma":       lead.company_name or lead.email or "dort",
-                    "domain":      domain or lead.website_url or "",
-                    "top_problem": _get_top_problem(lead),
-                    "tipps_html":  tipps,
-                }
+                data = vorlagenfelder(
+                    lead.id,
+                    domain or lead.website_url or "",
+                    lead.company_name or lead.email or "dort",
+                    top_problem=_get_top_problem(lead),
+                    tipps_html=_build_tipps(lead),
+                )
 
                 rendered = render(template_key, data)
                 ok = send_email(
@@ -137,6 +137,28 @@ def _get_top_problem(lead) -> str:
         lines = [l.strip() for l in summary.split(".") if l.strip()]
         return lines[0] if lines else "Optimierungspotenzial bei SEO und Performance"
     return "Fehlende lokale SEO-Optimierung für Handwerksbetriebe"
+
+
+def vorlagenfelder(lead_id: int, domain: str, firma: str,
+                   top_problem: str = "", tipps_html: str = "") -> dict:
+    """Die Platzhalter einer Sequenz-Mail, an einer Stelle.
+
+    **Der Abmeldelink gehoert hierher und nicht an die Versandstelle** (P0-11,
+    17.09.2026): Ein Platzhalter, den niemand fuellt, steht als
+    ``{abmelde_url}`` in der ausgelieferten Mail — sichtbar fuer den
+    Empfaenger und wirkungslos. Weil `render` mit ``format_map`` arbeitet,
+    wirft ein fehlendes Feld zwar einen `KeyError`, aber erst beim Versand.
+    Eine gemeinsame Funktion macht daraus einen Fall, den ein Test erreicht.
+    """
+    from services.abmeldung import abmelde_url
+
+    return {
+        "firma":       firma,
+        "domain":      domain,
+        "top_problem": top_problem,
+        "tipps_html":  tipps_html,
+        "abmelde_url": abmelde_url(lead_id),
+    }
 
 
 def _build_tipps(lead) -> str:

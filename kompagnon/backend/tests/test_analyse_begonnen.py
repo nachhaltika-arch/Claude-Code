@@ -242,3 +242,44 @@ def test_anleitung_und_ausgelieferte_seite_stimmen_ueberein():
     schnitt = lambda t: fest(t[t.index(anfang):])[:1800]  # noqa: E731
     assert schnitt(readme) == schnitt(seite), (
         "Einbauanleitung und ausgelieferte Landingpage sind verschieden")
+
+
+def test_das_ereignis_meldet_nur_nach_einer_nutzerhandlung(widget):
+    """**Kein Ereignis ohne Handlung** (Diagnosefrage 1b, 17.09.2026).
+
+    Der Browser schreibt beim Neuladen den alten Feldinhalt zurueck. Wuerde
+    das Widget dabei melden, entstuende ein „Analyse begonnen" ohne dass
+    jemand etwas getan hat — und zwar bei jedem, der die Seite zweimal
+    aufruft. Die Zahl saehe gut aus und waere leer.
+
+    Am Code geprueft, nicht am Verhalten: Beide Aufrufer der Meldefunktion
+    haengen an einer Handlung (`blur`/`change` am Feld, und `startAudit`,
+    das nur der Submit-Handler ruft). Der Anfangswert wird nirgends beim
+    Aufbau geprueft, und es gibt kein synthetisches Ereignis.
+
+    David hat dasselbe am 17.09. an Metas eigenem Zaehler gemessen:
+    Seite neu geladen, Adresse zurueckgeschrieben, keine Handlung —
+    `eventCount` blieb bei 1 (nur PageView).
+    """
+    import re
+
+    aufrufe = [z.strip() for z in widget.splitlines()
+               if "meldeAnalyseBegonnen()" in z and "function " not in z]
+    assert aufrufe, "Die Meldefunktion wird nirgends gerufen."
+    assert len(aufrufe) == 2, (
+        f"Erwartet sind zwei Aufrufer (Feld verlassen, Absenden), gefunden "
+        f"sind {len(aufrufe)}: {aufrufe}. Ein dritter braucht eine Begruendung "
+        f"— und die Frage, ob er ohne Nutzerhandlung laufen kann.")
+
+    # Kein synthetisch ausgeloestes Ereignis, das die Handler beim Aufbau
+    # anstossen wuerde.
+    for kunstgriff in ("dispatchEvent", ".blur()", "new Event("):
+        assert kunstgriff not in widget, (
+            f"`{kunstgriff}` im Widget — koennte die Meldung ohne Handlung "
+            f"ausloesen. Bitte pruefen, nicht nur diesen Test anpassen.")
+
+    # Positiv daneben: Der Handler haengt wirklich an den beiden Ereignissen.
+    # Ohne diese Zeile waere alles oben auch dann gruen, wenn gar nichts
+    # registriert ist (`waechter_ohne_wirkung`).
+    assert re.search(r"\['blur',\s*'change'\]", widget), (
+        "Die Registrierung an 'blur' und 'change' fehlt.")

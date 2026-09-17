@@ -114,6 +114,21 @@ def uebertrage_anfrage(request_id: int, listen_id: Optional[int],
     Läuft als Hintergrundauftrag und öffnet deshalb eine eigene Sitzung.
     """
     if not listen_id:
+        # **Nicht mehr still.** Hier stand ein blankes `return`. `uebertrage`
+        # protokolliert den Fall („Keine Brevo-Liste eingerichtet"), wird aber
+        # nie erreicht — also schwieg das System vollstaendig, wenn die
+        # Listen-ID fehlte.
+        #
+        # Am 17.09.2026 gemessen, und es war kein theoretischer Fall: Zwischen
+        # dem 03.09. und 13.09. haben **neun** Adressen bestaetigt, darunter
+        # zwei echte Interessenten. Zu keiner einzigen steht eine Brevo-Zeile
+        # im Protokoll — weder Erfolg noch Misserfolg. Genau diese Abwesenheit
+        # ist die Signatur des stillen `return`, und sie war vierzehn Tage
+        # lang nicht von „laeuft alles" zu unterscheiden.
+        logger.warning(
+            "Brevo-Uebertragung uebersprungen (%s, Anfrage %s): keine "
+            "Listen-ID gesetzt. Erwartet werden BREVO_LIST_VERIFIED_ID und "
+            "BREVO_LIST_OPTIN_ID in der Umgebung.", quelle, request_id)
         return
 
     from database import AuditResult, SessionLocal, WidgetRequest

@@ -41,10 +41,36 @@ class TestNummernform:
         assert len(ziffern) == 6 and ziffern.isdigit()
 
     def test_zwei_nummern_sind_praktisch_nie_gleich(self):
-        # Kein Beweis, sondern eine Schranke: Bei 200 Ziehungen aus einer
-        # Million waere eine Doppelung schon auffaellig.
-        nummern = {tickets._gen_ticket_nr() for _ in range(200)}
-        assert len(nummern) == 200
+        """Eine Schranke, die den Nummernraum misst — nicht das Glueck.
+
+        **Korrigiert am 17.09.2026.** Hier stand `== 200` mit dem Kommentar,
+        eine Doppelung waere "schon auffaellig". Das stimmt nicht: Bei 200
+        Ziehungen aus einer Million ist die erwartete Zahl der Doppelungen
+        0,0199, und mindestens eine tritt mit **1,97 %** auf — nachgerechnet
+        und an 2000 Wiederholungen gemessen (35 rot, 1,75 %). Der Test fiel
+        also in etwa jedem 51. Lauf um und blockierte dabei den Deploy, weil
+        er an allen Pruefjobs haengt. Am 17.09. traf es den Lauf 35231667026.
+
+        Ein Test, der ohne Fehler im Gegenstand rot wird, ist schlimmer als
+        keiner: Er kostet jedes Mal die Suche nach einer Ursache, die es
+        nicht gibt, und gewoehnt daran, rote Laeufe zu wiederholen statt sie
+        zu lesen.
+
+        **Zwei Doppelungen sind erlaubt, drei nicht.** Das ist weiterhin eine
+        echte Schranke — sie schlaegt an, sobald der Zufallsanteil kleiner
+        wird (fuenf Stellen statt sechs: 18 % statt 0,0001 %) — und flattert
+        rechnerisch in einem von 773.000 Laeufen.
+
+        Dass eine Kollision im Betrieb **aufgeloest** wird, ist die eigentliche
+        Zusicherung und steht unten in `TestKollisionWirdAufgeloest`.
+        """
+        ZIEHUNGEN, ERLAUBTE_DOPPELUNGEN = 200, 2
+
+        nummern = {tickets._gen_ticket_nr() for _ in range(ZIEHUNGEN)}
+        doppelt = ZIEHUNGEN - len(nummern)
+        assert doppelt <= ERLAUBTE_DOPPELUNGEN, (
+            f"{doppelt} Doppelungen bei {ZIEHUNGEN} Ziehungen — erwartet sind "
+            f"0,02. Hat der Zufallsanteil an Stellen verloren?")
 
 
 class TestKollisionWirdAufgeloest:

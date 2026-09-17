@@ -50,6 +50,7 @@ from routers import (
     buch_router,
     diagnostics_router,
     widget_router,
+    widget_einwilligung_router,
     acquisition_router,
     auth_router,
     admin_router,
@@ -455,6 +456,7 @@ from routers.buch_versand import router as buch_versand_router
 app.include_router(buch_versand_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
+app.include_router(widget_einwilligung_router)
 app.include_router(acquisition_router)
 app.include_router(auth_router)
 app.include_router(admin_router)

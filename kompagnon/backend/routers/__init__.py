@@ -45,6 +45,7 @@ from .audit import router as audit_router
 from .buch import router as buch_router
 from .diagnostics import router as diagnostics_router
 from .widget import router as widget_router
+from .widget_einwilligung import router as widget_einwilligung_router
 from .acquisition import router as acquisition_router
 from .auth_router import router as auth_router
 from .auth_router import admin_router
@@ -73,6 +74,7 @@ __all__ = [
     "audit_router",
     "diagnostics_router",
     "widget_router",
+    "widget_einwilligung_router",
     "acquisition_router",
     "auth_router",
     "admin_router",

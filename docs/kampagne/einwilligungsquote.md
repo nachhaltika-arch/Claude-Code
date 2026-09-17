@@ -156,9 +156,38 @@ Dann steht neben der Ankunftsquote die echte Zustimmungsquote, und die Differenz
 ist der Blockier- und In-App-Anteil.
 
 > Das ist ohnehin fällig: **Art. 7 Abs. 1 DSGVO verlangt, die Einwilligung
-> nachweisen zu können.** Heute liegt sie ausschließlich im Browser des
-> Besuchers — wir haben keinen Nachweis, nur ein `localStorage` auf fremden
-> Geräten. Eine Zeile Nachweis erschlägt beide Fragen.
+> nachweisen zu können.** Bis zum 17.09. lag sie ausschließlich im Browser des
+> Besuchers — kein Nachweis, nur ein `localStorage` auf fremden Geräten.
+
+**Am 17.09.2026 gebaut.** Das Widget meldet die Entscheidung jetzt an
+`POST /api/widget/einwilligung`, gelesen wird sie über
+`GET /api/widget/einwilligung/auswertung` (Innendienst). Im Prüfverfahren
+steht sie als Quelle 2.6 mit drei Kennzahlen.
+
+Drei Eigenschaften tragen die Sache, und jede ist eine Entscheidung:
+
+* **`unbekannt` ist ein eigener Wert**, nicht „nein". Genau diese
+  Unterscheidung ist der Zweck.
+* **Kein Personenbezug für die, die ablehnen.** Gespeichert wird das Netz
+  (/24 bzw. /48), nicht die Adresse, und der Host der Seite, nicht die URL.
+  Wer Tracking ablehnt und dafür eine gespeicherte IP bekommt, wäre
+  schlechter dran als vorher.
+* **Keine Kennung auf dem Gerät.** Die Kennung wird je Seitenaufruf neu
+  gewürfelt und nirgends gespeichert — sonst wäre der Nachweis der
+  Einwilligung nach § 25 TDDDG selbst einwilligungspflichtig. Der
+  Personenbezug entsteht erst, wenn jemand das Formular abschickt: Dann
+  trägt die Anfrage die Kennung mit.
+
+**Am laufenden Gegenstand geprüft, nicht nur im Test:** echtes Widget im
+Browser gegen ein laufendes Backend. Erste Meldung `unbekannt`, nach dem
+simulierten Klick im Dialog dieselbe Zeile als `erteilt` mit
+`fassung: kpg-consent-v1` — **eine** Zeile, nicht zwei, und `netz`
+`127.0.0.0/24` statt der vollen Adresse.
+
+**Was noch offen ist:** Die Verarbeitung gehört in die Datenschutzerklärung
+und ins Verarbeitungsverzeichnis (P0-06). Und `fassung` erreicht den Nachweis
+erst, wenn die Landingpage hochgeladen ist — die Entscheidung selbst kommt
+schon heute an.
 
 ---
 

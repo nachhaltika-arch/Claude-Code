@@ -184,6 +184,36 @@ Die Adressen wechseln (drei verschiedene an drei Tagen) — eine feste Liste
 reicht also nicht. Wer morgens bereinigt, prüft die **häufigste IP mit
 Desktop-Kennung** gegen diese Tabelle und fragt im Zweifel nach.
 
+### 2.6 Der eigene Einwilligungsnachweis — seit 17.09.2026
+`GET /api/widget/einwilligung/auswertung` (Anmeldung nötig, Innendienst),
+wahlweise mit `?von=JJJJ-MM-TT&bis=JJJJ-MM-TT`.
+
+Gebaut am 17.09. aus der Messung darunter: Bei 3 % Ankunftsquote war **nicht
+erhoben**, ob die übrigen 97 % abgelehnt haben, einen Werbeblocker benutzen
+oder im In-App-Browser sitzen. Drei Ursachen, drei verschiedene Reparaturen.
+
+Zu holen: `entscheidungen` (**erteilt / abgelehnt / unbekannt**), `mobil`
+und `app_browser`.
+
+> **`unbekannt` ist der wichtigste der drei Werte.** Er heißt: Die Trägerseite
+> hat nichts gesagt — kein Dialog, oder der Dialog steht noch offen. Er ist
+> ausdrücklich **nicht** dasselbe wie `abgelehnt`. Wer beides zusammenzählt,
+> repariert danach am Dialog herum, obwohl der In-App-Browser das Problem war.
+
+**Diese Meldung geht an die eigene erste Adresse** und lädt kein fremdes
+Skript. Sie kommt deshalb dort durch, wo Metas Pixel es nicht tut — und genau
+darin liegt ihr Wert:
+
+| Vergleich | was er beantwortet |
+|---|---|
+| `erteilt` **vs. Metas Landingpage-Aufrufe** | Wie viele haben zugestimmt, sind bei Meta aber trotzdem nicht angekommen? Das ist der **Blockier- und In-App-Anteil**. |
+| `abgelehnt` **vs.** `unbekannt` | Echte Ablehnung gegen „gar nicht entschieden". |
+| Summe aller Meldungen **vs. Stufe 3** | Wie viele erreicht schon unsere eigene Meldung nicht? |
+
+**Der Nenner steht bewusst nicht in dieser Antwort.** Er ist und bleibt Stufe 3
+aus den Render-Protokollen. Zwei Zählungen derselben Größe an zwei Orten
+laufen auseinander, und hinterher weiß niemand, welche galt.
+
 ---
 
 ## 3. Die Kennzahlen, die daraus gerechnet werden
@@ -197,6 +227,9 @@ Desktop-Kennung** gegen diese Tabelle und fragt im Zweifel nach.
 | **Kosten je echtem Besucher** | Ausgabe ÷ Besucher bereinigt | — | — |
 | **Kosten je Lead** | Ausgabe ÷ Stufe 5 | — | — |
 | **Anteil Audience Network** | AN-Klicks ÷ Link-Klicks | < 0,3 | > 0,5 |
+| **Zustimmungsquote** (eigen) | `erteilt` ÷ alle Meldungen | — | — |
+| **Verlust nach der Zustimmung** | 1 − (Metas LP-Aufrufe ÷ `erteilt`) | < 0,2 | > 0,5 |
+| **Anteil ohne Entscheidung** | `unbekannt` ÷ alle Meldungen | < 0,2 | > 0,5 |
 
 > **Aufrufe sind keine Besucher.** Am 15.09. standen **117 Aufrufe** gegen
 > **94 Klicks** — eine Quote von 1,24, die nichts bedeutet, weil ein Besucher

@@ -101,6 +101,12 @@ class WidgetAuditRequest(BaseModel):
     utm_campaign: str = ""
     utm_content: str = ""
     utm_term: str = ""
+    # Die Kennung des Seitenaufrufs, an dem die Einwilligung erteilt wurde
+    # (17.09.2026, L-195). Sie verbindet den pseudonymen Eintrag in
+    # `einwilligungen` mit dieser Anfrage — und damit mit einer Person, die
+    # sich ohnehin zu erkennen gegeben hat. Erst diese Klammer macht aus der
+    # Zeile einen Nachweis nach Art. 7 Abs. 1 DSGVO.
+    nachweis: str = ""
     # Das Einwilligungssignal des Consent-Banners der Traegerseite, vom
     # Widget **ausgewertet** gesendet: "1"/"true" heisst ausdrueckliches Ja,
     # alles andere — auch ein leerer Wert — heisst kein Ja und meldet nicht
@@ -190,6 +196,20 @@ def _enforce_limits(db: Session, ip: str, email: str) -> None:
         raise HTTPException(429, ausgelastet)
 
 
+_NACHWEIS_KENNUNG = re.compile(r"^[a-f0-9]{16,64}$")
+
+
+def _nachweis_kennung(wert: str) -> str | None:
+    """Die Kennung des Einwilligungsnachweises, oder nichts.
+
+    `None` statt `""`, weil die Spalte nullable ist: „nicht mitgeschickt" ist
+    etwas anderes als „leer mitgeschickt", und die Auswertung muss beides
+    unterscheiden koennen.
+    """
+    kennung = (wert or "").strip().lower()
+    return kennung if _NACHWEIS_KENNUNG.fullmatch(kennung) else None
+
+
 def _utm_felder(payload) -> dict:
     """Die fuenf Kampagnenangaben, auf Spaltenlaenge gekuerzt.
 
@@ -273,6 +293,13 @@ async def start_widget_audit(
         # organischen Verkehr, und „welche Stufe leckt" ist nicht zu
         # beantworten. Die Kennung selbst wird nicht abgelegt.
         aus_anzeige=bool((payload.fbclid or "").strip()),
+        # Die Klammer zum Einwilligungsnachweis (17.09.2026, L-195).
+        # **Geprueft, nicht durchgereicht:** Der Wert kommt aus einem
+        # Formular auf fremder Seite und geht in eine Spalte, die spaeter
+        # gegen `einwilligungen` gelesen wird. Was nicht der erwarteten Form
+        # entspricht, bleibt leer — ein falscher Nachweis waere schlimmer als
+        # keiner.
+        nachweis=_nachweis_kennung(payload.nachweis),
     )
     db.add(widget_request)
     db.commit()

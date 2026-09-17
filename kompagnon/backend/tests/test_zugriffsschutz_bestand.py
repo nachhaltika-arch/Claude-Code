@@ -213,7 +213,42 @@ ERLAUBTE_BEREICHE = {
 #:   `test_cors_herkuenfte` haelt fest, dass dort nichts weiter hinzukommt;
 #:   der Anlass dafuer ist der 15.08.2026, als Datenbank-Zugangsdaten auf einem
 #:   Auskunftsendpunkt offenlagen.
-OFFEN_ERWARTET = 57
+#:
+#: **58 seit dem 17.09.2026** (L-195): `POST /api/widget/einwilligung` nimmt
+#: den Nachweis der Einwilligung entgegen. Sie **muss** offen sein — die
+#: Meldung kommt aus einem iframe auf einer fremden Seite von jemandem, der
+#: sich gerade ausdruecklich **nicht** anmelden will, und sie kommt auch von
+#: denen, die ablehnen. Eine Anmeldepflicht waere hier ein Widerspruch in
+#: sich: Der Nachweis wuerde genau die Gruppe verlieren, wegen der er gebaut
+#: wurde.
+#:
+#: Abgesichert ist sie anders, und das ist der Punkt: Sie nimmt **keine**
+#: Kennung eines fremden Datensatzes entgegen, sondern eine selbst
+#: gewuerfelte, die nur den eigenen Seitenaufruf benennt; sie schreibt keine
+#: personenbezogene Zeile (Netz statt Adresse, Host statt URL); sie
+#: antwortet auf Unsinn mit 204 und legt nichts an; und sie ist je Netz und
+#: je Stunde begrenzt. Die **Auswertung** derselben Tabelle
+#: (`GET /api/widget/einwilligung/auswertung`) haengt dagegen hinter
+#: `require_innendienst` — wer eingewilligt und wer abgelehnt hat, geht die
+#: Oeffentlichkeit nichts an. `test_einwilligung_nachweis` haelt beides fest.
+#:
+#: **60 seit dem 17.09.2026** (P0-11): `GET /api/mail/abmelden/{token}` und
+#: `.../rueckgaengig` nehmen den Abmeldeklick aus einer Sequenz-Mail entgegen.
+#: Sie **muessen** offen sein, und zwar aus demselben Grund, der sie noetig
+#: macht: § 7 UWG und Art. 21 Abs. 2 DSGVO verlangen einen Widerspruch, der
+#: jederzeit und ohne Huerde funktioniert. Wer sich abmelden will, hat kein
+#: Konto — eine Anmeldemaske vor dem Abmeldelink waere genau die Huerde, die
+#: das Gesetz ausschliesst.
+#:
+#: Abgesichert sind sie ueber den Token: `<kennung>.<HMAC ueber die Kennung>`
+#: mit `SECRET_KEY`, zeitkonstant verglichen. Wer die Kennung umschreibt,
+#: macht die Unterschrift ungueltig; raten laesst sie sich bei 128 Bit nicht.
+#: Sie lesen nichts aus und geben nichts preis — die Antwort ist fuer eine
+#: unbekannte Kennung dieselbe wie fuer eine bekannte, damit der Link kein
+#: Auskunftsdienst darueber wird, welche Kennungen es gibt. Und sie sind
+#: umkehrbar: `.../rueckgaengig` nimmt zurueck, was ein Postfach-Scanner
+#: ausgeloest haben koennte. `test_abmeldelink` haelt alles davon fest.
+OFFEN_ERWARTET = 60
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:
@@ -257,6 +292,10 @@ OFFENE_BEREICHE = {
     "products", "projects", "audit", "messages", "briefings", "kampagne",
     "academy", "geo-payments", "mail-events", "health", "ping", "book",
     "posteingang", "shop",
+    # Der Abmeldelink aus den Sequenz-Mails (P0-11) — Begruendung oben.
+    # Der Bereich kommt aus dem Pfad (`/api/mail/abmelden/...`), nicht aus
+    # dem Router-Namen; `abmeldung` waere hier ins Leere gelaufen.
+    "mail",
 }
 
 

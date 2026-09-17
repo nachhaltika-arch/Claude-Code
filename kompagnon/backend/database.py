@@ -81,6 +81,12 @@ class Lead(Base):
     utm_source = Column(String(200), nullable=True)
     utm_medium = Column(String(200), nullable=True)
     utm_campaign = Column(String(200), nullable=True)
+    # Ergaenzt am 15.09.2026. Die drei darueber gab es seit je, gefuellt
+    # wurden sie nie — der Widget-Weg legte den Lead ohne Herkunft an.
+    # `utm_content` traegt die **Karte** des Karussells und ist damit die
+    # einzige Angabe, an der sich ablesen laesst, welche Tonlage verkauft.
+    utm_content = Column(String(200), nullable=True)
+    utm_term = Column(String(200), nullable=True)
     pagespeed_mobile_score = Column(Integer, nullable=True)
     pagespeed_desktop_score = Column(Integer, nullable=True)
     pagespeed_lcp_mobile = Column(Float, nullable=True)

@@ -50,6 +50,7 @@ from routers import (
     buch_router,
     diagnostics_router,
     widget_router,
+    widget_einwilligung_router,
     acquisition_router,
     auth_router,
     admin_router,
@@ -455,6 +456,7 @@ from routers.buch_versand import router as buch_versand_router
 app.include_router(buch_versand_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
+app.include_router(widget_einwilligung_router)
 app.include_router(acquisition_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
@@ -657,6 +659,11 @@ app.include_router(assistant_router)
 # niemand erfährt, dass die Mail beim Empfänger abgewiesen wurde.
 from routers.mail_events import router as mail_events_router
 app.include_router(mail_events_router)
+
+# Der Abmeldelink der E-Mail-Strecke (P0-11). Oeffentlich und ohne
+# Anmeldung: Wer sich abmelden will, hat kein Konto und braucht keines.
+from routers.abmeldung import router as abmeldung_router
+app.include_router(abmeldung_router)
 
 # Eingehende Kundenmails (Brevo Inbound Parsing) — L-18.
 from routers.posteingang import router as posteingang_router

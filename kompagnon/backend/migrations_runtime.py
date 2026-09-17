@@ -348,6 +348,9 @@ def run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(200)",
+        # ── 15.09.2026: die beiden fehlenden Kampagnenangaben ──
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_content VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_term VARCHAR(200)",
         # Trackdesk / Affiliate Partner Tracking
         """CREATE TABLE IF NOT EXISTS affiliate_conversions (
             id                SERIAL PRIMARY KEY,
@@ -2079,6 +2082,20 @@ def run_migrations():
         # ── 10.09.2026: Nachfassen am bereitliegenden Bericht (L-185) ──
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
         "erinnerung_bericht_at TIMESTAMP",
+        # ── 14.09.2026: Nachfassen an der ausstehenden Bestaetigung (L-185) ──
+        # **`DEFAULT FALSE` ist hier die wichtigere Haelfte.** Der Bestand hat
+        # die alte Zusage bekommen („wir melden uns nicht von selbst"); jede
+        # bestehende Zeile muss deshalb als *nicht angekuendigt* herauskommen.
+        # Eine Spalte mit `DEFAULT TRUE` haette beim ersten Lauf nach dem
+        # Deploy genau die Mail verschickt, die wir diesen Empfaengern
+        # ausdruecklich nicht schicken wollten.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_bestaetigung_at TIMESTAMP",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "erinnerung_angekuendigt BOOLEAN DEFAULT FALSE",
+        # ── 14.09.2026: Herkunft der Anfrage fuer die Trichterauswertung (L-192) ──
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "aus_anzeige BOOLEAN DEFAULT FALSE",
         # **Und was beim Bauen auffiel und nicht gesucht war.** Seit L-159
         # (04.09.) hing `mitwirkung_stand` **ohne Loeschregel** an `projects`:
         # Ein Projekt, zu dem auch nur ein Punkt eingetragen war, liess sich
@@ -2092,6 +2109,44 @@ def run_migrations():
                    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
            EXCEPTION WHEN others THEN NULL;
            END $$""",
+        # ── 17.09.2026: Nachweis der Einwilligung (L-195, Art. 7 Abs. 1 DSGVO) ──
+        # **Warum hier und nicht nur ueber `create_all`.** Neue Tabellen legt
+        # `create_all` zwar an — aber still und erst ganz am Ende, hinter einem
+        # `except`, das Fehler nur als Warnung meldet. Diese Tabelle traegt
+        # einen Rechtsnachweis; ihr Fehlen soll auffallen, nicht durchrutschen.
+        # Die Zeile darunter ist ausserdem die einzige Stelle, die den
+        # eindeutigen Schluessel auf `nachweis` **erzwingt**: Ohne ihn wuerde
+        # die zweite Meldung desselben Seitenaufrufs eine zweite Zeile anlegen,
+        # und die Quote zaehlte jeden Entschluss doppelt.
+        """CREATE TABLE IF NOT EXISTS einwilligungen (
+            id           SERIAL PRIMARY KEY,
+            nachweis     VARCHAR(64) NOT NULL UNIQUE,
+            entscheidung VARCHAR(20) NOT NULL,
+            marketing    BOOLEAN,
+            statistik    BOOLEAN,
+            quelle       VARCHAR(20) DEFAULT 'keine',
+            fassung      VARCHAR(40) DEFAULT '',
+            seite        VARCHAR(200) DEFAULT '',
+            netz         VARCHAR(64) DEFAULT '',
+            mobil        BOOLEAN DEFAULT FALSE,
+            app_browser  VARCHAR(20) DEFAULT '',
+            created_at   TIMESTAMP DEFAULT NOW(),
+            updated_at   TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_einwilligungen_nachweis "
+        "ON einwilligungen(nachweis)",
+        "CREATE INDEX IF NOT EXISTS idx_einwilligungen_created_at "
+        "ON einwilligungen(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_einwilligungen_entscheidung "
+        "ON einwilligungen(entscheidung)",
+        # Die Klammer zum Personenbezug: Schickt derselbe Besucher spaeter das
+        # Formular ab, traegt seine Anfrage die Kennung mit. Erst dadurch wird
+        # aus einem pseudonymen Eintrag ein Nachweis fuer **diese** Person —
+        # und nur fuer die, die sich ohnehin zu erkennen gegeben hat.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "nachweis VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_widget_requests_nachweis "
+        "ON widget_requests(nachweis)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

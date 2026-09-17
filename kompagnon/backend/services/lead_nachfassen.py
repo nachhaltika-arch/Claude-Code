@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Eine Erinnerung an den bereitliegenden Bericht — genau eine (L-185).
+"""Nachfassen im Trichter — je Strecke genau eine Mail (L-185).
 
 **Der Befund vom 10.09.2026.** Wer im Trichter steckenbleibt, hoert nie
 wieder etwas. Im Scheduler gab es dafuer keinen Auftrag: Die vorhandenen
@@ -9,17 +9,18 @@ dass der Widget-Weg nicht durch die Versandsperre laeuft — also auch nicht
 durch diese Automatiken. Ab Kampagnenstart ist jeder haengengebliebene Lead
 bezahlt und verloren.
 
-**Was hier bewusst fehlt: die Erinnerung an die Bestaetigung.** Dort faellt
-der groesste Teil weg, und trotzdem wird sie nicht gebaut. Der Grund steht
-in der Mail, die wir vorher geschickt haben (`widget_report.verify_email`):
+**Die zweite Strecke gibt es seit dem 14.09.2026 — Entscheidung David.**
+Bis dahin fehlte sie mit Grund: `widget_report.verify_email` sagte zu, „ohne
+Ihre Bestaetigung schicken wir nichts weiter und **melden uns nicht von
+selbst**", und eine Erinnerung an eine unbestaetigte Adresse ist genau das,
+was dieser Satz ausschliesst. Geaendert wurde deshalb zuerst der Satz: Er
+kuendigt jetzt **eine** Erinnerung an und sagt danach Ruhe zu.
 
-    Haben Sie das nicht angefordert? Dann ignorieren Sie diese E-Mail
-    einfach. Ohne Ihre Bestaetigung schicken wir nichts weiter und **melden
-    uns nicht von selbst**.
-
-Eine Erinnerung an eine unbestaetigte Adresse waere genau das, was dieser
-Satz ausschliesst. Ob der Satz geaendert wird, ist eine Entscheidung ueber
-das eigene Wort und gehoert David. Solange er steht, wird er gehalten.
+**Das gegebene Wort gilt weiter fuer die, denen es gegeben wurde.** Erinnert
+wird nur, wessen erste Mail die Erinnerung angekuendigt hat — die Anfrage
+traegt das selbst (`erinnerung_angekuendigt`). Ein Stichtagsdatum im Code
+waere der Ersatzwert fuer diese Frage und muesste raten, wann der neue Text
+produktiv ankam.
 
 **Warum diese Strecke unproblematisch ist.** Der Empfaenger hat seine
 Adresse bestaetigt und den Bericht angefordert. Dass er bereitliegt und noch
@@ -40,6 +41,14 @@ FRIST_TAGE = 3
 #: jede Anfrage seit August — das ist kein Nachfassen mehr, sondern eine
 #: Aussendung, und der erste Lauf waere zugleich der teuerste Fehler.
 HOECHSTALTER_TAGE = 14
+
+#: Wie lange nach der ersten Mail an die Bestaetigung erinnert wird.
+#:
+#: **Einen Tag, nicht drei.** Anders als beim Bericht laeuft hier etwas ab:
+#: Wer nicht bestaetigt, hat nichts in der Hand und vergisst die Sache. Ein
+#: Tag ist lang genug, dass niemand am selben Abend zweimal Post bekommt,
+#: und kurz genug, dass die Anfrage noch erinnert wird.
+FRIST_BESTAETIGUNG_STUNDEN = 24
 
 #: Wie viele je Lauf hoechstens angeschrieben werden. Eine zweite Schranke
 #: gegen dieselbe Gefahr: Wer `HOECHSTALTER_TAGE` heraufsetzt, ohne daran zu
@@ -102,3 +111,70 @@ dazu den Bericht als PDF.</p>
           border-radius:8px;font-size:13px;line-height:1.6;color:{wr.brand.TEXT_60}">
 Das ist unsere einzige Erinnerung — von uns kommt dazu nichts weiter.</p>"""
     return (f"Ihr Bericht zu {company} liegt bereit", wr._shell(inner))
+
+
+def faellige_bestaetigung(db, jetzt: datetime = None) -> list:
+    """Anfragen, deren Bestaetigung aussteht — und die erinnert werden duerfen.
+
+    Sechs Bedingungen. Die erste ist die, um die es geht:
+
+    * `erinnerung_angekuendigt` ist gesetzt: **Nur wer die Mail bekommen hat,
+      die eine Erinnerung ankuendigt, bekommt eine.** Wem zugesagt wurde, wir
+      meldeten uns nicht von selbst, bekommt nichts — auch nicht Jahre
+      spaeter, wenn der Text laengst ein anderer ist.
+    * `verify_sent_at` ist gesetzt und liegt `FRIST_BESTAETIGUNG_STUNDEN`
+      zurueck. Ohne Versand gab es keine Zusage, an die zu erinnern waere.
+    * `verified_at` ist leer: Wer bestaetigt hat, ist durch.
+    * `erinnerung_bestaetigung_at` ist leer: **genau einmal.**
+    * Die erste Mail ist juenger als `HOECHSTALTER_TAGE` — dieselbe Schranke
+      wie beim Bericht, gegen denselben ersten Lauf nach dem Deploy.
+    """
+    from modelle_widget import WidgetRequest
+
+    jetzt = jetzt or datetime.utcnow()
+    faellig_ab = jetzt - timedelta(hours=FRIST_BESTAETIGUNG_STUNDEN)
+    zu_alt_vor = jetzt - timedelta(days=HOECHSTALTER_TAGE)
+
+    return (
+        db.query(WidgetRequest)
+        .filter(WidgetRequest.erinnerung_angekuendigt.is_(True),
+                WidgetRequest.verify_sent_at.isnot(None),
+                WidgetRequest.verify_sent_at <= faellig_ab,
+                WidgetRequest.verified_at.is_(None),
+                WidgetRequest.erinnerung_bestaetigung_at.is_(None),
+                WidgetRequest.verify_sent_at >= zu_alt_vor)
+        .order_by(WidgetRequest.verify_sent_at)
+        .limit(HOECHSTZAHL_JE_LAUF)
+        .all()
+    )
+
+
+def erinnerung_bestaetigung_mail(company: str, verify_token: str) -> tuple:
+    """Die Erinnerung an die Bestaetigung: die Rueckfrage, sonst nichts.
+
+    **Diese Mail ist die sparsamste im ganzen System, und das hat einen
+    Grund.** Die Adresse ist unbestaetigt — sie muss dem Eintragenden nicht
+    gehoeren. Wer die eines Wettbewerbers eingetragen hat, laesst hier einem
+    Unbeteiligten zum zweiten Mal etwas zustellen. Deshalb steht darin keine
+    Punktzahl, kein Mangel, kein Preis und kein Angebot: nur, dass etwas
+    angefordert wurde, der Knopf, und der Satz, dass es dabei bleibt.
+
+    Dieselbe Sparsamkeit wie in `widget_report.verify_email` — und aus
+    demselben Grund (§ 7 UWG).
+    """
+    from services import widget_report as wr
+
+    inner = f"""
+<h1 style="margin:0 0 12px;font-size:21px;font-weight:900;line-height:1.25;
+           color:{wr.brand.DARK}">Ihre Bestätigung steht noch aus</h1>
+<p style="margin:0;font-size:15px;line-height:1.7;color:{wr.brand.TEXT}">
+Gestern wurde für diese E-Mail-Adresse eine Website-Analyse von
+<strong>{wr._esc(company)}</strong> angefordert. Bestätigt wurde sie noch
+nicht — vielleicht ist die E-Mail untergegangen.</p>
+{wr._mail_knopf(wr.verify_url(verify_token), 'Analyse bestätigen')}
+<p style="margin:0;padding:14px 16px;background:{wr.brand.SURFACE};
+          border-radius:8px;font-size:13px;line-height:1.6;color:{wr.brand.TEXT_60}">
+Das ist unsere einzige Erinnerung. Haben Sie das nicht angefordert, ignorieren
+Sie diese E-Mail einfach — von uns kommt dazu nichts weiter.</p>"""
+    return (f"Erinnerung: Bitte bestätigen Sie die Analyse für {company}",
+            wr._shell(inner))

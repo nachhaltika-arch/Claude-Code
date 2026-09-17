@@ -21,7 +21,14 @@ logger = logging.getLogger(__name__)
 #: Die Quellen, die es gibt. Kein Enum in der Datenbank: Eine vierte soll
 #: eine Zeile kosten und keine Migration. Die Liste hier ist trotzdem
 #: nützlich — sie sagt, was gemeint ist, und ein Test hält sie fest.
-ARTEN = ("ticket", "chat", "mail", "faellig")
+ARTEN = ("ticket", "chat", "mail", "faellig", "zahlung")
+#: `zahlung` kam am 15.09.2026 dazu: ein Geldeingang, den das System **keinem
+#: Vorgang zuordnen kann** (`zahlungsweg.von_uns`). Auch das ist keine Meldung
+#: eines Kunden — aber die teuerste Art, etwas zu uebersehen: Der Kaeufer hat
+#: bezahlt und wartet, und bis hierher stand der Fall nur im Protokoll. Ein
+#: `logger.error` liest, wer danach sucht; niemand sucht nach etwas, von dem
+#: er nichts weiss.
+#:
 #: `faellig` kam am 01.09.2026 dazu (L-101): keine Meldung **eines**
 #: Kunden, sondern eine Aufgabe mit Termin — das Quartals-Re-Audit der
 #: Pflege-Abos. Sie steht bewusst in derselben Glocke: Wer zwei Orte

@@ -3,19 +3,23 @@
 Stand: **13.09.2026**. Geschrieben am Ende der Sitzung vom 10.09.,
 fortgeschrieben am 12. und 13.09.
 
-> **Die eine Sache, die den Start verhindert:** Der Messblock ist nicht auf
-> der Landingpage. Ohne ihn sieht Meta keinen Seitenaufruf, jeder Lead kommt
-> ohne Herkunft an, und die Kampagne lässt sich nicht bewerten. Alles andere
-> unten ist wichtig, aber nicht blockierend.
+> **Der Start ist frei.** Am 13.09. gegen 21:30 Uhr hat David den Messblock
+> hochgeladen; die Seite ist byte-gleich mit der Datei (1.018.227 Bytes,
+> vorher 1.011.007). Alle neun Merkmale sind oben, und das Bestehende ist
+> unangetastet (ProvenExpert 9 zu 9, Leadinfo 4 zu 4, GA4 2 zu 2).
 >
-> Am 13.09. an der Seite nachgemessen, nicht angenommen:
-> `websprint.kompagnon.eu` antwortet mit 200 und 1.011.007 Bytes. Von neun
-> Merkmalen des Blocks finden sich **zwei** — `c.marketing` und `gtag(` —,
-> und die waren vorher schon da. Kein `fbq(`, kein
-> `connect.facebook.net`, keine Pixelnummer, kein `fbclid`, kein `_fbp`,
-> kein `generate_lead`, keine `eventID`. Gegengeprüft an der fertigen Datei
-> (1.018.227 Bytes): dort stehen **alle neun**. Die Suche taugt also, und
-> die Abwesenheit ist echt.
+> **Im Browser nachgefahren, nicht nur im Quelltext gezählt:** vor der
+> Einwilligung `fbq` undefined und null Facebook-Skripte; nach der
+> Einwilligung `PageView` an Pixel `1363198722345965` mit **HTTP 200**,
+> `fbc` und `fbp` in der Meldung; das Widget bekommt `fbclid` und `fbp`
+> durchgereicht; beim Absenden feuern
+> `fbq('track','Lead',...,{eventID:'kpg-widget-25'})` **und**
+> `gtag('event','generate_lead')` -- dieselbe Kennung, die
+> `routers/widget.py:253` dem Serverweg mitgibt, also keine Doppelzählung.
+>
+> Offen bleibt nur, was von außen niemand sehen kann: **ob Meta die
+> Ereignisse annimmt.** Das zeigt der Ereignis-Manager, und dazu gehört die
+> Domain-Verifizierung. Siehe 3.1.
 
 ---
 
@@ -23,28 +27,29 @@ fortgeschrieben am 12. und 13.09.
 
 | | |
 |---|---|
-| `main` | **PR #56 ist am 12.09. um 21:24 gemerged** (Merge-Commit `5524597`), ausgerollt 21:31. Die 15 Commits sind produktiv |
-| `staging` | **4 Commits vor `main`**, gepusht, CI grün — noch **nicht** produktiv |
+| `main` | **PR #57 ist am 13.09. um 11:16 gemerged** (Merge-Commit `49f31000`). Alles aus den Sitzungen vom 12. und 13.09. ist produktiv |
+| `staging` | **gleichauf mit `main`** — 0 Commits Abstand |
 | offener PR | keiner |
 
-Die vier wartenden Commits:
+Nicht am Status gemessen, sondern am Zustand:
 
-    4953a4a  docs: Tagesdokumentation bekommt einen eigenen Ordner
-    41587ba  fix(L-105): der Korb „ruft niemand" ist leer — 19 Routen gesichtet
-    1bcc900  fix(L-184): eine gescheiterte Analyse verliert den Lead nicht lautlos
-    f1a3ffb  fix(bericht): der Dateiname des PDFs überlebt jetzt einen Umlaut
+| | |
+|---|---|
+| Lauf #970 auf `main` | alle sieben Jobs `success`, **Deploy — Render: success** |
+| Backend produktiv | `49f31000` · **live** · fertig 11:22:55Z |
+| Frontend produktiv | `49f31000` · **live** · fertig 11:22:39Z |
+| `/health` | `ok`, `startup_complete`, `startup_missing: []`, DB verbunden |
 
-> **`f1a3ffb` ist der, auf den es zum Start ankommt.** Solange er auf
-> `staging` liegt, bekommt produktiv jeder Kunde mit einem Umlaut im
-> Firmennamen ein PDF mit beschädigtem Dateinamen — in der Startbranche
-> Heizung/Sanitär nicht der Sonderfall, sondern der Regelfall. Die
-> Entscheidung, ob dafür vor Montag ein PR aufgeht, steht in Abschnitt 4.4.
+> **`f1a3ffb` ist produktiv und bestätigt.** Am 13.09. um 21:52 Uhr an einem
+> echten ausgelieferten PDF gemessen — Kopfzeile reines ASCII, kein rohes
+> `0xfc`, beide Namensformen nebeneinander. Beleg in Abschnitt 3.3.
 
-> **Richtiggestellt am 13.09.2026.** Hier stand „14 Commits vor `main`,
-> offener PR #56, wartet auf den Merge" — der Merge lief acht Stunden nach
-> dem Schreiben dieser Zeile. Ein Übergabestand, der seinen eigenen
-> Fortschritt nicht mitbekommt, schickt den nächsten Anlauf an eine Arbeit,
-> die schon getan ist: Genau das ist am 13.09. passiert, zweimal.
+> **Richtiggestellt am 13.09.2026, zweimal am selben Tag.** Erst stand hier
+> „14 Commits vor `main`, offener PR #56, wartet auf den Merge" — der Merge
+> lief acht Stunden nach dem Schreiben dieser Zeile. Dann stand hier „4
+> Commits, noch nicht produktiv" — auch das hielt nur Stunden. Ein
+> Übergabestand altert an genau den Zeilen, die Zahlen nennen; wer ihn liest,
+> prüft sie besser einmal nach.
 
 ---
 
@@ -59,7 +64,7 @@ Geprüft an `api.kompagnon.group/api/widget/config`, nicht aus dem Gedächtnis:
 | Meta-Serverweg (CAPI) | ✅ `bereit: true`, Token und Pixel gesetzt |
 | Kriterienzahl | 39 |
 | Kaufadresse Check PLUS | ✅ **seit 13.09. eingetragen** — `…9Zm01` |
-| Check PLUS im Teaser | **noch ohne Kaufknopf** — `verfuegbar: false`, weil der Katalog auf `draft` steht |
+| Check PLUS im Teaser | OK **Kaufknopf da** — `verfuegbar: true`, im Browser gesehen samt Preis 249,00 netto / 296,31 brutto |
 | Terminkalender im Widget | ✅ zeigt auf den Kalender des Systems |
 | Kaufadresse Relaunch | **von außen nicht messbar** — siehe unten |
 | Häkchentext im Widget | ✅ neue Fassung live (PR #55) |
@@ -90,12 +95,15 @@ Dass die Adresse aus der Datenbank kommt und nicht geerbt ist, ist geprüft:
 > genau diesen Wert gesetzt sein. Für den Knopf ist beides gleichwertig; für
 > die Aussage ist es das nicht.
 
-**Der fehlende Kaufknopf ist kein Fehler.** Leer heißt bewusst „Angebot ohne
-Abschluss": Ein Knopf, der ins Leere führt, wird von niemandem gemeldet, ein
-fehlender fällt auf. Für Check PLUS fehlt jetzt nur noch **eines** — der
-Katalogstatus `live` (`verfuegbar = live UND Adresse`, siehe
-`services/check_plus_angebot.py`). Der Knopf erscheint in dem Moment von
-selbst; die Adresse liegt bereits.
+**Der fehlende Kaufknopf war kein Fehler**, und der Weg dahin ist lehrreich:
+David fiel auf, dass im Teaser kein Verkaufslink stand. Ursache war nicht die
+Adresse — die war eingetragen —, sondern der Katalogstatus `draft`
+(`verfuegbar = live UND Adresse`, siehe `services/check_plus_angebot.py`).
+Nach dem Umstellen auf `live` erschien der Knopf sofort, ohne Deploy.
+
+Dass der Block bis dahin **ohne** Knopf erschien statt gar nicht, ist der
+Grund, warum es überhaupt aufgefallen ist: Ein Knopf, der ins Leere führt,
+wird von niemandem gemeldet — ein fehlender fällt auf.
 
 ---
 
@@ -103,18 +111,10 @@ selbst; die Adresse liegt bereits.
 
 ### 3.1 Bei David — blockierend
 
-**① Messblock hochladen.** `docs/landingpage/websprint-landingpage.html` zu
-Mittwald, als Ersatz der bestehenden `index.html` von
-`websprint.kompagnon.eu`. Die Datei ist fertig und enthält den Block bereits.
-
-Was der Block tut: lädt das Meta-Pixel **nur** nach Zustimmung zu
-`c.marketing`, reicht `fbclid` und `_fbp` an das Widget durch und meldet den
-Abschluss doppelt-gezählt-sicher (`fbq('track','Lead')` mit `eventID` plus
-`gtag('event','generate_lead')`). Ausführlich in
-`kompagnon/frontend/public/embed/README.md`.
-
-> Prüfbar erst danach: ob Meta wirklich misst. Die Vorschau zeigt
-> Oberflächen, keine Abläufe.
+**~~① Messblock hochladen.~~ Erledigt am 13.09. gegen 21:30 Uhr.** Die Seite
+ist byte-gleich mit `docs/landingpage/websprint-landingpage.html`, alle neun
+Merkmale oben, das Verhalten im Browser nachgefahren — Belege im Kasten ganz
+oben.
 
 **~~② Bestätigungsmail klicken.~~ Erledigt am 12.09.** Die Trichterschritte
 **7 bis 9** (Klick → zweite Mail → Berichtsseite → PDF) sind zweimal ganz
@@ -124,8 +124,9 @@ und produktiv mit deinem eigenen Klick (Anfrage 20, Audit 204 — Mail 1
 21:19:58, Klick 21:20:18, Mail 2 sofort, PDF 12 Seiten). Belege in
 `docs/tagesdokumentation/2026-09-12.md`, Abschnitt 3.
 
-Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden — den, den
-`f1a3ffb` behebt und der noch nicht produktiv ist.
+Der Durchlauf hat den Fehler mit dem PDF-Dateinamen gefunden. `f1a3ffb`
+behebt ihn, ist seit dem 13.09., 11:23 Uhr produktiv und seit 21:52 Uhr an
+einem echten PDF **bestätigt** — siehe Abschnitt 3.3.
 
 **② Meta-Konto einrichten.** Domain verifizieren und die
 Ereignis-Priorisierung (Aggregated Event Measurement) setzen. Ohne beides
@@ -149,9 +150,9 @@ Abschnitt 2). Ein Blick ins Werkzeug klärt das in einer Minute.
 Logo und Portrait brauchen **keinen** Eintrag — das Portrait liegt als Datei
 im Frontend und ist Vorgabe.
 
-**Check PLUS steht im Katalog noch auf `draft`.** Solange es nicht `live`
-ist, erscheint der Angebotsblock im Teaser nicht. Entscheidung, ob es zum
-Start mitläuft.
+~~**Check PLUS steht im Katalog noch auf `draft`.**~~ **Am 13.09. auf `live`
+gestellt** — der Kaufknopf steht im Teaser. Entscheidung 4.3 ist damit
+getroffen: Check PLUS läuft zum Start mit.
 
 ### 3.3 Bei Claude — auf Ansage
 
@@ -167,6 +168,20 @@ Start mitläuft.
   (`test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus`).
 - ~~**PageSpeed-Schlüssel**: nachgehen, warum er nichts liefert.~~
   **Erledigt am 12.09. — es war nichts zu reparieren.** Siehe Abschnitt 5.
+- ~~**Den PDF-Dateinamen produktiv nachmessen.**~~ **Erledigt am 13.09.,
+  21:52 Uhr — am ausgelieferten PDF, nicht am Test.** Vollständiger Durchlauf
+  über die Landingpage (Anfrage 25, `nachhaltika.de`, Firma *Das
+  Ingenieurbüro für nachhaltige Wirtschaft*), Davids Klick, Mail 2,
+  Berichtsseite (101.370 Bytes), PDF (105.424 Bytes). Die Kopfzeile:
+
+      content-disposition: attachment;
+        filename="Website-Analyse-Das-Ingenieurbuero-fuer-nachhaltige-Wirtschaft.pdf";
+        filename*=UTF-8''Website-Analyse-Das-Ingenieurb%C3%BCro-f%C3%BCr-nachhaltige-Wirtschaft.pdf
+
+  Reines ASCII (`encode("ascii")` wirft nicht), **kein rohes `0xfc`** in der
+  ganzen Antwort, der Rückfall lesbar umgeschrieben, der echte Name daneben.
+  Am 12.09. stand an derselben Stelle `Ingenieurb\xfcro`. Damit ist `f1a3ffb`
+  nicht mehr nur ausgerollt, sondern **bestätigt**.
 
 ---
 
@@ -197,39 +212,20 @@ Entweder sie gehört in die Merkmalsliste — dann gehört sie auch ins Angebot,
 in die Fragen und in die Auftragsbestätigung — oder sie darf nicht zugesagt
 werden. Zurzeit steht sie **nirgends**.
 
-### 4.3 Check PLUS zum Start?
+### 4.3 ~~Check PLUS zum Start?~~ **Entschieden am 13.09.: ja**
 
 Produkt ist angelegt (249 € netto / 296,31 € brutto, 5 Werktage,
 anrechenbar auf einen Websprint innerhalb 6 Monaten), Zahlungslink existiert
 und trägt den richtigen Betrag. **Die Kaufadresse steht seit dem 13.09.
 produktiv im Werkzeug.** Offen ist nur noch der Katalogstatus: `draft` → `live`.
 
-### 4.4 Geht vor Montag ein PR auf? *(neu am 13.09.)*
+### 4.4 ~~Geht vor Montag ein PR auf?~~ **Entschieden am 13.09.**
 
-Die Regel im Haus lautet: PR `staging → main` **nur freitags**. Sie ist gut,
-und sie kollidiert diesmal mit dem Start.
-
-Auf `staging` liegt `f1a3ffb` — der Fix für den PDF-Dateinamen. Produktiv
-gilt heute noch der Stand, den der Durchlauf am 12.09. als kaputt gefunden
-hat: Ein Kunde namens *Sanitär Müller* bekommt sein PDF mit beschädigtem
-Dateinamen. In der Startbranche Heizung/Sanitär/Elektrik ist der Umlaut
-nicht die Ausnahme, sondern die Mehrheit der Firmennamen.
-
-**Was dagegen spricht**, ehrlich benannt: Der Merge kostet rund 40 Sekunden
-Produktion (L-94, Datenträger unter `/var/data`), und er nimmt drei weitere
-Commits mit, die keine Kampagne braucht — L-184 und L-105 sind gut, aber
-nicht dringend.
-
-> **Empfehlung: PR aufmachen, vor Montag mergen.** Die Freitagsregel
-> existiert, damit Veröffentlichungen in ruhigem Takt laufen und Staging
-> nicht dauernd in Bewegung ist. Ein Kampagnenstart ist genau der Fall, für
-> den sie nicht geschrieben wurde. 40 Sekunden bei sechs Anfragen pro
-> Stunde am Wochenende sind billiger als eine Woche Kampagne, in der jedes
-> ausgelieferte PDF beim Kunden mit deutschem Firmennamen falsch heißt —
-> und das ist der erste Eindruck, den die Kampagne erzeugt.
->
-> Wenn der PR **nicht** aufgeht, ist das eine tragbare Entscheidung — dann
-> aber bitte wissentlich: Der Fehler ist bekannt, nicht unbemerkt.
+Ja. PR #57 ist um 11:16 gemerged und um 11:23 ausgerollt — acht Commits,
+darunter `f1a3ffb`. Die Freitagsregel wurde für den Kampagnenstart einmal
+ausgesetzt; der Grund steht oben: 40 Sekunden Produktion gegen eine
+Kampagnenwoche, in der jedes PDF beim Kunden mit deutschem Firmennamen falsch
+heißt. Die Regel gilt danach unverändert weiter.
 
 ---
 

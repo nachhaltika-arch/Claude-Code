@@ -180,3 +180,164 @@ def test_ohne_versand_keine_sperre(db, monkeypatch):
     db.expire_all()
     frisch = db.query(WidgetRequest).filter(WidgetRequest.id == zeile.id).first()
     assert frisch.erinnerung_bericht_at is None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Die Bestaetigung steht aus — Entscheidung David, 14.09.2026
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Was sich gegenueber dem Kopftext geaendert hat.** Dort steht, die
+# Erinnerung an die Bestaetigung werde nicht gebaut, weil `verify_email`
+# zusagt: „Ohne Ihre Bestaetigung schicken wir nichts weiter und melden uns
+# nicht von selbst." Der Satz ist am 14.09.2026 geaendert worden — er
+# kuendigt jetzt **genau eine** Erinnerung an und sagt danach Ruhe zu.
+#
+# **Die Bedingung ist nicht „nach dem Stichtag", sondern „hat die Mail
+# bekommen, die die Erinnerung ankuendigt".** Ein Datum waere der Ersatzwert
+# fuer die eigentliche Frage: Wann der Text produktiv ankam, haengt am Merge,
+# nicht am Schreiben. Wer das Datum raet, bricht entweder das Wort gegenueber
+# denen, die die alte Zusage bekamen, oder verliert Leads. Deshalb traegt die
+# Anfrage selbst, welche Fassung ihr zugegangen ist.
+
+
+class TestBestaetigungStehtAus:
+    def test_nach_der_frist_faellig(self, db):
+        zeile = _anfrage(db, erinnerung_angekuendigt=True)
+        assert [z.id for z in nf.faellige_bestaetigung(db, JETZT)] == [zeile.id]
+
+    def test_wer_die_alte_zusage_bekam_wird_nicht_erinnert(self, db):
+        """Der teuerste Fehler dieser Strecke. Wem zugesagt wurde, wir
+        meldeten uns nicht von selbst, der bekommt nichts — auch nicht,
+        wenn der Text fuer alle anderen inzwischen ein anderer ist."""
+        _anfrage(db, erinnerung_angekuendigt=False)
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+    def test_wer_bestaetigt_hat_wird_nicht_erinnert(self, db):
+        _anfrage(db, erinnerung_angekuendigt=True,
+                 verified_at=JETZT - timedelta(hours=2))
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+    def test_vor_der_frist_nicht(self, db):
+        _anfrage(db, erinnerung_angekuendigt=True,
+                 verify_sent_at=JETZT - timedelta(hours=6))
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+    def test_genau_einmal(self, db):
+        _anfrage(db, erinnerung_angekuendigt=True,
+                 erinnerung_bestaetigung_at=JETZT - timedelta(hours=1))
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+    def test_alter_bestand_bleibt_unberuehrt(self, db):
+        _anfrage(db, erinnerung_angekuendigt=True,
+                 verify_sent_at=JETZT - timedelta(days=40),
+                 created_at=JETZT - timedelta(days=40))
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+    def test_ohne_versand_keine_erinnerung(self, db):
+        """Eine Anfrage, deren erste Mail nie hinausging, hat auch keine
+        Zusage bekommen — und darf keine Erinnerung an etwas bekommen, das
+        sie nie erhalten hat."""
+        _anfrage(db, erinnerung_angekuendigt=True, verify_sent_at=None)
+        assert nf.faellige_bestaetigung(db, JETZT) == []
+
+
+class TestMailBestaetigung:
+    def test_sie_fuehrt_zum_bestaetigungslink(self):
+        betreff, rumpf = nf.erinnerung_bestaetigung_mail("example.de", "vtok")
+        assert betreff
+        assert "vtok" in rumpf
+
+    def test_sie_wirbt_nicht(self):
+        """Die Adresse ist **unbestaetigt**: Sie muss dem Eintragenden nicht
+        gehoeren. Ein Preis oder eine Punktzahl darin machte aus einer
+        Rueckfrage eine Werbesendung an einen Unbeteiligten (§ 7 UWG) —
+        genau der Grund, aus dem schon `verify_email` nichts davon nennt."""
+        _, rumpf = nf.erinnerung_bestaetigung_mail("example.de", "vtok")
+        for verboten in ("€", "Punkt", "Angebot", "Preis", "kaufen"):
+            assert verboten not in rumpf, f"{verboten!r} gehoert nicht in diese Mail"
+
+
+def test_die_erste_mail_kuendigt_die_erinnerung_an():
+    """**Der Waechter, ohne den die Spalte luegen wuerde.** Die Anfrage wird
+    mit `VERIFY_KUENDIGT_ERINNERUNG_AN` markiert. Nimmt jemand den Satz
+    wieder aus der Mail, zeigt die Markierung weiter auf eine Zusage, die
+    niemand mehr gegeben hat — und die Erinnerung ginge an Empfaenger, denen
+    Ruhe zugesagt wurde. Positiv geprueft, nicht als Abwesenheit."""
+    from services import widget_report as wr
+
+    _, rumpf = wr.verify_email("example.de", "vtok")
+    if wr.VERIFY_KUENDIGT_ERINNERUNG_AN:
+        assert "einmal" in rumpf and "erinnern" in rumpf.lower(), (
+            "Die Markierung sagt, die Mail kuendige eine Erinnerung an — "
+            "der Text tut es nicht")
+    assert "melden uns nicht von selbst" not in rumpf, (
+        "Der alte Satz schliesst genau die Erinnerung aus, die jetzt laeuft")
+
+
+def test_der_bestaetigungs_auftrag_ist_im_scheduler_registriert():
+    from automations import scheduler as sch
+
+    quelle = __import__("inspect").getsource(sch)
+    assert "job_bestaetigung_erinnerung" in quelle, (
+        "Der Auftrag ist gebaut, aber der Scheduler kennt ihn nicht")
+    assert 'id="bestaetigung_erinnerung"' in quelle
+
+
+def test_der_bestaetigungs_auftrag_verschickt_und_markiert(db, monkeypatch):
+    from automations import scheduler_kontakt as sk
+
+    versandt = []
+    monkeypatch.setattr(sk, "_do_send_email",
+                        lambda to_email, subject, html_body: versandt.append(to_email) or True)
+
+    zeile = _anfrage(db, erinnerung_angekuendigt=True,
+                     verify_sent_at=datetime.utcnow() - timedelta(hours=30),
+                     verify_token="vtok")
+    sk.job_bestaetigung_erinnerung()
+
+    db.expire_all()
+    frisch = db.query(WidgetRequest).filter(WidgetRequest.id == zeile.id).first()
+    assert versandt == ["kunde@example.de"]
+    assert frisch.erinnerung_bestaetigung_at is not None
+
+
+def test_der_bestaetigungs_auftrag_markiert_nicht_ohne_versand(db, monkeypatch):
+    from automations import scheduler_kontakt as sk
+
+    monkeypatch.setattr(sk, "_do_send_email",
+                        lambda to_email, subject, html_body: False)
+
+    zeile = _anfrage(db, erinnerung_angekuendigt=True,
+                     verify_sent_at=datetime.utcnow() - timedelta(hours=30),
+                     verify_token="vtok")
+    sk.job_bestaetigung_erinnerung()
+
+    db.expire_all()
+    frisch = db.query(WidgetRequest).filter(WidgetRequest.id == zeile.id).first()
+    assert frisch.erinnerung_bestaetigung_at is None
+
+
+def test_die_anfrage_wird_beim_versand_markiert(db, monkeypatch):
+    """**Am Erzeugnis geprueft, nicht am Helfer.** Ohne diese Markierung
+    faende `faellige_bestaetigung` nie eine Zeile — die Strecke waere gebaut
+    und liefe leer, und niemand saehe es."""
+    import routers.audit as audit_router
+    from modelle_audit import AuditResult
+
+    audit = AuditResult(company_name="Beispiel GmbH", status="completed",
+                        website_url="https://example.de")
+    db.add(audit)
+    db.commit()
+    db.refresh(audit)
+
+    zeile = _anfrage(db, audit_id=audit.id, verify_sent_at=None,
+                     verify_token="vtok", erinnerung_angekuendigt=False)
+
+    monkeypatch.setattr("services.email.send_email",
+                        lambda **kwargs: True)
+    audit_router._notify_widget_requester(db, audit.id)
+
+    db.expire_all()
+    frisch = db.query(WidgetRequest).filter(WidgetRequest.id == zeile.id).first()
+    assert frisch.verify_sent_at is not None
+    assert frisch.erinnerung_angekuendigt is True

@@ -45,7 +45,7 @@ nichts aus.
 ```html
 <!-- ═══════════════════════════════════════════════════════════════════
      KOMPAGNON — Messung der Websprint-Kampagne
-     Stand 10.09.2026 · gehört direkt UNTER das <iframe id="kompagnon-audit">
+     Stand 15.09.2026 (Fassung 2) · gehört direkt UNTER das <iframe id="kompagnon-audit">
 
      Der Block ist absichtlich eigenständig: Er ändert nichts an eurem
      vorhandenen Einwilligungs-Skript, sondern liest dessen Ergebnis aus
@@ -54,11 +54,15 @@ nichts aus.
      anderes davon berührt wird.
 
      Er tut drei Dinge:
-       1. Herkunft durchreichen — `fbclid` und `_fbp` an das Widget, das in
-          einem iframe auf fremder Domain läuft und eure Adresszeile nicht
-          sieht. Ohne sie ist jede Lead-Meldung eine ohne Anzeige.
+       1. Herkunft durchreichen — `fbclid`, `_fbp` und die fünf
+          UTM-Parameter an das Widget, das in einem iframe auf fremder
+          Domain läuft und eure Adresszeile nicht sieht. Ohne sie ist jede
+          Lead-Meldung eine ohne Anzeige und ohne Kampagne.
        2. Meta-Pixel laden — erst nach Marketing-Einwilligung, nie vorher.
-       3. Den Lead melden — an Meta UND an GA4, wenn das Widget ihn meldet.
+       3. Den Beginn melden — `InitiateCheckout` an Meta und
+          `begin_checkout` an GA4, sobald die Adresse eingetippt ist.
+          Nur nach Einwilligung.
+       4. Den Lead melden — an Meta UND an GA4, wenn das Widget ihn meldet.
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
 (function () {
@@ -95,6 +99,17 @@ nichts aus.
 
     var fbp = (document.cookie.match(/(?:^|;\s*)_fbp=([^;]+)/) || [])[1];
     if (fbp) p.set('fbp', decodeURIComponent(fbp));
+
+    /* **Genau diese fünf, keine beliebigen.** Was hier durchgereicht wird,
+       landet im Backend und in Brevo. Eine offene Liste hieße, dass jeder,
+       der einen Link auf diese Seite setzt, Werte in unsere Datenbank
+       schreiben kann. Die Prüfung ist bewusst weiter als die der Klick-ID
+       (Kampagnennamen tragen Leerzeichen und Umlaute), aber begrenzt. */
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
+      .forEach(function (name) {
+        var wert = (eigene.get(name) || '').trim();
+        if (wert && wert.length <= 200) p.set(name, wert);
+      });
 
     if (!p.toString()) return;
 
@@ -143,19 +158,56 @@ nichts aus.
       .observe(banner, { attributes: true, attributeFilter: ['hidden'] });
   }
 
-  /* ── 3. Der Lead ───────────────────────────────────────────────────
-     Das Widget meldet ihn dem Elternfenster. Bisher hörte hier niemand zu,
-     und damit feuerte weder Meta noch GA4.
+  /* ── 3. Was das Widget meldet ──────────────────────────────────────
+     Zwei Nachrichten, zwei Stufen desselben Trichters:
+
+       kpg-analyse-begonnen    Die Adresse ist eingetippt und das Feld
+                               verlassen. Vor der E-Mail, vor dem Server.
+       kpg-audit-lead          Der Server hat die Anfrage angenommen.
+
+     Dazwischen liegen die Anläufe, die abgewiesen werden — genau die Zahl,
+     die man sonst nicht sieht.
 
      `eventID` ist dieselbe Kennung, die auch der Serverweg mitschickt —
      Meta verwirft die zweite Meldung, es wird also nicht doppelt gezählt. */
+  var begonnenGemeldet = false;
   window.addEventListener('message', function (e) {
     if (e.origin !== URSPRUNG) return;
     var d = e.data;
-    if (!d || d.type !== 'kpg-audit-lead') return;
+    if (!d) return;
 
     var f = document.getElementById(RAHMEN);
     if (!f || f.contentWindow !== e.source) return;   /* nur das eigene iframe */
+
+    /* ── Analyse begonnen ──
+       **Dieselbe Einwilligungsprüfung wie oben vor dem Pixel**, nicht eine
+       zweite eigene: `einwilligung()` liest denselben Speichereintrag, den
+       euer Banner schreibt. Zwei Prüfungen, die dasselbe entscheiden sollen,
+       laufen irgendwann auseinander — und die Abweichung fällt genau dann
+       auf, wenn jemand widersprochen hat.
+
+       **Genau einmal je Seitenaufruf.** Das Widget sperrt schon auf seiner
+       Seite; diese Sperre hier ist die zweite und deckt den Fall ab, dass
+       das iframe neu geladen wird, ohne dass die Seite es wird. */
+    if (d.type === 'kpg-analyse-begonnen') {
+      if (begonnenGemeldet) return;
+      var cBegonnen = einwilligung();
+      if (!cBegonnen || !cBegonnen.marketing) return;   /* ohne Ja nichts */
+      begonnenGemeldet = true;
+      if (typeof window.fbq === 'function') {
+        fbq('track', 'InitiateCheckout');
+      }
+      /* `gtag` gibt es erst nach Statistik-Einwilligung — dieselbe
+         Prüfung wie beim Lead darunter. Der Name heisst bei Meta
+         `InitiateCheckout` und in GA4 `begin_checkout`: zwei Häuser,
+         zwei Vokabulare, ein Ereignis. */
+      if (typeof window.gtag === 'function') {
+        gtag('event', 'begin_checkout');
+      }
+      return;
+    }
+
+    if (d.type !== 'kpg-audit-lead') return;
 
     if (window.fbq) {
       fbq('track', 'Lead', {}, d.eventId ? { eventID: d.eventId } : undefined);

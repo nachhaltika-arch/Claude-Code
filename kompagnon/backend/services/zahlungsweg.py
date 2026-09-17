@@ -43,6 +43,12 @@ geben. Eine Sitzung ohne jeden Marker weiter dort zu behandeln, wo sie bisher
 behandelt wurde, ändert für den Bestand nichts — und die Stelle in
 `_handle_successful_payment`, die ein fehlendes `package` bewusst zulässt
 (L-97), bleibt gültig.
+
+**Und seit dem 14.09.2026 reicht der Rückfall allein nicht mehr.** Er ruhte
+auf einer Annahme, die bis zum 13.09. stimmte: dass **jede** Kasse dieses
+Kontos von uns angelegt wird. Der Stripe-Zahllink für Check PLUS (L-187)
+bricht sie — er erzeugt eine Kasse ganz ohne unsere Angaben. Deshalb fragt
+`von_uns` unten zusätzlich nach der **Herkunft**, nicht nur nach dem Weg.
 """
 import logging
 
@@ -72,6 +78,41 @@ def weg_der_sitzung(metadaten) -> str:
     if str(metadaten.get("order_number") or "").strip():
         return BUCH
     return WEBSPRINT
+
+
+#: Die Angaben, die **dieses System** an eine Kasse schreibt, wenn es sie
+#: anlegt — `routers/payments.py`, `buch.py`, `shop.py`, `geo_payments.py`.
+#: Keine davon setzt Stripe von sich aus.
+EIGENE_MARKER = ("addon_type", "product_code", "order_number", "package",
+                 "abo_produkt", "lead_id", "customer_email", "company_name",
+                 "customer_name", "website_url")
+
+
+def von_uns(metadaten) -> bool:
+    """Ob diese Kasse aus diesem System stammt.
+
+    **Der Befund vom 14.09.2026, beim Nachmessen von L-100 gefunden.** Der
+    Rueckfall in `weg_der_sitzung` — „ohne Marker ist es ein Websprint" — war
+    richtig, solange **jede** Sitzung des Kontos von uns angelegt wurde. Seit
+    dem 13.09.2026 stimmt das nicht mehr: Check PLUS wird ueber einen festen
+    Stripe-Zahllink verkauft (L-187), und der legt eine Kasse an, die keine
+    einzige unserer Angaben traegt.
+
+    Ohne diese Unterscheidung laeuft ein Zahllink-Kauf durch
+    `_handle_successful_payment` und erzeugt Lead, Benutzerkonto,
+    Website-Projekt und Willkommensmail — fuer jemanden, der einen
+    Pruefbericht bestellt hat. Das ist woertlich der Schaden, gegen den die
+    Weiche vom 27.08. gebaut wurde, nur aus der anderen Richtung: damals ein
+    fremder **Weg**, jetzt eine fremde **Herkunft**.
+
+    **Ein leerer Wert zaehlt nicht als Angabe.** Stripe raeumt leere
+    Metadaten weg; wer hier auf das blosse Vorhandensein des Schluessels
+    pruefte, haette eine Erkennung, die vom Verhalten eines Fremdsystems
+    abhinge.
+    """
+    metadaten = metadaten or {}
+    return any(str(metadaten.get(schluessel) or "").strip()
+               for schluessel in EIGENE_MARKER)
 
 
 def gehoert_hierher(erwartet: str, metadaten) -> bool:

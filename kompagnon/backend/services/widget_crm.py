@@ -35,6 +35,16 @@ MERKMALE = (
     ("ANALYSE_SCORE", "float"),
     ("ANALYSE_STUFE", "text"),
     ("ANALYSE_QUELLE", "text"),
+    # Woher der Kontakt kam (15.09.2026). **In Brevo muss dafuer nichts von
+    # Hand angelegt werden** — `ensure_attribute` legt fehlende Merkmale
+    # selbst an, und genau dafuer gibt es die Schleife unten: Brevo weist
+    # einen Kontakt mit unbekanntem Merkmal **vollstaendig** ab, nicht nur
+    # das Merkmal.
+    ("UTM_SOURCE", "text"),
+    ("UTM_MEDIUM", "text"),
+    ("UTM_CAMPAIGN", "text"),
+    ("UTM_CONTENT", "text"),
+    ("UTM_TERM", "text"),
 )
 
 
@@ -59,7 +69,7 @@ def _listen_id(variable: str) -> Optional[int]:
 
 def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
                score: Optional[int] = None, stufe: str = "",
-               quelle: str = "widget") -> bool:
+               quelle: str = "widget", utm: Optional[dict] = None) -> bool:
     """Trägt eine Adresse in eine Brevo-Liste ein. Gibt zurück, ob es klappte.
 
     Wirft nie — der Aufrufer steckt mitten im Bestätigungsklick eines
@@ -81,6 +91,12 @@ def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
                 merkmale["ANALYSE_SCORE"] = score
             if stufe:
                 merkmale["ANALYSE_STUFE"] = stufe
+            # **Leere Werte gehen nicht mit.** Ein leeres UTM_CONTENT in
+            # Brevo saehe aus wie „Kampagne ohne Karte"; fehlt es, ist
+            # sichtbar, dass nichts erhoben wurde.
+            for name, wert in (utm or {}).items():
+                if wert:
+                    merkmale[name.upper()] = wert
 
             brevo.create_contact(email=email, first_name="", last_name="",
                                  list_ids=[listen_id], attributes=merkmale)
@@ -98,6 +114,21 @@ def uebertrage_anfrage(request_id: int, listen_id: Optional[int],
     Läuft als Hintergrundauftrag und öffnet deshalb eine eigene Sitzung.
     """
     if not listen_id:
+        # **Nicht mehr still.** Hier stand ein blankes `return`. `uebertrage`
+        # protokolliert den Fall („Keine Brevo-Liste eingerichtet"), wird aber
+        # nie erreicht — also schwieg das System vollstaendig, wenn die
+        # Listen-ID fehlte.
+        #
+        # Am 17.09.2026 gemessen, und es war kein theoretischer Fall: Zwischen
+        # dem 03.09. und 13.09. haben **neun** Adressen bestaetigt, darunter
+        # zwei echte Interessenten. Zu keiner einzigen steht eine Brevo-Zeile
+        # im Protokoll — weder Erfolg noch Misserfolg. Genau diese Abwesenheit
+        # ist die Signatur des stillen `return`, und sie war vierzehn Tage
+        # lang nicht von „laeuft alles" zu unterscheiden.
+        logger.warning(
+            "Brevo-Uebertragung uebersprungen (%s, Anfrage %s): keine "
+            "Listen-ID gesetzt. Erwartet werden BREVO_LIST_VERIFIED_ID und "
+            "BREVO_LIST_OPTIN_ID in der Umgebung.", quelle, request_id)
         return
 
     from database import AuditResult, SessionLocal, WidgetRequest
@@ -109,6 +140,15 @@ def uebertrage_anfrage(request_id: int, listen_id: Optional[int],
             return
         audit = (db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
                  if row.audit_id else None)
+        # Die Herkunft steht am **Betrieb**, nicht an der Anfrage: Der Lead
+        # wird beim ersten Kontakt angelegt und traegt sie seither.
+        from database import Lead
+
+        lead = (db.query(Lead).filter(Lead.id == row.lead_id).first()
+                if row.lead_id else None)
+        utm = {name: getattr(lead, name, "") or ""
+               for name in ("utm_source", "utm_medium", "utm_campaign",
+                            "utm_content", "utm_term")} if lead else {}
         uebertrage(
             email=row.email,
             listen_id=listen_id,
@@ -116,6 +156,7 @@ def uebertrage_anfrage(request_id: int, listen_id: Optional[int],
             score=getattr(audit, "total_score", None),
             stufe=getattr(audit, "level", "") or "",
             quelle=quelle,
+            utm=utm,
         )
     finally:
         db.close()

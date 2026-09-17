@@ -470,6 +470,12 @@
      den Pixel oben auf der Seite. */
   var FB_PIXEL_ID = '';
   var leadGemeldet = false;
+  /* Dieselbe Sperre eine Stufe frueher (15.09.2026): Wer die Adresse
+     korrigiert, das Feld zweimal verlaesst oder nach einem Fehlschlag
+     erneut absendet, hat trotzdem **eine** Analyse begonnen. Zwei
+     Meldungen machten aus der Quote „Beginn zu Lead" eine Zahl, die
+     schlechter aussieht als die Wirklichkeit. */
+  var analyseBegonnenGemeldet = false;
 
   /* ── Was die Trägerseite durchreicht ──
      Das Widget steht in einem iframe auf fremder Domain und sieht die
@@ -495,6 +501,27 @@
   var FBC    = traegerParam('fbc');
   var FBP    = traegerParam('fbp');
 
+  /* ── Die Kampagne, aus der der Besucher kommt (15.09.2026) ──
+     Dieselbe Strecke wie bei der Klick-ID: Das Widget steht im iframe auf
+     fremder Domain und sieht die Adresszeile der Trägerseite nicht — die
+     Einbettung reicht die Werte im Aufruf durch.
+
+     **Eigene Prüfung, weil `traegerParam` zu eng ist.** Sie lässt nur
+     `A-Za-z0-9._-` zu; das passt für eine Klick-ID, nicht für einen
+     Kampagnennamen mit Leerzeichen oder Umlaut. Begrenzt bleibt es
+     trotzdem: 200 Zeichen, keine Steuerzeichen, keine spitzen Klammern —
+     was von hier ins Backend und nach Brevo geht, wird am Rand geprüft. */
+  function utmParam(name) {
+    var wert = (TRAEGER.get(name) || '').trim().slice(0, 200);
+    return /[<>\r\n\t]/.test(wert) ? '' : wert;
+  }
+
+  var UTM_SOURCE   = utmParam('utm_source');
+  var UTM_MEDIUM   = utmParam('utm_medium');
+  var UTM_CAMPAIGN = utmParam('utm_campaign');
+  var UTM_CONTENT  = utmParam('utm_content');
+  var UTM_TERM     = utmParam('utm_term');
+
   var einwilligungRoh = (TRAEGER.get('consent') || '').trim().toLowerCase();
   var EINWILLIGUNG_NEIN = (einwilligungRoh === '0' || einwilligungRoh === 'false');
 
@@ -516,6 +543,7 @@
      nicht zu pflegen. Ohne diese Prüfung könnte jedes eingebettete Fenster
      eine Einwilligung behaupten, die niemand gegeben hat. */
   var traegerMarketing = null;   /* null = die Seite hat nichts gesagt */
+  var traegerStatistik = null;   /* dito — nur fuer den Nachweis */
 
   function einwilligungVerweigert() {
     if (traegerMarketing === false) return true;
@@ -544,6 +572,105 @@
     return (einwilligungRoh === '1' || einwilligungRoh === 'true');
   }
 
+  /* ── Nachweis der Einwilligung (17.09.2026, L-195) ──────────────────
+
+     **Zwei Fragen, eine Zeile.** Art. 7 Abs. 1 DSGVO verlangt, eine
+     Einwilligung nachweisen zu koennen — bis hierher lag sie ausschliesslich
+     im `localStorage` auf fremden Geraeten, also nirgends, wo wir sie
+     vorzeigen koennten. Und am 17.09. war gemessen, dass von 353 echten
+     Besuchern nur rund 3 % bei Meta und GA4 ankommen; ob die uebrigen
+     abgelehnt haben, einen Werbeblocker benutzen oder im In-App-Browser
+     sitzen, war **nicht erhoben**.
+
+     Diese Meldung geht an die **eigene erste Adresse** und laedt kein fremdes
+     Skript. Was hier ankommt und bei Meta fehlt, ist die gesuchte Differenz.
+
+     **Die Kennung wird nirgends gespeichert.** Kein `localStorage`, kein
+     Cookie, kein `sessionStorage` — sie lebt in dieser Variablen und stirbt
+     mit dem Seitenaufruf. Eine wiederverwendbare Kennung waere eine
+     Speicherung auf dem Endgeraet und nach § 25 TDDDG selbst
+     einwilligungspflichtig: Der Nachweis der Einwilligung braeuchte dann eine
+     Einwilligung. Der Preis ist, dass ein Wiederkehrer als neuer Eintrag
+     erscheint — fuer die Quote ist das richtig, denn der Nenner
+     (`/api/widget/config`) zaehlt genauso. */
+  var FASSUNG = '';
+
+  var NACHWEIS = (function () {
+    try {
+      var b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      return Array.prototype.map.call(b, function (z) {
+        return ('0' + z.toString(16)).slice(-2);
+      }).join('');
+    } catch (e) {
+      /* Ohne `crypto` bleibt die Kennung trotzdem eindeutig genug: Sie muss
+         nur zwei Seitenaufrufe auseinanderhalten, nicht einem Angreifer
+         standhalten. Wer sie erraet, kann eine fremde Einwilligung
+         ueberschreiben — deshalb steht sie nicht allein: Der Server nimmt
+         ohnehin nur die letzte Meldung je Kennung. */
+      var s = '';
+      while (s.length < 32) s += Math.floor(Math.random() * 16).toString(16);
+      return s.slice(0, 32);
+    }
+  })();
+
+  var zuletztGemeldet = '';
+
+  function nachweisMelden(quelle) {
+    var entscheidung = einwilligungVerweigert() ? 'abgelehnt'
+                     : einwilligungErteilt()    ? 'erteilt'
+                     : 'unbekannt';
+
+    /* `null` heisst „die Seite hat nichts gesagt" und ist ausdruecklich nicht
+       `false`. Genau diese Unterscheidung ist der Grund fuer die ganze
+       Tabelle; sie hier einzuebnen waere der teuerste Kurzschluss. */
+    var marketing = (traegerMarketing !== null) ? traegerMarketing
+                  : (einwilligungRoh === '1' || einwilligungRoh === 'true') ? true
+                  : EINWILLIGUNG_NEIN ? false
+                  : null;
+
+    var meldung = {
+      nachweis: NACHWEIS,
+      entscheidung: entscheidung,
+      marketing: marketing,
+      statistik: traegerStatistik,
+      quelle: quelle,
+      fassung: FASSUNG,
+      /* Nur die Herkunft — `document.referrer` ist bei fremder Domain
+         ohnehin darauf gekuerzt, und der Server wirft den Rest weg. */
+      seite: document.referrer || ''
+    };
+
+    /* **Nicht zweimal dasselbe.** Der Dialog meldet sich, sobald er antwortet;
+       ohne diese Sperre schickte jede Nachricht der Traegerseite eine neue
+       Anfrage, auch wenn sich nichts geaendert hat. */
+    var abdruck = entscheidung + '|' + marketing + '|' + traegerStatistik;
+    if (abdruck === zuletztGemeldet) return;
+    zuletztGemeldet = abdruck;
+
+    try {
+      fetch(API_BASE + '/api/widget/einwilligung', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify(meldung)
+      }).catch(function () { /* still */ });
+    } catch (e) {
+      /* Ein blockierter Aufruf darf die Analyse nicht anhalten. Er ist selbst
+         ein Messwert — dann fehlt die Zeile, und die Luecke zum Nenner aus
+         `/api/widget/config` sagt genau das. */
+    }
+  }
+
+  /* Der erste Stand, nachdem die Traegerseite Zeit hatte zu antworten.
+     **Nicht sofort:** `kpg-consent-request` geht gerade erst hinaus, und wer
+     im selben Zug meldet, schreibt bei jedem Aufruf `unbekannt` — und
+     ueberschriebe sich eine Sekunde spaeter selbst. */
+  setTimeout(function () {
+    nachweisMelden(traegerMarketing !== null ? 'nachricht'
+                 : einwilligungRoh ? 'parameter' : 'keine');
+  }, 1500);
+
   try {
     window.addEventListener('message', function (e) {
       if (e.source !== parent) return;
@@ -551,6 +678,12 @@
       if (!n || typeof n !== 'object' || n.type !== 'kpg-consent') return;
       if (typeof n.marketing !== 'boolean') return;
       traegerMarketing = n.marketing;
+      /* Der zweite Haken wird **nur fuer den Nachweis** mitgelesen, nie fuer
+         eine Entscheidung. Er steuert nichts im Widget; wer ihn hier
+         auswertete, verschoebe still eine Rechtsgrundlage. */
+      if (typeof n.statistik === 'boolean') traegerStatistik = n.statistik;
+      if (typeof n.fassung === 'string') FASSUNG = n.fassung.slice(0, 40);
+      nachweisMelden('nachricht');
     });
     /* Einmal nachfragen: Wer das iframe vor seinem Banner rendert, hat die
        Antwort sonst verpasst, bevor der Empfänger stand. */
@@ -562,6 +695,48 @@
      Ohne sie zählte jeder Lead doppelt, sobald der Serverweg läuft — und ein
      halbierter Kosten-pro-Lead ist die Sorte Fehler, die niemandem auffällt,
      weil die Zahl gut aussieht. */
+  /* Die Trägerseite erfährt, dass ein Lauf begonnen hat (15.09.2026).
+     **Nur eine Meldung, kein Ereignis.** Das Widget misst hier nichts
+     selbst — dieselbe Arbeitsteilung wie beim Lead: Der Pixel der
+     Trägerseite kennt die Klick-ID, das iframe nicht. Wer hier ein eigenes
+     `fbq` feuerte, zählte dieselbe Handlung ein zweites Mal und ohne
+     Anzeigenbezug.
+
+     **Nichts über den Besucher in der Nachricht.** Kein E-Mail, keine
+     Adresse. Die Nachricht geht mit `'*'` an ein fremdes Fenster; alles
+     darin ist damit für jeden lesbar, der dort ein Skript hat. Was gebraucht
+     wird, ist die Tatsache — nicht wer es war.
+
+     **Warum an dieser Stelle und nicht früher.** Der Zeitpunkt ist das
+     Absenden, nicht der Tastendruck im Feld: Wer nur hinklickt, hat keine
+     Analyse begonnen. Und nicht später, denn nach der Serverantwort gibt es
+     bereits `kpg-audit-lead` — dazwischen liegt genau das, was diese Meldung
+     messbar macht: die Anläufe, die der Server abweist. */
+  function meldeAnalyseBegonnen() {
+    if (analyseBegonnenGemeldet) return;
+    analyseBegonnenGemeldet = true;
+    try {
+      parent.postMessage({ type: 'kpg-analyse-begonnen' }, '*');
+    } catch (e) { /* ohne Elternfenster (direkter Aufruf) gibt es nichts zu tun */ }
+  }
+
+  /* **Es gab keine Adressprüfung, die sich wiederverwenden liesse.**
+     `normalizeUrl` setzt nur `https://` davor, und das Absenden prüft
+     allein auf „nicht leer" — ein einzelner Buchstabe käme als
+     `https://a` durch. Für den Lead war das gleichgültig: Dahinter steht
+     der Server mit `check_url`. Für dieses Ereignis ist es das nicht,
+     denn es feuert **vor** dem Server.
+
+     Deshalb hier die schmalste Prüfung, die ihren Zweck erfüllt: etwas
+     vor dem Punkt, etwas dahinter, und die Endung mindestens zwei
+     Zeichen. Sie soll keine Adressen aussortieren, sondern nur
+     verhindern, dass Tippanfänge als begonnene Analyse zählen — sonst
+     steht am Ende der Woche eine Menge, die nichts mehr bedeutet. */
+  function adresseWirktVollstaendig(roh) {
+    var wert = normalizeUrl(roh).replace(/^https?:\/\//i, '');
+    return /^[^\s.\/]+(\.[^\s.\/]+)*\.[a-z]{2,}([\/?#].*)?$/i.test(wert);
+  }
+
   function meldeLead(eventId) {
     /* Nach oben gemeldet wird immer: Sobald die Trägerseite ein eigenes Pixel
        hat, feuert sie den Lead selbst — mit derselben Kennung und mit der
@@ -734,6 +909,22 @@
   var urlBearbeitet = false;
   urlEl.addEventListener('input', function () { urlBearbeitet = true; });
 
+  /* ── „Analyse begonnen" ── (Weg A, Entscheidung David am 15.09.2026)
+     Gemeldet wird, wenn die Adresse eingetippt **und das Feld verlassen**
+     ist — nicht beim Tippen (das feuerte bei jedem Zeichen) und nicht
+     erst beim Absenden (das wäre fast schon der Lead und bliebe unter
+     der Menge, die Meta für die Lernphase braucht).
+
+     Beide Ereignisse, weil keins allein reicht: `change` bleibt aus, wenn
+     der Wert unverändert bleibt; `blur` bleibt aus, wenn jemand mit der
+     Eingabetaste abschickt, ohne das Feld zu verlassen. Für diesen
+     letzten Fall meldet zusätzlich `startAudit`. */
+  ['blur', 'change'].forEach(function (ereignis) {
+    urlEl.addEventListener(ereignis, function () {
+      if (adresseWirktVollstaendig(urlEl.value)) meldeAnalyseBegonnen();
+    });
+  });
+
   emailEl.addEventListener('input', function () {
     if (urlBearbeitet) return;
     var val = emailEl.value;
@@ -756,6 +947,7 @@
   });
 
   function startAudit(email, cleanUrl, consentMarketing) {
+    meldeAnalyseBegonnen();   /* falls das Feld nie verlassen wurde */
     renderLoading(cleanUrl);
 
     var idx = 0;
@@ -780,12 +972,25 @@
         fbclid: FBCLID,
         fbc: FBC,
         fbp: FBP,
+        /* Welche Anzeige und welche Karte den Besucher gebracht haben. Ohne
+           sie steht am Monatsende fest, wie viele Leads kamen — aber nicht,
+           welche Tonlage sie gebracht hat. */
+        utm_source: UTM_SOURCE,
+        utm_medium: UTM_MEDIUM,
+        utm_campaign: UTM_CAMPAIGN,
+        utm_content: UTM_CONTENT,
+        utm_term: UTM_TERM,
         page_url: document.referrer || '',
         /* Damit der Serverweg dieselbe Grenze zieht wie der Browser. Gesendet
            wird der **ausgewertete** Zustand, nicht der Rohwert: Der Browser
            kennt die nachträgliche Banner-Nachricht, die Adresszeile kennt sie
            nicht. Ein '0' heißt hier „kein Ja" — und das genügt dem Server. */
-        consent_tracking: einwilligungErteilt() ? '1' : '0'
+        consent_tracking: einwilligungErteilt() ? '1' : '0',
+        /* Die Kennung des Einwilligungsnachweises (17.09.2026, L-195).
+           Sie verbindet die pseudonyme Zeile in `einwilligungen` mit dieser
+           Anfrage — und damit mit einer Person, die sich gerade selbst zu
+           erkennen gibt. Fuer alle anderen bleibt der Eintrag pseudonym. */
+        nachweis: NACHWEIS
       })
     })
     .then(function (r) {

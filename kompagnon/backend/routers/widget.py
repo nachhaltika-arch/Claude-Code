@@ -88,6 +88,25 @@ class WidgetAuditRequest(BaseModel):
     fbc: str = ""
     fbp: str = ""
     page_url: str = ""
+    # Woher der Besucher kommt (15.09.2026). Dieselbe Strecke wie die
+    # Klick-Kennungen: Das Widget sieht die Adresszeile der Traegerseite
+    # nicht, die Einbettung reicht sie im iframe-Aufruf durch.
+    #
+    # **Genau fuenf, und sie werden gekuerzt statt abgewiesen.** Ein zu
+    # langer Kampagnenname darf keine Analyse kosten — der Besucher kann
+    # nichts dafuer, und der Wert ist Beiwerk. Die Grenze von 200 Zeichen
+    # ist die der Spalte.
+    utm_source: str = ""
+    utm_medium: str = ""
+    utm_campaign: str = ""
+    utm_content: str = ""
+    utm_term: str = ""
+    # Die Kennung des Seitenaufrufs, an dem die Einwilligung erteilt wurde
+    # (17.09.2026, L-195). Sie verbindet den pseudonymen Eintrag in
+    # `einwilligungen` mit dieser Anfrage — und damit mit einer Person, die
+    # sich ohnehin zu erkennen gegeben hat. Erst diese Klammer macht aus der
+    # Zeile einen Nachweis nach Art. 7 Abs. 1 DSGVO.
+    nachweis: str = ""
     # Das Einwilligungssignal des Consent-Banners der Traegerseite, vom
     # Widget **ausgewertet** gesendet: "1"/"true" heisst ausdrueckliches Ja,
     # alles andere — auch ein leerer Wert — heisst kein Ja und meldet nicht
@@ -177,6 +196,38 @@ def _enforce_limits(db: Session, ip: str, email: str) -> None:
         raise HTTPException(429, ausgelastet)
 
 
+_NACHWEIS_KENNUNG = re.compile(r"^[a-f0-9]{16,64}$")
+
+
+def _nachweis_kennung(wert: str) -> str | None:
+    """Die Kennung des Einwilligungsnachweises, oder nichts.
+
+    `None` statt `""`, weil die Spalte nullable ist: „nicht mitgeschickt" ist
+    etwas anderes als „leer mitgeschickt", und die Auswertung muss beides
+    unterscheiden koennen.
+    """
+    kennung = (wert or "").strip().lower()
+    return kennung if _NACHWEIS_KENNUNG.fullmatch(kennung) else None
+
+
+def _utm_felder(payload) -> dict:
+    """Die fuenf Kampagnenangaben, auf Spaltenlaenge gekuerzt.
+
+    **Gekuerzt und nicht abgewiesen.** Ein zu langer Kampagnenname ist ein
+    Fehler dessen, der den Link gebaut hat — er darf den Besucher nicht die
+    Analyse kosten. Leere Werte bleiben leer und werden nicht zu \"\":
+    Die Spalten sind `nullable`, und „nicht uebergeben" ist etwas anderes
+    als „leer uebergeben".
+    """
+    felder = {}
+    for name in ("utm_source", "utm_medium", "utm_campaign",
+                 "utm_content", "utm_term"):
+        wert = (getattr(payload, name, "") or "").strip()[:200]
+        if wert:
+            felder[name] = wert
+    return felder
+
+
 @router.post("/audit")
 async def start_widget_audit(
     payload: WidgetAuditRequest,
@@ -201,12 +252,24 @@ async def start_widget_audit(
     lead = db.query(Lead).filter(Lead.website_url.ilike(f"%{domain}%")).first()
     if lead is None:
         lead = Lead(website_url=url, email=email, company_name=domain,
-                    status="new", lead_source="embed_audit")
+                    status="new", lead_source="embed_audit",
+                    **_utm_felder(payload))
         db.add(lead)
         db.commit()
         db.refresh(lead)
-    elif not lead.email:
-        lead.email = email
+    else:
+        if not lead.email:
+            lead.email = email
+        # **Nur nachtragen, was fehlt** (15.09.2026). Der Lead wird ueber die
+        # Domain wiedergefunden; ohne diese Zeilen bliebe jeder Betrieb ohne
+        # Kampagnenzuordnung, der schon einmal hier war — und das sind die
+        # interessanten. Eine vorhandene Herkunft wird **nicht** ueberschrieben:
+        # Der Erstkontakt hat ihn gebracht, ein spaeterer Klick nur
+        # zurueckgeholt. Wer das anders attribuieren will, entscheidet das —
+        # es steht hier, damit die Regel sichtbar ist statt beilaeufig.
+        for name, wert in _utm_felder(payload).items():
+            if not getattr(lead, name, None):
+                setattr(lead, name, wert)
         db.commit()
 
     now = datetime.utcnow()
@@ -225,6 +288,18 @@ async def start_widget_audit(
         report_token=secrets.token_urlsafe(32),
         poll_token=secrets.token_urlsafe(32),
         lead_id=lead.id,
+        # Woher die Anfrage kam (L-192). Gespeichert wird **nur das Ob** —
+        # ohne diese Angabe mischt die Trichterauswertung bezahlten und
+        # organischen Verkehr, und „welche Stufe leckt" ist nicht zu
+        # beantworten. Die Kennung selbst wird nicht abgelegt.
+        aus_anzeige=bool((payload.fbclid or "").strip()),
+        # Die Klammer zum Einwilligungsnachweis (17.09.2026, L-195).
+        # **Geprueft, nicht durchgereicht:** Der Wert kommt aus einem
+        # Formular auf fremder Seite und geht in eine Spalte, die spaeter
+        # gegen `einwilligungen` gelesen wird. Was nicht der erwarteten Form
+        # entspricht, bleibt leer — ein falscher Nachweis waere schlimmer als
+        # keiner.
+        nachweis=_nachweis_kennung(payload.nachweis),
     )
     db.add(widget_request)
     db.commit()

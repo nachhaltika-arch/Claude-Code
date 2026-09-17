@@ -470,6 +470,45 @@ def job_bericht_erinnerung():
         db.close()
 
 
+def job_bestaetigung_erinnerung():
+    """Eine Erinnerung an die ausstehende Bestaetigung (L-185, 14.09.2026).
+
+    **Die Strecke, an der im Trichter der groesste Teil wegfaellt** — und die
+    bis zum 14.09. mit Absicht fehlte: Die vorausgegangene Mail sagte zu, wir
+    meldeten uns nicht von selbst. Der Satz ist geaendert, und er gilt
+    weiterhin fuer jeden, der ihn bekommen hat: `faellige_bestaetigung`
+    nimmt nur Anfragen, deren erste Mail die Erinnerung **angekuendigt** hat.
+
+    Sonst derselbe Bau wie `job_bericht_erinnerung`, und aus denselben
+    Gruenden: Versand ueber `_do_send_email` (also durch die Versandsperre),
+    Markierung erst nach erfolgreichem Versand, je Zeile einzeln
+    festgeschrieben.
+    """
+    from services import lead_nachfassen
+
+    db = SessionLocal()
+    try:
+        faellige = lead_nachfassen.faellige_bestaetigung(db)
+        if not faellige:
+            return
+
+        logger.info("📧 Bestaetigungs-Erinnerung: %d faellige Anfrage(n)", len(faellige))
+        for zeile in faellige:
+            firma = _firma_der_anfrage(db, zeile)
+            betreff, rumpf = lead_nachfassen.erinnerung_bestaetigung_mail(
+                firma, zeile.verify_token)
+            if _do_send_email(zeile.email, betreff, rumpf):
+                zeile.erinnerung_bestaetigung_at = datetime.utcnow()
+                db.commit()
+            else:
+                # Nicht markieren: Der naechste Lauf soll es erneut versuchen.
+                db.rollback()
+                logger.warning("Bestaetigungs-Erinnerung nicht versendet an %s",
+                               zeile.email)
+    finally:
+        db.close()
+
+
 def _firma_der_anfrage(db, zeile) -> str:
     """Der Firmenname aus der Analyse, sonst die Adresse der Website.
 

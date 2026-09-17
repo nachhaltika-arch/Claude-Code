@@ -22,6 +22,8 @@ import json
 import os
 import re
 
+import pathlib
+
 import pytest
 
 SKRIPT = os.path.join(os.path.dirname(__file__), "..", "..", "..",
@@ -497,3 +499,65 @@ def test_auch_der_pdf_knopf_oeffnet_ein_neues_fenster(vorschau):
     for knopf in knoepfe:
         assert 'target="_blank"' in knopf, knopf[:120]
         assert "noopener" in knopf, knopf[:120]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Der Vertriebsplan als Nachbardokument (Entscheidung David, 15.09.2026)
+# ═══════════════════════════════════════════════════════════════════
+#
+# **Er ist keine Stufe des Trichters.** Die acht Ansichten sind
+# Erzeugnisse, die ein Kunde zu sehen bekommt. Der Plan ist die Absicht
+# dahinter: intern, mit Budgets, Kontokennungen und offenen Entscheidungen.
+# Als neunte Ansicht haette er ausgesehen wie eine neunte Kundenansicht —
+# und die naechste Person, die exportiert, haette ihn mit hochgeladen.
+#
+# Er steht deshalb im Fuss neben dem Lagebild: dort, wo das andere
+# Dokument liegt, das man beim Ansehen daneben braucht.
+
+
+def test_der_plan_ist_keine_ansicht(vorschau):
+    """Die Gegenprobe zur Entscheidung. Steht er wieder in der Liste, ist er
+    wieder eine Kundenansicht."""
+    assert "plan" not in {a["schluessel"] for a in vorschau.ANSICHTEN}
+
+
+def test_der_plan_hat_eine_eigene_adresse(vorschau):
+    """Am Handler gemessen, nicht am Quelltext: Der Aufruf muss die Datei
+    zurueckgeben, nicht nur irgendwo erwaehnt sein."""
+    quelle = pathlib.Path(vorschau.__file__).read_text(encoding="utf-8")
+    assert 'pfad == "/vertriebsplan"' in quelle, (
+        "Ohne eigene Adresse fuehrt der Link im Fuss ins Leere")
+    assert "vertriebsplan_seite()" in quelle
+
+
+def test_der_fuss_verlinkt_ihn_neben_dem_lagebild(vorschau):
+    """**Ein Dokument, das niemand oeffnen kann, ist nicht eingebunden.**
+    Dieselbe Klasse wie ein Endpunkt ohne Knopf."""
+    assert 'href="/vertriebsplan"' in vorschau.VORLAGE
+    assert vorschau.VORLAGE.index('href="/lagebild"') < \
+        vorschau.VORLAGE.index('href="/vertriebsplan"')
+
+
+def test_der_link_sagt_dass_die_zahlen_angenommen_sind(vorschau):
+    """Neben einem Werkzeug, das misst, wird ein Plan sonst fuer eine
+    Messung gehalten (E17)."""
+    fuss = vorschau.VORLAGE[vorschau.VORLAGE.index('href="/vertriebsplan"'):]
+    assert "angenommen" in fuss[:400].lower()
+
+
+def test_der_plan_wird_ausgeliefert_wie_er_ist(vorschau, tmp_path, monkeypatch):
+    datei = tmp_path / "plan.html"
+    datei.write_text("<h1>Vertriebsplan</h1>" + "x" * 900, encoding="utf-8")
+    monkeypatch.setattr(vorschau, "VERTRIEBSPLAN", str(datei))
+
+    assert b"<h1>Vertriebsplan</h1>" in vorschau.vertriebsplan_seite()
+
+
+def test_ohne_datei_kommt_ein_hinweis_und_kein_absturz(vorschau, monkeypatch):
+    """**Nicht schweigen und nicht abstuerzen.** Die Datei liegt nicht im
+    Repo; wer die Vorschau frisch auscheckt, hat sie nicht."""
+    monkeypatch.setattr(vorschau, "VERTRIEBSPLAN", "/gibt/es/nicht.html")
+
+    seite = vorschau.vertriebsplan_seite()
+    assert b"nicht gefunden" in seite
+    assert b"gibt/es/nicht.html" in seite

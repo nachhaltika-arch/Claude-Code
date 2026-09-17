@@ -9,6 +9,9 @@
 # nichts tat, ausser den naechsten Leser in die Irre zu fuehren (L-13).
 .claude/*
 !.claude/settings.json
+# `.claude/commands/` beschreibt Arbeitsablaeufe *dieses* Projekts
+# (`/kampagne`) und ist damit so wenig persoenlich wie `settings.json`.
+!.claude/commands/
 
 # OS
 .DS_Store
@@ -59,3 +62,7 @@ uploads/
 # Beanstandungen aus der Trichter-Vorschau — Arbeitsnotizen, kein Erzeugnis
 .vorschau-auftraege.json
 .vorschau-auftraege.json.neu
+
+# Vertriebsplan: nennt Budgets und Kontokennungen, das Repo ist oeffentlich
+# (scripts/trichter-vorschau.py haelt diese Absicht schon fest, der Schutz fehlte)
+docs/Websprint-Vertriebsplan.html

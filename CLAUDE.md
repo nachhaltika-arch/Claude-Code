@@ -61,6 +61,35 @@ Falls das Repo nicht stimmt:
 > des Freitagsmerges arbeitet. Der Weg heraus ist dann ein Objektspeicher
 > für die Uploads, nicht das Löschen des Datenträgers.
 
+## Drei Umgebungen, ein Lager (Entscheidung David, 2026-09-17)
+
+Gearbeitet wird in **Claude Design** (Gestaltung), **Claude Desktop** (Denken,
+Entwürfe, Vorlagen) und **Claude Terminal** (Code, Anweisungen, Lagebild,
+Dokumentation). Nur das Terminal kann committen.
+
+**Design und Desktop sind Werkstätten, kein Lager.** Was dort fertig wird,
+kommt über `austausch/eingang/` zurück — eine Datei, deren erste Zeile sagt,
+was sie ist und wohin sie gehört. Das Verfahren steht in `austausch/README.md`,
+die Anweisung für die beiden anderen Umgebungen in
+`austausch/ANWEISUNG-DESKTOP-UND-DESIGN.md`.
+
+| Befehl | Was er tut |
+|---|---|
+| `/eingang` | Briefkasten leeren: einordnen, einarbeiten, nach `erledigt/` verschieben |
+| `/lageplan` | Stand aus dem Lageplan-Artefakt holen und gegen Lagebild und Vertriebsplan prüfen |
+
+**Der Lageplan** (Artefakt, 114 Einträge in Marketing / Vertrieb / Produktion)
+ist eine **Sicht**, keine dritte Liste. Die Quellen bleiben
+`docs/soll-ist-analyse.md` und `docs/Websprint-Vertriebsplan.html`.
+
+> **Warum es die Regel gibt.** Der Vertriebsplan entstand im Desktop, landete
+> als HTML in `docs/` — ohne Schutz vor einem versehentlichen Commit, obwohl er
+> Budgets und Kontokennungen nennt und das Repo öffentlich ist — und sein
+> Bearbeitungsstand lag im `localStorage` genau eines Browsers. Am 17.09.2026
+> nachgesehen: **kein einziger der 72 Punkte hatte einen Status.** Ein
+> Arbeitsergebnis ohne Rückweg ist keine Ablage, sondern eine zweite Wahrheit,
+> die niemand lesen kann.
+
 ## Repo-Regel
 - Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
 - NIE in anderen Repos Änderungen machen

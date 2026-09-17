@@ -72,10 +72,18 @@ ZUSTAENDIGKEIT = {
     "L-183": ("extern", "Der Hoster von kompagnon.eu sperrt das Render-"
                         "Rechenzentrum. Kein Code ändert daran etwas — die "
                         "Sperre muss dort gelöst werden."),
-    "L-185": ("extern", "Die Erinnerung an den Bericht laeuft. Offen ist nur "
-                        "die Entscheidung, ob die Zusage in der "
-                        "Bestaetigungsmail geaendert wird — ohne sie darf an "
-                        "unbestaetigte Adressen nichts gehen."),
+    # Die Entscheidung ist am 14.09.2026 gefallen, beide Strecken sind
+    # gebaut. Was bleibt, ist kein Code mehr, sondern ein Nachweis: Ohne
+    # eingeschalteten automatischen Versand geht keine Erinnerung hinaus,
+    # und ohne einen zugestellten Lauf ist die Strecke nicht belegt.
+    "L-185": ("extern", "Beide Erinnerungen sind gebaut. Offen ist der "
+                        "bestaetigende Lauf produktiv — und dafuer muss der "
+                        "automatische Versand eingeschaltet sein "
+                        "(/health → versand)."),
+    "L-195": ("beides", "Gemessen ist es. Der Ankersprung #analyse ist eine "
+                        "Einstellung in der Anzeige, die reduzierte Seite eine "
+                        "Entscheidung (E02) — messbar wird der Rest erst mit "
+                        "dem hochgeladenen Messblock."),
     "L-186": ("extern", "Ein Wert in den Widget-Einstellungen: die Adresse "
                         "der Datenschutzerklärung. Kein Code."),
     "L-187": ("beides", "Verdrahtet ist alles. Draußen warten drei "

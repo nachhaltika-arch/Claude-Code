@@ -1,9 +1,16 @@
-# Bewertungslogik — Homepage Standard 2026.2
+# Bewertungslogik — Website Standard 2026.2
+
+> **Der Dateiname behält „homepage-standard".** Der Standard heißt seit dem
+> 18.09.2026 „Website Standard"; der Text hier ist mitgezogen. Der Name der
+> Datei nicht: Sie ist ein **Beleg**. `tests/test_anhang_b_aktuell.py` und
+> `scripts/standard-export.py` lesen sie unter diesem Pfad, und die Spalte
+> „Beleg" im Lagebild verweist darauf. Wer sie umbenennt, ohne beides
+> mitzuziehen, verwandelt eine Herkunftsangabe in „unbekannt".
 
 **Ersetzt:** die Fassung vom 14.08.2026 vormittags (basierte auf dem alten
 6-Kategorien-Katalog aus `AuditReport.jsx` und ist gegenstandslos).
 **Baut auf:** `audit-anforderungen-2026-08-11.md` (Katalog gebaut, produktiv seit 13.08.)
-**Ablage:** `docs/homepage-standard/bewertungslogik.md`
+**Ablage:** `docs/website-standard/bewertungslogik.md`
 **Wahrheitsquelle im Code:** `services/audit_criteria.py`
 **Stand:** 14.08.2026
 
@@ -16,7 +23,7 @@ Defekte behoben. Was dort als Punkt 5 offen blieb — **die Ausweitung des Maßs
 das SHK-Handwerk hinaus** — wird hier spezifiziert.
 
 Das Dokument beschreibt den vollständigen Bewertungsstand einschließlich der Erweiterung
-und dient als Vorlage für das Buch „Der Homepage Standard". Bei Widersprüchen zum Code
+und dient als Vorlage für das Buch „Der Website Standard". Bei Widersprüchen zum Code
 gilt `services/audit_criteria.py`; Änderungen am Maßstab erfolgen hier zuerst.
 
 **Die zentrale Abgrenzung, die aus dem Anforderungskatalog übernommen wird:**
@@ -56,10 +63,10 @@ guter Ausgang, auch ohne Website-Auftrag.
 
 | Stufe | Score |
 |---|---|
-| Homepage Standard Platin | 95–100 |
-| Homepage Standard Gold | 85–94 |
-| Homepage Standard Silber | 70–84 |
-| Homepage Standard Bronze | 50–69 |
+| Website Standard Platin | 95–100 |
+| Website Standard Gold | 85–94 |
+| Website Standard Silber | 70–84 |
+| Website Standard Bronze | 50–69 |
 | Nicht konform | 0–49 |
 
 > **Zu prüfen:** Diese Schwellen stammen aus dem Anforderungskatalog § 3.3. Im
@@ -439,7 +446,7 @@ falsch.
   "rohpunkte": 71,
   "anwendbares_maximum": 98,
   "gesamtscore": 72,
-  "stufe": "Homepage Standard Silber",
+  "stufe": "Website Standard Silber",
   "stufe_begrenzt_durch": null,
   "kriterien": {
     "cv_angebot": {
@@ -507,7 +514,7 @@ messbar macht.
 |---|---|---|---|
 | 1 | **Stufenschwellen Frontend vs. Backend** | Backend 95/85/70/50, Frontend laut Projektwissen 85/70/50/30 → derselbe Score zeigt zwei Stufen | `grep -rn "85\|70\|50\|30" frontend/src/components/AuditHook.jsx frontend/public/embed/audit-widget.html` |
 | 2 | **Ist der Umbau auf dem Arbeitsbranch?** | Doc sagt `main`, Arbeitsregel sagt Feature-Branch. Projektwissen zeigt alten Katalog im Frontend | `git diff main staging --stat` |
-| 3 | **Zeigt das Frontend die 8 Kategorien?** | `AuditReport.jsx`, `CustomerDashboard.jsx`, `HomepageChecklist.jsx` tragen im Projektwissen den alten 6er-Katalog | `grep -n "rc_score\|bf_score\|max: 30" frontend/src/` |
+| 3 | **Zeigt das Frontend die 8 Kategorien?** | `AuditReport.jsx`, `CustomerDashboard.jsx`, `WebsiteChecklist.jsx` tragen im Projektwissen den alten 6er-Katalog | `grep -n "rc_score\|bf_score\|max: 30" frontend/src/` |
 | 4 | **PageSpeed-Key auf Render gesetzt?** | Offener Punkt 1 aus § 6 des Anforderungskatalogs. Ohne Key sind 15 Punkte dauerhaft ⚪ | Render → Environment |
 | 5 | **Lauf gegen 3 echte fremde Websites** | Offener Punkt 4 — der Katalog ist nie gegen reale Seiten gelaufen | manuell |
 | 6 | **Quellen-Kennzeichnung im Report sichtbar?** | Schritt 7 unverifiziert. Ohne sie ist der ganze Umbau für den Leser unsichtbar | Bericht öffnen |

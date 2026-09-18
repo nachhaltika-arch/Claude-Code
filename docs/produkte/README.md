@@ -9,7 +9,7 @@ Stand der Ablage: 23.08.2026 · Quelle: von David erstellt, hier versioniert.
 | `ws-neu-01.md` | Websprint Neubau, 7.900 € |
 | `ws-sys-01.md` | Websprint System, 12.900 € — **Verkaufssperre** |
 | `chk-000-und-plus.md` | 100-Punkte-Check (0 €) und Check PLUS (249 €) |
-| `buch-01-02.md` | „Der Homepage-Standard", Print und E-Book |
+| `buch-01-02.md` | „Der Website-Standard", Print und E-Book |
 | `wb-01.md` | Workbook, 149 € |
 | `abo-und-geo.md` | Pflege Basic/Pro, GEO/GAIO Add-on |
 | `projektplan-kw35-52.md` | Projektplan bis 18.12.2026, drei Bahnen |

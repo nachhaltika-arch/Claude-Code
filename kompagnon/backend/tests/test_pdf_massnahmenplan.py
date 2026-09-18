@@ -41,7 +41,7 @@ def _bericht(luecken=None, nicht_erhoben=(), blocker=(), belege=None) -> list:
     gesamt = round(erreicht / moeglich * 100)
 
     daten = {
-        "total_score": gesamt, "level": "Homepage Standard Gold", "coverage": 100,
+        "total_score": gesamt, "level": "Website Standard Gold", "coverage": 100,
         "company_name": "Muster GmbH", "website_url": "https://muster.de",
         "trade": "Heizung", "city": "Bochum", "created_at": AUDITDATUM,
         "ai_summary": "Solide Website mit Luecken.",
@@ -73,7 +73,7 @@ def test_der_bericht_nennt_ein_kriterium_mit_seinem_schritt_und_punkten():
 def test_der_bericht_nennt_die_naechste_auszeichnungsstufe():
     inhalt = " ".join(_bericht(LUECKEN))
 
-    assert "Homepage Standard Platin" in inhalt
+    assert "Website Standard Platin" in inhalt
     assert "es fehlen" in inhalt
 
 

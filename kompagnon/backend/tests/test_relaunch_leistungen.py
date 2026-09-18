@@ -20,7 +20,7 @@ from startphase import produkt_vorlage
 
 #: Wortlaut nach Vorgabe David vom 10.09.2026.
 LEISTUNGEN = [
-    "Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien",
+    "Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien",
     "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website",
     "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten",
     "Übernahme und redaktionelle Überarbeitung Ihrer Texte",

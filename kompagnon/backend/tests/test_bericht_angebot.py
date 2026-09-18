@@ -35,7 +35,7 @@ VORLAGE = os.path.join(os.path.dirname(__file__), "..", "vorlagen", "bericht.htm
 RELAUNCH = {
     "slug": "websprint_relaunch", "name": "Websprint Relaunch",
     "price_netto": 3500.00, "price_brutto": 4165.00, "delivery_days": 14,
-    "features": ["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien"],
+    "features": ["Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien"],
 }
 
 
@@ -76,7 +76,7 @@ class _Audit:
     blockers = "[]"
     erkannte_branche = ""
     branchenklasse = ""
-    level = "Homepage Standard Bronze"
+    level = "Website Standard Bronze"
 
 
 def _daten(punkte=61, leer=False, **einstellungen):

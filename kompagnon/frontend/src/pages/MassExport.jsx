@@ -24,7 +24,7 @@ const EXPORTE = [
   { icon: '📄', title: 'Angebots-PDF', art: 'angebot',
     desc: 'Persönliches Angebot als PDF für den Kunden exportieren' },
   { icon: '📊', title: 'Audit-Bericht PDF', art: 'pdf',
-    desc: 'Vollständiger Homepage Standard Bericht als PDF' },
+    desc: 'Vollständiger Website Standard Bericht als PDF' },
   { icon: '📋', title: 'Lead-Liste Excel', art: null,
     desc: 'Alle Leads mit Kontaktdaten als Excel-Datei' },
   { icon: '🌐', title: 'WordPress Theme', art: null,

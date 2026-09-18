@@ -59,7 +59,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 | Kürzel | Garantie | Bedingung | Rechtsfolge |
 |---|---|---|---|
-| **G1** | **Standard-Garantie** | Erreichen von mind. **[SCHWELLE]** von 100 Punkten nach Homepage-Standard im Abnahmeaudit | Kostenfreie Nachbesserung bis zum Erreichen |
+| **G1** | **Standard-Garantie** | Erreichen von mind. **[SCHWELLE]** von 100 Punkten nach Website-Standard im Abnahmeaudit | Kostenfreie Nachbesserung bis zum Erreichen |
 | **G2** | **Bauzeit-Garantie** | Fertigstellung innerhalb der vereinbarten Bauzeit ab Mitwirkungsvollständigkeit | 100 € Nachlass je angefangenem Verzugstag, gedeckelt |
 | **G3** | **Bauplan-Ausstieg** | Bauplan gefällt nach erster Überarbeitung nicht | Ausstieg gegen Zahlung der ersten Rate, keine Folgekosten |
 | **G4** | **Quartals-Garantie** | Score in einem Quartals-Re-Audit unter Schwelle | Nachbesserung im Rahmen der Pflege ohne Berechnung |
@@ -69,7 +69,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 
 🔴 **[SCHWELLE] ist noch nicht belegbar.** Solange `PAGESPEED_API_KEY` auf Render fehlt, sind 18 von 100 Punkten nicht erhebbar; der maximal erreichbare Score liegt bei 82. **G1 darf bis zur Behebung nicht in Angeboten stehen.** Siehe **L-165** im Lagebild (früher Blocker-Report L2). **Am 04.09.2026 nachgemessen und neu gefasst:** Die Rechnung „maximal 82 Punkte" gilt nicht mehr — nicht erhobene Kriterien fallen seit § 3.5 aus Zähler **und** Nenner, der Score ist ein Anteil des Geprüften. Der Einwand bleibt trotzdem: Der Produktivbericht vom 04.09. prüft **78 %** der Kriterien, und die ausgefallenen sind ausgerechnet die, die ein Kunde selbst nachmessen kann — Ladezeit und Barrierefreiheit.
 
-**Ausschlüsse zu G4 (verbindlich mitzuschreiben):** kundenseitige Änderungen an der Website, Änderungen des Homepage-Standards selbst, Ausfälle oder Änderungen bei Drittdiensten (Google, Netlify, Analysedienste), höhere Gewalt.
+**Ausschlüsse zu G4 (verbindlich mitzuschreiben):** kundenseitige Änderungen an der Website, Änderungen des Website-Standards selbst, Ausfälle oder Änderungen bei Drittdiensten (Google, Netlify, Analysedienste), höhere Gewalt.
 
 ---
 
@@ -111,7 +111,7 @@ Zentrale Kataloge für alle Produktdatenblätter · Version 1.0 · 23.08.2026
 | WS-SYS-01 | Websprint System | 12.900 € netto | 19 % | Z2 |
 | CHK-000 | 100-Punkte-Check | 0 € | — | — |
 | CHK-PLU-01 | Check PLUS | 249 € netto | 19 % | Z3 |
-| BUCH-01 | Buch „Der Homepage-Standard" | 39,90 € brutto | 7 % | Z5 |
+| BUCH-01 | Buch „Der Website-Standard" | 39,90 € brutto | 7 % | Z5 |
 | BUCH-02 | E-Book | 29,90 € brutto | 7 % | Z5 |
 | WB-01 | Workbook | 149 € netto | 19 % ⚠️ | Z3 |
 | ABO-BAS | Pflege Basic | 79 €/Mon. netto | 19 % | Z4 |
@@ -142,7 +142,7 @@ Eine Preisangabe, bei der die Abo-Pflicht erst im Kleingedruckten auftaucht, ist
 >
 > Sehr geehrte/r [ANREDE],
 >
-> vielen Dank für Ihr Interesse. Auf Grundlage des durchgeführten Audits Ihrer Website [DOMAIN] vom [AUDIT-DATUM] mit einem Ergebnis von **[SCORE] von 100 Punkten** nach dem Homepage-Standard unterbreiten wir Ihnen folgendes Angebot.
+> vielen Dank für Ihr Interesse. Auf Grundlage des durchgeführten Audits Ihrer Website [DOMAIN] vom [AUDIT-DATUM] mit einem Ergebnis von **[SCORE] von 100 Punkten** nach dem Website-Standard unterbreiten wir Ihnen folgendes Angebot.
 >
 > Alle Preise verstehen sich netto zuzüglich der gesetzlichen Umsatzsteuer. Das Angebot ist gültig bis **[DATUM + 30 Tage]**.
 
@@ -150,7 +150,7 @@ Eine Preisangabe, bei der die Abo-Pflicht erst im Kleingedruckten auftaucht, ist
 
 > **Bauzeit.** [X] Werktage ab dem Werktag, an dem sämtliche Mitwirkungsleistungen [M-LISTE] vollständig vorliegen. Freigabeverzögerungen nach M7/M8 lassen die Frist ruhen.
 >
-> **Abnahme.** Die Abnahme erfolgt auf Grundlage eines dokumentierten Audits nach dem Homepage-Standard. Sie erhalten ein schriftliches Abnahmeprotokoll mit Punktbewertung je Kategorie.
+> **Abnahme.** Die Abnahme erfolgt auf Grundlage eines dokumentierten Audits nach dem Website-Standard. Sie erhalten ein schriftliches Abnahmeprotokoll mit Punktbewertung je Kategorie.
 >
 > **Nicht enthalten.** [A-LISTE]
 >

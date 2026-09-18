@@ -5,7 +5,7 @@
 |---|---|
 | Artikelnummer | WS-STA-01 |
 | Systemwert `product_type` | `websprint_start` |
-| Angebotsbezeichnung | Websprint Start — Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege |
+| Angebotsbezeichnung | Websprint Start — Ein-Seiten-Auftritt nach Website-Standard, inkl. 12 Monate Pflege |
 | Preis Bau | **1.500 € netto** (Festpreis) |
 | Preis Pflege | **79 € netto/Monat**, Mindestlaufzeit 12 Monate |
 | **Gesamtpreis erstes Jahr** | **2.448 € netto** |
@@ -27,7 +27,7 @@ Der Name entscheidet über die Marge des gesamten Portfolios.
 
 **„Start" beschreibt eine Position, keine Qualitätsstufe.** Es ist der Anfang eines Weges, nicht das abgespeckte Ende. Der sachliche Unterschied ist in einem Satz erklärbar: eine Seite gegen sechs. Danach fragt niemand mehr.
 
-**Verbindliche Sprachregelung:** Der Unterschied zwischen den Produkten wird immer über den **Umfang** begründet, nie über die Qualität. Der Homepage-Standard gilt in allen vier Produkten unverändert. Genau das ist der Wert des Standards — er ist nicht verhandelbar, nur der Umfang ist es.
+**Verbindliche Sprachregelung:** Der Unterschied zwischen den Produkten wird immer über den **Umfang** begründet, nie über die Qualität. Der Website-Standard gilt in allen vier Produkten unverändert. Genau das ist der Wert des Standards — er ist nicht verhandelbar, nur der Umfang ist es.
 
 ---
 
@@ -56,7 +56,7 @@ Der Name entscheidet über die Marge des gesamten Portfolios.
 
 | Pos. | Leistung | Menge |
 |---|---|---|
-| 1.1 | Audit nach Homepage-Standard, dokumentiert | 1 |
+| 1.1 | Audit nach Website-Standard, dokumentiert | 1 |
 | 2.1 | **Eine Seite** mit den Abschnitten Betrieb, Leistungen, Einzugsgebiet, Kontakt, Öffnungszeiten | 1 |
 | 2.2 | Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv | 1 |
 | 2.3 | Einpflegen der vom Kunden gelieferten Texte | bis 4.000 Zeichen |
@@ -159,7 +159,7 @@ Das ist keine Anrechnung im Sinne von G5, sondern ein definierter Aufpreis. Der 
 
 ## 8. Angebotstext (Baustein)
 
-> **Websprint Start — Ein-Seiten-Auftritt nach Homepage-Standard**
+> **Websprint Start — Ein-Seiten-Auftritt nach Website-Standard**
 >
 > Ein vollständiger, abgenommener Internetauftritt auf einer Seite: Betrieb, Leistungen, Einzugsgebiet, Kontakt und Öffnungszeiten. Technisch, rechtlich und gestalterisch auf Standard, in sieben Tagen fertig — und danach gepflegt, damit er auf Standard bleibt.
 >

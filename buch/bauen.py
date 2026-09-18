@@ -76,7 +76,7 @@ class Buch(BaseDocTemplate):
         breite, hoehe = masse["seite"]
         super().__init__(str(pfad), pagesize=(breite, hoehe),
                          title=titel, author="Manuel Potter",
-                         subject="Der Homepage Standard",
+                         subject="Der Website Standard",
                          leftMargin=0, rightMargin=0,
                          topMargin=0, bottomMargin=0)
         self.masse = masse
@@ -158,7 +158,7 @@ def bauen(ziel: str, entwurf: bool) -> dict:
             + "\n  ".join(entwuerfe[:5]) + ("\n  …" if len(entwuerfe) > 5 else ""))
 
     AUSGABE.mkdir(exist_ok=True)
-    datei = AUSGABE / f"homepage-standard-{ziel}.pdf"
+    datei = AUSGABE / f"website-standard-{ziel}.pdf"
 
     # **Zwei Durchgänge, weil die Frage zirkulär ist.** Ob vor einem Kapitel
     # eine Vakatseite fehlt, hängt davon ab, wo das vorige endet — und das
@@ -224,7 +224,7 @@ def bauen(ziel: str, entwurf: bool) -> dict:
     for durchgang in range(3):
         umsetzer.abbildungen = umsetzer.marginalien = 0
         marken, elemente = geschichte(vakat)
-        dok = Buch(datei, masse, formate, "Der Homepage Standard")
+        dok = Buch(datei, masse, formate, "Der Website Standard")
         dok.oeffnerseiten = frozenset(oeffner)
         dok.build(elemente)
         oeffner = [m.seite for m in marken if m.seite]

@@ -426,7 +426,7 @@ def _einordnung(audit) -> str:
 
     if klasse and klasse.schluessel == "K6":
         text = (f"Eingeordnet als: {branche or klasse.bezeichnung}. Der "
-                f"Homepage Standard ist auf Betriebe zugeschnitten — die "
+                f"Website Standard ist auf Betriebe zugeschnitten — die "
                 f"angebotsbezogenen Kriterien gelten hier nicht und zählen "
                 f"nicht mit.")
     elif klasse:
@@ -486,7 +486,7 @@ def render_report_page(audit, company: str = "", token: str = "",
   <header class="head">
     {_wortmarke()}
     <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-                opacity:.7;margin-top:4px">Homepage Standard</div>
+                opacity:.7;margin-top:4px">Website Standard</div>
     <h1 style="margin:16px 0 2px;font-size:26px;font-weight:900;
                line-height:1.15">{_esc(titel)}</h1>
     <div style="font-size:13px;opacity:.75">{_esc(audit.website_url)}</div>
@@ -529,7 +529,7 @@ def render_report_page(audit, company: str = "", token: str = "",
                  border-top:1px solid {brand.BORDER};
                  font-size:12px;color:{brand.TEXT_60}">
     Erstellt am {audit.created_at.strftime('%d.%m.%Y') if audit.created_at else ''} ·
-    KOMPAGNON Homepage Standard ·
+    KOMPAGNON Website Standard ·
     <a href="{public_base_url()}">kompagnon.eu</a>
   </footer>
 </div></body></html>"""
@@ -605,7 +605,7 @@ def verify_email(company: str, verify_token: str) -> tuple:
            color:{brand.DARK}">Bitte bestätigen Sie kurz Ihre Adresse</h1>
 <p style="margin:0;font-size:15px;line-height:1.7;color:{brand.TEXT}">
 Für diese E-Mail-Adresse wurde eine Website-Analyse von
-<strong>{_esc(company)}</strong> nach dem KOMPAGNON Homepage Standard
+<strong>{_esc(company)}</strong> nach dem KOMPAGNON Website Standard
 angefordert. Bevor wir etwas verschicken, möchten wir wissen, dass die
 Adresse wirklich Ihnen gehört.</p>
 {_mail_knopf(verify_url(verify_token), 'Analyse bestätigen')}

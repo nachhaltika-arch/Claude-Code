@@ -30,10 +30,10 @@ const SEITEN = [
  * Jede Ausnahme braucht einen Grund — sonst ist sie keine.
  */
 const ERLAUBT = new Map([
-  ['#4a90d9', 'Homepage-Standard Platin — Medaillenfarbe, kein Flächenton'],
-  ['#b8860b', 'Homepage-Standard Gold'],
-  ['#708090', 'Homepage-Standard Silber'],
-  ['#cd7f32', 'Homepage-Standard Bronze'],
+  ['#4a90d9', 'Website-Standard Platin — Medaillenfarbe, kein Flächenton'],
+  ['#b8860b', 'Website-Standard Gold'],
+  ['#708090', 'Website-Standard Silber'],
+  ['#cd7f32', 'Website-Standard Bronze'],
   ['#ef4444', 'Fensterknopf im Browser-Nachbau — zitiert ein Fenster, meldet keinen Zustand'],
   ['#f59e0b', 'Fensterknopf im Browser-Nachbau'],
   ['#22c55e', 'Fensterknopf im Browser-Nachbau'],

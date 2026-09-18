@@ -94,7 +94,7 @@ def _ki_voll() -> dict:
 def test_tadellose_website_erreicht_platin():
     result = score_audit(_fakten(), _ki_voll())
     assert result["total_score"] == 100
-    assert result["level"] == "Homepage Standard Platin"
+    assert result["level"] == "Website Standard Platin"
     assert result["blockers"] == []
     assert result["coverage"] == 100
 
@@ -284,7 +284,7 @@ def test_tracking_ohne_consent_deckelt_das_level():
     )
     result = score_audit(facts, _ki_voll())
     assert "tracking_ohne_consent" in result["blockers"]
-    assert result["level"] == "Homepage Standard Bronze"
+    assert result["level"] == "Website Standard Bronze"
 
 
 def test_ohne_erhobene_rechtsseiten_gibt_es_keine_falschen_blocker():

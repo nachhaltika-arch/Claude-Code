@@ -1,5 +1,5 @@
 """
-PDF Audit Report Generator — Homepage Standard 2025
+PDF Audit Report Generator — Website Standard 2025
 Generates a professional multi-page PDF using ReportLab.
 
 **Aufgeteilt am 2026-08-30 (L-25), nach Zustaendigkeit in drei Teile:**

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bestellungen des Buchs „Der Homepage Standard" (BUCH-04).
+"""Bestellungen des Buchs „Der Website Standard" (BUCH-04).
 
 **Warum eine eigene Tabelle und keine Erweiterung der Paketlogik.** Eine
 Buchbestellung ist etwas anderes als ein Paketkauf:

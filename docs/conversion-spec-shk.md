@@ -58,7 +58,7 @@ Nicht den eigenen Preis nennen ohne Vergleichsanker. Anker = "Vergleichbare Komp
 - "Installations-Slots Q3/2026: noch X von Y frei" (echter Kapazitäts-Cap)
 - "Heizungstausch jetzt im Sommer = volle Heizperiode mit neuer Anlage"
 
-## 3. Pflicht-Sections jeder SHK-Homepage
+## 3. Pflicht-Sections jeder SHK-Website
 
 | Section | Pflicht-Inhalt | Hormozi-Prinzip | Wording-Beispiel |
 |---|---|---|---|

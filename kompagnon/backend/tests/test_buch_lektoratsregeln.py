@@ -18,7 +18,7 @@ import re
 import pytest
 
 WURZEL = pathlib.Path(__file__).resolve().parents[3]
-BUCH = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+BUCH = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
         / "Vollständige dokumentation Buch V2")
 
 #: Was im Buch nicht namentlich vorkommen darf (B5.2.4). Der Leser soll den

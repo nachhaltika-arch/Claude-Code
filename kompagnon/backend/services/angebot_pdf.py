@@ -1,5 +1,5 @@
 """
-Angebots-PDF Generator — KOMPAGNON Homepage Standard
+Angebots-PDF Generator — KOMPAGNON Website Standard
 Generiert ein professionelles 4-seitiges Angebots-PDF aus Audit-Daten.
 """
 import os
@@ -343,17 +343,17 @@ def generate_angebot_pdf(audit_data: dict) -> bytes:
     # SEITE 3 — Unser Angebot
     # ══════════════════════════════════════════════════════════════
 
-    story.append(Paragraph("Das KOMPAGNON Homepage Standard Paket", S["ANG_H1"]))
+    story.append(Paragraph("Das KOMPAGNON Website Standard Paket", S["ANG_H1"]))
     story.append(HRFlowable(width="100%", thickness=1, color=KC_BORDER, spaceAfter=6 * mm))
 
     leistungen = [
-        ("WordPress-Website nach Homepage Standard 2025",   True),
+        ("WordPress-Website nach Website Standard 2025",   True),
         ("SEO &amp; GEO/KI-Optimierung",                   True),
         ("Google Business Profil Einrichtung",              True),
         ("Strategy Workshop (Briefing)",                    True),
         ("14 Werktage Lieferzeit",                          True),
         ("6 Monate Nachbetreuung &amp; Support",            True),
-        ("Zertifizierung nach Homepage Standard 2025",      True),
+        ("Zertifizierung nach Website Standard 2025",      True),
     ]
     check_style = ParagraphStyle("Chk", parent=S["Normal"], fontName=FNB,
                                  fontSize=11, textColor=KC_SUCCESS, alignment=TA_CENTER)

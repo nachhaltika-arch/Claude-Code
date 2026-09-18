@@ -59,7 +59,7 @@ class _Audit:
     blockers = "[]"
     erkannte_branche = ""
     branchenklasse = ""
-    level = "Homepage Standard Bronze"
+    level = "Website Standard Bronze"
 
 
 @pytest.fixture

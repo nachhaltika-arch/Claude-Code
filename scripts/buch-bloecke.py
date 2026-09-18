@@ -43,7 +43,7 @@ import sys
 from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
-BUCH = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+BUCH = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
         / "Vollständige dokumentation Buch V2")
 EXPORT = WURZEL / "scripts" / "standard-export.py"
 

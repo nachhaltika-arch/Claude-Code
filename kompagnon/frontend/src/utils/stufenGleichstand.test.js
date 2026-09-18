@@ -1,5 +1,5 @@
 /**
- * Die Stufen des Homepage Standards stehen an drei Orten (BUCH-12, FIX-5).
+ * Die Stufen des Website Standards stehen an drei Orten (BUCH-12, FIX-5).
  *
  * **Warum das gefährlich ist — und zwar bald mehr als heute.** Sobald das Buch
  * gedruckt ist, sind diese Zahlen in Papier gegossen. Eine Änderung an einer
@@ -11,7 +11,7 @@
  *     backend/services/audit_katalog.py    LEVELS          — die Quelle
  *       (bis 30.08.2026 in `audit_criteria.py`; der Katalog ist seither
  *        nach Form, Inhalt und Rechnung geteilt — L-25)
- *     frontend/src/utils/homepageStandard  STUFEN          — fürs Werkzeug
+ *     frontend/src/utils/websiteStandard  STUFEN          — fürs Werkzeug
  *     frontend/public/embed/audit-widget.html              — fürs Widget
  *
  * **Warum drei und nicht eine.** Das Backend rechnet in Python, das Werkzeug
@@ -22,7 +22,7 @@
  * Abweichungen meldet."*
  *
  * **Der Befund, den das schon einmal gekostet hat** (steht im Kopf von
- * `homepageStandard.js`): Das Backend staffelte 95/85/70/50, Widget und
+ * `websiteStandard.js`): Das Backend staffelte 95/85/70/50, Widget und
  * Akquise-Haken 85/70/50/30. Derselbe Score hieß im Bericht „Silber" und im
  * Widget „Gold" — ein stiller Fehler mit direkter Außenwirkung, weil beides
  * beim selben Empfänger ankommt.
@@ -36,14 +36,14 @@
 import fs from 'fs';
 import path from 'path';
 
-import { STUFEN } from './homepageStandard';
+import { STUFEN } from './websiteStandard';
 
 const WURZEL = path.join(__dirname, '..', '..', '..');
 const KATALOG = path.join(WURZEL, 'backend', 'services', 'audit_katalog.py');
 const WIDGET = path.join(WURZEL, 'frontend', 'public', 'embed',
                          'audit-widget.html');
 
-/** `(95, "Homepage Standard Platin"),` → `[95, 'Homepage Standard Platin']` */
+/** `(95, "Website Standard Platin"),` → `[95, 'Website Standard Platin']` */
 function ausKatalog() {
   const text = fs.readFileSync(KATALOG, 'utf8');
   const block = text.match(/LEVELS[^=]*=\s*\(([\s\S]*?)\n\)/);
@@ -52,7 +52,7 @@ function ausKatalog() {
     .map((m) => [Number(m[1]), m[2]]);
 }
 
-/** `if (s >= 95) return 'Homepage Standard Platin 💎';` */
+/** `if (s >= 95) return 'Website Standard Platin 💎';` */
 function ausWidget() {
   const text = fs.readFileSync(WIDGET, 'utf8');
   return [...text.matchAll(
@@ -115,7 +115,7 @@ describe('Die drei Quellen sagen dasselbe', () => {
     const unbekannt = [];
     dateien.forEach((datei) => {
       const text = fs.readFileSync(path.join(__dirname, '..', datei), 'utf8');
-      [...text.matchAll(/'(Homepage Standard [A-Za-zÄÖÜäöüß]+)'\s*:/g)]
+      [...text.matchAll(/'(Website Standard [A-Za-zÄÖÜäöüß]+)'\s*:/g)]
         .forEach((m) => {
           if (!gueltig.has(m[1])) unbekannt.push(`${datei}: ${m[1]}`);
         });

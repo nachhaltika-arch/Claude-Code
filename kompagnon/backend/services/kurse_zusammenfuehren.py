@@ -45,7 +45,7 @@ DEMO_SAAT = {
     ("Website-Pflege für Kunden",
      "Wie Kunden ihre Website eigenständig pflegen, Inhalte aktualisieren und "
      "häufige Fehler vermeiden."),
-    ("Homepage Standard 2025 — Das Produkt",
+    ("Website Standard 2025 — Das Produkt",
      "Vollständige Produktschulung: Anforderungen, Audit-Kriterien, "
      "Zertifizierungsstufen und Umsetzungsprozess."),
 }

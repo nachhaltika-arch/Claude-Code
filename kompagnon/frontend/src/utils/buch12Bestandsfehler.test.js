@@ -12,7 +12,7 @@
  * stimmte nicht.
  *
  * **FIX-2 · Jahreszahl.** Im Warnband des Auditberichts stand fest
- * verdrahtet „Homepage Standard **2025**". Wir haben August 2026, und jeder
+ * verdrahtet „Website Standard **2025**". Wir haben August 2026, und jeder
  * Kunde las eine ein Jahr alte Standardbezeichnung. Die Fassung steht am
  * Audit selbst (`standard_version`), und `fassungText` gab es an derselben
  * Seite bereits — der Bericht nahm sie nur an einer von zwei Stellen.
@@ -82,12 +82,16 @@ describe('FIX-1 — der Steuersatz ist keine Vorbelegung mehr', () => {
 // ── FIX-2 · Die Jahreszahl ───────────────────────────────────────────
 
 describe('FIX-2 — die Fassung wird gelesen, nicht geschrieben', () => {
-  test('„Homepage Standard 2025" steht nirgends mehr fest verdrahtet', () => {
+  test('„Website Standard 2025" steht nirgends mehr fest verdrahtet', () => {
     // Arrange & Act
     const text = ohneKommentare(quelle('components/AuditReport.jsx'));
 
     // Assert
-    expect(text).not.toMatch(/Homepage Standard 2025/);
+    // Beide Schreibweisen: Der Standard heisst seit dem 18.09.2026
+    // „Website Standard". Der alte Name darf hier genauso wenig fest
+    // verdrahtet stehen — sonst waere der Waechter nach der
+    // Umbenennung blind fuer genau den Fehler, den er sucht.
+    expect(text).not.toMatch(/(Website|Homepage) Standard 2025/);
   });
 
   test('das Warnband nimmt dieselbe Quelle wie die Kopfzeile', () => {

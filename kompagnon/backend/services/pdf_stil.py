@@ -243,10 +243,10 @@ KC_LIGHT = colors.HexColor(brand.SURFACE)
 # Abzeichen, nicht als dessen Flaeche. Als Flaeche trug sie weisse Schrift:
 # auf Silber (#C0C0C0) und Gold (#FFD700) war die Stufe praktisch unlesbar.
 LEVEL_ACCENTS = {
-    "Homepage Standard Platin": colors.HexColor("#8E9BA6"),
-    "Homepage Standard Gold": colors.HexColor("#C9A227"),
-    "Homepage Standard Silber": colors.HexColor("#9AA5AC"),
-    "Homepage Standard Bronze": colors.HexColor("#B0763A"),
+    "Website Standard Platin": colors.HexColor("#8E9BA6"),
+    "Website Standard Gold": colors.HexColor("#C9A227"),
+    "Website Standard Silber": colors.HexColor("#9AA5AC"),
+    "Website Standard Bronze": colors.HexColor("#B0763A"),
     "Nicht konform": KC_DANGER,
 }
 

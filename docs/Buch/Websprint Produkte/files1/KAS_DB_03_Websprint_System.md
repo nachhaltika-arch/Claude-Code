@@ -91,7 +91,7 @@ Wie WS-NEU-01, erweitert:
 >
 > Wenn heute jemand einen Betrieb sucht, fragt er nicht mehr nur Google. Er fragt einen KI-Assistenten. Ob Ihr Betrieb in dieser Antwort vorkommt, entscheidet sich an Dateien auf Ihrem Server.
 >
-> Leistungsumfang: vollständiger Neuaufbau nach Homepage-Standard mit bis zu 20 Seiten, Karriereseite mit Bewerbungsformular, GEO/GAIO-Layer für die Auffindbarkeit in KI-Assistenten, datenschutzkonforme Messgrundlage mit Consent-Layer und Auftragsverarbeitungsvertrag, zwölf Monate Pflege sowie vier dokumentierte Quartalsprüfungen mit Maßnahmenliste.
+> Leistungsumfang: vollständiger Neuaufbau nach Website-Standard mit bis zu 20 Seiten, Karriereseite mit Bewerbungsformular, GEO/GAIO-Layer für die Auffindbarkeit in KI-Assistenten, datenschutzkonforme Messgrundlage mit Consent-Layer und Auftragsverarbeitungsvertrag, zwölf Monate Pflege sowie vier dokumentierte Quartalsprüfungen mit Maßnahmenliste.
 >
 > **Festpreis 12.900 € netto.** Bauzeit 42 Werktage ab Vorliegen Ihrer Mitwirkungsleistungen.
 

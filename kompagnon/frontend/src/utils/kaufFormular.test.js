@@ -28,7 +28,7 @@ import { AUSSTEHEND } from '../inhalte/rechtstexte';
 
 const PRODUKT = {
   slug: 'workbook_homepage_standard',
-  name: 'Workbook Homepage-Standard',
+  name: 'Workbook Website-Standard',
   price_brutto: 149,
   price_netto: 139.25,
   tax_rate: 7,

@@ -13,7 +13,7 @@ from services.widget_report import _einordnung, render_report_page
 def _audit(**felder):
     grund = {
         "id": 1, "website_url": "https://example.de", "company_name": "Beispiel",
-        "total_score": 72, "level": "Homepage Standard Silber", "coverage": 100,
+        "total_score": 72, "level": "Website Standard Silber", "coverage": 100,
         "item_scores": "{}", "item_sources": "{}", "blockers": "[]",
         "top_issues": "[]", "recommendations": "[]", "ai_summary": "",
         "erkannte_branche": "", "branchenklasse": "", "standard_version": "2026.2",

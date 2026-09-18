@@ -92,7 +92,7 @@ Neue Datei `shop_catalog.py` mit einer festen Liste. **Keine Datenbanktabelle** 
 Je Produkt: `code`, `name`, `short_description`, `amount_net` (Cent), `vat_rate`, `is_creditable` (anrechenbar ja/nein), `credit_months`, `delivery_type` (`download` oder `appointment`), `active`.
 
 Einträge:
-- `WB-01` — Workbook „Homepage-Standard in 30 Schritten", 14900 Cent netto, 19 %, anrechenbar, 6 Monate, `download`
+- `WB-01` — Workbook „Website-Standard in 30 Schritten", 14900 Cent netto, 19 %, anrechenbar, 6 Monate, `download`
 - `CHK-PLU-01` — Check PLUS, 24900 Cent netto, 19 %, anrechenbar, 6 Monate, `appointment`
 
 ⚠️ **Der Steuersatz für WB-01 ist noch nicht geklärt** (7 % für elektronische Publikationen gegen 19 % für digitale Werkzeuge). Setze 19 % und schreibe einen Kommentar `# TODO Steuersatz mit Steuerberater klären — siehe Datenblatt WB-01 Abschnitt 6` direkt an die Zeile.

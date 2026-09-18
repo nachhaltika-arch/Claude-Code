@@ -28,7 +28,7 @@ WURZEL = Path(__file__).resolve().parent.parent
 QUELLE = Path(sys.argv[1]) if len(sys.argv) > 1 else (
     WURZEL / "kompagnon" / "backend" / "services" / "audit_criteria.py")
 #: **Der gepflegte Ordner, nicht der danebenliegende (25.08.2026).** Das
-#: Manuskript liegt zweimal im Repo: einmal unter „Buch - Kompagnon - Homepage
+#: Manuskript liegt zweimal im Repo: einmal unter „Buch - Kompagnon - Website
 #: Standard v2/" und einmal darunter in „Vollstaendige dokumentation Buch V2/".
 #: Die beiden Staende sind auseinandergelaufen — in der Unterfassung stehen die
 #: Korrekturen vom 24.08. (Rechtshinweis in Kapitel 10, Glossareintrag,
@@ -36,7 +36,7 @@ QUELLE = Path(sys.argv[1]) if len(sys.argv) > 1 else (
 #: **obere**: Der erzeugte Anhang landete dort, wo niemand arbeitet, waehrend im
 #: Arbeitsordner die Fassung des Prototyps stehenblieb.
 ZIEL = Path(sys.argv[2]) if len(sys.argv) > 2 else (
-    WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+    WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
     / "Vollständige dokumentation Buch V2" / "ANHANG-B-Schwellentabellen.md")
 
 

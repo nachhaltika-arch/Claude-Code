@@ -122,7 +122,7 @@ export default function MeinBericht() {
               </span>
               <span style={{ fontSize: 15, color: 'var(--text-secondary)' }}>von 100 Punkten</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-                · {(profil.current_level || '').replace('Homepage Standard ', '') || '—'}
+                · {(profil.current_level || '').replace('Website Standard ', '') || '—'}
               </span>
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '10px 0 0' }}>

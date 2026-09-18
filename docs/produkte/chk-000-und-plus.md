@@ -88,7 +88,7 @@ Diese Abgrenzung gehört **in den Bericht selbst**. Sonst wird aus einem Werbemi
 
 | Pos. | Leistung | Menge |
 |---|---|---|
-| 1 | Vollständiges Audit nach Homepage-Standard, manuell nachgeprüft | 1 |
+| 1 | Vollständiges Audit nach Website-Standard, manuell nachgeprüft | 1 |
 | 2 | **Manuelle Bewertung** der Punkte, die maschinell nicht prüfbar sind: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe | 1 |
 | 3 | Wettbewerbsvergleich mit **drei** Betrieben aus dem Umkreis, jeweils mit Punktzahl | 3 |
 | 4 | Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand | 1 |

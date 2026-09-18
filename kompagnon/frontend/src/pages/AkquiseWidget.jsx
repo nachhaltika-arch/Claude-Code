@@ -543,7 +543,7 @@ export default function AkquiseWidget() {
                 onChange={(e) => setWidget({ ...widget, bericht_abnahmepunkte: e.target.value })}
                 placeholder="85"
                 hinweis="Wird zur Zusage: Erreicht das Abnahmeaudit diese Punktzahl nicht,
-                         wird ohne Aufpreis nachgearbeitet. Der Homepage-Standard nennt 85."
+                         wird ohne Aufpreis nachgearbeitet. Der Website-Standard nennt 85."
               />
               <Feld
                 label="Hinweis auf freie Plätze"

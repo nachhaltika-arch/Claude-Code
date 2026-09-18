@@ -6,8 +6,8 @@ Aus 15 Markdown-Dateien müssen **zwei verschiedene PDFs** entstehen:
 
 | PDF | Zweck | Besonderheiten |
 |---|---|---|
-| `homepage-standard-screen.pdf` | Verkauf als Download | RGB, Links klickbar, kleine Dateigröße, Wasserzeichen-fähig |
-| `homepage-standard-print.pdf` | Upload zu BoD | 170×240 mm, 3 mm Beschnitt, Schriften eingebettet, PDF/X-3 |
+| `website-standard-screen.pdf` | Verkauf als Download | RGB, Links klickbar, kleine Dateigröße, Wasserzeichen-fähig |
+| `website-standard-print.pdf` | Upload zu BoD | 170×240 mm, 3 mm Beschnitt, Schriften eingebettet, PDF/X-3 |
 
 **Ganz wichtig — technische Entscheidung:** Das Buch-PDF wird **einmal vorab gebaut**, nicht
 bei jeder Bestellung. Ein 200-Seiten-PDF serverseitig zu rendern dauert 30–90 Sekunden und
@@ -82,9 +82,9 @@ Lege buch/build.py an. Funktionsweise:
   3. Wandelt Markdown nach HTML (Extensions: tables, toc, attr_list, footnotes)
   4. Erzeugt automatisch ein Inhaltsverzeichnis mit Seitenzahlen
   5. Ersetzt Platzhalter: {{QR_AUDIT}} durch buch/assets/qr-audit.svg,
-     {{VERSION}} durch version aus shared/homepage-standard.json
-  6. Rendert per WeasyPrint nach buch/build/homepage-standard-screen.pdf
-     und buch/build/homepage-standard-print.pdf
+     {{VERSION}} durch version aus shared/website-standard.json
+  6. Rendert per WeasyPrint nach buch/build/website-standard-screen.pdf
+     und buch/build/website-standard-print.pdf
   7. Gibt am Ende aus: Seitenzahl je PDF, Dateigroesse, Anzahl Kapitel
 
 Aufrufbar als:
@@ -106,7 +106,7 @@ Fuege buch/build/*.pdf zu .gitignore hinzu. Die PDFs gehoeren nicht ins Repo
 
 SCHRITT 6 — Verifikation
 python buch/build.py --target both --allow-draft
-python buch/check_print.py buch/build/homepage-standard-print.pdf
+python buch/check_print.py buch/build/website-standard-print.pdf
 ls -lh buch/build/
 
 SCHRITT 7

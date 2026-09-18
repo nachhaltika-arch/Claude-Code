@@ -43,7 +43,7 @@ def _audit_daten(blocker: list = None) -> dict:
     items = {c.key: c.max_points for c in all_criteria()}
     sources = {c.key: Source.MEASURED.value for c in all_criteria()}
     return {
-        "total_score": 100, "level": "Homepage Standard Platin", "coverage": 100,
+        "total_score": 100, "level": "Website Standard Platin", "coverage": 100,
         "company_name": "Muster GmbH", "website_url": "https://muster.de",
         "trade": "Heizung", "city": "Bochum", "created_at": AUDITDATUM,
         "ai_summary": "Sehr gute Website.",

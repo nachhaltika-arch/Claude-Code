@@ -189,7 +189,7 @@ export default function Dashboard() {
         <KpiCard label="Betriebe gesamt" value={kpis?.leads_total ?? leads.length} icon="👥" />
         <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
         <KpiCard
-          label="Ø Homepage-Score"
+          label="Ø Website-Score"
           value={avgScore !== null ? `${avgScore}/100` : '—'}
           icon="◎"
           color={avgScore ? scoreColor(avgScore) : undefined}

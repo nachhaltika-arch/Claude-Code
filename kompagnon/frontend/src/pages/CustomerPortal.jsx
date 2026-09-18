@@ -8,10 +8,10 @@ import { aufTaste } from '../utils/tastaturBedienung';
 import { FileUploadSection, PHASEN, getPhaseStatus } from '../components/portal/FileUploadSection';
 
 const LEVEL_COLORS = {
-  'Homepage Standard Platin': '#4a90d9',
-  'Homepage Standard Gold': '#b8860b',
-  'Homepage Standard Silber': '#708090',
-  'Homepage Standard Bronze': '#cd7f32',
+  'Website Standard Platin': '#4a90d9',
+  'Website Standard Gold': '#b8860b',
+  'Website Standard Silber': '#708090',
+  'Website Standard Bronze': '#cd7f32',
   'Nicht konform': 'var(--status-danger-text)',
 };
 
@@ -169,7 +169,7 @@ export default function CustomerPortal() {
         <div style={{ background: 'var(--brand-primary)', borderRadius: 16, padding: 24, color: 'var(--text-on-brand)', marginBottom: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 6px' }}>Willkommen, {data?.company_name}!</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-on-brand)', opacity: 0.8, margin: 0 }}>Ihr persönlicher Homepage-Audit Zugang</p>
+          <p style={{ fontSize: 13, color: 'var(--text-on-brand)', opacity: 0.8, margin: 0 }}>Ihr persönlicher Website-Audit Zugang</p>
         </div>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
@@ -568,7 +568,7 @@ export default function CustomerPortal() {
           <div style={{ background: 'var(--bg-sidebar)', borderRadius: 12, padding: 20, textAlign: 'center', color: 'white' }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Jetzt Ihre Website optimieren</div>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 1.5 }}>
-              KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
+              KOMPAGNON bringt Ihre Website auf Website Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
             </p>
             <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
               display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: 'var(--brand-primary)', color: 'var(--text-on-brand)', textAlign: 'center',

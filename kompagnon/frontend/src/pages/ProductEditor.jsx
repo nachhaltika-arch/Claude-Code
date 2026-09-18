@@ -198,7 +198,7 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
                 const cleaned = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                 setProduct(p => ({ ...p, slug: cleaned, _slugManuallyEdited: true }));
               }}
-              placeholder="z.B. homepage-standard"
+              placeholder="z.B. website-standard"
               disabled={selected !== '__new__'}
               style={{
                 ...INP,
@@ -551,7 +551,7 @@ export default function ProductEditor() {
     const errFields = new Set();
     if (!product.name?.trim()) { errors.push('Produktname fehlt'); errFields.add('name'); }
     if (!product.slug?.trim()) {
-      errors.push('Slug fehlt — bitte einen URL-Bezeichner eingeben (z.B. "homepage-standard")');
+      errors.push('Slug fehlt — bitte einen URL-Bezeichner eingeben (z.B. "website-standard")');
       errFields.add('slug');
     } else if (!/^[a-z0-9-]+$/.test(product.slug.trim())) {
       errors.push('Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten');
@@ -588,7 +588,7 @@ export default function ProductEditor() {
       if (!r.ok) {
         const raw = d.detail || '';
         const friendly = {
-          'Slug fehlt':            'Bitte einen Slug eingeben (z.B. "homepage-standard")',
+          'Slug fehlt':            'Bitte einen Slug eingeben (z.B. "website-standard")',
           'Slug bereits vergeben': 'Dieser Slug ist bereits belegt — bitte einen anderen wählen',
           'Name fehlt':            'Produktname ist erforderlich',
           'Ungültiger Slug':       'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten',

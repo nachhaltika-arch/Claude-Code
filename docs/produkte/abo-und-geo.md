@@ -93,7 +93,7 @@
 | 4 | Verfügbarkeitsüberwachung mit Störungsmeldung | laufend |
 | 5 | **Inhaltsänderungen bis 30 Minuten** | je Monat |
 | 6 | Störungsbehebung bei Ausfällen, Reaktion innerhalb 1 Werktag | nach Bedarf |
-| 7 | Jährliches Re-Audit nach Homepage-Standard | 1× jährlich |
+| 7 | Jährliches Re-Audit nach Website-Standard | 1× jährlich |
 
 **Nicht enthalten:** neue Seiten, Gestaltungsänderungen, Texterstellung, Kampagnen, Rechtstextaktualisierung.
 Nicht verbrauchte Änderungsminuten verfallen und werden nicht übertragen.

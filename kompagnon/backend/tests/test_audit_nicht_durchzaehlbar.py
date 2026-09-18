@@ -41,7 +41,7 @@ def audit(db):
         company_name="Fremdbetrieb GmbH",
         status="completed",
         total_score=62,
-        level="Homepage Standard Bronze",
+        level="Website Standard Bronze",
         public_token="probetoken1234567890",
     )
     db.add(a)

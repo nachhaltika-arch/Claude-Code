@@ -199,7 +199,7 @@ Add standalone Netlify landing page for book sales
 
 ## ZWEI SCHRITTE VORAUS
 
-- **Diese Seite ist gleichzeitig deine Referenz.** Wenn du ein Buch über den Homepage
+- **Diese Seite ist gleichzeitig deine Referenz.** Wenn du ein Buch über den Website
   Standard verkaufst, wird diese Seite von Interessenten geprüft. Sie muss selbst
   Platin-Niveau erreichen — lass sie nach dem Deploy durch dein eigenes Audit laufen.
   Ein Score unter 85 wäre peinlich.

@@ -31,7 +31,7 @@ def knopf(url: str, text: str) -> str:
             f'color:{brand.DARK};text-decoration:none">{text}</a></td></tr></table>')
 
 
-def rahmen(inner: str, fusstext: str, oberzeile: str = "Homepage Standard") -> str:
+def rahmen(inner: str, fusstext: str, oberzeile: str = "Website Standard") -> str:
     """Der Rahmen um den Inhalt einer Mail.
 
     Tabellen statt divs: Outlook auf Windows rendert mit der Word-Engine und

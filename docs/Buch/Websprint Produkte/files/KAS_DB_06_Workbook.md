@@ -1,5 +1,5 @@
 # PRODUKTDATENBLATT · WB-01
-## WORKBOOK „Homepage-Standard in 30 Schritten"
+## WORKBOOK „Website-Standard in 30 Schritten"
 
 | | |
 |---|---|
@@ -44,7 +44,7 @@ Das Workbook befähigt den Kunden, seine Seite selbst auf Standard zu bringen. D
 
 ## 3. Angebots- und Verkaufstext
 
-> **Homepage-Standard in 30 Schritten**
+> **Website-Standard in 30 Schritten**
 >
 > Sie wollen es selbst machen? Gut. Hier ist der vollständige Weg.
 >

@@ -37,7 +37,7 @@ SAAT = [
      "Wie Kunden ihre Website eigenständig pflegen, Inhalte aktualisieren und "
      "häufige Fehler vermeiden.",
      "kunde"),
-    ("Homepage Standard 2025 — Das Produkt",
+    ("Website Standard 2025 — Das Produkt",
      "Vollständige Produktschulung: Anforderungen, Audit-Kriterien, "
      "Zertifizierungsstufen und Umsetzungsprozess.",
      "produkt"),

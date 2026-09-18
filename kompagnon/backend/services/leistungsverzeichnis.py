@@ -106,8 +106,8 @@ KATALOG: Tuple[Position, ...] = (
              "nach Bedarf", ORT_SUPPORT, produkte=(ABO_BAS,),
              zusage="innerhalb von einem Werktag"),
     Position(7, "Jährliches Re-Audit",
-             "Einmal im Jahr messen wir Ihre Seite neu gegen den Homepage-Standard.",
-             "Jährliches Re-Audit nach Homepage-Standard", "1× jährlich",
+             "Einmal im Jahr messen wir Ihre Seite neu gegen den Website-Standard.",
+             "Jährliches Re-Audit nach Website-Standard", "1× jährlich",
              ORT_REAUDIT, produkte=(ABO_BAS,)),
 
     # ── Nur Pflege Pro (Positionen 8 bis 12) ──────────────────────────

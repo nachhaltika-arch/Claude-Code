@@ -35,7 +35,7 @@ PAKET = {
     "netto": 3500.00,
     "mwst": 665.00,
     "steuersatz": 19.0,
-    "leistungen": ["Eingangsaudit nach Homepage-Standard",
+    "leistungen": ["Eingangsaudit nach Website-Standard",
                    "Aufbau im Komponentensystem"],
 }
 
@@ -128,7 +128,7 @@ def test_der_steuersatz_kommt_aus_dem_produkt():
     Beleg darueber haette 19 % ausgewiesen und daneben den 7-%-Betrag — eine
     falsche Angabe auf einem Steuerdokument (dieselbe Bauart wie L-29).
     """
-    buch = dict(PAKET, name="Der Homepage Standard", brutto=49.00,
+    buch = dict(PAKET, name="Der Website Standard", brutto=49.00,
                 netto=45.79, mwst=3.21, steuersatz=7.0)
 
     text = "\n".join(__import__("pdf_inhalt").inhalt_von(

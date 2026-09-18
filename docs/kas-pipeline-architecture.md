@@ -1,7 +1,7 @@
 # KAS-Pipeline-Architektur — Relume-inspirierter Workflow
 
 > **Status:** v1 — Konzept, 2026-05-04
-> **Geltungsbereich:** Verbindlich für die KAS-Engine, die für SHK-Handwerker (Phase 1, siehe `niche_phase1.md`) automatisch Premium-Homepages generiert.
+> **Geltungsbereich:** Verbindlich für die KAS-Engine, die für SHK-Handwerker (Phase 1, siehe `niche_phase1.md`) automatisch Premium-Websites generiert.
 > **Verbundene Dokumente:**
 > - `conversion-spec-shk.md` — Hormozi-Spec (Pflicht-Section-Inhalt + Wording)
 > - `niche_phase1.md` — Branche/Region-Constraints

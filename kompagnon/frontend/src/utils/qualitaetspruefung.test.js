@@ -68,7 +68,7 @@ describe('pruefungAbgeschlossen', () => {
 describe('zusammenfassung', () => {
   test('nennt Punktzahl und Stufe des Servers', () => {
     // Arrange
-    const audit = { total_score: 62, level: 'Homepage Standard Bronze', coverage: 98 };
+    const audit = { total_score: 62, level: 'Website Standard Bronze', coverage: 98 };
 
     // Act
     const s = zusammenfassung(audit);

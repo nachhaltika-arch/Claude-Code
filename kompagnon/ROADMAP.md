@@ -36,7 +36,7 @@
 
 - 7-Phasen Projektautomatisierung mit APScheduler
 - Website Audit Tool mit PDF-Bericht (ReportLab)
-- Homepage Standard 2025 Zertifizierungsrahmen (Bronze/Silber/Gold/Platin)
+- Website Standard 2025 Zertifizierungsrahmen (Bronze/Silber/Gold/Platin)
 - CSV Kontakt-Import mit KI-Spaltenmapping
 - Lead Pipeline mit Kanban-Ansicht
 - Kundenkartei mit Audit-Historie
@@ -113,7 +113,7 @@
 
 | Produkt | Preis | Status |
 |---|---|---|
-| Homepage Standard Zertifizierung | 149€/Jahr | Basis vorhanden |
+| Website Standard Zertifizierung | 149€/Jahr | Basis vorhanden |
 | Kundenportal | Im Paket | Live |
 | Akademy Kunden-Bereich | 29€/Monat | In Entwicklung |
 
@@ -203,7 +203,7 @@
 - [x] Landing Page mit BAFA-Rechner
 - [x] Vollständiges Auth-System (Login, 2FA, Logout)
 
-### Homepage Standard 2025 Framework
+### Website Standard 2025 Framework
 - [x] 5-Stufen-Zertifizierungsrahmen (Nicht konform / Bronze / Silber / Gold / Platin)
 - [x] Bewertung in 7 Kategorien (0–100 Punkte):
   - Rechtliche Compliance
@@ -234,7 +234,7 @@
 ### Mittelfristig
 - [ ] Automatisierter Kaltakquise-Workflow (Audit → Anschreiben → Versand)
 - [ ] Google Business Profile API-Integration
-- [ ] Erweiterung des Homepage Standard auf neue Branchen
+- [ ] Erweiterung des Website Standard auf neue Branchen
 - [ ] Kundenportal (Login für Endkunden)
 - [ ] Dokumenten-Upload für Kunden
 

@@ -1,8 +1,8 @@
-KOMPAGNON<font color="0xfae600">.</font><font size="8" color="0xffffff">&nbsp;&nbsp;HOMEPAGE STANDARD</font>
-HOMEPAGE STANDARD
+KOMPAGNON<font color="0xfae600">.</font><font size="8" color="0xffffff">&nbsp;&nbsp;WEBSITE STANDARD</font>
+WEBSITE STANDARD
 Audit- und Zertifizierungsrahmen 2026
 100<font size="20" color="0x4a5a5c"> / 100</font>
-<font color="0xffffff"><b>Homepage Standard Platin</b></font>
+<font color="0xffffff"><b>Website Standard Platin</b></font>
 <b>Muster GmbH</b>
 <font color="0x4a5a5c">https://muster.de</font>
 <font color="0x4a5a5c">Auditdatum: 15.01.2026<br/>Auditor: KOMPAGNON Communications</font>
@@ -393,8 +393,8 @@ Die höchste Auszeichnungsstufe ist erreicht. Die folgenden Punkte halten sie.
 • Google Business Profil optimieren und regelmäßig pflegen
 • KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen
 Zertifizierungsaussage
-<font color="0xffffff"><b>Homepage Standard Platin</b></font>
-Hiermit wird bestätigt, dass die geprüfte Website <b>https://muster.de</b> zum Zeitpunkt des Audits am <b>15.01.2026</b> den Anforderungen des <b>Homepage Standard Platin</b> entspricht und eine Gesamtbewertung von <b>100 / 100 Punkten</b> erzielt hat.
+<font color="0xffffff"><b>Website Standard Platin</b></font>
+Hiermit wird bestätigt, dass die geprüfte Website <b>https://muster.de</b> zum Zeitpunkt des Audits am <b>15.01.2026</b> den Anforderungen des <b>Website Standard Platin</b> entspricht und eine Gesamtbewertung von <b>100 / 100 Punkten</b> erzielt hat.
 Ort, Datum
 Auditor/in: KOMPAGNON
 Auftraggeber

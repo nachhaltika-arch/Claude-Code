@@ -82,7 +82,7 @@ def analyse_mit_umlaut():
             company_name=FIRMA,
             status="completed",
             total_score=punkte,
-            level="Homepage Standard Bronze",
+            level="Website Standard Bronze",
             item_scores=werte,
             item_sources=quellen,
             item_belege=json.dumps({}),

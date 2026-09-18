@@ -159,7 +159,7 @@ async def _quick_geo_check(website_url: str) -> int:
             except Exception:
                 score += 15
 
-            # 3. schema.org auf Homepage? (30 P)
+            # 3. schema.org auf Website? (30 P)
             try:
                 resp = await client.get(base_url)
                 if resp.status_code == 200:

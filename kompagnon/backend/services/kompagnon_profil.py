@@ -43,14 +43,14 @@ BETRIEB = SimpleNamespace(
     phone="",
     trade="Websites für Handwerk und Mittelstand",
     opening_hours=None,
-    usp=("Websites nach dem Homepage Standard — 39 Kriterien, 8 Kategorien, "
+    usp=("Websites nach dem Website Standard — 39 Kriterien, 8 Kategorien, "
          "103 Punkte. Gebaut, gemessen und nachweisbar verbessert."),
 )
 
 #: Die Seiten, die ein Modell kennen soll. Kurz gehalten: Eine `llms.txt`, die
 #: jede Unterseite aufzählt, ist ein Sitemap-Ersatz und keine Auskunft.
 SEITEN = [
-    {"page_name": "Der Homepage Standard", "slug": "",
+    {"page_name": "Der Website Standard", "slug": "",
      "zweck": "Der Prüfkatalog und was er misst"},
     {"page_name": "Website-Check", "slug": "check",
      "zweck": "Kostenlose Prüfung einer Website gegen den Standard"},

@@ -9,7 +9,7 @@ vollständig unsichtbar bleibt, wenn man nicht gezielt hinsieht.
 
 ### Was passiert, wenn CORS fehlt
 
-Der Browser sieht: Seite liegt auf `homepage-standard.netlify.app`, Anfrage geht an
+Der Browser sieht: Seite liegt auf `website-standard.netlify.app`, Anfrage geht an
 `claude-code-znq2.onrender.com`. Zwei verschiedene Adressen. Der Browser fragt das Backend
 vorab: „Darfst du von dieser Seite angesprochen werden?" Antwortet das Backend nicht mit
 der ausdrücklichen Erlaubnis, **blockiert der Browser die Anfrage, bevor sie das Backend

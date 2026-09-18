@@ -30,10 +30,10 @@ export const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
 
 
 export const LEVEL_COLORS = {
-  'Homepage Standard Platin': 'var(--status-info-text)',
-  'Homepage Standard Gold':   '#b8860b',
-  'Homepage Standard Silber': 'var(--text-tertiary)',
-  'Homepage Standard Bronze': '#cd7f32',
+  'Website Standard Platin': 'var(--status-info-text)',
+  'Website Standard Gold':   '#b8860b',
+  'Website Standard Silber': 'var(--text-tertiary)',
+  'Website Standard Bronze': '#cd7f32',
   'Nicht konform':            'var(--status-danger-text)',
 };
 

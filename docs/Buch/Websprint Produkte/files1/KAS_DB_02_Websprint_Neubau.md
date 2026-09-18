@@ -5,7 +5,7 @@
 |---|---|
 | Artikelnummer | WS-NEU-01 |
 | Systemwert `product_type` | `websprint_neubau` |
-| Angebotsbezeichnung | Websprint Neubau — Neuaufbau nach Homepage-Standard |
+| Angebotsbezeichnung | Websprint Neubau — Neuaufbau nach Website-Standard |
 | Preis | **7.900 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z2** (40/30/30) |
@@ -100,7 +100,7 @@ Betrieb **ohne brauchbare Website** oder mit einer, die inhaltlich nicht mehr tr
 
 ## 5. Angebotstext (Baustein)
 
-> **Websprint Neubau — Neuaufbau nach Homepage-Standard**
+> **Websprint Neubau — Neuaufbau nach Website-Standard**
 >
 > Bevor wir bauen, klären wir, wofür Ihr Betrieb steht. Auf dieser Grundlage entstehen Struktur, Texte und Gestaltung neu — und werden nach dokumentiertem Standard abgenommen.
 >

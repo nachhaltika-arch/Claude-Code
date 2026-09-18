@@ -662,7 +662,7 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
             media_type="application/pdf",
             headers={
                 "Content-Disposition": anhang_kopfzeile(
-                    f"Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf")
+                    f"Website-Standard-Audit-{safe_name}-{audit.id}.pdf")
             },
         )
     except HTTPException:

@@ -26,7 +26,7 @@ from database import Base
 
 
 class AuditResult(Base):
-    """Website audit results based on Homepage Standard framework."""
+    """Website audit results based on Website Standard framework."""
     __tablename__ = "audit_results"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -120,7 +120,7 @@ class AuditResult(Base):
     seiten_geprueft = Column(Integer, default=1)
     seiten_gefunden = Column(Integer, nullable=True)
 
-    # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
+    # Wogegen bewertet wurde (Website Standard 2026.2, Branchenmodell). Die
     # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
     # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.
     # Die Spalten legt `migrations_runtime.py::run_migrations` an, nicht `create_all`.

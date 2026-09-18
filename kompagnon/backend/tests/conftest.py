@@ -330,7 +330,7 @@ def fremde_analyse():
             company_name="Interner Interessent",
             status="completed",
             total_score=41,
-            level="Homepage Standard Bronze",
+            level="Website Standard Bronze",
         )
         db.add(audit)
         db.commit()

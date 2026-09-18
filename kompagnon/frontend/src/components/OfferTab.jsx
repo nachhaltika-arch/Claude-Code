@@ -28,12 +28,12 @@ const DARSTELLUNG = [
   {
     id: 'websprint_start', name: 'Websprint Start', delivery: '7 Kalendertage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
-    features: ['Audit nach Homepage-Standard, dokumentiert', 'Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Öffnungszeiten', 'Aufbau aus einer festen Vorlage, responsiv', 'Einpflegen der gelieferten Texte, bis 4.000 Zeichen', 'Bildaufbereitung, bis 10 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Hosting-Einrichtung, SSL, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisungsvideo statt Live-Schulung', 'Pflege Basic für 12 Monate, 30 Minuten Änderungen je Monat', 'Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine'],
+    features: ['Audit nach Website-Standard, dokumentiert', 'Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Öffnungszeiten', 'Aufbau aus einer festen Vorlage, responsiv', 'Einpflegen der gelieferten Texte, bis 4.000 Zeichen', 'Bildaufbereitung, bis 10 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Hosting-Einrichtung, SSL, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisungsvideo statt Live-Schulung', 'Pflege Basic für 12 Monate, 30 Minuten Änderungen je Monat', 'Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine'],
   },
   {
     id: 'websprint_relaunch', name: 'Websprint Relaunch', delivery: '14 Kalendertage',
     accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
-    features: ['Eingangsaudit nach Homepage-Standard, 100 Punkte', 'Strukturabgleich und Seitenplan', 'Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten', 'Redaktionelle Überarbeitung der vorhandenen Texte', 'Bildaufbereitung, bis 30 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Technische Grundoptimierung', 'Hosting, SSL, Weiterleitungen, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisung, 30 Minuten'],
+    features: ['Eingangsaudit nach Website-Standard, 100 Punkte', 'Strukturabgleich und Seitenplan', 'Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten', 'Redaktionelle Überarbeitung der vorhandenen Texte', 'Bildaufbereitung, bis 30 Bilder', 'Kontaktformular mit Spam-Schutz', 'Grundlagen der Barrierefreiheit', 'Technische Grundoptimierung', 'Hosting, SSL, Weiterleitungen, Domainumstellung', 'Eine Korrekturschleife', 'Abnahmeaudit mit schriftlichem Protokoll', 'Einweisung, 30 Minuten'],
   },
   {
     id: 'websprint_neubau', name: 'Websprint Neubau', delivery: '28 Kalendertage',

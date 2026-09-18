@@ -135,11 +135,11 @@ def test_punkte_werden_auf_das_kriterien_maximum_begrenzt():
 # ── Level und K.-o.-Kriterien ─────────────────────────────────────────
 
 @pytest.mark.parametrize("score,erwartet", [
-    (100, "Homepage Standard Platin"),
-    (95, "Homepage Standard Platin"),
-    (85, "Homepage Standard Gold"),
-    (70, "Homepage Standard Silber"),
-    (50, "Homepage Standard Bronze"),
+    (100, "Website Standard Platin"),
+    (95, "Website Standard Platin"),
+    (85, "Website Standard Gold"),
+    (70, "Website Standard Silber"),
+    (50, "Website Standard Bronze"),
     (49, "Nicht konform"),
     (0, "Nicht konform"),
 ])
@@ -161,7 +161,7 @@ def test_ungueltiges_tls_deckelt_auf_nicht_konform():
 
 
 def test_tracking_ohne_consent_deckelt_auf_bronze():
-    assert determine_level(96, ["tracking_ohne_consent"]) == "Homepage Standard Bronze"
+    assert determine_level(96, ["tracking_ohne_consent"]) == "Website Standard Bronze"
 
 
 def test_deckel_verschlechtert_ein_ohnehin_schlechtes_level_nicht():
@@ -169,4 +169,4 @@ def test_deckel_verschlechtert_ein_ohnehin_schlechtes_level_nicht():
 
 
 def test_ohne_blocker_bleibt_das_level_unveraendert():
-    assert determine_level(96, []) == "Homepage Standard Platin"
+    assert determine_level(96, []) == "Website Standard Platin"

@@ -1,6 +1,6 @@
 """Branchenklassen und die Zuordnung eines Freitextes auf eine Klasse.
 
-Bewertungslogik „Homepage Standard 2026.2", § 2. Der Maßstab der
+Bewertungslogik „Website Standard 2026.2", § 2. Der Maßstab der
 KI-Kriterien hängt an der Branche: Eine Steuerkanzlei ohne Preisrahmen ist
 nicht schlechter als eine mit, sondern berufsrechtlich korrekt. Sie dafür
 abzuwerten macht den Bericht als Akquiseinstrument unbrauchbar — derselbe

@@ -25,6 +25,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 BREVO_API = "https://api.brevo.com/v3"
+
+# Brevo gibt hoechstens 50 Listen je Abruf zurueck.
+SEITENGROESSE = 50
 REQUEST_TIMEOUT_SECONDS = 20.0
 DEFAULT_FOLDER_ID = 1
 SENDER_NAME = "KOMPAGNON"
@@ -148,6 +151,30 @@ class BrevoService:
     def create_list(self, name: str, folder_id: int = DEFAULT_FOLDER_ID) -> int:
         response = self._request("POST", "/contacts/lists", {"name": name, "folderId": folder_id})
         return self._id_aus(response, "die Liste")
+
+    def listen(self) -> list:
+        """Alle Listen des Kontos mit Nummer und Namen — nur lesend.
+
+        **Wozu es das gibt.** `create_list` legt bei jedem Aufruf eine neue
+        Liste an, auch wenn der Name schon existiert. Wer die beiden
+        Listen-Nummern fuer die Umgebung sucht, soll nachsehen koennen,
+        statt Doppel zu erzeugen und danach nicht zu wissen, welche gilt.
+
+        **Alle Seiten, nicht nur die erste.** Brevo gibt hoechstens
+        `SEITENGROESSE` je Abruf zurueck. Ein Nachschlagen, das die zweite
+        Seite auslaesst, meldet „gibt es nicht" fuer eine Liste, die es gibt.
+        """
+        gesammelt = []
+        offset = 0
+        while True:
+            antwort = self._request(
+                "GET", f"/contacts/lists?limit={SEITENGROESSE}&offset={offset}")
+            koerper = antwort.json()
+            seite = koerper.get("lists") or []
+            gesammelt.extend(seite)
+            offset += SEITENGROESSE
+            if not seite or len(gesammelt) >= (koerper.get("count") or 0):
+                return gesammelt
 
     def ensure_attribute(self, name: str, typ: str = "text") -> None:
         """Legt ein Kontaktmerkmal an, falls es noch fehlt.

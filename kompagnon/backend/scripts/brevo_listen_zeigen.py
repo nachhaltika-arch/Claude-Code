@@ -24,6 +24,13 @@ GESUCHT = {
 
 
 def main() -> int:
+    # **Ohne diese Zeile liest das Skript die `.env` nicht.** `load_dotenv()`
+    # steht sonst nur in `database.py`, und die wird hier nicht importiert —
+    # ein eingetragener Schluessel haette weiter „nicht gesetzt" gemeldet.
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
     from services.brevo_service import BrevoError, BrevoService
 
     try:

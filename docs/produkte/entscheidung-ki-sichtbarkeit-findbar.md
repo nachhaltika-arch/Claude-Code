@@ -62,7 +62,7 @@ die Vertragslaufzeit, und die Behauptung, erste Plattform im DACH-Raum zu sein.
 | | Frage | Bei uns |
 |---|---|---|
 | **findbar** | Werde ich in KI-Antworten **genannt**? | L-58 (b) — angeschlossen fehlt |
-| **Homepage Standard** | Kann eine Maschine den Betrieb überhaupt **lesen**? | `se_ki_lesbar`, 3 von 103 Punkten, seit 21.08.2026 gemessen |
+| **Website Standard** | Kann eine Maschine den Betrieb überhaupt **lesen**? | `se_ki_lesbar`, 3 von 103 Punkten, seit 21.08.2026 gemessen |
 
 Unsere drei Punkte sind die **Voraussetzung** für ihr Produkt: Wer die
 KI-Crawler aussperrt, wird nicht genannt. Das ist keine Konkurrenz, sondern
@@ -196,7 +196,7 @@ Vier Gründe, in dieser Reihenfolge:
    nicht um Bauen.
 4. **Die eigene Methode ist das Verkaufsargument.** Wir haben einen
    veröffentlichten Katalog, ein Buch und einen Selbsttest. Ein Score ohne
-   nachlesbare Methode ist genau das, wogegen der Homepage Standard antritt.
+   nachlesbare Methode ist genau das, wogegen der Website Standard antritt.
 
 ### Der ehrliche Gegeneinwand
 
@@ -223,7 +223,7 @@ SEC GmbH lägen, und ohne die 1,2-Prozent-Behauptung zu übernehmen.
 Bei drei Anbietern und drei Fragen sind es neun Aufrufe je Kunde und Woche,
 und was einer kostet, weiß erst der erste echte Lauf.
 
-**Was nicht passieren darf:** das Modul an den Score des Homepage Standards zu
+**Was nicht passieren darf:** das Modul an den Score des Website Standards zu
 hängen. Jeder Lauf kostet Geld; ein kostenloses Audit mit einer Kostenstelle je
 Aufruf ist ein anderes Produkt. Diese Entscheidung steht so im Code und bleibt
 offen — bis dahin hängt daran kein Kriterium und kein Punkt.

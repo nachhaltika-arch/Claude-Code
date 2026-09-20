@@ -104,7 +104,7 @@ def test_quellenangabe_steht_in_jeder_zeile():
 def audit_daten():
     items, sources = _volle_bewertung()
     return {
-        "total_score": 100, "level": "Homepage Standard Platin", "coverage": 100,
+        "total_score": 100, "level": "Website Standard Platin", "coverage": 100,
         "company_name": "Muster GmbH", "website_url": "https://muster.de",
         "trade": "Heizung", "city": "Bochum", "created_at": None,
         "ai_summary": "Sehr gute Website.",

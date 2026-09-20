@@ -1,4 +1,11 @@
-# Bewertungslogik — Homepage Standard 2026.1
+# Bewertungslogik — Website Standard 2026.1
+
+> **Der Dateiname behält „homepage-standard".** Der Standard heißt seit dem
+> 18.09.2026 „Website Standard"; der Text hier ist mitgezogen. Der Name der
+> Datei nicht: Sie ist ein **Beleg**. `tests/test_anhang_b_aktuell.py` und
+> `scripts/standard-export.py` lesen sie unter diesem Pfad, und die Spalte
+> „Beleg" im Lagebild verweist darauf. Wer sie umbenennt, ohne beides
+> mitzuziehen, verwandelt eine Herkunftsangabe in „unbekannt".
 
 > ## ⚠ Überholt — nicht mehr anwenden
 >
@@ -15,7 +22,7 @@
 
 
 **Status:** Spezifikationsentwurf zur Umsetzung
-**Gilt für:** Backend-Audit-Service, Frontend-Anzeige, Buch „Der Homepage Standard"
+**Gilt für:** Backend-Audit-Service, Frontend-Anzeige, Buch „Der Website Standard"
 **Version:** 2026.1
 **Stand:** 14.08.2026
 
@@ -24,7 +31,7 @@
 ## 0. Zweck dieses Dokuments
 
 Dieses Dokument **war** die verbindliche Quelle für die Bewertungslogik des
-Homepage Standards. Backend, Frontend und Buch müssen ihm entsprechen. Bei Widersprüchen
+Website Standards. Backend, Frontend und Buch müssen ihm entsprechen. Bei Widersprüchen
 gilt dieses Dokument.
 
 Änderungen an der Bewertung erfolgen ausschließlich hier und werden mit einer neuen
@@ -186,10 +193,10 @@ Normalisierung hält die relative Gewichtung innerhalb der anwendbaren Kriterien
 
 | Stufe | Gesamtscore | Zusatzbedingung |
 |---|---|---|
-| Homepage Standard Platin | 85–100 | kein anwendbares Kriterium der Kategorie 1 bei 0 Punkten |
-| Homepage Standard Gold | 70–84 | kein anwendbares Kriterium der Kategorie 1 bei 0 Punkten |
-| Homepage Standard Silber | 50–69 | — |
-| Homepage Standard Bronze | 30–49 | — |
+| Website Standard Platin | 85–100 | kein anwendbares Kriterium der Kategorie 1 bei 0 Punkten |
+| Website Standard Gold | 70–84 | kein anwendbares Kriterium der Kategorie 1 bei 0 Punkten |
+| Website Standard Silber | 50–69 | — |
+| Website Standard Bronze | 30–49 | — |
 | Nicht konform | 0–29 | — |
 
 **Die Zusatzbedingung ist neu und wichtig.** Ohne sie könnte eine Website mit fehlendem
@@ -688,7 +695,7 @@ schnell für einen Standard, der Vergleichbarkeit über Jahre herstellen soll.
   "rohpunkte": 67,
   "anwendbares_maximum": 93,
   "gesamtscore": 72,
-  "stufe": "Homepage Standard Gold",
+  "stufe": "Website Standard Gold",
   "stufe_begrenzt_durch": null,
   "kategorien": {
     "rechtliche_compliance": {

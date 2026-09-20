@@ -189,7 +189,7 @@ getroffen: Check PLUS läuft zum Start mit.
 
 ### 4.1 Die Abnahmezusage
 
-Der Entwurf sagt **96 Punkte**, der Homepage-Standard (G1) sagt **85**. Beide
+Der Entwurf sagt **96 Punkte**, der Website-Standard (G1) sagt **85**. Beide
 Zahlen stehen für dieselbe Garantie.
 
 **Wichtiger als die Zahl ist die Bezugsgröße.** Die Punktzahl im Bericht ist

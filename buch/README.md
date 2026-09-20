@@ -1,6 +1,6 @@
 # Die Buch-Baustrecke
 
-Setzt „Der Homepage Standard" aus dem Manuskript in PDFs.
+Setzt „Der Website Standard" aus dem Manuskript in PDFs.
 
 ```bash
 python3 -m venv buch/venv
@@ -8,14 +8,14 @@ buch/venv/bin/pip install -r buch/requirements-build.txt
 
 buch/venv/bin/python buch/bauen.py --ziel beide --entwurf
 buch/venv/bin/python buch/bauen.py --ziel druck-a4 --entwurf
-buch/venv/bin/python buch/druckpruefung.py buch/build/homepage-standard-druck.pdf
+buch/venv/bin/python buch/druckpruefung.py buch/build/website-standard-druck.pdf
 ```
 
 | Ziel | Datei | Format | Zweck |
 |---|---|---|---|
-| `bildschirm` | `build/homepage-standard-bildschirm.pdf` | A4 | Verkauf als Download |
-| `druck` | `build/homepage-standard-druck.pdf` | 170 × 240 mm | Vorlage für die Druckerei |
-| `druck-a4` | `build/homepage-standard-druck-a4.pdf` | A4 | dasselbe Buch als A4-Band |
+| `bildschirm` | `build/website-standard-bildschirm.pdf` | A4 | Verkauf als Download |
+| `druck` | `build/website-standard-druck.pdf` | 170 × 240 mm | Vorlage für die Druckerei |
+| `druck-a4` | `build/website-standard-druck-a4.pdf` | A4 | dasselbe Buch als A4-Band |
 
 `--ziel beide` baut `bildschirm` und `druck` — die beiden Fassungen, die das
 Buchkonzept vorsieht. `druck-a4` ist ausdrücklich zu nennen.

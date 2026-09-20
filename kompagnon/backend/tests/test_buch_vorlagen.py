@@ -21,7 +21,7 @@ import pytest
 
 WURZEL = pathlib.Path(__file__).resolve().parents[3]
 ANKREUZEN = WURZEL / "buch" / "ankreuzen.py"
-ANHANG_C = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+ANHANG_C = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
             / "Vollständige dokumentation Buch V2" / "ANHANG-C-Fuenf-Vorlagen.md")
 
 

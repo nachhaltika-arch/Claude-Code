@@ -145,10 +145,59 @@ def test_der_empfaenger_prueft_die_einwilligung_vor_dem_ereignis(empfaenger):
 
 
 def test_der_empfaenger_meldet_meta_und_ga4(empfaenger):
-    """Zwei Haeuser, zwei Vokabulare, ein Ereignis."""
+    """Zwei Haeuser, zwei Vokabulare, ein Ereignis.
+
+    **Am 17.09.2026 von der Zeichenkette auf die Sache umgestellt.** Hier
+    stand `"fbq('track', 'InitiateCheckout')"` mit schliessender Klammer —
+    und schlug fehl, sobald der Aufruf eine `eventID` bekam. Der Test hatte
+    damit eine richtige Ergaenzung als Fehler gemeldet. Geprueft wird jetzt,
+    dass das Ereignis gemeldet wird, nicht wie der Aufruf buchstabiert ist.
+    """
     zweig = empfaenger.split(f"d.type === '{NACHRICHT}'", 1)[1][:900]
-    assert "fbq('track', 'InitiateCheckout')" in zweig
+    assert "fbq('track', 'InitiateCheckout'" in zweig
     assert "gtag('event', 'begin_checkout')" in zweig
+
+
+def test_das_meta_ereignis_traegt_eine_eigene_kennung(empfaenger):
+    """**Die zweite Absicherung, unabhaengig von unserer Sperre** (17.09.2026).
+
+    Die Sperre `begonnenGemeldet` haelt, solange diese Seite laeuft. Sie
+    haelt nicht bei zwei Tabs, nicht bei einem fremden Skript, das die
+    Nachricht spiegelt, und nicht bei einem iframe aus dem Zwischenspeicher
+    neben einer frisch geladenen Seite — genau die Lage, die am 17.09. zu
+    der Meldung „feuert doppelt" gefuehrt hat.
+
+    Mit einer Kennung, die bei einer Wiederholung **dieselbe** ist, verwirft
+    Meta die zweite Meldung selbst. Deshalb steht ihre Bildung **ausserhalb**
+    des Empfaengers: Im Empfaenger gebildet waere sie bei jeder Meldung neu
+    und damit wirkungslos.
+    """
+    assert "eventID: begonnenKennung" in empfaenger, (
+        "Der InitiateCheckout traegt keine Kennung — Metas Entdopplung "
+        "haengt dann an einem Verhalten, das nicht zugesagt ist.")
+
+    # Positiv daneben: Sie wird ueberhaupt gebildet, und zwar **vor** der
+    # Stelle, die sie benutzt. Ohne diese Zusicherung waere die obige auch
+    # dann gruen, wenn `begonnenKennung` nirgends entsteht
+    # (`waechter_ohne_wirkung`).
+    #
+    # **Nicht am ersten `addEventListener('message'` schneiden.** Die
+    # ausgelieferte Seite hat davon vier — Relay, iframe-Hoehe, Messblock,
+    # Einwilligung —, und der erste steht weit vor dieser Stelle. Ein
+    # Schnitt dort prueft einen Abschnitt, in dem die Kennung gar nicht
+    # stehen soll. (Selbst hineingelaufen, 17.09.2026.)
+    assert "var begonnenKennung" in empfaenger, (
+        "Die Kennung wird nirgends gebildet.")
+    assert empfaenger.index("var begonnenKennung") < \
+        empfaenger.index("eventID: begonnenKennung"), (
+        "Die Kennung steht hinter ihrer Verwendung.")
+
+    # Und sie liegt ausserhalb des Empfaenger-Zweigs: Im Zweig gebildet
+    # waere sie bei jeder Meldung neu und damit wirkungslos.
+    zweig = empfaenger.split(f"d.type === '{NACHRICHT}'", 1)[1]
+    assert "var begonnenKennung" not in zweig, (
+        "Die Kennung entsteht im Empfaenger-Zweig statt davor — dann ist "
+        "sie bei jeder Meldung neu und entdoppelt nichts.")
 
 
 def test_ga4_nur_wenn_es_gtag_gibt(empfaenger):
@@ -193,3 +242,44 @@ def test_anleitung_und_ausgelieferte_seite_stimmen_ueberein():
     schnitt = lambda t: fest(t[t.index(anfang):])[:1800]  # noqa: E731
     assert schnitt(readme) == schnitt(seite), (
         "Einbauanleitung und ausgelieferte Landingpage sind verschieden")
+
+
+def test_das_ereignis_meldet_nur_nach_einer_nutzerhandlung(widget):
+    """**Kein Ereignis ohne Handlung** (Diagnosefrage 1b, 17.09.2026).
+
+    Der Browser schreibt beim Neuladen den alten Feldinhalt zurueck. Wuerde
+    das Widget dabei melden, entstuende ein „Analyse begonnen" ohne dass
+    jemand etwas getan hat — und zwar bei jedem, der die Seite zweimal
+    aufruft. Die Zahl saehe gut aus und waere leer.
+
+    Am Code geprueft, nicht am Verhalten: Beide Aufrufer der Meldefunktion
+    haengen an einer Handlung (`blur`/`change` am Feld, und `startAudit`,
+    das nur der Submit-Handler ruft). Der Anfangswert wird nirgends beim
+    Aufbau geprueft, und es gibt kein synthetisches Ereignis.
+
+    David hat dasselbe am 17.09. an Metas eigenem Zaehler gemessen:
+    Seite neu geladen, Adresse zurueckgeschrieben, keine Handlung —
+    `eventCount` blieb bei 1 (nur PageView).
+    """
+    import re
+
+    aufrufe = [z.strip() for z in widget.splitlines()
+               if "meldeAnalyseBegonnen()" in z and "function " not in z]
+    assert aufrufe, "Die Meldefunktion wird nirgends gerufen."
+    assert len(aufrufe) == 2, (
+        f"Erwartet sind zwei Aufrufer (Feld verlassen, Absenden), gefunden "
+        f"sind {len(aufrufe)}: {aufrufe}. Ein dritter braucht eine Begruendung "
+        f"— und die Frage, ob er ohne Nutzerhandlung laufen kann.")
+
+    # Kein synthetisch ausgeloestes Ereignis, das die Handler beim Aufbau
+    # anstossen wuerde.
+    for kunstgriff in ("dispatchEvent", ".blur()", "new Event("):
+        assert kunstgriff not in widget, (
+            f"`{kunstgriff}` im Widget — koennte die Meldung ohne Handlung "
+            f"ausloesen. Bitte pruefen, nicht nur diesen Test anpassen.")
+
+    # Positiv daneben: Der Handler haengt wirklich an den beiden Ereignissen.
+    # Ohne diese Zeile waere alles oben auch dann gruen, wenn gar nichts
+    # registriert ist (`waechter_ohne_wirkung`).
+    assert re.search(r"\['blur',\s*'change'\]", widget), (
+        "Die Registrierung an 'blur' und 'change' fehlt.")

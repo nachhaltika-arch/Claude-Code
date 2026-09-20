@@ -178,9 +178,9 @@ Drei kamen aus dem Code, einer (UX-33) erst vom laufenden System.*
       dem Firmennamen trug Kürzel wie `Pt`, `Go`, `Si` nach der Staffelung
       85/70/50/30. Genau diese war gegen die Backend-Skala 95/85/70/50 getauscht
       worden, weil derselbe Score im Bericht „Silber" und im Widget „Gold" hieß
-      — nachzulesen im Kopf von `utils/homepageStandard.js`. In dieser Liste
+      — nachzulesen im Kopf von `utils/websiteStandard.js`. In dieser Liste
       stand sie weiter. **Ein Betrieb mit 86 Punkten trug „Pt", während sein
-      Bericht „Homepage Standard Gold" sagt.**
+      Bericht „Website Standard Gold" sagt.**
       **Gemacht:** Die eigene Skala ist weg, gerechnet wird mit
       `stufeFuerScore`. Die Kürzel sind mit ihr entfallen — zwei Buchstaben ohne
       Legende sind nicht zu entschlüsseln (das war UX-28 in klein). Der Kreis
@@ -529,7 +529,7 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       **Umgestellt:** PortalLogin, CustomerPortal (71 feste Werte),
       KundenPortal, Freigaben, SupportTickets.
       **Fest bleiben nur zwei Sorten Farbe**, und der Sperrtest nennt den
-      Grund: die Medaillentöne des Homepage Standards und die drei
+      Grund: die Medaillentöne des Website Standards und die drei
       Fensterknöpfe des Browser-Nachbaus — die zitieren ein Fenster, sie
       melden keinen Zustand.
       **Die dritte Domain ist weg.** Stattdessen der Firmenname und die

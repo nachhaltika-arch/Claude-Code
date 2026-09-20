@@ -12,7 +12,7 @@ folgen dem Steuersatz der Hauptleistung. Der Produkteditor des Bestandssystems
 stellt 19 % voreingestellt ein — für dieses Produkt wäre das falsch (BUCH-12).
 
 **Die Fassung des Standards kommt aus dem Katalog.** `BUCH-05` sah dafür eine
-Datei `shared/homepage-standard.json` vor; die gibt es nicht, und sie wäre eine
+Datei `shared/website-standard.json` vor; die gibt es nicht, und sie wäre eine
 zweite Wahrheit neben `audit_scoring.STANDARD_VERSION`. Das Buch druckt den
 Katalog — also nennt es dieselbe Fassung, die die Bewertung nennt.
 """
@@ -32,17 +32,17 @@ VARIANTEN = {
     "pdf": {
         "brutto_cents": 3900,
         "versand_cents": 0,
-        "bezeichnung": "Der Homepage Standard — PDF-Ausgabe",
+        "bezeichnung": "Der Website Standard — PDF-Ausgabe",
     },
     "print": {
         "brutto_cents": 4900,
         "versand_cents": 495,
-        "bezeichnung": "Der Homepage Standard — gedruckte Ausgabe",
+        "bezeichnung": "Der Website Standard — gedruckte Ausgabe",
     },
     "bundle": {
         "brutto_cents": 5900,
         "versand_cents": 495,
-        "bezeichnung": "Der Homepage Standard — gedruckt und als PDF",
+        "bezeichnung": "Der Website Standard — gedruckt und als PDF",
     },
 }
 

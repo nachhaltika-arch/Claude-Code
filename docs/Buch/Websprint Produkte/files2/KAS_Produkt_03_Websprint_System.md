@@ -44,7 +44,7 @@ Alles aus Produkt 02, zusätzlich:
 - **Quartals-Garantie:** Fällt der Score in einem der vier Re-Audits unter 85, Nachbesserung ohne Berechnung
 - Bauzeit-Garantie 42 Tage, 100 €/Verzugstag, max. 2.000 €
 
-⚠️ Die Quartals-Garantie ist eine **Zwölf-Monats-Verpflichtung mit unbestimmtem Aufwand**. Ein Score kann durch externe Faktoren fallen (Google-Update, Änderung der Bewertungskriterien, Kunde ändert Inhalte selbst). Der Garantietext muss ausschließen: kundenseitige Änderungen, Änderungen des Homepage-Standards selbst, höhere Gewalt bei Drittdiensten.
+⚠️ Die Quartals-Garantie ist eine **Zwölf-Monats-Verpflichtung mit unbestimmtem Aufwand**. Ein Score kann durch externe Faktoren fallen (Google-Update, Änderung der Bewertungskriterien, Kunde ändert Inhalte selbst). Der Garantietext muss ausschließen: kundenseitige Änderungen, Änderungen des Website-Standards selbst, höhere Gewalt bei Drittdiensten.
 
 ## 7. Verkaufsargumentation
 **Eröffnung:**

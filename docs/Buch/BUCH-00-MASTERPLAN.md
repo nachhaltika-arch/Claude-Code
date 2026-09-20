@@ -1,5 +1,5 @@
 # BUCH — MASTERPLAN
-## Der Homepage Standard (Buch) als Einstiegsprodukt
+## Der Website Standard (Buch) als Einstiegsprodukt
 
 **Stand:** August 2026
 **Entscheidungen:** Standardwerk 150–200 Seiten · 39–49 € · PDF + Print via BoD · Landingpage auf eigener Netlify-Seite
@@ -31,19 +31,19 @@ wertvollste Lead, den du bekommen kannst.
 
 ## 2. Das zentrale Prinzip: Single Source of Truth
 
-Der Homepage Standard existiert bereits an drei Stellen im Code:
+Der Website Standard existiert bereits an drei Stellen im Code:
 
 | Ort | Was steht drin |
 |---|---|
 | `frontend/src/components/AuditReport.jsx` | 6 Kategorien, ~30 Unterkriterien, Punktzahlen |
-| `frontend/src/components/HomepageChecklist.jsx` | Kriterien mit Gesetzesbezug (TMG, DSGVO, WCAG …) |
+| `frontend/src/components/WebsiteChecklist.jsx` | Kriterien mit Gesetzesbezug (TMG, DSGVO, WCAG …) |
 | `frontend/public/embed/audit-widget.html` | Stufen-Schwellen (85/70/50/30) |
 
 **Risiko:** Wenn du das Audit später änderst, stimmt das gedruckte Buch nicht mehr.
 Ein Kunde mit Buch in der Hand rechnet nach. Das kostet dich sofort die Glaubwürdigkeit.
 
 **Lösung:** Wir legen eine gemeinsame Definitionsdatei an
-(`shared/homepage-standard.json`) und einen Prüf-Befehl, der meldet, sobald Buch und
+(`shared/website-standard.json`) und einen Prüf-Befehl, der meldet, sobald Buch und
 Audit auseinanderlaufen. → Siehe `BUCH-01`.
 
 ---

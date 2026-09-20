@@ -148,7 +148,7 @@ export default function AuditTool() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Homepage-Standard-Audit-${(result?.company_name || 'Audit').replace(/\s+/g, '-')}.pdf`;
+      a.download = `Website-Standard-Audit-${(result?.company_name || 'Audit').replace(/\s+/g, '-')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -168,7 +168,7 @@ export default function AuditTool() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <div >
-          <span >Homepage Standard</span>
+          <span >Website Standard</span>
           <h1>Website-Audit</h1>
         </div>
 
@@ -382,10 +382,10 @@ export default function AuditTool() {
 // ═══════════════════════════════════════════════════════════
 
 const LEVEL_STYLES = {
-  'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
-  'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
-  'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
-  'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
+  'Website Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
+  'Website Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
+  'Website Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
+  'Website Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
   'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '⛔' },
 };
 

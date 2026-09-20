@@ -104,7 +104,7 @@ def _marken_band(styles) -> Table:
     zelle = Paragraph(
         f'KOMPAGNON<font color="{KC_YELLOW.hexval()}">.</font>'
         f'<font size="8" color="{KC_WHITE.hexval()}">'
-        f'&nbsp;&nbsp;HOMEPAGE STANDARD</font>',
+        f'&nbsp;&nbsp;WEBSITE STANDARD</font>',
         styles["KCWortmarke"])
     band = Table([[zelle]], colWidths=[170*mm])
     band.setStyle(TableStyle([
@@ -231,7 +231,7 @@ def _footer(canvas_obj, doc):
     canvas_obj.setLineWidth(0.5)
     canvas_obj.line(20*mm, 15*mm, w - 20*mm, 15*mm)
     canvas_obj.drawString(20*mm, 10*mm,
-        _clean_text(f"KOMPAGNON Homepage Standard · Audit {jahr} · Seite {doc.page}"))
+        _clean_text(f"KOMPAGNON Website Standard · Audit {jahr} · Seite {doc.page}"))
     canvas_obj.drawRightString(w - 20*mm, 10*mm,
         _clean_text("Dieses Audit ersetzt keine Rechtsberatung."))
     canvas_obj.restoreState()

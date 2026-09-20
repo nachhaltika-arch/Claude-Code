@@ -36,7 +36,7 @@ class _Audit:
     company_name = "Muster GmbH"; website_url = "https://muster.de"
     total_score = 61; item_scores = {}; item_sources = {}; item_belege = {}
     coverage = 0; blockers = "[]"; erkannte_branche = ""; branchenklasse = ""
-    level = "Homepage Standard Bronze"
+    level = "Website Standard Bronze"
 
 
 KAUF_RELAUNCH = "https://buy.stripe.com/aFa8wP8FR6WZdsG0no9Zm00"

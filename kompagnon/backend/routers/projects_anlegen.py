@@ -282,7 +282,7 @@ async def _golive_automation(project_id: int):
             except Exception as e:
                 logger.warning(f"Go-Live: PageSpeed Fehler: {e}")
 
-            # ── 4. HOMEPAGE-STANDARD-AUDIT ───────────────────
+            # ── 4. WEBSITE-STANDARD-AUDIT ───────────────────
             try:
                 lead_id = project.lead_id
                 if lead_id:
@@ -389,7 +389,7 @@ async def _golive_automation(project_id: int):
                         </p>
                         <p style="color:#64748b;line-height:1.7;font-size:13px">
                           Ihre neue Website ist ab sofort online erreichbar.
-                          Wir haben sie nach unserem Homepage Standard 2025
+                          Wir haben sie nach unserem Website Standard 2025
                           geprüft und optimiert.
                         </p>
 
@@ -438,7 +438,7 @@ async def _golive_automation(project_id: int):
                                        color:#1D9E75">✓</td>
                             <td style="padding:5px 0;font-size:12px;
                                        color:#64748b">
-                              Ihr Homepage-Audit-Report folgt per E-Mail
+                              Ihr Website-Audit-Report folgt per E-Mail
                             </td>
                           </tr>
                         </table>

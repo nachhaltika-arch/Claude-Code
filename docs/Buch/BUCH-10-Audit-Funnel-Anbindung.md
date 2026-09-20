@@ -28,7 +28,7 @@ genommen.
 
 ## Wo der CTA eingebaut wird
 
-Der Homepage Standard wird an **vier** Stellen ausgegeben. Alle vier müssen bedacht
+Der Website Standard wird an **vier** Stellen ausgegeben. Alle vier müssen bedacht
 werden, sonst hast du Lücken im Funnel:
 
 | Datei | Kontext | CTA nötig? |

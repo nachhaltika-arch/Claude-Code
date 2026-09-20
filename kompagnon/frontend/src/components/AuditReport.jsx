@@ -201,7 +201,7 @@ export default function AuditReport({ auditData, onClose }) {
         }}>
           {r.branchenklasse === 'K6' ? (
             <>Eingeordnet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>.
-              {' '}Der Homepage Standard ist auf Betriebe zugeschnitten — die
+              {' '}Der Website Standard ist auf Betriebe zugeschnitten — die
               angebotsbezogenen Kriterien gelten hier nicht und zählen nicht mit.</>
           ) : (
             <>Bewertet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>
@@ -218,7 +218,7 @@ export default function AuditReport({ auditData, onClose }) {
         fontSize: 12, color: 'var(--text-tertiary)',
         fontFamily: 'var(--font-mono)', textAlign: 'right',
       }}>
-        Homepage Standard · {fassungText(r.standard_version)}
+        Website Standard · {fassungText(r.standard_version)}
       </div>
 
       {/* Score Hero */}
@@ -524,7 +524,7 @@ export default function AuditReport({ auditData, onClose }) {
         const color = notOk ? '#9A3412' : '#1E40AF';
         const icon  = notOk ? '⚠️' : 'ℹ️';
         const text  = notOk
-          ? `Handlungsbedarf: Diese Website erfüllt den Homepage Standard ${fassungText(r.standard_version)} nicht. Die wichtigsten Probleme sind unten aufgeführt.`
+          ? `Handlungsbedarf: Diese Website erfüllt den Website Standard ${fassungText(r.standard_version)} nicht. Die wichtigsten Probleme sind unten aufgeführt.`
           : 'Gutes Fundament — gezielte Optimierungen bringen Sie auf Gold-Niveau.';
         return (
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 18px' }}>

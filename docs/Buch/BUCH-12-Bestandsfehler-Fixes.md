@@ -29,11 +29,11 @@ verkauft mit falschem Steuerausweis.
 ### FIX-2 — Veraltete Jahreszahl im Audit-Report · **hoch**
 
 **Datei:** `frontend/src/components/AuditReport.jsx`
-**Befund:** Im Warnbanner steht fest verdrahtet „Homepage Standard **2025**".
+**Befund:** Im Warnbanner steht fest verdrahtet „Website Standard **2025**".
 **Warum das falsch ist:** Wir haben August 2026. Jeder Kunde, der einen Audit-Bericht
 bekommt, liest eine ein Jahr alte Standardbezeichnung. Sobald das Buch mit der Version
 2026.1 erscheint, widersprechen sich Buch und Bericht offen.
-**Fix:** Die Version aus `shared/homepage-standard.json` (aus `BUCH-01`) laden, nicht
+**Fix:** Die Version aus `shared/website-standard.json` (aus `BUCH-01`) laden, nicht
 hart schreiben.
 
 ---
@@ -73,7 +73,7 @@ Dateien getrennt voneinander.
 **Warum das gefährlich ist:** Sobald das Buch gedruckt ist, sind diese Zahlen in Papier
 gegossen. Eine Änderung an einer Stelle, die nicht überall nachgezogen wird, macht das
 Buch falsch — und du merkst es erst, wenn ein Kunde nachrechnet.
-**Fix:** Aus `shared/homepage-standard.json` speisen. Für `audit-widget.html` (kein Build)
+**Fix:** Aus `shared/website-standard.json` speisen. Für `audit-widget.html` (kein Build)
 zumindest ein Prüfskript, das Abweichungen meldet.
 
 ---
@@ -117,13 +117,13 @@ git push origin staging
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
 
-Voraussetzung: shared/homepage-standard.json existiert (aus BUCH-01).
+Voraussetzung: shared/website-standard.json existiert (aus BUCH-01).
 
 In frontend/src/components/AuditReport.jsx: Ersetze die fest verdrahtete
-Zeichenkette "Homepage Standard 2025" durch die Version aus
-shared/homepage-standard.json.
+Zeichenkette "Website Standard 2025" durch die Version aus
+shared/website-standard.json.
 Suche im gesamten frontend/ und backend/ nach weiteren Vorkommen von "2025"
-im Zusammenhang mit "Homepage Standard" und ersetze sie ebenfalls.
+im Zusammenhang mit "Website Standard" und ersetze sie ebenfalls.
 Zeige mir alle Fundstellen vor der Aenderung.
 
 git add -A
@@ -182,13 +182,13 @@ git push origin staging
 ```
 Führe zuerst aus: git remote -v && git branch --show-current
 
-Voraussetzung: shared/homepage-standard.json existiert.
+Voraussetzung: shared/website-standard.json existiert.
 
 SCHRITT 1: Finde alle Stellen mit den Score-Schwellen 85, 70, 50, 30 und den
 Stufennamen. Zeige mir eine vollstaendige Liste (Datei + Zeile).
 
-SCHRITT 2: Lege frontend/src/utils/homepageStandard.js an, das die Definition
-aus shared/homepage-standard.json importiert und exportiert:
+SCHRITT 2: Lege frontend/src/utils/websiteStandard.js an, das die Definition
+aus shared/website-standard.json importiert und exportiert:
   LEVELS, getLevel(score), getLevelColor(score), STANDARD_VERSION
 
 SCHRITT 3: Ersetze in allen React-Dateien aus Schritt 1 die duplizierten
@@ -197,14 +197,14 @@ Farben und Beschriftungen muessen identisch bleiben.
 
 SCHRITT 4: frontend/public/embed/audit-widget.html kann nicht importieren
 (kein Build). Lasse die Werte dort stehen, aber erweitere
-scripts/check-homepage-standard.js so, dass es auch diese Datei prueft und
+scripts/check-website-standard.js so, dass es auch diese Datei prueft und
 Abweichungen meldet.
 
 SCHRITT 5: npm run check:standard und npm run build ausfuehren.
 Melde mir beide Ergebnisse.
 
 git add -A
-git commit -m "Centralize Homepage Standard level thresholds in shared module"
+git commit -m "Centralize Website Standard level thresholds in shared module"
 git push origin staging
 ```
 
@@ -230,7 +230,7 @@ verhindern, dass der Fehler ins Buch wandert.
 ```bash
 npm run check:standard
 npm run build
-grep -rn "Homepage Standard 2025" frontend/ backend/    # muss leer sein
+grep -rn "Website Standard 2025" frontend/ backend/    # muss leer sein
 grep -rn "?? 19" frontend/src/pages/ProductEditor.jsx   # muss leer sein
 ```
 

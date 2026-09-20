@@ -28,7 +28,7 @@
 |---|---|
 | Artikelnummer | WS-REL-01 |
 | Systemwert `product_type` | `websprint_relaunch` |
-| Angebotsbezeichnung | Websprint Relaunch — Fertigstellung nach Homepage-Standard |
+| Angebotsbezeichnung | Websprint Relaunch — Fertigstellung nach Website-Standard |
 | Preis | **3.500 € netto** (Festpreis) |
 | Umsatzsteuer | 19 % |
 | Zahlungsbedingung | **Z1** (Vollzahlung bei Auftrag) |
@@ -62,7 +62,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 
 | Pos. | Leistung | Menge |
 |---|---|---|
-| 1.1 | Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien, schriftlich dokumentiert | 1 |
+| 1.1 | Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien, schriftlich dokumentiert | 1 |
 | 1.2 | Strukturabgleich und Seitenplan auf Basis der bestehenden Website | 1 |
 | 2.1 | Aufbau der Seiten im KOMPAGNON-Komponentensystem, responsiv für Desktop, Tablet und Smartphone | bis 6 Seiten |
 | 2.2 | Übernahme und redaktionelle Überarbeitung der vorhandenen Texte (Kürzung, Gliederung, Ansprache) | bis 6 Seiten |
@@ -73,7 +73,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 | 3.1 | Technische Grundoptimierung: Ladezeit, Bildformate, Metadaten, strukturierte Auszeichnung des Betriebs | inkl. |
 | 3.2 | Einrichtung des Hostings, SSL, Weiterleitungen der bisherigen Adressen | 1 |
 | 3.3 | Umstellung der Domain (DNS) auf die neue Seite, Begleitung der Umschaltung | 1 |
-| 4.1 | Abnahmeaudit nach Homepage-Standard mit schriftlichem **Abnahmeprotokoll** je Kategorie | 1 |
+| 4.1 | Abnahmeaudit nach Website-Standard mit schriftlichem **Abnahmeprotokoll** je Kategorie | 1 |
 | 4.2 | Einweisung des Ansprechpartners, 30 Minuten, per Videokonferenz | 1 |
 | 4.3 | Übergabe aller Zugänge und Dateien | 1 |
 
@@ -115,7 +115,7 @@ Betrieb mit **vorhandener Website**, deren Inhalte im Kern verwendbar sind. Typi
 
 ## 5. Angebotstext (Baustein zum Einsetzen)
 
-> **Websprint Relaunch — Fertigstellung nach Homepage-Standard**
+> **Websprint Relaunch — Fertigstellung nach Website-Standard**
 >
 > Ihre bestehende Website erreicht im Eingangsaudit [SCORE] von 100 Punkten. Wir bringen sie in 14 Tagen auf Abnahmeniveau: gleiche Inhalte, neu aufgebaut, technisch und rechtlich auf Stand, mit dokumentierter Abnahme.
 >

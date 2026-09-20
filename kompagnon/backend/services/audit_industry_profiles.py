@@ -1,6 +1,6 @@
 """Wogegen je Branchenklasse gemessen wird.
 
-Bewertungslogik „Homepage Standard 2026.2", § 3 — die eigentliche Arbeit der
+Bewertungslogik „Website Standard 2026.2", § 3 — die eigentliche Arbeit der
 Ausweitung. Die Klasse kommt aus `audit_industry_map`, hier steht, was sie für
 den Maßstab bedeutet.
 

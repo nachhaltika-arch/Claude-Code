@@ -8,7 +8,7 @@ in einer WhatsApp-Gruppe von Handwerksmeistern kursiert.
 Drei Maßnahmen, gestaffelt nach Wirkung:
 
 1. **Kein fester Download-Pfad.** Läge das PDF unter
-   `https://…/static/homepage-standard.pdf`, wäre es nach dem ersten Verkauf öffentlich.
+   `https://…/static/website-standard.pdf`, wäre es nach dem ersten Verkauf öffentlich.
    Stattdessen: ein zufälliges Einmal-Token pro Bestellung, gültig 14 Tage, maximal
    5 Downloads.
 2. **Personalisiertes Wasserzeichen.** In die Fußzeile jeder Seite wird eingestempelt:
@@ -49,7 +49,7 @@ Das gebaute PDF liegt nicht im Repo. Es muss zur Laufzeit erreichbar sein.
 Baue backend/services/book_asset.py mit einer Funktion get_master_pdf_path(),
 die in dieser Reihenfolge sucht:
   1. Pfad aus ENV BOOK_PDF_PATH
-  2. /opt/render/project/src/buch/build/homepage-standard-screen.pdf
+  2. /opt/render/project/src/buch/build/website-standard-screen.pdf
 Fehlt die Datei, wirf einen klaren Fehler mit dem gesuchten Pfad im Text.
 Logge diesen Fehler als ERROR, nicht als WARNING.
 
@@ -83,7 +83,7 @@ Endpunkt: GET /api/book/download/{token}
   5. download_count um 1 erhoehen, delivered_at setzen falls leer
   6. stamp_pdf() aufrufen und als StreamingResponse ausliefern
      media_type application/pdf
-     Content-Disposition: attachment; filename="Homepage-Standard-{version}.pdf"
+     Content-Disposition: attachment; filename="Website-Standard-{version}.pdf"
   7. Cache-Control: no-store
 
 SCHRITT 4 — Versandmail
@@ -98,7 +98,7 @@ Ergaenze backend/services/book_delivery.py:
     Schritt 0 identifizierte Brevo-Modul.
 
 Mailinhalt (deutsch, Sie-Form, KOMPAGNON-Branding):
-  Betreff: "Ihr Homepage Standard - Download bereit (Bestellnr. {order_number})"
+  Betreff: "Ihr Website Standard - Download bereit (Bestellnr. {order_number})"
   Inhalt: Dank, Download-Button, Hinweis 14 Tage / 5 Downloads,
   Hinweis auf personalisiertes Wasserzeichen,
   bei variant bundle zusaetzlich: gedruckte Ausgabe folgt separat,
@@ -114,7 +114,7 @@ Das brauchst du im Support-Fall.
 SCHRITT 6 — Verifikation
 python -c "
 from backend.services.book_watermark import stamp_pdf
-data = stamp_pdf('buch/build/homepage-standard-screen.pdf', 'Testkunde, Test GmbH', 'HS-2026-0001')
+data = stamp_pdf('buch/build/website-standard-screen.pdf', 'Testkunde, Test GmbH', 'HS-2026-0001')
 open('/tmp/test-stamped.pdf','wb').write(data.getvalue() if hasattr(data,'getvalue') else data)
 print('OK, Bytes:', len(data.getvalue() if hasattr(data,'getvalue') else data))
 "

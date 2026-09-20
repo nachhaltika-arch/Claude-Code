@@ -443,14 +443,14 @@ INFRASTRUCTURE: Tuple[Criterion, ...] = (
 
 
 LEVELS: Tuple[Tuple[int, str], ...] = (
-    (95, "Homepage Standard Platin"),
-    (85, "Homepage Standard Gold"),
-    (70, "Homepage Standard Silber"),
-    (50, "Homepage Standard Bronze"),
+    (95, "Website Standard Platin"),
+    (85, "Website Standard Gold"),
+    (70, "Website Standard Silber"),
+    (50, "Website Standard Bronze"),
     (0, "Nicht konform"),
 )
 
 NON_COMPLIANT = "Nicht konform"
-BRONZE = "Homepage Standard Bronze"
+BRONZE = "Website Standard Bronze"
 
 

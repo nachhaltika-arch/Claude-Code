@@ -4,7 +4,7 @@
  */
 
 const ERROR_MAP = {
-  'Slug fehlt':                       'Bitte einen URL-Bezeichner (Slug) eingeben, z.B. "homepage-standard".',
+  'Slug fehlt':                       'Bitte einen URL-Bezeichner (Slug) eingeben, z.B. "website-standard".',
   'Slug bereits vergeben':            'Dieser Slug ist bereits vergeben — bitte einen anderen wählen.',
   'Ungültiger Slug':                  'Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.',
   'Could not validate credentials':   'Sitzung abgelaufen — bitte erneut anmelden.',

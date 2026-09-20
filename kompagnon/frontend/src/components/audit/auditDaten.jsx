@@ -9,10 +9,10 @@
 
 
 export const LEVEL_STYLES = {
-  'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
-  'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
-  'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
-  'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
+  'Website Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
+  'Website Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
+  'Website Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
+  'Website Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
   'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '⛔' },
 };
 

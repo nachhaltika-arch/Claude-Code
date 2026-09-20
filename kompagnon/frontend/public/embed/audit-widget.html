@@ -326,7 +326,7 @@
  <div class="kpg-rahmen">
   <header class="kpg-kopf">
     <span class="kpg-marke">KOMPAGNON<span>.</span></span>
-    <span class="kpg-kopf-zusatz">Homepage Standard</span>
+    <span class="kpg-kopf-zusatz">Website Standard</span>
   </header>
   <div class="kpg-card" id="kpg-card">
     <!-- ── Schritt 1: Eingabe ── -->
@@ -860,16 +860,16 @@
     return s >= 70 ? 'var(--kpg-ok)' : s >= 50 ? 'var(--kpg-warn)' : 'var(--kpg-bad)';
   }
   /* Rückfall, falls der Server keine Stufe mitschickt. Die Schwellen folgen
-     `services/audit_criteria.py::LEVELS` und `src/utils/homepageStandard.js` —
+     `services/audit_criteria.py::LEVELS` und `src/utils/websiteStandard.js` —
      diese Datei ist eigenständig und kann nichts einbinden, deshalb steht die
      Reihe hier ein zweites Mal. Sie standen hier lange auf 85/70/50/30: derselbe
      Score hiess im Widget „Gold" und im Bericht „Silber", und beides landet beim
      selben Empfänger. Wer den Standard ändert, ändert alle drei Stellen. */
   function level(s) {
-    if (s >= 95) return 'Homepage Standard Platin 💎';
-    if (s >= 85) return 'Homepage Standard Gold 🥇';
-    if (s >= 70) return 'Homepage Standard Silber 🥈';
-    if (s >= 50) return 'Homepage Standard Bronze 🥉';
+    if (s >= 95) return 'Website Standard Platin 💎';
+    if (s >= 85) return 'Website Standard Gold 🥇';
+    if (s >= 70) return 'Website Standard Silber 🥈';
+    if (s >= 50) return 'Website Standard Bronze 🥉';
     return 'Nicht konform ⚠️';
   }
   /* ── Höhe an die einbettende Seite melden ──

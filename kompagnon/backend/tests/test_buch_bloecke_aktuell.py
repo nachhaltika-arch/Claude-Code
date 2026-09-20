@@ -64,7 +64,7 @@ def test_die_punktwerte_der_handtabellen_werden_wirklich_nachgerechnet():
 # ── Zahlen im Fließtext, die keine Marke tragen (B3.2.5) ─────────────
 
 def _manuskript(name: str) -> str:
-    pfad = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+    pfad = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
             / "Vollständige dokumentation Buch V2" / name)
     assert pfad.exists(), pfad
     return pfad.read_text(encoding="utf-8")

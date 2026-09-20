@@ -26,7 +26,7 @@ import Badge from '../components/ui/Badge';
 import BetriebAnlegenModal from '../components/BetriebAnlegenModal';
 import Kanalwirkung from '../components/Kanalwirkung';
 import { leadStatusLabel, leadStatusVariant } from '../utils/leadStatus';
-import { stufeFuerScore, stufeKurz } from '../utils/homepageStandard';
+import { stufeFuerScore, stufeKurz } from '../utils/websiteStandard';
 import {
   betriebeAufbereiten,
   betriebeStatistik,
@@ -43,14 +43,14 @@ import { aufTaste } from '../utils/tastaturBedienung';
 const MAX_BETRIEBE = 1000;
 
 /**
- * Farbe des Scores nach den Stufen des Homepage Standards.
+ * Farbe des Scores nach den Stufen des Website Standards.
  *
  * Vorher stand in „Kunden" eine eigene Staffelung 85/70/50/30 mit den Kuerzeln
  * Pt/Go/Si/Br im Kreis vor dem Namen. Das war die **zurueckgezogene** Skala:
- * `utils/homepageStandard.js` haelt fest, dass genau diese Staffelung gegen die
+ * `utils/websiteStandard.js` haelt fest, dass genau diese Staffelung gegen die
  * des Backends (95/85/70/50) getauscht wurde, weil derselbe Score im Bericht
  * „Silber" und im Widget „Gold" hiess. In dieser Liste hatte sie ueberlebt —
- * ein Betrieb mit 86 Punkten trug hier „Pt", waehrend sein Bericht „Homepage
+ * ein Betrieb mit 86 Punkten trug hier „Pt", waehrend sein Bericht „Website
  * Standard Gold" sagt.
  *
  * Die Kuerzel sind mit ihr entfallen: Zwei Buchstaben ohne Legende sind nicht

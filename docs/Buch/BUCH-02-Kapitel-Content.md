@@ -18,7 +18,7 @@ Stunden kostet.
 |---|---|---|---|
 | — | Titelei | 4 | Titel, Impressum, Disclaimer, Inhalt |
 | 1 | Warum Ihre Website kein Prospekt ist | 12 | Marktlage Handwerk, Zahlen, Kosten schlechter Sichtbarkeit |
-| 2 | Der Homepage Standard: Wie 100 Punkte entstehen | 12 | Das System, 6 Kategorien, 5 Stufen, Methodik |
+| 2 | Der Website Standard: Wie 100 Punkte entstehen | 12 | Das System, 6 Kategorien, 5 Stufen, Methodik |
 | 3 | Rechtliche Compliance (30 Punkte) | 26 | Impressum, Datenschutz, Cookie, AGB |
 | 4 | Technische Performance (20 Punkte) | 18 | Ladezeit, Mobile, Core Web Vitals |
 | 5 | Barrierefreiheit (20 Punkte) | 18 | WCAG AA, Kontrast, Tastatur, BFSG |
@@ -73,7 +73,7 @@ Erwartet: origin = nachhaltika-arch/Claude-Code, branch = staging
 Bei Abweichung: stoppe und melde.
 
 KONTEXT
-Lies shared/homepage-standard.json vollstaendig. Alle Punktzahlen, Kriterien und
+Lies shared/website-standard.json vollstaendig. Alle Punktzahlen, Kriterien und
 Gesetzesbezuege im Kapitel MUESSEN exakt dieser Datei entsprechen. Erfinde keine
 Kriterien und aendere keine Punktzahlen.
 
@@ -132,7 +132,7 @@ git push origin staging
 > des Bewertungssystems.
 
 **Kapitel 2 — `02-das-system.md`, 12 Seiten**
-> Erklärung des Homepage Standards als Messsystem. Warum 100 Punkte, warum diese
+> Erklärung des Website Standards als Messsystem. Warum 100 Punkte, warum diese
 > Gewichtung. Die 6 Kategorien im Überblick mit Begründung der Punkteverteilung
 > (Recht 30, weil es das einzige mit direktem finanziellen Risiko ist). Die 5 Stufen mit
 > Beschreibung, was eine Website auf dieser Stufe für den Betrieb bedeutet. Wie der Test
@@ -140,7 +140,7 @@ git push origin staging
 > Detail) und warum diese Ehrlichkeit wichtig ist.
 
 **Kapitel 3 — `03-recht.md`, 26 Seiten, 30 Punkte**
-> Kriterien aus `shared/homepage-standard.json`: rc_impressum (6), rc_datenschutz (6),
+> Kriterien aus `shared/website-standard.json`: rc_impressum (6), rc_datenschutz (6),
 > rc_cookie (6), rc_ecommerce (3) und die weiteren aus der Datei. Pro Kriterium: die
 > Norm (TMG §5, DSGVO Art. 13, TDDDG §25, BGB §355), was konkret auf der Seite stehen
 > muss, Selbstprüfung, Risiko bei Fehlen (Abmahnkosten realistisch beziffern), Behebung.
@@ -186,7 +186,7 @@ git push origin staging
 > Herstellerpartnerschaften, echte Bewertungen mit Namen.
 
 **Kapitel 9 — `09-selbsttest.md`, 14 Seiten**
-> Vollständige ausfüllbare Checkliste, exakt aus `shared/homepage-standard.json`
+> Vollständige ausfüllbare Checkliste, exakt aus `shared/website-standard.json`
 > generiert. Jedes Kriterium als Zeile: Kriterium, wie prüfen, max. Punkte, erreichte
 > Punkte (leer zum Eintragen). Am Ende: Summenfeld und Stufenzuordnung. Zeitangabe
 > 90 Minuten realistisch aufgeteilt.
@@ -223,14 +223,14 @@ npm run check:standard
 ```
 
 **Prüfe selbst:** Bricht der Text mitten im Satz ab? Fehlen Kriterien, die in
-`homepage-standard.json` stehen? Dann Kapitel neu generieren lassen — nicht flicken.
+`website-standard.json` stehen? Dann Kapitel neu generieren lassen — nicht flicken.
 
 ---
 
 ## ZWEI SCHRITTE VORAUS
 
 - **Kapitel 9 sollte automatisch generiert werden**, nicht von Hand geschrieben. Wenn die
-  Checkliste aus `homepage-standard.json` erzeugt wird, kann sie bei einer Standard-Änderung
+  Checkliste aus `website-standard.json` erzeugt wird, kann sie bei einer Standard-Änderung
   nicht veralten. Das ist ein kleiner Zusatzaufwand jetzt und spart die 2. Auflage.
 - **Kapitel 5 ist dein Reputationsrisiko.** Wenn du 20 von 100 Punkten für Barrierefreiheit
   vergibst und der Leser herausfindet, dass er als Kleinstunternehmer gesetzlich befreit

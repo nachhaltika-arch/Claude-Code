@@ -78,7 +78,7 @@ def seite_deckblatt(*,
     # jetzt einen eigenen Stil mit passendem Zeilenabstand.
     story.append(_marken_band(styles))
     story.append(Spacer(1, 26*mm))
-    story.append(Paragraph("HOMEPAGE STANDARD", styles["KCTitle"]))
+    story.append(Paragraph("WEBSITE STANDARD", styles["KCTitle"]))
     story.append(Paragraph(
         f"Audit- und Zertifizierungsrahmen {created.year}", styles["KCSubtitle"]))
     story.append(Spacer(1, 18*mm))
@@ -227,8 +227,8 @@ def seite_scorecard(*,
 
     # Summenzeile.
     #
-    # Hier stand `level[:15]` in der Statusspalte — aus „Homepage Standard
-    # Bronze" wurde „Homepage Standa", abgeschnitten in einer 14 mm breiten
+    # Hier stand `level[:15]` in der Statusspalte — aus „Website Standard
+    # Bronze" wurde „Website Standa", abgeschnitten in einer 14 mm breiten
     # Spalte, sodass der Text sichtbar aus der Tabelle lief. Dazu erwischte die
     # Schleife unten diese Zeile als Kategoriekopf und legte ein SPAN ueber die
     # Spalten 0 bis 3, was die Maximalpunkte verschluckte. Die Stufe steht auf

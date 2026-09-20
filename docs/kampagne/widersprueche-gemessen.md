@@ -67,10 +67,10 @@ Die Bewertungsstufen stehen in `services/audit_katalog.py:445`:
 
 | ab | Stufe |
 |---|---|
-| 95 | Homepage Standard Platin |
-| 85 | Homepage Standard Gold |
-| 70 | Homepage Standard Silber |
-| 50 | Homepage Standard Bronze |
+| 95 | Website Standard Platin |
+| 85 | Website Standard Gold |
+| 70 | Website Standard Silber |
+| 50 | Website Standard Bronze |
 | 0 | Nicht konform |
 
 Die AGB-Einbindung nennt „unter 70 / 70–84,4 / ab 84,5" als *Stufen*. Das

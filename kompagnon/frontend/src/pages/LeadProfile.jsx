@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
-import HomepageChecklist from '../components/HomepageChecklist';
+import WebsiteChecklist from '../components/WebsiteChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BauzeitFrist from '../components/BauzeitFrist';
@@ -907,7 +907,7 @@ export default function LeadProfile() {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>/ 100</div>
               {current_level && (
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 6, fontWeight: 500 }}>
-                  {current_level.replace('Homepage Standard ', '')}
+                  {current_level.replace('Website Standard ', '')}
                 </div>
               )}
             </div>
@@ -1301,7 +1301,7 @@ export default function LeadProfile() {
       {/* CHECKLISTEN TAB */}
       {activeTab === 'checklists' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <HomepageChecklist auditData={latestAudit} />
+          <WebsiteChecklist auditData={latestAudit} />
           <SecurityChecklist auditData={latestAudit} />
         </div>
       )}

@@ -4,7 +4,7 @@ Interne ID: `websprint_relaunch` · Version 1.0 · Status: **verkaufbar nach Blo
 ---
 
 ## 1. Positionierung in einem Satz
-> Wir bauen Ihre bestehende Website in 14 Tagen auf den Homepage-Standard fertig — zum Festpreis, mit Abnahmeprotokoll.
+> Wir bauen Ihre bestehende Website in 14 Tagen auf den Website-Standard fertig — zum Festpreis, mit Abnahmeprotokoll.
 
 ## 2. Zielkunde
 Handwerks- oder KMU-Betrieb mit **vorhandener Website**, die inhaltlich im Kern stimmt, aber technisch, rechtlich oder gestalterisch unter Standard liegt. Typischer Audit-Score bei Erstkontakt: **35–70 Punkte**.

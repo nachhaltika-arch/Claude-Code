@@ -60,7 +60,7 @@ Nutze exakt dasselbe Muster. Baue keinen zweiten Stripe-Client auf.
 SCHRITT 1 — Preiskonfiguration
 Lege backend/config/book_pricing.py an:
 
-  BOOK_VERSION = aus shared/homepage-standard.json lesen
+  BOOK_VERSION = aus shared/website-standard.json lesen
   TAX_RATE = Decimal("7.00")
   VARIANTS = {
     "pdf":    {"gross_cents": 3900, "shipping_cents": 0,   "label": "PDF-Ausgabe"},

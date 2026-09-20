@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Prüft die Druckfassung gegen die Anforderungen der Druckerei.
 
-    buch/venv/bin/python buch/druckpruefung.py buch/build/homepage-standard-druck.pdf
+    buch/venv/bin/python buch/druckpruefung.py buch/build/website-standard-druck.pdf
 
 Vier Punkte, jeder mit einem Grund:
 

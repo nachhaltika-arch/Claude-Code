@@ -78,7 +78,7 @@ export default function Shop() {
             Produkte
           </h1>
           <p style={{ color: 'var(--text-on-brand-muted, #9DC2C9)', fontSize: 15, maxWidth: '62ch', marginTop: 12, lineHeight: 1.65 }}>
-            Der Homepage-Standard zum Mitnehmen — als Arbeitsbuch oder als
+            Der Website-Standard zum Mitnehmen — als Arbeitsbuch oder als
             geprüfter Befund über Ihre Website.
           </p>
         </div>

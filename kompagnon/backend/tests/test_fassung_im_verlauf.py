@@ -27,14 +27,14 @@ def test_die_liste_liefert_die_fassung_mit(client, app, auth_headers):
         db.add_all([
             AuditResult(lead_id=lead.id, status="completed", total_score=72,
                         company_name="Fassungstest",
-                        level="Homepage Standard Silber",
+                        level="Website Standard Silber",
                         website_url="https://fassung.test",
                         standard_version=STANDARD_VERSION),
             # Ein Altbestand ohne Vermerk — genau der Fall, den die
             # Trennlinie meint.
             AuditResult(lead_id=lead.id, status="completed", total_score=55,
                         company_name="Fassungstest",
-                        level="Homepage Standard Bronze",
+                        level="Website Standard Bronze",
                         website_url="https://fassung.test"),
         ])
         db.commit()

@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
-QUELLE = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Homepage Standard v2"
+QUELLE = (WURZEL / "docs" / "Buch" / "Buch - Kompagnon - Website Standard v2"
           / "Vollständige dokumentation Buch V2")
 
 #: Titelei, siebzehn Kapitel, vier Anhänge — die Leseordnung des Buchs.

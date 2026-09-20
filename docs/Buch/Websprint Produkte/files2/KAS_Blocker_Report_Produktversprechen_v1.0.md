@@ -125,7 +125,7 @@ aussieht. Fortgeschrieben wird sie nicht mehr.
 |---|---|---|
 | L1 · GEO wird nicht ausgeliefert | ✅ geschlossen | Einbau seit L-99; `services/geo_auslieferung.py` prüft nach der Veröffentlichung am lebenden Dienst nach |
 | L2 · Garantie nicht messbar | 🟠 **teilweise** | → **L-165**. Der PageSpeed-Schluessel ist produktiv **gesetzt** (am 07.09.2026 an `/health` nachgemessen, Laenge 39) — die Messbarkeit steht. Offen ist die Produktentscheidung aus **K1**: die Zusage auf das zuschneiden, was wirklich geprueft wird, oder die fehlenden Kriterien erheben. |
-| L3 · Zwei Standards | ✅ geschlossen | Eine Quelle: `services/audit_katalog.py::LEVELS`; `frontend/src/utils/homepageStandard.js` spiegelt sie mit begründeter Regel |
+| L3 · Zwei Standards | ✅ geschlossen | Eine Quelle: `services/audit_katalog.py::LEVELS`; `frontend/src/utils/websiteStandard.js` spiegelt sie mit begründeter Regel |
 | L4 · K1–K6 nur im Buch | ✅ geschlossen | `services/audit_industry_map.py`, wirksam im Scoring |
 | L5 · Buchtabellen konstruiert | ✅ geschlossen | `scripts/buch-bloecke.py`, mit `--pruefen` als Wächter |
 | L6 · Bauzeit ohne Fristbeginn | ✅ **geschlossen** | → **L-166**, am 06.09.2026. Fristbeginn **und** Fristpause liegen in `services/bauzeit.py`; `mitwirkung_stand.vorgelegt_am` haelt den Vorlagezeitpunkt, und Kundenkonto wie Innendienst lesen dieselbe Rechnung. Die Auslegung — Verzoegerung ist, was ueber die fuenf Werktage hinausgeht — hat David am 07.09. bestaetigt. |

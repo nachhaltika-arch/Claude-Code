@@ -152,7 +152,7 @@ def run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS collection_notes TEXT DEFAULT '{}'",
-        # Branchenmodell des Homepage Standards 2026.2: Gegen welchen Maßstab
+        # Branchenmodell des Website Standards 2026.2: Gegen welchen Maßstab
         # bewertet wurde, gehört zum Ergebnis — ohne diese Angabe lässt sich
         # ein Bericht später weder erklären noch mit einem neueren vergleichen.
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS erkannte_branche VARCHAR DEFAULT ''",
@@ -1363,9 +1363,9 @@ def run_migrations():
               features, checkout_fields, webhook_actions, sort_order)
            VALUES
              ('websprint_relaunch', 'Websprint Relaunch',
-              'Bestehende Website auf den Homepage-Standard heben',
+              'Bestehende Website auf den Website-Standard heben',
               4165.00, 3500.00, 19, 'once', 14, 'live', false, 'Empfehlung',
-              '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb,
+              '["Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
               1)
@@ -1376,7 +1376,7 @@ def run_migrations():
               features, checkout_fields, webhook_actions, sort_order)
            VALUES
              ('websprint_neubau', 'Websprint Neubau',
-              'Neuaufbau nach Homepage-Standard, bis 12 Seiten',
+              'Neuaufbau nach Website-Standard, bis 12 Seiten',
               9401.00, 7900.00, 19, 'once', 28, 'live', true, 'Empfehlung',
               '["Positionierungsgespraech, 90 Minuten","Bauplan als Freigabedokument, eine Ueberarbeitung","Texterstellung fuer bis zu 12 Seiten","Bildkonzept und Fotobriefing","Aufbau im KOMPAGNON-Komponentensystem, responsiv","Technische Optimierung und strukturierte Auszeichnung","Hosting, SSL, Weiterleitungen, Domainumstellung","Zwei Korrekturschleifen","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 60 Minuten","Pflege Basic fuer 3 Monate","Re-Audit nach 3 Monaten"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
@@ -1422,7 +1422,7 @@ def run_migrations():
         # bewusst auf Entwurf zurueckgesetztes Paket bleibt so, wie es ist.
         """UPDATE products
               SET status = 'live',
-                  features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb
+                  features = '["Eingangsaudit nach Website-Standard, 100 Punkte","Strukturabgleich und Seitenplan","Aufbau im KOMPAGNON-Komponentensystem, bis 6 Seiten","Redaktionelle Ueberarbeitung der vorhandenen Texte","Bildaufbereitung, bis 30 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Grundoptimierung","Hosting, SSL, Weiterleitungen, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisung, 30 Minuten"]'::jsonb
             WHERE slug = 'websprint_relaunch'
               AND status = 'draft'
               AND features = '[]'::jsonb""",
@@ -1526,10 +1526,10 @@ def run_migrations():
               features, checkout_fields, webhook_actions, sort_order)
            VALUES
              ('workbook_homepage_standard',
-              'Workbook Homepage-Standard',
-              'Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten',
+              'Workbook Website-Standard',
+              'Das Arbeitsbuch zum Website-Standard, in 30 Schritten',
               149.00, 139.25, 7, 'once', 0, 'draft', false, 'Empfehlung',
-              '["Arbeitsbuch als PDF, sofort nach Zahlung","30 Schritte entlang des Homepage-Standards","89 Ankreuzkaesten zum Abhaken","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
+              '["Arbeitsbuch als PDF, sofort nach Zahlung","30 Schritte entlang des Website-Standards","89 Ankreuzkaesten zum Abhaken","Anrechenbar auf einen Websprint, 6 Monate"]'::jsonb,
               '["name","email"]'::jsonb,
               '[]'::jsonb,
               10)
@@ -1541,7 +1541,7 @@ def run_migrations():
            VALUES
              ('check_plus',
               'Check PLUS',
-              'Der Homepage-Standard-Check mit persoenlicher Auswertung',
+              'Der Website-Standard-Check mit persoenlicher Auswertung',
               296.31, 249.00, 19, 'once', 5, 'draft', false, 'Empfehlung',
               '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
@@ -1580,7 +1580,7 @@ def run_migrations():
         # Zeile**: Das ist unabhaengig davon, welche alte Fassung eine
         # Umgebung traegt, und laeuft genau einmal — steht die neue Liste
         # drin, trifft `NOT` nicht mehr.
-        """UPDATE products SET features = '["Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb
+        """UPDATE products SET features = '["Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien", "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website", "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten", "Übernahme und redaktionelle Überarbeitung Ihrer Texte", "Aufbereitung Ihres Bildmaterials, bis 30 Bilder, inkl. Alternativtexte", "Kontaktformular mit Spam-Schutz und Empfangsbestätigung", "Einbindung Ihrer Rechtstexte", "Grundlagen der Barrierefreiheit: Kontraste, Tastatur, Semantik", "Technische Grundoptimierung und strukturierte Auszeichnung", "Hosting, SSL, Weiterleitungen, Umstellung der Domain", "Abnahmeaudit mit schriftlichem Protokoll je Kategorie", "Einweisung, 30 Minuten, und Übergabe aller Zugänge"]'::jsonb
             WHERE slug = 'websprint_relaunch'
               AND NOT features @> '["Einbindung Ihrer Rechtstexte"]'::jsonb""",
         """UPDATE products SET features = '["Vollständiges Audit, manuell nachgeprüft", "Manuelle Bewertung der nicht maschinell prüfbaren Punkte: Verständlichkeit der Leistungsdarstellung, Erkennbarkeit der Kontaktwege, Passung zur Zielgruppe", "Wettbewerbsvergleich mit drei Betrieben aus dem Umkreis, je mit Punktzahl", "Priorisierte Maßnahmenliste: was zuerst, welcher Punktgewinn, welcher Aufwand", "Auswertungsgespräch, 60 Minuten, per Videokonferenz", "Schriftliche Zusammenfassung mit Handlungsempfehlung"]'::jsonb
@@ -1627,10 +1627,10 @@ def run_migrations():
               features, checkout_fields, webhook_actions, sort_order)
            VALUES
              ('buch_homepage_standard',
-              'Der Homepage Standard (Buch)',
+              'Der Website Standard (Buch)',
               'Gedruckt {_buch_brutto:.2f} EUR zzgl. {_buch_versand:.2f} Versand · als PDF {_buch_pdf:.2f} EUR · als Buendel {_buch_bundle:.2f} EUR',
               {_buch_brutto:.2f}, {_buch_netto:.2f}, {_buch_steuer:.0f}, 'once', 5, 'draft', false, 'Empfehlung',
-              '["Der vollstaendige Homepage-Standard, 100 Punkte","Drei Ausgaben: gedruckt, als PDF, als Buendel","Preis und Steuersatz kommen aus services/buch_preise.py"]'::jsonb,
+              '["Der vollstaendige Website-Standard, 100 Punkte","Drei Ausgaben: gedruckt, als PDF, als Buendel","Preis und Steuersatz kommen aus services/buch_preise.py"]'::jsonb,
               '["name","company","email"]'::jsonb,
               '[]'::jsonb,
               12)
@@ -1839,9 +1839,9 @@ def run_migrations():
               gekoppeltes_abo, abo_mindestlaufzeit)
            VALUES
              ('websprint_start', 'Websprint Start',
-              'Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege',
+              'Ein-Seiten-Auftritt nach Website-Standard, inkl. 12 Monate Pflege',
               1785.00, 1500.00, 19, 'once', 7, 'draft', false, 'Empfehlung',
-              '["Audit nach Homepage-Standard, dokumentiert","Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten","Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv","Einpflegen der gelieferten Texte, bis 4.000 Zeichen","Bildaufbereitung, bis 10 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Optimierung und strukturierte Auszeichnung","Hosting-Einrichtung, SSL, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisungsvideo statt Live-Schulung","Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat","Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"]'::jsonb,
+              '["Audit nach Website-Standard, dokumentiert","Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten","Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv","Einpflegen der gelieferten Texte, bis 4.000 Zeichen","Bildaufbereitung, bis 10 Bilder","Kontaktformular mit Spam-Schutz","Grundlagen der Barrierefreiheit","Technische Optimierung und strukturierte Auszeichnung","Hosting-Einrichtung, SSL, Domainumstellung","Eine Korrekturschleife","Abnahmeaudit mit schriftlichem Protokoll","Einweisungsvideo statt Live-Schulung","Pflege Basic fuer 12 Monate: Hosting, Sicherungen, Ueberwachung, 30 Minuten Aenderungen je Monat","Nicht enthalten: weitere Unterseiten, Texterstellung, Vor-Ort-Termine, individuelle Gestaltung"]'::jsonb,
               '["name","company","email","phone"]'::jsonb,
               '["create_lead","create_user","create_project","send_welcome_email","send_pdf"]'::jsonb,
               0, 'ABO-BAS', 12)
@@ -2147,6 +2147,49 @@ def run_migrations():
         "nachweis VARCHAR(64)",
         "CREATE INDEX IF NOT EXISTS idx_widget_requests_nachweis "
         "ON widget_requests(nachweis)",
+        # ── Der Standard heisst „Website Standard" (18.09.2026) ──
+        #
+        # Die Stufe wird als **Text** gespeichert (`audits.level`,
+        # `projects.audit_level`) und im Frontend ueber genau diesen Text
+        # wiedergefunden: `utils/websiteStandard.js` sucht den Eintrag in
+        # STUFEN, um Zeichen und Kuerzel dazuzustellen. Bleibt in der
+        # Datenbank „Homepage Standard Gold" stehen, findet die Suche nichts
+        # mehr — die Stufe wird dann ohne Zeichen und ohne Kuerzel
+        # angezeigt, und die Filter im Betriebe-Verzeichnis greifen daneben.
+        #
+        # Deshalb werden die Altzeilen mitgezogen. `replace` trifft nur den
+        # Namensteil; „Nicht konform" bleibt unberuehrt, weil es den Namen
+        # des Standards nie enthielt.
+        "UPDATE audits SET level = replace(level, 'Homepage Standard', "
+        "'Website Standard') WHERE level LIKE 'Homepage Standard%'",
+        "UPDATE projects SET audit_level = replace(audit_level, "
+        "'Homepage Standard', 'Website Standard') "
+        "WHERE audit_level LIKE 'Homepage Standard%'",
+        # Der Katalog zieht mit — Name, Kurztext und Merkmale. Die **Slugs**
+        # bleiben, wie sie sind: `workbook_homepage_standard` und
+        # `buch_homepage_standard` stehen in `book_orders.product_slug`, in
+        # den Stripe-Metadaten und in den Webhook-Nutzlasten. Ein Schluessel,
+        # der sich umbenennt, findet seine eigenen Bestellungen nicht mehr.
+        #
+        # Die `INSERT`-Anweisungen oben tragen die neuen Texte schon, aber sie
+        # enden auf `ON CONFLICT (slug) DO NOTHING` — eine gewachsene
+        # Datenbank behaelt die alten. Deshalb hier ein Nachzug, und zwar der
+        # engst moegliche: Er greift nur, solange das Wort noch dasteht, und
+        # ist danach wirkungslos.
+        #
+        # **Die Einschraenkung gehoert dazu:** Wer im Produkt-Editor wieder
+        # „Homepage" schreibt, verliert es beim naechsten Start. Das ist der
+        # Preis dafuer, die Umbenennung ueberhaupt in Bestandsdaten zu
+        # bringen — und der Grund, warum nur dieses eine Wort angefasst wird
+        # und nicht die ganze Zeile ueberschrieben wird (vgl. die Begruendung
+        # beim Buchpreis weiter oben).
+        "UPDATE products SET name = replace(name, 'Homepage', 'Website') "
+        "WHERE name LIKE '%Homepage%'",
+        "UPDATE products SET short_desc = replace(short_desc, 'Homepage', "
+        "'Website') WHERE short_desc LIKE '%Homepage%'",
+        "UPDATE products SET features = "
+        "replace(features::text, 'Homepage', 'Website')::jsonb "
+        "WHERE features::text LIKE '%Homepage%'",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -6,44 +6,40 @@ statt fortgeschrieben, und dann gibt es zwei, von denen eine falsch ist.
 
 ---
 
-## Stand 17.09.2026, 16:50 Uhr
+## Stand 18.09.2026
 
-Die ausgelieferte Seite ist **zwei Tage alt** und trägt **drei** Änderungen
-nicht. Gemessen, nicht vermutet:
+**Der Upload vom 17.09., 22:59 Uhr ist angekommen.** Die Live-Seite ist
+bytegleich mit der Fassung, die bis eben im Repo lag — gemessen, nicht
+angenommen: gleiche Länge (1.021.471), gleiche SHA-256
+(`45090cb6…e722f314`). Damit ist auch die `eventID` beim
+`InitiateCheckout` draußen; der Abschnitt darunter, der sie als „noch
+nicht live" führte, war überholt.
+
+## Was die Datei jetzt trägt und die Live-Seite nicht
+
+**Die Begriffsumstellung: „Webseite" → „Website"** (Entscheidung David,
+18.09.2026). Sie betrifft **38 Stellen**, darunter `<title>`, H1,
+Meta-Beschreibung, die Leistungsüberschriften und die FAQ — sichtbarer
+Text *und* die strukturierten Daten, die dazu gehören.
 
 | | |
 |---|---|
-| `last-modified` live | **Tue, 15 Sep 2026 17:03:17 GMT** |
-| `content-length` live | 1.020.062 Bytes |
-| Datei im Repo | **1.020.712 Bytes** |
-| SHA-256 | `2a42aaaaf6ab9c69279146981c8c0358385410a76538039a9d6e964fae906959` |
+| Datei im Repo | **1.021.433 Bytes** |
+| SHA-256 | `87e57e566f941541945a478da7f1b1974eb6a880da1d0dbb6c7de2b06956afcd` |
+| Live-Stand vorher | 1.021.471 Bytes, `Thu, 17 Sep 2026 20:59:33 GMT` |
 
-## Was die Datei trägt und die Live-Seite nicht
+**Eine Stelle behält bewusst „Webseite":** die FAQ-Frage „Was kostet eine
+professionelle Webseite bei KOMPAGNON?". Das ist eine reale Suchanfrage —
+unsere eigene Keyword-Recherche (`docs/Keywords/…`) führt „Webseite" als
+eigenständigen Begriff neben „Website". Sie steht zweimal in der Datei,
+sichtbar und im FAQ-Markup, und muss wortgleich bleiben: Weicht das
+Markup vom sichtbaren Text ab, verwirft Google das Rich Result.
 
-1. **Die fünf UTM-Felder** (15.09.) — ohne sie kommt keine Kampagnenherkunft
-   im Lead und in Brevo an.
-2. **`fassung:KEY`** (17.09.) — der Textbezug für den Einwilligungsnachweis.
-3. **Der Canonical zeigt auf die Seite selbst** (17.09., neu) — siehe unten.
-
-## Der Canonical war auf eine fremde Seite gerichtet
-
-Bis zur vorigen Zeile stand im Kopf der Seite:
-
-    <link rel="canonical" href="https://www.kompagnon.eu/webentwicklung-shopsysteme">
-
-Das ist kein fehlendes Merkmal, sondern ein **falsches**: Ein Canonical sagt
-der Suchmaschine „diese Seite ist eine Zweitfassung von jener, nimm jene".
-Die Landingpage hat sich damit selbst aus dem Index genommen und ihre
-Signale an die Agenturseite abgegeben — eine Seite, die mit dem Websprint
-nichts zu tun hat.
-
-Der Wert steht jetzt auf `https://websprint.kompagnon.eu/`. **Der Menülink
-„Webentwicklung" auf dieselbe Agenturseite ist unberührt geblieben** — er ist
-ein normaler Verweis und gehört dorthin; es gab zwei Fundstellen, und nur
-eine war falsch.
-
-Nebenbefund: `websprint.kompagnon.eu` kam in der ganzen Seite **kein
-einziges Mal** vor. Sie kannte ihre eigene Adresse nicht.
+> **Beim Durchsehen aufgefallen, nicht gesucht:** Die Seite zeigt **acht**
+> FAQ-Fragen, das FAQ-Markup kennt nur **vier**. Die vier stimmen wörtlich
+> mit dem sichtbaren Text überein — an der Umstellung liegt es also nicht,
+> das war vorher genauso. Vier Fragen sind damit für die Suchmaschine
+> unsichtbar, darunter „Wird meine Website auch bei Google gefunden?".
 
 ## Beim Hochladen
 
@@ -51,23 +47,41 @@ einziges Mal** vor. Sie kannte ihre eigene Adresse nicht.
 `websprint.kompagnon.eu/` liefert das Standarddokument des Verzeichnisses
 aus — fast immer `index.html`. Wer `websprint-landingpage.html` hochlädt,
 legt eine **zweite** Datei daneben, ohne die ausgelieferte zu ersetzen.
-Genau daran ist der Upload am 15.09. gescheitert.
+Genau daran ist der Upload am 15.09. gescheitert; am 17.09. um 18:13 hat es
+geklappt.
+
+Deshalb liegt `index.html` byte-gleich daneben — schon unter dem Zielnamen,
+zum direkten Hochladen. **Sie ist nicht versioniert**, `websprint-landingpage.html`
+schon (zwei Tests und die Trichter-Vorschau lesen diese). Wer die eine ändert,
+schreibt die andere mit; sonst gibt es wieder zwei Fassungen, diesmal im
+selben Ordner.
 
 Also: hochladen und dabei so benennen, wie die vorhandene heißt. Im Zweifel
-im Dateimanager nachsehen, welche Datei den Zeitstempel **15.09., 19:03**
+im Dateimanager nachsehen, welche Datei den Zeitstempel **17.09., 22:59**
 (Ortszeit) trägt — die ist zu überschreiben.
 
-## Prüfung danach, drei Zeilen
+**Über FTP** (seit 18.09. vorhanden): im **Binärmodus** übertragen, nicht
+in ASCII. Ein FTP-Programm, das auf ASCII steht, schreibt Zeilenenden um —
+bei einer Datei, die ein eingebettetes Bildarchiv und eine JSON-Zeichenkette
+trägt, kommt dann etwas an, das anders lang ist als das, was losgeschickt
+wurde. Die Längenprüfung unten fängt genau das.
 
-    curl -sI https://websprint.kompagnon.eu/ | grep -i last-modified
-    curl -s  https://websprint.kompagnon.eu/ | grep -c utm_content
-    curl -s  https://websprint.kompagnon.eu/ | grep -o 'canonical[^>]*'
+## Prüfung danach, vier Zeilen
 
-Erwartet: ein Zeitstempel von **heute**, eine **1**, und ein Canonical, der
-`websprint.kompagnon.eu` nennt — nicht `webentwicklung-shopsysteme`.
+    curl -sI https://websprint.kompagnon.eu/ | grep -iE "last-modified|content-length"
+    curl -s  https://websprint.kompagnon.eu/ | shasum -a 256
+    curl -s  https://websprint.kompagnon.eu/ | grep -oi "webseiten\?" | wc -l
+    curl -s  https://websprint.kompagnon.eu/ | grep -c begonnenKennung
 
-Steht dort weiter `17:03:17 GMT`, ist die Datei nicht angekommen — unabhängig
-davon, was das Upload-Fenster gemeldet hat.
+Erwartet: ein Zeitstempel **vom 18.09.**, `content-length: 1021433`, die
+Prüfsumme `87e57e56…6956afcd`, eine **2** (die beiden gewollten
+„Webseite" in der Preisfrage) und eine **1** für den Messblock.
+
+**Die Prüfsumme ist die eigentliche Antwort.** Länge und Zeitstempel sagen,
+dass *etwas* angekommen ist; nur sie sagt, dass es **diese** Datei war.
+Steht dort weiter `20:59:33 GMT` oder eine **40** bei „Webseite", ist die
+Datei nicht angekommen — unabhängig davon, was das Upload-Fenster gemeldet
+hat.
 
 ## Warum das jedes Mal Handarbeit ist
 

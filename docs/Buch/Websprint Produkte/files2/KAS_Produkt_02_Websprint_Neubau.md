@@ -4,7 +4,7 @@ Interne ID: `websprint_neubau` · Version 1.0 · Status: **Entwurf, Prozessflow-
 ---
 
 ## 1. Positionierung in einem Satz
-> Ein kompletter Neuaufbau inklusive Struktur, Texten und Bildkonzept — in 28 Tagen, zum Festpreis, mit Abnahmeprotokoll nach Homepage-Standard.
+> Ein kompletter Neuaufbau inklusive Struktur, Texten und Bildkonzept — in 28 Tagen, zum Festpreis, mit Abnahmeprotokoll nach Website-Standard.
 
 ## 2. Zielkunde
 Betrieb **ohne brauchbare Website** oder mit einer, die inhaltlich nicht mehr trägt: veränderte Leistungen, Generationswechsel, Umfirmierung, neue Zielgruppe. Typischer Audit-Score: **0–40 Punkte** (oder gar kein Audit möglich).

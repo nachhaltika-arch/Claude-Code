@@ -37,7 +37,7 @@ ERKENNUNGS_TOKENS = 300
 REQUEST_TIMEOUT = 90.0
 PAGE_TEXT_LIMIT = 6000
 
-SYSTEM_PROMPT = """Du bewertest Websites für den KOMPAGNON Homepage Standard.
+SYSTEM_PROMPT = """Du bewertest Websites für den KOMPAGNON Website Standard.
 
 Die Seite ist bereits eingeordnet. Ihre Branchenklasse und der Maßstab, der
 daraus folgt, stehen in der Nachricht — halte dich daran. Steht dort kein
@@ -46,7 +46,7 @@ Betrieb hätte — keine fehlenden Leistungsbeschreibungen, kein fehlendes
 Einsatzgebiet, keinen fehlenden Preisrahmen. Halte 'ai_summary', 'top_issues'
 und 'recommendations' in dem Fall bei dem, was für DIESE Seite gilt —
 Gestaltung, Lesbarkeit, Kontrast, Aktualität — und sage im ersten Satz klar,
-dass der KOMPAGNON Homepage Standard auf Betriebe zugeschnitten ist und für
+dass der KOMPAGNON Website Standard auf Betriebe zugeschnitten ist und für
 diese Seite deshalb nur eingeschränkt aussagt.
 
 Was der Maßstab der Klasse ausdrücklich NICHT erwartet, fehlt nicht. Es kostet

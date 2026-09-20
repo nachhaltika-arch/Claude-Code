@@ -30,7 +30,7 @@ Der Markt für „bessere Websites" in Koblenz ist gesättigt und preislich nach
 
 **Deshalb verkaufen wir ab sofort nicht „eine Website", sondern die Einhaltung einer Norm.**
 
-Der **Homepage-Standard (HS-100)** ist der Mechanismus: 100 Punkte, 8 Kategorien, dokumentiert, messbar, in einem Abnahmeprotokoll bestätigt. Das ist die Sprache, die ein Handwerksbetrieb bereits versteht — DIN, VOB, Abnahme, Gewährleistung. Kein Wettbewerber in der Region hat das.
+Der **Website-Standard (HS-100)** ist der Mechanismus: 100 Punkte, 8 Kategorien, dokumentiert, messbar, in einem Abnahmeprotokoll bestätigt. Das ist die Sprache, die ein Handwerksbetrieb bereits versteht — DIN, VOB, Abnahme, Gewährleistung. Kein Wettbewerber in der Region hat das.
 
 **Damit verschiebt sich der Vergleichsmaßstab:** Wir konkurrieren nicht mehr mit der 900-€-Agentur, sondern mit der Frage „ist mein Betrieb normkonform aufgestellt oder nicht". Genau dieser Effekt ist im Copywriting-Buch beschrieben (Face-Lift-in-a-Jar / zMax): Die Metapher tauscht den Wettbewerber aus.
 
@@ -95,7 +95,7 @@ Der Kammerbezirk Koblenz gibt rund **300–370 aktive Nachfragefälle pro Jahr**
 | Produkt | Preis | Funktion in der Leiter | Kaufstufe (Stover) |
 |---|---|---|---|
 | **100-Punkte-Check** (automatisiert) | 0 € | Problembewusstsein erzeugen | Stufe 1 |
-| **Buch „Der Homepage-Standard"** | 39,90 € (BuchPrG!) | Autorität, Mechanismus beweisen | Stufe 1–2 |
+| **Buch „Der Website-Standard"** | 39,90 € (BuchPrG!) | Autorität, Mechanismus beweisen | Stufe 1–2 |
 | **Workbook** | 149 € netto | Befähigung + Selbstselektion | Stufe 2–3 |
 | **Check PLUS** (Audit + 60-Min-Auswertung) | 249 € netto | Bedarf qualifizieren | Stufe 3–4 |
 | Websprint RELAUNCH / NEUBAU / SYSTEM | 3.500–12.900 € | Umsetzung | Stufe 4–5 |
@@ -117,7 +117,7 @@ Das löst die Kannibalisierungsangst auf: Wer das Workbook kauft und merkt, dass
 Nach dem Muster aus *100K/Month Agency*. Ohne alle drei Komponenten ist es kein Angebot, sondern eine Preisliste.
 
 ### Websprint RELAUNCH
-- **Big Promise:** „In 14 Tagen von der Bauruine zur abgenommenen Website — mindestens 85 von 100 Punkten nach Homepage-Standard."
+- **Big Promise:** „In 14 Tagen von der Bauruine zur abgenommenen Website — mindestens 85 von 100 Punkten nach Website-Standard."
 - **Mechanism:** HS-100 Audit → Festpreis-Sprint → Abnahmeprotokoll.
 - **Risk Reversal:** Wird der Standard bei Abnahme nicht erreicht, bessern wir kostenfrei nach, bis er erreicht ist. Wird die Bauzeit überschritten, 100 € Nachlass je angefangenem Verzugstag.
 
@@ -167,7 +167,7 @@ Frage nach Stover: *„Wer hat bereits eine Beziehung zu vielen meiner Wunschkun
 
 | Partner | Zugang zu | Einstiegsangebot an den Partner |
 |---|---|---|
-| Handwerkskammer Koblenz | gesamter Kammerbezirk | 45-Min-Vortrag „Der Homepage-Standard" in Mitgliederveranstaltung |
+| Handwerkskammer Koblenz | gesamter Kammerbezirk | 45-Min-Vortrag „Der Website-Standard" in Mitgliederveranstaltung |
 | Innungen (SHK, Elektro, Dachdecker, Maler) | segmentiert, hohes Vertrauen | Kostenloser Check für alle Innungsmitglieder |
 | Steuerberater / Unternehmensberater | Entscheider-Ohr | Buch als Weitergabe-Exemplar (voller Preis!) |
 | MMV Leasing (ISB-158) | bereits förderberechtigte Betriebe | bestehende Beziehung ausbauen |

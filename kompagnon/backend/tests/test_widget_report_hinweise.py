@@ -18,7 +18,7 @@ from services.audit_criteria import find_criterion
 def _audit(**felder):
     grund = {
         "id": 1, "website_url": "https://example.de", "company_name": "Beispiel",
-        "total_score": 52, "level": "Homepage Standard Bronze", "coverage": 96,
+        "total_score": 52, "level": "Website Standard Bronze", "coverage": 96,
         "item_scores": "{}", "item_sources": "{}", "blockers": "[]",
         "top_issues": "[]", "recommendations": "[]", "ai_summary": "",
         "erkannte_branche": "", "branchenklasse": "", "standard_version": "2026.2",

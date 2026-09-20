@@ -53,12 +53,12 @@ def produkt_vorlage() -> list:
             # Zahl waere falsch, sobald jemand das Entgelt aendert.
             "slug": "websprint_start", "name": "Websprint Start",
             "sort_order": 0,
-            "short_desc": "Ein-Seiten-Auftritt nach Homepage-Standard, inkl. 12 Monate Pflege",
+            "short_desc": "Ein-Seiten-Auftritt nach Website-Standard, inkl. 12 Monate Pflege",
             "price_brutto": 1785.00, "price_netto": 1500.00, "tax_rate": 19,
             "payment_type": "once", "delivery_days": 7, "status": "draft",
             "gekoppeltes_abo": "ABO-BAS", "abo_mindestlaufzeit": 12,
             "features": [
-                "Audit nach Homepage-Standard, dokumentiert",
+                "Audit nach Website-Standard, dokumentiert",
                 "Eine Seite mit Betrieb, Leistungen, Einzugsgebiet, Kontakt und Oeffnungszeiten",
                 "Aufbau aus einer festen Vorlage des KOMPAGNON-Komponentensystems, responsiv",
                 "Einpflegen der gelieferten Texte, bis 4.000 Zeichen",
@@ -79,7 +79,7 @@ def produkt_vorlage() -> list:
         {
             "slug": "websprint_relaunch", "name": "Websprint Relaunch",
             "sort_order": 1,
-            "short_desc": "Bestehende Website auf den Homepage-Standard heben",
+            "short_desc": "Bestehende Website auf den Website-Standard heben",
             "price_brutto": 4165.00, "price_netto": 3500.00, "tax_rate": 19,
             "payment_type": "once", "delivery_days": 14, "status": "live",
             # Merkmale und Bauzeit aus dem Leistungsverzeichnis in
@@ -105,7 +105,7 @@ def produkt_vorlage() -> list:
             # Die Begrenzung schuetzt die Marge und stand deshalb im Angebot.
             # Gemeldet an David am 10.09.2026.
             "features": [
-                "Eingangsaudit nach Homepage-Standard, 100 Punkte in 8 Kategorien",
+                "Eingangsaudit nach Website-Standard, 100 Punkte in 8 Kategorien",
                 "Strukturabgleich und Seitenplan auf Basis Ihrer bestehenden Website",
                 "Aufbau im KOMPAGNON-Komponentensystem, responsiv, bis 6 Seiten",
                 "Übernahme und redaktionelle Überarbeitung Ihrer Texte",
@@ -125,7 +125,7 @@ def produkt_vorlage() -> list:
         {
             "slug": "websprint_neubau", "name": "Websprint Neubau",
             "sort_order": 2,
-            "short_desc": "Neuaufbau nach Homepage-Standard, bis 12 Seiten",
+            "short_desc": "Neuaufbau nach Website-Standard, bis 12 Seiten",
             "price_brutto": 9401.00, "price_netto": 7900.00, "tax_rate": 19,
             "payment_type": "once", "delivery_days": 28, "status": "live",
             "highlighted": True, "highlight_label": "Empfehlung",
@@ -184,13 +184,13 @@ def produkt_vorlage() -> list:
         # gelesen sind.
         {
             "slug": "workbook_homepage_standard",
-            "name": "Workbook Homepage-Standard",
+            "name": "Workbook Website-Standard",
             "sort_order": 10,
-            "short_desc": "Das Arbeitsbuch zum Homepage-Standard, in 30 Schritten",
+            "short_desc": "Das Arbeitsbuch zum Website-Standard, in 30 Schritten",
             "price_brutto": 149.00, "price_netto": 139.25, "tax_rate": 7,
             "payment_type": "once", "delivery_days": 0, "status": "draft",
             "features": ["Arbeitsbuch als PDF, sofort nach Zahlung",
-                "30 Schritte entlang des Homepage-Standards",
+                "30 Schritte entlang des Website-Standards",
                 "89 Ankreuzkaesten zum Abhaken",
                 "Anrechenbar auf einen Websprint, 6 Monate"],
             "checkout_fields": ["name", "company", "email"],
@@ -200,7 +200,7 @@ def produkt_vorlage() -> list:
             "slug": "check_plus",
             "name": "Check PLUS",
             "sort_order": 11,
-            "short_desc": "Der Homepage-Standard-Check mit persoenlicher Auswertung",
+            "short_desc": "Der Website-Standard-Check mit persoenlicher Auswertung",
             # Zahlen aus Datenblatt CHK-PLU-01, nicht geschaetzt (10.09.2026).
             # Hier stand 249,00 als **Brutto**; das Datenblatt sagt 249 netto,
             # und der Shop bucht `price_brutto` ab — es fehlten 39,76 EUR je
@@ -250,7 +250,7 @@ def _buch_eintrag() -> dict:
     buendel = VARIANTEN["bundle"]["brutto_cents"] / 100
     return {
         "slug": "buch_homepage_standard",
-        "name": "Der Homepage Standard (Buch)",
+        "name": "Der Website Standard (Buch)",
         "sort_order": 12,
         "short_desc": (f"Gedruckt {brutto:.2f} EUR zzgl. {versand:.2f} Versand · "
                        f"als PDF {pdf:.2f} EUR · als Buendel {buendel:.2f} EUR"),
@@ -258,7 +258,7 @@ def _buch_eintrag() -> dict:
         "price_netto": round(brutto / (1 + steuer / 100), 2),
         "tax_rate": int(steuer),
         "payment_type": "once", "delivery_days": 5, "status": "draft",
-        "features": ["Der vollstaendige Homepage-Standard, 100 Punkte",
+        "features": ["Der vollstaendige Website-Standard, 100 Punkte",
                      "Drei Ausgaben: gedruckt, als PDF, als Buendel",
                      "Preis und Steuersatz kommen aus services/buch_preise.py"],
         "checkout_fields": ["name", "company", "email"],

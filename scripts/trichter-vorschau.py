@@ -80,7 +80,7 @@ class Audit:
     company_name = "Musterbetrieb Heizung & Sanitär GmbH"
     website_url = "https://www.musterbetrieb-beispiel.de"
     status = "completed"
-    level = "Homepage Standard Bronze"
+    level = "Website Standard Bronze"
     seiten_geprueft = 6
     seiten_gefunden = 9
     error_message = None

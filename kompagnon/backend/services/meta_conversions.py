@@ -72,16 +72,47 @@ def _pixel_id(db=None) -> str:
 
     Zwei Quellen, weil die Umgebung im Zweifel gewinnen soll: Wer den Serverweg
     auf einen anderen Datensatz legen muss, tut das ohne Datenbankeingriff.
+
+    **Ohne uebergebene Sitzung wird eine eigene geoeffnet** (17.09.2026).
+    Hier stand `if db is None: return ""`, und das war der Grund, warum der
+    Serverweg den Lead nicht meldete: `sende_lead` laeuft als
+    Hintergrundauftrag und bekommt keine Sitzung — eine mitgegebene waere zum
+    Ausfuehrungszeitpunkt ohnehin geschlossen, weil `get_db` im `finally`
+    schliesst. Produktiv steht die Nummer nicht in der Umgebung, sondern in
+    den Einstellungen; also fand die Funktion nichts und brach ab, waehrend
+    `/health` dieselbe Nummer sehr wohl fand, weil es mit Sitzung fragt.
+
+    Im Protokoll stand es als `Meta CAPI: kein Token oder keine Pixel-ID`,
+    und das war irrefuehrend: Beide waren da, nur nicht erreichbar.
+
+    Dasselbe Muster wie in `widget_crm.uebertrage_anfrage` — ein
+    Hintergrundauftrag oeffnet sich seine Sitzung selbst und schliesst sie.
     """
     aus_umgebung = os.getenv("META_PIXEL_ID", "").strip()
     if aus_umgebung:
         return aus_umgebung
-    if db is None:
-        return ""
+
+    if db is not None:
+        return _aus_einstellung(db)
+
+    from database import SessionLocal
+
+    eigene = SessionLocal()
+    try:
+        return _aus_einstellung(eigene)
+    finally:
+        eigene.close()
+
+
+def _aus_einstellung(db) -> str:
+    """Die Nummer aus den Widget-Einstellungen. Wirft nie — der Aufrufer
+    steckt in einem Hintergrundauftrag, und ein Fehler beim Lesen darf die
+    Analyse nicht kippen."""
     try:
         from services.app_settings import get as einstellung
         return (einstellung(db, "widget_facebook_pixel_id") or "").strip()
-    except Exception:
+    except Exception as fehler:  # noqa: BLE001
+        logger.warning("Meta CAPI: Pixel-ID nicht lesbar: %s", fehler)
         return ""
 
 
@@ -211,7 +242,16 @@ def sende_lead(
     token = zugangstoken()
     pixel = _pixel_id(db)
     if not token or not pixel:
-        logger.info("Meta CAPI: kein Token oder keine Pixel-ID — nichts gesendet.")
+        # **Sagen, welcher der beiden fehlt** (17.09.2026). Die alte Zeile
+        # nannte beide und liess offen, welcher gemeint war — dadurch sah der
+        # Ausfall wie eine fehlende Einrichtung aus, waehrend `/health`
+        # gleichzeitig `bereit: true` meldete. Eine Meldung, die zwei
+        # Moeglichkeiten nennt, schickt den Leser an die falsche Stelle.
+        fehlt = " und ".join(
+            teil for teil, da in (("Token", token), ("Pixel-ID", pixel))
+            if not da)
+        logger.warning(
+            "Meta CAPI: %s fehlt — Lead %s nicht gesendet.", fehlt, event_id)
         return False
 
     # **Kein erweiterter Abgleich mehr** (Entscheidung David, 10.09.2026).

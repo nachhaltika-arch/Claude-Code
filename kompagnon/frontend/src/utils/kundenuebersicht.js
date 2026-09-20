@@ -201,7 +201,7 @@ export function kachelnBauen({ profil, mitwirkung, inhalt, zahlungen, lage }) {
     was: 'Letzter Bericht',
     zahl: punkte != null ? String(punkte) : '—',
     klein: punkte != null ? '/100' : '',
-    sagt: (profil?.current_level || '').replace('Homepage Standard ', '') || 'noch nicht geprüft',
+    sagt: (profil?.current_level || '').replace('Website Standard ', '') || 'noch nicht geprüft',
     hin: 'Bericht ansehen →', gut: punkte != null && punkte >= 70, ziel: '/app/mein-bericht',
   });
 

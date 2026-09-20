@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Verkauf des Buchs „Der Homepage Standard" (BUCH-05).
+"""Verkauf des Buchs „Der Website Standard" (BUCH-05).
 
 Drei Endpunkte: die Kasse, der Webhook von Stripe und eine magere Auskunft für
 die Danke-Seite.

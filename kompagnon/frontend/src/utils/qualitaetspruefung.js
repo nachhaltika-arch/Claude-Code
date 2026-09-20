@@ -9,7 +9,7 @@
  * speichert deshalb, bevor er prüft; sonst bezöge der Nutzer eine Bewertung
  * auf Änderungen, die nie beim Server ankamen.
  */
-import { stufeAnzeige } from './homepageStandard';
+import { stufeAnzeige } from './websiteStandard';
 
 export const MELDUNGEN = {
   leer: 'Diese Seite hat noch keinen Inhalt — erst bauen, dann prüfen.',

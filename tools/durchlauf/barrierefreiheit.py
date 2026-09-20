@@ -22,7 +22,7 @@ Unterschied ist, steht weiter unten im Abschnitt „Lesbarkeit".
 
 **Der Massstab ist WCAG AA** (Entscheidung David, 04.09.2026): Fließtext
 4,5:1, grosse Schrift und Bedienelemente 3:1. Derselbe Massstab, den der
-Homepage-Standard bei Kunden anlegt — das eigene Werkzeug sollte ihn
+Website-Standard bei Kunden anlegt — das eigene Werkzeug sollte ihn
 bestehen. **Eine Mindestschriftgroesse gehoert nicht dazu**: WCAG kennt keine;
 die Richtlinie verlangt, dass Text sich auf 200 % vergroessern laesst (1.4.4).
 Die 12-px-Grenze des Projekts stammt von Lighthouse und ist eine eigene

@@ -43,7 +43,7 @@ Lege das SQLAlchemy-Modell BookOrder an (Tabelle book_orders) mit diesen Spalten
   id                  Integer, PK
   order_number        String(20), unique, not null      -- z.B. HS-2026-0001
   variant             String(10), not null              -- 'pdf' | 'print' | 'bundle'
-  book_version        String(10), not null              -- aus shared/homepage-standard.json
+  book_version        String(10), not null              -- aus shared/website-standard.json
 
   email               String(255), not null
   first_name          String(100)

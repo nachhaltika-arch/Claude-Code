@@ -42,7 +42,7 @@ def test_die_quelle_ist_die_titelei():
     import pathlib
 
     titelei = (pathlib.Path(__file__).resolve().parents[3] / "docs" / "Buch"
-               / "Buch - Kompagnon - Homepage Standard v2"
+               / "Buch - Kompagnon - Website Standard v2"
                / "Vollständige dokumentation Buch V2" / "TITELEI.md")
     text = titelei.read_text(encoding="utf-8")
 

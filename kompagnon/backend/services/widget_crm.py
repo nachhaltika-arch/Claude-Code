@@ -36,8 +36,8 @@ MERKMALE = (
     ("ANALYSE_STUFE", "text"),
     ("ANALYSE_QUELLE", "text"),
     # Woher der Kontakt kam (15.09.2026). **In Brevo muss dafuer nichts von
-    # Hand angelegt werden** — `ensure_attribute` legt fehlende Merkmale
-    # selbst an, und genau dafuer gibt es die Schleife unten: Brevo weist
+    # Hand angelegt werden** — `ensure_attributes` legt fehlende Merkmale
+    # selbst an, und genau dafuer wird es unten aufgerufen: Brevo weist
     # einen Kontakt mit unbekanntem Merkmal **vollstaendig** ab, nicht nur
     # das Merkmal.
     ("UTM_SOURCE", "text"),
@@ -83,8 +83,10 @@ def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
         from services.brevo_service import BrevoService
 
         with BrevoService() as brevo:
-            for name, typ in MERKMALE:
-                brevo.ensure_attribute(name, typ)
+            # Einmal lesen, nur Fehlendes anlegen. Die alte Schleife schrieb
+            # je Uebertragung neun ERROR-Zeilen ins Protokoll, weil Brevo ein
+            # vorhandenes Merkmal mit 400 ablehnt (20.09.2026).
+            brevo.ensure_attributes(MERKMALE)
 
             merkmale = {"WEBSITE": website, "ANALYSE_QUELLE": quelle}
             if score is not None:

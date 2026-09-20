@@ -33,9 +33,11 @@ def main() -> int:
     try:
         with BrevoService() as brevo:
             print("Merkmale anlegen (vorhandene werden übersprungen):")
+            vorhanden = brevo.merkmale()
+            brevo.ensure_attributes(MERKMALE)
             for name, typ in MERKMALE:
-                brevo.ensure_attribute(name, typ)
-                print(f"  · {name} ({typ})")
+                stand = "war schon da" if name in vorhanden else "angelegt"
+                print(f"  · {name} ({typ}) — {stand}")
 
             print("\nListen anlegen:\n")
             for name, variable, hinweis in LISTEN:

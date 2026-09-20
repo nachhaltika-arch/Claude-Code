@@ -208,7 +208,7 @@ def test_ein_zu_langer_wert_kostet_keine_analyse(client, monkeypatch):
 # ── Brevo ─────────────────────────────────────────────────────────────
 
 def test_brevo_kennt_die_fuenf_merkmale():
-    """**In Brevo muss nichts von Hand angelegt werden** — `ensure_attribute`
+    """**In Brevo muss nichts von Hand angelegt werden** — `ensure_attributes`
     legt fehlende Merkmale selbst an, und die Schleife darueber laeuft ueber
     genau diese Liste. Fehlt eines hier, weist Brevo den **ganzen** Kontakt
     ab, nicht nur das Merkmal."""
@@ -233,7 +233,11 @@ def test_leere_werte_gehen_nicht_an_brevo(monkeypatch):
         def __exit__(self, *_a):
             return False
 
-        def ensure_attribute(self, *_a, **_k):
+        def ensure_attributes(self, *_a, **_k):
+            # Seit dem 20.09.2026 ruft `uebertrage` diese Methode statt
+            # `ensure_attribute` je Merkmal. Die Nachbildung hier hatte das
+            # nicht mitbekommen und meldete einen Brevo-Fehlschlag, wo
+            # keiner war — eine Nachbildung altert mit dem Gegenstand.
             pass
 
         def create_contact(self, **kwargs):

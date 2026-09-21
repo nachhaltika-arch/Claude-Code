@@ -208,16 +208,48 @@ def stufe_landingpage(ziel: dict, klickadresse: str) -> list[Befund]:
 
     text = inhalt.decode("utf-8", "replace")
     for name, muster in (("Widget eingebettet", "audit-widget"),
-                         ("Sprungmarke #analyse", 'id="analyse"'),
                          ("Pixel", "fbq("),
                          ("GA4", "gtag(")):
         treffer = text.count(muster)
         befunde.append(messung("2 Landingpage", name, treffer > 0,
                                f"{treffer}× „{muster}“"))
+
+    # **Die Seite liefert statisch nur rund 930 Zeichen Markup aus**; alles
+    # andere hängt sich zur Laufzeit aus zehn Inline-Skripten ein (17.09.2026).
+    # Die Sprungmarke steht deshalb **maskiert** in der JSON-Vorlage, nicht als
+    # `id="analyse"` im Quelltext. Wer nur die unmaskierte Form sucht, meldet
+    # eine fehlende Sprungmarke auf einer Seite, die sie hat — am 21.09.2026
+    # genau so passiert. Dass sie wirkt, ist am 17.09. im Browser gemessen
+    # (`scrollY` 953 nach dem Laden); von außen ist nur ihr Vorhandensein
+    # prüfbar.
+    roh = text.count('id="analyse"')
+    maskiert = text.count('id=\\"analyse\\"')
+    befunde.append(messung(
+        "2 Landingpage", "Sprungmarke #analyse", roh + maskiert > 0,
+        f"{roh}× roh, {maskiert}× maskiert in der Vorlage, "
+        f"{text.count('#analyse')}× als Ziel"))
     return befunde
 
 
 # --------------------------------------------------- Stufe 3: Widget und Config
+
+
+def serverweg_befund(ziel: dict) -> Befund:
+    """Ob der Serverweg meldebereit ist — steht in `/health`, nicht im Widget.
+
+    Die Widget-Konfiguration enthält **keinen** Schlüssel `meta`; sie ist
+    bewusst auf Anzeigewerte beschränkt. Wer sie danach fragt, bekommt `None`
+    und meldet einen Ausfall, den es nicht gibt (21.09.2026).
+    """
+    antwort, fehler = hole("GET", f"{ziel['api']}/health")
+    if fehler or antwort.status_code != 200:
+        return nicht_erhoben("3 Widget", "Serverweg bereit",
+                             fehler or f"/health antwortet {antwort.status_code}")
+    meta = antwort.json().get("meta") or {}
+    return messung("3 Widget", "Serverweg bereit", bool(meta.get("bereit")),
+                   f"bereit={meta.get('bereit')}, Token {meta.get('token_laenge')} "
+                   f"Zeichen, Pixel aus {meta.get('pixel_quelle')!r}",
+                   f"{ziel['api']}/health")
 
 
 def stufe_widget(ziel: dict) -> tuple[list[Befund], dict]:
@@ -230,20 +262,22 @@ def stufe_widget(ziel: dict) -> tuple[list[Befund], dict]:
                         f"HTTP {antwort.status_code}")], {}
 
     config = antwort.json()
-    meta = config.get("meta") or {}
     check_plus = config.get("check_plus") or {}
+    # **Das Feld heißt `facebook_pixel_id`.** Nach `pixel_id` gefragt, kam
+    # `None` — und der Lauf meldete produktiv „Pixelkennung leer", während die
+    # Kennung dastand (21.09.2026). Dieselbe Klasse wie `check_plus.kauf_url`
+    # am 17.09.: nach dem erwarteten Namen gefragt statt nach der Feldliste.
     befunde = [
         messung("3 Widget", "Konfiguration", True, "HTTP 200",
                 f"{ziel['api']}/api/widget/config"),
-        messung("3 Widget", "Pixelkennung", bool(config.get("pixel_id")),
-                str(config.get("pixel_id") or "leer")),
+        messung("3 Widget", "Pixelkennung", bool(config.get("facebook_pixel_id")),
+                str(config.get("facebook_pixel_id") or "leer")),
         messung("3 Widget", "Datenschutzlink", bool(config.get("privacy_url")),
                 str(config.get("privacy_url") or "leer")),
-        messung("3 Widget", "Serverweg bereit", bool(meta.get("bereit")),
-                f"bereit={meta.get('bereit')}"),
         messung("3 Widget", "Check PLUS verkäuflich", bool(check_plus.get("verfuegbar")),
                 f"verfuegbar={check_plus.get('verfuegbar')}"),
     ]
+    befunde.append(serverweg_befund(ziel))
 
     datei, fehler = hole("GET", f"{ziel['frontend']}/embed/audit-widget.html")
     if fehler:
@@ -633,6 +667,37 @@ def phase_start(args) -> int:
     return 0
 
 
+def phase_pruefen(args) -> int:
+    """Stufen 2 und 3 allein — ohne Formularabsendung, also ohne neue Daten.
+
+    Zwei Zwecke: die Vorprüfung vor einem produktiven Lauf, und das Nachmessen
+    eines Laufs, dessen Prüfung sich als falsch herausgestellt hat. Die Bilanz
+    nimmt je Punkt die jüngste Messung, die ältere bleibt im Protokoll stehen.
+    """
+    if args.ziel:
+        ziel, zustand = ZIELE[args.ziel], None
+        klickadresse = ziel["landingpage"] or ""
+    else:
+        zustand = zustand_lesen(args.lauf)
+        ziel = ZIELE[zustand["ziel"]]
+        klickadresse = zustand.get("klickadresse", "")
+
+    befunde = stufe_landingpage(ziel, klickadresse)
+    widget_befunde, config = stufe_widget(ziel)
+    befunde += widget_befunde
+
+    if zustand is not None:
+        neue_konfig = {**zustand.get("konfiguration", {}),
+                       "check_plus": bool((config.get("check_plus") or {}).get("verfuegbar")),
+                       "pixel": bool(config.get("facebook_pixel_id"))}
+        zustand_schreiben(befunde_anhaengen({**zustand, "konfiguration": neue_konfig},
+                                            befunde))
+
+    ausgeben(befunde)
+    print(f"\n  {zusammenfassen(befunde)}")
+    return 0
+
+
 def phase_bestaetigen(args) -> int:
     zustand = zustand_lesen(args.lauf)
     befunde = stufe_bestaetigen(args.link)
@@ -691,6 +756,14 @@ def main() -> int:
     start.add_argument("--adresse", default=f"nachhaltika+funnel-{heute}@gmail.com",
                        help="Empfängeradresse; +Alias hält den Lauf erkennbar")
     start.set_defaults(fn=phase_start)
+
+    pruef = unter.add_parser("pruefen",
+                             help="Stufen 2 und 3 allein — ohne neue Daten")
+    pruef.add_argument("--ziel", choices=sorted(ZIELE),
+                       help="freistehende Vorprüfung; ohne Angabe wird der "
+                            "letzte Lauf nachgemessen")
+    pruef.add_argument("--lauf")
+    pruef.set_defaults(fn=phase_pruefen)
 
     best = unter.add_parser("bestaetigen", help="Stufe 8 — Klick aus Mail 1")
     best.add_argument("--link", required=True)

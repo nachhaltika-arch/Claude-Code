@@ -25,6 +25,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 BREVO_API = "https://api.brevo.com/v3"
+
+# Brevo gibt hoechstens 50 Listen je Abruf zurueck.
+SEITENGROESSE = 50
 REQUEST_TIMEOUT_SECONDS = 20.0
 DEFAULT_FOLDER_ID = 1
 SENDER_NAME = "KOMPAGNON"
@@ -149,6 +152,60 @@ class BrevoService:
         response = self._request("POST", "/contacts/lists", {"name": name, "folderId": folder_id})
         return self._id_aus(response, "die Liste")
 
+    def listen(self) -> list:
+        """Alle Listen des Kontos mit Nummer und Namen — nur lesend.
+
+        **Wozu es das gibt.** `create_list` legt bei jedem Aufruf eine neue
+        Liste an, auch wenn der Name schon existiert. Wer die beiden
+        Listen-Nummern fuer die Umgebung sucht, soll nachsehen koennen,
+        statt Doppel zu erzeugen und danach nicht zu wissen, welche gilt.
+
+        **Alle Seiten, nicht nur die erste.** Brevo gibt hoechstens
+        `SEITENGROESSE` je Abruf zurueck. Ein Nachschlagen, das die zweite
+        Seite auslaesst, meldet „gibt es nicht" fuer eine Liste, die es gibt.
+        """
+        gesammelt = []
+        offset = 0
+        while True:
+            antwort = self._request(
+                "GET", f"/contacts/lists?limit={SEITENGROESSE}&offset={offset}")
+            koerper = antwort.json()
+            seite = koerper.get("lists") or []
+            gesammelt.extend(seite)
+            offset += SEITENGROESSE
+            if not seite or len(gesammelt) >= (koerper.get("count") or 0):
+                return gesammelt
+
+    def ensure_attributes(self, merkmale) -> None:
+        """Legt die fehlenden Kontaktmerkmale an — und nur die.
+
+        **Der Anlass, 20.09.2026.** Vorher rief der Aufrufer je Merkmal
+        `ensure_attribute`. Existierte es, antwortete Brevo mit 400
+        („Attribute name must be unique"); `_request` protokollierte das als
+        **Fehler**, bevor `ensure_attribute` es abfing. Je uebertragenem
+        Kontakt standen damit neun ERROR-Zeilen im Protokoll — fuer den
+        Normalfall.
+
+        Das ist nicht nur haesslich. Dieses Protokoll war vierzehn Tage lang
+        die einzige Stelle, an der der stille Brevo-Ausfall sichtbar gewesen
+        waere. Wer dort staendig Rot sieht, sieht das echte Rot nicht mehr.
+
+        **Der Lesezugriff darf nicht verschluckt werden.** Scheitert er,
+        wuerde die Uebertragung sonst ohne Merkmale weiterlaufen — und Brevo
+        weist einen Kontakt mit unbekanntem Merkmal **vollstaendig** ab, nicht
+        nur das Merkmal. Ein stiller Rueckfall waere also schlimmer als der
+        Abbruch.
+        """
+        vorhanden = self.merkmale()
+        for name, typ in merkmale:
+            if name not in vorhanden:
+                self.ensure_attribute(name, typ)
+
+    def merkmale(self) -> set:
+        """Die Namen der vorhandenen Kontaktmerkmale."""
+        koerper = self._request("GET", "/contacts/attributes").json()
+        return {eintrag.get("name") for eintrag in koerper.get("attributes") or []}
+
     def ensure_attribute(self, name: str, typ: str = "text") -> None:
         """Legt ein Kontaktmerkmal an, falls es noch fehlt.
 
@@ -161,7 +218,12 @@ class BrevoService:
         try:
             self._request("POST", f"/contacts/attributes/normal/{name}", {"type": typ})
         except BrevoError as e:
-            logger.debug("Merkmal %s nicht angelegt (existiert vermutlich): %s", name, e)
+            # **Jetzt eine Warnung statt `debug`.** Solange jeder Lauf hier
+            # landete, waere eine Warnung Laerm gewesen. Seit
+            # `ensure_attributes` nur noch fehlende anlegt, heisst dieser
+            # Zweig: „anlegen ist nicht gegangen" — und das gehoert gesagt.
+            logger.warning("Brevo-Merkmal %s konnte nicht angelegt werden: %s",
+                           name, e)
 
     # ── Kampagnen ────────────────────────────────────────────────────────────
 

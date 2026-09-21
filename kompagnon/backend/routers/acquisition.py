@@ -296,6 +296,12 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 # Er lag die ganze Zeit in `audit_results.error_message`.
                 "analyse_status": staende.get(row.audit_id, (None, None))[0],
                 "analyse_fehler": staende.get(row.audit_id, (None, None))[1],
+                # ── Wer angerufen werden will (21.09.2026) ───────────────
+                # `getattr` mit Vorgabe, weil eine Datenbank ohne die
+                # Migration sonst die ganze Liste kippen wuerde — dieselbe
+                # Vorsicht wie bei `verified_user_agent` darueber.
+                "telefon": getattr(row, "telefon", None) or None,
+                "anruf_gewuenscht": bool(getattr(row, "anruf_gewuenscht", False)),
             }
             for row in rows
         ],

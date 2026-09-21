@@ -252,6 +252,49 @@ def _meta_zustand() -> dict:
         return meta_conversions.zustand()
 
 
+def _brevo_zustand() -> dict:
+    """Ob ein bestaetigter Lead ueberhaupt in einer Liste landen kann (20.09.2026).
+
+    **Der Anlass.** `widget_crm.uebertrage_anfrage` brach bei fehlender
+    Listen-ID mit einem blanken `return` ab — vierzehn Tage lang schwieg die
+    Uebertragung vollstaendig, waehrend neun Adressen bestaetigten. Die Stelle
+    warnt seit dem 17.09.2026, aber das hilft nur, wer ins Protokoll sieht.
+    Von aussen war die Frage „ist der Weg eingerichtet?" nicht zu beantworten —
+    als einziger der drei Aussenwege, die nur in Render stehen.
+
+    **Gemeldet wird, ob etwas dasteht, nie was dasteht.** `/health` antwortet
+    ohne Anmeldung; der Schluessel geht mit seiner Laenge hinaus, wie die
+    Stripe-Schluessel auch. Die Listen-Nummern ebenfalls nicht: Sie sind zwar
+    kein Geheimnis, aber sie belegen ohnehin nichts — eine gueltige Nummer auf
+    die falsche Liste saehe hier genauso aus. Was der Block leistet, ist die
+    Unterscheidung zwischen „eingerichtet" und „schweigt".
+    """
+    from services import widget_crm
+
+    schluessel = os.getenv("BREVO_API_KEY", "").strip()
+    werte = (
+        ("BREVO_API_KEY", schluessel),
+        ("BREVO_LIST_VERIFIED_ID", widget_crm.liste_bestaetigt()),
+        ("BREVO_LIST_OPTIN_ID", widget_crm.liste_optin()),
+    )
+    fehlend = [name for name, wert in werte if not wert]
+
+    return {
+        "schluessel_gesetzt": bool(schluessel),
+        "schluessel_laenge": len(schluessel),
+        "liste_bestaetigt_gesetzt": widget_crm.liste_bestaetigt() is not None,
+        "liste_optin_gesetzt": widget_crm.liste_optin() is not None,
+        "fehlend": fehlend,
+        "bereit": not fehlend,
+        "variablen": [name for name, _ in werte],
+        "wofuer": ("Eintrag bestaetigter Adressen in Brevo und Start der "
+                   "Mailsequenz (P0-01). Ohne die beiden Listen-Nummern "
+                   "uebertraegt das Widget nichts — und die Sequenz samt "
+                   "Abmeldelink laeuft nie an."),
+        "schwere": "ok" if not fehlend else "hinweis",
+    }
+
+
 def _erhebungszustand() -> dict:
     """Kann das Audit ueberhaupt vollstaendig messen? (K1 / L-165, 05.09.2026)
 
@@ -452,6 +495,11 @@ def health_check():
             # schweigt der Serverweg vollstaendig — und dann misst nur der
             # Browser, also genau der Weg, der bei Adblockern wegbricht.
             "meta": _meta_zustand(),
+            # Ob ein bestaetigter Lead ueberhaupt in einer Brevo-Liste
+            # landen kann. Der stille Ausfall vom 17.09.2026 war hier:
+            # ohne Listen-Nummer uebertrug das Widget nichts, und weder
+            # Erfolg noch Misserfolg stand im Protokoll.
+            "brevo": _brevo_zustand(),
             # Ob eingehende Kundenmails ankommen — und ob gerade ein
             # Geheimniswechsel laeuft, dessen letzter Schritt noch aussteht.
             "posteingang": _posteingang_zustand(),

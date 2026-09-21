@@ -286,3 +286,58 @@ def test_ohne_liste_wird_brevo_gar_nicht_erst_gerufen():
                                         html_content="", list_ids=[])
 
     assert gerufen == []
+
+
+# ── Listen nachschlagen (20.09.2026) ─────────────────────────────────────────
+#
+# **Warum lesen, bevor angelegt wird.** `scripts/brevo_widget_listen.py` legt
+# bei jedem Lauf neue Listen an, auch wenn der Name schon existiert — die
+# eigene Dokumentation warnt davor. Wer die beiden Listen-Nummern braucht,
+# soll deshalb erst nachsehen koennen, statt Doppel zu erzeugen.
+
+def test_listen_holt_namen_und_nummern():
+    def handler(request):
+        assert request.url.path == "/v3/contacts/lists"
+        return _json_response(200, {"count": 2, "lists": [
+            {"id": 11, "name": "KOMPAGNON Widget — Adresse bestätigt"},
+            {"id": 22, "name": "KOMPAGNON Widget — Marketing-Opt-in"},
+        ]})
+
+    with _service(handler) as brevo:
+        listen = brevo.listen()
+
+    assert [(e["id"], e["name"]) for e in listen] == [
+        (11, "KOMPAGNON Widget — Adresse bestätigt"),
+        (22, "KOMPAGNON Widget — Marketing-Opt-in"),
+    ]
+
+
+def test_listen_holt_auch_die_zweite_seite():
+    """Brevo gibt hoechstens 50 je Abruf. Ein Nachschlagen, das nur die erste
+    Seite liest, meldet „gibt es nicht" fuer eine Liste, die es gibt — und das
+    waere genau der Irrtum, den es verhindern soll."""
+    seiten = []
+
+    def handler(request):
+        offset = int(dict(request.url.params).get("offset", 0))
+        seiten.append(offset)
+        eintraege = [{"id": 100 + offset + i, "name": f"Liste {offset + i}"}
+                     for i in range(50 if offset == 0 else 3)]
+        return _json_response(200, {"count": 53, "lists": eintraege})
+
+    with _service(handler) as brevo:
+        listen = brevo.listen()
+
+    assert len(listen) == 53
+    assert seiten == [0, 50]
+
+
+def test_listen_meldet_einen_fehler_statt_einer_leeren_liste():
+    """Eine leere Antwort auf einen Fehler saehe aus wie „keine Listen da" —
+    und dann legte jemand Doppel an."""
+    def handler(request):
+        return _json_response(401, {"message": "Key not found"})
+
+    with _service(handler) as brevo:
+        with pytest.raises(BrevoError):
+            brevo.listen()

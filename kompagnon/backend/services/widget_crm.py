@@ -36,8 +36,8 @@ MERKMALE = (
     ("ANALYSE_STUFE", "text"),
     ("ANALYSE_QUELLE", "text"),
     # Woher der Kontakt kam (15.09.2026). **In Brevo muss dafuer nichts von
-    # Hand angelegt werden** — `ensure_attribute` legt fehlende Merkmale
-    # selbst an, und genau dafuer gibt es die Schleife unten: Brevo weist
+    # Hand angelegt werden** — `ensure_attributes` legt fehlende Merkmale
+    # selbst an, und genau dafuer wird es unten aufgerufen: Brevo weist
     # einen Kontakt mit unbekanntem Merkmal **vollstaendig** ab, nicht nur
     # das Merkmal.
     ("UTM_SOURCE", "text"),
@@ -45,6 +45,10 @@ MERKMALE = (
     ("UTM_CAMPAIGN", "text"),
     ("UTM_CONTENT", "text"),
     ("UTM_TERM", "text"),
+    # Die freiwillige Rufnummer (21.09.2026). Sie steht hier, weil David den
+    # Lead in Brevo sieht — eine Nummer, die nur in der eigenen Datenbank
+    # liegt, fuehrt zu keinem Anruf.
+    ("TELEFON", "text"),
 )
 
 
@@ -69,7 +73,8 @@ def _listen_id(variable: str) -> Optional[int]:
 
 def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
                score: Optional[int] = None, stufe: str = "",
-               quelle: str = "widget", utm: Optional[dict] = None) -> bool:
+               quelle: str = "widget", utm: Optional[dict] = None,
+               telefon: str = "") -> bool:
     """Trägt eine Adresse in eine Brevo-Liste ein. Gibt zurück, ob es klappte.
 
     Wirft nie — der Aufrufer steckt mitten im Bestätigungsklick eines
@@ -83,8 +88,10 @@ def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
         from services.brevo_service import BrevoService
 
         with BrevoService() as brevo:
-            for name, typ in MERKMALE:
-                brevo.ensure_attribute(name, typ)
+            # Einmal lesen, nur Fehlendes anlegen. Die alte Schleife schrieb
+            # je Uebertragung neun ERROR-Zeilen ins Protokoll, weil Brevo ein
+            # vorhandenes Merkmal mit 400 ablehnt (20.09.2026).
+            brevo.ensure_attributes(MERKMALE)
 
             merkmale = {"WEBSITE": website, "ANALYSE_QUELLE": quelle}
             if score is not None:
@@ -97,6 +104,11 @@ def uebertrage(email: str, listen_id: Optional[int], *, website: str = "",
             for name, wert in (utm or {}).items():
                 if wert:
                     merkmale[name.upper()] = wert
+            # Aus demselben Grund wie oben: Ein leeres TELEFON in Brevo saehe
+            # aus wie „Nummer angegeben, aber leer". Fehlt das Merkmal, ist
+            # sichtbar, dass kein Anruf gewuenscht ist.
+            if telefon:
+                merkmale["TELEFON"] = telefon
 
             brevo.create_contact(email=email, first_name="", last_name="",
                                  list_ids=[listen_id], attributes=merkmale)
@@ -157,6 +169,10 @@ def uebertrage_anfrage(request_id: int, listen_id: Optional[int],
             stufe=getattr(audit, "level", "") or "",
             quelle=quelle,
             utm=utm,
+            # Nur wenn der Wunsch dasteht. `row.telefon` ist ohne ihn ohnehin
+            # leer — die zweite Pruefung kostet nichts und haelt die Regel an
+            # der Stelle fest, an der die Nummer das Haus verlaesst.
+            telefon=(row.telefon or "") if getattr(row, "anruf_gewuenscht", False) else "",
         )
     finally:
         db.close()

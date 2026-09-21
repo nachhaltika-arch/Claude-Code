@@ -2190,6 +2190,21 @@ def run_migrations():
         "UPDATE products SET features = "
         "replace(features::text, 'Homepage', 'Website')::jsonb "
         "WHERE features::text LIKE '%Homepage%'",
+        # ── Rufnummer und Anrufwunsch (21.09.2026, Wunsch David) ──
+        #
+        # Zwei Spalten, nicht eine. Die Nummer ist die Angabe, der Wunsch die
+        # Erlaubnis; wer die Nummer spaeter entfernt, soll die Erlaubnis nicht
+        # mitloeschen muessen, und wer widerruft, nicht auf das Loeschen der
+        # Nummer angewiesen sein.
+        #
+        # **`DEFAULT FALSE` fuellt den Bestand, und das ist die Aussage:**
+        # Fuer jede Anfrage, die vor dieser Zeile entstanden ist, liegt kein
+        # Anrufwunsch vor. `NULL` hiesse „nicht erhoben" und waere hier falsch
+        # — es ist erhoben worden, indem niemand gefragt wurde.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "telefon VARCHAR(64)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS "
+        "anruf_gewuenscht BOOLEAN DEFAULT FALSE",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

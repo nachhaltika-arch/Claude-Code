@@ -66,3 +66,6 @@ uploads/
 # Vertriebsplan: nennt Budgets und Kontokennungen, das Repo ist oeffentlich
 # (scripts/trichter-vorschau.py haelt diese Absicht schon fest, der Schutz fehlte)
 docs/Websprint-Vertriebsplan.html
+
+# Funnel-Test: Laufzustand mit Tokens, die Zugang zu einem Bericht geben
+.funneltest/

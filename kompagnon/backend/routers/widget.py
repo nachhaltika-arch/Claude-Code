@@ -113,6 +113,29 @@ class WidgetAuditRequest(BaseModel):
     # (10.09.2026, § 25 TDDDG: Schweigen ist keine Zustimmung). Die Regel
     # steht in `meta_conversions.darf_melden`.
     consent_tracking: str = ""
+    # Freiwillige Rufnummer und der Wunsch nach einem Anruf (21.09.2026).
+    # **Der Wunsch entscheidet, nicht die Ziffernfolge**, und ein Ja ohne
+    # Nummer ist kein Fehler, sondern ein Nein — siehe `_anrufwunsch`. Ein
+    # freiwilliges Feld darf eine Analyse nicht kosten.
+    telefon: str = ""
+    anruf_gewuenscht: bool = False
+
+
+def _anrufwunsch(payload: "WidgetAuditRequest") -> tuple[str, bool]:
+    """(Nummer, Wunsch) — die beiden gibt es nur zusammen.
+
+    **Ja ohne Nummer wird Nein.** Wer den Wunsch setzt und das Feld leer
+    laesst, bekommt keinen Fehler: Eine Erlaubnis ohne erreichbare Nummer ist
+    gegenstandslos, und das Formular soll daran nicht scheitern.
+
+    **Nummer ohne Ja wird verworfen.** Sie zu speichern waere eine Rufnummer
+    auf Vorrat — genau das, wofuer § 7 UWG die ausdrueckliche Einwilligung
+    verlangt.
+    """
+    nummer = (payload.telefon or "").strip()[:64]
+    if not (payload.anruf_gewuenscht and nummer):
+        return "", False
+    return nummer, True
 
 
 def _normalise_url(url: str) -> str:
@@ -273,6 +296,7 @@ async def start_widget_audit(
         db.commit()
 
     now = datetime.utcnow()
+    telefon, anruf_gewuenscht = _anrufwunsch(payload)
     widget_request = WidgetRequest(
         email=email,
         website_url=url,
@@ -300,6 +324,10 @@ async def start_widget_audit(
         # entspricht, bleibt leer — ein falscher Nachweis waere schlimmer als
         # keiner.
         nachweis=_nachweis_kennung(payload.nachweis),
+        # Rufnummer nur mit Wunsch, beides aus derselben Pruefung — damit die
+        # Spalte nie eine Nummer traegt, fuer die keine Erlaubnis vorliegt.
+        telefon=telefon,
+        anruf_gewuenscht=anruf_gewuenscht,
     )
     db.add(widget_request)
     db.commit()

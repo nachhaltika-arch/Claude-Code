@@ -69,9 +69,19 @@
      Dunkle Fläche, gelber Akzent — die CI erlaubt genau einen gelben
      Knopf je Ansicht, und das ist ab hier dieser. Der Terminknopf ist
      dafür aus dem Ergebnis gewichen. */
+  /* Das Angebot ist abgesetzt und **kleiner als der naechste Schritt**:
+     Wer den Bericht noch gar nicht hat, soll nicht zuerst einen Kaufknopf
+     sehen. Die Zwischenzeile sagt, fuer wen der Block ueberhaupt ist. */
+  .kpg-trenner {
+    border: 0; border-top: 1px solid var(--kpg-border); margin: 26px 0 0;
+  }
+  .kpg-trenner-text {
+    margin: 14px 0 0; font-size: 13px; font-weight: 700;
+    color: var(--kpg-muted);
+  }
   .kpg-cp {
     background: var(--kpg-dark); border-radius: 10px;
-    padding: 26px 26px 28px; color: #fff; margin: 24px 0 0;
+    padding: 18px 18px 20px; color: #fff; margin: 12px 0 0;
   }
   .kpg-cp-eyebrow {
     font-size: 11px; font-weight: 700; letter-spacing: .16em;
@@ -82,7 +92,7 @@
     gap: 16px; flex-wrap: wrap; margin-bottom: 8px;
   }
   .kpg-cp-name, .kpg-cp-preis {
-    font-size: 30px; font-weight: 900; letter-spacing: -.025em;
+    font-size: 20px; font-weight: 900; letter-spacing: -.02em;
     text-transform: uppercase;
   }
   .kpg-cp-name { color: #fff; }
@@ -91,9 +101,14 @@
     font-size: 14px; font-weight: 700; letter-spacing: .04em;
     color: #fff; margin-left: 6px; text-transform: none;
   }
-  .kpg-cp-lead { margin: 0 0 22px; font-size: 15px; line-height: 1.6; }
+  .kpg-cp-lead { margin: 0 0 16px; font-size: 14px; line-height: 1.55; }
+  .kpg-cp-mehr { margin: 0 0 16px; }
+  .kpg-cp-mehr summary {
+    cursor: pointer; font-size: 14px; font-weight: 700; padding: 6px 0;
+  }
+  .kpg-cp-mehr summary:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .kpg-cp ul {
-    list-style: none; margin: 0 0 22px; padding: 0;
+    list-style: none; margin: 10px 0 0; padding: 0;
     display: flex; flex-direction: column; gap: 12px;
   }
   .kpg-cp li {
@@ -106,14 +121,19 @@
     border-left: 3px solid var(--kpg-yellow); border-radius: 0 6px 6px 0;
     font-size: 14px; line-height: 1.55; font-weight: 700;
   }
+  /* **Kein gelber Knopf** (Entwurf David, 21.09.2026). Gelb ist im Haus
+     der eine Hauptknopf je Ansicht — und der gehoert auf diesem Bildschirm
+     nicht dem Kauf, sondern gar keinem: Die Aufgabe liegt im Postfach.
+     Der Weg zum Angebot bleibt erreichbar, aber als Linie statt als Flaeche. */
   .kpg-cp-btn {
-    width: 100%; padding: 18px 20px; border-radius: 4px;
-    background: var(--kpg-yellow); color: var(--kpg-dark);
-    font-size: 16px; font-weight: 900; letter-spacing: .12em;
-    text-transform: uppercase; display: flex; align-items: center;
-    justify-content: center; gap: 12px; text-decoration: none;
+    width: 100%; padding: 13px 18px; border-radius: 4px;
+    background: transparent; color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+    font-size: 14px; font-weight: 700; letter-spacing: .06em;
+    text-transform: none; display: flex; align-items: center;
+    justify-content: center; gap: 10px; text-decoration: none;
   }
-  .kpg-cp-btn:hover { filter: brightness(.95); }
+  .kpg-cp-btn:hover { background: rgba(255,255,255,.10); }
   /* Kein Knopf ohne Ziel: Solange das Produkt Entwurf ist oder keine
      Kaufadresse hinterlegt wurde, steht hier ein Satz statt einer 404. */
   .kpg-cp-bald {
@@ -242,10 +262,23 @@
   }
   /* Info-Tint statt Grau: die Karte selbst ist jetzt grau, ein grauer
      Kasten darauf verschwände. */
+  /* ── Der eine naechste Schritt (Entwurf David, 21.09.2026) ──
+     Vorher war dieser Kasten 147 px hoch und das bezahlte Angebot darunter
+     **1.161 px** — bei 390 px gemessen, achtmal so viel Flaeche fuer das,
+     was Geld kostet, wie fuer das, was der Besucher jetzt tun muss. Der
+     Kasten traegt deshalb jetzt die Schriftgroesse und die Kante einer
+     Aufgabe, nicht die einer Fussnote. */
   .kpg-mailnote {
-    background: #E0F4F8; border-radius: 7px; padding: 13px 15px;
-    margin: 18px 0; font-size: 13px; line-height: 1.55;
+    background: #E0F4F8; border-left: 4px solid var(--kpg-teal);
+    border-radius: 0 7px 7px 0; padding: 18px 18px 16px;
+    margin: 20px 0 0; font-size: 15px; line-height: 1.55;
   }
+  .kpg-mailnote strong { font-size: 16px; font-weight: 900; line-height: 1.35;
+    display: block; margin-bottom: 6px; color: var(--kpg-dark); }
+  /* Der Spam-Hinweis ist die Antwort auf die eine Rueckfrage, die hier
+     entsteht — klein, aber an Ort und Stelle statt in einer Hilfeseite. */
+  .kpg-mailnote-klein { margin: 10px 0 0; font-size: 13px;
+    color: var(--kpg-muted); }
   .kpg-input:focus {
     border-color: var(--kpg-teal);
     box-shadow: 0 0 0 3px rgba(0,142,170,.15);
@@ -321,8 +354,12 @@
     padding: 22px 24px;
     margin: 0 0 28px;
   }
+  /* **Untereinander, nicht nebeneinander** (Entwurf David, 21.09.2026).
+     Bei 390 px brach die Zeile ohnehin um — die Stufe stand also mal neben,
+     mal unter der Zahl, je nach Laenge des Stufennamens. Jetzt steht sie
+     immer darunter, und die Zahl bleibt das Erste, was man sieht. */
   .kpg-punkte-kopf {
-    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
     margin-bottom: 16px;
   }
   .kpg-score { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
@@ -1211,10 +1248,16 @@
              '<br><button class="kpg-btn kpg-btn-secondary" id="kpg-mail-retry" ' +
              'style="max-width:260px;margin:12px 0 0;">Nochmal senden</button>';
     }
-    return '<strong>Noch ein Schritt: bitte Postfach prüfen</strong><br>' +
-           'Wir haben eine kurze Bestätigungs-Mail an ' + adresse + ' geschickt. ' +
-           'Ein Klick darin, und der vollständige Bericht kommt — ' + umfang +
-           ' mit Bewertung, Empfehlungen und PDF.';
+    /* **Ein Schritt, im Imperativ, mit der Adresse darin** (Entwurf David,
+       21.09.2026). Vorher stand hier, was **wir** getan haben („Wir haben
+       eine Mail geschickt"); jetzt steht da, was der Besucher tut. Der
+       Umfang des Berichts bleibt als Begruendung dahinter — er ist der
+       Grund, den Klick zu machen. */
+    return '<strong>Noch ein Klick: Bestätigungsmail an ' + adresse +
+             ' öffnen — dann kommt der vollständige Befund.</strong>' +
+           'Darin ' + umfang + ' mit Bewertung, Empfehlungen und PDF.' +
+           '<p class="kpg-mailnote-klein">Nichts angekommen? ' +
+             'Spam-Ordner prüfen.</p>';
   }
 
   function zeigeMailnote(zustand, email, pollToken) {
@@ -1341,11 +1384,21 @@
           '<span class="kpg-cp-preis">' + betrag(a.preis_netto) +
             '<span class="kpg-cp-einheit">netto</span></span>' +
         '</div>' +
-        '<p class="kpg-cp-lead">Der kostenlose Check zeigt Ihnen die ' +
-          'Punktzahl. ' + esc(a.name) + ' zeigt Ihnen, was zu tun ist — ' +
-          'und in welcher Reihenfolge.</p>' +
-        (punkte ? '<ul>' + punkte + '</ul>' : '') +
-        anrechnung +
+        /* Ein Satz statt eines Absatzes. Die Begruendung war gut und ist
+           nicht verloren — sie steht jetzt in der Klappe, zusammen mit den
+           Leistungen und der Anrechnung. */
+        '<p class="kpg-cp-lead">Zeigt Ihnen, was zu tun ist — und in welcher ' +
+          'Reihenfolge.</p>' +
+        /* **Die sechs Leistungspunkte stehen eingeklappt** (21.09.2026).
+           Ausgeklappt waren sie der groesste Einzelposten des Bildschirms —
+           bei 390 px rund 480 px Hoehe fuer ein Angebot, das erst nach dem
+           Bericht zur Frage wird. Weg sind sie nicht: Einen Klick entfernt,
+           und im Bericht stehen sie ohnehin. */
+        (punkte
+          ? '<details class="kpg-cp-mehr"><summary>Was ' + esc(a.name) +
+            ' enthält</summary><ul>' + punkte + '</ul>' + anrechnung +
+            '</details>'
+          : anrechnung) +
         abschluss +
         '<p class="kpg-cp-fuss">' + fuss.join(' ') + '</p>' +
       '</div>';
@@ -1411,6 +1464,14 @@
            das ist, steht im Katalog und nicht hier.
            `CHECKOUT_URL` bleibt in Gebrauch — der Terminkalender steht
            weiterhin im Bericht, den die zweite Mail verlinkt. */
+        /* **Erst die Aufgabe, dann das Angebot** (Entwurf David,
+           21.09.2026). Abgesetzt durch eine Linie und eine Zwischenzeile,
+           die sagt, fuer wen der Block gedacht ist — wer den Bericht noch
+           gar nicht gelesen hat, ist nicht gemeint. */
+        (CHECK_PLUS
+          ? '<hr class="kpg-trenner">' +
+            '<p class="kpg-trenner-text">Sie wollen es nicht selbst machen?</p>'
+          : '') +
         checkPlusHtml() +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';

@@ -90,6 +90,39 @@ ist eine **Sicht**, keine dritte Liste. Die Quellen bleiben
 > Arbeitsergebnis ohne Rückweg ist keine Ablage, sondern eine zweite Wahrheit,
 > die niemand lesen kann.
 
+## Jeder Fund kommt ins Lagebild (Entscheidung David, 2026-09-21)
+
+**Ein Fund, der nur im Chat oder in einer Tagesdokumentation steht, ist keiner.**
+Das Lagebild ist die Liste, die David liest — was dort fehlt, wird nicht
+entschieden und nicht behoben.
+
+Deshalb gilt, in jeder Sitzung und ohne Aufforderung: **Wer etwas findet,
+trägt es ein.** Auch was nebenbei auffiel, auch was nicht gesucht war, auch
+eigene Fehler mit Folgen für das System.
+
+| | |
+|---|---|
+| Quelle | `docs/soll-ist-analyse.md` § 3 — **nur dort** wird geschrieben |
+| Bauen | `kompagnon/backend/venv/bin/python scripts/lagebild-bauen.py` |
+| Veröffentlichen | Artifact `KOMPAGNON Lagebild`, **dieselbe URL** — `https://claude.ai/artifact/XVukNM8Hyh1nLpPZQZgYdo` |
+| Format | `\| L-nnn \| **Titel.** Befund mit Datum, Messung, „Zu tun" \| S/M/L \| Beleg \|` |
+
+**Vier Regeln, jede aus einem Fehlschlag:**
+
+1. **Erst suchen, dann anlegen.** Am 21.09. waren zwei von sechs Funden schon
+   da — der 500-statt-404 und die Meta-Verifizierungsdatei stehen beide in
+   L-20. Eine Doppelung ist schlimmer als ein fehlender Eintrag: Sie lässt
+   zwei Stände nebeneinander altern.
+2. **Ergänzen statt neu nummerieren,** wenn der Fund denselben Gegenstand
+   betrifft. Eine neue Nummer bekommt, was eigenständig entschieden wird.
+3. **Keine rohen Pipe-Zeichen im Text.** Namen wie „Karussell | DE ab 25"
+   zerlegen die Tabellenspalte; `\|` schreiben. Das Bauskript meldet solche
+   Zeilen, statt sie zu verschlucken — die Meldung ist ernst zu nehmen.
+4. **Positive Gegenprobe nach dem Bauen.** „Kein Fehler" heißt nicht „drin":
+   `grep -c '"L-nnn"' docs/lagebild/kompagnon-lagebild.html`.
+
+Die Zahlen im Lagebild werden **gebaut, nie von Hand geschrieben**.
+
 ## Repo-Regel
 - Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
 - NIE in anderen Repos Änderungen machen

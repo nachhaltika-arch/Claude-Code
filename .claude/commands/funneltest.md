@@ -177,8 +177,11 @@ Dann `docs/funneltest/JJJJ-MM-TT-HHMM.md` schreiben:
 * Die Stufentabelle mit Klasse und Beleg je Zeile.
 * **„Was ich nicht messen konnte"** samt Grund — Pflichtabschnitt.
 * Die Nummern, die stehen bleiben: Anfrage-ID, Lead, Audit-ID.
-* Berührt ein Befund eine `L-`Nummer, dort nachtragen und
-  `scripts/lagebild-bauen.py` laufen lassen.
+* **Jeder Befund des Laufs gehört ins Lagebild** — berührt er eine `L-`Nummer,
+  dort nachtragen; hat er noch keine, bekommt er eine neue. Verfahren, Format
+  und vier Fallen stehen in `CLAUDE.md`, Abschnitt „Jeder Fund kommt ins
+  Lagebild". Danach `scripts/lagebild-bauen.py` laufen lassen und das Artifact
+  an derselben URL aktualisieren.
 
 **Keine Token in den Bericht.** `poll_token` und `verify_token` geben Zugang
 zu einem fremden Bericht; sie bleiben in `.funneltest/`, das per `.gitignore`

@@ -90,6 +90,9 @@ Danach zwei Gegenprüfungen:
   einem Commit)? Dann gehört sie in `docs/soll-ist-analyse.md` § 3
   fortgeschrieben, und danach läuft `python3 scripts/lagebild-bauen.py`.
   Das Lagebild von gestern sieht aus wie eines von heute.
+* **Steht jeder Fund des Tages im Lagebild?** Was noch keine `L-`Nummer hat,
+  bekommt eine (Entscheidung David, 21.09.2026) — Verfahren und Fallen stehen
+  in `CLAUDE.md`, Abschnitt „Jeder Fund kommt ins Lagebild".
 
 ## Schritt 4 — Ablegen
 

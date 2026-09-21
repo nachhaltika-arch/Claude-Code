@@ -24,7 +24,7 @@ from services.audit_criteria import LEVELS
 
 FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
 HILFSDATEI = FRONTEND / "src" / "utils" / "websiteStandard.js"
-WIDGET = FRONTEND / "public" / "embed" / "audit-widget.html"
+WIDGET = FRONTEND / "public" / "embed" / "widget.js"
 
 
 def _katalog() -> list:
@@ -46,7 +46,7 @@ def _aus_dem_widget() -> list:
 
 @pytest.mark.parametrize("name, leser", [
     ("utils/websiteStandard.js", _aus_der_hilfsdatei),
-    ("embed/audit-widget.html", _aus_dem_widget),
+    ("embed/widget.js", _aus_dem_widget),
 ])
 def test_die_schwellen_stimmen_mit_dem_katalog_ueberein(name, leser):
     # Arrange

@@ -28,7 +28,7 @@ import pytest
 from database import Lead, SessionLocal
 
 EMBED = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "public" / "embed"
-WIDGET = EMBED / "audit-widget.html"
+WIDGET = EMBED / "widget.js"
 README = EMBED / "README.md"
 LANDINGPAGE = (pathlib.Path(__file__).resolve().parents[3]
                / "docs" / "landingpage" / "websprint-landingpage.html")

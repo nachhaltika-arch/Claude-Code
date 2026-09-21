@@ -41,7 +41,7 @@ import { STUFEN } from './websiteStandard';
 const WURZEL = path.join(__dirname, '..', '..', '..');
 const KATALOG = path.join(WURZEL, 'backend', 'services', 'audit_katalog.py');
 const WIDGET = path.join(WURZEL, 'frontend', 'public', 'embed',
-                         'audit-widget.html');
+                         'widget.js');
 
 /** `(95, "Website Standard Platin"),` → `[95, 'Website Standard Platin']` */
 function ausKatalog() {

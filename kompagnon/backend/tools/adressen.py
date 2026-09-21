@@ -181,7 +181,13 @@ def routen_mit_methode() -> list:
 
 #: Weitere Bäume, die das Backend rufen — ohne `${API_BASE_URL}`.
 WEITERE_QUELLEN = (
-    ("Widget", WURZEL.parent / "frontend" / "public", ("*.html",)),
+    # **Auch `*.js`, seit dem 21.09.2026.** Das Widget ist seither eine
+    # Web Component in `public/embed/widget.js`. Der Sammler las hier nur
+    # `*.html` — und damit war es wieder unsichtbar, genau der Fehler,
+    # vor dem der Kopf dieser Datei warnt: Wer nach einer Form sucht,
+    # misst die Form und nicht die Sache. Aufgedeckt hat es der Test,
+    # nicht das Nachdenken.
+    ("Widget", WURZEL.parent / "frontend" / "public", ("*.html", "*.js")),
     ("E2E", WURZEL.parent / "e2e" / "tests", ("*.js", "*.ts")),
 )
 
@@ -418,6 +424,7 @@ def gerufene_adressen() -> dict:
     quellen = list(FRONTEND.rglob("*.js*"))
     if OEFFENTLICH.is_dir():
         quellen += list(OEFFENTLICH.rglob("*.html"))
+        quellen += list(OEFFENTLICH.rglob("*.js"))
     for datei in sorted(quellen):
         if ".test." in datei.name:
             continue

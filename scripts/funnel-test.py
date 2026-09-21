@@ -207,7 +207,11 @@ def stufe_landingpage(ziel: dict, klickadresse: str) -> list[Befund]:
                                      f"{LANDINGPAGE_DATEI} fehlt"))
 
     text = inhalt.decode("utf-8", "replace")
-    for name, muster in (("Widget eingebettet", "audit-widget"),
+    # **`<kompagnon-audit>`, nicht mehr `audit-widget.html`** (21.09.2026):
+    # Die Seite bindet das Widget seither als Web Component ein, nicht als
+    # iframe. Wer hier weiter nach dem alten Namen sucht, meldet ein fehlendes
+    # Widget auf einer Seite, die es traegt.
+    for name, muster in (("Widget eingebettet", "kompagnon-audit"),
                          ("Pixel", "fbq("),
                          ("GA4", "gtag(")):
         treffer = text.count(muster)

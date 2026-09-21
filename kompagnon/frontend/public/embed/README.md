@@ -182,12 +182,22 @@ nichts aus.
   var begonnenKennung = 'kpg-analyse-' + Date.now().toString(36) + '-' +
                         Math.random().toString(36).slice(2, 10);
   window.addEventListener('message', function (e) {
-    if (e.origin !== URSPRUNG) return;
+    /* Seit dem Umbau zur Web Component kommt die Meldung aus dem eigenen
+       Dokument; die fremde Herkunft bleibt gueltig, solange Kundenseiten das
+       iframe einbinden. */
+    if (e.origin !== URSPRUNG && e.origin !== location.origin) return;
     var d = e.data;
     if (!d) return;
 
+    /* **Woher die Meldung kommen darf** (21.09.2026). Als das Widget ein
+       iframe war, gab es genau eine gueltige Quelle: dessen `contentWindow`.
+       Als Web Component kommt sie aus dem eigenen Fenster — dann ist
+       `e.source === window`. Ohne diesen Zweig verwirft die Seite ihre
+       eigenen Meldungen, und „Analyse begonnen" und „Lead" waeren still weg.
+       Beide Formen bleiben gueltig, weil Kundenseiten das iframe einbinden. */
     var f = document.getElementById(RAHMEN);
-    if (!f || f.contentWindow !== e.source) return;   /* nur das eigene iframe */
+    var ausDemRahmen = f && f.contentWindow === e.source;
+    if (!ausDemRahmen && e.source !== window) return;
 
     /* ── Analyse begonnen ──
        **Dieselbe Einwilligungsprüfung wie oben vor dem Pixel**, nicht eine

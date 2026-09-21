@@ -148,6 +148,48 @@
     color: var(--kpg-dark);
     margin: 0 0 28px;
   }
+  /* ── Nutzenblock zwischen Ueberschrift und erstem Feld ──
+     Wunsch David, 21.09.2026. Ohne Rahmen und ohne eigene Flaeche: Er soll
+     die Eingabe nicht wie einen zweiten Kasten aussehen lassen.
+     **Schriftgroessen bleiben bei 13 px und 12.5 px** — unter 12 px schlaegt
+     die Laufzeitpruefung an (L-17, Entscheidung 31.08.2026). Wer den Block
+     kuerzen muss, nimmt Text weg, nicht Punkte. */
+  .kpg-nutzen { margin: -12px 0 22px; }
+  .kpg-nutzen-kopf {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--kpg-text);
+    margin: 0 0 7px;
+  }
+  .kpg-nutzen-liste {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: kpg-nutzen;
+  }
+  .kpg-nutzen-liste li {
+    counter-increment: kpg-nutzen;
+    position: relative;
+    padding-left: 22px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--kpg-text-60);
+    margin: 0 0 5px;
+  }
+  .kpg-nutzen-liste li::before {
+    content: counter(kpg-nutzen);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: 700;
+    color: var(--kpg-teal);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpg-nutzen-fuss {
+    font-size: 12.5px;
+    color: var(--kpg-muted);
+    margin: 9px 0 0;
+  }
   .kpg-field { margin-bottom: 20px; }
   .kpg-label {
     display: block;
@@ -336,6 +378,25 @@
     <form id="kpg-form">
       <p class="kpg-eyebrow">Gratis · Sofortergebnis · Kein Login</p>
       <h2 class="kpg-h">Ihre Webseite<br>jetzt analysieren</h2>
+
+      <!-- Was der Besucher bekommt, bevor er etwas eintippt (Wunsch David,
+           21.09.2026). Drei Zeilen statt eines Satzes, und die Reihenfolge ist
+           die des Nutzens, nicht die des Ablaufs: was sofort kommt, was per
+           Mail kommt, was nur auf Wunsch kommt.
+
+           **„Website Standard", nicht „Homepage Standard".** Die Vorlage nannte
+           den alten Namen; er ist am 18.09.2026 in 495 von 694 Nennungen
+           ersetzt worden (Entscheidung David), und im ausgelieferten Widget
+           kommt er seither kein einziges Mal mehr vor. -->
+      <div class="kpg-nutzen">
+        <p class="kpg-nutzen-kopf">Das bekommen Sie</p>
+        <ol class="kpg-nutzen-liste">
+          <li>Sofort: Ihren Punktwert von 0 bis 100 und Ihre Stufe nach Website Standard</li>
+          <li>Per E-Mail: den Befund zu 39 Kriterien — was Punkte kostet, was zuerst zu tun ist</li>
+          <li>Auf Wunsch: bis zu fünf kurze Anleitungen, wie Sie die Punkte selbst abstellen</li>
+        </ol>
+        <p class="kpg-nutzen-fuss">Kostenlos. Keine Umsetzung, kein Vertrag.</p>
+      </div>
 
       <!-- Erst die Adresse, dann die E-Mail (Wunsch David, 08.09.2026).
            Die Adresse ist das, wonach der Besucher gekommen ist; die E-Mail

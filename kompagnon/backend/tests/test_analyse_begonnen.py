@@ -218,7 +218,13 @@ def test_der_empfaenger_prueft_herkunft_und_absender(empfaenger):
     """Ohne beides nimmt die Seite ein `InitiateCheckout` von jedem an, der
     ihr eine Nachricht schickt."""
     assert "e.origin !== URSPRUNG" in empfaenger
-    assert "f.contentWindow !== e.source" in empfaenger
+    # **Der Absender wird weiterhin geprueft** — seit dem 21.09.2026 in zwei
+    # gueltigen Formen: das eigene iframe (so binden Kundenseiten ein) oder das
+    # eigene Fenster (Web Component auf der Landingpage). Ohne die zweite Form
+    # verwarf die Seite ihre eigenen Meldungen, und „Analyse begonnen" und
+    # „Lead" waeren still ausgefallen — gefunden hat das dieser Test.
+    assert "f.contentWindow === e.source" in empfaenger
+    assert "e.source !== window" in empfaenger
 
 
 def test_der_empfaenger_meldet_nur_einmal_je_seitenaufruf(empfaenger):

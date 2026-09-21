@@ -116,6 +116,16 @@ class WidgetRequest(Base):
     # Analyse verhindert, waere schlimmer als ein fehlender Nachweis.
     nachweis = Column(String(64), nullable=True, index=True)
 
+    # Freiwillige Rufnummer und der Wunsch nach einem Anruf (21.09.2026,
+    # Wunsch David). **Zwei Spalten statt einer**, und die Reihenfolge der
+    # Pruefung ist der Punkt: Die Nummer wird nur gespeichert, wenn der Wunsch
+    # dasteht. Eine Nummer ohne Wunsch waere eine Rufnummer auf Vorrat, und
+    # ein Werbeanruf braucht nach § 7 Abs. 2 Nr. 2 UWG die ausdrueckliche
+    # Einwilligung — die traegt `anruf_gewuenscht`, nicht das Vorhandensein
+    # einer Ziffernfolge.
+    telefon = Column(String(64), nullable=True)
+    anruf_gewuenscht = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 

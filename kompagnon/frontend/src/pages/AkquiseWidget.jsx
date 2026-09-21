@@ -240,6 +240,7 @@ function Anfragen({ eintraege, limit }) {
             <tr>
               <th style={kopf}>Eingegangen</th>
               <th style={kopf}>E-Mail</th>
+              <th style={kopf}>Anruf</th>
               <th style={kopf}>Website</th>
               <th style={kopf}>Bericht</th>
               <th style={kopf}>Einwilligung</th>
@@ -250,6 +251,20 @@ function Anfragen({ eintraege, limit }) {
               <tr key={eintrag.id}>
                 <td style={{ ...zelle, whiteSpace: 'nowrap' }}>{zeitpunkt(eintrag.created_at)}</td>
                 <td style={zelle}>{eintrag.email}</td>
+                {/* Die freiwillige Rufnummer (21.09.2026). Sie steht neben
+                    der Adresse, weil sie dieselbe Frage beantwortet: Wie
+                    erreiche ich diesen Betrieb? Ohne Wunsch steht hier ein
+                    Strich — nicht „—" als Platzhalter fuer „unbekannt",
+                    sondern als Aussage: Es wurde keiner geaeussert. */}
+                <td style={{ ...zelle, whiteSpace: 'nowrap' }}>
+                  {eintrag.anruf_gewuenscht && eintrag.telefon ? (
+                    <a href={`tel:${eintrag.telefon.replace(/[^+\d]/g, '')}`}>
+                      {eintrag.telefon}
+                    </a>
+                  ) : (
+                    <span style={{ color: 'var(--text-secondary)' }}>–</span>
+                  )}
+                </td>
                 <td style={{ ...zelle, maxWidth: 220, overflowWrap: 'anywhere' }}>
                   {eintrag.website_url}
                 </td>

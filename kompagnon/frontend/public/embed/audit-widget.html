@@ -421,6 +421,21 @@
         <p class="kpg-hint">Dorthin schicken wir Ihren Bericht</p>
       </div>
 
+      <!-- Freiwillige Rufnummer (Wunsch David, 21.09.2026). Sie steht unter
+           der E-Mail, weil sie das Zusaetzliche ist: Wer nichts eintraegt,
+           bekommt denselben Bericht. Kein `required`, und die Beschriftung
+           sagt es auch.
+
+           Der Hinweis nennt **eine Person** statt eines Dienstes und sagt,
+           was **nicht** passiert. Beides ist der Grund, warum jemand eine
+           Nummer hergibt. -->
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-telefon">Telefon (freiwillig)</label>
+        <input class="kpg-input" id="kpg-telefon" type="tel"
+               autocomplete="tel" placeholder="0170 1234567" />
+        <p class="kpg-hint">Wenn Sie eine Nummer eintragen, rufe ich Sie heute kurz an und nenne Ihnen den wichtigsten Befund. Kein Verkaufsgespräch. — David Väth</p>
+      </div>
+
       <!-- Kurz gehalten (Entscheidung David, 10.09.2026): Der lange Satz kostete
            Abschluesse, und er nannte einen Zweck, den es nicht mehr gibt — die
            Adresse geht nicht an Meta. Was bleibt, ist genau das, was das
@@ -1004,10 +1019,14 @@
        im Dokument steht. renderLoading() ersetzt gleich den Karteninhalt —
        danach ist die Checkbox weg und war jede Zustimmung verloren. */
     var consentEl = document.getElementById('kpg-consent');
-    startAudit(email, url, !!(consentEl && consentEl.checked));
+    /* Dieselbe Falle wie bei der Einwilligung: renderLoading() ersetzt den
+       Karteninhalt, danach ist auch das Telefonfeld weg. Also hier lesen. */
+    var telEl = document.getElementById('kpg-telefon');
+    var telefon = telEl ? telEl.value.trim() : '';
+    startAudit(email, url, !!(consentEl && consentEl.checked), telefon);
   });
 
-  function startAudit(email, cleanUrl, consentMarketing) {
+  function startAudit(email, cleanUrl, consentMarketing, telefon) {
     meldeAnalyseBegonnen();   /* falls das Feld nie verlassen wurde */
     renderLoading(cleanUrl);
 
@@ -1025,6 +1044,11 @@
         email: email,
         website_url: cleanUrl,
         consent_marketing: consentMarketing,
+        /* Der Wunsch entsteht aus der Eingabe: Wer eine Nummer eintraegt,
+           will angerufen werden. Der Server prueft beides noch einmal
+           gegeneinander — eine Nummer ohne Wunsch speichert er nicht. */
+        telefon: telefon || '',
+        anruf_gewuenscht: !!telefon,
         referrer: document.referrer || '',
         /* Weitergereicht, damit der Serverweg dieselbe Herkunft kennt wie der
            Browser. `document.referrer` ist bei fremder Domain auf die Herkunft

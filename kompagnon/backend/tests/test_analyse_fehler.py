@@ -117,7 +117,7 @@ class TestNurSchluesselNachDraussen:
 ALLE = (ADRESSE_UNBEKANNT, NICHT_ERREICHBAR, ZEITGRENZE, UNBEKANNT)
 
 WIDGET = (Path(__file__).resolve().parents[2]
-          / "frontend" / "public" / "embed" / "audit-widget.html")
+          / "frontend" / "public" / "embed" / "widget.js")
 
 
 def _widget_block(quelle: str, grund: str):

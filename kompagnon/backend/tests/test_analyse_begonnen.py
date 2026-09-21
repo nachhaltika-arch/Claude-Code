@@ -24,7 +24,7 @@ import pathlib
 import pytest
 
 EMBED = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "public" / "embed"
-WIDGET = EMBED / "audit-widget.html"
+WIDGET = EMBED / "widget.js"
 README = EMBED / "README.md"
 LANDINGPAGE = (pathlib.Path(__file__).resolve().parents[3]
                / "docs" / "landingpage" / "websprint-landingpage.html")
@@ -74,14 +74,20 @@ def empfaenger(request):
 # ── Der Sender ────────────────────────────────────────────────────────
 
 def test_das_widget_meldet_den_beginn(widget):
-    assert f"parent.postMessage({{ type: '{NACHRICHT}' }}, '*')" in widget
+    # Seit dem 21.09.2026 laeuft die Meldung ueber `melde(...)`: Im iframe
+    # ist das weiterhin `parent.postMessage`, ohne iframe zusaetzlich ein
+    # Ereignis am Element. Geprueft wird beides — der Aufruf hier und, weiter
+    # unten, dass `melde` wirklich ans Elternfenster sendet.
+    assert f"melde({{ type: '{NACHRICHT}' }})" in widget
 
 
 def test_die_meldung_traegt_nichts_ueber_den_besucher(widget):
     """Die Nachricht geht mit `'*'` an ein fremdes Fenster — alles darin ist
     fuer jeden lesbar, der dort ein Skript hat."""
+    # `melde(...)` statt `postMessage` seit dem 21.09.2026 — die Zeile, auf
+    # die es ankommt, ist die mit dem Inhalt der Nachricht.
     zeile = next(z for z in widget.splitlines()
-                 if NACHRICHT in z and "postMessage" in z)
+                 if NACHRICHT in z and "melde(" in z)
     for verboten in ("email", "url", "cleanUrl", "website"):
         assert verboten not in zeile, f"{verboten!r} gehoert nicht in die Meldung"
 
@@ -273,10 +279,33 @@ def test_das_ereignis_meldet_nur_nach_einer_nutzerhandlung(widget):
 
     # Kein synthetisch ausgeloestes Ereignis, das die Handler beim Aufbau
     # anstossen wuerde.
-    for kunstgriff in ("dispatchEvent", ".blur()", "new Event("):
+    #
+    # **Am 21.09.2026 praeziser gefasst, nicht gelockert.** Der Umbau zur Web
+    # Component brauchte einen Weg nach aussen, den die Traegerseite hoert,
+    # wenn das Widget **nicht** im iframe steht — `host.dispatchEvent` mit
+    # einem `kpg-`Ereignis. Das ist die Gegenrichtung dessen, was diese Sperre
+    # meint: Sie soll verhindern, dass das Widget seine **eigenen** Handler
+    # ohne Nutzerhandlung anstoesst (`blur`, `change`, `click`). Ein
+    # ausgehendes `kpg-`Ereignis hoert im Widget niemand.
+    #
+    # Erlaubt ist deshalb genau eine Form, und der Test nennt sie beim Namen.
+    for kunstgriff in (".blur()", "new Event("):
         assert kunstgriff not in widget, (
             f"`{kunstgriff}` im Widget — koennte die Meldung ohne Handlung "
             f"ausloesen. Bitte pruefen, nicht nur diesen Test anpassen.")
+
+    fremde = [z.strip() for z in widget.splitlines()
+              if "dispatchEvent" in z
+              and "host.dispatchEvent(new CustomEvent(nachricht.type," not in z]
+    assert not fremde, (
+        "`dispatchEvent` an einer anderen Stelle als der Meldung nach aussen: "
+        f"{fremde}. Bitte pruefen, nicht nur diesen Test anpassen.")
+
+    # Und die Gegenprobe, dass die Meldung ueberhaupt hinausgeht — sonst
+    # waeren die Zeilen oben auch dann gruen, wenn `melde` nichts tut.
+    assert "parent.postMessage(nachricht, '*')" in widget, (
+        "`melde` sendet nicht ans Elternfenster — die Traegerseite im iframe "
+        "bekaeme nichts mit.")
 
     # Positiv daneben: Der Handler haengt wirklich an den beiden Ereignissen.
     # Ohne diese Zeile waere alles oben auch dann gruen, wenn gar nichts

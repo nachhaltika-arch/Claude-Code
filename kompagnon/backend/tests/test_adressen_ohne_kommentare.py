@@ -109,7 +109,7 @@ def test_das_ausgelieferte_widget_zaehlt_mit():
 
     gerufen = gerufene_adressen()
     aus_dem_widget = {a for a, wo in gerufen.items()
-                      if any("audit-widget.html" in stelle for stelle in wo)}
+                      if any("widget.js" in stelle for stelle in wo)}
 
     assert "/api/widget/audit" in aus_dem_widget
     assert "/api/widget/config" in aus_dem_widget

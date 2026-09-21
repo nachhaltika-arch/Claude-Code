@@ -414,6 +414,17 @@ def ansicht_widget(regler: dict, auto: bool = False) -> bytes:
     with open(os.path.join(EMBED, "audit-widget.html"), encoding="utf-8") as f:
         html = f.read()
 
+    # **Das Skript wird hineingelegt, nicht verlinkt** (21.09.2026). Seit dem
+    # Umbau zur Web Component ist die Wirtsseite nur noch eine Huelle, die
+    # `widget.js` **relativ** laedt. Die Vorschau liefert sie aber unter
+    # `/ansicht/widget` aus — der relative Verweis zeigte damit auf
+    # `/ansicht/widget.js` und lief ins Leere. Eingebettet bleibt es Zeichen
+    # fuer Zeichen dieselbe Datei wie beim Kunden.
+    with open(os.path.join(EMBED, "widget.js"), encoding="utf-8") as f:
+        skript = f.read()
+    html = html.replace('<script src="widget.js"></script>',
+                        "<script>\n" + skript + "\n</script>", 1)
+
     basis = f"http://127.0.0.1:{PORT}"
     html = html.replace("<body", f'<body data-api="{basis}"', 1)
 
@@ -432,9 +443,14 @@ def ansicht_widget(regler: dict, auto: bool = False) -> bytes:
     /* Die beiden Felder heissen im ausgelieferten Widget so. Wer sie
        umbenennt, sieht hier ein leeres Formular statt eines Teasers —
        besser als ein Teaser mit Werten, die nicht aus dem Formular kamen. */
-    var url = document.getElementById('kpg-url');
-    var mail = document.getElementById('kpg-email');
-    var f = url && url.form ? url.form : document.querySelector('form');
+    /* Seit dem 21.09.2026 liegen die Felder im Shadow-Root der Web
+       Component — `document.getElementById` findet sie nicht mehr. */
+    var el = document.querySelector('kompagnon-audit');
+    var w = el && el.shadowRoot;
+    if (!w) return setTimeout(los, 120);
+    var url = w.querySelector('#kpg-url');
+    var mail = w.querySelector('#kpg-email');
+    var f = url && url.form ? url.form : w.querySelector('form');
     if (!url || !mail || !f) return setTimeout(los, 120);
     tippen(url, 'https://www.musterbetrieb-beispiel.de');
     tippen(mail, 'vorschau@example.org');

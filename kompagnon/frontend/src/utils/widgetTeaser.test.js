@@ -27,7 +27,7 @@ import fs from 'fs';
 import path from 'path';
 
 const WIDGET = fs.readFileSync(
-  path.join(__dirname, '..', '..', 'public', 'embed', 'audit-widget.html'),
+  path.join(__dirname, '..', '..', 'public', 'embed', 'widget.js'),
   'utf8',
 );
 

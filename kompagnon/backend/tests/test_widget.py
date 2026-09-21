@@ -175,7 +175,7 @@ def test_das_widget_traegt_die_echte_ci():
     from services import brand
 
     widget_datei = (Path(__file__).resolve().parents[2]
-                    / "frontend" / "public" / "embed" / "audit-widget.html")
+                    / "frontend" / "public" / "embed" / "widget.js")
     if not widget_datei.exists():  # Backend wird ohne Frontend ausgeliefert
         pytest.skip("Frontend nicht vorhanden")
 

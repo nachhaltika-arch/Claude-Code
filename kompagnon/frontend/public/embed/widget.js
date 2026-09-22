@@ -222,11 +222,11 @@
     color: var(--kpg-teal);
     font-variant-numeric: tabular-nums;
   }
-  .kpg-nutzen-fuss {
-    font-size: 12.5px;
-    color: var(--kpg-muted);
-    margin: 9px 0 0;
-  }
+  /* \`.kpg-nutzen-fuss\` ist am 22.09.2026 mit seinem einzigen Absatz
+     entfallen (Auftrag David): „Kostenlos. Keine Umsetzung, kein Vertrag."
+     stand unter der Nutzenliste und sagte, was die Augenbraue zwei Zeilen
+     darüber schon sagt. Eine Regel ohne Element ist toter Stil — deshalb
+     ist sie mitgegangen und nicht nur der Absatz. */
   .kpg-field { margin-bottom: 20px; }
   .kpg-label {
     display: block;
@@ -467,11 +467,10 @@
       <div class="kpg-nutzen">
         <p class="kpg-nutzen-kopf">Das bekommen Sie</p>
         <ol class="kpg-nutzen-liste">
-          <li>Hier auf dem Bildschirm: Ihren Punktwert von 0 bis 100 und Ihre Stufe nach Website Standard</li>
-          <li>Per E-Mail: den Befund zu 39 Kriterien — was Punkte kostet, was zuerst zu tun ist</li>
+          <li>Hier auf dem Bildschirm der Score von Ihrer Seite von 0 – 100</li>
+          <li>Per E-Mail 39 Kriterien ausgewertet mit Aktionsplan</li>
           <li>Auf Wunsch: bis zu fünf kurze Anleitungen, wie Sie die Punkte selbst abstellen</li>
         </ol>
-        <p class="kpg-nutzen-fuss">Kostenlos. Keine Umsetzung, kein Vertrag.</p>
       </div>
 
       <!-- Erst die Adresse, dann die E-Mail (Wunsch David, 08.09.2026).
@@ -498,12 +497,14 @@
         </svg>
         Prüfen
       </button>
-      <!-- **Diese Zeile trägt den Umbau vom 21.09.2026.** Sie stand hier
-           vorher als Versprechen einer Bestätigungs-Mail — die in Schritt 1
-           gar nicht mehr entsteht. Jetzt sagt sie, was der Besucher *nicht*
-           hergeben muss: Das ist der Grund, warum er tippt. -->
-      <p class="kpg-foot">Keine Anmeldung, keine Zahlungsdaten. Ihre E-Mail-Adresse
-           fragen wir erst, wenn Sie den ausführlichen Bericht wollen.</p>
+      <!-- **Unter dem Knopf steht nichts mehr** (Auftrag David, 22.09.2026).
+           Hier stand bis zum 21.09. das Versprechen einer Bestätigungs-Mail,
+           danach für einen Tag der Hinweis, dass die E-Mail-Adresse erst
+           später gefragt wird. Beides ist fort: Das erste war falsch geworden,
+           das zweite beantwortete eine Frage, die auf diesem Bildschirm
+           niemand mehr stellt — es wird ja nichts verlangt. Die Klasse
+           \`.kpg-foot\` bleibt, sie trägt jetzt die Fusszeile des
+           Anforderungsformulars in Schritt 2. -->
     </form>
   </div>
   <!-- Trennzeichen steht im Link, sonst bleibt ein „·“ ohne Ziel stehen,

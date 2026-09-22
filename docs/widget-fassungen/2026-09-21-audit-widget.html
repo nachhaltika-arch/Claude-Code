@@ -1,3 +1,32 @@
+<!-- FASSUNG VOM 2026-09-21 — Momentaufnahme, nicht die Quelle.
+
+     Erzeugt aus `embed/audit-widget.html` + `embed/widget.js`, das Skript ist
+     **eingebettet** statt verlinkt, damit die Datei allein oeffnet. Sie dient
+     dem Vergleich mit dem naechsten Entwurf; geaendert wird nie hier, sondern
+     in `embed/widget.js`.
+
+     Stand: Web Component <kompagnon-audit>, einstufiges Formular
+     (Adresse + E-Mail + Telefon in einem Schritt), Ergebnis ohne
+     Kategoriewerte, danach der naechste Schritt und das Angebot. -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>KOMPAGNON — Gratis Webseiten-Analyse</title>
+<!-- Diese Seite ist seit dem 21.09.2026 nur noch die Huelle. Das Widget selbst
+     steht in `widget.js` als <kompagnon-audit>.
+
+     **Sie bleibt trotzdem, und das ist kein Altlast-Aufschub.** Kundenseiten
+     binden genau diese Adresse als iframe ein (L-03). Wer sie entfernt, nimmt
+     das Widget von Seiten, die uns nicht gehoeren und die wir nicht nachziehen
+     koennen. Zwei Auslieferungsformen, ein Codestand. -->
+<style>html, body { margin: 0; padding: 0; background: transparent; }</style>
+</head>
+<body>
+<kompagnon-audit></kompagnon-audit>
+<script>
 /* KOMPAGNON Audit-Widget als Web Component — <kompagnon-audit>.
 
    **Warum kein iframe mehr (Entscheidung David, 21.09.2026).** Das Widget war
@@ -296,28 +325,6 @@
      entsteht — klein, aber an Ort und Stelle statt in einer Hilfeseite. */
   .kpg-mailnote-klein { margin: 10px 0 0; font-size: 13px;
     color: var(--kpg-muted); }
-  /* ── Schritt 2: der Bericht wird angefordert (21.09.2026) ──
-     Derselbe Kasten wie die Mailnote — bewusst, denn er steht an derselben
-     Stelle und wird von ihr abgeloest, sobald das Formular weg ist. Ein
-     anderer Rahmen an dieser Stelle laese den Wechsel wie einen Sprung
-     aussehen. */
-  .kpg-bericht {
-    background: #E0F4F8; border-left: 4px solid var(--kpg-teal);
-    border-radius: 0 7px 7px 0; padding: 18px 18px 16px;
-    margin: 20px 0 0;
-  }
-  .kpg-bericht-kopf {
-    font-size: 16px; font-weight: 900; line-height: 1.35;
-    color: var(--kpg-dark); margin: 0 0 6px;
-  }
-  .kpg-bericht-text {
-    font-size: 14px; line-height: 1.55; color: var(--kpg-text-60);
-    margin: 0 0 14px;
-  }
-  /* Im Kasten sitzen die Felder auf getoenten Grund — weiss statt der
-     Kartenfarbe, sonst verschwindet der Rahmen im Hintergrund. */
-  .kpg-bericht .kpg-input { background: #fff; }
-  .kpg-bericht .kpg-field:last-of-type { margin-bottom: 0; }
   .kpg-input:focus {
     border-color: var(--kpg-teal);
     box-shadow: 0 0 0 3px rgba(0,142,170,.15);
@@ -490,20 +497,59 @@
                autocomplete="url" placeholder="www.ihr-betrieb.de" />
       </div>
 
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>
+        <input class="kpg-input" id="kpg-email" type="email" required
+               autocomplete="email" placeholder="name@firma.de" />
+        <p class="kpg-hint">Dorthin schicken wir Ihren Bericht</p>
+      </div>
+
+      <!-- Freiwillige Rufnummer (Wunsch David, 21.09.2026). Sie steht unter
+           der E-Mail, weil sie das Zusaetzliche ist: Wer nichts eintraegt,
+           bekommt denselben Bericht. Kein \`required\`, und die Beschriftung
+           sagt es auch.
+
+           Der Hinweis nennt **eine Person** statt eines Dienstes und sagt,
+           was **nicht** passiert. Beides ist der Grund, warum jemand eine
+           Nummer hergibt. -->
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-telefon">Telefon (freiwillig)</label>
+        <input class="kpg-input" id="kpg-telefon" type="tel"
+               autocomplete="tel" placeholder="0170 1234567" />
+        <p class="kpg-hint">Wenn Sie eine Nummer eintragen, rufe ich Sie heute kurz an und nenne Ihnen den wichtigsten Befund. Kein Verkaufsgespräch. — David Väth</p>
+      </div>
+
+      <!-- Kurz gehalten (Entscheidung David, 10.09.2026): Der lange Satz kostete
+           Abschluesse, und er nannte einen Zweck, den es nicht mehr gibt — die
+           Adresse geht nicht an Meta. Was bleibt, ist genau das, was das
+           Haekchen steuert: die Auswertungsmails. Der Bericht selbst haengt
+           nicht daran (siehe \`verify_token\` im Backend), deshalb steht er hier
+           auch nicht als Gegenleistung fuer eine Einwilligung. -->
+      <label class="kpg-consent" for="kpg-consent">
+        <input type="checkbox" id="kpg-consent" />
+        <span>Zeigen Sie mir per E-Mail, wie ich die gefundenen Punkte abstelle. Bis zu fünf E-Mails, Abmeldung jederzeit.</span>
+      </label>
+      <details class="kpg-consent-mehr">
+        <summary>Details</summary>
+        <p><strong>Ihren Analysebericht bekommen Sie in jedem Fall</strong> — dafür
+        ist kein Häkchen nötig. Mit Häkchen zusätzlich bis zu fünf E-Mails, die
+        zeigen, wie sich die gefundenen Punkte abstellen lassen. Abmeldung über
+        den Link in jeder E-Mail. Ihre E-Mail-Adresse wird nicht an Meta oder
+        andere Werbenetzwerke übermittelt. Verantwortlich: Kompagnon
+        Communications BP GmbH, Marienfelder Straße 52, 56070 Koblenz.</p>
+      </details>
 
       <button class="kpg-btn" id="kpg-submit" type="submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="9" stroke="#004F59" stroke-width="2"/>
           <path d="M12 7v5l3 2" stroke="#004F59" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Prüfen
+        Analyse starten
       </button>
-      <!-- **Diese Zeile trägt den Umbau vom 21.09.2026.** Sie stand hier
-           vorher als Versprechen einer Bestätigungs-Mail — die in Schritt 1
-           gar nicht mehr entsteht. Jetzt sagt sie, was der Besucher *nicht*
-           hergeben muss: Das ist der Grund, warum er tippt. -->
-      <p class="kpg-foot">Keine Anmeldung, keine Zahlungsdaten. Ihre E-Mail-Adresse
-           fragen wir erst, wenn Sie den ausführlichen Bericht wollen.</p>
+      <!-- Sagt, was gleich im Postfach liegt, und bittet um die eigene
+           Adresse: der Bericht ging früher ungefragt an jede eingetippte. -->
+      <p class="kpg-foot">Sie bekommen erst eine Bestätigungs-Mail, dann den
+           Bericht — bitte nur die eigene Adresse eintragen</p>
     </form>
   </div>
   <!-- Trennzeichen steht im Link, sonst bleibt ein „·“ ohne Ziel stehen,
@@ -609,10 +655,6 @@
      den Pixel oben auf der Seite. */
   var FB_PIXEL_ID = '';
   var leadGemeldet = false;
-  /* Die Nummer der Anfrage aus Schritt 1. Sie wird erst in Schritt 2
-     gebraucht — als Ereigniskennung des Leads, damit Browser und Serverweg
-     dasselbe Ereignis melden und Meta es nicht doppelt zaehlt. */
-  var anfrageKennung = '';
   /* Dieselbe Sperre eine Stufe frueher (15.09.2026): Wer die Adresse
      korrigiert, das Feld zweimal verlaesst oder nach einem Fehlschlag
      erneut absendet, hat trotzdem **eine** Analyse begonnen. Zwei
@@ -961,6 +1003,9 @@
   var POLL_INTERVAL_MS = 4000;
   var MAX_POLL_ATTEMPTS = 45;
 
+  var FREE_MAIL = ['gmail.com','gmx.de','gmx.net','web.de','yahoo.de','yahoo.com',
+                   'hotmail.com','outlook.com','icloud.com','t-online.de','freenet.de'];
+
   var MSGS = [
     '🔍 Webseite wird analysiert…',
     '⚡ Performance wird gemessen…',
@@ -972,6 +1017,7 @@
 
   var card    = $('kpg-card');
   var form    = $('kpg-form');
+  var emailEl = $('kpg-email');
   var urlEl   = $('kpg-url');
 
   /* ── Helpers ── */
@@ -1040,16 +1086,14 @@
     new ResizeObserver(postHeight).observe(document.documentElement);
   }
 
-  /* **Die Ableitung „Website aus E-Mail-Domain" ist fort** (21.09.2026).
-     Sie fuellte das Adressfeld aus dem, was hinter dem @ stand — und setzte
-     damit voraus, dass die E-Mail **vor** der Adresse eingegeben wird. Im
-     zweistufigen Formular ist die Reihenfolge umgekehrt: Wenn die Adresse
-     gefragt wird, gibt es keine E-Mail, und wenn die E-Mail gefragt wird,
-     ist die Adresse laengst geprueft. Eine Ableitung in diese Richtung
-     wuerde ein ausgewertetes Feld ueberschreiben.
-
-     Mit ihr fallen `urlBearbeitet` und die Freemail-Liste weg; beide hatten
-     keinen anderen Verwender.
+  /* ── Webseite aus E-Mail-Domain ableiten ──
+     Die Ableitung folgt der Eingabe, solange der Nutzer das URL-Feld nicht
+     selbst angefasst hat. Früher wurde beim ersten Zeichen nach dem „@“
+     geschrieben und danach nie wieder korrigiert — aus „info@firma.de“
+     wurde die URL „f“. Ab der ersten eigenen Eingabe im URL-Feld bleibt
+     die Ableitung stumm. */
+  var urlBearbeitet = false;
+  urlEl.addEventListener('input', function () { urlBearbeitet = true; });
 
   /* ── „Analyse begonnen" ── (Weg A, Entscheidung David am 15.09.2026)
      Gemeldet wird, wenn die Adresse eingetippt **und das Feld verlassen**
@@ -1067,20 +1111,32 @@
     });
   });
 
-  /* ── Submit: Schritt 1 ──
-     **Hier wurden bis zum 21.09.2026 vier Werte gelesen**: Adresse, E-Mail,
-     Telefon und Haekchen. Drei davon sind an das Ergebnis gewandert; was
-     bleibt, ist die Adresse. Der Kommentar ueber die Reihenfolge („lesen,
-     solange das Formular noch im Dokument steht") gilt dort weiter und
-     steht jetzt an `berichtAnfordern`. */
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var url = normalizeUrl(urlEl.value);
-    if (!url) return;
-    startAudit(url);
+  emailEl.addEventListener('input', function () {
+    if (urlBearbeitet) return;
+    var val = emailEl.value;
+    var at = val.indexOf('@');
+    var host = at === -1 ? '' : val.slice(at + 1).toLowerCase().trim();
+    urlEl.value = (host && FREE_MAIL.indexOf(host) === -1) ? host : '';
   });
 
-  function startAudit(cleanUrl) {
+  /* ── Submit ── */
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = emailEl.value.trim();
+    var url   = normalizeUrl(urlEl.value);
+    if (!email || !url) return;
+    /* Die Einwilligung MUSS hier gelesen werden, solange das Formular noch
+       im Dokument steht. renderLoading() ersetzt gleich den Karteninhalt —
+       danach ist die Checkbox weg und war jede Zustimmung verloren. */
+    var consentEl = $('kpg-consent');
+    /* Dieselbe Falle wie bei der Einwilligung: renderLoading() ersetzt den
+       Karteninhalt, danach ist auch das Telefonfeld weg. Also hier lesen. */
+    var telEl = $('kpg-telefon');
+    var telefon = telEl ? telEl.value.trim() : '';
+    startAudit(email, url, !!(consentEl && consentEl.checked), telefon);
+  });
+
+  function startAudit(email, cleanUrl, consentMarketing, telefon) {
     meldeAnalyseBegonnen();   /* falls das Feld nie verlassen wurde */
     renderLoading(cleanUrl);
 
@@ -1095,11 +1151,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        /* **Ohne Adresse** (21.09.2026). Der Endpunkt nimmt sie weiterhin
-           entgegen — das Feld bleibt in der Schnittstelle, weil aeltere
-           eingebettete Fassungen des Widgets noch eine schicken. Diese
-           Fassung schickt keine: Der Abschluss liegt in Schritt 2. */
+        email: email,
         website_url: cleanUrl,
+        consent_marketing: consentMarketing,
+        /* Der Wunsch entsteht aus der Eingabe: Wer eine Nummer eintraegt,
+           will angerufen werden. Der Server prueft beides noch einmal
+           gegeneinander — eine Nummer ohne Wunsch speichert er nicht. */
+        telefon: telefon || '',
+        anruf_gewuenscht: !!telefon,
         referrer: document.referrer || '',
         /* Weitergereicht, damit der Serverweg dieselbe Herkunft kennt wie der
            Browser. `document.referrer` ist bei fremder Domain auf die Herkunft
@@ -1137,16 +1196,10 @@
     })
     .then(function (start) {
       if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
-      /* **Hier stand `meldeLead`, und das war bis zum 21.09.2026 richtig:
-         Wer hier ankam, hatte seine Adresse schon hergegeben.** Jetzt nicht
-         mehr — an dieser Stelle ist nur eine Analyse angestossen, niemand
-         hat sich zu erkennen gegeben. Der Lead entsteht in
-         `berichtAnfordern`, und er wird auch dort gemeldet.
-
-         Wer das uebersieht, zaehlt jeden Besucher als Lead und rechnet die
-         Kosten je Abschluss um den Faktor der Abbrecher schoen. */
-      anfrageKennung = start.request_id || '';
-      pollAudit(start.poll_token, cleanUrl, msgTimer);
+      /* Hier ist die Anfrage angenommen — der Lead existiert. Vor dieser
+         Zeile zu melden hiesse, auch die abgelehnten mitzuzaehlen. */
+      meldeLead('kpg-widget-' + start.request_id);
+      pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {
       clearInterval(msgTimer);
@@ -1192,7 +1245,7 @@
   /* Abgefragt wird mit dem Token der eigenen Anfrage, nicht mit der Nummer
      der Analyse. Auf einer laufenden Nummer liess sich der Endpunkt von aussen
      durchzählen und gab fremde Analysen aus. */
-  function pollAudit(pollToken, cleanUrl, msgTimer) {
+  function pollAudit(pollToken, cleanUrl, msgTimer, email) {
     var attempts = 0;
     var poll = setInterval(function () {
       attempts++;
@@ -1206,7 +1259,7 @@
         .then(function (d) {
           if (d.status === 'completed') {
             clearInterval(poll); clearInterval(msgTimer);
-            renderResult(d, cleanUrl, pollToken);
+            renderResult(d, cleanUrl, email, pollToken);
           } else if (d.status === 'failed') {
             clearInterval(poll); clearInterval(msgTimer);
             renderError(fehlertext(d.grund));
@@ -1424,156 +1477,7 @@
       '</div>';
   }
 
-  /* ── Schritt 2: den ausfuehrlichen Bericht anfordern ──
-     (Entwurf David „Formular-Zustaende", 21.09.2026)
-
-     **Was sich hier verschiebt, ist nicht die Optik, sondern der Abschluss.**
-     Bis heute war die Anfrage aus Schritt 1 der Lead: Wer den Knopf drueckte,
-     hatte seine Adresse schon eingetippt. Jetzt kommt der Punktwert ohne
-     Gegenleistung, und die Adresse wird erst hier gefragt — an der Stelle,
-     an der der Besucher weiss, was der Bericht ihm bringt.
-
-     Drei Dinge haengen daran und sind anderswo nachgezogen:
-     * `POST /api/widget/audit` heisst „Analyse gestartet", nicht mehr „Lead".
-     * Der Lead — Browser wie Serverweg — entsteht in diesem Formular.
-     * Ohne Adresse geht keine Mail hinaus, auch wenn die Analyse fertig wird.
-
-     Die Felder sind dieselben wie vorher in Schritt 1, mit denselben Texten:
-     Was rechtlich traegt, traegt unabhaengig davon, an welcher Stelle es
-     steht. Nur der Hinweis unter der E-Mail ist fort — „Dorthin schicken wir
-     Ihren Bericht" stand ueber dem Kasten schon als Ueberschrift. */
-  function berichtFormularHtml() {
-    var umfang = CRITERIA_COUNT
-      ? 'zu allen ' + esc(CRITERIA_COUNT) + ' Kriterien'
-      : 'zu jedem gepruefen Kriterium';
-    return '' +
-      '<div class="kpg-bericht" id="kpg-bericht">' +
-        '<p class="kpg-bericht-kopf">Den ausführlichen Bericht bekommen</p>' +
-        '<p class="kpg-bericht-text">Der vollständige Befund ' + umfang +
-          ' — was Punkte kostet und was zuerst zu tun ist — kommt per ' +
-          'E-Mail, mit PDF zum Weitergeben.</p>' +
-        '<form id="kpg-bericht-form">' +
-          '<div class="kpg-field">' +
-            '<label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>' +
-            '<input class="kpg-input" id="kpg-email" type="email" required ' +
-                   'autocomplete="email" placeholder="name@firma.de" />' +
-          '</div>' +
-          '<div class="kpg-field">' +
-            '<label class="kpg-label" for="kpg-telefon">Telefon (freiwillig)</label>' +
-            '<input class="kpg-input" id="kpg-telefon" type="tel" ' +
-                   'autocomplete="tel" placeholder="0170 1234567" />' +
-            '<p class="kpg-hint">Wenn Sie eine Nummer eintragen, rufe ich Sie ' +
-              'heute kurz an und nenne Ihnen den wichtigsten Befund. Kein ' +
-              'Verkaufsgespräch. — David Väth</p>' +
-          '</div>' +
-          '<label class="kpg-consent" for="kpg-consent">' +
-            '<input type="checkbox" id="kpg-consent" />' +
-            '<span>Zeigen Sie mir per E-Mail, wie ich die gefundenen Punkte ' +
-              'abstelle. Bis zu fünf E-Mails, Abmeldung jederzeit.</span>' +
-          '</label>' +
-          '<details class="kpg-consent-mehr">' +
-            '<summary>Details</summary>' +
-            '<p><strong>Ihren Analysebericht bekommen Sie in jedem Fall</strong> — ' +
-            'dafür ist kein Häkchen nötig. Mit Häkchen zusätzlich bis zu fünf ' +
-            'E-Mails, die zeigen, wie sich die gefundenen Punkte abstellen ' +
-            'lassen. Abmeldung über den Link in jeder E-Mail. Ihre ' +
-            'E-Mail-Adresse wird nicht an Meta oder andere Werbenetzwerke ' +
-            'übermittelt. Verantwortlich: Kompagnon Communications BP GmbH, ' +
-            'Marienfelder Straße 52, 56070 Koblenz.</p>' +
-          '</details>' +
-          '<button class="kpg-btn" id="kpg-bericht-submit" type="submit">' +
-            'Bericht anfordern</button>' +
-          '<p class="kpg-foot" id="kpg-bericht-fuss">Sie bekommen erst eine ' +
-            'Bestätigungs-Mail, dann den Bericht — bitte nur die eigene ' +
-            'Adresse eintragen</p>' +
-        '</form>' +
-      '</div>';
-  }
-
-  /* Meldet die Angaben nach und loest damit die Mailstrecke aus.
-
-     **Die Werte muessen gelesen werden, solange das Formular im Dokument
-     steht.** Gleich darunter wird der Kasten durch die Mailnote ersetzt;
-     danach sind Haekchen und Telefonfeld weg, und jede Zustimmung waere
-     verloren. Derselbe Fehler hat das Haekchen schon einmal gekostet. */
-  function bindeBerichtFormular(pollToken) {
-    var f = $('kpg-bericht-form');
-    if (!f) return;
-    f.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var emailEl   = $('kpg-email');
-      var telEl     = $('kpg-telefon');
-      var consentEl = $('kpg-consent');
-      var knopf     = $('kpg-bericht-submit');
-      var email   = emailEl ? emailEl.value.trim() : '';
-      var telefon = telEl ? telEl.value.trim() : '';
-      if (!email) return;
-
-      knopf.disabled = true;
-      knopf.textContent = 'Wird gesendet…';
-
-      fetch(API_BASE + '/api/widget/bericht-anfordern/' + encodeURIComponent(pollToken), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          consent_marketing: !!(consentEl && consentEl.checked),
-          /* Der Wunsch entsteht aus der Eingabe: Wer eine Nummer eintraegt,
-             will angerufen werden. Der Server prueft beides noch einmal
-             gegeneinander — eine Nummer ohne Wunsch speichert er nicht. */
-          telefon: telefon,
-          anruf_gewuenscht: !!telefon,
-          /* Die Klickkennungen stehen **nicht** an der Anfrage (L-192: dort
-             wird nur das Ob vermerkt, nie die Kennung). Ohne sie kann der
-             Serverweg den Lead niemandem zuordnen — also gehen sie hier
-             noch einmal mit. */
-          fbclid: FBCLID,
-          fbc: FBC,
-          fbp: FBP,
-          page_url: document.referrer || '',
-          consent_tracking: einwilligungErteilt() ? '1' : '0',
-          nachweis: NACHWEIS
-        })
-      })
-      .then(function (r) {
-        return r.json().then(function (body) {
-          if (!r.ok) throw new Error(body.detail || 'Das hat gerade nicht geklappt.');
-          return body;
-        });
-      })
-      .then(function () {
-        /* **Jetzt** ist es ein Lead — nicht beim Start der Analyse. */
-        meldeLead('kpg-widget-' + anfrageKennung);
-        zeigeAbschluss(pollToken, email);
-      })
-      .catch(function (err) {
-        knopf.disabled = false;
-        knopf.textContent = 'Bericht anfordern';
-        var fuss = $('kpg-bericht-fuss');
-        if (fuss) {
-          fuss.textContent = (err && err.message) ||
-            'Das hat gerade nicht geklappt — bitte noch einmal versuchen.';
-          fuss.style.color = '#B3261E';
-        }
-        postHeight();
-      });
-    });
-  }
-
-  /* Das Formular weicht dem Hinweis auf die Bestaetigungs-Mail. Beide sitzen
-     im selben Kasten, damit der Wechsel nicht wie ein Sprung wirkt. */
-  function zeigeAbschluss(pollToken, email) {
-    var kasten = $('kpg-abschluss');
-    if (!kasten) return;
-    kasten.innerHTML =
-      '<div class="kpg-mailnote" id="kpg-mailnote">' +
-        mailnoteHtml('laeuft', email) +
-      '</div>';
-    beobachteBestaetigung(pollToken, email);
-    postHeight();
-  }
-
-  function renderResult(data, cleanUrl, pollToken) {
+  function renderResult(data, cleanUrl, email, pollToken) {
     var score = data.total_score || 0;
     var col = scoreColor(score);
     var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
@@ -1616,17 +1520,14 @@
           '<div class="kpg-punkte-fuss">Gesamtpunkte von 100</div>' +
         '</div>' +
         blockerHtml +
-        /* **Der eine naechste Schritt.** Bis zum 21.09.2026 stand hier der
-           Hinweis auf die Bestaetigungs-Mail, weil die Adresse zu diesem
-           Zeitpunkt schon vorlag. Jetzt steht hier das Formular, das sie
-           erfragt — und erst nach dem Absenden derselbe Hinweis, an
-           derselben Stelle, im selben Kasten.
-
-           Zwei Mails bleiben es: erst die Bestaetigung der Adresse, dann der
-           Bericht. Ohne den Klick kommt kein Bericht — das ist kein Umweg,
-           sondern der Grund, warum eine fremd eingetragene Adresse nie eine
-           fertige Bewertung zugestellt bekommt. */
-        '<div id="kpg-abschluss">' + berichtFormularHtml() + '</div>' +
+        /* Zwei Mails: erst die Bestätigung der Adresse, danach der Bericht.
+           Ohne diesen Hinweis wartet der Besucher auf einen Bericht, der ohne
+           seinen Klick nie kommt — und der Klick ist genau der Punkt: eine
+           fremd eingetragene Adresse bekommt so nie eine fertige Bewertung
+           zugestellt. */
+        '<div class="kpg-mailnote" id="kpg-mailnote">' +
+          mailnoteHtml(data.bestaetigung_versandt ? 'gesendet' : 'laeuft', email) +
+        '</div>' +
         /* **An die Stelle des Terminknopfs tritt das bezahlte Angebot**
            (Entwurf David, 10.09.2026). Vorher stand hier „Jetzt Termin
            vereinbaren" — der kürzeste Weg vom Anzeigenklick zum Gespräch.
@@ -1648,7 +1549,7 @@
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';
     $('kpg-restart').addEventListener('click', resetWidget);
-    bindeBerichtFormular(pollToken);
+    if (!data.bestaetigung_versandt) beobachteBestaetigung(pollToken, email);
     postHeight();
   }
 
@@ -1688,3 +1589,7 @@
     customElements.define('kompagnon-audit', KompagnonAudit);
   }
 })();
+
+</script>
+</body>
+</html>

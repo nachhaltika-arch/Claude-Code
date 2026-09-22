@@ -32,9 +32,24 @@ am falschen Ende.
 | 1 | Impressionen | Meta Ads Manager | gemessen | nein |
 | 2 | Link-Klicks | Meta Ads Manager | gemessen | nein |
 | 3 | **echte Seitenaufrufe** | eigene Protokolle: `GET /api/widget/config` | **gemessen** | **nein** |
-| 4 | Analyse begonnen | Meta `InitiateCheckout` / GA4 `begin_checkout` | gemessen, aber untere Schranke | **ja** |
-| 5 | Lead | eigene Protokolle: `POST /api/widget/audit` | **gemessen** | ja (Formular) |
+| 4 | **Analyse gestartet** | eigene Protokolle: `POST /api/widget/audit` | **gemessen** | **nein** |
+| 5 | Lead (Bericht angefordert) | eigene Protokolle: `POST /api/widget/bericht-anfordern/…` | **gemessen** | ja (Formular) |
 | 6 | Bericht / Kauf | Stripe, Auftragsmelder | gemessen | — |
+
+> **Die Naht zwischen 4 und 5 ist am 21.09.2026 verschoben worden**, mit dem
+> zweistufigen Formular. Vorher war `POST /api/widget/audit` der Lead — wer
+> den Knopf drückte, hatte seine Adresse schon eingetippt. Jetzt kommt der
+> Punktwert ohne Gegenleistung, und die Adresse wird erst am Ergebnis
+> gefragt. Wer die alte Zuordnung stehen lässt, zählt jeden Besucher als
+> Lead und rechnet die Kosten je Abschluss um den Faktor der Abbrecher schön.
+>
+> **Ein Gewinn steckt darin:** Stufe 4 hing bisher an Metas
+> `InitiateCheckout` und damit an der Einwilligung — eine untere Schranke,
+> mehr nicht. Sie ist jetzt eine eigene Protokollzeile, ohne Einwilligung,
+> in derselben Qualität wie Stufe 3. Damit ist die **Formularquote** zum
+> ersten Mal erhebbar (siehe 3.). `InitiateCheckout` bleibt, wo es ist: Es
+> feuert weiterhin beim Verlassen des Adressfelds und misst damit eine
+> Stufe *davor* — Tippen, nicht Absenden.
 
 **Stufe 3 ist der Anker des ganzen Verfahrens.** `/api/widget/config` ruft
 jedes geladene Widget **genau einmal** — vor jeder Einwilligung, ohne Meta,
@@ -146,7 +161,8 @@ Dienst-ID `srv-da30dg3bc2fs73fomi0g` (Produktiv, Frankfurt).
 | … verschiedene IP-Adressen | Besucher statt Aufrufe |
 | … davon Bots (User-Agent) | abziehen |
 | … davon eigene Test-IPs | abziehen — **Liste siehe unten** |
-| `POST /api/widget/audit` | Stufe 5 |
+| `POST /api/widget/audit` | Stufe 4 — Analyse gestartet, ohne Adresse |
+| `POST /api/widget/bericht-anfordern/…` | Stufe 5 — der Lead |
 | Anteil mobil | Gerätebild ohne Einwilligung |
 
 **Am 16.09. am Gegenstand geprüft** (ein Lauf über den 15.09.):
@@ -222,8 +238,8 @@ laufen auseinander, und hinterher weiß niemand, welche galt.
 |---|---|---|---|
 | **Durchlaufquote Klick → Besucher** | Besucher bereinigt ÷ Link-Klicks | ≥ 0,6 | < 0,3 |
 | **Einwilligungsquote** | GA4-Sitzungen (Paid Social) ÷ Besucher | ≥ 0,5 | < 0,2 |
-| **Formularquote** | Stufe 4 ÷ Stufe 3 | _noch nicht erhoben_ | 0 bei n ≥ 30 |
-| **Abschlussquote** | Stufe 5 ÷ Stufe 4 | ≥ 0,5 | < 0,25 |
+| **Formularquote** | Stufe 4 ÷ Stufe 3 | _ab 21.09. erhebbar, noch ohne Erfahrungswert_ | 0 bei n ≥ 30 |
+| **Abschlussquote** | Stufe 5 ÷ Stufe 4 | _neue Bedeutung, siehe unten_ | 0 bei n ≥ 30 |
 | **Kosten je echtem Besucher** | Ausgabe ÷ Besucher bereinigt | — | — |
 | **Kosten je Lead** | Ausgabe ÷ Stufe 5 | — | — |
 | **Anteil Audience Network** | AN-Klicks ÷ Link-Klicks | < 0,3 | > 0,5 |
@@ -240,6 +256,16 @@ laufen auseinander, und hinterher weiß niemand, welche galt.
 **Die Formularquote hat bewusst keinen Sollwert.** Am 16.09. gibt es keine
 Messung, aus der einer abzuleiten wäre; die erste Woche mit n ≥ 30 setzt ihn.
 Ein erfundener Sollwert wäre eine angenommene Zahl in der Spalte „gemessen".
+
+**Die Abschlussquote misst seit dem 21.09. etwas anderes**, und die alten
+Sollwerte (≥ 0,5 gut, < 0,25 Alarm) gelten für sie nicht mehr. Vorher stand
+im Zähler wie im Nenner derselbe Vorgang, getrennt nur durch Metas Zählweise;
+jetzt ist es ein echter Abbruch zwischen zwei Schritten: Punktwert gesehen,
+Adresse nicht hergegeben. Dass die Quote fällt, ist zu **erwarten** und kein
+Befund — die Menge der gestarteten Analysen steigt im selben Zug, weil dafür
+nichts mehr herzugeben ist. Was zählt, ist die **Zahl der Leads je Ausgabe**,
+nicht die Quote. Der neue Sollwert entsteht wie der erste: aus der ersten
+Woche mit n ≥ 30, nicht aus einer Schätzung.
 
 **Wochenmenge Leads** (für das Optimierungsziel der Anzeigengruppe):
 unter **25** ist das Ziel zu eng gewählt, über **110** zu flach.

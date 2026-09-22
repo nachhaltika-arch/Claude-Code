@@ -248,7 +248,17 @@ ERLAUBTE_BEREICHE = {
 #: Auskunftsdienst darueber wird, welche Kennungen es gibt. Und sie sind
 #: umkehrbar: `.../rueckgaengig` nimmt zurueck, was ein Postfach-Scanner
 #: ausgeloest haben koennte. `test_abmeldelink` haelt alles davon fest.
-OFFEN_ERWARTET = 60
+#:
+#: **61 seit dem 21.09.2026**, und die neue ist `POST
+#: /api/widget/bericht-anfordern/{poll_token}`. Sie gehoert zum zweistufigen
+#: Formular: Schritt 1 startet die Analyse mit der Website-Adresse allein,
+#: hier traegt der Besucher seine eigene nach. Sie muss offen sein, weil das
+#: Widget auf fremden Seiten laeuft — und sie ist ueber denselben
+#: `poll_token` abgesichert wie der Zwischenstand: 32 Byte aus
+#: `secrets.token_urlsafe`, nicht ratbar, und sie gibt nichts preis. Ein
+#: zweiter Aufruf mit derselben Kennung aendert nichts (`bereits: True`),
+#: damit weder eine zweite Mail noch ein zweiter Lead entsteht.
+OFFEN_ERWARTET = 61
 
 #: Wo sie liegen duerfen — jeder Bereich mit dem Grund, aus dem er offen ist.
 #:

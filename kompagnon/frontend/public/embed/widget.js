@@ -452,7 +452,7 @@
          Vorher endete ein Klick auf „Analyse starten“ mit leeren Feldern
          wortlos — der Knopf wirkte kaputt. -->
     <form id="kpg-form">
-      <p class="kpg-eyebrow">Gratis · Ergebnis in etwa einer Minute · Kein Login</p>
+      <p class="kpg-eyebrow">Gratis · Ergebnis direkt hier · Kein Login</p>
       <h2 class="kpg-h">Ihre Webseite<br>jetzt analysieren</h2>
 
       <!-- Was der Besucher bekommt, bevor er etwas eintippt (Wunsch David,
@@ -467,7 +467,7 @@
       <div class="kpg-nutzen">
         <p class="kpg-nutzen-kopf">Das bekommen Sie</p>
         <ol class="kpg-nutzen-liste">
-          <li>In etwa einer Minute: Ihren Punktwert von 0 bis 100 und Ihre Stufe nach Website Standard</li>
+          <li>Hier auf dem Bildschirm: Ihren Punktwert von 0 bis 100 und Ihre Stufe nach Website Standard</li>
           <li>Per E-Mail: den Befund zu 39 Kriterien — was Punkte kostet, was zuerst zu tun ist</li>
           <li>Auf Wunsch: bis zu fünf kurze Anleitungen, wie Sie die Punkte selbst abstellen</li>
         </ol>

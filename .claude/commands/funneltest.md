@@ -61,13 +61,23 @@ Antwortet die Erweiterung nicht oder ist die Sitzung abgelaufen: **nicht
 dreimal versuchen** — Stufe 1 als *nicht erhoben* führen und weiterlaufen.
 Der Rest des Tests hängt nicht daran.
 
-## Schritt 2 — Stufen 2 bis 6: Seite, Widget, Lead, Analyse
+## Schritt 2 — Stufen 2 bis 7: Seite, Widget, Start, Analyse, Lead
 
     kompagnon/backend/venv/bin/python scripts/funnel-test.py start [--ziel staging] [--domain …]
 
 Das Skript ruft die Landingpage mit der Klick-URL auf, vergleicht sie mit der
 Repo-Fassung, liest `/api/widget/config` und die ausgelieferte Widget-Datei,
-schickt das Formular ab und wartet auf die Analyse (bis 300 s).
+schickt **Schritt 1 des Formulars** ab (nur die Website-Adresse), wartet auf
+die Analyse (bis 300 s) und fordert danach den Bericht an.
+
+> **Das Formular hat seit dem 21.09.2026 zwei Schritte, und der Trichter
+> deshalb eine andere Naht.** Stufe 5 erzeugt eine Anfrage, aber **keinen
+> Lead** — bis dahin hat niemand seine Adresse hergegeben. Der Abschluss
+> steht in Stufe 7 (`POST /api/widget/bericht-anfordern/…`), und erst er
+> löst die Mailstrecke aus. Bleibt die Analyse in der Zeitgrenze hängen,
+> ist Stufe 7 **nicht erhoben** — im Widget gäbe es an dieser Stelle gar
+> kein Formular. Die Stufen dahinter sind um eins gerückt; Berichte in
+> `docs/funneltest/` vor diesem Datum tragen die alte Nummerierung.
 
 **Nimm die Ausgabe nicht als Ergebnis, sondern lies sie.** Zwei Zeilen sind
 bekannte Nicht-Befunde und dürfen nicht als Fehler gemeldet werden:
@@ -83,10 +93,11 @@ bekannte Nicht-Befunde und dürfen nicht als Fehler gemeldet werden:
   erhoben* statt als fehlend.
 
 Bricht das Skript mit **429** ab, ist das Kontingent erschöpft — das ist eine
-*nicht erhobene* Stufe 5, kein Systemfehler. Dann mit einer anderen Testdomain
+*nicht erhobene* Stufe 5 bzw. 7, kein Systemfehler. Die Adressgrenze (3 je
+Tag) greift jetzt in Stufe 7, die IP-Grenze (15 je Tag) schon in Stufe 5. Dann mit einer anderen Testdomain
 oder am Folgetag.
 
-## Schritt 3 — Stufe 7: Kommt Mail 1 an?
+## Schritt 3 — Stufe 8: Kommt Mail 1 an?
 
 Gmail nach der Testadresse durchsuchen (sie steht in der Ausgabe von
 Schritt 2 und im Zustand unter `.funneltest/`):
@@ -103,7 +114,7 @@ Aus der Mail den Bestätigungslink holen (`/api/widget/verify/<token>`), den
 Wirt prüfen (siehe Regeln), und mitnehmen, ob die Mail den **Abmeldelink**
 trägt.
 
-## Schritt 4 — Stufe 8: Der Klick
+## Schritt 4 — Stufe 9: Der Klick
 
     …/python scripts/funnel-test.py bestaetigen --link <Link aus Mail 1>
 
@@ -124,12 +135,12 @@ Mindestverweildauer ab** und schickt das Formular.
 > geschickt". Maßgeblich ist deshalb, ob das Formular zurückkommt, nicht der
 > Wortlaut.
 
-## Schritt 5 — Stufe 9: Kommt Mail 2?
+## Schritt 5 — Stufe 10: Kommt Mail 2?
 
 Wie Schritt 3, mit demselben Suchbegriff. Daraus den Berichtslink holen
 (`/api/widget/report/<token>`), Wirt prüfen, Laufzeit seit dem Klick messen.
 
-## Schritt 6 — Stufen 10 und 11: Bericht und PDF
+## Schritt 6 — Stufen 11 und 12: Bericht und PDF
 
     …/python scripts/funnel-test.py bericht --link <Link aus Mail 2>
 
@@ -138,7 +149,7 @@ ausgelieferte PDF: `%PDF`-Kopf, Seitenzahl, und die **Kopfzeile** — reines
 ASCII und beide Namensformen nebeneinander. Das ist der Fund vom 12.09., und
 er war nur am ausgelieferten PDF zu sehen, nicht am Test.
 
-## Schritt 7 — Stufe 12: Die zweite Sicht
+## Schritt 7 — Stufe 13: Die zweite Sicht
 
     …/python scripts/funnel-test.py stand
 

@@ -22,12 +22,30 @@ from routers import widget
 
 # ── Eingabeprüfung ────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("email", ["", "keine-mail", "a@b", "@firma.de", "name@firma"])
+# **Der leere Wert ist seit dem 21.09.2026 kein Fehler mehr.** Im
+# zweistufigen Formular startet die Analyse mit der Website-Adresse allein;
+# die eigene kommt erst beim Anfordern des Berichts. Falsch geschriebene
+# Adressen bleiben falsch — nur „noch keine" ist jetzt ein gueltiger Zustand.
+# Die Gegenprobe dazu steht direkt darunter.
+@pytest.mark.parametrize("email", ["keine-mail", "a@b", "@firma.de", "name@firma"])
 def test_ungueltige_email_wird_abgelehnt(client, email):
     r = client.post("/api/widget/audit",
                     json={"email": email, "website_url": "https://example.com"})
     assert r.status_code == 400
     assert "E-Mail" in r.json()["detail"]
+
+
+def test_ohne_adresse_laeuft_die_analyse_trotzdem_an(client):
+    """**Die Gegenprobe zur Zeile darueber** (21.09.2026).
+
+    Ohne sie waere der Test oben auch dann gruen, wenn gar keine Anfrage mehr
+    durchginge — er prueft nur Abweisungen. Hier steht die erlaubte Form:
+    Website-Adresse allein, kein Fehler, und eine Kennung zum Weiterfragen.
+    """
+    r = client.post("/api/widget/audit",
+                    json={"website_url": "https://example.com"})
+    assert r.status_code == 200, r.text
+    assert r.json().get("poll_token")
 
 
 @pytest.mark.parametrize("url", [

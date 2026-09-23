@@ -95,18 +95,33 @@ def test_die_meldung_traegt_nichts_ueber_den_besucher(widget):
 def test_gemeldet_wird_beim_verlassen_des_adressfeldes(widget):
     """**Weg A.** Beide Ereignisse, weil keins allein reicht: `change`
     bleibt aus, wenn der Wert unveraendert bleibt; `blur` bleibt aus, wenn
-    jemand mit der Eingabetaste abschickt."""
-    rumpf = widget.split("urlEl.addEventListener('input'", 1)[1][:1200]
-    assert "'blur'" in rumpf and "'change'" in rumpf
+    jemand mit der Eingabetaste abschickt.
+
+    **Anker verschoben am 21.09.2026.** Er hing an
+    ``urlEl.addEventListener('input'`` — einer Zeile, die es nur wegen der
+    Ableitung „Website aus E-Mail-Domain" gab. Mit dem zweistufigen Formular
+    ist die Ableitung fort, und der Test schlug fehl, obwohl die Meldung
+    unveraendert steht. Jetzt haengt er an der Liste der Ereignisse selbst.
+    """
+    rumpf = widget.split("['blur', 'change'].forEach", 1)[1][:400]
+    assert "urlEl.addEventListener(ereignis" in rumpf
     assert "meldeAnalyseBegonnen()" in rumpf
 
 
 def test_nicht_beim_tippen(widget):
-    """Ein `input`-Ereignis feuerte bei jedem Zeichen. Das vorhandene
-    `input` darf die Meldung deshalb **nicht** ausloesen."""
-    zeile = next(z for z in widget.splitlines()
-                 if "addEventListener('input'" in z)
-    assert "meldeAnalyseBegonnen" not in zeile
+    """Ein `input`-Ereignis feuerte bei jedem Zeichen. Es darf die Meldung
+    deshalb **nicht** ausloesen.
+
+    **Seit dem 21.09.2026 gibt es am Adressfeld gar kein `input` mehr.** Eine
+    Zusicherung, die nur eine Abwesenheit prueft, ist damit von selbst gruen
+    — auch dann, wenn das ganze Widget verschwindet. Deshalb steht die
+    positive Zusicherung daneben: Die Ereignisse, die melden, sind genau
+    `blur` und `change`, und sie stehen als Liste im Quelltext.
+    """
+    for zeile in widget.splitlines():
+        if "addEventListener('input'" in zeile:
+            assert "meldeAnalyseBegonnen" not in zeile, zeile
+    assert "['blur', 'change'].forEach" in widget
 
 
 def test_das_absenden_meldet_nach(widget):

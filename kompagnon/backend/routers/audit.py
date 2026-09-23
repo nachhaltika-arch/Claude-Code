@@ -361,6 +361,15 @@ def _notify_widget_requester(db, audit_id: int) -> None:
         if not row:
             return
 
+        # **Ohne Adresse gibt es niemanden zu fragen** (21.09.2026). Im
+        # zweistufigen Formular startet die Analyse mit der Website-Adresse
+        # allein; die E-Mail kommt erst, wenn jemand den Bericht will. Wird
+        # sie spaeter nachgetragen, loest `bericht_anfordern` diese Funktion
+        # selbst aus — die Reihenfolge der beiden Ereignisse ist offen, und
+        # beide Wege fuehren hierher.
+        if not row.email:
+            return
+
         audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
         if not audit or audit.status != "completed":
             return

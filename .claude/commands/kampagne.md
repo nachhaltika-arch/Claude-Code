@@ -32,9 +32,15 @@ Zeitraum: `$ARGUMENTS`, leer bedeutet **gestern, 00:00–24:00 Ortszeit (CEST)**
    `scripts/kampagne-protokoll.py --eigene-ip <IP> < datei.json` zählen —
    **nicht im Kopf zählen**. Zeitstempel der Antwort sind UTC; über 100 Zeilen
    seitenweise mit `direction: forward` und `nextStartTime` holen.
-2. `POST /api/widget/audit` — **Stufe 5**. Dazu die Statuscodes: 4xx/5xx auf
-   diesem Pfad sind der Befund für den Bruch 4 → 5.
-3. **Gegenprobe (Pflicht, bevor eine Null gemeldet wird):** derselbe Filter über
+2. `POST /api/widget/audit` — **Stufe 4, „Analyse gestartet"**. Seit dem
+   21.09.2026 trägt dieser Aufruf **keine E-Mail-Adresse** mehr und ist damit
+   kein Lead; wer ihn als einen zählt, hält jeden Besucher für einen Abschluss.
+   Statuscodes mitnehmen: 4xx/5xx auf diesem Pfad sind der Befund für den
+   Bruch 3 → 4.
+3. `POST /api/widget/bericht-anfordern/…` — **Stufe 5, der Lead**. Hier gibt
+   jemand seine Adresse her; von hier läuft die Mailstrecke an. Der Bruch
+   4 → 5 heißt: Punktwert gesehen, Adresse nicht hergegeben.
+4. **Gegenprobe (Pflicht, bevor eine Null gemeldet wird):** derselbe Filter über
    den 12. oder 13.09. muss die bekannten Testläufe finden. Findet er sie nicht,
    ist der Filter kaputt — dann das melden und **nicht** den Trichter.
 

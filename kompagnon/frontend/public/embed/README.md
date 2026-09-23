@@ -163,7 +163,7 @@ nichts aus.
 
        kpg-analyse-begonnen    Die Adresse ist eingetippt und das Feld
                                verlassen. Vor der E-Mail, vor dem Server.
-       kpg-audit-lead          Der Server hat die Anfrage angenommen.
+       kpg-audit-lead          Der Bericht ist angefordert: die Adresse liegt vor.
 
      Dazwischen liegen die Anläufe, die abgewiesen werden — genau die Zahl,
      die man sonst nicht sieht.

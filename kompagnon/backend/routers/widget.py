@@ -73,7 +73,16 @@ SEITEN_KOPFZEILEN = {
 
 
 class WidgetAuditRequest(BaseModel):
-    email: str
+    # **Leer erlaubt seit dem 21.09.2026** (Entwurf David, zweistufiges
+    # Formular). Die Analyse beginnt mit der Adresse der Website allein —
+    # „Eine Adresse. Mehr braucht es nicht." Die E-Mail kommt erst, wenn
+    # jemand den Bericht will, ueber `POST /bericht-anfordern/{poll_token}`.
+    #
+    # **Was das fuer die Trichterzaehlung heisst:** Dieser Aufruf ist nicht
+    # mehr „Lead", sondern „Analyse gestartet". Der Lead ist der zweite
+    # Schritt. Wer die alte Gleichsetzung weiterbenutzt, zaehlt Interesse
+    # als Abschluss.
+    email: str = ""
     website_url: str
     consent_marketing: bool = False
     referrer: str = ""
@@ -188,6 +197,16 @@ def _zaehle(db: Session, seit: datetime, *bedingungen) -> int:
 
 
 def _enforce_limits(db: Session, ip: str, email: str) -> None:
+    """Ohne Adresse bleiben die IP- und Gesamtgrenzen, die adressbezogenen
+    entfallen — sie haetten nichts, woran sie zaehlen koennten.
+
+    **Das ist eine echte Lockerung, und sie steht hier statt im Nebensatz:**
+    Bis zum 21.09.2026 bremste `LIMIT_PER_EMAIL_PER_DAY` (3) die Analysen
+    zusaetzlich. Im zweistufigen Formular gibt es beim Start keine Adresse
+    mehr; es bleiben 5 je IP und Stunde, 15 je IP und Tag sowie 60/300
+    insgesamt. Die Adressgrenze greift weiterhin — nur spaeter, beim
+    Anfordern des Berichts.
+    """
     now = datetime.utcnow()
     hour_ago = now - timedelta(hours=1)
     day_ago = now - timedelta(days=1)
@@ -203,6 +222,13 @@ def _enforce_limits(db: Session, ip: str, email: str) -> None:
             raise HTTPException(429, zu_viele)
         if _zaehle(db, day_ago, WidgetRequest.ip_address == ip) >= LIMIT_PER_IP_PER_DAY:
             raise HTTPException(429, zu_viele)
+
+    if not email:
+        if _zaehle(db, hour_ago) >= LIMIT_TOTAL_PER_HOUR:
+            raise HTTPException(429, ausgelastet)
+        if _zaehle(db, day_ago) >= LIMIT_TOTAL_PER_DAY:
+            raise HTTPException(429, ausgelastet)
+        return
 
     if _zaehle(db, day_ago, WidgetRequest.email == email) >= LIMIT_PER_EMAIL_PER_DAY:
         raise HTTPException(429, postfach)
@@ -260,7 +286,7 @@ async def start_widget_audit(
 ):
     """Nimmt eine Anfrage aus dem Widget an und startet das Audit."""
     email = payload.email.strip().lower()
-    if not EMAIL_PATTERN.match(email):
+    if email and not EMAIL_PATTERN.match(email):
         raise HTTPException(400, "Bitte eine gültige E-Mail-Adresse angeben.")
 
     url = _normalise_url(payload.website_url)
@@ -350,7 +376,12 @@ async def start_widget_audit(
     # `email` wird bewusst NICHT mehr uebergeben: Der erweiterte Abgleich ist
     # entfallen, und eine Adresse, die nicht gebraucht wird, hat in einer
     # Funktion, die an Meta sendet, nichts zu suchen.
-    if meta_conversions.darf_melden(payload.consent_tracking):
+    # **Nur wenn schon eine Adresse vorliegt** (21.09.2026). Im zweistufigen
+    # Formular ist dieser Aufruf „Analyse gestartet", nicht „Lead" — die
+    # Meldung feuert dann in `bericht_anfordern`, wo der Abschluss wirklich
+    # entsteht. Wer sie hier liesse, meldete Meta jede Neugier als Lead und
+    # halbierte den Kosten-pro-Lead auf dem Papier.
+    if email and meta_conversions.darf_melden(payload.consent_tracking):
         background_tasks.add_task(
             meta_conversions.sende_lead,
             event_id=f"kpg-widget-{widget_request.id}",
@@ -392,6 +423,103 @@ async def start_widget_audit(
     return {"request_id": widget_request.id,
             "poll_token": widget_request.poll_token,
             "status": "pending"}
+
+
+class BerichtAnfrage(BaseModel):
+    """Der zweite Schritt: Wer den Bericht will, gibt jetzt seine Adresse."""
+
+    email: str
+    consent_marketing: bool = False
+    telefon: str = ""
+    anruf_gewuenscht: bool = False
+    # Dieselben Werte wie im ersten Schritt — sie werden **nicht** an der
+    # Anfrage gespeichert (L-192: nur das Ob, nie die Kennung), also schickt
+    # sie das Widget erneut mit, wenn es den Abschluss meldet.
+    consent_tracking: str = ""
+    fbclid: str = ""
+    fbc: str = ""
+    fbp: str = ""
+    page_url: str = ""
+    nachweis: str = ""
+
+
+@router.post("/bericht-anfordern/{poll_token}")
+def bericht_anfordern(poll_token: str, payload: BerichtAnfrage, request: Request,
+                      background_tasks: BackgroundTasks,
+                      db: Session = Depends(get_db)):
+    """Traegt die Adresse an einer laufenden Analyse nach und loest die Post aus.
+
+    **Der zweite Schritt des Formulars** (Entwurf David, 21.09.2026). Schritt 1
+    fragt nur die Website-Adresse und zeigt den Punktwert; wer den
+    ausfuehrlichen Befund will, gibt hier seine E-Mail.
+
+    **Hier entsteht der Lead**, nicht im ersten Schritt — deshalb feuert hier
+    die Meldung an Meta, und deshalb greift hier die Adressgrenze.
+
+    **Die Bestaetigungsmail haengt an zwei Bedingungen**, und die Reihenfolge
+    ist offen: Die Analyse kann fertig sein, bevor jemand seine Adresse
+    eintippt, oder umgekehrt. Ist sie fertig, geht die Mail sofort; ist sie es
+    nicht, schickt sie der Abschluss der Analyse (`routers/audit.py`), sobald
+    eine Adresse dasteht.
+    """
+    email = payload.email.strip().lower()
+    if not EMAIL_PATTERN.match(email):
+        raise HTTPException(400, "Bitte eine gültige E-Mail-Adresse angeben.")
+
+    row = db.query(WidgetRequest).filter(
+        WidgetRequest.poll_token == poll_token).first()
+    if not row:
+        raise HTTPException(404, "Analyse nicht gefunden")
+
+    # **Ein zweiter Klick darf nichts erneut ausloesen.** Wer den Knopf
+    # zweimal drueckt, soll keine zweite Mail und keinen zweiten Lead
+    # erzeugen — dieselbe Regel wie beim Bestaetigungsklick.
+    if row.email:
+        return {"uebernommen": True, "bereits": True}
+
+    _enforce_limits(db, "", email)
+
+    now = datetime.utcnow()
+    telefon, anruf_gewuenscht = _anrufwunsch(payload)
+    row.email = email
+    row.telefon = telefon
+    row.anruf_gewuenscht = anruf_gewuenscht
+    row.consent_marketing = bool(payload.consent_marketing)
+    row.consent_at = now if payload.consent_marketing else None
+    row.confirm_token = (secrets.token_urlsafe(32)
+                         if payload.consent_marketing else None)
+    if not row.nachweis:
+        row.nachweis = _nachweis_kennung(payload.nachweis)
+
+    lead = (db.query(Lead).filter(Lead.id == row.lead_id).first()
+            if row.lead_id else None)
+    if lead is not None and not lead.email:
+        lead.email = email
+    db.commit()
+
+    # Jetzt ist es ein Lead — und erst jetzt darf Meta ihn sehen.
+    from services import meta_conversions
+
+    if meta_conversions.darf_melden(payload.consent_tracking):
+        background_tasks.add_task(
+            meta_conversions.sende_lead,
+            event_id=f"kpg-widget-{row.id}",
+            quell_url=(payload.page_url or ""),
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent", "")[:400],
+            fbclid=payload.fbclid,
+            fbc=payload.fbc,
+            fbp=payload.fbp,
+        )
+
+    # Ist die Analyse schon durch, geht die Bestaetigungsmail sofort hinaus.
+    from routers.audit import _notify_widget_requester
+
+    if row.audit_id:
+        _notify_widget_requester(db, row.audit_id)
+        db.refresh(row)
+
+    return {"uebernommen": True, "versandt": row.verify_sent_at is not None}
 
 
 @router.get("/config")

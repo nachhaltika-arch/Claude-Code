@@ -22,6 +22,15 @@ denkt.
 Analysequalität. Er sagt, ob die **Kette** trägt, nicht ob die Zahl im Bericht
 stimmt.
 
+**Das Formular hat seit dem 21.09.2026 zwei Schritte, und der Trichter damit
+eine andere Naht.** Stufe 5 schickt nur die Website-Adresse — dort entsteht
+eine Anfrage, aber **kein Lead**. Der Abschluss steht in Stufe 7: Erst am
+fertigen Ergebnis wird die E-Mail-Adresse gefragt, und erst damit läuft die
+Mailstrecke an. Wer die alte Zählung beibehält, hält jeden Besucher für einen
+Lead. Die Stufen dahinter sind deshalb um eins gerückt (Bestätigung 9,
+Bericht 11, PDF 12, Rückblick 13); ältere Berichte in `docs/funneltest/`
+tragen noch die alte Nummerierung und sind daran zu erkennen.
+
 **Er erzeugt echte Daten.** Produktiv entstehen eine Anfrage, ein Lead, zwei
 Mails und ein Brevo-Kontakt. Sie werden nicht aufgeräumt — erkennbar an der
 Testadresse, und der Bericht nennt am Ende die Nummern (Entscheidung David,
@@ -283,45 +292,110 @@ def stufe_widget(ziel: dict) -> tuple[list[Befund], dict]:
     ]
     befunde.append(serverweg_befund(ziel))
 
-    datei, fehler = hole("GET", f"{ziel['frontend']}/embed/audit-widget.html")
+    # **Die Marker stehen seit dem 21.09.2026 in `widget.js`, nicht in der
+    # Hülle.** Bis zum 23.09.2026 hat diese Stufe `audit-widget.html`
+    # durchsucht; seit dem Umbau auf das Web Component sind das 836 Byte ohne
+    # eine Zeile Messcode. Der Lauf meldete dreimal „FEHLT", während alle drei
+    # Marker ausgeliefert wurden — auf Staging wie produktiv, am 23.09. an
+    # beiden Zielen nachgemessen. Der Anker gehört auf die Sache, nicht auf
+    # ihre alte Verpackung.
+    skript, fehler = hole("GET", f"{ziel['frontend']}/embed/widget.js")
     if fehler:
-        befunde.append(nicht_erhoben("3 Widget", "ausgelieferte Datei", fehler))
+        befunde.append(nicht_erhoben("3 Widget", "ausgeliefertes Skript", fehler))
         return befunde, config
 
-    text = datei.text
+    text = skript.text
+    quelle = f"{ziel['frontend']}/embed/widget.js"
     for name, muster in (("Analyse begonnen", "kpg-analyse-begonnen"),
                          ("Lead-Empfänger", "kpg-audit-lead"),
                          ("Ereigniskennung", "eventID")):
         befunde.append(messung("3 Widget", name, muster in text,
-                               f"{text.count(muster)}× „{muster}“",
+                               f"{text.count(muster)}× „{muster}“", quelle))
+
+    # **Positive Gegenprobe zur Verankerung.** Drei grüne Marker in einer Datei
+    # sagen nichts, solange niemand prüft, dass die Einbettung sie auch lädt —
+    # genau diese Lücke hat den Fehler oben so lange getragen.
+    huelle, fehler = hole("GET", f"{ziel['frontend']}/embed/audit-widget.html")
+    if fehler:
+        befunde.append(nicht_erhoben("3 Widget", "Hülle lädt das Skript", fehler))
+    else:
+        befunde.append(messung("3 Widget", "Hülle lädt das Skript",
+                               "widget.js" in huelle.text,
+                               f"{huelle.text.count('widget.js')}× „widget.js“ "
+                               f"in {len(huelle.text)} Zeichen",
                                f"{ziel['frontend']}/embed/audit-widget.html"))
     return befunde, config
 
 
-# ------------------------------------------------------------ Stufe 5: Lead
+# -------------------------------------------- Stufe 5: Analyse angestoßen
 
 
-def stufe_lead(ziel: dict, anfrage: dict) -> tuple[list[Befund], dict]:
-    """Das Formular absenden — genau das, was das Widget im Browser tut."""
+def stufe_start(ziel: dict, anfrage: dict) -> tuple[list[Befund], dict]:
+    """Den ersten Schritt absenden — genau das, was das Widget im Browser tut.
+
+    **Diese Stufe hieß bis zum 21.09.2026 „5 Lead", und das war richtig,
+    solange das Formular alles auf einmal fragte.** Seit dem zweistufigen
+    Formular steht hier nur die Website-Adresse: Wer bis hierher kommt, hat
+    sich noch nicht zu erkennen gegeben. Der Abschluss liegt in Stufe 7.
+
+    Wer die alte Zuordnung stehen lässt, zählt jeden Besucher als Lead —
+    und rechnet die Kosten je Abschluss um den Faktor der Abbrecher schön.
+    """
     antwort, fehler = hole("POST", f"{ziel['api']}/api/widget/audit", json=anfrage)
     if fehler:
-        return [nicht_erhoben("5 Lead", "Absenden", fehler)], {}
+        return [nicht_erhoben("5 Start", "Absenden", fehler)], {}
 
     if antwort.status_code == 429:
-        return [Befund("5 Lead", "Absenden", "nicht erhoben",
+        return [Befund("5 Start", "Absenden", "nicht erhoben",
                        f"Kontingent erschöpft (429): {antwort.text[:120]}")], {}
     if antwort.status_code != 200:
-        return [messung("5 Lead", "Absenden", False,
+        return [messung("5 Start", "Absenden", False,
                         f"HTTP {antwort.status_code}: {antwort.text[:160]}")], {}
 
     daten = antwort.json()
     befunde = [
-        messung("5 Lead", "Absenden", True,
+        messung("5 Start", "ohne Adresse angenommen", "email" not in anfrage,
+                "Nutzlast trägt " + ", ".join(sorted(anfrage))[:90]),
+        messung("5 Start", "Absenden", True,
                 f"HTTP 200, Anfrage {daten.get('request_id')}"),
-        messung("5 Lead", "Analyse angestoßen", daten.get("status") == "pending",
+        messung("5 Start", "Analyse angestoßen", daten.get("status") == "pending",
                 f"status={daten.get('status')}"),
     ]
     return befunde, daten
+
+
+# ------------------------------------------------------------ Stufe 7: Lead
+
+
+def stufe_lead(ziel: dict, poll_token: str, anforderung: dict) -> list[Befund]:
+    """Den ausführlichen Bericht anfordern — **hier** entsteht der Lead.
+
+    Im Widget steht dieses Formular am Ergebnis, nicht am Anfang; deshalb
+    läuft die Stufe erst nach Stufe 6. Und deshalb ist sie es, die die
+    Mailstrecke auslöst: Ohne Adresse geht keine Bestätigungsbitte hinaus.
+    """
+    ziel_url = f"{ziel['api']}/api/widget/bericht-anfordern/{poll_token}"
+    antwort, fehler = hole("POST", ziel_url, json=anforderung)
+    if fehler:
+        return [nicht_erhoben("7 Lead", "Anfordern", fehler)]
+
+    if antwort.status_code == 429:
+        return [Befund("7 Lead", "Anfordern", "nicht erhoben",
+                       f"Kontingent erschöpft (429): {antwort.text[:120]}")]
+    if antwort.status_code != 200:
+        return [messung("7 Lead", "Anfordern", False,
+                        f"HTTP {antwort.status_code}: {antwort.text[:160]}")]
+
+    daten = antwort.json()
+    return [
+        messung("7 Lead", "Anfordern", bool(daten.get("uebernommen")),
+                f"HTTP 200, uebernommen={daten.get('uebernommen')}", ziel_url),
+        # Ein zweiter Aufruf darf keine zweite Mail auslösen. Gemessen wird
+        # das an der Antwort, nicht behauptet: Der Endpunkt sagt selbst,
+        # ob die Adresse schon dastand.
+        messung("7 Lead", "nicht doppelt", not daten.get("bereits"),
+                f"bereits={daten.get('bereits', False)}"),
+    ]
 
 
 def stufe_analyse(ziel: dict, poll_token: str) -> tuple[list[Befund], dict]:
@@ -361,11 +435,11 @@ def stufe_bestaetigen(link: str) -> list[Befund]:
     """Die Seite aus Mail 1 aufrufen, warten, und das Formular abschicken."""
     seite, fehler = hole("GET", link)
     if fehler:
-        return [nicht_erhoben("8 Bestätigung", "Seite", fehler)]
+        return [nicht_erhoben("9 Bestätigung", "Seite", fehler)]
     if seite.status_code != 200:
-        return [messung("8 Bestätigung", "Seite", False, f"HTTP {seite.status_code}")]
+        return [messung("9 Bestätigung", "Seite", False, f"HTTP {seite.status_code}")]
 
-    befunde = [messung("8 Bestätigung", "Seite", True,
+    befunde = [messung("9 Bestätigung", "Seite", True,
                        f"HTTP 200, {len(seite.content)} Bytes", seite.url)]
 
     # **Kein Formular ist nicht dasselbe wie ein kaputtes Formular.** Eine
@@ -374,7 +448,7 @@ def stufe_bestaetigen(link: str) -> list[Befund]:
     # zweiten Anlauf derselben Phase.
     if 'id="kpg-form"' not in seite.text:
         befunde.append(nicht_erhoben(
-            "8 Bestätigung", "Gestenbeleg",
+            "9 Bestätigung", "Gestenbeleg",
             "die Seite zeigt kein Formular — bereits bestätigt oder Link "
             f"verbraucht: „{sichtbarer_anfang(seite.text, 90)}“"))
         return befunde
@@ -387,10 +461,10 @@ def stufe_bestaetigen(link: str) -> list[Befund]:
     # genau so passiert.
     treffer = re.search(r'data-nachweis="([^"]+)"', seite.text)
     if not treffer:
-        befunde.append(messung("8 Bestätigung", "Gestenbeleg", False,
+        befunde.append(messung("9 Bestätigung", "Gestenbeleg", False,
                                "kein `data-nachweis` am Knopf"))
         return befunde
-    befunde.append(messung("8 Bestätigung", "Gestenbeleg", True,
+    befunde.append(messung("9 Bestätigung", "Gestenbeleg", True,
                            "am Knopf vorhanden, wird maschinell eingesetzt"))
 
     ziel_form = re.search(r'<form[^>]+action="([^"]+)"', seite.text)
@@ -402,7 +476,7 @@ def stufe_bestaetigen(link: str) -> list[Befund]:
 
     antwort, fehler = hole("POST", adresse, data={"nachweis": treffer.group(1)})
     if fehler:
-        befunde.append(nicht_erhoben("8 Bestätigung", "Absenden", fehler))
+        befunde.append(nicht_erhoben("9 Bestätigung", "Absenden", fehler))
         return befunde
 
     # **Nicht am Wortlaut messen.** Der erste Entwurf suchte „bestätigt" im
@@ -412,7 +486,7 @@ def stufe_bestaetigen(link: str) -> list[Befund]:
     # samt `data-nachweis` (`routers/widget.py`, `_geste_fehlt`).
     zurueck_zum_formular = "data-nachweis" in antwort.text
     bestaetigt = antwort.status_code == 200 and not zurueck_zum_formular
-    befunde.append(messung("8 Bestätigung", "Absenden", bestaetigt,
+    befunde.append(messung("9 Bestätigung", "Absenden", bestaetigt,
                            f"HTTP {antwort.status_code}, "
                            f"{len(antwort.content)} Bytes"
                            + (" — Formular kam zurück" if zurueck_zum_formular else ""),
@@ -440,7 +514,7 @@ def stufe_bericht(link: str, kaufweg_erwartet: bool = True) -> list[Befund]:
     """
     seite, fehler = hole("GET", link)
     if fehler:
-        return [nicht_erhoben("10 Bericht", "Seite", fehler)]
+        return [nicht_erhoben("11 Bericht", "Seite", fehler)]
 
     # **Der Link aus der Mail ist nicht die Berichtsadresse.** Brevo zählt
     # Klicks über `…sendibt2.com/tr/cl/…` und leitet weiter; wer „/pdf" an
@@ -449,26 +523,26 @@ def stufe_bericht(link: str, kaufweg_erwartet: bool = True) -> list[Befund]:
     # landet — und die ist zugleich der Beleg, dass sie zu uns führt.
     echte_adresse = seite.url
 
-    befunde = [messung("10 Bericht", "Seite", seite.status_code == 200,
+    befunde = [messung("11 Bericht", "Seite", seite.status_code == 200,
                        f"HTTP {seite.status_code}, {len(seite.content)} Bytes",
                        echte_adresse)]
     if seite.status_code == 200:
-        befunde.append(messung("10 Bericht", "Angebot", "Websprint" in seite.text,
+        befunde.append(messung("11 Bericht", "Angebot", "Websprint" in seite.text,
                                f"{seite.text.count('Websprint')}× „Websprint“"))
         treffer = seite.text.count("stripe.com")
         if kaufweg_erwartet:
-            befunde.append(messung("10 Bericht", "Kaufweg", treffer > 0,
+            befunde.append(messung("11 Bericht", "Kaufweg", treffer > 0,
                                    f"{treffer}× „stripe.com“"))
         else:
             befunde.append(nicht_erhoben(
-                "10 Bericht", "Kaufweg",
+                "11 Bericht", "Kaufweg",
                 f"Check PLUS ist auf diesem Ziel nicht verkäuflich (Stufe 3) — "
                 f"{treffer}× „stripe.com“ gefunden, ohne Aussagewert"))
 
     pdf_adresse = echte_adresse.split("?")[0].rstrip("/") + "/pdf"
     pdf, fehler = hole("GET", pdf_adresse)
     if fehler:
-        befunde.append(nicht_erhoben("11 PDF", "Auslieferung", fehler))
+        befunde.append(nicht_erhoben("12 PDF", "Auslieferung", fehler))
         return befunde
 
     befunde.extend(pdf_befunde(pdf, pdf_adresse))
@@ -478,7 +552,7 @@ def stufe_bericht(link: str, kaufweg_erwartet: bool = True) -> list[Befund]:
 def pdf_befunde(pdf, adresse: str) -> list[Befund]:
     """Die Kopfzeile ist der Fund vom 12.09. — deshalb steht sie hier einzeln."""
     if pdf.status_code != 200:
-        return [messung("11 PDF", "Auslieferung", False, f"HTTP {pdf.status_code}")]
+        return [messung("12 PDF", "Auslieferung", False, f"HTTP {pdf.status_code}")]
 
     kopf = pdf.headers.get("content-disposition", "")
     try:
@@ -488,14 +562,14 @@ def pdf_befunde(pdf, adresse: str) -> list[Befund]:
         rein = False
 
     return [
-        messung("11 PDF", "Auslieferung", True,
+        messung("12 PDF", "Auslieferung", True,
                 f"HTTP 200, {len(pdf.content)} Bytes", adresse),
-        messung("11 PDF", "ist ein PDF", pdf.content[:4] == b"%PDF",
+        messung("12 PDF", "ist ein PDF", pdf.content[:4] == b"%PDF",
                 pdf.content[:8].decode("latin-1")),
-        messung("11 PDF", "Kopfzeile rein ASCII", rein, kopf[:160]),
-        messung("11 PDF", "Name in beiden Formen",
+        messung("12 PDF", "Kopfzeile rein ASCII", rein, kopf[:160]),
+        messung("12 PDF", "Name in beiden Formen",
                 "filename=" in kopf and "filename*=UTF-8''" in kopf, kopf[:160]),
-        messung("11 PDF", "Seiten", pdf.content.count(b"/Type /Page") > 0,
+        messung("12 PDF", "Seiten", pdf.content.count(b"/Type /Page") > 0,
                 f"{pdf.content.count(b'/Type /Page')} Seitenobjekte"),
     ]
 
@@ -510,45 +584,45 @@ def stufe_stand(ziel: dict, request_id: Any, konto: str, wort: str) -> list[Befu
     als in Ordnung (dieselbe Regel wie in `durchlauf-laufzeit.py`).
     """
     if not (konto and wort):
-        return [nicht_erhoben("12 Rückblick", "Zustand der Anfrage",
+        return [nicht_erhoben("13 Rückblick", "Zustand der Anfrage",
                               "keine Zugangsdaten (FUNNELTEST_KONTO/FUNNELTEST_WORT)")]
 
     anmeldung, fehler = hole("POST", f"{ziel['api']}/api/auth/login",
                              json={"email": konto, "password": wort})
     if fehler or anmeldung.status_code != 200:
         grund = fehler or f"HTTP {anmeldung.status_code}"
-        return [nicht_erhoben("12 Rückblick", "Anmeldung", grund)]
+        return [nicht_erhoben("13 Rückblick", "Anmeldung", grund)]
 
     marke = anmeldung.json().get("access_token") or anmeldung.json().get("token")
     if not marke:
-        return [nicht_erhoben("12 Rückblick", "Anmeldung", "kein Token in der Antwort")]
+        return [nicht_erhoben("13 Rückblick", "Anmeldung", "kein Token in der Antwort")]
 
     liste, fehler = hole("GET", f"{ziel['api']}/api/acquisition/widget/requests",
                          headers={"Authorization": f"Bearer {marke}"})
     if fehler or liste.status_code != 200:
         grund = fehler or f"HTTP {liste.status_code}"
-        return [nicht_erhoben("12 Rückblick", "Anfragenliste", grund)]
+        return [nicht_erhoben("13 Rückblick", "Anfragenliste", grund)]
 
     zeilen = liste.json().get("requests", [])
     meine = next((z for z in zeilen if z.get("id") == request_id), None)
     if meine is None:
-        return [messung("12 Rückblick", "Anfrage gefunden", False,
+        return [messung("13 Rückblick", "Anfrage gefunden", False,
                         f"Anfrage {request_id} steht nicht in den letzten "
                         f"{len(zeilen)} Zeilen")]
 
     return [
-        messung("12 Rückblick", "Anfrage gefunden", True, f"Anfrage {request_id}"),
-        messung("12 Rückblick", "Mail 1 versandt", bool(meine.get("verify_sent")),
+        messung("13 Rückblick", "Anfrage gefunden", True, f"Anfrage {request_id}"),
+        messung("13 Rückblick", "Mail 1 versandt", bool(meine.get("verify_sent")),
                 f"verify_sent={meine.get('verify_sent')}"),
-        messung("12 Rückblick", "bestätigt", bool(meine.get("verified")),
+        messung("13 Rückblick", "bestätigt", bool(meine.get("verified")),
                 f"verified_at={meine.get('verified_at')}"),
-        messung("12 Rückblick", "Mail 2 versandt", bool(meine.get("report_sent")),
+        messung("13 Rückblick", "Mail 2 versandt", bool(meine.get("report_sent")),
                 f"report_sent={meine.get('report_sent')}"),
-        messung("12 Rückblick", "Bericht geöffnet", bool(meine.get("report_opened")),
+        messung("13 Rückblick", "Bericht geöffnet", bool(meine.get("report_opened")),
                 f"report_opened={meine.get('report_opened')}"),
-        messung("12 Rückblick", "Analyse", meine.get("analyse_status") == "completed",
+        messung("13 Rückblick", "Analyse", meine.get("analyse_status") == "completed",
                 f"analyse_status={meine.get('analyse_status')}"),
-        Befund("12 Rückblick", "Bestätigung verdächtig?", "gemessen",
+        Befund("13 Rückblick", "Bestätigung verdächtig?", "gemessen",
                f"ok — bestaetigung_verdaechtig={meine.get('bestaetigung_verdaechtig')}, "
                f"Dauer {meine.get('verify_dauer_s')} s",
                "dieser Lauf bedient das Formular maschinell — ein Ja ist hier erwartet"),
@@ -595,25 +669,49 @@ def letzte_je_punkt(befunde: list[Befund]) -> list[Befund]:
 # --------------------------------------------------------------- Die Phasen
 
 
-def anfrage_bauen(args, kennung: str) -> dict:
-    """Die Nutzlast, die auch das Widget schickt — mit erkennbaren Testwerten."""
+def klickkennungen(kennung: str) -> dict:
+    """Woher der Besuch kam. Dieselben Werte in beiden Schritten — sonst
+    ordnet Meta den Abschluss nicht dem Klick zu, der ihn gebracht hat."""
     zeitmarke = int(time.time())
     fbclid = f"kpgfunnel{kennung.replace('-', '')}"
     return {
-        "email": args.adresse,
-        "website_url": args.domain,
-        "consent_marketing": True,
-        "consent_tracking": "1",
-        "referrer": "https://www.facebook.com/",
-        "page_url": f"https://websprint.kompagnon.eu/?fbclid={fbclid}",
         "fbclid": fbclid,
         "fbc": f"fb.1.{zeitmarke}.{fbclid}",
         "fbp": f"fb.1.{zeitmarke}.{zeitmarke}",
+        "page_url": f"https://websprint.kompagnon.eu/?fbclid={fbclid}",
+        "consent_tracking": "1",
+    }
+
+
+def anfrage_bauen(args, kennung: str) -> dict:
+    """Schritt 1: die Nutzlast, die das Widget beim „Prüfen" schickt.
+
+    **Ohne `email`** — und das ist keine Auslassung, sondern der Gegenstand
+    der Prüfung. Das Feld gäbe es noch; wer es hier mitschickt, misst einen
+    Weg, den kein Besucher mehr geht.
+    """
+    return {
+        "website_url": args.domain,
+        "referrer": "https://www.facebook.com/",
+        **klickkennungen(kennung),
         "utm_source": "funneltest",
         "utm_medium": "paid_social",
         "utm_campaign": "websprint-kampagne",
         "utm_content": f"funneltest-{kennung}",
         "utm_term": "selbsttest",
+    }
+
+
+def anforderung_bauen(args, kennung: str) -> dict:
+    """Schritt 2: was der Besucher am Ergebnis einträgt, um den Bericht zu
+    bekommen. Die Rufnummer bleibt leer — ein Testlauf soll keinen Anruf
+    auslösen, und `anruf_gewuenscht` hängt im Backend an der Nummer."""
+    return {
+        "email": args.adresse,
+        "consent_marketing": True,
+        "telefon": "",
+        "anruf_gewuenscht": False,
+        **klickkennungen(kennung),
     }
 
 
@@ -636,8 +734,8 @@ def phase_start(args) -> int:
     widget_befunde, config = stufe_widget(ziel)
     befunde += widget_befunde
 
-    lead_befunde, daten = stufe_lead(ziel, anfrage)
-    befunde += lead_befunde
+    start_befunde, daten = stufe_start(ziel, anfrage)
+    befunde += start_befunde
 
     meta = config.get("meta") or {}
     zustand = {
@@ -659,6 +757,18 @@ def phase_start(args) -> int:
         analyse_befunde, teaser = stufe_analyse(ziel, daten["poll_token"])
         befunde += analyse_befunde
         zustand = {**zustand, "teaser": teaser}
+
+        # **Erst jetzt die Adresse.** Im Widget erscheint das Formular am
+        # Ergebnis; ein Lauf, der vorher anfordert, prüft eine Reihenfolge,
+        # die es nicht gibt. Läuft die Analyse in die Zeitgrenze, unterbleibt
+        # der Abschluss — dann ist Stufe 7 nicht erhoben, nicht gescheitert.
+        if teaser.get("status") == "completed":
+            befunde += stufe_lead(ziel, daten["poll_token"],
+                                  anforderung_bauen(args, kennung))
+        else:
+            befunde.append(nicht_erhoben(
+                "7 Lead", "Anfordern",
+                "Analyse nicht fertig — im Widget gäbe es hier kein Formular"))
 
     zustand = befunde_anhaengen(zustand, befunde)
     datei = zustand_schreiben(zustand)

@@ -292,17 +292,37 @@ def stufe_widget(ziel: dict) -> tuple[list[Befund], dict]:
     ]
     befunde.append(serverweg_befund(ziel))
 
-    datei, fehler = hole("GET", f"{ziel['frontend']}/embed/audit-widget.html")
+    # **Die Marker stehen seit dem 21.09.2026 in `widget.js`, nicht in der
+    # Hülle.** Bis zum 23.09.2026 hat diese Stufe `audit-widget.html`
+    # durchsucht; seit dem Umbau auf das Web Component sind das 836 Byte ohne
+    # eine Zeile Messcode. Der Lauf meldete dreimal „FEHLT", während alle drei
+    # Marker ausgeliefert wurden — auf Staging wie produktiv, am 23.09. an
+    # beiden Zielen nachgemessen. Der Anker gehört auf die Sache, nicht auf
+    # ihre alte Verpackung.
+    skript, fehler = hole("GET", f"{ziel['frontend']}/embed/widget.js")
     if fehler:
-        befunde.append(nicht_erhoben("3 Widget", "ausgelieferte Datei", fehler))
+        befunde.append(nicht_erhoben("3 Widget", "ausgeliefertes Skript", fehler))
         return befunde, config
 
-    text = datei.text
+    text = skript.text
+    quelle = f"{ziel['frontend']}/embed/widget.js"
     for name, muster in (("Analyse begonnen", "kpg-analyse-begonnen"),
                          ("Lead-Empfänger", "kpg-audit-lead"),
                          ("Ereigniskennung", "eventID")):
         befunde.append(messung("3 Widget", name, muster in text,
-                               f"{text.count(muster)}× „{muster}“",
+                               f"{text.count(muster)}× „{muster}“", quelle))
+
+    # **Positive Gegenprobe zur Verankerung.** Drei grüne Marker in einer Datei
+    # sagen nichts, solange niemand prüft, dass die Einbettung sie auch lädt —
+    # genau diese Lücke hat den Fehler oben so lange getragen.
+    huelle, fehler = hole("GET", f"{ziel['frontend']}/embed/audit-widget.html")
+    if fehler:
+        befunde.append(nicht_erhoben("3 Widget", "Hülle lädt das Skript", fehler))
+    else:
+        befunde.append(messung("3 Widget", "Hülle lädt das Skript",
+                               "widget.js" in huelle.text,
+                               f"{huelle.text.count('widget.js')}× „widget.js“ "
+                               f"in {len(huelle.text)} Zeichen",
                                f"{ziel['frontend']}/embed/audit-widget.html"))
     return befunde, config
 

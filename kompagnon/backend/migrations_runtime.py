@@ -2149,7 +2149,7 @@ def run_migrations():
         "ON widget_requests(nachweis)",
         # ── Der Standard heisst „Website Standard" (18.09.2026) ──
         #
-        # Die Stufe wird als **Text** gespeichert (`audits.level`,
+        # Die Stufe wird als **Text** gespeichert (`audit_results.level`,
         # `projects.audit_level`) und im Frontend ueber genau diesen Text
         # wiedergefunden: `utils/websiteStandard.js` sucht den Eintrag in
         # STUFEN, um Zeichen und Kuerzel dazuzustellen. Bleibt in der
@@ -2160,7 +2160,13 @@ def run_migrations():
         # Deshalb werden die Altzeilen mitgezogen. `replace` trifft nur den
         # Namensteil; „Nicht konform" bleibt unberuehrt, weil es den Namen
         # des Standards nie enthielt.
-        "UPDATE audits SET level = replace(level, 'Homepage Standard', "
+        #
+        # **Bis zum 28.09. stand hier `UPDATE audits` (L-212).** Die Tabelle
+        # heisst `audit_results`; der Lauf verbuchte den Fehler als
+        # „uebersprungen" auf INFO, und zehn Tage lang zog niemand nach.
+        # `tests/test_stufenname_migration.py` faehrt jetzt eine echte
+        # Altzeile durch.
+        "UPDATE audit_results SET level = replace(level, 'Homepage Standard', "
         "'Website Standard') WHERE level LIKE 'Homepage Standard%'",
         "UPDATE projects SET audit_level = replace(audit_level, "
         "'Homepage Standard', 'Website Standard') "

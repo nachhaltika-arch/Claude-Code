@@ -200,22 +200,24 @@ class TestPerplexityAntwort:
         assert "Mustermann" in text
         assert belege == ["https://mustermann-heizung.de/"]
 
-    def test_alte_sonar_form_wird_noch_gelesen(self):
-        """Sonar Chat Completions laeuft am 27.09.2026 aus, lebt bis dahin aber."""
-        roh = {
-            "choices": [{"message": {"content": "Mustermann Heizung GmbH"}}],
-            "citations": ["https://mustermann-heizung.de/"],
-        }
+    def test_die_abgeschaltete_sonar_form_wird_nicht_mehr_gelesen(self):
+        """Sonar Chat Completions ist seit dem 27.09.2026 abgeschaltet (L-81).
 
-        text, belege = lies_perplexity_antwort(roh)
+        Der `choices`-Zweig ist am 28.09. entfernt worden. Eine Antwort in
+        dieser Form kann es nicht mehr geben — kaeme doch eine, ist leer die
+        ehrliche Auskunft, nicht ein Text aus einer Form, die niemand pflegt.
+        """
+        roh = {"choices": [{"message": {"content": "Mustermann Heizung GmbH"}}]}
 
-        assert "Mustermann" in text
-        assert belege == ["https://mustermann-heizung.de/"]
+        text, _belege = lies_perplexity_antwort(roh)
+
+        assert text == ""
 
     def test_eine_unbekannte_form_wirft_nicht(self):
         text, belege = lies_perplexity_antwort({"unerwartet": True})
 
         assert (text, belege) == ("", [])
+        assert lies_perplexity_antwort(None) == ("", [])
 
 
 class TestAnbieterVertrag:

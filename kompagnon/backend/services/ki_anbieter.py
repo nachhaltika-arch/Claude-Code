@@ -17,8 +17,8 @@ Betrieb nicht" gezaehlt.
     ChatGPT      POST https://api.openai.com/v1/responses
                  `tools:[{"type":"web_search"}]`, Modell `gpt-5.6`
     Perplexity   POST https://api.perplexity.ai/v1/agent  (Agent API)
-                 Die alte Sonar-Chat-Completions-Form wird **bis zum
-                 27.09.2026** unterstuetzt und danach abgeschaltet.
+                 Die alte Sonar-Chat-Completions-Form ist seit dem
+                 27.09.2026 abgeschaltet; ihr Lesezweig ist entfernt (L-81).
     Google AI    POST https://generativelanguage.googleapis.com/v1beta/interactions
                  Schluessel im Kopf `x-goog-api-key`, Werkzeug
                  `{"type": "google_search"}`, Modell `gemini-3.7-flash`.
@@ -122,7 +122,7 @@ def lies_openai_antwort(roh: dict) -> Tuple[str, List[str]]:
 
 
 def lies_perplexity_antwort(roh: dict) -> Tuple[str, List[str]]:
-    """Text und Quellen — Agent API, Responses-Form und die auslaufende Sonar-Form.
+    """Text und Quellen aus der Agent API (Responses-Form, `output_text` oben).
 
     **Am 31.08.2026 am lebenden Dienst nachgestellt, und die Vermutung von
     damals war falsch.** Bis heute suchte diese Funktion ein `output_text`
@@ -139,8 +139,10 @@ def lies_perplexity_antwort(roh: dict) -> Tuple[str, List[str]]:
     seit dem 22.08.: Der erste echte Lauf zeigt es an einem leeren Ergebnis,
     nicht an einem falschen. Er hat es gezeigt.
 
-    **Die alten Formen bleiben stehen** — Sonar wird bis zum 27.09.2026
-    unterstuetzt (L-81), und ein Schluessel kann auf beides zeigen.
+    **Die Sonar-Form (`choices[].message.content`) wird nicht mehr gelesen.**
+    Perplexity hat sie am 27.09.2026 abgeschaltet; der Zweig ist am 28.09.
+    entfernt worden (L-81). Wer ihn stehen laesst, haelt eine Form offen, die
+    es nicht mehr gibt, und der naechste Leser haelt sie fuer gebraucht.
     """
     if not isinstance(roh, dict):
         return "", []
@@ -174,12 +176,6 @@ def lies_perplexity_antwort(roh: dict) -> Tuple[str, List[str]]:
         direkt = roh.get("output_text")
         if isinstance(direkt, str) and direkt.strip():
             text = direkt.strip()
-    if not text:
-        for wahl in roh.get("choices") or []:
-            inhalt = (wahl or {}).get("message", {}).get("content")
-            if isinstance(inhalt, str) and inhalt.strip():
-                text = inhalt.strip()
-                break
 
     belege += _urls(roh.get("search_results")) + _urls(roh.get("citations"))
     return text, list(dict.fromkeys(belege))
